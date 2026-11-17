@@ -13,8 +13,11 @@ Run `"${CLAUDE_PLUGIN_ROOT}/bin/slopweaver" outlook $ARGUMENTS` and report the r
 SDKs from one file (`src/live/outlook/client.ts`). Never reach for raw HTTP, `curl`, a Microsoft MCP tool, a
 browser scrape or a second client to do something a verb does not: the absence is the answer.
 
-**The mailbox is NOT in the corpus.** Nothing ingests Outlook mail yet, so `store read` knows nothing of it and
-every Outlook answer is a live read. Say so rather than implying history was searched.
+**History lives in the corpus, as the `outlook` source.** `refresh --source outlook` reads every folder whole
+the first time, then only what changed since (a Graph delta link per folder), bar Drafts, Outbox, Junk Email
+and Deleted Items with every folder under them. Each message is one private record keyed by its immutable id,
+so filing it elsewhere mints no second version; mail removed at Microsoft keeps its record. These verbs read
+Outlook LIVE, never that copy; say which one answered.
 
 **`send` is the one verb here that reaches another person, and you cannot approve it yourself.** Compose with
 `outlook draft`, then run `outlook send <draft-id>` with no `--approve`: it prints the draft exactly as Outlook

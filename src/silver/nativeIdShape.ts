@@ -75,6 +75,10 @@ export function isNativeIdShaped({ source, value }: { source: IdentitySource; va
       // record's `author` is the organiser's display name, else their address's local part
       // (`corpus/personName.ts`), so no value under this source IS a native id.
       return false;
+    case "outlook":
+      // Gmail's answer, for Gmail's reason: a sender's native id is their address, which the bronze write path
+      // scrubs; the record's `author` is a display name or a local part (`corpus/personName.ts`).
+      return false;
     case "outlook-calendar":
       // The Google diary's answer, for the same reason: an Outlook attendee's native id is their address, which
       // the bronze write path scrubs; the record's `author` is the organiser's name (`corpus/personName.ts`).

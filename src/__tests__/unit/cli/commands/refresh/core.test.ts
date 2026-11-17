@@ -112,7 +112,7 @@ describe("selectRefreshSources", () => {
     expect(chosen.isErr()).toBe(true);
     expect(unwrapErr(chosen).code).toBe("UNKNOWN_SOURCE");
     expect(unwrapErr(chosen).message).toBe(
-      "unknown --source: jira (expected github|slack|linear|notion|gmail|calendar|fathom|chatgpt|outlook-calendar)",
+      "unknown --source: jira (expected github|slack|linear|notion|gmail|calendar|fathom|chatgpt|outlook-calendar|outlook)",
     );
   });
 
@@ -136,7 +136,7 @@ describe("selectRefreshSources", () => {
       RefreshErrors.unknownSource({ expected: FETCHABLE_SOURCES, unknown: ["jira", "self"] }),
     );
     expect(unwrapErr(chosen).message).toBe(
-      "unknown --source: jira, self (expected github|slack|linear|notion|gmail|calendar|fathom|chatgpt|outlook-calendar)",
+      "unknown --source: jira, self (expected github|slack|linear|notion|gmail|calendar|fathom|chatgpt|outlook-calendar|outlook)",
     );
   });
 });

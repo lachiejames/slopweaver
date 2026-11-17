@@ -120,6 +120,7 @@ describe("content sources mirror the corpus union", () => {
       "fathom",
       "chatgpt",
       "outlook-calendar",
+      "outlook",
     ]);
   });
 

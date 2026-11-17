@@ -25,7 +25,16 @@ export const SOURCE_FRESHNESS_STATES: readonly SourceFreshnessState[] = [
 
 /** A corpus source the verb may report — `CorpusSource` in `src/integrations/corpusSources.ts`, restated because this module imports nothing. */
 export type SourceFreshnessSource =
-  "github" | "slack" | "linear" | "notion" | "gmail" | "calendar" | "fathom" | "chatgpt" | "outlook-calendar";
+  | "github"
+  | "slack"
+  | "linear"
+  | "notion"
+  | "gmail"
+  | "calendar"
+  | "fathom"
+  | "chatgpt"
+  | "outlook-calendar"
+  | "outlook";
 
 /**
  * Every source the verb reports — `FETCHABLE_SOURCES`, pinned by `src/__tests__/unit/sourceFreshnessMirror.test.ts`.
@@ -42,6 +51,7 @@ export const SOURCE_FRESHNESS_SOURCES: readonly SourceFreshnessSource[] = [
   "fathom",
   "chatgpt",
   "outlook-calendar",
+  "outlook",
 ];
 
 /**
@@ -56,6 +66,7 @@ export const SOURCE_FRESHNESS_LABELS: Readonly<Record<SourceFreshnessSource, str
   gmail: "Gmail",
   linear: "Linear",
   notion: "Notion",
+  outlook: "Outlook",
   "outlook-calendar": "Outlook Calendar",
   slack: "Slack",
 };

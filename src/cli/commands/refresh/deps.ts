@@ -15,6 +15,7 @@ import type { chatgptIngestJob } from "../../../corpus/chatgpt/ingest.js";
 import type { fathomIngestJob } from "../../../corpus/fathom/ingest.js";
 import type { gmailIngestJob } from "../../../corpus/gmail/ingest.js";
 import type { ingestSources } from "../../../corpus/ingestSource.js";
+import type { outlookMailIngestJob } from "../../../corpus/outlook/ingest.js";
 import type { outlookCalendarIngestJob } from "../../../corpus/outlookCalendar/ingest.js";
 import type { SourceProgress } from "../../../corpus/progress.js";
 import type { acquireRefreshSlot } from "../../../corpus/refreshSlot.js";
@@ -82,6 +83,11 @@ export interface RefreshDeps {
    * is, and separate from it because it rides the Microsoft grant and holds modified-time anchors, not sync tokens.
    */
   readonly buildOutlookCalendarJob?: typeof outlookCalendarIngestJob;
+  /**
+   * The `outlook` mailbox ingest job builder — optional and injected for the same reasons {@link buildGmailJob}
+   * is, and separate from it because it rides the Microsoft grant and holds a delta link per mail folder.
+   */
+  readonly buildOutlookMailJob?: typeof outlookMailIngestJob;
   /**
    * The `fathom` ingest job builder — optional and injected for the same reasons {@link buildCalendarJob} is.
    * Separate from both because it authenticates with a bare API key rather than an OAuth grant, and because

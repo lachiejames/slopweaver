@@ -34,7 +34,15 @@ function recordFrom({ source, author }: { source: CorpusSource; author: string }
 describe("ROSTER_SOURCES — which sources can make the roster stale", () => {
   it("excludes exactly the sources that can mint no identity, and no others", () => {
     const excluded = ALL_CORPUS_SOURCES.filter((source) => !ROSTER_SOURCES.includes(source));
-    expect(excluded.toSorted()).toEqual(["calendar", "chatgpt", "fathom", "gmail", "gold", "outlook-calendar"]);
+    expect(excluded.toSorted()).toEqual([
+      "calendar",
+      "chatgpt",
+      "fathom",
+      "gmail",
+      "gold",
+      "outlook",
+      "outlook-calendar",
+    ]);
   });
 
   it("pins each exclusion to the resolver fact that makes it true", () => {

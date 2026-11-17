@@ -88,9 +88,9 @@ export const REFRESH_FLOOR_SECONDS: Partial<
  *
  * It is the largest measured floor, marked unbounded, rather than a small default: an unmeasured source
  * quoted optimistically is exactly the invented estimate the owner asked not to be given, and a wait that
- * turns out shorter than "at least 40 min" disappoints nobody. `calendar` and `outlook-calendar` are the
- * refreshable sources that reach it today — the measurement timed neither, and borrowing gmail's eight seconds
- * because each is one person's diary would be a guess wearing a measurement's clothes.
+ * turns out shorter than "at least 40 min" disappoints nobody. `calendar`, `outlook-calendar` and `outlook` are
+ * the refreshable sources that reach it today — the measurement timed none of them, and borrowing gmail's eight
+ * seconds because each is one person's diary or mailbox would be a guess wearing a measurement's clothes.
  */
 const UNMEASURED_FLOOR = { seconds: 2400, unbounded: true } as const;
 

@@ -74,6 +74,7 @@ describe("parseCompactOptions", () => {
       "fathom",
       "chatgpt",
       "outlook-calendar",
+      "outlook",
     ]);
     expect(options.olderThanDays).toBeUndefined();
     expect(options.json).toBe(false);

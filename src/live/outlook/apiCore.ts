@@ -23,6 +23,7 @@ import { type OutlookError, OutlookErrors } from "./errors.js";
 import {
   type GraphAttachment,
   type GraphCategory,
+  type GraphDeltaMessage,
   type GraphMailFolder,
   type GraphMessage,
   MESSAGE_PAGE,
@@ -119,6 +120,25 @@ export interface OutlookIdentity {
 /** Where a listing starts: a folder's first page, or a link Graph handed back. */
 export type PageStart<T> = { readonly first: T } | { readonly link: string };
 
+/**
+ * One page of a folder's message delta. Exactly one of the two links is set: `nextLink` while the round is
+ * still paging, `deltaLink` on its last page, which is what the next round resumes from.
+ */
+export interface MessageDeltaPage {
+  readonly items: readonly GraphDeltaMessage[];
+  readonly nextLink: string | undefined;
+  readonly deltaLink: string | undefined;
+}
+
+/**
+ * A delta request: a folder's initial round, or a link Graph handed back, at most `maxPageSize` items a page.
+ * @internal — the argument type of `OutlookApi.messageDelta`; callers build it inline.
+ */
+export interface MessageDeltaRequest {
+  readonly start: PageStart<{ readonly folderId: string }>;
+  readonly maxPageSize: number;
+}
+
 /** The Outlook door's Graph seam. Every method answers a boundary-checked wire value or the typed failure. */
 export interface OutlookApi {
   /** `GET /me` — the bound account's identity. */
@@ -135,6 +155,8 @@ export interface OutlookApi {
   readonly conversation: (
     args: PageStart<{ conversationId: string }>,
   ) => Promise<Result<Page<GraphMessage>, OutlookError>>;
+  /** One page of a folder's message delta; an expired delta link answers `DELTA_STATE_EXPIRED`. */
+  readonly messageDelta: (args: MessageDeltaRequest) => Promise<Result<MessageDeltaPage, OutlookError>>;
   /** One message in full. */
   readonly getMessage: (args: { id: string }) => Promise<Result<GraphMessage, OutlookError>>;
   /** A folder by id or well-known name (`inbox`, `archive`, `drafts`, …). */

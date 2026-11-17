@@ -30,11 +30,20 @@ const HAND_KEPT_IDENTITY = ["github", "slack", "linear", "notion"];
 /** The literal `src/silver/derive/freshness.ts` spelled by hand, in id order. */
 const HAND_KEPT_ROSTER = ["github", "linear", "notion", "self", "slack"];
 /** The set `src/corpus/visibility.ts` spelled by hand. */
-const HAND_KEPT_ALWAYS_PRIVATE = ["self", "gmail", "calendar", "fathom", "chatgpt", "outlook-calendar"];
+const HAND_KEPT_ALWAYS_PRIVATE = ["self", "gmail", "calendar", "fathom", "chatgpt", "outlook-calendar", "outlook"];
 /** The literal `src/corpus/sliceShape.ts` spelled by hand, in an order nothing observed. */
-const HAND_KEPT_CONTAINER_SCOPED = ["slack", "github", "linear", "notion", "gmail", "self"];
+const HAND_KEPT_CONTAINER_SCOPED = ["slack", "github", "linear", "notion", "gmail", "self", "outlook"];
 /** The literal `src/live/resync/demand.ts` spelled by hand. */
-const HAND_KEPT_RESYNC_DEMAND = ["slack", "linear", "notion", "gmail", "calendar", "fathom", "outlook-calendar"];
+const HAND_KEPT_RESYNC_DEMAND = [
+  "slack",
+  "linear",
+  "notion",
+  "gmail",
+  "calendar",
+  "fathom",
+  "outlook-calendar",
+  "outlook",
+];
 
 /** A manifest-only org-shared fixture: it names people, its container is an allowlist unit, and it is not private. */
 const SHARED_FIXTURE = {
@@ -43,7 +52,7 @@ const SHARED_FIXTURE = {
     alwaysPrivate: false,
     containerScoped: true,
     identityRoster: true,
-    ordinal: 10,
+    ordinal: 12,
     progressPhase: false,
     resyncDemand: true,
     upfrontTokenGate: false,
@@ -60,7 +69,7 @@ const PRIVATE_FIXTURE = {
     alwaysPrivate: true,
     containerScoped: false,
     identityRoster: false,
-    ordinal: 10,
+    ordinal: 12,
     progressPhase: false,
     resyncDemand: false,
     upfrontTokenGate: false,
@@ -81,7 +90,7 @@ describe("the corpus policy lists derived from the registry", () => {
   });
 
   it("the container-scoped list holds the hand-kept members, now in ordinal order", () => {
-    expect(CONTAINER_SCOPED_SOURCES).toEqual(["github", "slack", "linear", "notion", "self", "gmail"]);
+    expect(CONTAINER_SCOPED_SOURCES).toEqual(["github", "slack", "linear", "notion", "self", "gmail", "outlook"]);
     expect(CONTAINER_SCOPED_SOURCES.toSorted()).toEqual(HAND_KEPT_CONTAINER_SCOPED.toSorted());
   });
 

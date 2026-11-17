@@ -19,16 +19,16 @@ import {
 } from "../../../onboard/sources.js";
 
 describe("ONBOARD_SOURCES", () => {
-  it("names all five sources, with gmail alongside the original four", () => {
-    expect([...ONBOARD_SOURCES]).toEqual(["github", "slack", "linear", "notion", "gmail"]);
+  it("names every connectable source, the two mailboxes after the original four", () => {
+    expect([...ONBOARD_SOURCES]).toEqual(["github", "slack", "linear", "notion", "gmail", "outlook"]);
   });
 
   it("gives every source a spec whose own source field matches its key", () => {
     expect(ONBOARD_SOURCES.map((source) => SOURCE_SPECS[source].source)).toEqual([...ONBOARD_SOURCES]);
   });
 
-  it("marks gmail as the one source refresh --all-sources does not reach", () => {
-    expect(ONBOARD_SOURCES.filter((source) => !SOURCE_SPECS[source].inAllSources)).toEqual(["gmail"]);
+  it("marks the two mailboxes as the sources refresh --all-sources does not reach", () => {
+    expect(ONBOARD_SOURCES.filter((source) => !SOURCE_SPECS[source].inAllSources)).toEqual(["gmail", "outlook"]);
   });
 });
 
@@ -94,12 +94,12 @@ describe("connectSourceLines", () => {
     expect(positions).toEqual([...positions].toSorted((a, b) => a - b));
   });
 
-  it("renders the live Outlook connector after every corpus source, without making it a sixth one", () => {
+  it("renders Outlook as a corpus source, in its place after Gmail", () => {
     const text = connectSourceLines({ hasBot: true }).join("\n");
-    const outlook = text.indexOf("Live connector: Outlook");
-    const lastCorpus = Math.max(...ONBOARD_SOURCES.map((source) => text.indexOf(`\n  ${source}`)));
+    const gmail = text.indexOf("\n  gmail");
+    const outlook = text.indexOf("\n  outlook");
 
-    expect(outlook).toBeGreaterThan(lastCorpus);
-    expect([...ONBOARD_SOURCES]).not.toContain("outlook");
+    expect(gmail).toBeGreaterThan(-1);
+    expect(outlook).toBeGreaterThan(gmail);
   });
 });

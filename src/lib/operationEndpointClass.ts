@@ -284,6 +284,7 @@ export const OPERATION_ENDPOINT_CLASS: Readonly<Record<string, string>> = {
   "outlook.folders.get": "read",
   "outlook.folders.list": "read",
   "outlook.me.get": "read",
+  "outlook.messages.delta": "read",
   "outlook.messages.get": "read",
   "outlook.messages.list": "read",
   "outlook.messages.move": "write",

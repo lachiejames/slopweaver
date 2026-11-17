@@ -27,6 +27,7 @@ import { fathomIngestJob } from "../../../corpus/fathom/ingest.js";
 import { gmailIngestJob } from "../../../corpus/gmail/ingest.js";
 import type { SourceIngestJob } from "../../../corpus/ingestJob.js";
 import { ingestSources } from "../../../corpus/ingestSource.js";
+import { outlookMailIngestJob } from "../../../corpus/outlook/ingest.js";
 import { outlookCalendarIngestJob } from "../../../corpus/outlookCalendar/ingest.js";
 import { toRichProgressEvent } from "../../../corpus/progress.js";
 import { selfIngestJob } from "../../../corpus/self/ingest.js";
@@ -284,6 +285,7 @@ function productionRefreshDeps({
     buildFathomJob: fathomIngestJob,
     buildGmailJob: gmailIngestJob,
     buildOutlookCalendarJob: outlookCalendarIngestJob,
+    buildOutlookMailJob: outlookMailIngestJob,
     buildSelfJob: selfIngestJob,
     buildSourceJob: sourceJob,
     home: slopweaverHome,

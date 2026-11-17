@@ -2732,11 +2732,6 @@
     },
     {
       "count": 1,
-      "name": "outlookConnectorLines",
-      "path": "src/onboard/outlook.ts"
-    },
-    {
-      "count": 1,
       "name": "provider",
       "path": "src/organisation/core.ts"
     },

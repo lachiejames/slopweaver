@@ -1,0 +1,10 @@
+-- Widening `content_source` with `outlook`.
+--
+-- The one enum-widening statement drizzle-kit generated here is applied by the apply loop's post-migration
+-- phase (`enumValueStatements`, src/store/policies.ts), which runs each declared label outside the
+-- migrator's single transaction and idempotently, exactly as `0017_chatgpt_history` does for `chatgpt`.
+-- Postgres refuses to let a later statement in one transaction use a label that transaction introduced,
+-- the class the `drizzle-migrations` safety gate refuses.
+--
+-- The snapshot beside this file records the widened vocabulary, so drizzle-kit will not emit the statement
+-- again. This file is intentionally a no-op.

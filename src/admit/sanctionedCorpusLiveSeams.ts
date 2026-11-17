@@ -55,6 +55,9 @@ export const CORPUS_LIVE_SEAMS = {
   // The `outlook-calendar` source's per-calendar modified-time anchors, beside the Google ones and the same
   // class: a resume cursor this program writes for itself under `corpus/watermarks`, never a provider write.
   "src/corpus/outlookCalendar/syncAnchor.ts": "local-state",
+  // The `outlook` source's per-folder Graph delta links, the same class: a resume cursor this program writes for
+  // itself under `corpus/watermarks`, never a provider write and never anything that leaves the machine.
+  "src/corpus/outlook/syncAnchor.ts": "local-state",
   // A held calendar write, waiting under `$SLOPWEAVER_HOME/calendar/intents` between the preview and the
   // owner's `commit --approve`. This program's own record of what it proposed and what Google reported
   // back; the mutation it describes routes through `safeProviderCall` in `live/calendar/writeApi.ts`.

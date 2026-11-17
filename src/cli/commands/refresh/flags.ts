@@ -81,8 +81,10 @@ export const REFRESH_FLAG_NAMES: readonly string[] = [
  * Every flag in {@link REFRESH_FLAG_NAMES} appears here; the ratchet fails the build if one stops doing so.
  */
 export const REFRESH_USAGE =
-  "usage: slopweaver refresh [--repo owner/repo] [--source github|slack|linear|notion|gmail|calendar|fathom]... " +
-  "[--all-sources (github/slack/linear/notion — NOT gmail or calendar; name them)] [--since YYYY-MM-DD] " +
+  "usage: slopweaver refresh [--repo owner/repo] " +
+  "[--source github|slack|linear|notion|gmail|calendar|fathom|chatgpt|outlook-calendar|outlook]... " +
+  "[--all-sources (github/slack/linear/notion — NOT a mailbox, a diary, fathom or chatgpt; name them)] " +
+  "[--since YYYY-MM-DD] " +
   "[--until YYYY-MM-DD] [--all --accept-full-history] " +
   "[--slack-channel <id>]... [--lookback-days N] [--no-enrich] [--coverage] [--all-repos [--github-org <org>] " +
   "[--include-repo <glob>]... [--exclude-repo <glob>]... [--repo-cap N]] [--github-page-cap N] [--slack-membership-cap N] " +

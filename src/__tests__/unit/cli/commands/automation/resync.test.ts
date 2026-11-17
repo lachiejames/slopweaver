@@ -204,7 +204,7 @@ describe("runRecipeResync", () => {
       deps: deps(sinks),
     });
     expect(code).toBe(0);
-    expect(sinks.out.at(-1)).toBe("42 target(s) scheduled");
+    expect(sinks.out.at(-1)).toBe("43 target(s) scheduled");
     expect(sinks.out.find((out) => out.startsWith("resync-corpus-github ·"))!).toBe(
       "resync-corpus-github · 0 */4 * * * · slopweaver refresh --source github --store --all-repos --github-org acme",
     );
@@ -215,6 +215,10 @@ describe("runRecipeResync", () => {
     // The Outlook diary is a corpus source with its own history sync, so it is a target of its own.
     expect(sinks.out.find((out) => out.startsWith("resync-corpus-outlook-calendar ·"))!).toBe(
       "resync-corpus-outlook-calendar · 0 0 * * * · slopweaver refresh --source outlook-calendar --store",
+    );
+    // The Outlook mailbox is one too, on Gmail's twelve hours.
+    expect(sinks.out.find((out) => out.startsWith("resync-corpus-outlook ·"))!).toBe(
+      "resync-corpus-outlook · 0 */12 * * * · slopweaver refresh --source outlook --store",
     );
   });
   it("reports the github row as a PROBLEM, and drops it, when no main checkout is declared", async () => {
@@ -229,7 +233,7 @@ describe("runRecipeResync", () => {
     });
     expect(code).toBe(1);
     // No export held either, so the chatgpt row is absent too, silently: that is not a problem line.
-    expect(sinks.out.at(-1)).toBe("40 target(s) scheduled");
+    expect(sinks.out.at(-1)).toBe("41 target(s) scheduled");
     expect(sinks.out.filter((out) => out.startsWith("resync-corpus-chatgpt ·"))).toEqual([]);
     expect(sinks.out.filter((out) => out.startsWith("resync-corpus-github ·"))).toEqual([]);
     const problem = sinks.diagnostics.find((line) => line.includes("corpus github"))!;

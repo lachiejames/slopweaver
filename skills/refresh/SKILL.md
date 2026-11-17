@@ -1,7 +1,7 @@
 ---
 name: refresh
 description: Ingest recent GitHub, Slack, Linear or Notion activity into your local bronze corpus — and, when explicitly named, the owner's Gmail mailbox, diary, recorded Fathom calls or downloaded ChatGPT export. Use when an ask or facts answer looks stale or misses work the user knows exists, or when they name a repo or a date range to pull in. Phrases like "refresh the corpus", "pull in the latest", "ingest", "it doesn't know about that yet".
-argument-hint: "[--repo owner/repo] [--source linear|fathom|chatgpt|outlook-calendar] [--since YYYY-MM-DD] [--until YYYY-MM-DD] [--if-stale [--stale-after 4h]] [--numbers-only]"
+argument-hint: "[--repo owner/repo] [--source linear|fathom|chatgpt|outlook-calendar|outlook] [--since YYYY-MM-DD] [--until YYYY-MM-DD] [--if-stale [--stale-after 4h]] [--numbers-only]"
 ---
 
 Run `"${CLAUDE_PLUGIN_ROOT}/bin/slopweaver" refresh $ARGUMENTS` and report what was written (new records, deduped, source). If it reports no GitHub auth, tell the user to run `gh auth login` — no personal access token is needed. A refresh rebuilds silver itself (`derive`) unless `--no-derive` was passed, which prints that silver is behind; gold (`/slopweaver:distil`) is built only when they ask for it.
@@ -65,6 +65,10 @@ Two things worth reporting back that are easy to skip past:
   grant (`outlook connect`). A calendar with no anchor is read whole; then by `lastModifiedDateTime`, five
   minutes overlapped. `--since`/`--all` read every calendar whole, the only way a deleted event's record goes.
   A gap or a `--sample`/`--fetch-cap` moves no anchor ([outlook-calendar](../outlook-calendar/SKILL.md)).
+- **The `outlook` lane reads each mail folder whole once, then by delta link.** Same grant. Every visible
+  folder bar the Drafts, Outbox, Junk and Deleted Items trees; each page commits before the next, and a folder's
+  link is written only once its round is whole. A failed folder holds only its own link; `--sample`/`--fetch-cap`
+  write none, so a proof run leaves no sync state ([outlook](../outlook/SKILL.md)).
 
 - **The Slack `huddle` lane, and it carries the WORDS.** The workspace-wide `files.list` walk splits
   huddles out from canvases, so a recorded call lands as its own `huddle` record rather than as a document

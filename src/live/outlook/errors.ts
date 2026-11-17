@@ -146,8 +146,19 @@ interface DraftRefusedError {
   readonly message: string;
 }
 
+/**
+ * Graph no longer holds the state a stored delta link resumes from (HTTP 410, or `syncStateNotFound`), so the
+ * folder has to be enumerated again from an initial delta request.
+ */
+interface DeltaStateExpiredError {
+  readonly code: "DELTA_STATE_EXPIRED";
+  readonly message: string;
+  readonly cause?: unknown;
+}
+
 /** Every failure an Outlook door verb can produce. */
 export type OutlookError =
+  | DeltaStateExpiredError
   | NotConnectedError
   | ScopeMissingError
   | CredentialUnreadableError
@@ -247,6 +258,11 @@ export const OutlookErrors = {
   }): DestinationUnusableError => ({
     code: "DESTINATION_UNUSABLE",
     message: `cannot write the attachment under ${destination}: ${reason}`,
+  }),
+  deltaStateExpired: ({ cause }: { cause?: unknown }): DeltaStateExpiredError => ({
+    code: "DELTA_STATE_EXPIRED",
+    message: "Graph no longer holds the state this folder's delta link resumes from, so it must be read whole again",
+    ...(cause !== undefined ? { cause } : {}),
   }),
   draftRefused: ({ message }: { message: string }): DraftRefusedError => ({ code: "DRAFT_REFUSED", message }),
   grantBusy: ({ holder }: { holder: string }): GrantBusyError => ({

@@ -105,7 +105,7 @@ describe("selectRefreshSources with --self", () => {
     expect(withSelf).toEqual(expected);
     expect(withoutSelf).toEqual(expected);
     expect(withSelf.message).toBe(
-      "unknown --source: self (expected github|slack|linear|notion|gmail|calendar|fathom|chatgpt|outlook-calendar)",
+      "unknown --source: self (expected github|slack|linear|notion|gmail|calendar|fathom|chatgpt|outlook-calendar|outlook)",
     );
   });
 });

@@ -86,6 +86,13 @@ A resync whose propagation fails still succeeded as a sync; the failure is on th
 - `workstreams` — judgement — board rows and their tags are journal state; only the pass can say one moved
 - `fleet-briefing` — judgement — `briefing render` needs the chair's typed form; its freshness section reads resync-state at render
 
+### `outlook`
+
+- `pull-requests-review-state` — live — the landing derivation reads GitHub live and Slack bronze, never this source
+- `queue` — live — every register is re-read per request; the pass decides which rows the sync changed
+- `workstreams` — judgement — board rows and their tags are journal state; only the pass can say one moved
+- `fleet-briefing` — judgement — `briefing render` needs the chair's typed form; its freshness section reads resync-state at render
+
 ## What no corpus sync feeds
 
 Atlases feed only the Fleet Briefing's freshness section, read at render time; hand cards are frozen at

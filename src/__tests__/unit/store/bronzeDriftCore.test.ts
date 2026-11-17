@@ -178,10 +178,10 @@ describe("parseStoreStatusArgs and the drift scan's bounds", () => {
     const refused = parseStoreStatusArgs({ rest: ["--source", "jira"] });
     expect(refused.isErr()).toBe(true);
     expect(refused._unsafeUnwrapErr()[0]).toBe(
-      `source: Invalid option: expected one of "github"|"slack"|"linear"|"notion"|"self"|"gmail"|"calendar"|"fathom"|"chatgpt"|"outlook-calendar"`,
+      `source: Invalid option: expected one of "github"|"slack"|"linear"|"notion"|"self"|"gmail"|"calendar"|"fathom"|"chatgpt"|"outlook-calendar"|"outlook"`,
     );
     expect(refused._unsafeUnwrapErr()[1]).toBe(
-      "sources: github, slack, linear, notion, self, gmail, calendar, fathom, chatgpt, outlook-calendar",
+      "sources: github, slack, linear, notion, self, gmail, calendar, fathom, chatgpt, outlook-calendar, outlook",
     );
   });
 });

@@ -128,6 +128,7 @@ const CONTAINER_KIND_BY_SOURCE = {
   gmail: "mailbox",
   linear: "team",
   notion: "workspace",
+  outlook: "mailbox",
   "outlook-calendar": "calendar",
   self: "directory",
   slack: "channel",
