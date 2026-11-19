@@ -5,7 +5,7 @@ import type { RebuildWaitOutcome } from "../../../../../builtCli/consoleRebuildW
 import { scratchBuildGate } from "../../../../../cli/commands/supervisor/scratchBuildGate.js";
 
 const FRESH: BuiltState = { kind: "fresh", manifestText: "manifest-1" };
-const STALE: BuiltState = { kind: "stale", manifestText: "manifest-1" };
+const STALE: BuiltState = { evidence: "src/a.ts moved", kind: "stale", manifestText: "manifest-1" };
 const REBUILT: BuiltState = { kind: "fresh", manifestText: "manifest-2" };
 
 /**

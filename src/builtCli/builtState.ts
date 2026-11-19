@@ -22,13 +22,14 @@ import { DEFAULT_OUT } from "./layout.js";
  * - `unjudgeable` — a manifest that does not parse, or names a checkout that is gone: no rebuild is provably in
  *   flight, so waiting buys nothing, exactly as `./guard.ts` carries no manifest text on that arm.
  * - `fresh` / `stale` — a valid manifest over a checkout that is there; `stale` is the shape a rebuild in flight
- *   leaves, and the only one worth waiting out.
+ *   leaves, and the only one worth waiting out. `stale` carries the guard's own sentence naming the first source
+ *   file that moved (`./staleness.ts`), so a caller that refuses over it names one file to look at.
  */
 export type BuiltState =
   | { readonly kind: "unbuilt" }
   | { readonly kind: "unjudgeable" }
   | { readonly kind: "fresh"; readonly manifestText: string }
-  | { readonly kind: "stale"; readonly manifestText: string };
+  | { readonly kind: "stale"; readonly manifestText: string; readonly evidence: string };
 
 /**
  * The built tree a `slopweaver` launcher runs: `<checkout>/bin/slopweaver` runs `<checkout>/dist-cli`.

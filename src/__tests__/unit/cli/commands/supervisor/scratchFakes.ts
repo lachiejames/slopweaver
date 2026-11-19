@@ -64,7 +64,7 @@ function answeringLauncher({
     launched.push(`${bin} ${argv.join(" ")}`);
     budgets.push(timeoutMs);
     if (rebuild !== undefined && launched.length === rebuild.staleAtLaunch) {
-      world.state = { kind: "stale", manifestText: "manifest-1" };
+      world.state = { evidence: "src/a.ts moved", kind: "stale", manifestText: "manifest-1" };
     }
     if (world.state.kind === "stale") {
       writeFileSync(stdoutPath, "");

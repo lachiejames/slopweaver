@@ -121,6 +121,10 @@ function makeCheckout(): string {
   mkdirSync(join(at, "bin"));
   writeFileSync(join(at, "bin", "yarn"), FAKE_YARN);
   chmodSync(join(at, "bin", "yarn"), 0o755);
+  // The built-CLI check every dev start runs first, passing: what it refuses is `docsSiteBuiltCliFreshness.test.ts`'s.
+  mkdirSync(join(at, "node_modules", ".bin"), { recursive: true });
+  writeFileSync(join(at, "node_modules", ".bin", "tsx"), "#!/bin/sh\nexit 0\n");
+  chmodSync(join(at, "node_modules", ".bin", "tsx"), 0o755);
   const identity = ["-c", "user.name=t", "-c", "user.email=t@example.test", "-c", "commit.gpgsign=false"];
   gitInTemp({ args: ["init", "-q"], cwd: at });
   gitInTemp({ args: [...identity, "commit", "-q", "--allow-empty", "-m", "seed"], cwd: at });

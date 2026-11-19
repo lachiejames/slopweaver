@@ -145,6 +145,9 @@ export const DEV_TOOLING_SEAMS = {
   // The `github attach` run tests' harness: a throwaway `mkdtempSync` home per case, a zero-filled fixture file of
   // the size a case names, and an `afterEach` that removes both. Test support, the class of `registeredRowFake.ts`.
   "src/__tests__/attachRunFixture.ts": "dev-tooling",
+  // The serving-checkout tests' fixture: one throwaway `mkdtempSync` git checkout per case, its one source file and
+  // the `dist-cli` build manifest stamped from it, removed by the caller's `afterEach`. The class of `attachRunFixture.ts`.
+  "src/__tests__/builtCheckoutFixture.ts": "dev-tooling",
   // The `profile words` verb-body tests' shared harness: `useWordsHomes()` mints one throwaway `mkdtempSync` state
   // home and one Claude home per case in a `beforeEach`, writes only a fixture chain link, pin record, empty chair
   // transcript and staged console turns beneath them, and removes both in the `afterEach` it registers. Test

@@ -359,6 +359,31 @@ stop_recorded() {
   echo "docs-site: stopped the server on port $port (pid $pid, $dead process(es) signalled)"
 }
 
+# A dev console over a STALE built CLI, refused before anything is served or reused. MEASURED: every page of a
+# worktree's dev console took about 30 s (`GET /queue 200 in 31.2s (… application-code: 30.9s)`) and drew
+# "Organisation required", because each page's organisation read is a console child that waits out
+# `CONSOLE_REBUILD_WAIT_MS` for a rebuild nothing in a worktree starts (`src/builtCli/servingCheckout.ts`). The check
+# runs from SOURCE: `bin/slopweaver`'s own guard refuses before any verb could judge the build it guards. Its one
+# `docs-site:` line names `slopweaver dev build`; it never builds, since a build beside a test lap is a load decision.
+check_serving_cli() {
+  # No root install, no check: only a STALE build is refused, and one this cannot read is said so and served as before.
+  if [[ ! -x "$root/node_modules/.bin/tsx" ]]; then
+    echo "docs-site: $root has no root install, so its built CLI was not checked before serving" >&2
+    return 0
+  fi
+  # Exit 3 WITH `stale` alone on stdout is the entry's stale refusal and the ONLY refusal: any other outcome, a `tsx`
+  # that cannot run included, whatever it exits, judged nothing, so it is said and the console served as before.
+  local status=0 verdict
+  verdict="$("$root/node_modules/.bin/tsx" "$root/src/builtCli/docsSiteStart.entry.ts" "$root")" || status=$?
+  if ((status == 3)) && [[ "$verdict" == "stale" ]]; then
+    return 1
+  fi
+  if ((status != 0)); then
+    echo "docs-site: the built-CLI check could not run (exit $status), so it was not checked before serving" >&2
+  fi
+  return 0
+}
+
 # A dev start in a checkout whose record names a production console, refused rather than overwriting that
 # record: the record is what brings a console that went down back on the next pull, and a dev server
 # replacing it would end that silently.
@@ -1338,6 +1363,7 @@ if [[ "${1:-}" == "--stop" ]]; then
 fi
 
 if [[ "${1:-}" == "--start" ]]; then
+  check_serving_cli || exit 1
   if record_live; then
     echo "docs-site: reusing http://localhost:$(record_field port) (pid $(record_field pid)) — already serving $root"
     exit 0
@@ -1692,6 +1718,8 @@ if [[ "${1:-}" == "--build" ]]; then
   nested_yarn build "$@"
   exit 0
 fi
+
+check_serving_cli || exit 1
 
 # REUSE, never a second server. Before the run record existed this line started another `next dev` every
 # time it was reached, and Next silently took the next free port — which is how one worktree ended up

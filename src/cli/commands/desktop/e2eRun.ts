@@ -15,6 +15,8 @@ import { resolve } from "node:path";
 
 import { logger } from "#lib/logger.js";
 import { err, ok, type Result } from "#lib/result.js";
+import { walkChecksServingBuild } from "../../../builtCli/servingCheckout.js";
+import { checkServingCheckoutBuild } from "../../../builtCli/servingCheckoutRead.js";
 import { CALL_STEP_IDS, callLegCheckout, type E2eCallStep, pickDesktopE2eSteps } from "../../../desktop/e2eCallPlan.js";
 import { cardReadSteps, type E2eCardStepId, placeCardSteps } from "../../../desktop/e2eCardReadPlan.js";
 import { e2eContextOf } from "../../../desktop/e2eContextFlag.js";
@@ -203,6 +205,25 @@ function checkoutOf({ args, home }: { args: DesktopE2eArgs; home: string }): Res
 }
 
 /**
+ * The checkout, once its built CLI has been judged fit to serve the walk's console — when the walk checks it at all
+ * (`walkChecksServingBuild`).
+ *
+ * @param args what the run was asked for, whose `--checkout` decides whether the check applies
+ * @param dir the checkout the instance reads its console from
+ * @returns the same checkout, or the stale-build refusal naming `slopweaver dev build`
+ */
+function servingBuildChecked({ args, dir }: { args: DesktopE2eArgs; dir: string }): Result<string, DesktopE2eError> {
+  const checks = walkChecksServingBuild({
+    checkoutWasNamed: args.checkout !== undefined,
+    mainWorktree: gitConfirmsMainWorktree({ root: dir }),
+  });
+  if (!checks) {
+    return ok(dir);
+  }
+  return checkServingCheckoutBuild({ checkout: dir }).map(() => dir);
+}
+
+/**
  * A path with its symlinks resolved, or the path as given when nothing is there to resolve — the launch then fails on
  * it by name.
  *
@@ -232,10 +253,11 @@ async function walkAndReport({ args, home }: { args: DesktopE2eArgs; home: strin
     return e2eExitCode({ failed: 0, fatal: held.message, heldOnCall: heldOnCall({ code: held.code }) });
   }
   const startedIso = new Date().toISOString();
-  // The checkout first, so a call leg aimed at a worktree is refused for that whatever the bundle.
-  const checkout = checkoutOf({ args, home }).andThen((dir) =>
-    checkE2eBundle({ app: args.app, menuBar: args.menuBar }).map(() => dir),
-  );
+  // The checkout first, so a call leg aimed at a worktree is refused for that whatever the bundle; then its built CLI,
+  // so a stale worktree is refused before anything is inspected or launched.
+  const checkout = checkoutOf({ args, home })
+    .andThen((dir) => servingBuildChecked({ args, dir }))
+    .andThen((dir) => checkE2eBundle({ app: args.app, menuBar: args.menuBar }).map(() => dir));
   if (checkout.isErr()) {
     logger.error({ msg: `desktop e2e: ${checkout.error.message}` });
     return EXIT_ERROR;
