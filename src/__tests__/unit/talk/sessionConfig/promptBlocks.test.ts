@@ -109,6 +109,18 @@ describe("the two prompts", () => {
     );
   });
 
+  // The messenger draws a typed answer's Markdown as it streams, and a reply written to the old plain-text line read as
+  // one paragraph with its options run together. So the typed block asks for light Markdown, last, scoped to answers.
+  it("asks a typed answer for light Markdown, never headings or tables, as the block's last line", () => {
+    expect(
+      TALK_TYPED_INSTRUCTIONS.endsWith(
+        "- Light Markdown for answers on screen: blank lines between short paragraphs, `- ` lists for several things,\n" +
+          "  `**bold**` sparingly, no headings or tables, and a code fence only for code. Keep ids out as when spoken.",
+      ),
+    ).toBe(true);
+    expect(TALK_TYPED_INSTRUCTIONS).not.toContain("draws no markdown");
+  });
+
   // A go-between still distils, but the decisions and asks it keeps stay in the supervisor's
   // words — the distilling is what keeps a typed answer short now the spoken length no longer binds it.
   it("has read_supervisor distilled for the owner, its decisions and asks in the supervisor's words", () => {

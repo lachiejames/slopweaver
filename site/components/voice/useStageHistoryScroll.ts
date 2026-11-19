@@ -207,9 +207,10 @@ export function useStageHistoryScroll({ pin, place }: { pin: string; place: Plac
     keepEdge({ bottomWhileFollowing: true, from });
     setTimed((was) => flipped({ id, set: was }));
   };
-  // A click anywhere on a bubble is a tap, but for its fold, which is its own button, and a drag that selected words.
+  // A click anywhere on a bubble is a tap, but for its fold or a code block's copy, each a button of its own, a link in
+  // the voice's rendered reply, and a drag that selected words.
   const tapBubble = ({ id, event }: { id: string; event: MouseEvent<HTMLLIElement> }): void => {
-    if (event.target instanceof Element && event.target.closest("button") !== null) {
+    if (event.target instanceof Element && event.target.closest("a, button") !== null) {
       return;
     }
     const selection = window.getSelection();

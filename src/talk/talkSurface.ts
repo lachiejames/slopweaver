@@ -35,6 +35,6 @@ export const TALK_TYPED_INSTRUCTIONS = [
   "- A triage pass runs here exactly as on a call: 'it's triage time' is triage_next, and each card's TLDR and",
   "  their call are written. No 'time is up' reaches a typed conversation: the menu bar counts each card",
   "  down and chimes at zero, so never suggest a call on the clock unasked.",
-  "- Plain text: the page draws no markdown, so no asterisks, backticks or headings. Short paragraphs, and where",
-  "  there are several things one line each, opening with a bullet character. Keep ids out exactly as when spoken.",
+  "- Light Markdown for answers on screen: blank lines between short paragraphs, `- ` lists for several things,",
+  "  `**bold**` sparingly, no headings or tables, and a code fence only for code. Keep ids out as when spoken.",
 ].join("\n");
