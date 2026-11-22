@@ -116,14 +116,15 @@ carries over, and `desktop-e2e` runs every spec, since there is no event payload
 `pending` on both contexts the moment the lock turns `running`, so an earlier green on the same commit stops being
 current while a rerun works. Then `error` if the tree or the store will not come up, or the verdict: each
 context `success` only when every step under it ran green, `failure` naming the red step or how many never
-ran. Each status is read back and matched, up to four reads 2s, 4s and 8s apart, because GitHub's status list
-trails the POST it just took; a read that fails stops at once, its client having retried a transient failure
-itself, and a POST is never re-sent. A lap
-killed mid-run leaves `pending`, never green.
+ran. A failed POST is re-sent, at most three POSTs 2s and 4s apart, only after one read of the head shows that exact
+status absent, since a failed POST may still have landed; a 4xx other than a 429 is GitHub refusing it, never re-sent
+(`lapStatusPost.ts`). Each status is then read back and matched, up to four reads 2s, 4s and 8s apart, as GitHub's
+status list trails the POST it just took; a failed read stops at once, its client having retried itself. A lap that
+spends every POST exits 1 after its lanes, its finished receipt kept; one killed mid-run leaves `pending`, never green.
 
 Every GitHub call the lap itself awaits ends by 60 seconds, its own retries included, in `LAP_GITHUB_TIMEOUT`
 (`src/outbound/github/lapApiDeadline.ts`): a request on a dead socket once held a batch `--dry-run` for 15m37s.
-A timed-out write is not known absent, so the lap stops rather than retrying it. The nested `github merge
+A timed-out write is not known absent, so the lap reads the head before re-sending it, as above. The nested `github merge
 --admin` keeps its own 45-minute bound as a whole, sized to its revert walk on a large pull request
 (`LAP_VERB_TIMEOUT_MS`, `lapVerb.ts`); a verb killed there exits 124 with a line saying so, never 127.
 

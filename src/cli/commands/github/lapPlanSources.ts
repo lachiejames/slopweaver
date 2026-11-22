@@ -37,6 +37,7 @@ export const LAP_PLAN_SOURCES: readonly string[] = [
     "lapSeatStore",
     "lapSeatUsage",
     "lapShell",
+    "lapStatusPost",
     "lapStatuses",
     "lapSteps",
     "lapStore",

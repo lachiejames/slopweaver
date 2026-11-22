@@ -61,28 +61,62 @@ export interface Observed {
  */
 export type ScriptedRead = "lag" | IngestError;
 
+/** One scripted status POST: `ok` lands it; a failure answers its error, having landed it first when `landed`. */
+export type ScriptedPost = "ok" | { readonly error: IngestError; readonly landed: boolean };
+
+/** A status read-back answering each scripted read in order, then everything `stored` holds at that moment. */
+function scriptedStatuses({
+  preposted,
+  reads,
+  stored,
+}: {
+  preposted: readonly CommitStatus[];
+  reads: readonly ScriptedRead[];
+  stored: readonly CommitStatus[];
+}): GithubLapApi["statuses"] {
+  const script = [...reads];
+  return () => {
+    const next = script.shift();
+    if (next === undefined) {
+      return ResultAsync.fromSafePromise(Promise.resolve([...stored]));
+    }
+    if (next === "lag") {
+      return ResultAsync.fromSafePromise(Promise.resolve([...preposted]));
+    }
+    return errAsync(next);
+  };
+}
+
 /** A plain fake GitHub whose status read-back echoes what was posted, after any scripted reads are spent. */
 function lapApi({
   observed,
   admin,
   preposted = [],
   reads = [],
+  posts = [],
 }: {
   observed: Observed;
   admin: boolean;
   preposted?: readonly CommitStatus[];
   reads?: readonly ScriptedRead[];
+  posts?: readonly ScriptedPost[];
 }): GithubLapApi {
   const stored: CommitStatus[] = [...preposted];
-  const script = [...reads];
+  const postScript = [...posts];
   return {
     isAdmin: () => ResultAsync.fromSafePromise(Promise.resolve(admin)),
     mergeRecord: () => ResultAsync.fromSafePromise(Promise.resolve({ mergedAtIso: undefined, state: "open" })),
     postStatus: ({ context, state, description, sha }) => {
       observed.posted.push({ context, sha, state });
       const status = { context, description, state };
-      stored.unshift(status);
-      return ResultAsync.fromSafePromise(Promise.resolve(status));
+      const next = postScript.shift();
+      if (next === undefined || next === "ok" || next.landed) {
+        stored.unshift(status);
+      }
+      if (next === undefined || next === "ok") {
+        return ResultAsync.fromSafePromise(Promise.resolve(status));
+      }
+      return errAsync(next.error);
     },
     protection: () =>
       ResultAsync.fromSafePromise(Promise.resolve({ enforceAdmins: false, kind: "protected" as const })),
@@ -104,16 +138,7 @@ function lapApi({
         }),
       ),
     requiredSources: () => ResultAsync.fromSafePromise(Promise.resolve(ACTIONS_PINNED_SOURCES)),
-    statuses: () => {
-      const next = script.shift();
-      if (next === undefined) {
-        return ResultAsync.fromSafePromise(Promise.resolve([...stored]));
-      }
-      if (next === "lag") {
-        return ResultAsync.fromSafePromise(Promise.resolve([...preposted]));
-      }
-      return errAsync(next);
-    },
+    statuses: scriptedStatuses({ preposted, reads, stored }),
   };
 }
 
@@ -242,6 +267,7 @@ function fakeStartStore({
  * Fakes for every edge; each option bends one of them.
  *
  * @param reads the status read-backs GitHub answers before it starts echoing what was posted, in order
+ * @param posts how GitHub answers each status POST in order, every one past the script landing
  * @param preposted statuses the head already carries before this invocation, newest first
  * @param receipts the receipts the state home keeps for the pull request, as `--land-only` reads them back
  * @param red the step ids that run red; a retry runs as `<id>.retry`, so it is red only when listed too
@@ -262,9 +288,11 @@ export function depsFor({
   preposted = [],
   receipts = [],
   reads = [],
+  posts = [],
 }: {
   observed: Observed;
   reads?: readonly ScriptedRead[];
+  posts?: readonly ScriptedPost[];
   preposted?: readonly CommitStatus[];
   receipts?: readonly LapReceiptEvidence[];
   red?: readonly string[];
@@ -291,7 +319,7 @@ export function depsFor({
     laneHome: () => ({ dispose: disposerFor({ name: "lane-home", observed }), value: "/lane-home" }),
     lapSeatFacts: () => ok({ callerRun: undefined, seat: undefined, seatRunClosed: false }),
     logDir: () => home,
-    makeApi: () => lapApi({ admin: true, observed, preposted, reads }),
+    makeApi: () => lapApi({ admin: true, observed, posts, preposted, reads }),
     landingPreconditions: ({ tree }) =>
       Promise.resolve(void observed.landing.push(`landing preconditions in ${tree}`)).then(() => landingExit),
     merge: ({ tree }) => Promise.resolve(void observed.landing.push(`merge in ${tree}`)).then(() => mergeExit),

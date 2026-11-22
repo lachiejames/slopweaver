@@ -23,10 +23,11 @@ import { runGithubLapBatch } from "./lapBatchRun.js";
 import { type GithubLapArgs, lapPlan, parseGithubLapArgs } from "./lapCore.js";
 import type { GithubLapDeps, LapExecution, LapLockHandle, LapSession } from "./lapDeps.js";
 import { printLapPlan, underLapLock } from "./lapLanes.js";
-import { diagnose, land, lapInside, post, preflight, preflightLanding } from "./lapPhases.js";
+import { diagnose, land, lapInside, preflight, preflightLanding } from "./lapPhases.js";
 import { lapSeatRefusalDetail, lapSeatVerdict } from "./lapSeat.js";
 import { productionGithubLapDeps } from "./lapShell.js";
 import { lapStatuses } from "./lapStatuses.js";
+import { post } from "./lapStatusPost.js";
 import { GITHUB_LAP_USAGE } from "./lapUsage.js";
 import { landOnlyFindings, landOnlyReceiptFindings } from "./lapVerdict.js";
 

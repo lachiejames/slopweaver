@@ -1,6 +1,6 @@
 /**
- * The phases of `slopweaver github lap`, each over the seams in `./lapDeps.ts`: the preflight reads, posting
- * through the door with a read-back, one run of the lanes under the lock (`./lapLanes.ts`), and landing.
+ * The phases of `slopweaver github lap`, each over the seams in `./lapDeps.ts`: the preflight reads, one run of
+ * the lanes under the lock (`./lapLanes.ts`), and landing. Posting a status is `./lapStatusPost.ts`'s.
  * `./lapRun.ts` sequences them; every decision they act on is `./lapCore.ts`'s or `./lapVerdict.ts`'s.
  *
  * Landing takes the hold FIRST, then refetches both refs and requires them unmoved, then merges, releasing the
@@ -9,9 +9,6 @@
  * last word.
  */
 
-import { DEFAULT_GATES } from "../../../admit/door.js";
-import { notPerformedLines } from "../../../admit/doorRefusal.js";
-import { throughDoor } from "../../../admit/effects.js";
 import type { GithubProtectionReadError } from "../../../corpus/github/protectionRead.js";
 import type { BranchProtection } from "../../../corpus/github/write.js";
 import type { RequiredCheckSources } from "../../../corpus/github/writeStatus.js";
@@ -23,8 +20,9 @@ import type { GithubLapArgs } from "./lapCore.js";
 import type { GithubLapDeps, LapLockHandle, LapRefs, LapSession } from "./lapDeps.js";
 import { type LapError, LapErrors } from "./lapErrors.js";
 import { type LapTarget, lapLanes, underLapLock } from "./lapLanes.js";
-import type { LapStatus, LapStepOutcome } from "./lapStatuses.js";
-import { type LapPreflightFacts, lapDoorRequest, lapPreflightVerdict } from "./lapVerdict.js";
+import type { LapStepOutcome } from "./lapStatuses.js";
+import { post } from "./lapStatusPost.js";
+import { type LapPreflightFacts, lapPreflightVerdict } from "./lapVerdict.js";
 
 /** What a passed preflight hands on. */
 export interface LapPreflight {
@@ -212,105 +210,6 @@ export async function preflightLanding({ session }: { session: LapSession }): Pr
   } finally {
     await tree.value.dispose();
   }
-}
-
-/**
- * The pauses before the second, third and fourth read of ONE confirmation, so four reads per confirmation: a lap
- * confirms twice, its pending statuses and then its verdict, and each gets its own four. GitHub's commit-status
- * list can lag the POST it just accepted: three laps in one day stopped before any lane on `"integration" was not
- * read back as pending`, and a hand rerun cleared each.
- */
-const LAP_READBACK_WAITS_MS: readonly number[] = [2_000, 4_000, 8_000];
-
-/**
- * Read the head's statuses back until every posted one is there, pausing between reads; a POST is never re-sent.
- * Only a LAGGING read is read again. A read that FAILS stops at once: its client (`commitStatusesVia`) already
- * retries a transient failure itself, so retrying it here too would compound the two budgets.
- */
-async function confirmPosted({
-  session,
-  statuses,
-}: {
-  session: LapSession;
-  statuses: readonly LapStatus[];
-}): Promise<Result<readonly LapStatus[], LapError>> {
-  const { api, args, deps, refs } = session;
-  const attempts = LAP_READBACK_WAITS_MS.length + 1;
-  for (let attempt = 1; ; attempt += 1) {
-    const read = await api.statuses({ owner: args.owner, repo: args.repo, sha: refs.headSha });
-    if (read.isErr()) {
-      return err(LapErrors.postFailed({ what: `the read-back failed: ${read.error.message}` }));
-    }
-    const unconfirmed = statuses.filter(
-      (status) =>
-        !read.value.some(
-          (found) =>
-            found.context === status.context &&
-            found.state === status.state &&
-            found.description === status.description,
-        ),
-    );
-    if (unconfirmed.length === 0) {
-      return ok(statuses);
-    }
-    if (attempt === attempts) {
-      const missing = unconfirmed.map((status) => `"${status.context}" was not read back as ${status.state}`);
-      return err(LapErrors.postFailed({ what: `${missing.join("; ")} after ${String(attempts)} read-back attempts` }));
-    }
-    await deps.wait({ ms: LAP_READBACK_WAITS_MS[attempt - 1]! });
-  }
-}
-
-/** Post every status, then confirm each by read-back: right state, right description. */
-async function postAndConfirm({
-  session,
-  statuses,
-}: {
-  session: LapSession;
-  statuses: readonly LapStatus[];
-}): Promise<Result<readonly LapStatus[], LapError>> {
-  const { api, args, refs } = session;
-  for (const status of statuses) {
-    const posted = await api.postStatus({ ...status, owner: args.owner, repo: args.repo, sha: refs.headSha });
-    if (posted.isErr()) {
-      return err(LapErrors.postFailed({ what: `posting "${status.context}" failed: ${posted.error.message}` }));
-    }
-  }
-  return confirmPosted({ session, statuses });
-}
-
-/**
- * Post statuses on the head through the door, printing each one confirmed or every reason it was not.
- *
- * @returns whether every status was posted and read back
- */
-export async function post({
-  session,
-  statuses,
-}: {
-  session: LapSession;
-  statuses: readonly LapStatus[];
-}): Promise<boolean> {
-  const { args, deps, home, refs } = session;
-  const through = await throughDoor({
-    gates: DEFAULT_GATES,
-    home,
-    ledger: deps.doorLedger,
-    perform: () => postAndConfirm({ session, statuses }),
-    request: lapDoorRequest({ args, headSha: refs.headSha, home }),
-  });
-  if (!through.performed) {
-    diagnose({ deps, lines: notPerformedLines({ command: "slopweaver github lap", through }) });
-    return false;
-  }
-  if (through.result.isErr()) {
-    diagnose({ deps, lines: [`github lap: ${through.result.error.message}`] });
-    return false;
-  }
-  for (const status of through.result.value) {
-    deps.out(`github lap: posted ${status.context} ${status.state} — ${status.description}`);
-  }
-  return true;
 }
 
 /**
