@@ -9,7 +9,6 @@
 import type { WrittenPr } from "../../../corpus/github/write.js";
 import type { InstallationIdentifiers } from "../../../hygiene/installationIdentifiers.js";
 import type { Result } from "../../../lib/result.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import { reportedInstallationIdentifiers } from "../../../outbound/github/installationIdentifiersRead.js";
 import type { TitleShapePolicy } from "../../../outbound/github/titleShape.js";
 import type { PrForm, PrFormDraft } from "../../../outbound/github/types.js";
@@ -135,7 +134,7 @@ export async function gatedPreview({
   const gates = { ...writeGates({ home }), installationIdentifiers };
   const preview = previewedUpdate({ chosen, ...gates, draft, live, today: deps.now() });
   if (preview.kind === "refused") {
-    deps.out({ line: withholdingCredentialLines({ lines: [`refused: ${preview.reason}`] }).join("") });
+    deps.out({ line: `refused: ${preview.reason}` });
     return undefined;
   }
   for (const notice of preview.notices) {

@@ -164,4 +164,22 @@ describe("acquireOperationLock", () => {
     }
     expect(written.some((line) => line.includes("could not release"))).toBe(true);
   });
+
+  it("writes a failed release's warning to the caller's own writer when it passes one, and nothing else", () => {
+    const h = home();
+    const first = acquireOperationLock({ home: h, key: "owner/repo", nowIso: "2026-08-11T00:00:00Z" });
+    if (!first.isOk()) {
+      throw new Error("expected the first acquisition to succeed");
+    }
+    const lockDir = lockDirIn({ h });
+    chmodSync(lockDir, 0o555); // removes write permission, so unlinking the token file inside it fails
+    const warned: string[] = [];
+    try {
+      first.value.release({ warn: ({ line }) => warned.push(line) });
+    } finally {
+      chmodSync(lockDir, 0o755);
+    }
+    expect(warned).toHaveLength(1);
+    expect(warned[0]).toContain(`could not release the stack operation lock at ${lockDir}`);
+  });
 });

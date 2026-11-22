@@ -44,7 +44,12 @@ import { resolveHome } from "../../optionParsers.js";
 import { refuseRunnerOnStandingRuling } from "../../rulingGateDoor.js";
 import { parseGithubPrArgs } from "./core.js";
 import { githubVerbErrorLines } from "./errors.js";
-import { DEFAULT_DEPS, type GithubPrDeps, productionGithubPrDeps } from "./prDeps.js";
+import {
+  DEFAULT_DEPS,
+  type GithubPrDeps,
+  productionGithubPrDeps,
+  withholdingGithubPrDescriptionWriters,
+} from "./prDeps.js";
 import { runGithubPrReviewPrepare } from "./prDescriptionReviewPrepareRun.js";
 import { productionGithubPrDescriptionReviewDeps, runGithubPrReviewRecord } from "./prDescriptionReviewRun.js";
 import { productionGithubPrReviewersDeps, runGithubPrReviewers } from "./prReviewersRun.js";
@@ -164,6 +169,26 @@ export async function runGithubPr({
   if (subverb !== undefined) {
     return subverb;
   }
+  // Past the read-and-report subverbs everything printed is the description door's, so both writers withhold a
+  // credential-shaped line from here on — by construction, not at each exit (`withholdingGithubPrDescriptionWriters`).
+  return runDescriptionOperation({ deps: withholdingGithubPrDescriptionWriters({ deps }), tail });
+}
+
+/**
+ * `github pr`'s description operation — the create redirect, the parse and `update` — over writers already
+ * withholding a credential-shaped line.
+ *
+ * @param deps the edges, their `out` and `err` already filtered
+ * @param tail this verb's own arguments
+ * @returns the process exit code
+ */
+async function runDescriptionOperation({
+  deps,
+  tail,
+}: {
+  deps: GithubPrDeps;
+  tail: readonly string[];
+}): Promise<number> {
   // The redirect, dispatched before the parser for the reason the header states: `./core.ts` no longer has a
   // create arm to parse, so this is the one place that still knows the word.
   if (tail[0] === "create") {

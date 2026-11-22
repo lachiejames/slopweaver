@@ -19,7 +19,6 @@
  */
 import type { DoorRequest } from "../../../admit/types.js";
 import { err, ok, type Result } from "../../../lib/result.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import type { PrFormDraft } from "../../../outbound/github/types.js";
 import { booleanFlagsOf, type FlagSpec, parseFlags, stringFlagsOf } from "../../parseFlags.js";
 import { type GithubVerbError, GithubVerbErrors } from "./errors.js";
@@ -420,8 +419,7 @@ export function outcomeLines({ outcome }: { outcome: PrOutcome }): readonly stri
           ". A second pull request for the same branches would be a duplicate, not a retry.",
       ];
     case "refused":
-      // A refusal can quote what it judged (a scan finding, a reviewer's line), so a credential shape is withheld.
-      return withholdingCredentialLines({ lines: [`refused: ${outcome.reason}`] });
+      return [`refused: ${outcome.reason}`];
     case "unconfirmed":
       return [
         `UNCONFIRMED: ${outcome.detail}`,

@@ -16,13 +16,14 @@ import { githubToken } from "../../../config.js";
 import { type GithubWriteApi, makeGithubWriteApi } from "../../../corpus/github/write.js";
 import { logger } from "../../../lib/logger.js";
 import type { Result } from "../../../lib/result.js";
+import { withholdingCredentialWriter } from "../../../outbound/github/descriptionWords.js";
 import {
   type InstallationIdentifiersReader,
   readInstallationIdentifiers,
 } from "../../../outbound/github/installationIdentifiersRead.js";
 import { githubWritePrivacy } from "../../../outbound/github/writePrivacy.js";
 import type { DescriptionReviewCheck } from "./descriptionReviewCheck.js";
-import { DEFAULT_DEPS as DEFAULT_PR_DEPS, type GithubPrDeps } from "./prDeps.js";
+import { DEFAULT_DEPS as DEFAULT_PR_DEPS, type GithubPrDeps, withholdingGitWriter } from "./prDeps.js";
 import { type GithubPushDeps, productionGithubPushDeps } from "./pushRun.js";
 import { readQueueGate } from "./queueGateRun.js";
 import type { StackPushGateDeps } from "./stackPushGates.js";
@@ -90,6 +91,30 @@ export function productionGithubStackPushDeps(): GithubStackPushDeps {
     readForm: ({ source }) => (source === "-" ? readFileSync(0, "utf8") : source),
     sleep: ({ ms }) => new Promise((resolve) => setTimeout(resolve, ms)),
     token: ({ home }) => githubToken({ home }),
+  };
+}
+
+/**
+ * The same edges with every writer withholding a credential-shaped line — the verb's own `out` and the Git edges'
+ * `out`, which prints the amend and pre-push progress — so `runGithubStackPush` filters each line it prints here,
+ * once, rather than at each exit an audit found. `toGithubPrDeps` carries the wrapped `out` into `performCreate`.
+ *
+ * Its limit, stated: a Git write (`commit --amend`, the push) runs with its stdio inherited
+ * (`../../../admit/gitTransport.ts`), so Git's and a hook's own bytes reach the terminal without passing any writer.
+ * This filters every line the verb itself prints, not every byte a child process does.
+ *
+ * @param deps the edges the push was given, every other one carried by identity
+ * @returns the edges whose two writers the secret scan's credential classes never match a forwarded line on
+ */
+export function withholdingGithubStackPushDescriptionWriters({
+  deps,
+}: {
+  deps: GithubStackPushDeps;
+}): GithubStackPushDeps {
+  return {
+    ...deps,
+    git: withholdingGitWriter({ git: deps.git }),
+    out: withholdingCredentialWriter({ write: deps.out }),
   };
 }
 

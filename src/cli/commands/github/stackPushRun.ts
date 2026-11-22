@@ -18,15 +18,14 @@
  * What an injectable EDGE is belongs to `./stackPushDeps.ts` (the file-size ratchet, step 3), including the
  * adapter that widens them for `performCreate`; this file states the order and calls them.
  * The operation lock is `./stackPushLock.ts` for the same reason (step 4) — it is the one step of the
- * sequence with two spellings, and `--wait` picks between them.
+ * sequence with two spellings, and `--wait` picks between them; that file also holds the lock across the send
+ * and releases it.
  * The locked write — door → amend → push → carry → write preflight → create → register → report — is
- * `./stackPushSend.ts` for the same reason (step 5); this file resolves the plan and takes the lock first.
+ * `./stackPushSend.ts` for the same reason (step 5); this file resolves the plan and hands it to the lock.
  */
 
 import { err, ok, type Result } from "../../../lib/result.js";
 import { parseAuthoringFile } from "../../../outbound/github/authoringFile.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
-import { locusOf } from "../../../outbound/github/prLedger.js";
 import { renderSelfReviewComments, type SelfReviewForm } from "../../../outbound/github/selfReview.js";
 import type { PrFormDraft } from "../../../outbound/github/types.js";
 import { type AboveFoldVerdict, aboveFoldLines } from "../../aboveFoldDoor.js";
@@ -50,11 +49,14 @@ import {
   githubStackPushPlan,
   parseGithubStackPushArgs,
 } from "./stackPushCore.js";
-import { type GithubStackPushDeps, productionGithubStackPushDeps } from "./stackPushDeps.js";
+import {
+  type GithubStackPushDeps,
+  productionGithubStackPushDeps,
+  withholdingGithubStackPushDescriptionWriters,
+} from "./stackPushDeps.js";
 import { stackPushLocalGatesRefused } from "./stackPushGates.js";
 import { resolveStackPushFacts } from "./stackPushGit.js";
-import { takeStackPushLock } from "./stackPushLock.js";
-import { sendStackPush } from "./stackPushSend.js";
+import { sendUnderStackPushLock } from "./stackPushLock.js";
 
 const VERB_ARG_OFFSET = 5; // node, cli, "github", "stack", "push"
 
@@ -179,8 +181,7 @@ async function resolveStackPushPlan({
   }
   const planned = githubStackPushPlan({ facts, form: form.value });
   if (planned.isErr()) {
-    // A plan refusal quotes the form's target refs, so a credential shape is withheld from the log.
-    deps.out({ line: withholdingCredentialLines({ lines: [`refused: ${planned.error.message}`] }).join("") });
+    deps.out({ line: `refused: ${planned.error.message}` });
     return err(EXIT_ERROR);
   }
   const verdict = await stackPushBodyVerdict({ args, deps, form: form.value, home });
@@ -339,12 +340,6 @@ async function stackPushPreSendRefused({
   return stackPushReviewRefused({ deps, home, plan, selfReview });
 }
 
-/** The lock-busy refusal: it quotes the repository key, so a credential shape is withheld from the log. */
-function lockBusyLine({ error, lockKey }: { error: string; lockKey: string }): string {
-  const busy = `refused: another stack operation is in progress on ${lockKey} (${error})`;
-  return withholdingCredentialLines({ lines: [busy] }).join("");
-}
-
 /**
  * Run one governed stack push.
  *
@@ -354,11 +349,14 @@ function lockBusyLine({ error, lockKey }: { error: string; lockKey: string }): s
  */
 export async function runGithubStackPush({
   argv,
-  deps = productionGithubStackPushDeps(),
+  deps: given = productionGithubStackPushDeps(),
 }: {
   argv: readonly string[];
   deps?: GithubStackPushDeps;
 }): Promise<number> {
+  // Every line this push prints is the description door's, so both writers withhold a credential-shaped line from
+  // here on — by construction, not at each exit (`withholdingGithubStackPushDescriptionWriters`).
+  const deps = withholdingGithubStackPushDescriptionWriters({ deps: given });
   const resolved = await resolveStackPushPlan({ argv, deps });
   if (!resolved.isOk()) {
     return resolved.error;
@@ -382,33 +380,5 @@ export async function runGithubStackPush({
   }
   // The write preflight is NOT here. It runs inside `performStackPush`, after the push — see that
   // function's own doc: an HTTP call before the push leaves a socket the create POST then dies on.
-  // `locusOf`, never a hand-built string. The ledger's own definition lower-cases the repository and joins
-  // with `#`; this file used to spell it `owner/repo:base...head` by hand, which is a DIFFERENT key — so the
-  // duplicate-reservation guard could not see a reservation the ledger had already written, and a
-  // differently-cased remote for the same repository minted a second one. Now that this verb is the only
-  // door that opens a pull request, its locus has to be the ledger's.
-  const locus = locusOf({ target: plan.form.target });
-  // Lower-cased: GitHub owner/repo names are case-insensitive, but the lock hashes this key verbatim, so a
-  // differently-cased remote for the SAME repository would otherwise contend on a different lock entirely —
-  // letting a concurrent stack operation on that repository race this one instead of waiting for it.
-  const lockKey = `${plan.form.target.owner}/${plan.form.target.repo}`.toLowerCase();
-  const lock = await takeStackPushLock({ deps, home, key: lockKey, wait: args.lockWait });
-  if (!lock.isOk()) {
-    deps.out({ line: lockBusyLine({ error: lock.error, lockKey }) });
-    return EXIT_ERROR;
-  }
-  try {
-    return await sendStackPush({
-      args,
-      carry,
-      deps,
-      freshApi: () => deps.makeApi({ home, token }),
-      home,
-      locus,
-      plan,
-      selfReview,
-    });
-  } finally {
-    lock.value.release();
-  }
+  return sendUnderStackPushLock({ args, carry, deps, home, plan, selfReview, token });
 }

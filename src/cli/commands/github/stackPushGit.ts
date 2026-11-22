@@ -8,7 +8,6 @@
  */
 import { type GithubPushFacts, pushAndVerify } from "../../../admit/githubPush.js";
 import { err, ok, type Result } from "../../../lib/result.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import type { PrOutcome } from "./core.js";
 import {
   githubPushPlan,
@@ -193,8 +192,7 @@ export function resolveStackPushFacts({
     });
     return { ...local, amendPin: amendPin.value, defaultBranch };
   } catch (error: unknown) {
-    // Git's own failure text can quote a ref or a remote URL, so a credential shape is withheld from the log.
-    deps.out({ line: withholdingCredentialLines({ lines: [`refused: ${gitFailure({ error })}`] }).join("") });
+    deps.out({ line: `refused: ${gitFailure({ error })}` });
     return undefined;
   }
 }

@@ -125,6 +125,44 @@ describe("runGithubStackPush", () => {
     ]);
   });
 
+  it("withholds the pin refusal, an exit nobody wrapped by hand, when its reason quotes a credential shape", async () => {
+    const token = `ghp_${"a".repeat(30)}`;
+    const api = {} as GithubWriteApi;
+    const { deps: baseDeps, lines, writes } = harness({ api });
+    const deps: GithubStackPushDeps = { ...baseDeps, captureAmendTree: () => err(`scratch index refused ${token}`) };
+    const code = await runGithubStackPush({ argv: [...PREFIX, "--form", baseForm({ base: "main" })], deps });
+    expect(code).toBe(EXIT_ERROR);
+    expect(writes).toEqual([]);
+    expect(lines.filter((line) => line.includes(token))).toEqual([]);
+    expect(lines).toEqual([
+      "a refusal here quotes text carrying a credential shape, so it is withheld from this log. Remove the credential " +
+        "the secret scan names, and the refusal prints in full",
+    ]);
+  });
+
+  it("withholds git's own failure text when it quotes a credential shape", async () => {
+    const token = `ghp_${"a".repeat(30)}`;
+    const api = {} as GithubWriteApi;
+    const { deps: baseDeps, lines, writes } = harness({ api });
+    const deps: GithubStackPushDeps = {
+      ...baseDeps,
+      git: {
+        ...baseDeps.git,
+        readGit: () => {
+          throw new Error(`fatal: '${token}' does not appear to be a git repository`);
+        },
+      },
+    };
+    const code = await runGithubStackPush({ argv: [...PREFIX, "--form", baseForm({ base: "main" })], deps });
+    expect(code).toBe(EXIT_ERROR);
+    expect(writes).toEqual([]);
+    expect(lines.filter((line) => line.includes(token))).toEqual([]);
+    expect(lines).toEqual([
+      "a refusal here quotes text carrying a credential shape, so it is withheld from this log. Remove the credential " +
+        "the secret scan names, and the refusal prints in full",
+    ]);
+  });
+
   it("refuses a form carrying a review before any Git read, since no description carries a grade", async () => {
     // An empty object: any API method the verb reached would throw, so reaching none is the witness.
     const api = {} as GithubWriteApi;

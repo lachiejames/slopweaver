@@ -1,6 +1,6 @@
 /**
- * The repository operation lock `slopweaver github stack push` takes, and the one flag that changes how it
- * is taken.
+ * The repository operation lock `slopweaver github stack push` takes, the one flag that changes how it is
+ * taken, and the send that runs while it is held.
  *
  * Its own file for the reason the verb's header already gives: `stackPushRun.ts` states the order and calls
  * the edges, and the file-size ratchet is what keeps that true. This is a real seam rather than a slice —
@@ -9,9 +9,15 @@
 
 import { acquireOperationLock, type OperationLockResult } from "../../../admit/operationLock.js";
 import { acquireOperationLockWaiting } from "../../../admit/operationLockWait.js";
+import { locusOf } from "../../../outbound/github/prLedger.js";
+import type { SelfReviewForm } from "../../../outbound/github/selfReview.js";
 import type { WaitOptions } from "../../../wait/flags.js";
 import { realWaitClock } from "../../../wait/loop.js";
+import { EXIT_ERROR } from "../../exitCodes.js";
+import type { StackCarryGate } from "./stackCarryRun.js";
+import type { GatedStackPushPlan, GithubStackPushArgs } from "./stackPushCore.js";
 import type { GithubStackPushDeps } from "./stackPushDeps.js";
+import { sendStackPush } from "./stackPushSend.js";
 
 /**
  * Take the repository's operation lock — at once, or, under `--wait`, on the shared wait contract until the
@@ -51,4 +57,62 @@ export async function takeStackPushLock({
     nowIso: () => deps.now().toISOString(),
     timeoutSeconds: wait.timeoutSeconds,
   });
+}
+
+/**
+ * Take the repository's operation lock, send the push under it, and release it whatever the send did.
+ *
+ * @param carry the carry gate's verdict, already past its refusal
+ * @param deps the edges, their writers already withholding a credential-shaped line
+ * @param token the resolved GitHub token each fresh API client is minted with
+ * @returns the process exit code
+ */
+export async function sendUnderStackPushLock({
+  args,
+  carry,
+  deps,
+  home,
+  plan,
+  selfReview,
+  token,
+}: {
+  args: GithubStackPushArgs;
+  carry: StackCarryGate;
+  deps: GithubStackPushDeps;
+  home: string;
+  plan: GatedStackPushPlan;
+  selfReview: SelfReviewForm | undefined;
+  token: string;
+}): Promise<number> {
+  // `locusOf`, never a hand-built string. The ledger's own definition lower-cases the repository and joins
+  // with `#`; this verb used to spell it `owner/repo:base...head` by hand, which is a DIFFERENT key — so the
+  // duplicate-reservation guard could not see a reservation the ledger had already written, and a
+  // differently-cased remote for the same repository minted a second one. Now that this verb is the only
+  // door that opens a pull request, its locus has to be the ledger's.
+  const locus = locusOf({ target: plan.form.target });
+  // Lower-cased: GitHub owner/repo names are case-insensitive, but the lock hashes this key verbatim, so a
+  // differently-cased remote for the SAME repository would otherwise contend on a different lock entirely —
+  // letting a concurrent stack operation on that repository race this one instead of waiting for it.
+  const lockKey = `${plan.form.target.owner}/${plan.form.target.repo}`.toLowerCase();
+  const lock = await takeStackPushLock({ deps, home, key: lockKey, wait: args.lockWait });
+  if (!lock.isOk()) {
+    deps.out({ line: `refused: another stack operation is in progress on ${lockKey} (${lock.error})` });
+    return EXIT_ERROR;
+  }
+  try {
+    return await sendStackPush({
+      args,
+      carry,
+      deps,
+      freshApi: () => deps.makeApi({ home, token }),
+      home,
+      locus,
+      plan,
+      selfReview,
+    });
+  } finally {
+    // The release's own warning quotes the lock path, which comes from `--home`, so it goes through the filtered
+    // writer too rather than straight to standard error.
+    lock.value.release({ warn: deps.out });
+  }
 }

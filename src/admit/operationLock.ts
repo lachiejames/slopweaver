@@ -96,7 +96,12 @@ import { judgeOccupant } from "./operationLockTakeover.js";
 
 /** What acquiring the lock actually did — released, and if a stale lock was taken over, from which pid. */
 export interface OperationLockHandle {
-  readonly release: () => void;
+  /**
+   * Release the lock. A release that genuinely fails warns rather than throws; `warn` is where that line goes,
+   * standard error when absent. A caller whose writer filters what it prints passes it (the warning quotes the lock
+   * path, which comes from the home the caller named): `github stack push` passes its credential-withholding `out`.
+   */
+  readonly release: (args?: { readonly warn?: ReleaseWarn }) => void;
   readonly stoleFromPid: number | undefined;
   /**
    * Whether this handle's own token still stands in the lock — false once released, or once a later holder took an
@@ -105,6 +110,13 @@ export interface OperationLockHandle {
    */
   readonly stillHeld: () => boolean;
 }
+
+/**
+ * Where a failed release's warning line is written.
+ *
+ * @internal
+ */
+export type ReleaseWarn = (args: { readonly line: string }) => void;
 
 export type OperationLockResult = Result<OperationLockHandle, string>;
 
@@ -206,10 +218,10 @@ function claimInstalled({
   // the token never repeating, which is a probability rather than a property.
   let released = false;
   return ok({
-    release: () => {
+    release: (args) => {
       if (!released) {
         released = true;
-        releaseLock({ path, token });
+        releaseLock({ path, token, warn: args?.warn });
       }
     },
     stillHeld: () => !released && existsSync(join(path, token)),
@@ -418,14 +430,14 @@ function contestCandidate({
  * rather than silently swallowed. The stale-takeover path, not a second removal attempt from here, is the
  * recovery for a lock a genuine failure leaves behind.
  */
-function releaseLock({ path, token }: { path: string; token: string }): void {
+function releaseLock({ path, token, warn }: { path: string; token: string; warn: ReleaseWarn | undefined }): void {
   try {
     unlinkSync(join(path, token));
   } catch (error: unknown) {
     if (isRecord(error) && (error["code"] === "ENOENT" || error["code"] === "ENOTDIR")) {
       return;
     }
-    warnRelease({ error, path });
+    warnRelease({ error, path, warn });
     return;
   }
   try {
@@ -434,13 +446,18 @@ function releaseLock({ path, token }: { path: string; token: string }): void {
     if (isRecord(error) && (error["code"] === "ENOENT" || error["code"] === "ENOTEMPTY")) {
       return;
     }
-    warnRelease({ error, path });
+    warnRelease({ error, path, warn });
   }
 }
 
-function warnRelease({ error, path }: { error: unknown; path: string }): void {
+function warnRelease({ error, path, warn }: { error: unknown; path: string; warn: ReleaseWarn | undefined }): void {
+  const line = `warning: could not release the stack operation lock at ${path}: ${String(error)}`;
   try {
-    process.stderr.write(`warning: could not release the stack operation lock at ${path}: ${String(error)}\n`);
+    if (warn !== undefined) {
+      warn({ line });
+      return;
+    }
+    process.stderr.write(`${line}\n`);
   } catch {
     // Even the diagnostic write failed (e.g. stderr itself is gone) — nothing left to do but not throw.
   }

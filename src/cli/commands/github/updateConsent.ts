@@ -8,7 +8,6 @@
  */
 import type { WrittenPr } from "../../../corpus/github/write.js";
 import { unifiedPatch } from "../../../lib/textDiff.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import type { PrForm } from "../../../outbound/github/types.js";
 import { ownerRepoOf } from "./addressRun.js";
 import type { GithubPrArgs } from "./core.js";
@@ -95,17 +94,17 @@ function evidenceStops({
     return false;
   }
   if (decision.kind === "unreadable") {
-    out({ line: withholdingCredentialLines({ lines: [`refused: ${decision.reason}`] }).join("") });
+    out({ line: `refused: ${decision.reason}` });
     return true;
   }
   if (dryRun) {
     out({ line: "dry run finding: a real update would refuse:" });
-    for (const line of withholdingCredentialLines({ lines: decision.refusal.split("\n") })) {
+    for (const line of decision.refusal.split("\n")) {
       out({ line });
     }
     return false;
   }
-  out({ line: withholdingCredentialLines({ lines: [`refused: ${decision.refusal}`] }).join("") });
+  out({ line: `refused: ${decision.refusal}` });
   return true;
 }
 

@@ -8,7 +8,6 @@
  * not. Split out of `./updateFlow.ts`, which calls only `chooseUpdate`.
  */
 import type { WrittenPr } from "../../../corpus/github/write.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import { applyEdit } from "../../../outbound/github/merge.js";
 import { readPrRecord } from "../../../outbound/github/prLedger.js";
 import { recoverPrForm } from "../../../outbound/github/recovery.js";
@@ -58,8 +57,7 @@ export type ChosenUpdate = {
  * @param input the decoded `--edit`, `--form` or `--file`
  * @param live the pull request as read before the door
  * @param home the state home, whose description ledger an `--edit` recovers from first
- * @returns the chosen update, or the reason it is refused; a reason quoting a credential shape (a recovered run, a
- *   merged form's schema refusal) prints the withheld line instead
+ * @returns the chosen update, or the reason it is refused
  */
 export function chooseUpdate({
   input,
@@ -70,12 +68,10 @@ export function chooseUpdate({
   live: WrittenPr;
   home: string;
 }): ChosenUpdate | { reason: string } {
-  const chosen =
-    input.kind === "form" ? chooseWholeFormInput({ input, live }) : chooseEditInput({ edit: input.edit, home, live });
-  if ("reason" in chosen) {
-    return { reason: withholdingCredentialLines({ lines: [chosen.reason] }).join("") };
+  if (input.kind === "form") {
+    return chooseWholeFormInput({ input, live });
   }
-  return chosen;
+  return chooseEditInput({ edit: input.edit, home, live });
 }
 
 /**
