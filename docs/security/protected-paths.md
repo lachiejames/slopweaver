@@ -109,8 +109,10 @@ code can enforce, it does, in these places:
 **The account's own default home is not movable from a command line.** It comes from the password database
 (`accountDefaultHome`, `src/homeDir.ts`), and no flag or environment variable relocates it, so a verb pointed at a
 throwaway `--home` still reads the owner's live registry. Under test, `src/__tests__/setup-ambient-home.ts` puts a
-per-file sandbox in a process-only slot instead, so an in-process test never reads the operator's registry; a
-spawned `bin/slopweaver` child cannot inherit that slot and still resolves the real one.
+per-file sandbox in a process-only slot instead, so an in-process test never reads the operator's registry, and
+carries it into every spawned child as a test-only `NODE_OPTIONS` preload (`src/__tests__/accountHomeSandboxPreload.ts`)
+whose own import URL names the sandbox — no variable production reads. A spawn that builds a minimal environment
+spreads `accountSandboxChildEnv()` in; a launcher probe that clears `NODE_OPTIONS` on purpose runs no Slopweaver code.
 
 The way past a hook or `talk file` refusal is the `protected-path` hatch (`SLOPWEAVER_ALLOW_PROTECTED_PATH=1`), for
 one call, on the owner's own relayed word. The bronze writer and `store backup` open for no hatch: the entry itself

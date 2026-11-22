@@ -28,6 +28,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PREFER_READ, searchQuoted } from "../../../../live/outlook/apiCore.js";
 import { UNREAD_NEWEST_FIRST } from "../../../../live/outlook/apiPaged.js";
 import { outlookGrantPath } from "../../../../secrets/outlookGrant.js";
+import { accountSandboxChildEnv } from "../../../accountHomeSandboxChild.js";
 import { refuseLiveStore } from "../../../proofStoreUrl.js";
 import { fetchRedirectSource } from "./fakeFetchRedirect.js";
 import { ATTACHMENT_TEXT } from "./fakeGraphData.js";
@@ -91,7 +92,7 @@ function runCli({
     cwd: root,
     env: {
       HOME: root,
-      NODE_OPTIONS: `--import=${pathToFileURL(preload).href}`,
+      NODE_OPTIONS: `${accountSandboxChildEnv().NODE_OPTIONS} --import=${pathToFileURL(preload).href}`,
       OUTLOOK_CLIENT_ID: "client-synthetic",
       PATH: `${fakeBin}:${process.env["PATH"]!}`,
       SLOPWEAVER_LAUNCHER_QUIET: "1",

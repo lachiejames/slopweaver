@@ -20,6 +20,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { runStoreImportApply } from "../../cli/commands/store/importApplyRun.js";
 import { EXIT_ERROR } from "../../cli/exitCodes.js";
+import { accountSandboxChildEnv } from "../accountHomeSandboxChild.js";
 import { ACTIVE, CHANGED_MEMORY_LINE } from "../unit/store/transfer/stagedBatch.js";
 import {
   ADMIN_URL,
@@ -50,6 +51,7 @@ interface Ran {
  */
 function storeEnv({ store }: { store: ProofStore }): NodeJS.ProcessEnv {
   return {
+    ...accountSandboxChildEnv(),
     HOME: store.root,
     PATH: `${dirname(BIN)}:${process.env["PATH"]!}`,
     SLOPWEAVER_HOME: store.home,

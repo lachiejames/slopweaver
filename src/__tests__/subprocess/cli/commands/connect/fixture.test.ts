@@ -12,6 +12,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -35,7 +37,8 @@ function runConnect({
     const stdout = execFileSync(BIN, args, {
       cwd: isolatedHome,
       encoding: "utf8",
-      env: { HOME: isolatedHome, PATH: process.env["PATH"]!, ...extraEnv },
+      // The sandbox spreads LAST, so a caller's `extraEnv` can never drop the account-home preload.
+      env: { HOME: isolatedHome, PATH: process.env["PATH"]!, ...extraEnv, ...accountSandboxChildEnv() },
       maxBuffer: 4 * 1024 * 1024,
     });
     return { status: 0, stderr: "", stdout };

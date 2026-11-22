@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { materialiseFixture } from "../../replayFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -77,7 +78,12 @@ function briefOn({ text }: { text: string }): { status: number; stdout: string; 
     const stdout = execFileSync(BIN, args, {
       cwd: workspace,
       encoding: "utf8",
-      env: { CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"), HOME: workspace, PATH: process.env["PATH"]! },
+      env: {
+        ...accountSandboxChildEnv(),
+        CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"),
+        HOME: workspace,
+        PATH: process.env["PATH"]!,
+      },
       maxBuffer: 8 * 1024 * 1024,
     });
     return { status: 0, stderr: "", stdout };

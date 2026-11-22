@@ -24,6 +24,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -82,6 +84,7 @@ function run({ args, home, handoverDir }: { args: readonly string[]; home: strin
   const result = spawnSync(BIN, [...args, "--home", home, "--dir", handoverDir], {
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
       SLOPWEAVER_ALLOW_NO_LESSONS: "1",

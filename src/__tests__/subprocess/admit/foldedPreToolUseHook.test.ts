@@ -23,6 +23,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { writeAgentToolBan } from "../../../sessions/agentToolBanStore.js";
 import { writeSupervisorPin } from "../../../sessions/supervisorPinStore.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { seedProfileDelivered } from "../../profileDeliveredFixture.js";
 import { relayFixture } from "../../relayWordsFixture.js";
 import { dispatchAsk, ENGINEER, freshHome, OWNER } from "../../unit/admit/botTurnFixture.js";
@@ -80,6 +81,7 @@ function runHook({
     encoding: "utf8",
     // An empty config dir, so the shim runs THIS tree's dispatcher rather than the installed plugin's.
     env: {
+      ...accountSandboxChildEnv(),
       CLAUDE_CONFIG_DIR: tempDir({ prefix: "sw-folded-config-" }),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,

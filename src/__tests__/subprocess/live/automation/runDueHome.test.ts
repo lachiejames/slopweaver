@@ -18,6 +18,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 const RECIPE_ID = "home-witness";
@@ -96,6 +98,7 @@ function runDue({ ambient, recipeId = RECIPE_ID, tick }: { ambient: string; reci
   const result = spawnSync(BIN, ["automation", "run-due", "--recipe", recipeId, "--home", tick], {
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
       SLOPWEAVER_CLI_DIR: repoRoot,
@@ -143,6 +146,7 @@ describe("bin/slopweaver automation run-due --home — a verb-run row runs again
     const result = spawnSync(BIN, ["automation", "run-due", "--recipe", RECIPE_ID], {
       encoding: "utf8",
       env: {
+        ...accountSandboxChildEnv(),
         HOME: process.env["HOME"]!,
         PATH: process.env["PATH"]!,
         SLOPWEAVER_CLI_DIR: repoRoot,

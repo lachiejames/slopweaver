@@ -22,12 +22,12 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { unwrap } from "#lib/result.js";
-
 import { runVerbChildOver } from "../../../../../cli/commands/talk/verbRun.js";
 import { APP_SERVER_ENV } from "../../../../../codex/accountLive.js";
 import { CHILD_DEADLINE_ENV } from "../../../../../lib/childDeadline.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { resolveModelRead } from "../../../../../talk/modelReads.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../../../../..");
@@ -110,7 +110,8 @@ function runRouteChild({ env }: { env: Record<string, string> }): SpawnSyncRetur
   return spawnSync(TSX, [ROUTE_CHILD, "codex", "route"], {
     cwd: scratch,
     encoding: "utf8",
-    env: { ...baseEnv(), ...env },
+    // The sandbox spreads LAST, so a caller's `env` can never drop the account-home preload.
+    env: { ...baseEnv(), ...env, ...accountSandboxChildEnv() },
   });
 }
 
@@ -219,7 +220,7 @@ describe("talk verb codex route", () => {
       cwd: scratch,
       encoding: "utf8",
       // No SLOPWEAVER_STORE_URL and no `secrets/store-url` under the throwaway home: nothing is selected.
-      env: { ...baseEnv(), SLOPWEAVER_CLI_DIR: repoRoot, TMPDIR: process.env["TMPDIR"]! },
+      env: { ...accountSandboxChildEnv(), ...baseEnv(), SLOPWEAVER_CLI_DIR: repoRoot, TMPDIR: process.env["TMPDIR"]! },
     });
 
     expect(ran.status).toBe(1);

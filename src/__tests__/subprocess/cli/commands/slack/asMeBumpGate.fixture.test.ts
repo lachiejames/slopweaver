@@ -19,6 +19,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 const FAKE_USER_TOKEN = "xoxp-test";
@@ -41,7 +43,12 @@ function runSlack({ args, stdin }: { args: readonly string[]; stdin: string }): 
     const stdout = execFileSync(BIN, args, {
       cwd: isolatedHome,
       encoding: "utf8",
-      env: { HOME: isolatedHome, PATH: process.env["PATH"]!, SLACK_USER_TOKEN: FAKE_USER_TOKEN },
+      env: {
+        ...accountSandboxChildEnv(),
+        HOME: isolatedHome,
+        PATH: process.env["PATH"]!,
+        SLACK_USER_TOKEN: FAKE_USER_TOKEN,
+      },
       input: stdin,
       maxBuffer: 4 * 1024 * 1024,
     });

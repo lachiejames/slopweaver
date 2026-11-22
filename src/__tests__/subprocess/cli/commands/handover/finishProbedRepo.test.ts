@@ -17,6 +17,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../../../tempGitRepo.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -46,6 +47,7 @@ function run({ args, home, handoverDir }: { args: readonly string[]; home: strin
     cwd: home,
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
       SLOPWEAVER_ALLOW_NO_LESSONS: "1",

@@ -26,6 +26,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { seedProfileDelivered } from "../../profileDeliveredFixture.js";
 import { gitInTemp } from "../../tempGitRepo.js";
 
@@ -139,6 +140,7 @@ function runAdmit({
   const run = spawnSync(shim, {
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       CLAUDE_CONFIG_DIR: config,
       CLAUDE_PLUGIN_ROOT: pluginRoot,
       HOME: process.env["HOME"]!,

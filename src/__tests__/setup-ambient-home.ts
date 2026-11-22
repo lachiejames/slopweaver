@@ -25,13 +25,16 @@
  *
  * The ACCOUNT home is the other read this file closes, and it closes it differently: `accountDefaultHome()` reads the
  * user database, not `$SLOPWEAVER_HOME`, so no variable can sandbox it, and this file installs a per-file sandbox in
- * a process slot at MODULE scope instead (`accountSandbox` below). That is a read-side sandbox, not a write guard.
+ * a process slot at MODULE scope instead (`accountSandbox` below), and carries it into every spawned child through a
+ * test-only preload on `NODE_OPTIONS`. That is a read-side sandbox, not a write guard, and production still accepts
+ * no variable or flag that moves the account home.
  */
 import { mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { clearAccountHomeSandbox, installAccountHomeSandbox } from "../homeDir.js";
+import { accountHomeSandboxNodeOptions } from "./accountHomeSandboxChild.js";
 import { ambientHomeRefusal } from "./ambientHomeGuard.js";
 import { restoreEnvironment, workerBaseline } from "./envSnapshot.js";
 
@@ -48,13 +51,20 @@ const HOME_VAR = "SLOPWEAVER_HOME";
  */
 const APP_SERVER_VAR = "SLOPWEAVER_CODEX_APP_SERVER";
 
+/** The variable every spawned Node process reads its preloads from — where the account-home sandbox rides. */
+const NODE_OPTIONS_VAR = "NODE_OPTIONS";
+
 /**
- * The three keys this file moves, as the WORKER first saw them — restored in `afterAll`. The unit lane reuses a
+ * The four keys this file moves, as the WORKER first saw them — restored in `afterAll`. The unit lane reuses a
  * fork across files (`envSnapshot.ts`), so without this the next file would begin with `$SLOPWEAVER_HOME` naming
  * this file's deleted sandbox, and `realAmbientHome.ts`, first imported at that file's module scope, would capture
- * the sandbox as the operator's real home. The worker's baseline, so a skipped file cannot become it.
+ * the sandbox as the operator's real home; and `NODE_OPTIONS` would carry one more account-home preload per file.
+ * The worker's baseline, so a skipped file cannot become it.
  */
-const owned = workerBaseline({ key: "ambient-home", names: [HOME_VAR, APP_SERVER_VAR, "SLOPWEAVER_STORE_URL"] });
+const owned = workerBaseline({
+  key: "ambient-home",
+  names: [HOME_VAR, APP_SERVER_VAR, "SLOPWEAVER_STORE_URL", NODE_OPTIONS_VAR],
+});
 
 // Restored at module scope as well as in `afterAll`: a previous file whose tests all skipped never reached its
 // `afterAll`, and `$SLOPWEAVER_HOME` is only moved again in `beforeAll`, after the test module's own body has run.
@@ -91,11 +101,16 @@ function sandboxEntries(): readonly string[] {
  * without an injected resolver reads the operator's own registry. Minted and installed at MODULE scope, so the test
  * module's own body already sees it and a stale slot a skipped previous file left in a reused worker is overwritten;
  * a sibling of the ambient sandbox, never the same directory, so a test writing a registry here is not reported as an
- * ambient write. A process slot, so a spawned `bin/slopweaver` child does NOT inherit it: the subprocess lane's
- * children still resolve the real account home, a residue no environment-free mechanism closes.
+ * ambient write. A process slot cannot cross `exec`, so the same path is also put on `NODE_OPTIONS` as a preload's
+ * import URL (`accountHomeSandboxChild.ts`): a spawned `bin/slopweaver` child inherits it and fills its own slot
+ * before any Slopweaver code runs. A spawn building a minimal environment spreads `accountSandboxChildEnv()` in.
  */
 const accountSandbox = mkdtempSync(join(tmpdir(), "slopweaver-account-home-"));
 installAccountHomeSandbox({ home: accountSandbox });
+process.env[NODE_OPTIONS_VAR] = accountHomeSandboxNodeOptions({
+  home: accountSandbox,
+  inherited: process.env[NODE_OPTIONS_VAR],
+});
 
 beforeAll(() => {
   sandbox = mkdtempSync(join(tmpdir(), "slopweaver-ambient-home-"));

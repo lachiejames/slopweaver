@@ -11,3 +11,8 @@ external-write records written in millisecond pairs, one pair per `yarn test:uni
 this install had actually done — a test suite's traffic and the fleet's real outbound acts were the same
 rows. Every one of those tests had been asked, in prose, to pass an explicit `home`, which is why the sandbox
 is a `setupFiles` guard that fails the individual test rather than a convention.
+
+The ACCOUNT home (`accountDefaultHome()`) is sandboxed the same way, and it reaches a spawned child through a
+preload on `NODE_OPTIONS`. A CLI or hook spawn that builds a minimal environment spreads
+`accountSandboxChildEnv()` into it (`src/__tests__/accountHomeSandboxChild.ts`), or that child reads the
+operator's real protect list.

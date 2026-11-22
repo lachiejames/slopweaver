@@ -22,6 +22,7 @@ import {
   type ParkedSlackDraftMedia,
   parkedDraftDigest,
 } from "../../../../../outbound/slack/draftRegister.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { storeAnnotatedShot } from "../../../../annotatedShotFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -156,7 +157,7 @@ const findCard = ({
   const ran = spawnSync(BIN, ["talk", "find-card", ...words, "--home", home, "--json"], {
     cwd: scratch,
     encoding: "utf8",
-    env: { HOME: scratch, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: home },
+    env: { ...accountSandboxChildEnv(), HOME: scratch, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: home },
   });
   return { answer: JSON.parse(ran.stdout) as Record<string, unknown>, status: ran.status };
 };

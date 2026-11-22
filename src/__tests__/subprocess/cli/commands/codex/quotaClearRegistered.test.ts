@@ -32,6 +32,7 @@ import {
 } from "../../../../../codex/quotaCache.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { STORE_URL_ENV } from "../../../../../store/config.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { openProofTemplate, type ProofDatabase, type ProofTemplate, proofAdminUrl } from "../../../proofDatabase.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -88,6 +89,7 @@ describe.skipIf(ADMIN_URL === undefined)("bin/slopweaver codex quota clear, over
     const result = spawnSync(BIN, ["codex", "quota", "clear", "--plan", ALIAS, "--home", home], {
       encoding: "utf8",
       env: {
+        ...accountSandboxChildEnv(),
         CODEX_HOME: join(home, "ambient-codex"),
         HOME: process.env["HOME"]!,
         PATH: process.env["PATH"]!,

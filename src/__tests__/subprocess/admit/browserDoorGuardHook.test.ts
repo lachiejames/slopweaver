@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { seedProfileDelivered } from "../../profileDeliveredFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -62,6 +63,8 @@ function runHook({
       PATH: process.env["PATH"]!,
       SLOPWEAVER_HOME: home,
       ...extraEnv,
+      // The sandbox spreads LAST, so a caller's `extraEnv` can never drop the account-home preload.
+      ...accountSandboxChildEnv(),
     },
     input: JSON.stringify(payload),
     timeout: HOOK_TIMEOUT_MS,

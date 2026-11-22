@@ -56,6 +56,7 @@ import { reviewPaths, writeReview } from "../../../live/turn/reviewStore.js";
 import { readTurnJournal } from "../../../live/turn/turnJournalStore.js";
 import { turnMarkerPath } from "../../../live/turn/turnMarkerStore.js";
 import { parseAnswerArm } from "../../../outbound/assistant/answerForm.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { materialiseFixture } from "../../replayFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -120,7 +121,12 @@ function runSlopweaver({ args }: { args: readonly string[] }): { status: number;
     const stdout = execFileSync(BIN, args, {
       cwd: workspace,
       encoding: "utf8",
-      env: { CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"), HOME: workspace, PATH: process.env["PATH"]! },
+      env: {
+        ...accountSandboxChildEnv(),
+        CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"),
+        HOME: workspace,
+        PATH: process.env["PATH"]!,
+      },
       maxBuffer: 8 * 1024 * 1024,
     });
     return { status: 0, stderr: "", stdout };

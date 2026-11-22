@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const REAL_BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -37,12 +39,12 @@ describe("bin/slopweaver run through a symlink", () => {
     symlinkSync(REAL_BIN, link);
     const stdout = execFileSync(link, ["catalog"], {
       encoding: "utf8",
-      env: { HOME: isolatedHome, PATH: process.env["PATH"]! },
+      env: { ...accountSandboxChildEnv(), HOME: isolatedHome, PATH: process.env["PATH"]! },
       maxBuffer: 4 * 1024 * 1024,
     });
     const direct = execFileSync(REAL_BIN, ["catalog"], {
       encoding: "utf8",
-      env: { HOME: isolatedHome, PATH: process.env["PATH"]! },
+      env: { ...accountSandboxChildEnv(), HOME: isolatedHome, PATH: process.env["PATH"]! },
       maxBuffer: 4 * 1024 * 1024,
     });
     expect(stdout).toBe(direct);

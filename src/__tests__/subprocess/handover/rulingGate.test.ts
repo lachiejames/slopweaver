@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { CALLER_GATE_HOMES_ENV } from "../../../cli/callerGateHomesEnv.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
@@ -104,6 +105,7 @@ async function cli({
   const child = spawn(BIN, [...args, "--home", named], {
     cwd: home,
     env: {
+      ...accountSandboxChildEnv(),
       ...extraEnv,
       HOME: home,
       PATH: process.env["PATH"]!,

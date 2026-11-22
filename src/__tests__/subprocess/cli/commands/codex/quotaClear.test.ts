@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { stateHomePaths } from "../../../../../stateHome.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
@@ -40,6 +41,7 @@ describe("bin/slopweaver codex quota clear", () => {
     const run = spawnSync(BIN, ["codex", "quota", "clear", "--home", home], {
       encoding: "utf8",
       env: {
+        ...accountSandboxChildEnv(),
         CODEX_HOME: join(home, "ambient-codex"),
         HOME: process.env["HOME"]!,
         PATH: process.env["PATH"]!,

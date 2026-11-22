@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { isMainWorktree } from "../../../admit/mainWorktree.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { seedProfileDelivered } from "../../profileDeliveredFixture.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../tempGitRepo.js";
 
@@ -148,6 +149,7 @@ async function runShim({
     cwd,
     // An empty config dir, so the shim runs THIS tree's dispatcher rather than the installed plugin's.
     env: {
+      ...accountSandboxChildEnv(),
       CLAUDE_CONFIG_DIR: tempDir({ prefix: "sw-wallclock-config-" }),
       HOME: process.env["HOME"]!,
       PATH: `${pathPrefix}:${process.env["PATH"]!}`,

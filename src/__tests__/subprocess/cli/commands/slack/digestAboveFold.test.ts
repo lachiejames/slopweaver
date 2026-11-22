@@ -22,6 +22,8 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { absentAsNumber } from "#lib/absent.js";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -64,7 +66,7 @@ function run({ form }: { form: string }): { status: number; stdout: string; stde
     {
       cwd: home,
       encoding: "utf8",
-      env: { HOME: home, PATH: process.env["PATH"]!, SLACK_BOT_TOKEN: "xoxb-test" },
+      env: { ...accountSandboxChildEnv(), HOME: home, PATH: process.env["PATH"]!, SLACK_BOT_TOKEN: "xoxb-test" },
       input: form,
       maxBuffer: 8 * 1024 * 1024,
     },

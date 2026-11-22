@@ -12,6 +12,8 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 const CALL = "a0000041-0000-4000-8000-000000000044";
@@ -62,7 +64,7 @@ const pipeBatch = (): { status: number | null; error: Error | undefined; stdout:
   const ran = spawnSync(BIN, ["talk", "transcript", "--call", CALL, "--entries-file", "-", "--home", home, "--json"], {
     cwd: scratch,
     encoding: "utf8",
-    env: { HOME: scratch, PATH: process.env["PATH"]! },
+    env: { ...accountSandboxChildEnv(), HOME: scratch, PATH: process.env["PATH"]! },
     input: BATCH,
   });
   return { error: ran.error, status: ran.status, stdout: ran.stdout };

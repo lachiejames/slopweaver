@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { accountDefaultHome } from "../../homeDir.js";
+import { accountHomeSandboxTokens, accountSandboxChildEnv } from "../accountHomeSandboxChild.js";
 import { ambientHomeRefusal } from "../ambientHomeGuard.js";
 
 /** What the account home answered while this test module's own body ran, before any hook. */
@@ -38,6 +39,20 @@ describe("the account-home sandbox the guard installs", () => {
     expect(text).toContain("\ninstallAccountHomeSandbox({ home: accountSandbox });\n");
     expect(text).toContain("\n  installAccountHomeSandbox({ home: accountSandbox });\n");
     expect(text).toContain("afterAll(() => {\n  clearAccountHomeSandbox();\n");
+  });
+
+  it("rides NODE_OPTIONS as exactly one preload naming this file's sandbox, for every child to inherit", () => {
+    const tokens = accountHomeSandboxTokens({ value: process.env["NODE_OPTIONS"] });
+    expect(tokens.length).toBe(1);
+    const carried = new URL(tokens[0]!.slice("--import=".length)).searchParams.get("home");
+    expect(carried).toBe(accountHomeAtModuleScope);
+    expect(accountSandboxChildEnv()).toEqual({ NODE_OPTIONS: tokens[0] });
+  });
+
+  it("is owned and restored like the other moved keys, so a reused fork never stacks two preloads", () => {
+    const text = repoText({ path: "src/__tests__/setup-ambient-home.ts" });
+    expect(text).toContain('names: [HOME_VAR, APP_SERVER_VAR, "SLOPWEAVER_STORE_URL", NODE_OPTIONS_VAR],');
+    expect(text).toContain("\nprocess.env[NODE_OPTIONS_VAR] = accountHomeSandboxNodeOptions({\n");
   });
 });
 

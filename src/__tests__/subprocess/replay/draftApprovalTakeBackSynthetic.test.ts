@@ -26,6 +26,7 @@ import { parseSlackDraftLog } from "../../../outbound/slack/draftLog.js";
 import { type ParkedSlackDraft, parkedDraftDigest } from "../../../outbound/slack/draftRegister.js";
 import type { CallEntry } from "../../../talk/callRecord.js";
 import { appendCallEntries } from "../../../talk/callStore.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { claimRelayTurn, openLine, relayLine, triageNextLine } from "../../takeBackCallFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -106,7 +107,7 @@ function approve(): SpawnSyncReturns<string> {
   return spawnSync(BIN, ["slack", "draft", "approve", DRAFT_ID, "--anchor", `talk:${YES_TURN}`, "--home", home], {
     cwd: scratch,
     encoding: "utf8",
-    env: { HOME: scratch, PATH: process.env["PATH"]! },
+    env: { ...accountSandboxChildEnv(), HOME: scratch, PATH: process.env["PATH"]! },
   });
 }
 

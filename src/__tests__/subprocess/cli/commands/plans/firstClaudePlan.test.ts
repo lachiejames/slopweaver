@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { plansDepsOver, runPlansVerb } from "../../../../../cli/commands/plans/run.js";
 import { EXIT_ERROR, EXIT_OK } from "../../../../../cli/exitCodes.js";
 import type { PlanRegisterPort } from "../../../../../plans/port.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { memoryPlanRegisterPort } from "../../../../planRegisterFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -131,6 +132,7 @@ describe("a fresh install's first Claude plans", () => {
       encoding: "utf8",
       // No SLOPWEAVER_STORE_URL and no `secrets/store-url` under the throwaway home: nothing is selected.
       env: {
+        ...accountSandboxChildEnv(),
         CODEX_HOME: join(home, "codex"),
         HOME: process.env["HOME"]!,
         PATH: process.env["PATH"]!,

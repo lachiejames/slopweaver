@@ -13,6 +13,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -79,7 +81,12 @@ function sandboxBoard(): { home: string; handoverDir: string } {
 function run({ args }: { args: readonly string[] }): { status: number; stdout: string; stderr: string } {
   const result = spawnSync(BIN, args, {
     encoding: "utf8",
-    env: { HOME: process.env["HOME"]!, PATH: process.env["PATH"]!, SLOPWEAVER_LAUNCHER_QUIET: "1" },
+    env: {
+      ...accountSandboxChildEnv(),
+      HOME: process.env["HOME"]!,
+      PATH: process.env["PATH"]!,
+      SLOPWEAVER_LAUNCHER_QUIET: "1",
+    },
     maxBuffer: 4 * 1024 * 1024,
   });
   if (result.error !== undefined) {

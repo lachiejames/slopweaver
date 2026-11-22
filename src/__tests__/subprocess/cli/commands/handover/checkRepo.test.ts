@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { absentAsNumber } from "#lib/absent.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../../../tempGitRepo.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -58,7 +59,7 @@ function runCheck({ args }: { args: readonly string[] }): { status: number; stdo
   fixtureDirs.push(emptyHandoversDir);
   const result = spawnSync(BIN, ["handover", "check", "--dir", emptyHandoversDir, ...args], {
     encoding: "utf8",
-    env: { HOME: process.env["HOME"]!, PATH: process.env["PATH"]! },
+    env: { ...accountSandboxChildEnv(), HOME: process.env["HOME"]!, PATH: process.env["PATH"]! },
     maxBuffer: 4 * 1024 * 1024,
   });
   if (result.error !== undefined) {

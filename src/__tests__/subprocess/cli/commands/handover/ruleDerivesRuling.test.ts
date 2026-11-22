@@ -24,8 +24,8 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { absentAsNumber } from "#lib/absent.js";
-
 import { readAttachUploadStanding } from "../../../../../handover/attachUploadRulingStore.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { ASK_SHAPE } from "./askShapeArgs.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -52,6 +52,7 @@ function run({ args }: { args: readonly string[] }): { status: number; stdout: s
   const result = spawnSync(BIN, args, {
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
       SLOPWEAVER_CLI_DIR: repoRoot,

@@ -31,6 +31,7 @@ import { registrationArgv } from "../../../../../cli/commands/github/landingRegi
 import { dependencyBotActors } from "../../../../../organisation/dependencyBots.js";
 import { registrationSlug } from "../../../../../review/boardAtHead.js";
 import { FIRST_ASK_BRIEF } from "../../../../../review/landingDispatchAsk.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { landingRowFake } from "../../../../landingRowFake.js";
 import { ACME_ORGANISATION } from "../../../../organisationFixture.js";
 
@@ -70,6 +71,7 @@ function run({ args, extraEnv = {} }: { args: readonly string[]; extraEnv?: Read
   const result = spawnSync(BIN, args, {
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
       SLOPWEAVER_CLI_DIR: repoRoot,

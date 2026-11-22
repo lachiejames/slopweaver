@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { absentAsNumber } from "#lib/absent.js";
 import { appendRunEvent } from "../../../handover/runStore.js";
 import { appendAskLifecycleEvent } from "../../../live/ask/store.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../tempGitRepo.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -58,7 +59,7 @@ function freshRepo(): string {
 function runVelocityBin({ args }: { args: readonly string[] }): { status: number; stdout: string; stderr: string } {
   const result = spawnSync(BIN, args, {
     encoding: "utf8",
-    env: { HOME: tmpdir(), PATH: process.env["PATH"]! },
+    env: { ...accountSandboxChildEnv(), HOME: tmpdir(), PATH: process.env["PATH"]! },
     maxBuffer: 4 * 1024 * 1024,
   });
   return {

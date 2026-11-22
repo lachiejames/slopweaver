@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { absentAsNumber } from "#lib/absent.js";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -81,6 +83,7 @@ function run({ args }: { args: readonly string[] }): { status: number; report: R
   const result = spawnSync(BIN, args, {
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
       SLOPWEAVER_CLI_DIR: repoRoot,
