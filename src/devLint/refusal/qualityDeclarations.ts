@@ -118,7 +118,7 @@ export const QUALITY_LINT_GATE_DECLARATIONS = {
     caught:
       "a test file asserts less than it did at the base commit, so the suite still runs and no longer holds the same thing down",
     correction:
-      "restore the assertions; where the cases went out WITH the production code, say so on the file with `deleted-with-code: <symbol>` in a comment and the gate checks that symbol really left non-test source in this diff; where several matchers merged into one, say in the pull request which stronger claim replaced them — that one is a legitimate refusal to argue with, not one to route around",
+      "restore the assertions; where a case moved into a sibling file, move the WHOLE case verbatim into a sibling in the same directory and it is credited back; where the cases went out WITH the production code, say so on the file with `deleted-with-code: <symbol>` in a comment and the gate checks that symbol really left non-test source in this diff; where several matchers merged into one, say in the pull request which stronger claim replaced them — that one is a legitimate refusal to argue with, not one to route around",
     exceptions: [
       "several assertions merged into one that covers the same fields, which lowers the count without lowering the claim",
       "a case deleted with the behaviour it tested, where the production code went in the same diff",

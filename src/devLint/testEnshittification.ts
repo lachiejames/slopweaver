@@ -70,6 +70,18 @@
  * file's assertions vanishing and the same file's assertions appearing, i.e. the loudest possible false
  * positive on the most routine possible refactor.
  *
+ * ## A case split into a sibling is followed too, by the case and never by its assertions
+ *
+ * `file-size-ratchet` tells an oversized test file to split by describe block into siblings, and a block
+ * moved into a NEW sibling is an `A` git pairs with nothing, so the file it left read as weaker by exactly
+ * what moved. {@link compareAll} credits a shrunk file back with every whole test case that reappears
+ * VERBATIM in a same-directory sibling — an added file, or another changed file's gain over its base — whose
+ * head skips and focuses nothing and where nothing but a closed list of inert statements stands beside it,
+ * all-or-none per case when two files lost the same one. The credit is
+ * applied before {@link weakenings}, so a refusal's numbers are the file's counts PLUS what it was credited.
+ * An identical assertion in an unrelated new case credits nothing, which is the point: the mechanism, its
+ * key and its residue are `./testCaseMoves.ts`'s header.
+ *
  * ## Its residue, stated rather than discovered
  *
  * - **Counting is not judging.** Splitting one `toEqual` over a whole record into three `toBe`s on its
@@ -197,6 +209,7 @@ import { gitGrep, gitNulFields, gitShow, runAgainstFloorBase } from "./gitAtComm
 import { lintDeclarationFor } from "./refusal/registry.js";
 import { lintGateRefusal } from "./refusal/render.js";
 import { countAssertions, declaredDeletedSymbols, weakenings } from "./testAssertionCounts.js";
+import { type AddedText, type ComparedText, moveCredits } from "./testCaseMoves.js";
 
 /** The tree this gate reads, and the suffix that makes a file in it a test. */
 const TEST_TREE = "src/__tests__/";
@@ -262,7 +275,35 @@ export function parseNameStatus({ fields }: { fields: readonly string[] }): read
       pairs.push({ basePath: record.first, headPath: record.second });
     }
   }
-  return pairs.filter((pair) => pair.headPath.startsWith(TEST_TREE) && pair.headPath.endsWith(TEST_SUFFIX));
+  return pairs.filter((pair) => isTestPath({ path: pair.headPath }));
+}
+
+/**
+ * Whether a path is a test file this gate reads.
+ *
+ * @returns true for a `*.test.ts` under the test tree
+ */
+function isTestPath({ path }: { path: string }): boolean {
+  return path.startsWith(TEST_TREE) && path.endsWith(TEST_SUFFIX);
+}
+
+/**
+ * Read the same `-z` stream for the test files the branch ADDED — the only place a case split off an
+ * existing file can land without a pair of its own.
+ *
+ * @param fields the `-z` stream's fields, in the order git emitted them
+ * @returns every added test file's path, in the order git reported them
+ */
+export function addedTestPaths({ fields }: { fields: readonly string[] }): readonly string[] {
+  const added: string[] = [];
+  let cursor = 0;
+  for (;;) {
+    const record = readRecord({ cursor, fields });
+    if (record === undefined) break;
+    cursor = record.next;
+    if (record.status === "A" && isTestPath({ path: record.first })) added.push(record.first);
+  }
+  return added;
 }
 
 /** A base blob this gate needed and git would not give it, kept separate from a file that simply passed. */
@@ -320,49 +361,115 @@ function settleDeletedWithCode({ root, sha, symbols }: { root: string; sha: stri
 }
 
 /**
- * Compare every changed test file against its own base revision.
+ * Read one file from the working tree.
+ *
+ * @param root the repository root
+ * @param path the repository-relative path
+ * @returns its text, or `undefined` when it would not read
+ */
+function readHead({ root, path }: { root: string; path: string }): string | undefined {
+  try {
+    return readFileSync(join(root, path), "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Read every compared file at both ends and every added file at the head, keeping what would not read.
+ *
+ * An added file that will not read is UNREADABLE, never dropped: it is a receiver candidate, so the verdict
+ * would otherwise depend on a file the gate never saw.
  *
  * @param pairs the file pairs to compare
- * @param root the repository root, for resolving the head-side read
+ * @param added the test files only at the head
+ * @param root the repository root
  * @param sha the base commit
- * @returns every weakening found, how many files were actually compared, and which base blobs would not read
+ * @returns the texts, and every path that would not read
  */
-function compareAll({ pairs, root, sha }: { pairs: readonly ChangedTest[]; root: string; sha: string }): Comparison {
-  const findings: string[] = [];
+function loadAll({
+  pairs,
+  added,
+  root,
+  sha,
+}: {
+  pairs: readonly ChangedTest[];
+  added: readonly string[];
+  root: string;
+  sha: string;
+}): { compared: readonly ComparedText[]; added: readonly AddedText[]; unreadable: readonly string[] } {
+  const compared: ComparedText[] = [];
+  const addedTexts: AddedText[] = [];
   const unreadable: string[] = [];
-  let compared = 0;
   for (const pair of pairs) {
     const baseText = gitShow({ root, spec: `${sha}:${pair.basePath}` });
     if (baseText === undefined) {
       unreadable.push(pair.basePath);
       continue;
     }
-    let headText: string;
-    try {
-      headText = readFileSync(join(root, pair.headPath), "utf8");
-    } catch {
+    const headText = readHead({ path: pair.headPath, root });
+    if (headText === undefined) {
       unreadable.push(pair.headPath);
       continue;
     }
-    compared += 1;
+    compared.push({ baseText, headText, path: pair.headPath });
+  }
+  for (const path of added) {
+    const text = readHead({ path, root });
+    if (text === undefined) {
+      unreadable.push(path);
+      continue;
+    }
+    addedTexts.push({ path, text });
+  }
+  return { added: addedTexts, compared, unreadable };
+}
+
+/**
+ * Compare every changed test file against its own base revision, crediting back each case it moved verbatim
+ * into a sibling in the same diff (`./testCaseMoves.ts`).
+ *
+ * @param pairs the file pairs to compare
+ * @param added the test files only at the head, which can only RECEIVE a moved case
+ * @param root the repository root, for resolving the head-side read
+ * @param sha the base commit
+ * @returns every weakening found, how many files were actually compared, and which files would not read
+ */
+function compareAll({
+  pairs,
+  added,
+  root,
+  sha,
+}: {
+  pairs: readonly ChangedTest[];
+  added: readonly string[];
+  root: string;
+  sha: string;
+}): Comparison {
+  const loaded = loadAll({ added, pairs, root, sha });
+  const credits = moveCredits({ added: loaded.added, compared: loaded.compared });
+  const findings: string[] = [];
+  for (const file of loaded.compared) {
     const claim = settleDeletedWithCode({
       root,
       sha,
-      symbols: declaredDeletedSymbols({ content: headText }),
+      symbols: declaredDeletedSymbols({ content: file.headText }),
     });
     for (const line of claim.unproven) {
-      findings.push(`${pair.headPath}: ${line}`);
+      findings.push(`${file.path}: ${line}`);
     }
+    const head = countAssertions({ content: file.headText });
+    const moved = credits.get(file.path)!;
     findings.push(
       ...weakenings({
-        base: countAssertions({ content: baseText }),
+        base: countAssertions({ content: file.baseText }),
         deletedWithCode: claim.verified,
-        head: countAssertions({ content: headText }),
-        path: pair.headPath,
+        head: { ...head, expects: head.expects + moved.expects, strong: head.strong + moved.strong },
+        path: file.path,
       }),
     );
   }
-  return { compared, findings, unreadable };
+  return { compared: loaded.compared.length, findings, unreadable: loaded.unreadable };
 }
 
 /**
@@ -419,7 +526,7 @@ function judge({ root, sha }: { root: string; sha: string }): number {
     fact({ line: `no test file changed against ${sha.slice(0, 9)} — nothing to compare` });
     return 0;
   }
-  return report({ comparison: compareAll({ pairs, root, sha }), sha });
+  return report({ comparison: compareAll({ added: addedTestPaths({ fields }), pairs, root, sha }), sha });
 }
 
 /**
