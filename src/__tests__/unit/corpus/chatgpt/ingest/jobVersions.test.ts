@@ -18,6 +18,7 @@ import { createBronzeCommitter } from "../../../../../corpus/corpusWriter.js";
 import { latestRecords } from "../../../../../corpus/latestRecords.js";
 import { ok, unwrap } from "../../../../../lib/result.js";
 import { chatId, FUTURE, syntheticExportAt, syntheticFileAlone } from "../../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../../noProtection.js";
 import { bronzeTexts, conversation, NO_ZIP, refreshOf, takeAt, tempDir, useTempDirs, WINDOW } from "./harness.js";
 
 /** An owner protect list with no entries, so no test reads the owner's own registry. */
@@ -35,7 +36,8 @@ describe("chatgptIngestJob", () => {
     const take = ({ chats, nowIso }: { chats: Record<string, unknown>[]; nowIso: string }): string => {
       const dir = tempDir();
       writeFileSync(join(dir, "conversations.json"), JSON.stringify(chats));
-      return unwrap(importChatgptExport({ archive: NO_ZIP, from: dir, nowIso, root: exportsRoot })).stored.contentHash;
+      return unwrap(importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from: dir, nowIso, root: exportsRoot }))
+        .stored.contentHash;
     };
     const run = async (): Promise<readonly string[]> =>
       unwrap(
@@ -54,7 +56,7 @@ describe("chatgptIngestJob", () => {
       nowIso: "2026-10-01T00:00:00.000Z",
     });
     await run();
-    unwrap(writeReceipt({ contentHash: newer, nowIso: "2026-10-01T01:00:00.000Z", root: exportsRoot }));
+    unwrap(writeReceipt({ ...UNPROTECTED, contentHash: newer, nowIso: "2026-10-01T01:00:00.000Z", root: exportsRoot }));
     take({
       chats: [
         conversation({ id: "conv-lease", text: "draft", title: "Lease, draft", updateTime: 1790000000 }),
@@ -78,7 +80,13 @@ describe("chatgptIngestJob", () => {
     const home = tempDir();
     const exportsRoot = join(home, "exports");
     const earlier = unwrap(
-      importChatgptExport({ archive: NO_ZIP, from: FIXTURE, nowIso: "2026-10-01T00:00:00.000Z", root: exportsRoot }),
+      importChatgptExport({
+        ...UNPROTECTED,
+        archive: NO_ZIP,
+        from: FIXTURE,
+        nowIso: "2026-10-01T00:00:00.000Z",
+        root: exportsRoot,
+      }),
     );
     const first = chatgptIngestJob({
       deps: {
@@ -93,6 +101,7 @@ describe("chatgptIngestJob", () => {
     rmSync(earlier.stored.directory, { force: true, recursive: true });
     unwrap(
       importChatgptExport({
+        ...UNPROTECTED,
         archive: NO_ZIP,
         from: syntheticFileAlone({ member: "conversations-001.json", modifiedIso: FUTURE }),
         nowIso: "2026-10-17T00:00:00.000Z",

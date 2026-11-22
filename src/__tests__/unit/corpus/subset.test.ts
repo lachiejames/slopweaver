@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import type { OwnerProtectionResolver } from "../../../corpus/bronzeProtection.js";
 import { bronzeSourceDir, historyFile } from "../../../corpus/corpusPaths.js";
 import {
   buildSubsetManifest,
@@ -24,8 +25,9 @@ import {
 import { buildSubset } from "../../../corpus/subsetBuild.js";
 import { readSubsetManifest } from "../../../corpus/subsetStore.js";
 import type { CorpusRecord } from "../../../corpus/types.js";
-import { unwrap, unwrapErr } from "../../../lib/result.js";
+import { ok, unwrap, unwrapErr } from "../../../lib/result.js";
 import { stateHomePaths } from "../../../stateHome.js";
+import { NO_PROTECTION } from "../../noProtection.js";
 
 const NOW = new Date("2026-08-24T16:00:00.000Z");
 
@@ -225,7 +227,9 @@ describe("buildSubset", () => {
         record({ sourceId: "#new", tsIso: "2026-08-20T00:00:00.000Z" }),
       ],
     });
-    const built = unwrap(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    const built = unwrap(
+      buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }),
+    );
     expect(built.sources).toEqual([
       { kept: 1, newestIso: "2026-08-20T00:00:00.000Z", scanned: 2, source: "github", undated: 0 },
     ]);
@@ -243,7 +247,9 @@ describe("buildSubset", () => {
       `${JSON.stringify(record())}\nnot json at all\n`,
       "utf8",
     );
-    const built = unwrap(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    const built = unwrap(
+      buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }),
+    );
     expect(built.sources[0]).toEqual({
       kept: 1,
       newestIso: "2026-08-20T00:00:00.000Z",
@@ -255,7 +261,7 @@ describe("buildSubset", () => {
 
   it("writes the manifest the answer path reads back", () => {
     writeBronze({ file: "w.jsonl", records: [record()] });
-    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }));
     const readBack = readSubsetManifest({ home: out });
     expect(readBack?.days).toBe(7);
     expect(readBack?.sinceIso).toBe("2026-08-17T16:00:00.000Z");
@@ -270,7 +276,7 @@ describe("buildSubset", () => {
         `${JSON.stringify({ eventId: "new", source: "linear", tsIso: "2026-08-20T00:00:00.000Z" })}\n`,
       "utf8",
     );
-    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }));
     expect(readFileSync(historyFile({ home: out, source: "linear" }), "utf8")).toBe(
       `${JSON.stringify({ eventId: "new", source: "linear", tsIso: "2026-08-20T00:00:00.000Z" })}\n`,
     );
@@ -285,7 +291,7 @@ describe("buildSubset", () => {
         `${JSON.stringify({ eventId: "b", source: "linear", tsIso: "2026-08-22T00:00:00.000Z" })}\n`,
       "utf8",
     );
-    unwrap(buildSubset({ days: 7, limit: 1, now: NOW, outHome: out, sourceHome: source }));
+    unwrap(buildSubset({ days: 7, limit: 1, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }));
     expect(readFileSync(historyFile({ home: out, source: "linear" }), "utf8")).toBe(
       `${JSON.stringify({ eventId: "b", source: "linear", tsIso: "2026-08-22T00:00:00.000Z" })}\n`,
     );
@@ -295,7 +301,7 @@ describe("buildSubset", () => {
     writeBronze({ file: "w.jsonl", records: [record()] });
     mkdirSync(stateHomePaths({ home: source }).corpus.members, { recursive: true });
     writeFileSync(join(stateHomePaths({ home: source }).corpus.members, "github.jsonl"), '{"id":"u1"}\n', "utf8");
-    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }));
     expect(readFileSync(join(stateHomePaths({ home: out }).corpus.members, "github.jsonl"), "utf8")).toBe(
       '{"id":"u1"}\n',
     );
@@ -304,7 +310,7 @@ describe("buildSubset", () => {
   it("never copies the retired identity roster file, which a subset store would otherwise import as its roster", () => {
     writeBronze({ file: "w.jsonl", records: [record()] });
     writeFileSync(join(source, "identity.json"), "[]\n", "utf8");
-    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }));
     expect(existsSync(join(out, "identity.json"))).toBe(false);
   });
 
@@ -312,7 +318,7 @@ describe("buildSubset", () => {
     writeBronze({ file: "w.jsonl", records: [record()] });
     mkdirSync(stateHomePaths({ home: source }).corpus.gold, { recursive: true });
     writeFileSync(join(stateHomePaths({ home: source }).corpus.gold, "overview.md"), "# distilled\n", "utf8");
-    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    unwrap(buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }));
     expect(existsSync(join(stateHomePaths({ home: out }).corpus.gold, "overview.md"))).toBe(false);
   });
 
@@ -325,7 +331,9 @@ describe("buildSubset", () => {
         record({ sourceId: "#c", tsIso: "2026-08-20T00:00:00.000Z" }),
       ],
     });
-    const built = unwrap(buildSubset({ days: 7, limit: 2, now: NOW, outHome: out, sourceHome: source }));
+    const built = unwrap(
+      buildSubset({ days: 7, limit: 2, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }),
+    );
     expect(built.sources[0]).toEqual({
       inWindow: 3,
       kept: 2,
@@ -346,20 +354,24 @@ describe("buildSubset", () => {
 
   it("records the limit on the manifest, so the banner can state the cap", () => {
     writeBronze({ file: "w.jsonl", records: [record()] });
-    unwrap(buildSubset({ days: 7, limit: 5, now: NOW, outHome: out, sourceHome: source }));
+    unwrap(buildSubset({ days: 7, limit: 5, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }));
     expect(readSubsetManifest({ home: out })?.limit).toBe(5);
   });
 
   it("omits inWindow when the cap never bit, because it would repeat kept and say nothing", () => {
     writeBronze({ file: "w.jsonl", records: [record()] });
-    const built = unwrap(buildSubset({ days: 7, limit: 5, now: NOW, outHome: out, sourceHome: source }));
+    const built = unwrap(
+      buildSubset({ days: 7, limit: 5, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }),
+    );
     expect(built.sources[0]?.inWindow).toBeUndefined();
   });
 
   it("selects the newest across MULTIPLE files, not the newest within each", () => {
     writeBronze({ file: "a.jsonl", records: [record({ sourceId: "#old", tsIso: "2026-08-18T00:00:00.000Z" })] });
     writeBronze({ file: "b.jsonl", records: [record({ sourceId: "#new", tsIso: "2026-08-23T00:00:00.000Z" })] });
-    const built = unwrap(buildSubset({ days: 7, limit: 1, now: NOW, outHome: out, sourceHome: source }));
+    const built = unwrap(
+      buildSubset({ days: 7, limit: 1, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }),
+    );
     expect(built.sources[0]?.kept).toBe(1);
     const written = readFileSync(
       join(bronzeSourceDir({ home: out, source: "github" }), "2026-08-17T16-00-00-000Z_2026-08-24T16-00-00-000Z.jsonl"),
@@ -369,20 +381,52 @@ describe("buildSubset", () => {
   });
 
   it("refuses a source home with no bronze", () => {
-    const error = unwrapErr(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    const error = unwrapErr(
+      buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }),
+    );
     expect(error.code).toBe("NO_SOURCE_CORPUS");
   });
 
   it("refuses to write into the home it is slicing", () => {
     writeBronze({ file: "w.jsonl", records: [record()] });
-    const error = unwrapErr(buildSubset({ days: 7, now: NOW, outHome: source, sourceHome: source }));
+    const error = unwrapErr(
+      buildSubset({ days: 7, now: NOW, outHome: source, protection: NO_PROTECTION, sourceHome: source }),
+    );
     expect(error.code).toBe("DESTINATION_IS_SOURCE");
   });
 
   it("refuses a destination that already holds a corpus", () => {
     writeBronze({ file: "w.jsonl", records: [record()] });
     mkdirSync(stateHomePaths({ home: out }).corpus.bronze, { recursive: true });
-    const error = unwrapErr(buildSubset({ days: 7, now: NOW, outHome: out, sourceHome: source }));
+    const error = unwrapErr(
+      buildSubset({ days: 7, now: NOW, outHome: out, protection: NO_PROTECTION, sourceHome: source }),
+    );
     expect(error.code).toBe("DESTINATION_OCCUPIED");
+  });
+
+  it("refuses a source home whose scaffolding holds a no-access entry, copying nothing", () => {
+    writeBronze({ file: "w.jsonl", records: [record()] });
+    const members = stateHomePaths({ home: source }).corpus.members;
+    const entry = join(members, "private.jsonl");
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "no-access", path: entry, why: "never read" }]);
+    expect(unwrapErr(buildSubset({ days: 7, now: NOW, outHome: out, protection, sourceHome: source }))).toEqual({
+      code: "SUBSET_PROTECTED",
+      message:
+        `refusing to build a subset into ${out}: it would search ${members}, which the owner's protect list marks ` +
+        `no-access at ${entry} (never read) — nothing was copied`,
+    });
+    expect(existsSync(out)).toBe(false);
+  });
+
+  it("refuses a destination under a read-only entry, which a plain read would let through", () => {
+    writeBronze({ file: "w.jsonl", records: [record()] });
+    const parent = join(out, "..");
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "read-only", path: parent, why: "held" }]);
+    expect(unwrapErr(buildSubset({ days: 7, now: NOW, outHome: out, protection, sourceHome: source })).code).toBe(
+      "SUBSET_PROTECTED",
+    );
+    expect(existsSync(out)).toBe(false);
   });
 });

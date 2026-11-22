@@ -25,6 +25,7 @@ import { safeFs } from "../../lib/safeBoundary.js";
 import { writeFileAtomicStream } from "../../lib/writeAtomic.js";
 import type { OwnerProtectionResolver } from "../bronzeProtection.js";
 import { type BronzeFileStat, listBronzeFiles } from "../bronzeStorage.js";
+import { preflightCorpusAccesses } from "../corpusAccessGuard.js";
 import { readJsonlLines } from "../corpusStore.js";
 
 /** The prefix every hand-written share row's `sourceId` opens with. */
@@ -124,10 +125,17 @@ export function readShareTokens({
  * write that row's Fathom action items to the store however carefully this share removed its own.
  *
  * @param home the Slopweaver home
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns the tokens, sorted, each once, or the refusal naming what the owner's protect list covers
  */
-export function handWrittenShareTokens({ home }: { home: string }): Result<readonly string[]> {
-  const listed = fathomBronzeFiles({ home, protection: undefined });
+export function handWrittenShareTokens({
+  home,
+  protection,
+}: {
+  home: string;
+  protection?: OwnerProtectionResolver | undefined;
+}): Result<readonly string[]> {
+  const listed = fathomBronzeFiles({ home, protection });
   if (listed.isErr()) {
     return err(listed.error);
   }
@@ -191,28 +199,23 @@ function rewriteWithout({
   });
 }
 
+/** One listed file holding the hand-written row: how many of its lines go, and how many stay. */
+interface ShareRowHit {
+  readonly path: string;
+  readonly hits: number;
+  readonly kept: number;
+}
+
 /**
- * Remove every version of the hand-written `share:<token>` rows from the fathom source's bronze.
+ * Count, per listed file, the hand-written row's lines and the lines that would survive. Reads only.
  *
- * @param home the Slopweaver home
- * @param token the share token whose hand-written row is superseded
- * @returns how many lines were removed across how many files, or why a file could not be rewritten
+ * @param paths the judged listing's files
+ * @param handWritten the hand-written row's `sourceId`
+ * @returns one entry per file that holds the row, in listing order
  */
-export function removeHandWrittenShareRows({
-  home,
-  token,
-}: {
-  home: string;
-  token: string;
-}): Result<{ removed: number; files: number }> {
-  const handWritten = handWrittenShareSourceId({ token });
-  const listed = fathomBronzeFiles({ home, protection: undefined });
-  if (listed.isErr()) {
-    return err(listed.error);
-  }
-  let removed = 0;
-  let files = 0;
-  for (const file of listed.value) {
+function shareRowHits({ paths, handWritten }: { paths: readonly string[]; handWritten: string }): ShareRowHit[] {
+  const found: ShareRowHit[] = [];
+  for (const path of paths) {
     let hits = 0;
     let kept = 0;
     readJsonlLines({
@@ -223,17 +226,58 @@ export function removeHandWrittenShareRows({
           kept += 1;
         }
       },
-      path: file.path,
+      path,
     });
-    if (hits === 0) {
-      continue;
+    if (hits > 0) {
+      found.push({ hits, kept, path });
     }
-    const rewritten = rewriteWithout({ handWritten, kept, path: file.path });
-    if (rewritten.isErr()) {
-      return err([`could not rewrite ${file.path} without ${handWritten}: ${rewritten.error.message}`]);
-    }
-    removed += hits;
-    files += 1;
   }
-  return ok({ files, removed });
+  return found;
+}
+
+/**
+ * Remove every version of the hand-written `share:<token>` rows from the fathom source's bronze.
+ *
+ * Every file holding the row is judged as a write BEFORE the first rewrite: the listing judged them only as reads,
+ * which a read-only entry allows, and a refuser never rewrites file A before finding file B covered.
+ *
+ * @param home the Slopweaver home
+ * @param token the share token whose hand-written row is superseded
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
+ * @returns how many lines were removed across how many files, the protect list's refusal, or why a file could
+ *   not be rewritten
+ */
+export function removeHandWrittenShareRows({
+  home,
+  token,
+  protection,
+}: {
+  home: string;
+  token: string;
+  protection?: OwnerProtectionResolver | undefined;
+}): Result<{ removed: number; files: number }> {
+  const handWritten = handWrittenShareSourceId({ token });
+  const listed = fathomBronzeFiles({ home, protection });
+  if (listed.isErr()) {
+    return err(listed.error);
+  }
+  const hits = shareRowHits({ handWritten, paths: listed.value.map((file) => file.path) });
+  const judged = preflightCorpusAccesses({
+    accesses: hits.map(({ path }) => ({ access: "write", path })),
+    home,
+    operation: { target: handWritten, verb: "supersede" },
+    protection,
+  });
+  if (judged.isErr()) {
+    return err(judged.error);
+  }
+  let removed = 0;
+  for (const hit of hits) {
+    const rewritten = rewriteWithout({ handWritten, kept: hit.kept, path: hit.path });
+    if (rewritten.isErr()) {
+      return err([`could not rewrite ${hit.path} without ${handWritten}: ${rewritten.error.message}`]);
+    }
+    removed += hit.hits;
+  }
+  return ok({ files: hits.length, removed });
 }

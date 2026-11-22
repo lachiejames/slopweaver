@@ -12,9 +12,12 @@ Run `"${CLAUDE_PLUGIN_ROOT}/bin/slopweaver" protect $ARGUMENTS` and report the r
 list, and the repository holds only the mechanism: this verb, the `PreToolUse` guard, the `talk file` refusal and the
 bronze writer, which refuses a refresh's dedup read and append under a protected path, and the corpus readers, which
 ask the same judge and skip and name a protected path under the corpus (`corpus-hygiene` prints it `NOT CHECKED` and
-passes; the readers and rewriters still unjudged are listed in protected paths).
+passes), and the corpus rewriters (`compact`, `fathom share`, `subset`, the ChatGPT take-in, the member and structure
+stores), which judge every path they will write before the first one and refuse whole. The readers and rewriters
+still unjudged are listed in protected paths.
 Never write a protected path into a commit, a test, a doc, a pull request or a board row — a rule against naming
-something, committed while naming it, is the failure this design exists to avoid. A test uses a synthetic path.
+something, committed while naming it, is the failure this design exists to avoid. A test uses a synthetic path and
+injects an empty resolver (`src/__tests__/noProtection.ts`), so it never reads the owner's own list.
 
 | mode        | a session may read it | a session may write it |
 | ----------- | --------------------- | ---------------------- |

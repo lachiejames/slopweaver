@@ -12,7 +12,7 @@ import { err, ok, type Result } from "../lib/result.js";
 import type { OwnerProtectionResolver } from "./bronzeProtection.js";
 import { bronzeDir } from "./corpusPaths.js";
 import { type CorpusStoreError, CorpusStoreErrors } from "./corpusStore.errors.js";
-import { scanJsonlProtected } from "./corpusStore.js";
+import { protectedSkipWarnings, scanJsonlProtected } from "./corpusStore.js";
 
 /**
  * Resolve a readable corpus dir. `corpus` (an explicit dir) is used verbatim; otherwise the bronze dir
@@ -63,6 +63,11 @@ export interface CorpusResolution {
   /** Bytes of `.jsonl` under the root — what the heap guard projects from. */
   readonly diskBytes: number;
   readonly unreadableDirs: readonly string[];
+  /**
+   * One line per path the owner's protect list kept out of the walk. A caller that goes on to READ the tree reports
+   * its reader's own copy of these instead (`readCorpusDir`'s warnings), so a skip is said once, never twice.
+   */
+  readonly warnings: readonly string[];
 }
 
 /**
@@ -90,8 +95,8 @@ function corpusRootFor({ corpus, home }: { corpus: string | undefined; home: str
  * @param home the Slopweaver home (used when `corpus` is absent), whose protect list applies beside the account's own
  * @param corpus an explicit corpus directory override
  * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
- * @returns the resolved dir, how many `.jsonl` files it holds, and any directory that could not be listed, or the
- *   protect list's refusal
+ * @returns the resolved dir, how many `.jsonl` files it holds, any directory that could not be listed and a line per
+ *   path the protect list kept out of the walk, or the protect list's refusal
  */
 export function resolveCorpusScan({
   home = slopweaverHome(),
@@ -113,5 +118,6 @@ export function resolveCorpusScan({
     diskBytes: scan.files.reduce((sum, file) => sum + file.bytes, 0),
     fileCount: scan.files.length,
     unreadableDirs: scan.unreadableDirs,
+    warnings: protectedSkipWarnings({ scan }),
   });
 }

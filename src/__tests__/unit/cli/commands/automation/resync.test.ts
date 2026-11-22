@@ -21,6 +21,7 @@ import { readResyncState } from "../../../../../live/resync/outcomeStore.js";
 import { buildResyncPolicies } from "../../../../../live/resync/policy.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { FUTURE, syntheticExportAt } from "../../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../../noProtection.js";
 import { gitInTemp } from "../../../../tempGitRepo.js";
 
 const HOME = "/tmp/home";
@@ -193,6 +194,7 @@ describe("runRecipeResync", () => {
     // The chatgpt row is seated only once an export is held, so this home takes the fixture's in first.
     unwrap(
       importChatgptExport({
+        ...UNPROTECTED,
         archive: NO_ZIP,
         from: CHATGPT_FIXTURE,
         nowIso: "2026-10-17T01:00:00.000Z",

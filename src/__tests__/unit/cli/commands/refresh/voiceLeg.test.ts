@@ -83,7 +83,7 @@ describe("voiceLegVerdict", () => {
   it("prints the cohorts it wrote and fails nothing", () => {
     const verdict = voiceLegVerdict({
       numbersOnly: false,
-      outcome: ok({ filesRead: 1, kind: "written", measurement: MEASUREMENT }),
+      outcome: ok({ filesRead: 1, kind: "written", measurement: MEASUREMENT, notRead: [] }),
     });
     expect(verdict).toStrictEqual({
       failures: [],
@@ -91,15 +91,51 @@ describe("voiceLegVerdict", () => {
     });
   });
 
+  it("counts the paths the protect list kept out of the measurement", () => {
+    const verdict = voiceLegVerdict({
+      numbersOnly: true,
+      outcome: ok({
+        filesRead: 1,
+        kind: "written",
+        measurement: MEASUREMENT,
+        notRead: ["NOT READ, protected by the owner's list: /fixture/held [no-access]"],
+      }),
+    });
+    expect(verdict.lines).toStrictEqual([
+      {
+        level: "out",
+        text: "voice: measured their sent Slack — slack/all-sent n=2, slack-dm/aggregate n=1; 1 path(s) on the protect list not read",
+      },
+    ]);
+  });
+
   it("prints a skip and keeps the exit code", () => {
     const verdict = voiceLegVerdict({
       numbersOnly: false,
-      outcome: ok({ kind: "no-store", measurement: MEASUREMENT, message: "no store is selected" }),
+      outcome: ok({ kind: "no-store", measurement: MEASUREMENT, message: "no store is selected", notRead: [] }),
     });
     expect(verdict).toStrictEqual({
       failures: [],
       lines: [{ level: "out", text: "voice: nothing measured — no store is selected" }],
     });
+  });
+
+  it("still counts what the protect list kept out of the walk when no store is selected", () => {
+    const verdict = voiceLegVerdict({
+      numbersOnly: false,
+      outcome: ok({
+        kind: "no-store",
+        measurement: MEASUREMENT,
+        message: "no store is selected",
+        notRead: ["NOT READ, protected by the owner's list: /fixture/held [no-access]"],
+      }),
+    });
+    expect(verdict.lines).toStrictEqual([
+      {
+        level: "out",
+        text: "voice: nothing measured — no store is selected; 1 path(s) on the protect list not read",
+      },
+    ]);
   });
 
   it("prints a missing owner row as a skip, not a failure", () => {
@@ -109,6 +145,7 @@ describe("voiceLegVerdict", () => {
         kind: "skipped",
         measurement: MEASUREMENT,
         message: "no owner row has been written yet",
+        notRead: [],
         reason: "owner-row-absent",
       }),
     });
@@ -128,7 +165,8 @@ describe("voiceLegVerdict", () => {
 });
 
 describe("runRefreshVoiceStep", () => {
-  const written: MeasureVoice = async () => ok({ filesRead: 1, kind: "written", measurement: MEASUREMENT });
+  const written: MeasureVoice = async () =>
+    ok({ filesRead: 1, kind: "written", measurement: MEASUREMENT, notRead: [] });
 
   it("measures after a Slack ingest that succeeded, under this run's home and clock", async () => {
     const edges = deck({ measure: written });

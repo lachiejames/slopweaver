@@ -49,20 +49,22 @@ describe("measurementLines", () => {
 
 describe("measurementHeadline", () => {
   it("says a written measurement refreshed the context cache", () => {
-    expect(measurementHeadline({ outcome: { filesRead: 4, kind: "written", measurement: MEASUREMENT } })).toBe(
-      "profile voice measure: 1 cohort(s) written from 4 Slack file(s); context cache refreshed",
-    );
+    expect(
+      measurementHeadline({ outcome: { filesRead: 4, kind: "written", measurement: MEASUREMENT, notRead: [] } }),
+    ).toBe("profile voice measure: 1 cohort(s) written from 4 Slack file(s); context cache refreshed");
   });
 
   it("says a dry run wrote nothing", () => {
-    expect(measurementHeadline({ outcome: { filesRead: 2, kind: "dry-run", measurement: MEASUREMENT } })).toBe(
-      "profile voice measure (dry run): 1 cohort(s) measured from 2 Slack file(s); nothing written",
-    );
+    expect(
+      measurementHeadline({ outcome: { filesRead: 2, kind: "dry-run", measurement: MEASUREMENT, notRead: [] } }),
+    ).toBe("profile voice measure (dry run): 1 cohort(s) measured from 2 Slack file(s); nothing written");
   });
 
   it("carries the no-store reason", () => {
     expect(
-      measurementHeadline({ outcome: { kind: "no-store", measurement: MEASUREMENT, message: "no store selected" } }),
+      measurementHeadline({
+        outcome: { kind: "no-store", measurement: MEASUREMENT, message: "no store selected", notRead: [] },
+      }),
     ).toBe("profile voice measure: 1 cohort(s) measured; nothing written — no store selected");
   });
 });

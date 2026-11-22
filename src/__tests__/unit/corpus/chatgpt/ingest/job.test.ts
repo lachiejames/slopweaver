@@ -16,6 +16,7 @@ import { createBronzeCommitter } from "../../../../../corpus/corpusWriter.js";
 import { ok, unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { projectRecord } from "../../../../../store/project.js";
 import { FUTURE, syntheticExportAt, syntheticFileAlone } from "../../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../../noProtection.js";
 import {
   bronzeTexts,
   conversation,
@@ -64,7 +65,13 @@ describe("chatgptIngestJob", () => {
     const home = tempDir();
     const exportsRoot = join(home, "exports");
     unwrap(
-      importChatgptExport({ archive: NO_ZIP, from: FIXTURE, nowIso: "2026-10-17T00:00:00.000Z", root: exportsRoot }),
+      importChatgptExport({
+        ...UNPROTECTED,
+        archive: NO_ZIP,
+        from: FIXTURE,
+        nowIso: "2026-10-17T00:00:00.000Z",
+        root: exportsRoot,
+      }),
     );
     const job = chatgptIngestJob({
       deps: {
@@ -101,7 +108,13 @@ describe("chatgptIngestJob", () => {
     const home = tempDir();
     const exportsRoot = join(home, "exports");
     unwrap(
-      importChatgptExport({ archive: NO_ZIP, from: FIXTURE, nowIso: "2026-10-01T00:00:00.000Z", root: exportsRoot }),
+      importChatgptExport({
+        ...UNPROTECTED,
+        archive: NO_ZIP,
+        from: FIXTURE,
+        nowIso: "2026-10-01T00:00:00.000Z",
+        root: exportsRoot,
+      }),
     );
     unwrap(
       await chatgptIngestJob({
@@ -138,10 +151,17 @@ describe("chatgptIngestJob", () => {
     const home = tempDir();
     const exportsRoot = join(home, "exports");
     unwrap(
-      importChatgptExport({ archive: NO_ZIP, from: FIXTURE, nowIso: "2026-10-01T00:00:00.000Z", root: exportsRoot }),
+      importChatgptExport({
+        ...UNPROTECTED,
+        archive: NO_ZIP,
+        from: FIXTURE,
+        nowIso: "2026-10-01T00:00:00.000Z",
+        root: exportsRoot,
+      }),
     );
     unwrap(
       importChatgptExport({
+        ...UNPROTECTED,
         archive: NO_ZIP,
         from: syntheticFileAlone({ member: "conversations-001.json", modifiedIso: FUTURE }),
         nowIso: "2026-10-17T00:00:00.000Z",

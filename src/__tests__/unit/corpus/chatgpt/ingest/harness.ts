@@ -22,6 +22,7 @@ import type { CorpusRecord } from "../../../../../corpus/types.js";
 import { err, ok, unwrap } from "../../../../../lib/result.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { chatId } from "../../../../chatgptFixture.js";
+import { NO_PROTECTION, UNPROTECTED } from "../../../../noProtection.js";
 
 /** A cursorless source's window: the epoch to the run. */
 export const WINDOW = { since: "1970-01-01", until: "2026-10-17" };
@@ -182,7 +183,9 @@ export function takeAt({
   writeFileSync(file, JSON.stringify(chats));
   const when = new Date(acquiredIso);
   utimesSync(file, when, when);
-  return unwrap(importChatgptExport({ archive: NO_ZIP, from: dir, nowIso: "2026-10-17T00:00:00.000Z", root })).stored;
+  return unwrap(
+    importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from: dir, nowIso: "2026-10-17T00:00:00.000Z", root }),
+  ).stored;
 }
 
 /**
@@ -202,7 +205,7 @@ export function liveRootOf({ home }: { home: string }): string {
 export function refreshOf({ home, root }: { home: string; root: string }): ReturnType<typeof chatgptIngestJob> {
   return chatgptIngestJob({
     deps: {
-      committer: createBronzeCommitter({ home, window: WINDOW }),
+      committer: createBronzeCommitter({ home, protection: NO_PROTECTION, window: WINDOW }),
       exportsRoot: root,
       liveRoot: liveRootOf({ home }),
     },
@@ -217,7 +220,7 @@ export function refreshOf({ home, root }: { home: string; root: string }): Retur
  * @returns the texts, sorted
  */
 export function bronzeTexts({ home }: { home: string }): readonly string[] {
-  return unwrap(readCorpusDir({ dir: bronzeSourceDir({ home, source: "chatgpt" }) }))
+  return unwrap(readCorpusDir({ dir: bronzeSourceDir({ home, source: "chatgpt" }), home, protection: NO_PROTECTION }))
     .records.map((record) => record.text)
     .toSorted();
 }

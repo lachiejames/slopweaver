@@ -14,6 +14,7 @@ import { readCorpusDir } from "../../../../../corpus/corpusDirRead.js";
 import { bronzeSourceDir } from "../../../../../corpus/corpusPaths.js";
 import { ok, unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { chatId } from "../../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../../noProtection.js";
 import { bronzeTexts, conversation, liveBody, liveRootOf, refreshOf, takeAt, tempDir, useTempDirs } from "./harness.js";
 
 /** An owner protect list with no entries, so no test reads the owner's own registry. */
@@ -25,6 +26,7 @@ useTempDirs();
 function holdLive({ home, chat }: { home: string; chat: Record<string, unknown> }): string {
   const manifest = unwrap(
     writeLiveSnapshot({
+      ...UNPROTECTED,
       bodyUpdatedIso: null,
       conversationId: String(chat["id"]),
       elementText: JSON.stringify(liveBody({ chat })),

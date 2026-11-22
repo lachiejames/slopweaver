@@ -19,6 +19,7 @@ import {
 } from "../../../../../cli/commands/fathom/shareCore.js";
 import { readShareTokens } from "../../../../../corpus/fathom/shareBronze.js";
 import { err, ok, unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { NO_PROTECTION } from "../../../../noProtection.js";
 
 const TOKEN = "cPAstBybUhyaoL9wD_xuMQK_byssuMG_";
 const ADDRESS = { token: TOKEN, url: `https://fathom.video/share/${TOKEN}` };
@@ -100,6 +101,7 @@ function fakes({ page, failFirst = false }: { page: PageRead; failFirst?: boolea
   let failing = failFirst;
   return {
     deps: {
+      protection: NO_PROTECTION,
       readPage: (args) => Promise.resolve(page(args)),
       storeLeg: ({ retire }) => {
         retired.push([...retire]);
@@ -149,6 +151,28 @@ describe("shareOne", () => {
     expect(unwrapErr(readShareTokens({ home, protection: () => ok([entry]) }))).toEqual([
       `refusing to read fathom: it would search ${bronze}, which the owner's protect list marks no-access at ${bronze} (fixture)`,
     ]);
+  });
+
+  it("refuses to rewrite a read-only window holding the hand-written row, leaving it byte for byte", async () => {
+    const window = join(bronze, "2026-09-03_2026-09-23.jsonl");
+    const before = readFileSync(window, "utf8");
+    const entry = { addedIso: "2026-01-01T00:00:00.000Z", mode: "read-only" as const, path: window, why: "fixture" };
+    const { deps, retired } = fakes({ page: () => ok(PAGE) });
+
+    const outcome = await shareOne({
+      address: ADDRESS,
+      deps: { ...deps, protection: () => ok([entry]) },
+      dryRun: false,
+      home,
+      store: true,
+    });
+
+    expect(unwrapErr(outcome).message).toContain(
+      `refusing to supersede share:${TOKEN}: it would write to ${window}, which the owner's protect list marks ` +
+        `read-only at ${window} (fixture)`,
+    );
+    expect(readFileSync(window, "utf8")).toBe(before);
+    expect(retired).toEqual([]);
   });
 
   it("withholds the store replay while another call's hand-written row is still in bronze", async () => {

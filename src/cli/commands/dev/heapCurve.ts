@@ -60,7 +60,7 @@ function measure({
   home: string;
   corpus: string | undefined;
   projection: CorpusProjection;
-}): HeapCurveSample | string {
+}): { sample: HeapCurveSample; warnings: readonly string[] } | string {
   const startedAt = performance.now();
   const resolved = resolveCorpusScan({ home, ...(corpus !== undefined ? { corpus } : {}) });
   if (resolved.isErr()) {
@@ -80,13 +80,18 @@ function measure({
   const records = loaded.value.records;
   phases.push(settle({ phase: "records", startedAt }));
   return {
-    corpusDir: scan.dir,
-    diskBytes: scan.diskBytes,
-    fileCount: scan.fileCount,
-    limitBytes: readHeap().limitBytes,
-    phases,
-    projection,
-    recordCount: records.length,
+    sample: {
+      corpusDir: scan.dir,
+      diskBytes: scan.diskBytes,
+      fileCount: scan.fileCount,
+      limitBytes: readHeap().limitBytes,
+      phases,
+      projection,
+      recordCount: records.length,
+    },
+    // The load's own warnings, which name every path the protect list kept out of its walk; the resolution's copy
+    // of those same skips is not added, so each is said once.
+    warnings: loaded.value.warnings,
   };
 }
 
@@ -150,16 +155,20 @@ export async function runDevHeapCurveWithDeps({
   if (args === undefined) {
     return EXIT_USAGE;
   }
-  const sample = measure({
+  const measured = measure({
     corpus: args.corpus,
     home: resolveHome({ named: args.home }),
     projection: args.projection,
   });
-  if (typeof sample === "string") {
-    log.error({ msg: sample });
+  if (typeof measured === "string") {
+    log.error({ msg: measured });
     return EXIT_ERROR;
   }
-  const curve = deriveHeapCurve({ sample });
+  // A curve measured over a tree the protect list partly kept out is short by those paths, so they are said.
+  for (const msg of measured.warnings) {
+    log.warn({ msg });
+  }
+  const curve = deriveHeapCurve({ sample: measured.sample });
   if (args.json) {
     log.out({ line: JSON.stringify(curve) });
   } else {

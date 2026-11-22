@@ -9,6 +9,7 @@ import type { MemberBronzeRow } from "../../../../corpus/members/types.js";
 import { projectConnectMember } from "../../../../corpus/slack/connectMembers.js";
 import { projectSlackMember } from "../../../../corpus/slack/members.js";
 import { err, ok, unwrap, unwrapErr } from "../../../../lib/result.js";
+import { NO_PROTECTION } from "../../../noProtection.js";
 
 const FETCHED = "2026-09-20T00:00:00.000Z";
 
@@ -74,7 +75,7 @@ describe("withConnectMembers", () => {
   it("does not recover an author a PAST hydration's users.list row already covers", () => {
     seedBronze({ authors: ["U0SYN000009"] });
     const past = projectSlackMember({ fetchedAtIso: "2026-01-01T00:00:00.000Z", raw: { id: "U0SYN000009" } })!;
-    expect(writeMemberRows({ home, rows: [past], source: "slack" }).isOk()).toBe(true);
+    expect(writeMemberRows({ home, protection: NO_PROTECTION, rows: [past], source: "slack" }).isOk()).toBe(true);
     const result = unwrap(withConnectMembers({ fetchedAtIso: FETCHED, home, listed: listedNow({ rows: [] }) }));
     expect(result.rows).toEqual([]);
     expect(result.warnings).toEqual([]);

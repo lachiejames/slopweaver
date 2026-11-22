@@ -5,6 +5,7 @@
  */
 import { err, type Result } from "#lib/result.js";
 
+import type { OwnerProtectionResolver } from "../../../corpus/bronzeProtection.js";
 import type { ChatgptSnapshotError } from "../../../corpus/chatgpt/liveSnapshotStore.errors.js";
 import { writeLiveSnapshot } from "../../../corpus/chatgpt/liveSnapshotWrite.js";
 import type { ChatgptError } from "./errors.js";
@@ -56,12 +57,16 @@ async function readAndHold({
   nowIso,
   pacer,
   root,
+  home,
+  protection,
 }: {
   conversation: ListedChatgptConversation;
   fetchText: (args: { path: string }) => Promise<Result<string, ChatgptError>>;
   nowIso: () => string;
   pacer: ChatgptPacer;
   root: string;
+  home: string;
+  protection: OwnerProtectionResolver | undefined;
 }): Promise<Result<{ behind: boolean }, ChatgptError | ChatgptSnapshotError>> {
   const path = wholeConversationPath({ id: conversation.id });
   if (path.isErr()) {
@@ -91,7 +96,9 @@ async function readAndHold({
     conversationId: conversation.id,
     elementText: whole.value.elementText,
     fetchedAtIso: nowIso(),
+    home,
     listedUpdatedIso,
+    protection,
     root,
   });
   return held.map(() => ({ behind }));
@@ -106,6 +113,8 @@ async function readAndHold({
  * @param root the live copy's root
  * @param nowIso the clock each snapshot's fetch instant is read from
  * @param onProgress told how many are held after every {@link PROGRESS_EVERY} reads
+ * @param home the Slopweaver home whose protect registry each snapshot write is judged against
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns how many were held, and the refusal that stopped the rest
  */
 export async function readPlannedConversations({
@@ -115,6 +124,8 @@ export async function readPlannedConversations({
   root,
   nowIso,
   onProgress,
+  home,
+  protection,
 }: {
   toRead: readonly ListedChatgptConversation[];
   fetchText: (args: { path: string }) => Promise<Result<string, ChatgptError>>;
@@ -122,11 +133,13 @@ export async function readPlannedConversations({
   root: string;
   nowIso: () => string;
   onProgress: (args: { read: number; of: number }) => void;
+  home: string;
+  protection?: OwnerProtectionResolver | undefined;
 }): Promise<LiveReadOutcome> {
   let read = 0;
   let behind = 0;
   for (const conversation of toRead) {
-    const held = await readAndHold({ conversation, fetchText, nowIso, pacer, root });
+    const held = await readAndHold({ conversation, fetchText, home, nowIso, pacer, protection, root });
     if (held.isErr()) {
       return { behind, read, stoppedBy: held.error };
     }

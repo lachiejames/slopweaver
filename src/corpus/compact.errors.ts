@@ -1,6 +1,7 @@
 /**
- * Typed failures for bronze compaction ({@link ./compact}). Five genuinely different things can go wrong
- * — a source the listing refused, a line the rewriter must not silently drop, a window file that could not be
+ * Typed failures for bronze compaction ({@link ./compact}). Six genuinely different things can go wrong
+ * — a source the listing refused, a file the protect list keeps from being rewritten, a line the rewriter must
+ * not silently drop, a window file that could not be
  * read, a canonical file that could not be written, and a superseded file that could not be unlinked after the
  * canonical write landed — and each but the last leaves the corpus untouched, the last a superset on disk.
  */
@@ -40,10 +41,17 @@ export interface CompactListRefusedError {
   readonly message: string;
 }
 
+/** A file compaction would rewrite or unlink is on the owner's protect list — refused before any effect. */
+export interface CompactProtectedError {
+  readonly code: "COMPACT_PROTECTED";
+  readonly message: string;
+}
+
 /** Every way {@link ./compact} can fail to plan or apply a source's compaction. */
 export type CompactError =
   | CorruptLineError
   | CompactListRefusedError
+  | CompactProtectedError
   | CompactReadFailedError
   | CompactWriteFailedError
   | CompactUnlinkFailedError;
@@ -74,6 +82,17 @@ export const CompactErrors = {
   listRefused: ({ message }: { message: string }): CompactListRefusedError => ({
     code: "COMPACT_LIST_REFUSED",
     message: `${message} — nothing was compacted`,
+  }),
+
+  /**
+   * Build a {@link CompactProtectedError}.
+   *
+   * @param lines the protect-list judge's refusal, naming the entry exactly as `protect list` prints it
+   * @returns the typed error
+   */
+  protectedWrite: ({ lines }: { lines: readonly string[] }): CompactProtectedError => ({
+    code: "COMPACT_PROTECTED",
+    message: `${lines.join("; ")} — nothing was compacted`,
   }),
 
   /**

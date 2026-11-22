@@ -18,8 +18,9 @@
  * 1.9 million rows behind it; the unparsed count is printed so a reader can see how much the census missed.
  */
 import { slopweaverHome } from "../../../config.js";
+import type { OwnerProtectionResolver } from "../../../corpus/bronzeProtection.js";
 import { resolveCorpusScan } from "../../../corpus/corpusResolve.js";
-import { readJsonlLines, scanJsonlProtected } from "../../../corpus/corpusStore.js";
+import { protectedSkipWarnings, readJsonlLines, scanJsonlProtected } from "../../../corpus/corpusStore.js";
 import {
   absorbRow,
   emptySliceShape,
@@ -48,6 +49,8 @@ interface PassResult {
   readonly unparsedRows: number;
   readonly elapsedMs: number;
   readonly unreadableDirs: readonly string[];
+  /** One line per path the owner's protect list kept out of the walk; the shape is short by these. */
+  readonly warnings: readonly string[];
 }
 
 /**
@@ -119,13 +122,15 @@ function runPass({
   home,
   top,
   nowMs,
+  protection,
 }: {
   dir: string;
   home: string;
   top: number;
   nowMs: number;
+  protection: OwnerProtectionResolver | undefined;
 }): Result<PassResult | undefined> {
-  const scanned = scanJsonlProtected({ dir, home, operation: { target: "the corpus", verb: "measure" } });
+  const scanned = scanJsonlProtected({ dir, home, operation: { target: "the corpus", verb: "measure" }, protection });
   if (scanned.isErr()) {
     return err(scanned.error);
   }
@@ -142,6 +147,7 @@ function runPass({
     shape: finishSliceShape({ into, nowMs, top }),
     unparsedRows,
     unreadableDirs: scan.unreadableDirs,
+    warnings: protectedSkipWarnings({ scan }),
   });
 }
 
@@ -194,6 +200,7 @@ function jsonReport({ dir, pass }: { dir: string; pass: PassResult }): string {
  * @param argv the full process argv (verb tail starts at index 4 — `dev slice-shape <tail>`)
  * @param log the diagnostic + data sinks
  * @param now the instant the candidate windows are measured back from
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns EXIT_OK on a completed pass, EXIT_EXPECTED_EMPTY when the corpus holds no `.jsonl` at all,
  *   EXIT_ERROR when a directory could not be listed (a census over a partial tree is not one), EXIT_USAGE
  *   on a bad flag
@@ -202,10 +209,12 @@ export function runDevSliceShapeWithDeps({
   argv,
   log,
   now,
+  protection,
 }: {
   argv: readonly string[];
   log: Pick<Logger, "error" | "out">;
   now: Date;
+  protection?: OwnerProtectionResolver | undefined;
 }): number {
   const rest = argv.slice(4);
   if (rest.includes("--help") || rest.includes("-h")) {
@@ -219,13 +228,14 @@ export function runDevSliceShapeWithDeps({
   const resolved = resolveCorpusScan({
     home: scope.home,
     ...(scope.corpus !== undefined ? { corpus: scope.corpus } : {}),
+    protection,
   });
   if (resolved.isErr()) {
     log.error({ msg: resolved.error.message });
     return EXIT_ERROR;
   }
   const { dir } = resolved.value;
-  const passed = runPass({ dir, home: scope.home, nowMs: now.getTime(), top: scope.top });
+  const passed = runPass({ dir, home: scope.home, nowMs: now.getTime(), protection, top: scope.top });
   if (passed.isErr()) {
     for (const msg of passed.error) {
       log.error({ msg });
@@ -236,6 +246,10 @@ export function runDevSliceShapeWithDeps({
   if (pass === undefined) {
     log.error({ msg: `slice-shape: no .jsonl under ${dir} — nothing to measure` });
     return EXIT_EXPECTED_EMPTY;
+  }
+  // A path the protect list kept out of the walk goes to stderr, so a `--json` reading on stdout stays one object.
+  for (const msg of pass.warnings) {
+    log.error({ msg });
   }
   emitPass({ dir, json: scope.json, log, pass });
   return pass.unreadableDirs.length === 0 ? EXIT_OK : EXIT_ERROR;

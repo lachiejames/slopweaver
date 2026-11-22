@@ -12,6 +12,7 @@
  * foreign key, and the cache is never written without one (`refreshContextCache` says why).
  */
 import { refreshContextCache } from "../context/load.js";
+import type { OwnerProtectionResolver } from "../corpus/bronzeProtection.js";
 import { err, ok, type Result } from "../lib/result.js";
 import { stateHomePaths } from "../stateHome.js";
 import type { StoreError } from "../store/errors.js";
@@ -22,16 +23,27 @@ import type { SlackVoiceMeasurement } from "./voiceMeasure.js";
 import { type VoiceMeasureError, VoiceMeasureErrors } from "./voiceMeasureErrors.js";
 import { readSlackVoiceMeasurement, type VoiceMeasureSkipped } from "./voiceMeasureRead.js";
 
-/** What a measurement run did. */
+/** What a measurement run did; every variant's `notRead` names each path the owner's protect list kept out of the walk. */
 export type VoiceMeasureWriteOutcome =
   | {
       readonly kind: "written";
       readonly measurement: SlackVoiceMeasurement;
       readonly filesRead: number;
+      readonly notRead: readonly string[];
     }
-  | { readonly kind: "dry-run"; readonly measurement: SlackVoiceMeasurement; readonly filesRead: number }
+  | {
+      readonly kind: "dry-run";
+      readonly measurement: SlackVoiceMeasurement;
+      readonly filesRead: number;
+      readonly notRead: readonly string[];
+    }
   | (VoiceMeasureSkipped & { readonly measurement?: SlackVoiceMeasurement })
-  | { readonly kind: "no-store"; readonly measurement: SlackVoiceMeasurement; readonly message: string };
+  | {
+      readonly kind: "no-store";
+      readonly measurement: SlackVoiceMeasurement;
+      readonly message: string;
+      readonly notRead: readonly string[];
+    };
 
 /** Thrown inside the transaction to roll it back, carrying which step refused, and why, out. */
 class CohortWriteRefused extends Error {
@@ -122,6 +134,7 @@ const openStoreVoiceRegister: OpenVoiceRegister = ({ home, nowIso }) =>
  * @param storeOptional answer `no-store` rather than failing when this home has selected no store — the refresh lane,
  *   which must keep working on an install that runs without one
  * @param openRegister the register written to; the store this home selected unless a test passes a fake
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns what was done, or why it could not be
  */
 export async function runVoiceMeasurement({
@@ -130,28 +143,30 @@ export async function runVoiceMeasurement({
   dryRun,
   storeOptional = false,
   openRegister = openStoreVoiceRegister,
+  protection,
 }: {
   home: string;
   nowIso: string;
   dryRun: boolean;
   storeOptional?: boolean;
   openRegister?: OpenVoiceRegister;
+  protection?: OwnerProtectionResolver | undefined;
 }): Promise<Result<VoiceMeasureWriteOutcome, VoiceMeasureError>> {
-  const read = readSlackVoiceMeasurement({ home, nowIso });
+  const read = readSlackVoiceMeasurement({ home, nowIso, protection });
   if (read.isErr()) {
     return err(read.error);
   }
   if (read.value.kind === "skipped") {
     return ok(read.value);
   }
-  const { filesRead, measurement } = read.value;
+  const { filesRead, measurement, notRead } = read.value;
   if (dryRun) {
-    return ok({ filesRead, kind: "dry-run", measurement });
+    return ok({ filesRead, kind: "dry-run", measurement, notRead });
   }
   const opened = await openRegister({ home, nowIso });
   if (opened.isErr()) {
     if (opened.error.code === "STORE_URL_MISSING" && storeOptional) {
-      return ok({ kind: "no-store", measurement, message: opened.error.message });
+      return ok({ kind: "no-store", measurement, message: opened.error.message, notRead });
     }
     return err(VoiceMeasureErrors.storeFailed({ detail: opened.error.message }));
   }
@@ -164,8 +179,9 @@ export async function runVoiceMeasurement({
       kind: "skipped",
       measurement,
       message: "no owner row has been written yet — `slopweaver profile set --file <owner.json>` seeds it",
+      notRead,
       reason: "owner-row-absent",
     });
   }
-  return ok({ filesRead, kind: "written", measurement });
+  return ok({ filesRead, kind: "written", measurement, notRead });
 }

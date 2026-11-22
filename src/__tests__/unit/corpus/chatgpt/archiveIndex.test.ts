@@ -15,6 +15,7 @@ import type { ChatgptArchiveDeps } from "../../../../corpus/chatgpt/archive.js";
 import { takeInArchive } from "../../../../corpus/chatgpt/archiveIndex.js";
 import { heldExports } from "../../../../corpus/chatgpt/exportStore.js";
 import { ok, unwrap } from "../../../../lib/result.js";
+import { NO_PROTECTION, UNPROTECTED } from "../../../noProtection.js";
 
 /** The committed synthetic export. */
 const FIXTURE = join(import.meta.dirname, "../../../fixtures/chatgpt/synthetic-export");
@@ -74,11 +75,25 @@ describe("takeInArchive", () => {
     zipAt({ iso: "2026-10-16T02:00:00.000Z", path: zip });
     const { archive, extracted } = countingZip({ listings: { [zip]: "conversations-000.json" } });
     const first = unwrap(
-      takeInArchive({ archive, from: zip, heldHashes: held({ root }), nowIso: "2026-10-16T03:00:00.000Z", root }),
+      takeInArchive({
+        ...UNPROTECTED,
+        archive,
+        from: zip,
+        heldHashes: held({ root }),
+        nowIso: "2026-10-16T03:00:00.000Z",
+        root,
+      }),
     );
     expect(first.kind).toBe("imported");
     const second = unwrap(
-      takeInArchive({ archive, from: zip, heldHashes: held({ root }), nowIso: "2026-10-17T03:00:00.000Z", root }),
+      takeInArchive({
+        ...UNPROTECTED,
+        archive,
+        from: zip,
+        heldHashes: held({ root }),
+        nowIso: "2026-10-17T03:00:00.000Z",
+        root,
+      }),
     );
     expect(second).toEqual({
       contentHash: heldExports({ root }).exports[0]!.contentHash,
@@ -93,11 +108,27 @@ describe("takeInArchive", () => {
     const zip = join(tempDir(), "export.zip");
     zipAt({ iso: "2026-10-16T02:00:00.000Z", path: zip });
     const { archive, extracted } = countingZip({ listings: { [zip]: "conversations-000.json" } });
-    unwrap(takeInArchive({ archive, from: zip, heldHashes: held({ root }), nowIso: "2026-10-16T03:00:00.000Z", root }));
+    unwrap(
+      takeInArchive({
+        ...UNPROTECTED,
+        archive,
+        from: zip,
+        heldHashes: held({ root }),
+        nowIso: "2026-10-16T03:00:00.000Z",
+        root,
+      }),
+    );
     // Same bytes back, same mtime back: only the change time moved, and that alone is a miss.
     zipAt({ iso: "2026-10-16T02:00:00.000Z", path: zip });
     const again = unwrap(
-      takeInArchive({ archive, from: zip, heldHashes: held({ root }), nowIso: "2026-10-17T03:00:00.000Z", root }),
+      takeInArchive({
+        ...UNPROTECTED,
+        archive,
+        from: zip,
+        heldHashes: held({ root }),
+        nowIso: "2026-10-17T03:00:00.000Z",
+        root,
+      }),
     );
     expect(again.kind).toBe("imported");
     expect(extracted).toEqual([zip, zip]);
@@ -108,11 +139,27 @@ describe("takeInArchive", () => {
     const zip = join(tempDir(), "export.zip");
     zipAt({ iso: "2026-10-16T02:00:00.000Z", path: zip });
     const { archive, extracted } = countingZip({ listings: { [zip]: "conversations-000.json" } });
-    unwrap(takeInArchive({ archive, from: zip, heldHashes: held({ root }), nowIso: "2026-10-16T03:00:00.000Z", root }));
+    unwrap(
+      takeInArchive({
+        ...UNPROTECTED,
+        archive,
+        from: zip,
+        heldHashes: held({ root }),
+        nowIso: "2026-10-16T03:00:00.000Z",
+        root,
+      }),
+    );
     const directory = heldExports({ root }).exports[0]!.directory;
     renameSync(directory, join(tempDir(), "moved-aside"));
     const again = unwrap(
-      takeInArchive({ archive, from: zip, heldHashes: held({ root }), nowIso: "2026-10-17T03:00:00.000Z", root }),
+      takeInArchive({
+        ...UNPROTECTED,
+        archive,
+        from: zip,
+        heldHashes: held({ root }),
+        nowIso: "2026-10-17T03:00:00.000Z",
+        root,
+      }),
     );
     expect(again.kind).toBe("imported");
     expect(extracted).toEqual([zip, zip]);
@@ -123,11 +170,27 @@ describe("takeInArchive", () => {
     const zip = join(tempDir(), "export.zip");
     zipAt({ iso: "2026-10-16T02:00:00.000Z", path: zip });
     const { archive, extracted } = countingZip({ listings: { [zip]: "conversations-000.json" } });
-    unwrap(takeInArchive({ archive, from: zip, heldHashes: held({ root }), nowIso: "2026-10-16T03:00:00.000Z", root }));
+    unwrap(
+      takeInArchive({
+        ...UNPROTECTED,
+        archive,
+        from: zip,
+        heldHashes: held({ root }),
+        nowIso: "2026-10-16T03:00:00.000Z",
+        root,
+      }),
+    );
     writeFileSync(join(root, "archive-index.json"), "{");
     expect(
       unwrap(
-        takeInArchive({ archive, from: zip, heldHashes: held({ root }), nowIso: "2026-10-17T03:00:00.000Z", root }),
+        takeInArchive({
+          ...UNPROTECTED,
+          archive,
+          from: zip,
+          heldHashes: held({ root }),
+          nowIso: "2026-10-17T03:00:00.000Z",
+          root,
+        }),
       ).kind,
     ).toBe("imported");
     expect(JSON.parse(readFileSync(join(root, "archive-index.json"), "utf8")).entries.length).toBe(1);
@@ -149,6 +212,7 @@ describe("a scheduled sync over kept exports", () => {
       archive,
       downloadsDir: downloads,
       nowIso: () => nowIso,
+      protection: NO_PROTECTION,
       runVerb: () => Promise.resolve(EXIT_OK),
     });
     expect(await runChatgptSync({ deps: deps({ nowIso: "2026-10-15T03:00:00.000Z" }), rest: ["--home", home] })).toBe(

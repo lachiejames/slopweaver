@@ -273,6 +273,17 @@ describe("resolveCorpusScan", () => {
     expect(refusal.code).toBe("CORPUS_PROTECTED");
     expect(refusal.message).toContain(`it would list ${root}, which the owner's protect list marks no-access`);
   });
+
+  it("names a source the protect list kept out of the walk, and counts only the rest", () => {
+    writeSlack({ content: `${line()}\n` });
+    const held = join(root, "gmail");
+    mkdirSync(held);
+    writeFileSync(join(held, "w.jsonl"), `${line()}\n`);
+    const entry = { addedIso: "2026-01-01T00:00:00.000Z", mode: "no-access" as const, path: held, why: "fixture" };
+    const scan = unwrap(resolveCorpusScan({ corpus: root, home: root, protection: () => ok([entry]) }));
+    expect(scan.fileCount).toBe(1);
+    expect(scan.warnings).toEqual([`NOT READ, protected by the owner's list: ${held} [no-access]`]);
+  });
 });
 
 describe("scanJsonlProtected", () => {

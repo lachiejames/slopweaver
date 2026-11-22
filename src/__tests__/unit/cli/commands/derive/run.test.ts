@@ -13,6 +13,7 @@ import type { IdentityRecord } from "../../../../../silver/identity.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { memoryIdentityRosterPort, unavailableIdentityRosterPort } from "../../../../identityRosterFixture.js";
 import { admittingSlotGuard, refusingSlotGuard } from "../../../../loadSlotFixture.js";
+import { NO_PROTECTION } from "../../../../noProtection.js";
 import { parseOwnJson } from "../../../../parseOwnJson.js";
 
 const window = { since: "2026-01-01", until: "2026-02-01" };
@@ -212,6 +213,7 @@ describe("runDeriveWithDeps — member hydration feed (PR4.1)", () => {
     unwrap(
       writeMemberRows({
         home,
+        protection: NO_PROTECTION,
         rows: [memberRow({ email: "ada@example.com", nativeId: "U1", source: "slack" })],
         source: "slack",
       }),
@@ -219,6 +221,7 @@ describe("runDeriveWithDeps — member hydration feed (PR4.1)", () => {
     unwrap(
       writeMemberRows({
         home,
+        protection: NO_PROTECTION,
         rows: [memberRow({ email: "ada@example.com", nativeId: "ada", source: "github" })],
         source: "github",
       }),

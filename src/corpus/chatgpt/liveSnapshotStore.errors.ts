@@ -22,11 +22,22 @@ export interface LiveSnapshotWriteFailedError {
   readonly path: string;
 }
 
+/** The owner's protect list covers the conversation's directory, so nothing of it was written. */
+export interface LiveSnapshotProtectedError {
+  readonly code: "LIVE_SNAPSHOT_PROTECTED";
+  readonly message: string;
+}
+
 /** Every way the live copy's snapshot store fails. */
-export type ChatgptSnapshotError = LiveSnapshotUnreadableError | LiveSnapshotWriteFailedError;
+export type ChatgptSnapshotError =
+  LiveSnapshotUnreadableError | LiveSnapshotWriteFailedError | LiveSnapshotProtectedError;
 
 /** Factories for {@link ChatgptSnapshotError}. */
 export const ChatgptSnapshotErrors = {
+  protectedPath: ({ lines }: { lines: readonly string[] }): LiveSnapshotProtectedError => ({
+    code: "LIVE_SNAPSHOT_PROTECTED",
+    message: `chatgpt: ${lines.join("; ")} — nothing was written`,
+  }),
   unreadable: ({ root, problems }: { root: string; problems: readonly string[] }): LiveSnapshotUnreadableError => ({
     code: "LIVE_SNAPSHOT_UNREADABLE",
     message:

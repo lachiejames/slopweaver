@@ -1,7 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { OwnerProtectionResolver } from "../../../../corpus/bronzeProtection.js";
+import { structureFile } from "../../../../corpus/corpusPaths.js";
 import {
   freshStructureRows,
   parseStructureRow,
@@ -11,7 +13,8 @@ import {
   writeStructureRows,
 } from "../../../../corpus/structures/store.js";
 import type { StructureBronzeRow } from "../../../../corpus/structures/types.js";
-import { unwrap } from "../../../../lib/result.js";
+import { ok, unwrap, unwrapErr } from "../../../../lib/result.js";
+import { NO_PROTECTION } from "../../../noProtection.js";
 
 // Every fixture directory this file has minted, so `afterEach` can remove them.
 const fixtureDirs: string[] = [];
@@ -77,16 +80,21 @@ describe("freshStructureRows", () => {
 describe("writeStructureRows + readStructureRows", () => {
   it("round-trips the FULL raw object exactly (nothing projected away)", () => {
     const home = tempHome();
-    unwrap(writeStructureRows({ home, rows: [repoRow({})], source: "github" }));
+    unwrap(writeStructureRows({ home, protection: NO_PROTECTION, rows: [repoRow({})], source: "github" }));
     const read = readStructureRows({ home, source: "github" });
     expect(read.rows[0]!.raw).toEqual({ full_name: "acme/app", nested: { token: "abc", values: [1, 2] } });
   });
 
   it("re-writing the same entity is idempotent (deduped, nothing new)", () => {
     const home = tempHome();
-    unwrap(writeStructureRows({ home, rows: [repoRow({})], source: "github" }));
+    unwrap(writeStructureRows({ home, protection: NO_PROTECTION, rows: [repoRow({})], source: "github" }));
     const second = unwrap(
-      writeStructureRows({ home, rows: [repoRow({ fetchedAtIso: "2026-08-01T00:00:00.000Z" })], source: "github" }),
+      writeStructureRows({
+        home,
+        protection: NO_PROTECTION,
+        rows: [repoRow({ fetchedAtIso: "2026-08-01T00:00:00.000Z" })],
+        source: "github",
+      }),
     );
     expect(second).toEqual({ deduped: 1, written: 0 });
     expect(readStructureRows({ home, source: "github" }).rows).toHaveLength(1);
@@ -94,9 +102,24 @@ describe("writeStructureRows + readStructureRows", () => {
 
   it("appends a new row when an attr genuinely changed (a renamed/archived entity)", () => {
     const home = tempHome();
-    unwrap(writeStructureRows({ home, rows: [repoRow({})], source: "github" }));
-    unwrap(writeStructureRows({ home, rows: [repoRow({ archived: true })], source: "github" }));
+    unwrap(writeStructureRows({ home, protection: NO_PROTECTION, rows: [repoRow({})], source: "github" }));
+    unwrap(
+      writeStructureRows({ home, protection: NO_PROTECTION, rows: [repoRow({ archived: true })], source: "github" }),
+    );
     expect(readStructureRows({ home, source: "github" }).rows).toHaveLength(2);
+  });
+
+  it("refuses a structures file under a no-access entry, and appends nothing", () => {
+    const home = tempHome();
+    const entry = join(home, "corpus");
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "no-access", path: entry, why: "never touched" }]);
+    const path = structureFile({ home, source: "github" });
+    expect(unwrapErr(writeStructureRows({ home, protection, rows: [repoRow({})], source: "github" }))).toEqual([
+      `refusing to write structures/github.jsonl: it would write to ${path}, which the owner's protect list marks ` +
+        `no-access at ${entry} (never touched)`,
+    ]);
+    expect(existsSync(path)).toBe(false);
   });
 });
 
@@ -124,7 +147,7 @@ describe("parseStructureRow", () => {
 describe("readAllStructures", () => {
   it("aggregates rows across sources and reports a corrupt line as a labelled warning", () => {
     const home = tempHome();
-    unwrap(writeStructureRows({ home, rows: [repoRow({})], source: "github" }));
+    unwrap(writeStructureRows({ home, protection: NO_PROTECTION, rows: [repoRow({})], source: "github" }));
     const all = readAllStructures({ home });
     expect(all.rows.map((r) => r.sourceId)).toEqual(["acme/app"]);
     expect(all.warnings).toEqual([]);

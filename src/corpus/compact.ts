@@ -78,6 +78,7 @@ import type { OwnerProtectionResolver } from "./bronzeProtection.js";
 import { type BronzeFileStat, listBronzeFiles } from "./bronzeStorage.js";
 import { type CompactError, CompactErrors } from "./compact.errors.js";
 import { type OrphanTempSweep, type PidAlive, pidRuns, sweepOrphanTemps } from "./compactOrphanTemps.js";
+import { compactWritePreflight } from "./compactProtection.js";
 import { classifyForCompaction } from "./compactVerdict.js";
 import { bronzeCompactFile } from "./corpusPaths.js";
 import { parseRow } from "./corpusRowCore.js";
@@ -388,8 +389,9 @@ function finishedCompactPlan({
 }
 
 /**
- * Compact ONE source end to end: list its bronze files, stream them into the canonical file, unlink what
- * the canonical file superseded. It never touches a watermark, thread cursor, or repo cursor.
+ * Compact ONE source end to end: list its bronze files, judge every one it will replace as a write
+ * (`./compactProtection.ts`), stream them into the canonical file, unlink what the canonical file superseded.
+ * It never touches a watermark, thread cursor, or repo cursor.
  *
  * @param source the corpus source to compact
  * @param olderThanIso an explicit age horizon (omit for the lossless default)
@@ -420,7 +422,11 @@ export function compactSource({
   }
   const files = listed.value;
   const canonicalPath = bronzeCompactFile({ home, source });
-  const orphanTemps = sweepOrphanTemps({ canonicalPath, isAlive });
+  const judge = compactWritePreflight({ canonicalPath, files, home, protection, source });
+  if (judge.isErr()) {
+    return err(judge.error);
+  }
+  const orphanTemps = sweepOrphanTemps({ canonicalPath, isAlive, judge: judge.value });
   if (files.length === 0) {
     // A never-ingested source: staging a canonical file here would CREATE the source's bronze directory
     // just to delete an empty file out of it, which is how a source nothing ever wrote acquires a corpus.

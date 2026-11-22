@@ -27,6 +27,7 @@ import { logger } from "#lib/logger.js";
 import { err, ok, type Result } from "#lib/result.js";
 
 import { acquireOperationLockDetailed } from "../../../admit/operationLock.js";
+import type { OwnerProtectionResolver } from "../../../corpus/bronzeProtection.js";
 import { writeLiveAsOf } from "../../../corpus/chatgpt/liveAsOf.js";
 import type { ChatgptSnapshotError } from "../../../corpus/chatgpt/liveSnapshotStore.errors.js";
 import { heldLiveManifests, type LiveSnapshotManifest } from "../../../corpus/chatgpt/liveSnapshotStore.js";
@@ -176,6 +177,8 @@ export interface ChatgptLiveSyncDeps {
   readonly listInventory: typeof listChatgptInventory;
   /** One CLI invocation through the router, in process — the refresh leg. */
   readonly runVerb: (argv: readonly string[]) => Promise<number>;
+  /** The owner's protect list each snapshot write is judged against — the home's own registry when absent. */
+  readonly protection?: OwnerProtectionResolver | undefined;
 }
 
 /** What the listing and reading legs did, before the refresh leg. */
@@ -193,12 +196,14 @@ async function fetchLeg({
   deps,
   fetchText,
   held,
+  home,
   options,
   root,
 }: {
   deps: ChatgptLiveSyncDeps;
   fetchText: (args: { path: string }) => Promise<Result<string, ChatgptError>>;
   held: ReadonlyMap<string, LiveSnapshotManifest>;
+  home: string;
   options: LiveSyncOptions;
   root: string;
 }): Promise<FetchLegOutcome> {
@@ -213,11 +218,13 @@ async function fetchLeg({
   }
   const outcome = await readPlannedConversations({
     fetchText,
+    home,
     nowIso: deps.nowIso,
     onProgress: ({ read, of }) => {
       logger.info({ msg: `chatgpt live-sync: held ${String(read)} of ${String(of)} this run` });
     },
     pacer: deps.pacer,
+    protection: deps.protection,
     root,
     toRead,
   });
@@ -359,7 +366,7 @@ async function lockedRun({
     deps.web.fetchText({ headers: session.headers, path });
   // The only instant this run can certify: every chat the listing names existed by then (`corpus/chatgpt/liveAsOf.ts`).
   const listStartedIso = deps.nowIso();
-  const outcome = await fetchLeg({ deps, fetchText, held: held.value, options, root });
+  const outcome = await fetchLeg({ deps, fetchText, held: held.value, home, options, root });
   reportFetchLeg({ bearerExpiresIso: session.bearerExpiresIso, outcome });
   if (held.value.size + outcome.read === 0) {
     return outcome.stoppedBy === undefined ? EXIT_EXPECTED_EMPTY : EXIT_ERROR;

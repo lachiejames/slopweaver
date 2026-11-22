@@ -17,7 +17,7 @@ import { safeFs } from "../../lib/safeBoundary.js";
 import type { OwnerProtectionResolver } from "../bronzeProtection.js";
 import { bronzeSourceDir } from "../corpusPaths.js";
 import { parseRow } from "../corpusRowCore.js";
-import { readJsonlLines, scanJsonlProtected } from "../corpusStore.js";
+import { protectedSkipWarnings, readJsonlLines, scanJsonlProtected } from "../corpusStore.js";
 import type { CorpusRecord } from "../types.js";
 import { currentMatches, type LinearQueryFilter, matchesLinearQuery, noteNewestCapture } from "./query.js";
 import { type LinearQueryError, LinearQueryErrors } from "./queryErrors.js";
@@ -45,6 +45,8 @@ export interface LinearScanResult {
   readonly rowsScanned: number;
   /** Files the walk could not open at all; a scan reporting these has an unknown shortfall, not zero. */
   readonly unreadable: readonly string[];
+  /** One line per path the walk left out because the owner's protect list covers it; the answer is short by these. */
+  readonly warnings: readonly string[];
 }
 
 /**
@@ -149,7 +151,12 @@ export function scanLinearBronze({
   if (progress.overflowed) {
     return err(LinearQueryErrors.tooManyMatches({ ceiling: MATCH_CEILING }));
   }
-  return ok({ records: currentMatches({ newest, records }), rowsScanned: progress.rowsScanned, unreadable });
+  return ok({
+    records: currentMatches({ newest, records }),
+    rowsScanned: progress.rowsScanned,
+    unreadable,
+    warnings: protectedSkipWarnings({ scan }),
+  });
 }
 
 /**

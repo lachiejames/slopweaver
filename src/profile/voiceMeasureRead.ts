@@ -15,7 +15,7 @@ import { statSync } from "node:fs";
 import { corpusWalkJudgeFor, type OwnerProtectionResolver, protectionResolver } from "../corpus/bronzeProtection.js";
 import { bronzeSourceDir } from "../corpus/corpusPaths.js";
 import { parseRow } from "../corpus/corpusRowCore.js";
-import { readJsonlLines, scanJsonlGuarded } from "../corpus/corpusStore.js";
+import { protectedSkipWarnings, readJsonlLines, scanJsonlGuarded } from "../corpus/corpusStore.js";
 import type { CorpusRecord } from "../corpus/types.js";
 import { err, ok, type Result } from "../lib/result.js";
 import { safeFs } from "../lib/safeBoundary.js";
@@ -33,17 +33,33 @@ import { type VoiceMeasureError, VoiceMeasureErrors } from "./voiceMeasureErrors
 export type VoiceMeasureSkipReason =
   "owner-user-id-absent" | "no-slack-bronze" | "no-eligible-messages" | "owner-row-absent";
 
-/** A measurement that measured nothing, and the sentence saying why. */
+/**
+ * A measurement that measured nothing, the sentence saying why, and what the protect list kept out of the walk —
+ * empty when the skip came before any walk, so every outcome past one says what it skipped.
+ */
 export interface VoiceMeasureSkipped {
   readonly kind: "skipped";
   readonly reason: VoiceMeasureSkipReason;
   readonly message: string;
+  readonly notRead: readonly string[];
 }
 
 /** What reading the owner's Slack produced: a measurement with at least one cohort, or a named skip. */
 export type VoiceMeasureReadOutcome =
-  | { readonly kind: "measured"; readonly measurement: SlackVoiceMeasurement; readonly filesRead: number }
+  | {
+      readonly kind: "measured";
+      readonly measurement: SlackVoiceMeasurement;
+      readonly filesRead: number;
+      /** One line per path the owner's protect list kept out of the walk: the measurement is short by these. */
+      readonly notRead: readonly string[];
+    }
   | (VoiceMeasureSkipped & { readonly measurement?: SlackVoiceMeasurement });
+
+/** The Slack bronze files a measurement reads, in canonical order, and what the protect list kept out of the walk. */
+interface SlackBronzeFiles {
+  readonly paths: readonly string[];
+  readonly notRead: readonly string[];
+}
 
 /** The owner's Slack user id, a skip naming why there is none, or why the profile cannot be trusted. */
 function ownerUserIdOf({ home }: { home: string }): Result<string | VoiceMeasureSkipped, VoiceMeasureError> {
@@ -57,6 +73,7 @@ function ownerUserIdOf({ home }: { home: string }): Result<string | VoiceMeasure
       kind: "skipped",
       message:
         "profile.json declares no `slackBot.ownerUserId`, so nothing can tell the owner's Slack messages from anybody else's",
+      notRead: [],
       reason: "owner-user-id-absent",
     });
   }
@@ -66,7 +83,8 @@ function ownerUserIdOf({ home }: { home: string }): Result<string | VoiceMeasure
 /**
  * The Slack bronze files in canonical order, a skip when there are none, or why the directory cannot be read. The
  * owner's protect list judges the directory before it is even statted and every step of the walk, so a protected
- * corpus is a refusal, never the skip an absent one is.
+ * corpus is a refusal, never the skip an absent one is. A covered entry BELOW the directory is skipped and named in
+ * `notRead`, so the measurement says what it is short by rather than missing it in silence.
  */
 function slackBronzeFiles({
   home,
@@ -74,13 +92,14 @@ function slackBronzeFiles({
 }: {
   home: string;
   protection: OwnerProtectionResolver | undefined;
-}): Result<readonly string[] | VoiceMeasureSkipped, VoiceMeasureError> {
+}): Result<SlackBronzeFiles | VoiceMeasureSkipped, VoiceMeasureError> {
   const dir = bronzeSourceDir({ home, source: "slack" });
-  const noBronze: VoiceMeasureSkipped = {
+  const noBronze = ({ notRead }: { notRead: readonly string[] }): VoiceMeasureSkipped => ({
     kind: "skipped",
     message: "this home holds no Slack corpus yet — a Slack refresh writes it",
+    notRead,
     reason: "no-slack-bronze",
-  };
+  });
   const judge = corpusWalkJudgeFor({
     operation: { target: "the owner's Slack voice", verb: "measure" },
     protection: protectionResolver({ home, protection }),
@@ -91,7 +110,7 @@ function slackBronzeFiles({
   const statted = safeFs({ execute: () => statSync(dir).isDirectory(), operation: "voiceMeasure.stat", path: dir });
   if (statted.isErr()) {
     if (statted.error.code === "ENOENT") {
-      return ok(noBronze);
+      return ok(noBronze({ notRead: [] }));
     }
     return err(VoiceMeasureErrors.corpusUnreadable({ detail: statted.error.message, path: dir }));
   }
@@ -104,10 +123,11 @@ function slackBronzeFiles({
   if (unreadable !== undefined) {
     return err(VoiceMeasureErrors.corpusUnreadable({ detail: "the directory could not be listed", path: unreadable }));
   }
+  const notRead = protectedSkipWarnings({ scan });
   if (scan.files.length === 0) {
-    return ok(noBronze);
+    return ok(noBronze({ notRead }));
   }
-  return ok(scan.files.map((file) => file.path));
+  return ok({ notRead, paths: scan.files.map((file) => file.path) });
 }
 
 /** Stream one file, keeping every record naming the owner, or the first reason it could not be read whole. */
@@ -183,7 +203,7 @@ export function readSlackVoiceMeasurement({
   if ("kind" in files.value) {
     return ok(files.value);
   }
-  const paths = files.value;
+  const { paths, notRead } = files.value;
   const records: CorpusRecord[] = [];
   for (const path of paths) {
     const failed = collectFile({ into: records, ownerUserId, path });
@@ -197,8 +217,9 @@ export function readSlackVoiceMeasurement({
       kind: "skipped",
       measurement,
       message: `none of the ${String(measurement.counts.ownerMessageVersions)} Slack message version(s) authored as the owner is one they typed with words in it`,
+      notRead,
       reason: "no-eligible-messages",
     });
   }
-  return ok({ filesRead: paths.length, kind: "measured", measurement });
+  return ok({ filesRead: paths.length, kind: "measured", measurement, notRead });
 }

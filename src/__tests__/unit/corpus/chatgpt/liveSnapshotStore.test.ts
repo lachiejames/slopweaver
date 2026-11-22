@@ -18,6 +18,7 @@ import {
 import { writeLiveSnapshot } from "../../../../corpus/chatgpt/liveSnapshotWrite.js";
 import { unwrap, unwrapErr } from "../../../../lib/result.js";
 import { chatId } from "../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../noProtection.js";
 import { tempDir, useTempDirs } from "./ingest/harness.js";
 
 useTempDirs();
@@ -36,6 +37,7 @@ function problemsOf({ error }: { error: ChatgptSnapshotError }): readonly string
 function hold({ root, elementText }: { root: string; elementText: string }): LiveSnapshotManifest {
   return unwrap(
     writeLiveSnapshot({
+      ...UNPROTECTED,
       bodyUpdatedIso: "2026-11-17T00:00:00.000Z",
       conversationId: ID,
       elementText,
@@ -73,6 +75,7 @@ describe("writeLiveSnapshot and heldLiveSnapshots", () => {
     expect(unwrap(readLiveManifest({ conversationId: ID, root }))).toBe(undefined);
     const refused = unwrapErr(
       writeLiveSnapshot({
+        ...UNPROTECTED,
         bodyUpdatedIso: null,
         conversationId: "../escape",
         elementText: "{}",

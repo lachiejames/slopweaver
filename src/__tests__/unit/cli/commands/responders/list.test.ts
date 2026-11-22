@@ -23,6 +23,7 @@ import { writeMemberRows } from "../../../../../corpus/members/store.js";
 import type { MemberBronzeRow } from "../../../../../corpus/members/types.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
+import { NO_PROTECTION } from "../../../../noProtection.js";
 
 describe("renderResponderList", () => {
   it("names each admitted id from the member rows, in list order, and leaves an unknown id unnamed", () => {
@@ -155,7 +156,14 @@ describe("runRespondersList", () => {
       "--home",
       home,
     ]);
-    unwrap(writeMemberRows({ home, rows: [member({ name: "Ari", nativeId: "U0SYNAAA" })], source: "slack" }));
+    unwrap(
+      writeMemberRows({
+        home,
+        protection: NO_PROTECTION,
+        rows: [member({ name: "Ari", nativeId: "U0SYNAAA" })],
+        source: "slack",
+      }),
+    );
 
     expect(runRespondersList(["node", "slopweaver", "responders", "list", "--home", home])).toBe(EXIT_OK);
     expect(slackMemberNames({ home })).toEqual({ names: { U0SYNAAA: "Ari" }, warnings: [] });
@@ -163,7 +171,14 @@ describe("runRespondersList", () => {
 
   it("names a member whose id is spelled `__proto__`, stored as an own key rather than as the prototype", () => {
     const home = tempHome();
-    unwrap(writeMemberRows({ home, rows: [member({ name: "Proto", nativeId: "__proto__" })], source: "slack" }));
+    unwrap(
+      writeMemberRows({
+        home,
+        protection: NO_PROTECTION,
+        rows: [member({ name: "Proto", nativeId: "__proto__" })],
+        source: "slack",
+      }),
+    );
     const listing = renderResponderList({
       names: slackMemberNames({ home }).names,
       whitelist: { identities: ["__proto__"], kind: "list" },

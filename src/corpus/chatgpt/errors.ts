@@ -62,6 +62,12 @@ export interface ExportStoreFailedError {
   readonly path: string;
 }
 
+/** The owner's protect list covers a path the store would read or write, so nothing was written. */
+export interface ExportProtectedError {
+  readonly code: "EXPORT_PROTECTED";
+  readonly message: string;
+}
+
 /** `refresh --source chatgpt` with no export ever taken in — the one step only the owner can take. */
 export interface NoImportedExportError {
   readonly code: "NO_IMPORTED_EXPORT";
@@ -112,6 +118,7 @@ export type ChatgptExportError =
   | ArchiveUnreadableError
   | ExportTooLargeError
   | ExportStoreFailedError
+  | ExportProtectedError
   | NoImportedExportError
   | ManifestUnreadableError
   | HeldExportDamagedError
@@ -281,6 +288,10 @@ export const ChatgptExportErrors = {
     code: "EXPORT_PATH_MISSING",
     message: `${path} does not exist`,
     path,
+  }),
+  exportProtected: ({ lines }: { lines: readonly string[] }): ExportProtectedError => ({
+    code: "EXPORT_PROTECTED",
+    message: `${lines.join("; ")} — nothing was written`,
   }),
   exportStoreFailed: ({ path, cause }: { path: string; cause: unknown }): ExportStoreFailedError => ({
     code: "EXPORT_STORE_FAILED",

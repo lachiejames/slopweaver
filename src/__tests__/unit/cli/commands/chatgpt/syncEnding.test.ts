@@ -11,6 +11,7 @@ import { readCertifiedAsOf } from "../../../../../corpus/chatgpt/exportAsOf.js";
 import { heldExports, importChatgptExport, type StoredExport } from "../../../../../corpus/chatgpt/exportStore.js";
 import { err, unwrap } from "../../../../../lib/result.js";
 import { FUTURE, syntheticExportAt } from "../../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../../noProtection.js";
 
 /** The synthetic export, dated past every clock here so an import dates it at its own `nowIso`. */
 const FIXTURE = syntheticExportAt({ modifiedIso: FUTURE });
@@ -32,7 +33,7 @@ function held(): { root: string; newest: StoredExport } {
     listZip: ({ zipPath }: { zipPath: string }) =>
       err(ChatgptExportErrors.archiveUnreadable({ detail: "unused", path: zipPath })),
   };
-  unwrap(importChatgptExport({ archive, from: FIXTURE, nowIso: "2026-10-16T03:00:00.000Z", root }));
+  unwrap(importChatgptExport({ ...UNPROTECTED, archive, from: FIXTURE, nowIso: "2026-10-16T03:00:00.000Z", root }));
   return { newest: heldExports({ root }).exports[0]!, root };
 }
 

@@ -16,41 +16,31 @@
  *
  * **Private.** Directories are `0700` and files `0600`: this is the owner's own words to an assistant.
  *
+ * **Refused, never partial, on the owner's protect list.** The source is judged as a search and the root as a
+ * tree-write before the first byte moves (`../corpusAccessGuard.ts`), so a covered path writes nothing at all.
+ *
  * **Ordered by content.** The newest export is the one whose conversations run latest (`exportFreshness.ts`), never
  * the one taken in last, and a held export is checked against its manifest every time it is listed
  * (`exportIntegrity.ts`).
  *
- * Where members are read from is `exportSource.ts`'s; the receipts are `exportReceipts.ts`'s.
+ * Where members are read from is `exportSource.ts`'s, how they are staged `exportStaging.ts`'s, and the receipts are
+ * `exportReceipts.ts`'s.
  */
-import {
-  chmodSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-} from "node:fs";
+import { chmodSync, existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { err, ok, type Result } from "#lib/result.js";
-import { createFileExclusive, fsyncFile, renameStagedFile } from "#lib/writeAtomic.js";
+import { createFileExclusive, renameStagedFile } from "#lib/writeAtomic.js";
 
+import type { OwnerProtectionResolver } from "../bronzeProtection.js";
+import { preflightCorpusAccesses } from "../corpusAccessGuard.js";
 import { type ChatgptArchiveDeps, CONVERSATIONS_FILE } from "./archive.js";
 import { type ChatgptExportError, ChatgptExportErrors } from "./errors.js";
 import { orderByChronology } from "./exportChronology.js";
-import { latestActivityIso } from "./exportFreshness.js";
-import { checkHeldShape, hashMembers } from "./exportIntegrity.js";
+import { checkHeldShape } from "./exportIntegrity.js";
 import { HASH_DIR, parseSmallJson } from "./exportReceipts.js";
-import {
-  type MemberSource,
-  resolveMemberSource,
-  acquiredAtIso as sourceAcquiredAtIso,
-  stageMember,
-  stagingBudgetBytes,
-} from "./exportSource.js";
+import { type MemberSource, resolveMemberSource, acquiredAtIso as sourceAcquiredAtIso } from "./exportSource.js";
+import { openStaging, stageMembers } from "./exportStaging.js";
 import { damagedHeldExports } from "./heldVerification.js";
 
 const manifestSchema = z.strictObject({
@@ -135,6 +125,8 @@ function storedFrom({ directory }: { directory: string }): Result<StoredExport, 
  * @param root the managed export root (`CorpusPaths.chatgptExports`)
  * @param nowIso the instant recorded as the import time
  * @param archive the process edges for a zip
+ * @param home the Slopweaver home whose protect registry applies, beside the account's own
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns the stored export and whether it was new, or why it could not be taken in
  */
 export function importChatgptExport({
@@ -142,12 +134,29 @@ export function importChatgptExport({
   root,
   nowIso,
   archive,
+  home,
+  protection,
 }: {
   from: string;
   root: string;
   nowIso: string;
   archive: ChatgptArchiveDeps;
+  home: string;
+  protection?: OwnerProtectionResolver | undefined;
 }): Result<ImportOutcome, ChatgptExportError> {
+  // Judged before the first byte is read or written: what it reads from, and everything it may create under root.
+  const judged = preflightCorpusAccesses({
+    accesses: [
+      { access: "search", path: from },
+      { access: "tree-write", path: root },
+    ],
+    home,
+    operation: { target: from, verb: "take in the ChatGPT export" },
+    protection,
+  });
+  if (judged.isErr()) {
+    return err(ChatgptExportErrors.exportProtected({ lines: judged.error }));
+  }
   const source = resolveMemberSource({ archive, from });
   if (source.isErr()) {
     return err(source.error);
@@ -156,23 +165,9 @@ export function importChatgptExport({
   if (acquired.isErr()) {
     return err(acquired.error);
   }
-  let staging: string;
-  try {
-    mkdirSync(root, { mode: 0o700, recursive: true });
-    // A symbolic link standing at the root would carry every write below it out of the home, so it is refused
-    // rather than followed.
-    if (lstatSync(root).isSymbolicLink()) {
-      return err(
-        ChatgptExportErrors.exportStoreFailed({
-          cause: new Error("the export root is a symbolic link, and an export is never written through one"),
-          path: root,
-        }),
-      );
-    }
-    chmodSync(root, 0o700);
-    staging = mkdtempSync(join(root, ".staging-"));
-  } catch (cause) {
-    return err(ChatgptExportErrors.exportStoreFailed({ cause, path: root }));
+  const staging = openStaging({ root });
+  if (staging.isErr()) {
+    return err(staging.error);
   }
   const staged = stageAndPublish({
     acquiredAtIso: acquired.value,
@@ -180,57 +175,10 @@ export function importChatgptExport({
     nowIso,
     root,
     source: source.value,
-    staging,
+    staging: staging.value,
   });
-  rmSync(staging, { force: true, recursive: true });
+  rmSync(staging.value, { force: true, recursive: true });
   return staged;
-}
-
-/** Copy every member into staging, flushed to the device, then hash names and bytes and date the export. */
-function stageMembers({
-  source,
-  staging,
-  archive,
-}: {
-  source: MemberSource;
-  staging: string;
-  archive: ChatgptArchiveDeps;
-}): Result<
-  {
-    readonly contentHash: string;
-    readonly members: readonly { name: string; bytes: number }[];
-    readonly latestActivityIso: string | null;
-  },
-  ChatgptExportError
-> {
-  const names = source.members.map((member) => member.name);
-  // One budget for the whole export, spent member by member, so a run of many files is held to it as one file is.
-  const budget = stagingBudgetBytes({ dir: staging });
-  if (budget.isErr()) {
-    return err(budget.error);
-  }
-  let left = budget.value;
-  for (const member of source.members) {
-    const toPath = join(staging, member.name);
-    const staged = stageMember({ archive, maxBytes: left, member, source, toPath });
-    if (staged.isErr()) {
-      return err(staged.error);
-    }
-    try {
-      fsyncFile({ path: toPath });
-      left -= statSync(toPath).size;
-    } catch (cause) {
-      return err(ChatgptExportErrors.exportStoreFailed({ cause, path: toPath }));
-    }
-  }
-  try {
-    const { bytes, contentHash } = hashMembers({ directory: staging, names });
-    const members = names.map((name, index) => ({ bytes: bytes[index]!, name }));
-    const files = names.map((name) => join(staging, name));
-    return ok({ contentHash, latestActivityIso: latestActivityIso({ files }), members });
-  } catch (cause) {
-    return err(ChatgptExportErrors.exportStoreFailed({ cause, path: staging }));
-  }
 }
 
 /** Copy, hash, write the manifest and rename into place — the staging directory is the caller's to remove. */

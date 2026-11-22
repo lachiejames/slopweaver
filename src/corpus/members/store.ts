@@ -18,6 +18,8 @@ import { err, ok, type Result } from "../../lib/result.js";
 import { safeFs } from "../../lib/safeBoundary.js";
 import { stableStringify } from "../../lib/stableStringify.js";
 import { IDENTITY_SOURCES, type IdentitySource } from "../../silver/identity.js";
+import type { OwnerProtectionResolver } from "../bronzeProtection.js";
+import { preflightCorpusAccesses } from "../corpusAccessGuard.js";
 import { memberFile } from "../corpusPaths.js";
 import { readJsonlRows } from "../corpusStore.js";
 import { optStr as memberStr } from "../slack/shape.js";
@@ -179,24 +181,37 @@ export interface MemberWriteResult {
  * @param source the identity source
  * @param rows the freshly-hydrated rows
  * @param home the Slopweaver home (defaults to {@link slopweaverHome})
- * @returns the write stats, or a typed io error
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
+ * @returns the write stats, the protect list's refusal (judged before the stored rows are read), or a typed io error
  */
 export function writeMemberRows({
   source,
   rows,
   home = slopweaverHome(),
+  protection,
 }: {
   source: IdentitySource;
   rows: readonly MemberBronzeRow[];
   home?: string;
+  protection?: OwnerProtectionResolver | undefined;
 }): Result<MemberWriteResult> {
+  const path = memberFile({ home, source });
+  // Judged before the dedup read, which reads the very file this appends to.
+  const judged = preflightCorpusAccesses({
+    accesses: [{ access: "write", path }],
+    home,
+    operation: { target: `members/${source}.jsonl`, verb: "write" },
+    protection,
+  });
+  if (judged.isErr()) {
+    return err(judged.error);
+  }
   const redacted = rows.map((row) => redactMemberRow({ row }));
   const stored = readMemberRows({ home, source }).rows;
   const fresh = freshMemberRows({ incoming: redacted, stored });
   if (fresh.length === 0) {
     return ok({ deduped: rows.length, written: 0 });
   }
-  const path = memberFile({ home, source });
   const wrote = safeFs({
     execute: () => {
       mkdirSync(dirname(path), { recursive: true });

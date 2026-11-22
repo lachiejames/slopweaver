@@ -45,8 +45,11 @@ another's progress. Never append to bronze any other way.
   write, under both registries, failing closed. A refused source writes nothing and keeps its watermark. A
   reader asks the same judge through a choke point — `listBronzeFiles`, or `scanJsonlProtected`/`scanCorpusRoot` —
   and returns a covered root's refusal as an `Err`, never as an empty corpus; below the root the shared walk skips a
-  covered entry and names it in `protectedSkipped`, which a reporting caller prints. A new reader uses one, or is
-  listed in `docs/security/protected-paths.md`.
+  covered entry and names it in `protectedSkipped`, which every walk caller prints (`protectedSkipWarnings`). A
+  corpus REWRITER lists every path it will touch and asks `preflightCorpusAccesses` (`corpusAccessGuard.ts`) before
+  its first effect, a whole-tree write as `tree-write`, so it refuses whole and never writes part. A new reader or
+  writer uses one, or is listed in `docs/security/protected-paths.md`; its tests inject an empty resolver
+  (`src/__tests__/noProtection.ts`), never the owner's registry.
 
 - **Redaction runs first, so no secret touches disk** and the fingerprint is taken over redacted content.
   `redactRecord.ts` says which fields are redacted and which are structural; `redact.ts` is pure and keeps the

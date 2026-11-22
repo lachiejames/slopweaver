@@ -17,6 +17,7 @@ import { fileIdentity } from "../../../../corpus/chatgpt/fileIdentity.js";
 import { damagedHeldExports } from "../../../../corpus/chatgpt/heldVerification.js";
 import { err, unwrap, unwrapErr } from "../../../../lib/result.js";
 import { syntheticExportAt, syntheticFileAlone } from "../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../noProtection.js";
 
 /** Archive edges that never run: the fixture is a folder. */
 const NO_ZIP: ChatgptArchiveDeps = {
@@ -44,7 +45,9 @@ function held({ root, part, acquired }: { root: string; part: "whole" | "second"
     part === "whole"
       ? syntheticExportAt({ modifiedIso: acquired })
       : syntheticFileAlone({ member: "conversations-001.json", modifiedIso: acquired });
-  return unwrap(importChatgptExport({ archive: NO_ZIP, from, nowIso: "2026-10-17T00:00:00.000Z", root })).stored;
+  return unwrap(
+    importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from, nowIso: "2026-10-17T00:00:00.000Z", root }),
+  ).stored;
 }
 
 /** Flip one bit of a file, keeping its size — the rewrite no listing can see. */
@@ -60,7 +63,9 @@ describe("exportsToRead", () => {
     const older = held({ acquired: "2026-10-01T00:00:00.000Z", part: "second", root });
     const newer = held({ acquired: "2026-10-10T00:00:00.000Z", part: "whole", root });
     for (const stored of [older, newer]) {
-      unwrap(writeReceipt({ contentHash: stored.contentHash, nowIso: "2026-10-17T00:00:00.000Z", root }));
+      unwrap(
+        writeReceipt({ ...UNPROTECTED, contentHash: stored.contentHash, nowIso: "2026-10-17T00:00:00.000Z", root }),
+      );
     }
     expect(unwrap(exportsToRead({ root })).map((stored) => stored.contentHash)).toEqual([
       newer.contentHash,

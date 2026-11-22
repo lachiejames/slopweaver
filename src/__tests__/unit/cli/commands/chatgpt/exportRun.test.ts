@@ -32,6 +32,7 @@ import { err, ok, unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { judgeResyncAttempt } from "../../../../../live/resync/outcome.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { FUTURE, syntheticExportAt, syntheticFileAlone } from "../../../../chatgptFixture.js";
+import { NO_PROTECTION, UNPROTECTED } from "../../../../noProtection.js";
 
 /** The committed synthetic export. */
 const FIXTURE = syntheticExportAt({ modifiedIso: FUTURE });
@@ -77,6 +78,7 @@ function edges({
       },
       downloadsDir,
       nowIso: () => nowIso,
+      protection: NO_PROTECTION,
       runVerb: (argv) => {
         calls.push(argv);
         return Promise.resolve(exits.shift()!);
@@ -249,7 +251,13 @@ describe("runChatgptSync", () => {
     const root = stateHomePaths({ home }).corpus.chatgptExports;
     const olderHash = heldExports({ root }).exports[0]!.contentHash;
     const { stored } = unwrap(
-      importChatgptExport({ archive: deps.archive, from: FIXTURE, nowIso: "2026-10-17T03:00:00.000Z", root }),
+      importChatgptExport({
+        ...UNPROTECTED,
+        archive: deps.archive,
+        from: FIXTURE,
+        nowIso: "2026-10-17T03:00:00.000Z",
+        root,
+      }),
     );
     copyFileSync(join(root, "receipts", `${olderHash}.json`), join(root, "receipts", `${stored.contentHash}.json`));
     expect(await runChatgptSync({ deps, rest: ["--home", home] })).toBe(EXIT_OK);

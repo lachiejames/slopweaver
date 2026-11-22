@@ -151,6 +151,10 @@ export async function runLinearQuery({
     deps.writeDiagnostic(scanned.error.message);
     return EXIT_ERROR;
   }
+  // A path the protect list kept out of the walk is said, never silently absent from the count.
+  for (const line of scanned.value.warnings) {
+    deps.writeDiagnostic(line);
+  }
   const ranked = rankLinearMatches({ kind: resolved.value.kind, limit, records: scanned.value.records });
   const verified = await verificationStep({ deps, hits: ranked.hits, home, verify });
   if (verified.isErr()) {

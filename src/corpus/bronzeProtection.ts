@@ -22,7 +22,7 @@
  */
 import { err, ok, type Result } from "#lib/result.js";
 
-import { type PathAccess, protectionHitAny } from "../protectedPaths/decide.js";
+import { isAtOrUnder, type PathAccess, protectionHitAny } from "../protectedPaths/decide.js";
 import {
   type OwnerProtectionError,
   ownerProtectionFor,
@@ -163,6 +163,11 @@ export interface CorpusWalkJudge {
   readonly judge: CorpusJudge;
   /** The entry an access reaches under any spelling of its path, or `undefined` when none does. */
   readonly coverOf: (args: { access: PathAccess; path: string }) => ProtectedPath | undefined;
+  /**
+   * Refuses a write that may create or replace ANY descendant of `path`: refused at or under an entry, as a write is,
+   * and also when any entry of either mode lies below the root, which a plain write never looks at.
+   */
+  readonly judgeTreeWrite: (args: { path: string }) => Result<void>;
 }
 
 /**
@@ -192,7 +197,19 @@ export function corpusWalkJudgeFor({
     }
     return err([protectedCorpusRefusal({ access, entry: hit, operation, path })]);
   };
-  return ok({ coverOf, judge });
+  const judgeTreeWrite = ({ path }: { path: string }): Result<void> => {
+    const written = judge({ access: "write", path });
+    if (written.isErr()) {
+      return written;
+    }
+    const roots = resolvedPathSpellings({ path });
+    const below = entries.value.find((entry) => roots.some((root) => isAtOrUnder({ path: entry.path, root })));
+    if (below === undefined) {
+      return ok(undefined);
+    }
+    return err([protectedCorpusRefusal({ access: "write", entry: below, operation, path: below.path })]);
+  };
+  return ok({ coverOf, judge, judgeTreeWrite });
 }
 
 /**
