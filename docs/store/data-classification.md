@@ -84,11 +84,17 @@ to show it. Each handle, channel and author a rule names lives in that file, nev
 id, so no caller can hand in an id filed under another container's key. A record whose container did not resolve
 fails its whole batch, rather than being stored against no container while classed on its own.
 
-**The assessment is a port, types only.** `DataClassAssessment` is the shape a future assessment fills: the record's
-facts and text in, a class with its reason (or `undecided`) out. It has no implementation and no caller, so an
-`assess` outcome is written `unknown` today. Whoever builds the assessment runs it in a session the owner can see
-(rule 2). It is the intake assessment of a stored record, separate from the outbound check's assessment of text about
-to leave.
+**The assessment is answered from what a visible session recorded.** The owner ruled who classifies what the owner
+says on calls: one daily visible reader on the plans already owned, with no new spend. So `DataClassAssessment` is
+implemented by a reader of written verdicts (`src/talk/callAssessmentPort.ts`, over the register in
+`src/store/recordedDataClassAssessment.ts`), never by a model called in a process (rule 2). The seated `call-assessment` row ([its order](../../skills/automation/reference/call-assessment.md))
+reads each call's owner passages verbatim with `talk assessment-due`, decides one class per passage, and records them
+with `talk assessment-record`. The call carries the highest passage class, computed by the verb. Each verdict is bound
+to a SHA-256 of the exact passages it read, and the port names only the call: it reads the call's current passages
+itself, so words added later make the call due again rather than borrowing the earlier class. The register (`judgement/data-class-assessments.jsonl`) holds no passage text. A call nobody assessed,
+and every stored-row subject, answers `undecided`, so nothing at intake waits on it and an `assess` outcome is still
+written `unknown`. It is the intake assessment of a stored record, separate from the outbound check's assessment of
+text about to leave.
 
 ## Classifying what is already stored: `store classify`
 
@@ -112,11 +118,12 @@ message or pull request. An unusable rules file refuses the pass exactly as it r
 
 ## What is not built yet, and what waits on the owner
 
-- **Who classifies, and with which model and budget, is the owner's open call** (the page that asks it, "Who
-  classifies what you say on calls"). Nothing here runs an assessment, names a model or schedules a reader.
+- **A call's recorded class does not reach the store yet.** Calls are stored as whole authored files with no
+  `data_class` column; carrying the register's verdict onto them is the step after this one, and until then every
+  call reads `unknown`.
 - **`owner_capture` and `owner_turn` rows are not sorted at write yet.** They are written `NULL` and read as `unknown`,
-  which is what the default rule's `assess` outcome writes anyway until an assessment exists; `store classify` writes
-  their explicit class afterwards.
+  which is what the default rule's `assess` outcome writes anyway; the daily reader assesses calls, not these rows;
+  `store classify` writes their explicit class afterwards.
 - **The row-level security policies do not read the class yet.** A policy edit is not additive, so the door would
   refuse to catch a store up to it; it lands with the step that makes a narrower reader identity actually use those
   policies.

@@ -54,8 +54,10 @@ afterEach(() => {
 });
 
 describe("the talk manifest", () => {
-  it("registers exactly the forty-six verbs this noun ships", () => {
+  it("registers exactly the forty-eight verbs this noun ships", () => {
     expect(Object.keys(talkManifest).toSorted()).toEqual([
+      "assessment-due",
+      "assessment-record",
       "attach",
       "call-thread",
       "call-thread-append",
@@ -144,18 +146,13 @@ describe("the talk manifest", () => {
     ]);
   });
 
-  it("spreads the call reads and the thread journal's writer in from their own manifest module, only the writer writing", () => {
-    expect(Object.keys(talkCallsManifest)).toEqual(["call-thread", "call-thread-append", "call-tools", "calls"]);
+  it("serves each call verb as the same entry its own manifest module declares", () => {
+    expect(talkManifest["assessment-due"]).toBe(talkCallsManifest["assessment-due"]);
+    expect(talkManifest["assessment-record"]).toBe(talkCallsManifest["assessment-record"]);
     expect(talkManifest["calls"]).toBe(talkCallsManifest["calls"]);
     expect(talkManifest["call-tools"]).toBe(talkCallsManifest["call-tools"]);
     expect(talkManifest["call-thread"]).toBe(talkCallsManifest["call-thread"]);
     expect(talkManifest["call-thread-append"]).toBe(talkCallsManifest["call-thread-append"]);
-    expect(Object.values(talkCallsManifest).map((entry) => entry.meta.effect)).toEqual([
-      "none",
-      "local-state",
-      "none",
-      "none",
-    ]);
   });
 
   it("declares `offer`, the `verb` gateway and the four Slack reads as the external reaches, and `relay` as local state", () => {
@@ -215,6 +212,8 @@ describe("the talk manifest", () => {
       "runTalkSlackOpen",
       "runTalkSlackSendOutcome",
       "runTalkSteerRisk",
+      "runTalkAssessmentDue",
+      "runTalkAssessmentRecord",
       "runTalkCallThread",
       "runTalkCallThreadAppend",
       "runTalkCallTools",

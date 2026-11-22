@@ -199,11 +199,11 @@ describe("recipe due", () => {
     expect(lines.filter((line) => line.includes("DECLARED by this build and ABSENT"))).toEqual([]);
     const count = String(GENERIC_STANDING_ROWS.length);
     // `publication-audit-daily` is declared OFF, so it is read but never actionable until the owner turns it on.
-    // `hygiene-sweep`, `thread-chase-daily`, `slack-owed-daily`, `linear-briefing-daily` and
-    // `alignment-briefing-weekday` are the declared rows SEATED rather than run in the tick.
+    // `hygiene-sweep`, `thread-chase-daily`, `slack-owed-daily`, `call-assessment-daily`, `linear-briefing-daily`
+    // and `alignment-briefing-weekday` are the declared rows SEATED rather than run in the tick.
     expect(lines.slice(-2)).toEqual([
       NO_TEAM_REPOSITORIES,
-      `${String(ENABLED_GENERIC_ROWS)} actionable · 5 want a session · 0 claimed · ${count} row(s) read`,
+      `${String(ENABLED_GENERIC_ROWS)} actionable · 6 want a session · 0 claimed · ${count} row(s) read`,
     ]);
   });
 
@@ -237,7 +237,7 @@ describe("recipe due", () => {
     const actionable = String(ENABLED_GENERIC_ROWS + acme.length - 1);
     expect(lines.filter((line) => line.startsWith("!! "))).toEqual([]);
     expect(lines.at(-1)).toBe(
-      `${actionable} actionable · 5 want a session · 0 claimed · ${count} row(s) read · ` +
+      `${actionable} actionable · 6 want a session · 0 claimed · ${count} row(s) read · ` +
         "1 UNOWNED, owner hold lacks the owner's naming words",
     );
   });

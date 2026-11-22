@@ -104,7 +104,12 @@ so an untouched install row is brought forward. `read`, because the drafts are t
 refused. `55 8 * * *` sits after the 08:00 Slack resync as ordering intent only — the seat re-reads each thread
 live — and `onMissed: "skip"`: a missed morning is the same questions a day older.
 
-**`thread-chase-daily` is its inverse, and SEATED too.** Its argv is `slack awaiting --write` — the threads whose last
+**`call-assessment-daily` is SEATED, kind `call-assessment`.** The session classifies each owner passage of every call
+whose current words have no verdict, via `talk assessment-record` ([call-assessment](call-assessment.md)). Its argv,
+`talk assessment-due --check`, runs LAST, prints counts only and exits deferred while a call is due, so an unfinished
+firing is seated again. `read`; `30 21 * * *`; `onMissed: "skip"` loses nothing, as the worklist is every unassessed call.
+
+**`thread-chase-daily` is the inverse of `slack-owed-daily`, and SEATED too.** Its argv is `slack awaiting --write` — the threads whose last
 human word is the owner's ask, quiet two business days — but the kind is `thread-chase`, so `automation seat` opens a visible
 session that parks one tagged chase draft per thread for the owner's yes, then runs the row LAST
 ([thread-chase](thread-chase.md)). `read`, because the drafts are the seat's and a hand-edited argv naming a sending

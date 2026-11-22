@@ -57,6 +57,7 @@ import {
   ALIGNMENT_BRIEFING_KIND,
   BRIEFING_KIND,
   BUMP_FIX_KIND,
+  CALL_ASSESSMENT_KIND,
   ERROR_TRACKING_BATCH_KIND,
   FLEET_CEILING_REPORT_KIND,
   HYGIENE_SWEEP_KIND,
@@ -88,6 +89,7 @@ const EXECUTABLE_IN_A_SEATED_SESSION: ReadonlySet<string> = new Set([
   ERROR_TRACKING_BATCH_KIND,
   THREAD_CHASE_KIND,
   OWED_REPLY_KIND,
+  CALL_ASSESSMENT_KIND,
   INBOX_TRIAGE_KIND,
   LINEAR_BRIEFING_KIND,
   ALIGNMENT_BRIEFING_KIND,
@@ -103,9 +105,9 @@ const EXECUTABLE_IN_A_SEATED_SESSION: ReadonlySet<string> = new Set([
  * state today; the answer stays because the next registered-first kind will be.
  *
  * A `spawn` answer means what it always meant — a row the tick must hold a slot for — so `automation due`'s
- * tally, `automation seat` and sweep-contract step 13 all read it unchanged. Nine kinds answer it: `resync`,
- * `hygiene-sweep`, `bump-fix`, `error-tracking-batch`, `thread-chase`, `owed-reply`, `inbox-triage`,
- * `linear-briefing` and `alignment-briefing`,
+ * tally, `automation seat` and sweep-contract step 13 all read it unchanged. Ten kinds answer it: `resync`,
+ * `hygiene-sweep`, `bump-fix`, `error-tracking-batch`, `thread-chase`, `owed-reply`, `call-assessment`,
+ * `inbox-triage`, `linear-briefing` and `alignment-briefing`,
  * whose executors run in a seated session rather than this process.
  *
  * @param kind the kind the row selected

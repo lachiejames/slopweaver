@@ -31,7 +31,8 @@ Every row prints a line whether or not it is due (`--brief`, the tick's read, fo
   [exactly once](reference/exactly-once.md)).
 - **`SPAWN a session`** — `resync`, `hygiene-sweep` (below), `bump-fix` ([its order](reference/bump-fix.md)),
   `error-tracking-batch`, `thread-chase` ([its order](reference/thread-chase.md)), `owed-reply`
-  ([its order](reference/owed-reply.md)), `inbox-triage` ([its order](reference/inbox-triage.md)), `linear-briefing`
+  ([its order](reference/owed-reply.md)), `call-assessment` ([its order](reference/call-assessment.md)),
+  `inbox-triage` ([its order](reference/inbox-triage.md)), `linear-briefing`
   ([its order](reference/linear-briefing.md)), `alignment-briefing` ([its order](reference/alignment-briefing.md))
   and a `datadog-alert-digest` row carrying `shots`. A resync is minutes of provider walking: 29, 42 and 98 minutes
   for the worst single targets, 2h40m for one pass over about forty, holding the fleet's one coordinating session in

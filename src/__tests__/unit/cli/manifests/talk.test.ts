@@ -6,6 +6,10 @@
  */
 import { describe, expect, it } from "vitest";
 
+import {
+  TALK_ASSESSMENT_DUE_USAGE,
+  TALK_ASSESSMENT_RECORD_USAGE,
+} from "../../../../cli/commands/talk/assessmentUsage.js";
 import { TALK_CALL_TOOLS_USAGE } from "../../../../cli/commands/talk/callToolsUsage.js";
 import {
   TALK_CAPABILITIES_USAGE,
@@ -36,6 +40,8 @@ import { talkKnowManifest } from "../../../../cli/manifests/talkKnow.js";
 
 describe("talkManifest", () => {
   it("quotes each verb's usage from its leaf — the constant the command itself prints, so the two cannot drift", () => {
+    expect(talkManifest["assessment-due"]!.meta.usage).toBe(TALK_ASSESSMENT_DUE_USAGE);
+    expect(talkManifest["assessment-record"]!.meta.usage).toBe(TALK_ASSESSMENT_RECORD_USAGE);
     expect(talkManifest["attach"]!.meta.usage).toBe(TALK_ATTACH_USAGE);
     expect(talkManifest["attach"]!.meta.effect).toBe("local-state");
     expect(talkManifest["call-tools"]!.meta.usage).toBe(TALK_CALL_TOOLS_USAGE);

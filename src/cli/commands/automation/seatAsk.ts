@@ -5,6 +5,7 @@
 import {
   ALIGNMENT_BRIEFING_KIND,
   BUMP_FIX_KIND,
+  CALL_ASSESSMENT_KIND,
   ERROR_TRACKING_BATCH_KIND,
   INBOX_TRIAGE_KIND,
   LINEAR_BRIEFING_KIND,
@@ -16,7 +17,7 @@ import {
  * The line a WORKLIST row carries ABOVE its command, because for such a kind the command comes LAST.
  *
  * A `run-due` settles the firing it runs, and a `bump-fix`, `error-tracking-batch`, `thread-chase`, `owed-reply`,
- * `inbox-triage`, `linear-briefing` or `alignment-briefing` row's firing is the whole batch of work — so the seated session works the worklist first and
+ * `call-assessment`, `inbox-triage`, `linear-briefing` or `alignment-briefing` row's firing is the whole batch of work — so the seated session works the worklist first and
  * runs the command only once the batch is done. Named here rather than left to the skill, because the order is the one thing a session reading "one
  * row at a time, in this order" would otherwise get backwards. The procedure itself is the reference, never
  * this string.
@@ -34,6 +35,9 @@ const WORKLIST_PREAMBLES: Readonly<Record<string, string>> = {
   [OWED_REPLY_KIND]:
     "  (owed-reply: follow skills/automation/reference/owed-reply.md — park the replies FIRST, " +
     "then run this command LAST to settle the firing)",
+  [CALL_ASSESSMENT_KIND]:
+    "  (call-assessment: follow skills/automation/reference/call-assessment.md — classify and record every " +
+    "due call FIRST, then run this command LAST to settle the firing)",
   [INBOX_TRIAGE_KIND]:
     "  (inbox-triage: follow skills/automation/reference/inbox-triage.md — card the inbox FIRST, " +
     "then run this command LAST to settle the firing)",
