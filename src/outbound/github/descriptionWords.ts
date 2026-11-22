@@ -6,10 +6,13 @@
  *
  * Each rule is the owner's call on the description briefing, made computable and kept narrow:
  *
- * - **A proof slot holds a capture, never a sentence about a test.** A reason that talks about a test (`vitest`, "a
- *   unit test", "the test fails", "pinned by a test") is refused: where a command can show it, the proof is a
+ * - **A proof slot holds a capture, never a sentence about a test.** The common shapes of a reason that talks about
+ *   a test (`vitest`, "a unit test", "the test fails", "the test shows it", "pinned by a test", "the unit cases",
+ *   "the cases below", "the specs are the proof") are refused here; the description review refuses the rest, so
+ *   this is a list of refused shapes, never a whitelist of pointers. Where a command can show it, the proof is a
  *   `browser terminal-shot` of that command failing on main and passing on the branch, and a sentence about a test
- *   belongs under Checks. One reason in both slots is refused too.
+ *   belongs under Checks. A reason's optional second sentence points at the checks or a linked record instead ("The
+ *   checks below are the proof."). One reason in both slots is refused too.
  * - **The title and explainer use words a teammate knows.** Slopweaver's own words (seat, handoff, chain, seed,
  *   register, door, lap, row, relay, projection) are refused there outside a code run. A table "row" is refused with
  *   the rest: that false positive was named and accepted.
@@ -96,10 +99,14 @@ function checkCellsOf({ body }: { body: PrBody }): readonly Cell[] {
 /** Sentences about a test, which a proof slot may not hold. */
 const TEST_SENTENCE: readonly RegExp[] = [
   /\bvitest\b/iu,
-  /\b(?:unit|integration|regression|subprocess|replay|e2e|end-to-end) tests?\b/iu,
-  /\b(?:tests?|specs?)\b.{0,60}?\b(?:fails?|failed|failing|pass(?:es|ed)?|passing|reproduces?|reproduced|covers?|covered|pins?|pinned|proves?|proved|verif(?:y|ies|ied)|asserts?|asserted|catches|caught)\b/iu,
+  /\b(?:unit|test|integration|regression|subprocess|replay|e2e|end-to-end) (?:tests?|cases?)\b/iu,
+  /\b(?:tests?|specs?)\b.{0,60}?\b(?:fails?|failed|failing|pass(?:es|ed)?|passing|reproduces?|reproduced|covers?|covered|pins?|pinned|proves?|proved|verif(?:y|ies|ied)|asserts?|asserted|catches|caught|shows|showed|shown|demonstrates|demonstrated|confirms|confirmed|exercises|exercised)\b/iu,
+  /\b(?:tests|specs) (?:show|demonstrate|confirm|exercise)\b/iu,
   /\b(?:pinned|reproduced|covered|proved|proven|verified|caught|shown) by (?:a|an|the|this|its|their|new)\b.{0,40}?\btests?\b/iu,
-  /\btests? (?:below|above)\b/iu,
+  /\b(?:tests?|the cases?) (?:below|above)\b/iu,
+  /\b(?:tests?|specs?)\b.{0,60}?\bthe proof\b/iu,
+  /\bcases\b.{0,60}?\b(?:is|are) the proof\b/iu,
+  /\bthe proof is\b.{0,60}?\b(?:tests?|specs?|cases)\b/iu,
 ];
 
 /** A proof reason that is a sentence about a test, and one reason in both slots. */

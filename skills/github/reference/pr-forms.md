@@ -173,7 +173,9 @@ accepts renders a body CI accepts. Each refusal carries a code and the form path
   refused when seen after today (`SEEN_DAY`). Not seen yet carries a one-line `why`.
 - `visualProof: nothing-on-screen` beside a screenshot contradicts itself (`VISUAL_PROOF`); a Not-checked item is
   one phrase with no full stop (`UNCHECKED_SPLIT`), since it renders as `<check>. <why>`; a proof reason is at most
-  two sentences, why there is no screenshot and then where the proof is (`PROOF_REASON_SENTENCES`).
+  two sentences, why there is no screenshot and then where the proof is (`PROOF_REASON_SENTENCES`): the checks or
+  a linked record, never a test, whose common shapes are refused (`PROOF_IS_TEST_SENTENCE`) and the rest judged by
+  the description review.
 - **Every cell is a one-line HTML block**: no run carries a newline, and a backtick lives only in a `code` run.
   Every authored cell outside Re-run also goes through the **above-the-fold gate**, which REFUSES
   rather than trims — see [the reference](pull-requests.md). No first person in prose.

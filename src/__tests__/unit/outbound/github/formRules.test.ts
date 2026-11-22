@@ -356,7 +356,7 @@ describe("c3FormErrors — a proof reason is at most two sentences", () => {
   it("refuses three sentences, naming the slot and where the rest goes", () => {
     const issues = issuesOf({
       body: withSolutionReason({
-        reason: t({ text: "Not run yet. There is no screenshot. The proof is the unit cases." }),
+        reason: t({ text: "Not run yet. There is no screenshot. The checks below are the proof." }),
       }),
       today: undefined,
     });
@@ -373,7 +373,7 @@ describe("c3FormErrors — a proof reason is at most two sentences", () => {
     expect(
       codes({
         body: withSolutionReason({
-          reason: t({ text: "Nothing on screen changes. The unit cases below are the proof" }),
+          reason: t({ text: "Nothing on screen changes. The checks below are the proof" }),
         }),
       }),
     ).toStrictEqual([]);
@@ -394,8 +394,10 @@ describe("c3FormErrors — a proof reason is at most two sentences", () => {
   });
 
   it("does not end a sentence on an abbreviation's full stop, yet still counts a real third sentence", () => {
-    const two = t({ text: "Nothing changes on screen, e.g. only internals. The unit cases, i.e. two, are the proof." });
-    const three = t({ text: "Nothing changes on screen, e.g. only internals. The unit cases pass. Twice." });
+    const two = t({
+      text: "Nothing changes on screen, e.g. only internals. The linked record, i.e. the run, is the proof.",
+    });
+    const three = t({ text: "Nothing changes on screen, e.g. only internals. The linked record shows it. Twice." });
     expect(codes({ body: withSolutionReason({ reason: two }) })).toStrictEqual([]);
     expect(codes({ body: withSolutionReason({ reason: three }) })).toStrictEqual([
       "PROOF_REASON_SENTENCES solutionProof.reason",
