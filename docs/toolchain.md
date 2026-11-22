@@ -79,11 +79,11 @@ yarn format                 # organise imports (Biome), then apply Prettier form
 yarn lint                   # `slopweaver dev lint` — the whole static-analysis bar (see the lint reference, indexed below)
 yarn lint:local             # ONLY the 5 gates CI cannot see the subject of (see docs/toolchain/rebaseline-and-lanes.md § Two lanes)
 yarn typecheck              # tsc over the ROOT tsconfig: the repo tree and desktop's unit tests; `site/` and the desktop shell have their own build jobs (must be clean)
-yarn test:unit              # vitest, always with --coverage (must pass)
+yarn test:unit              # vitest, always with --coverage (must pass); off CI at most 4 forks (src/testLanes/unitWorkers.ts)
 yarn test:subprocess        # real git-subprocess tests, off the pure-function unit bar (must pass)
 yarn test:e2e               # the console's browser lane: Playwright over a built console and a seeded home (CI's `desktop-e2e`); specs are `src/__tests__/e2e/*.spec.ts`, never collected by Vitest
 yarn validate:local         # lint:local alone — what the pre-push hook runs; every other gate is CI's
-yarn validate               # lint + typecheck + test:unit + test:subprocess + coverage:ratchet — the full lap
+yarn validate               # lint + typecheck + the six unit shards in sequence, merged + test:subprocess + coverage:ratchet
 ```
 
 - [The built CLI — `dist-cli/`, and why a stale one cannot be tested](./toolchain/built-cli-and-worktrees.md)

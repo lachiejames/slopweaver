@@ -31,7 +31,8 @@ ps -Ao pcpu=,rss=,comm= | awk '$3 ~ /claude$/ {c+=$1; r+=$2; n++} \
 Over the 90 `(live, load)` observations the state doc has recorded, least squares gives
 `load = 7.0 + 0.57 × live` — which predicts 15 at the 14 live sessions measured above, where the machine
 actually read **4.48**. The correlation is real but the causation is not: busy periods carry both more
-sessions AND more `yarn validate` runs, and one validate fans vitest out across every core. At the moment of
+sessions AND more `yarn validate` runs, and a validate then fanned vitest out across every core (its unit step
+is now six shards at 4 forks, `src/testLanes/unitSequence.ts`). At the moment of
 that 4.48 reading, two `node` processes were drawing 89% and 80% of a core each while all 14 claude sessions
 together drew 16%.
 

@@ -88,8 +88,8 @@ proto's shims resolve, so a lane can still read anything that user can by absolu
 request you would run on this machine anyway.
 
 Every Vitest lane runs with `--maxWorkers=4`, CI's runner size. Uncapped, a lane takes one worker per local
-core while the fleet shares the machine, and the subprocess lane's own cap lifts under `CI=true`: an
-uncapped unit run failed 13 tests whose files all pass alone.
+core while the fleet shares the machine, and under `CI=true` the subprocess lane's cap and the unit config's 4
+(`src/testLanes/unitWorkers.ts`) both lift: an uncapped unit run failed 13 tests whose files all pass alone.
 
 A red Vitest lane is re-run once, whole, into `<id>.retry.log`, on a tree cleaned as at its job's start (below):
 the lap's equivalent of CI's "re-run failed jobs", because a fleet-loaded machine times a test out that a dedicated runner would not. A real defect fails
