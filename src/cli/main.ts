@@ -14,6 +14,7 @@ import { drainStdio } from "../lib/drainStdio.js";
 import { errorMessage } from "../lib/errorMessage.js";
 import { logger } from "../lib/logger.js";
 import { settlePendingEffects } from "../lib/pendingEffects.js";
+import { exitWhenThreadPoolQuiet } from "../lib/threadPoolExit.js";
 import { closeTypeScript } from "../lib/tsLifecycle.js";
 import { CLAUDE_CODE_SESSION_ID_ENV } from "../supervisor/session.js";
 import { EXIT_USAGE } from "./exitCodes.js";
@@ -118,10 +119,15 @@ function printUsage(): void {
  * So does a RESTART on a fresh build (`../builtCli/restart.ts`): it closes and drains like an exit, then replaces
  * the process, and only an exit that could not be attempted reaches `exit`, with 1.
  *
+ * The exit itself first waits for the thread-pool requests in flight when it began to finish, because
+ * `process.exit` JOINS libuv's pool and a request blocked without end there holds the process forever after its
+ * last line is written — `github merge --admin --dry-run` sat ten minutes that way. `../lib/threadPoolExit.ts`
+ * carries the measurement and what it does when one of those requests never finishes.
+ *
  * @param argv the process argv (defaults to `process.argv`)
  * @param close closes every TypeScript client (defaults to {@link closeTypeScript})
  * @param drain waits until stdout and stderr have flushed (defaults to {@link drainStdio})
- * @param exit the exit function (defaults to `process.exit`)
+ * @param exit ends the process with the code (defaults to {@link exitWhenThreadPoolQuiet})
  * @param guard decides run, refuse or restart before any verb (defaults to the built-CLI staleness guard)
  * @param restart replaces the process with the fresh build, returning only why it could not
  * @param run resolves and runs the invocation to an exit code (defaults to {@link main})
@@ -130,7 +136,7 @@ export async function runCliProcess({
   argv = process.argv,
   close = closeTypeScript,
   drain = drainStdio,
-  exit = process.exit,
+  exit = (code) => exitWhenThreadPoolQuiet({ code }),
   guard = productionGuard,
   restart = () => restartOnFreshBuild({ argv, env: process.env }),
   run = main,
@@ -138,7 +144,7 @@ export async function runCliProcess({
   argv?: readonly string[];
   close?: () => void;
   drain?: () => Promise<void>;
-  exit?: (code: number) => void;
+  exit?: (code: number) => void | Promise<void>;
   guard?: () => Promise<InvocationGuard>;
   restart?: () => string;
   run?: (argv: readonly string[]) => Promise<number>;
@@ -166,7 +172,7 @@ export async function runCliProcess({
     logger.error({ msg: restart() });
     await drain();
   }
-  exit(code);
+  await exit(code);
 }
 
 /**
@@ -192,7 +198,7 @@ async function productionGuard(): Promise<InvocationGuard> {
  *
  * @param argv the process argv, handed to the verb and the failure hint
  * @param run resolves and runs the invocation to an exit code
- * @returns the verb's code, or 1 when it threw or answered anything but a finite number
+ * @returns the verb's code, or 1 when it threw or answered anything but an integer from 0 to 255
  */
 export async function runCliInvocation({
   argv,
@@ -204,8 +210,10 @@ export async function runCliInvocation({
   let code: number;
   try {
     const resolved = await run(argv);
-    // SAFETY: normalise any non-finite code to a fault (1) so a failure can never be read as success.
-    code = typeof resolved === "number" && Number.isFinite(resolved) ? resolved : 1;
+    // SAFETY: normalise any code a process status cannot carry to a fault (1), so a failure can never be read as
+    // success. A status is one byte: `node -e 'process.exit(256)'; echo $?` prints 0.
+    const representable = typeof resolved === "number" && Number.isInteger(resolved) && resolved >= 0;
+    code = representable && resolved <= 255 ? resolved : 1;
     // Inline surfacer: a one-line likely-cause + next-step AFTER the verb's output on a known failure.
     if (code !== 0) {
       surfaceFailureHint({ argv, code });

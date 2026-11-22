@@ -51,6 +51,27 @@ describe("runCliProcess closes TypeScript once, between the verb and the drain",
     expect(events).toEqual(["main", "close", "drain", "exit:19"]);
   });
 
+  it("on a verb that answers 256, exiting 1 rather than the 0 a process status would read it as", async () => {
+    const events = await lifecycleOf({
+      run: (log) => {
+        log.push("main");
+        return Promise.resolve(256);
+      },
+    });
+
+    expect(events).toEqual(["main", "close", "drain", "exit:1"]);
+  });
+
+  it("on a verb that answers a negative or fractional code, exiting 1", async () => {
+    const negative = await lifecycleOf({ run: () => Promise.resolve(-1) });
+    const fractional = await lifecycleOf({ run: () => Promise.resolve(2.5) });
+
+    expect([negative, fractional]).toEqual([
+      ["close", "drain", "exit:1"],
+      ["close", "drain", "exit:1"],
+    ]);
+  });
+
   it("on a verb that throws, exiting 1", async () => {
     const events = await lifecycleOf({
       run: (log) => {
