@@ -61,7 +61,10 @@ export const ownerCaptureTable = pgTable(
     codexThreadSource: text("codex_thread_source"),
     /** The working directory a Codex thread ran in. */
     cwd: text("cwd"),
-    /** The row's data class (`../dataClass.ts`); null reads as `unknown`, which fails closed. Never backfilled. */
+    /**
+     * The row's data class (`../dataClass.ts`); null reads as `unknown`, which fails closed. Not sorted at write
+     * yet: `store classify` (`../resolveDataClasses.ts`) writes it.
+     */
     dataClass: dataClassEnum("data_class"),
     recordedAt: timestamp("recorded_at", { mode: "date", precision: 3, withTimezone: true }).defaultNow().notNull(),
   },

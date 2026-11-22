@@ -40,8 +40,8 @@ otherwise.
 
 `data_class` is a nullable column of the `data_class` enum on `content`, `owner_capture` and `owner_turn`, with no
 default. Every row written before it existed holds `NULL` and reads as `unknown`. The migration adding it is one
-`CREATE TYPE` and three `ADD COLUMN`s, additive, so the door catches a store up to it with no hand `store push`.
-Classifying the rows already in the store is a separate, later step; nothing here backfills.
+`CREATE TYPE` and three `ADD COLUMN`s, additive, so the door catches a store up to it with no hand `store push`. The
+migration backfills nothing; `store classify` (below) sorts the rows already stored.
 
 ## The census
 
@@ -90,12 +90,33 @@ facts and text in, a class with its reason (or `undecided`) out. It has no imple
 (rule 2). It is the intake assessment of a stored record, separate from the outbound check's assessment of text about
 to leave.
 
+## Classifying what is already stored: `store classify`
+
+`slopweaver store classify` sorts every row the store already holds by the same rules and the same facts intake uses
+(`src/store/resolveDataClasses.ts`; the facts builders are shared in `src/store/dataClassIntake.ts`). It reads each
+`content` row's source, kind, visibility, container native id and `author_native_id`, and each `owner_capture` and
+`owner_turn` row's key and capturing app, never a body. It re-derives in both directions and writes only the rows
+whose stored class differs, so a rules change narrows as readily as it widens and a second run writes nothing. A
+`NULL` is always rewritten as an explicit `unknown`, so a row the pass reached is distinguishable from one it never
+did, and an applying pass reads the three tables back and exits 1 if any `NULL` still stands (an import landed
+mid-pass: run it again).
+
+The census decides what "nothing left unclassified" means for the rest. Each table with no class column is counted
+row for row and reported as failing closed. Each home register and home path is listed by its declared name and never
+read. `--dry-run` writes nothing, the store's migration catch-up included. The default report is counts, class names,
+rule ids and declared names only, and a failure the database raised prints its SQLSTATE, never its text, which can
+quote a stored value. Every hand-written statement names the `public` schema, so a lookalike table earlier on the
+`search_path` cannot pass the read-back that checks for a remaining `NULL`. `--sample <n>` adds up to that many row ids per most-private class (`restricted`,
+`personal`, `unknown`), for the owner's own check in a visible session, and they are never copied onto a page,
+message or pull request. An unusable rules file refuses the pass exactly as it refuses an ingest.
+
 ## What is not built yet, and what waits on the owner
 
 - **Who classifies, and with which model and budget, is the owner's open call** (the page that asks it, "Who
   classifies what you say on calls"). Nothing here runs an assessment, names a model or schedules a reader.
 - **`owner_capture` and `owner_turn` rows are not sorted at write yet.** They are written `NULL` and read as `unknown`,
-  which is what the default rule's `assess` outcome writes anyway until an assessment exists.
+  which is what the default rule's `assess` outcome writes anyway until an assessment exists; `store classify` writes
+  their explicit class afterwards.
 - **The row-level security policies do not read the class yet.** A policy edit is not additive, so the door would
   refuse to catch a store up to it; it lands with the step that makes a narrower reader identity actually use those
   policies.

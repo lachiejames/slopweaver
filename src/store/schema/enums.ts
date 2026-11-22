@@ -66,7 +66,7 @@ export const visibilityEnum = pgEnum("visibility", ["public", "private"]);
  * classification (one record) and the fail-closed read rule. Every column of this type is NULLABLE with no default:
  * a row written before classification existed holds no class, reads as `unknown` through `effectiveDataClass`, and
  * is never backfilled by the migration that adds the column, so the migration stays additive and the door can apply
- * it.
+ * it. `store classify` (`../resolveDataClasses.ts`) sorts the rows already stored.
  */
 export const dataClassEnum = pgEnum("data_class", DATA_CLASSES);
 

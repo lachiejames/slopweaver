@@ -31,8 +31,8 @@
  *   post, not a pull request.
  * - `unknown` — nobody has classified it yet. Every reader treats it EXACTLY as `restricted`, while the stored value
  *   stays distinct so a census can count what is still unclassified. A record the store holds with no class at all
- *   (every row written before classification existed) reads as `unknown` ({@link effectiveDataClass}); it is never
- *   backfilled here.
+ *   (every row written before classification existed) reads as `unknown` ({@link effectiveDataClass}) until
+ *   `store classify` (`./resolveDataClasses.ts`) writes it an explicit class.
  *
  * `private` is deliberately not a class name: it already names the other half of `visibility`, the source's own
  * access axis, which this one only ever narrows.

@@ -49,7 +49,7 @@ export const ownerTurnTable = pgTable(
     byteLength: integer("byte_length").notNull(),
     /**
      * The body's data class (`../dataClass.ts`), held once per body like everything else here; null reads as
-     * `unknown`, which fails closed. Never backfilled.
+     * `unknown`, which fails closed. Not sorted at write yet: `store classify` (`../resolveDataClasses.ts`) writes it.
      */
     dataClass: dataClassEnum("data_class"),
     /** When the store first held this body. Not when the owner said it: that is `file_modified_at` at best. */
