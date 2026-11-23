@@ -1,0 +1,31 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1789952379.135579",
+    "threadTs": "1789775392.910229"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1789952379.135579.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1789952379.135579.json"
+  ],
+  "frozenAtIso": "2026-09-21T03:19:49.483Z",
+  "incident": "Owner, 21 Sep 03:02Z on his public #dev-alerts ask: the worker reacted and ran subagents for 17+ minutes with no live progress card in the thread. The capture-time checklist never posted (no checklist-posted event stands between captured and dispatched), and turn dispatch handed the brief to a fresh visible session anyway. 'This should not be structurally possible.'",
+  "regresses": ["public-ask-dispatched-with-no-live-progress-card"],
+  "replayNowIso": "2026-09-21T02:38:28.573Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "dispatched-with-no-live-card-21sep",
+  "syntheticIdCount": 93,
+  "withheldEventKinds": [
+    "dispatched"
+  ],
+  "through": "captured"
+}

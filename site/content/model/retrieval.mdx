@@ -1,0 +1,91 @@
+---
+title: Retrieval
+---
+
+import { Callout } from "nextra/components";
+
+import { RetrievalLadder } from "../../components/diagrams/RetrievalLadder";
+
+# Retrieval
+
+Postgres full text. **pgvector, embeddings and re-ranking are banished** — read that before proposing test
+machinery that assumes any of them.
+
+<RetrievalLadder />
+
+One store, one `source` column, so a question that spans four platforms is one filter rather than four
+queries stitched together. An `ILIKE` over `body` is the simplest way to write that filter, and it is not
+the path: what the bot actually runs is the `searchable` column below, which answers in milliseconds rather
+than scanning every body.
+
+## Why full text is a column rather than an index we maintain
+
+`searchable` is a **stored generated column**:
+
+```sql
+to_tsvector('english', coalesce(title, '') || ' ' || body)
+```
+
+Because it is generated, it cannot drift from the text it summarises. There is no rebuild step that can be
+skipped and no second artefact that can go stale, which is the whole failure of the hand-built index it
+replaces. Full text search in Postgres comes for free with the column, and it is not a third place for the text
+to live.
+
+## The two trigram indexes, and the question they answer
+
+The tsvector answers **the stemmed word appears**. The trigram indexes answer **these characters appear** —
+a different question, and the one that reaches a name inside an email address, a `<@U…|handle>` mention or
+a URL path segment.
+
+MEASURED against **a couple of million rows**:
+
+| Shape                                        | Time            |
+| -------------------------------------------- | --------------- |
+| the tsvector                                 | about 100 ms    |
+| the `alnum` shape through the narrowing scan | under a second  |
+| the same term as its own statement           | several seconds |
+| `body ilike '%nz%'` with no trigram index    | several seconds |
+
+```bash
+slopweaver store probe --term barten
+```
+
+They are declared on the two expressions the ladder actually names. A trigram index on the
+**concatenation** of title and body matches neither and silently falls back to a sequential scan, which is
+the shape of mistake that looks like a working index and is not.
+
+## Recency is the ORDER, not a multiplier
+
+There is no ranker, so **there is no score to weight**, and no recency-decay multiplier. Selection is Postgres
+full text plus structured filters, and rows come back newest first; `--since` and `--until` are how a
+caller bounds the window deliberately.
+
+That is narrower than the brief asked for and the gap is worth naming rather than hiding.
+[What it was asked for](/docs/model/intent) records the sharpened version — time is one input among several, and
+importance can outrank it — and nothing in the current selection expresses importance at all.
+
+<Callout type="warning">
+  **A clean miss is not evidence of absence.** Retrieval never consults `corpus/members/`, so a person's name one
+  character off the roster produces a silent zero rather than a match or a "did you mean" — the measured case is on
+  [coverage and its bounds](/docs/model/coverage). Before reading a zero as a gap in the corpus, check that the question
+  was asked the way the data was stored.
+</Callout>
+
+## Nothing is truncated on the way in
+
+A long record is **split**, never cut off. The rule is categorical, since a reader that sees half
+of every file produces a mess. It sits in tension with a second rule — no truncation, and
+also no polluting the model's context with a hundred thousand tokens of one Slack thread — is resolved by
+**agent-driven expansion** rather than by a smaller cap: a first pass that is deliberately small, with a
+real path to the whole record.
+
+## Reading it
+
+```bash
+slopweaver store read "what did we decide about X"   # the answer, with the records pinned
+slopweaver store cite "X"                           # the record slice, no prose, no model
+```
+
+`store cite` is the one to reach for when you are checking what the store actually holds rather than what a
+model made of it — and it is the honest way to test a retrieval change, since it removes the model that
+would otherwise paper over a bad slice.

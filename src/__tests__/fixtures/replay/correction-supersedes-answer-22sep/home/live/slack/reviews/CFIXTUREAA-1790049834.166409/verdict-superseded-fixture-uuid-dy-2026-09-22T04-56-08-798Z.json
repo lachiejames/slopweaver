@@ -1,0 +1,176 @@
+{
+  "answerDigest": "sha256:ecbccbae8c577f84e6f73e077b9860e892a914a09d848f6b9b24b32351a8609e",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    }
+  ],
+  "imageObservations": [],
+  "outcome": "clean",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1,
+  "voice": {
+    "pathsChecked": [
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]"
+    ],
+    "rulesChecked": 4,
+    "violations": []
+  }
+}

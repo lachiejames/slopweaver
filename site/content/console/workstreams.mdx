@@ -1,0 +1,149 @@
+---
+title: Workstreams
+---
+
+# Workstreams
+
+Your outcomes as one list of collapsed cards, at risk first: whose move each one is, how many of its own milestones are done, and the dated story behind it on click. Read from `slopweaver workstreams list --json`, out of the store.
+
+<details>
+<summary>What this page shows</summary>
+
+A page to remember every workstream you drive, and one that shows actual things progressed to
+actual outcomes. So each card opens to the
+**outcome** other people would agree improves the business, names who already agrees, and carries the whole life
+of the work, including the part after the code ships.
+
+**One vertical list, like the Queue.** Each collapsed card carries, on its left, a coloured chip
+naming whose move it is: **Your call** (held on a decision only you can make), **Chase** (held on someone named),
+**Stalled** (stalled with nobody named), then **Discovery**, **Moving**, **Done**, **Kept here only** and
+**Abandoned**. Beside it the title, a thin meter under it filled to the share of its own milestones done, and a few
+stats: its progress line (`1 of 3 done, next: First batch merged`), when it last moved, who it waits on, its
+priority, initiative and tags. The list is ordered at risk first (your call, chase, stalled), then by your priority
+within each, then the register's order. The context switcher filters it: a `team` workstream never shows under
+Slopweaver.
+
+**Every workstream has its own milestones, and no generic bar**. The milestone `done` is
+its definition of done, and every other one leads to it. A milestone is done once a dated entry finishing it links
+its proof. Under a card's meter, a strip carries one pill per milestone, the ones that can run side by side stacked
+together and an arrow to the ones that wait on them (milestones run in parallel rather than in a line, some still in order). Its slide-over draws the graph: a box per milestone saying where it is (done on a
+day, moving since a day, ready to start, or what it waits on) and an arrow along each dependency, solid once the
+one it leaves is done. A story entry that moves one names it, and one that finishes it says so.
+
+**A workstream can end without its outcome**, and "done" is the wrong word for it. An abandoned card is the quietest on the page: a dashed grey chip, its title greyed with your reason and
+the day under it, its meter faded, and it sits last. It is never counted under **Done**; it has its own number. Its
+slide-over opens on an **Ended:** line with the reason and where you said it, then the story it had.
+
+Above the list, the hero numbers count what the context shows: **At risk** first, then each lane holding
+anything. Each is a button that filters to what it counts and names those workstreams and the rule on hover.
+Under them, dropdowns for state, priority, initiative and tag, all shown by default, each in the address. Every
+dated entry's source is a citation chip with its hover card. The register's grouping, when it names one, is a line
+at the foot of the page.
+
+Clicking a card opens its slide-over, exactly as a Queue card does, addressed by `?open=<id>` with every filter
+kept: the outcome, its progress against its own milestones, where it is and what it waits on above the fold, then
+its dated story, its feedback — the negative beside the positive, with what you did about it — and a skeptic's line,
+with its priority, initiative, its **stakeholders** as identity chips with the part each plays (hover one for their
+card), the **related** workstreams, each opening its own slide-over with why it relates, and its **links**: each a
+chip naming what it points at, a Queue or Alignment card, an automation, a pull request or a Linear project.
+A finished or handed-over one stands level with a live one (a completion is something you keep and
+filter for, never tucked away): its card carries a **closed** pill with the day, and its slide-over its
+**Outcome**, the day it **Closed**, where it went, whether it still holds, its cited entries, stakeholders and
+related workstreams, each said as not recorded where it was never kept. No card carries a slug or worktree id line,
+and no citation shows a Slack channel id: a Slack source reads as the channel you know, `a message in
+#proj-monitoring`.
+
+**Hovering a Slack source opens a window into that channel as it is now** (what Slack desktop would
+show, images included, so you never leave localhost). The card reads the newest page live through `slack
+channel-view`, oldest at the top and scrolled to the newest, each author named and each picture drawn from Slack's
+own preview, which opens larger on a click. A file it does not draw says why (a PDF, deleted, no access, past
+the sixteen-picture limit), the head says when it was read and opens the channel in Slack, and a read that fails
+says so rather than showing an empty channel.
+
+</details>
+
+<details>
+<summary>What every figure is derived from</summary>
+
+| On the page                | Derived from                                                                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A meter's fill             | the share of the workstream's own milestones done (`derived.progress`); a milestone is done once an entry finishing it (`done`) links its proof       |
+| The progress line          | `derived.progressLine`: how many of its own milestones are done, and the next one ready to start                                                      |
+| Started · last moved       | the earliest and latest dated entry                                                                                                                   |
+| The lane chip              | `waitingOn` (you → your call, someone named → chase), else a stalled or discovery status, else moving; local and closing kinds by kind                |
+| An abandoned card          | the workstream's `ending`, recorded by `workstreams react "<n> abandoned" --reason --anchor`; it outranks any hold, so an ended card is nobody's move |
+| A closing card's day       | its `closedOn`, the day `react "<n> done"` placed it; one never recorded says not recorded                                                            |
+| The order                  | at-risk lanes first, then your stated priority (urgent, high, normal, parked; one not stated sits after normal), then the register's order            |
+| A hero number              | the workstreams the context shows in that lane, or in every at-risk lane for **At risk**                                                              |
+| Which context shows a card | the `workspace` each workstream states, team or self                                                                                                  |
+| A stakeholder chip         | the Slack member id the workstream names in `people`, joined to the member roster; a member it does not hold is said as such, never by id             |
+| A related workstream       | a `workstream` link, its label the reason it relates                                                                                                  |
+| A link chip                | every other link: its kind and its canonical target (a card's slug, an automation's recipe id, `owner/repo#N`, a Linear project's id)                 |
+| A Slack citation's words   | the register document's `channels`, each conversation's name by id; the verb refuses a Slack link into a conversation that map does not name          |
+| A linked gauge             | the workstream's own reading of somebody else's measure (value, of, gate, the source and when it was read), and how far short of the gate it is       |
+| An own milestone's state   | the entries naming it: done once one finishes it with its link, moving once any names it, else ready or waiting on its `after`                        |
+| An own milestone's column  | the longest chain of `after` before it, so milestones that can run side by side share a column; the register refuses a cycle                          |
+| Status, outcome, skeptic   | written into the register from a reading of the evidence; the four status words are proven, validating, stalled, discovery                            |
+
+Every figure is computed by the verb (`src/workstreams/store/projection.ts`), each lane and the order by
+`src/workstreams/lanes.ts`; the page only draws. Nothing on the page is a typed percentage, so a meter cannot drift
+from its sources, and every dated entry is one click from the message, pull request or ticket it cites. The page
+reads schema version 2 alone: a document of any other version, or one missing a field it should carry, draws a
+failed read rather than a card with a blank where a fact was.
+
+</details>
+
+<details>
+<summary>Proposed workstreams: the outcomes you stated and what a mine of your history found, to keep or drop</summary>
+
+Above the tiles, at `/workstreams#candidates`, a collapsed **Proposed workstreams** section holds every proposal,
+read from `slopweaver workstreams candidates --json`: first the outcomes you have stated out loud, each in your own
+words and anchored to the turn you said it, then every workstream a session mined from the person's connected
+history. They are the ONE way an outcome reaches the
+register — nothing is written until you keep one; keep or drop each when you next open Workstreams. Its one line
+counts the candidates, the unanswered, each answer given (shown only when nonzero) and what the seat still owes;
+under it, the question — accept as a workstream, with these definitions of done — and where the proposals came from:
+the outcomes you stated, then, once a mine has run, which sources it read, with how many records each.
+
+It opens on the **three** unanswered candidates with the most of the person's own words behind them, the rest behind
+one link as one ranked list ("seventy workstreams?! I ain't reading all that"), or one at a time with previous and
+next. A card shows its number, title, period, evidence count and, open, the outcome, the dated quotes in their own
+words, their earlier steers with dates, what looks stalled, the owning team the miner guessed and who the first
+conversation is with.
+
+Its definition-of-done options each show their lens (the result, the people across it and owning it, or adoption),
+trade-off and stretch rung; **all of them** asks which comes first; one recorded in their own words shows read-only,
+and _None of these? Say what done means in the call's chat._ The six words — accept, not mine, sort of, not sure,
+let's talk, already done — press the chosen definition first, then the word. Below them: place it as a milestone,
+outcome or same-as of a register workstream (the register listed beside it); decline as covered by one; accept as
+answering an earlier steer; and draft each owed conversation onto the Queue, which sends nothing. Every one is a
+click or a pick from a list. An answer that needs words — a new title, whose it is, superseded by what, who first, a
+proposal of your own (_To propose another, say it in the call's chat._) — has no box: the console's one text input
+is the call's chat , and a touched or opened card is the page's open item, `candidate:<id>`, so
+what you say there names it and the supervisor runs the verb. Every press runs one `workstream-*` row through the act list, so
+a press and a relayed word write the same ledgers; a yes or done re-reads the tiles. Every candidate already ruled
+sits behind ONE collapsed **Already ruled** section, never mixed in with the unruled: each line its ruling in one clause, the date and your quoted words, opening to its card to change it. The
+ruling is the reactions ledger's latest row, the one field both the page and the voice read. The person's own
+proposals sit in their own fold. Before any mine has run the section holds the stated outcomes alone, and says so.
+
+</details>
+
+<details>
+<summary>Where the register lives, and why it is not the board</summary>
+
+In the store, one row per workstream with its own milestones, entries and links, and one register document (`meta`)
+naming its channels, grouping and initiatives. `slopweaver workstreams put` writes it in one transaction, as does the owner's
+yes on a proposed candidate (`slopweaver workstreams react`), both validating every rule first and writing nothing
+when one fails. It lives under the home rather than in git because every line is an internal quote or link.
+
+The handover board is the only register of work in flight (`docs/workstreams.md`); this holds outcomes, which outlive every board row under them, and it is the ONE source of them: the supervisor's coverage reads the outcomes kept here, each with the board rows its membership names. The fleet's own placement against the board is on
+[Fleet](/docs/console/fleet), and a board row's citation reads as the row's words, opening no page.
+
+A store holding no workstream yet is an answer, not a failure (`NO_WORKSTREAMS`, exit 3), and so is a register whose
+document lists none: the page draws the console's designed empty state, saying a workstream appears when you keep
+one of the proposals above, the outcomes you have stated among them, and that nothing is kept until you do — with
+**Connect a plan**, which opens Settings on Models, while no plan is connected, and never a command to run. A store
+that refuses draws a staleness mark, never an empty page. A register whose document is not written yet draws its
+workstreams with no channel names, grouping or initiatives, which is what the store holds.
+
+</details>

@@ -1,0 +1,34 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788000431.667039",
+    "threadTs": "1787877556.183409"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/reviews/CFIXTUREAA-1788000431.667039/record.json — written after the last kept event (2026-08-29T10:49:40.366Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1788000431.667039.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1788000431.667039.json",
+    "home/live/slack/turn-markers/CFIXTUREAA-1788000431.667039.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788000431.667039/verdict.json"
+  ],
+  "frozenAtIso": "2026-08-29T11:52:33.908Z",
+  "incident": "a worker's full investigation grounded on the slack-read-thread verb, which the decision's own needs never named, and died at the door with a refusal it could have caught itself",
+  "regresses": [],
+  "replayNowIso": "2026-08-29T10:49:40.366Z",
+  "reviewRounds": 3,
+  "schemaVersion": 1,
+  "slug": "worker-grounding-refused-29aug",
+  "syntheticIdCount": 26,
+  "withheldEventKinds": [
+    "failed",
+    "answered"
+  ],
+  "through": "dispatched"
+}

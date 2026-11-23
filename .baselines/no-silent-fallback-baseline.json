@@ -1,0 +1,1924 @@
+{
+  "sites": [
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/__tests__/cassetteRedactConfig.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/cassetteRequestRedact.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/integration/slackReadThread.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/setup-polly.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/briefing/renderThenCheck.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/github/chainedStackDoors.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/handover/auditRulings.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/handover/backfillRulings.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/handover/blockedByArchiveParity.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/handover/checkRepo.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/handover/closeDerivesStatus.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/handover/ruleDerivesRuling.test.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/handover/settleLeavesRunOpen.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/cli/commands/slack/digestAboveFold.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/live/blockedOnHumanTurn.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/replay/cardPostedNeverDispatched.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/replay/dispatchBudgetWarn.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/replay/dispatchOrphanSweep.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/replay/pickupUnwitnessedResubmit.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/subprocess/velocity/run.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/atlas/cloudflare/ruleset.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/atlas/github/sync.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/atlas/kit/merge.test.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/atlas/knock/browserReduction.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/atlas/vanta/merge.test.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/claude/probeRepair.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/corpus/linear/nested.test.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/datadog/census/readersLive.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/gold/distilBrief.test.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/grants/verify.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/hygiene/corpusScan.test.ts"
+    },
+    {
+      "count": 21,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/lib/absent.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/live/github/mergeQueue.test.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/live/gmail/modify.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/live/listen/chunkedWait.test.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/live/resync/run.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/__tests__/unit/silver/accountKind.test.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/admit/operationLock.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/admit/rawTools.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/admit/shellSegments.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??=",
+      "path": "src/admit/shellSegments.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/atlas/braze/sync.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/atlas/clerk/browserSurface.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/atlas/clerk/sync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/cloudflare/flatKinds.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/cloudflare/parentFanoutReconcile.ts"
+    },
+    {
+      "count": 17,
+      "operator": "??",
+      "path": "src/atlas/cloudflare/projection/apiGateway.ts"
+    },
+    {
+      "count": 8,
+      "operator": "??",
+      "path": "src/atlas/cloudflare/projection/firewallService.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/cloudflare/projection/legacyWaf.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/atlas/cloudflare/projection/pages.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/cloudflare/projection/workerScript.ts"
+    },
+    {
+      "count": 8,
+      "operator": "??",
+      "path": "src/atlas/cloudflare/projection/zeroTrustAccessAdmin.ts"
+    },
+    {
+      "count": 8,
+      "operator": "??",
+      "path": "src/atlas/cloudflare/projection/zeroTrustGateway.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/atlas/cloudflare/projection/zeroTrustNetwork.ts"
+    },
+    {
+      "count": 20,
+      "operator": "fallback-helper",
+      "path": "src/atlas/cloudflare/projection/zeroTrustPosture.ts"
+    },
+    {
+      "count": 12,
+      "operator": "??",
+      "path": "src/atlas/cloudflare/projection/zoneCertificate.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/atlas/cloudflare/readers/zoneAnalytics.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/atlas/crowdstrike/consoleSurface.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/crowdstrike/paging.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/crowdstrike/paging.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/atlas/crowdstrike/sync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/crowdstrike/sync.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/atlas/crowdstrike/syncReaders.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/atlas/datadog/sync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/geminiAiStudio/readAdapter.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/geminiAiStudio/specRead.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/geminiAiStudio/specRead.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/github/client.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/atlas/github/restSurface.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/atlas/github/sync.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/atlas/github/webSurface.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/graphqlHive/browserSurface.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/atlas/graphqlHive/projection.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/atlas/graphqlHive/readAdapter.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/graphqlHive/registryRead.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/graphqlHive/registryRead.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/atlas/graphqlHive/sync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/hex/projection.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/atlas/hex/readAdapter.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/hex/report.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/atlas/hex/sync.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/atlas/hex/walkPublish.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/inngest/browserReduction.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/atlas/inngest/browserSurface.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/inngest/browserSurface.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/inngest/projection.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/inngest/restAddresses.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/inngest/surfaceFill.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/atlas/inngest/syncKinds.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/atlas/jam/browserSurface.ts"
+    },
+    {
+      "count": 7,
+      "operator": "??",
+      "path": "src/atlas/jumpcloud/sync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/jumpcloud/syncEngine.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/kit/graphqlDocument.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/atlas/knock/browserSurface.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/knock/sync.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/atlas/linear/introspection.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/atlas/linear/projectBrowser.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/linear/settings.ts"
+    },
+    {
+      "count": 6,
+      "operator": "fallback-helper",
+      "path": "src/atlas/linear/sync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/microsoft365/specRead.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/atlas/microsoft365/sync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/notion/browserGaps.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/notion/projection.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/nxCloud/dataRoute.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/atlas/nxCloud/readAdapter.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/atlas/nxCloud/sync.ts"
+    },
+    {
+      "count": 7,
+      "operator": "??",
+      "path": "src/atlas/nxCloud/webData.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/onepassword/model.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/atlas/onepassword/readAdapter.ts"
+    },
+    {
+      "count": 8,
+      "operator": "??",
+      "path": "src/atlas/onepassword/sync.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/atlas/slackApi/atlasSync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/slackApi/disagreement.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/atlas/slackApi/readAdapter.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/slackApi/sdkTypings.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/atlas/trelica/browserSurface.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/atlas/trelica/projection.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/trelica/publishedSpec.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/atlas/trelica/readAdapter.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/atlas/trelica/sync.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/atlas/twilio/projection.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/twilio/report.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/atlas/twilio/sync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/twilio/walk.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/atlas/twilio/walkPublish.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/vanta/endpointDisposition.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/atlas/vanta/readAdapter.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/vanta/sync.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/atlas/vanta/vulnerabilityReport.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/atlas/workos/browserSurface.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/atlas/workos/contentRead.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/atlas/workos/projection.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/atlas/workos/readAdapter.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/atlas/workos/sync.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/atlas/xero/projection.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/atlas/xero/sdkEndpoints.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/audit/costEstimate.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/briefing/fleetJargon.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/briefing/freshness.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/briefing/openPageEntry.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/briefing/openPrCards.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/briefing/reactNowCard.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/briefing/recut.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/briefing/text.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/browser/relaySession.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/checkouts/freshness.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/claude/drawdownAnomaly.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/claude/drawdownJournal.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/claude/loadBalance.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/claude/probeRepair.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/claude/signinPlan.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/cli/catalog.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/cli/commands/checkout/syncRun.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/cli/commands/cmux/spawnBase.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/cli/commands/github/stackAdoptRegistrationRun.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/cli/commands/githubAtlas/syncRun.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/cli/discoverCommands.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/cli/optionParsers.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/cli/router.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/cli/skillReminder.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/cmux/events.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/cmux/plan.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/cmux/renderGrid.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/cmux/socket.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/cmux/spawn.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/cmux/spawn.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/codex/accountLiveParse.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/artifact.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/auth.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/drawdownAnomaly.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/duplicate.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/codex/fleetAssessment.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/codex/gaugeAlert.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/codex/gaugeRender.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/landingGate.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/codex/orchestrate.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/progress.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/quotaGate.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/codex/quotaLog.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/salvage.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/codex/streamLog.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/codex/transportCause.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/connect/probes.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/connect/slack.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/corpus/github/codeScanning.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/corpus/github/curated.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/corpus/github/dependabot.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/github/fetch.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/github/members.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/github/mergeAsync.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/github/repoWatermark.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/corpus/github/reviewers.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/corpus/ingestSource.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/corpus/linear/entities.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/linear/fetchCollect.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/linear/fetchMembers.ts"
+    },
+    {
+      "count": 27,
+      "operator": "??",
+      "path": "src/corpus/linear/parse.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/corpus/linear/query.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/corpus/linear/transport.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/linear/write.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/corpus/manifest.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??=",
+      "path": "src/corpus/manifest.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/corpus/manifest.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/corpus/members/email.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/notion/blockText.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/corpus/notion/fetchRender.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/notion/liveApi.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/corpus/notion/markdownProjection.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/notion/mediaApi.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/notion/skips.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/notion/structures.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/self/skips.ts"
+    },
+    {
+      "count": 7,
+      "operator": "fallback-helper",
+      "path": "src/corpus/slack/api.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/corpus/slack/channelWatermark.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/corpus/slack/channelWatermark.ts"
+    },
+    {
+      "count": 7,
+      "operator": "??",
+      "path": "src/corpus/slack/curated.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/corpus/slack/members.ts"
+    },
+    {
+      "count": 7,
+      "operator": "??",
+      "path": "src/corpus/slack/project.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/corpus/slack/structures.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/slack/threadOracle.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/slack/threadReplies.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/corpus/slack/visibleProse.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/slack/writeApiConversations.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/corpus/slack/writeApiPoll.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/sliceChecks.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/sliceShape.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/corpus/subsetBuild.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/corpus/survival.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/corpus/watermark.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/cycle/issue.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/census/aggregate.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/census/ci.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/census/metrics.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/census/rum.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/census/spans.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/datadog/census/tracks.ts"
+    },
+    {
+      "count": 19,
+      "operator": "fallback-helper",
+      "path": "src/datadog/detective/map.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/datadog/detective/search.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/envFacetGuard.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/groupedAggregate.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/investigate/run.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/logsAnalytics.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/datadog/metricsScalar.ts"
+    },
+    {
+      "count": 1,
+      "operator": "||-literal",
+      "path": "src/datadog/metricsScalar.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/datadog/rateLimit.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/detective/brief.ts"
+    },
+    {
+      "count": 6,
+      "operator": "fallback-helper",
+      "path": "src/detective/fanout.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/detective/hexLead.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/devGate/handoffCheck.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/devLint/ciTriggerContract.ts"
+    },
+    {
+      "count": 4,
+      "operator": "fallback-helper",
+      "path": "src/devLint/drizzleMigrations.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/devLint/helpFlagOptOut.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/devLint/homeSafety.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/devLint/jsdocTags.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/devLint/noHeadless.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/devLint/noPython.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/devLint/schedulerBypass.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/devLint/wholeFileJson.ts"
+    },
+    {
+      "count": 6,
+      "operator": "??",
+      "path": "src/events/event.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/gold/distilGroup.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/handover/askRow.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/handover/boardState.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/handover/findingGate.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/handover/hookGate.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/handover/rank.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/handover/render.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/handover/rulingAudit.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/handover/rulingAuditStore.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/handover/rulingBackfill.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/handover/rulingBackfill.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/handover/settleEnding.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/hex/shape.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/hygiene/corpusGate.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/hygiene/corpusScan.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/knowledge/memoryStore.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/knowledge/recallAccounting.ts"
+    },
+    {
+      "count": 8,
+      "operator": "??",
+      "path": "src/lib/progress.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/lib/rateLimits.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/live/drive/api.ts"
+    },
+    {
+      "count": 6,
+      "operator": "??",
+      "path": "src/live/drive/files.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/drive/read.ts"
+    },
+    {
+      "count": 6,
+      "operator": "??",
+      "path": "src/live/drive/render.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/fathom/api.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/github/checks.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/github/mergeQueue.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/google/consent.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/linear/search.ts"
+    },
+    {
+      "count": 5,
+      "operator": "??",
+      "path": "src/live/linear/verify.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/live/listen/errors.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/live/notion/read.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/resync/registrationPlan.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/slack/blockFiles.ts"
+    },
+    {
+      "count": 10,
+      "operator": "??",
+      "path": "src/live/slack/document.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/live/slack/fileMeta.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/slack/huddleTranscript.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/standing/freshness.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/live/standing/streamEvents.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/live/standing/streamEvents.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/turn/answer.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/turn/answerPreflight.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/live/turn/brief.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/live/turn/ledger.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/live/turn/posterAnswer.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/live/turn/reviewStore.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/measurement/briefingSectionQuality.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/measurement/measure.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/memory/sweep.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/memory/sweepRender.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/outbound/artifact/aboveFold.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/outbound/artifact/citationMarkers.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/outbound/github/mergeFacts.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/outbound/github/prLedger.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/outbound/github/reviewerIndex.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/outbound/linear/commentLedger.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/outbound/linear/issueLedger.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/outbound/linear/mentionIndex.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/outbound/linear/mentionIndex.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/outbound/linear/personIndex.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/outbound/linear/personIndex.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/outbound/linear/projectLedger.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/outbound/linkify/bareRefs.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/outbound/notion/pageLedger.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/outbound/slack/channelName.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/outbound/slack/fingerprint.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/outbound/slack/groupIndex.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/outbound/slack/mentionIndex.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/outbound/slack/render.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/pane/sections/prStatus.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/policy/atlasView.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/policy/render/layout.ts"
+    },
+    {
+      "count": 6,
+      "operator": "fallback-helper",
+      "path": "src/profileStore.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/reflect/brief.ts"
+    },
+    {
+      "count": 5,
+      "operator": "fallback-helper",
+      "path": "src/reflect/brief.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/reflect/collectReview.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/reflect/telemetrySource.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/retrieval/fanout.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/route/sourcePlan.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/sessions/liveSessions.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/sessions/sessionCost.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/sessions/watchReport.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/sessionStart/cycleLeg.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/sessionStart/githubLeg.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/sessionStart/gmailLeg.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/sessionStart/inFlightRuns.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/sessionStart/lockIn.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/sessionStart/reconcile.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/sessionStart/staleRefs.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/sessionStart/standing.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/sessionStart/standing.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/silver/derive/freshness.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/silver/derive/stamp.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/silver/identity.ts"
+    },
+    {
+      "count": 4,
+      "operator": "??",
+      "path": "src/silver/mentionResolver.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/silver/opportunity.ts"
+    },
+    {
+      "count": 8,
+      "operator": "??",
+      "path": "src/silver/personResolver.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/silver/ruleZero.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/silver/structures.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/store/client.ts"
+    },
+    {
+      "count": 14,
+      "operator": "fallback-helper",
+      "path": "src/store/fleet/boardRow.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/store/fleet/runJournal.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/store/ingest.ts"
+    },
+    {
+      "count": 3,
+      "operator": "??",
+      "path": "src/store/lifecycle.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/store/probe/run.ts"
+    },
+    {
+      "count": 13,
+      "operator": "??",
+      "path": "src/store/project.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/supervisor/chain.ts"
+    },
+    {
+      "count": 6,
+      "operator": "fallback-helper",
+      "path": "src/supervisor/digestFleet.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/supervisor/digestLanding.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/supervisor/digestRead.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/supervisor/intakeRead.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/supervisor/tickDigest.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/supervisor/tickDraftShapes.ts"
+    },
+    {
+      "count": 2,
+      "operator": "??",
+      "path": "src/supervisor/tickDraftSources.ts"
+    },
+    {
+      "count": 1,
+      "operator": "||-literal",
+      "path": "src/supervisor/tickSchema.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/transcripts/extract.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/transcripts/fold.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/velocity/gitEdge.ts"
+    },
+    {
+      "count": 1,
+      "operator": "??",
+      "path": "src/visualEvidence/capturePipeline.ts"
+    },
+    {
+      "count": 6,
+      "operator": "fallback-helper",
+      "path": "src/visualEvidence/readiness.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/worktree/deps.ts"
+    },
+    {
+      "count": 2,
+      "operator": "fallback-helper",
+      "path": "src/worktree/inventory.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/worktree/location.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/worktree/provision.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/worktree/pruneApply.ts"
+    },
+    {
+      "count": 3,
+      "operator": "fallback-helper",
+      "path": "src/worktree/pruneClassify.ts"
+    },
+    {
+      "count": 1,
+      "operator": "fallback-helper",
+      "path": "src/worktree/standing.ts"
+    }
+  ]
+}

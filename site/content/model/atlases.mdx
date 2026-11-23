@@ -1,0 +1,136 @@
+---
+title: Atlases
+---
+
+import { Callout } from "nextra/components";
+
+import { AtlasReadExits } from "../../components/diagrams/AtlasReadExits";
+import { AtlasShape } from "../../components/diagrams/AtlasShape";
+
+# Atlases
+
+An atlas holds **what a platform is** — its operations, its pages, its settings, its record shapes. It
+never holds what your organisation said; that is the world model's. The rule the two of them split on is
+one sentence: look it up, never guess.
+
+<AtlasShape />
+
+## Three surfaces, and every cell says which answered it
+
+| Surface           | Built by                                           | Needs a credential  |
+| ----------------- | -------------------------------------------------- | ------------------- |
+| the specification | `atlas <platform> sync`                            | no                  |
+| the live API      | `atlas <platform> sync --live` or `fill`           | yes, read-only      |
+| the web client    | `atlas <platform> walk`, in the owner's own Chrome | a signed-in session |
+
+**The browser half is not always a second opinion.** On most platforms it catches a settings page the API
+forgot. On some it is the only way in at all: Figma's own REST document has no operation that returns the
+set of teams a credential can see, so every team-scoped operation in it needs an id only a browser URL
+supplies. That is a measured property of a platform, not a principle.
+
+## The distinction that makes an atlas usable
+
+A **measured zero** and a **never-asked** are different cells, and the atlas says which one you have.
+
+- `atlas <platform> read` — what it stored, filtered by kind, surface, id or query
+- `atlas <platform> coverage` — what it knows it does **not** know: surfaces, states, open gaps, declared exclusions
+- `atlas <platform> report` — where two surfaces disagree, which is the finding an atlas exists to produce
+
+A zero reported without its claim boundary is how an atlas comes to sound confident about a platform it
+has never reached. That is why `coverage` is the gate on an atlas pull request and the refused-exclusion
+backlog is not: the backlog is a list to chug through, never a gate.
+
+## Done means it ANSWERS, not that the sync ran
+
+An atlas that is built and called done while nothing can use it is decorative, and building many of them
+feels like productivity until one is tried in the real world. The reason for the bar: a dogfood page once
+showed every cross-check atlas an ISO flow needed reading as empty before a single flow ran. The bar has two
+halves that do different jobs.
+
+**The mechanical floor**, which runs everywhere for free and gates the pull request:
+
+```bash
+slopweaver atlas doctor <platform>   # the atlas you shipped: ANSWERABLE, or the run fails
+slopweaver atlas doctor              # the estate: no atlas may be left DARK
+```
+
+| Grade         | What it says                                                                  | Fails a run           |
+| ------------- | ----------------------------------------------------------------------------- | --------------------- |
+| `ANSWERABLE`  | every entity the manifest vouches for read back                               | no                    |
+| `DARK`        | a generation is published and the reader cannot see what it vouches for       | **always**            |
+| `UNPUBLISHED` | nothing has ever been synced here, and the atlas **says** so rather than zero | only when it is NAMED |
+
+The asymmetry is the point. A sweep that went red for every atlas nobody has synced on one machine would be
+red permanently and therefore ignored; naming your own platform asks the shipping question instead, where
+an atlas with no generation is exactly the failure.
+
+**And the proof, which is what makes the grade mean anything.** A green `doctor` proves the store
+round-trips; it does not prove the atlas is worth reading. So an atlas is done when a **temporary,
+visible** listener has answered a Slack tag over it — and the session raising the pull request stands that
+listener up itself, so the owner never has to look at Slack. Two of its steps carry the judgement:
+
+- **"The atlas can answer" and "the bot can reach it" are different claims.** MEASURED: the
+  Google Admin atlas passed `doctor` at thousands of entities, took the listener token and posted a clean tag —
+  and the router had no atlas capability at all, so the question could not route anywhere.
+- **The question must be ATLAS-ONLY.** If the corpus, a live API or general knowledge could have produced
+  the same answer, a plausible reply proves nothing. A bot answering plausibly from somewhere else is a
+  **failed** proof, and worth reporting as one.
+
+<Callout type="info">
+  **A proof attempt has three endings and the third is not a failure.** Answered is the proof. Failed means something is
+  broken, and the bug is the work — fixed in the same pull request, not carded. **Blocked on the owner** is neither: the
+  bot did not fail, it got blocked on something only a human can solve. That ends paused, with no clock on it, and it
+  releases the listener token — one listener runs on this machine at a time, and a session waiting on a sign-in would
+  hold every other atlas behind it.
+</Callout>
+
+## What `read` may answer, and when it refuses
+
+<AtlasReadExits />
+
+MEASURED, and it is why those exits exist: `atlas <platform> read` selected a page of entities and threw
+away the coverage, the permission block and the gaps of the kinds it selected over, so a kind with an
+`unavailable` cell and no successful sync answered `0 matching entities` at exit 0 — indistinguishable from
+an organisation that holds none.
+
+The same turn found the other half one level in: a row rendered as an operation plus an opaque id made twenty
+policies matching `--query password` read as twenty indistinguishable ids. So a row leads with the entity's
+own name, keeps the provider id on its id line,
+and gets one witness line per query token naming the field that carried it and an excerpt of what it says.
+The walk that decides a row and the walk that explains it are the **same** walk, so a row cannot be
+selected with no witness to show for it.
+
+## Withholding is a first-class disposition
+
+Some surfaces are reachable and deliberately never stored. Hex's query-result operations are mapped in
+full and **never called for their body, not even for its shape** — it is the only atlas here that refuses a
+captured body's field _names_ as well as its values, because on a data workspace those names are the
+warehouse's own column names. Jam has no `jam` kind at all.
+
+A cell that says `WITHHELD` is a decision that was made, not a gap that was missed, and the difference is
+recorded where the gap would have been.
+
+## What an atlas does NOT do
+
+- **It never answers a question.** An atlas says what exists; deciding what it means is the visible
+  session's job, exactly as it is for retrieval.
+- **It is not a measurement.** It says a method declares a field. Whether a live call returns one is a
+  different verb.
+- **A disagreement between two surfaces is an OUTPUT, never a resolution.** Which surface wins is the
+  owner's call, reserved until real instances can be seen.
+- **`reset` never deletes** — it archives the current generation and installs an empty one, so a bad sync
+  is recoverable rather than destructive. And a generation is published **whole or not at all**: every file
+  is staged beside its destination and nothing is installed until the whole generation is on disk.
+- **No atlas is refreshed automatically.** Each is as current as its last `sync`.
+
+## Freshness
+
+```bash
+slopweaver atlas freshness   # which atlases are behind their own rolling window
+slopweaver atlas doctor      # can each one actually ANSWER, or is it DARK?
+slopweaver atlas backlog     # the refused-exclusion backlog, in its ruled order
+slopweaver catalog           # which atlases this install actually has
+```
+
+The last one is there on purpose: a list of platforms written down here is stale the week after it lands,
+and the catalog is read from the install rather than transcribed.

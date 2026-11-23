@@ -1,0 +1,38 @@
+{
+  "body": [],
+  "citations": [],
+  "documents": [],
+  "grounding": {
+    "evidence": {
+      "consultedEmpty": [],
+      "couldNotSee": {
+        "blindSpots": [],
+        "reason": "[REDACTED]"
+      },
+      "premiseChecks": [],
+      "read": [],
+      "substitutedForReal": []
+    },
+    "kind": "conversation",
+    "provenance": {
+      "model": "claude-opus-5",
+      "skillsLoaded": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "verbsLoaded": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ]
+    },
+    "reason": "[REDACTED]"
+  },
+  "images": [],
+  "index": [],
+  "kind": "answer",
+  "lead": "[REDACTED]"
+}

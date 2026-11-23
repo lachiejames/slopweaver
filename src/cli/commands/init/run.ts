@@ -1,0 +1,50 @@
+/**
+ * `slopweaver init` — scaffold `$SLOPWEAVER_HOME` idempotently. Creates the corpus/beliefs/ledgers dirs
+ * and seeds the marker/seed files (home-version, identity, profile, denylist) without overwriting
+ * anything that already exists. Safe to run repeatedly; run automatically on SessionStart.
+ */
+
+import { runInit } from "../../../init/stateInit.js";
+import { logger } from "../../../lib/logger.js";
+import { defineCommand } from "../../defineCommand.js";
+import { EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
+import { parseFlags } from "../../parseFlags.js";
+
+const USAGE = "usage: slopweaver init [--home <dir>]";
+
+/**
+ * Run the init verb.
+ *
+ * @param argv the full process argv (verb tail starts at index 3)
+ * @returns the process exit code
+ */
+export function runInitCommand(argv: readonly string[]): number {
+  const rest = argv.slice(3);
+  if (rest.includes("--help") || rest.includes("-h")) {
+    logger.out({ line: USAGE });
+    return EXIT_OK;
+  }
+  // Positionals allowed (and ignored) so a bare-noun alias token like `init run` still parses.
+  const parsed = parseFlags({ allowPositionals: true, args: rest, spec: { string: ["home"] } });
+  if (parsed.isErr()) {
+    parsed.error.forEach((e) => {
+      logger.error({ msg: `init: ${e}` });
+    });
+    logger.error({ msg: USAGE });
+    return EXIT_USAGE;
+  }
+  const homeValue = parsed.value.values["home"];
+  const home = typeof homeValue === "string" ? homeValue : undefined;
+
+  const report = runInit(home !== undefined ? { home } : {});
+  logger.out({ line: `state home: ${report.home}` });
+  for (const entry of report.entries) {
+    const mark = entry.outcome === "created" ? "+" : "·";
+    logger.out({ line: `  ${mark} ${entry.kind === "dir" ? "[dir] " : "[file]"} ${entry.path}` });
+  }
+  const created = report.entries.filter((e) => e.outcome === "created").length;
+  logger.out({ line: created === 0 ? "already initialised (no changes)" : `initialised (${String(created)} created)` });
+  return EXIT_OK;
+}
+
+export const initRunCommand = defineCommand({ run: runInitCommand });

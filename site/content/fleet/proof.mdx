@@ -1,0 +1,50 @@
+---
+title: Proof and landing
+---
+
+import { ProofLadder } from "../../components/diagrams/ProofLadder";
+
+# Proof and landing
+
+One commit off the base branch, opened as a **draft**. Land your own work once CI is green and the proof is
+as good as was feasible at the time.
+
+<ProofLadder />
+
+## The grade says WHEN, not how good
+
+`gold` is preferred and needs two fields: a **`proof-commit:`** that CI compares to the head, and a
+**`proof-patch-id:`** that a pure rebase preserves. One binds the witness to a commit; the other survives
+the rebase that would otherwise invalidate it.
+
+`silver` and `bronze` may be merged when gold genuinely was not feasible then — and **gold stays owed**.
+"Feasible" is a judgement. Do not invent a heuristic for it.
+
+**Take the witness yourself.** A gold witness is self-serviced, never carded. If a human half is genuinely
+needed, post as the owner to the bot — never to a colleague, which waits on the owner's queue — and settle the proof rather than asking the owner for a screenshot.
+
+## Landing
+
+**Land with `enqueue` where the base has a queue** — `main` here does, and GitHub owns the entry, so a dead
+session stalls nobody. [The merge queue](/docs/fleet/merge-queue) is how that works and what it refuses. Where
+there is no queue it is `github merge --admin`, which itself **refuses** a review-gated base, and no card
+offers one.
+
+A merge GitHub calls `BLOCKED` is a **config fact, never a park on the owner** — the codeowner approval can
+never arrive here.
+
+## Watching CI rather than polling
+
+```bash
+slopweaver github checks --repo lachiejames/slopweaver --number <n> --wait
+```
+
+The heavy laps are CI's. `pre-push` runs `validate:local`, which deliberately does **not** typecheck — so a
+green pre-push is not a green build, and the way to find out is to push and watch.
+
+## The pull-request body
+
+The shape comes from the team's converging form — headings, acceptance criteria, a Test evidence table that
+media goes inside — and the sentences come from the owner. **Risk and blast radius sit above** "what does this PR
+do and why", because risk is what a reader is already trying to infer off the diff. A risk with no check
+behind it says so rather than asserting "low".

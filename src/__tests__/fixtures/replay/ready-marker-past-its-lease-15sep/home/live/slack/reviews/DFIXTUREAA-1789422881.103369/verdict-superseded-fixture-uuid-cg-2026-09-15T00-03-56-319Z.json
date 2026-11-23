@@ -1,0 +1,143 @@
+{
+  "answerDigest": "sha256:67df628c19d4e952bfd02ad59ff2d0b1dd0596fb6ef648b494087016410a6abe",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "answer",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    }
+  ],
+  "imageObservations": [],
+  "outcome": "broken",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1
+}

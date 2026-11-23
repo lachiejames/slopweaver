@@ -1,0 +1,112 @@
+{
+  "hooks": {
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "command": "\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/hook.sh\" 10 handover-run \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/hooks/handover-run.sh\"",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/hook.sh\" 20 memory-hook \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/bin/slopweaver\" memory hook --from-payload",
+            "type": "command",
+            "timeout": 20
+          }
+        ],
+        "matcher": "Write"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "SLOPWEAVER_HOOK_GIVE_UP=2 \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/hook.sh\" 30 pretooluse \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/pretooluse.sh\"",
+            "timeout": 30,
+            "type": "command"
+          }
+        ],
+        "matcher": "^(?:Bash|Monitor|Artifact|TaskOutput)$|^mcp__claude-in-chrome__"
+      },
+      {
+        "hooks": [
+          {
+            "command": "SLOPWEAVER_HOOK_GIVE_UP=2 \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/hook.sh\" 30 pretooluse \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/pretooluse.sh\"",
+            "timeout": 30,
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write|Agent|Task"
+      },
+      {
+        "hooks": [
+          {
+            "command": "SLOPWEAVER_HOOK_GIVE_UP=0 \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/hook.sh\" 30 protected-paths \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/pretooluse-protected-paths.sh\"",
+            "timeout": 30,
+            "type": "command"
+          }
+        ],
+        "matcher": "Read|Grep|Glob|NotebookEdit"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/hook.sh\" 60 plugin-mirror-sync \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/plugin-mirror-sync.sh\"",
+            "timeout": 60,
+            "type": "command"
+          },
+          {
+            "command": "\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/hook.sh\" 300 plugin-install-deps \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/plugin-install-deps.sh\"",
+            "timeout": 300,
+            "type": "command"
+          },
+          {
+            "command": "\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/hook.sh\" 30 slopweaver-init \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/bin/slopweaver\" init >/dev/null 2>&1 || true",
+            "timeout": 30,
+            "type": "command"
+          },
+          {
+            "command": "\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/hook.sh\" 10 handover-run \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/handover-run.sh\"",
+            "timeout": 10,
+            "type": "command"
+          },
+          {
+            "command": "\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/hook.sh\" 60 profile-context \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/profile-context.sh\"",
+            "timeout": 60,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/hook.sh\" 10 handover-run \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/hooks/handover-run.sh\"",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/scripts/hook.sh\" 15 seat-check \"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}/mirror/by-root${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-/_unkeyed}}/current/bin/slopweaver\" claude seat --from-payload || true",
+            "timeout": 15,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "by": "fixture-capture",
+  "bytes": 5655,
+  "document": {
+    "diagnostics": [],
+    "observedAtIso": "2026-10-07T18:47:23.200Z",
+    "rows": [
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/acme-admin/.claude/worktrees.noindex/synthetic-worktree-011",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": true,
+        "quietMinutes": 1469,
+        "signal": "needs-input",
+        "title": "✳ Synthetic seat 015",
+        "toolCalls": 398,
+        "workspaceId": "00000000-0000-4000-8000-000000000016",
+        "workspaceRef": "workspace:613"
+      },
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-023",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": true,
+        "quietMinutes": 948,
+        "signal": "needs-input",
+        "title": "✳ Synthetic seat 016",
+        "toolCalls": 157,
+        "workspaceId": "00000000-0000-4000-8000-000000000017",
+        "workspaceRef": "workspace:658"
+      },
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-024",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": true,
+        "quietMinutes": 824,
+        "signal": "needs-input",
+        "title": "✳ Synthetic seat 017",
+        "toolCalls": 57,
+        "workspaceId": "00000000-0000-4000-8000-000000000018",
+        "workspaceRef": "workspace:738"
+      },
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-025",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": false,
+        "quietMinutes": 52,
+        "signal": "needs-input",
+        "toolCalls": 201,
+        "workspaceId": "00000000-0000-4000-8000-000000000019"
+      },
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-026",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": true,
+        "quietMinutes": 51,
+        "signal": "needs-input",
+        "title": "✳ Synthetic seat 018",
+        "toolCalls": 37,
+        "workspaceId": "00000000-0000-4000-8000-000000000020",
+        "workspaceRef": "workspace:795"
+      },
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-027",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": false,
+        "quietMinutes": 35,
+        "signal": "needs-input",
+        "toolCalls": 31,
+        "workspaceId": "00000000-0000-4000-8000-000000000021"
+      },
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-028",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": false,
+        "quietMinutes": 33,
+        "signal": "needs-input",
+        "toolCalls": 35,
+        "workspaceId": "00000000-0000-4000-8000-000000000022"
+      },
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-029",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": false,
+        "quietMinutes": 13,
+        "signal": "needs-input",
+        "toolCalls": 0,
+        "workspaceId": "00000000-0000-4000-8000-000000000023"
+      },
+      {
+        "attentionKind": "notification",
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-008",
+        "lastEventName": "agent.hook.Notification",
+        "mapped": true,
+        "quietMinutes": 1,
+        "signal": "needs-input",
+        "title": "✳ Synthetic seat 019",
+        "toolCalls": 4,
+        "workspaceId": "00000000-0000-4000-8000-000000000024",
+        "workspaceRef": "workspace:801"
+      },
+      {
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-030",
+        "lastEventName": "agent.hook.PreToolUse",
+        "mapped": false,
+        "quietMinutes": 11,
+        "signal": "silent",
+        "toolCalls": 1074,
+        "workspaceId": "00000000-0000-4000-8000-000000000025"
+      },
+      {
+        "cwd": "/Users/operator/dev/acme-admin/.claude/worktrees.noindex/synthetic-worktree-010",
+        "lastEventName": "agent.hook.Stop",
+        "mapped": true,
+        "quietMinutes": 1868,
+        "signal": "idle",
+        "title": "✳ Synthetic seat 020",
+        "toolCalls": 853,
+        "workspaceId": "00000000-0000-4000-8000-000000000026",
+        "workspaceRef": "workspace:609"
+      },
+      {
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-009",
+        "lastEventName": "agent.hook.Stop",
+        "mapped": true,
+        "quietMinutes": 4,
+        "signal": "working",
+        "title": "Synthetic seat 008",
+        "toolCalls": 82,
+        "workspaceId": "00000000-0000-4000-8000-000000000027",
+        "workspaceRef": "workspace:803"
+      },
+      {
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-006",
+        "lastEventName": "agent.hook.PreToolUse",
+        "mapped": true,
+        "quietMinutes": 0,
+        "signal": "working",
+        "title": "Synthetic seat 021",
+        "toolCalls": 227,
+        "workspaceId": "00000000-0000-4000-8000-000000000028",
+        "workspaceRef": "workspace:798"
+      },
+      {
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-007",
+        "lastEventName": "agent.hook.PreToolUse",
+        "mapped": true,
+        "quietMinutes": 0,
+        "signal": "working",
+        "title": "Synthetic seat 022",
+        "toolCalls": 141,
+        "workspaceId": "00000000-0000-4000-8000-000000000029",
+        "workspaceRef": "workspace:800"
+      },
+      {
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-005",
+        "lastEventName": "agent.hook.PreToolUse",
+        "mapped": true,
+        "quietMinutes": 0,
+        "signal": "working",
+        "title": "Synthetic seat 023",
+        "toolCalls": 43,
+        "workspaceId": "00000000-0000-4000-8000-000000000030",
+        "workspaceRef": "workspace:805"
+      }
+    ],
+    "suppressed": 3072,
+    "suppressedOldestQuietMinutes": 53305
+  },
+  "observedAtIso": "2026-10-07T18:47:23.200Z",
+  "producer": "session watch",
+  "readingId": "2026-10-07T18:47:50.071Z-session-watch",
+  "recordedAtIso": "2026-10-07T18:47:50.071Z"
+}

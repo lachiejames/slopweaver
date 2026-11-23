@@ -1,0 +1,94 @@
+---
+title: The autonomy ledger
+---
+
+import { AutonomyLedger } from "../../components/diagrams/AutonomyLedger";
+
+# The autonomy ledger
+
+[Graduated autonomy](/docs/trust/autonomy) is the rule about what the fleet may do unasked. This is the register
+that makes it steerable: every act taken under it, newest first, one line each, and every one the owner has not yet
+given a word on drawn as a card on the console's [Alignment page](/docs/console/alignment).
+
+<AutonomyLedger />
+
+## What it is for, which is not what a log is for
+
+It exists so the owner can see what the fleet did under graduated autonomy and give a retroactive steer: on
+something the owner would have been fine with that the fleet did not do, or on something it did do that the
+owner was not fine with.
+
+Three consequences, each a rule rather than a note:
+
+- **It lives in the console, beside the owner's Queue**, as the Alignment page's act cards. A ledger on its own
+  artifact is one the owner would look at only on the day it was built.
+- **It is not folded away.** On the fleet briefing every other section below the cards is behind a fold and
+  this one is not, because a steering surface the owner never meets collects nothing.
+- **It is simpler than a card.** One line, the object acted on, an instant, a session. No question, no
+  options, no lean — there is nothing to answer, only something to disagree with.
+
+## Recording, and then steering
+
+```bash
+slopweaver autonomy record            # as you act — never a shell redirect
+slopweaver autonomy list --unsteered  # what the fleet has done that the owner has not reacted to
+slopweaver autonomy steer <id> --steer "<the owner's words>" --by-session <you>
+```
+
+`list --unsteered` is the sweep's own question. **It is not a queue to drain and it never becomes a card** —
+the owner steers when they happen to read it, and the register remembers until they do.
+
+The owner does not run commands off the page. The owner tells you, and you record their words **as close to
+verbatim as you can**: a paraphrase is where a preference quietly becomes something else. The row then says the
+owner has steered it, and carries that word in its fold.
+
+The owner also gives a word on an act in the box on its card on the Alignment page, which runs the same
+`autonomy steer` for them. Acts are never on the Queue, which is for actions for the owner.
+
+## What a row shows, and what it holds back
+
+| Above the line                                      | Behind the fold                                                     |
+| --------------------------------------------------- | ------------------------------------------------------------------- |
+| what was done, on which object, when, by which seat | the said, then the why, the witness, the full reference, the act id |
+
+**The fold opens on the said, in the owner's words, and the why sits beneath it.** They are two accounts of one
+act written for two readers — the said for the owner, the why for the next session — and showing the second where
+the first belongs takes this section off the page for the owner. The said is inside the fold
+rather than on the visible line because the visible line is what the word budget counts, not because it
+ranks below the why. A row recorded before the register asked for a said renders none, and says so.
+
+**Only a URL subject is a link.** A subject is a checkable id in one of three forms — an absolute URL, a
+board row slug, or a path under the state home — and the other two render as code rather than as an anchor,
+because a link that scrolls nowhere teaches the owner to distrust every other link on the page. The full reference
+is in the fold either way.
+
+The three visible labels are **bounded**; the why, the witness and the owner's own words are not, because they sit
+in a fold nothing forces the owner through. The said is the one folded field that IS bounded, and not by the page:
+the register refuses a longer line at the door. If the page runs over its word budget, shorten the lede or fold a
+recent block — never the ledger.
+
+## A refused act is a real row
+
+An act the fleet tried and could not complete renders as exactly that, and the renderer never presents one
+as a success. Do not tidy those out of the owner's view: they are among the things the owner must be able to steer.
+
+## When the whole section disappears
+
+The reader **refuses a malformed line rather than skipping it**, so one bad row takes the section off the
+page and the render says why, naming the line. That is the design — a page reporting "nothing was done under
+autonomy" because a read failed is the confident wrong answer this section exists to prevent.
+
+The repair reports what it would change and writes nothing until you ask it to apply. It is the same verb
+that adopted the fifty-three hand-written acts standing when the register landed.
+
+**Omitting the ledger flag renders no section at all**, which is a real state and not the same as an empty
+register. The check cannot tell the two apart from the rendered bytes — so if you meant to show it, look for
+the heading rather than trusting a clean run.
+
+## One way it makes a card stop resolving
+
+A bare pull-request reference in a hand-written card resolves only while the whole page names exactly one
+repository. An act on a repository no card mentions adds a second one, and the gate then correctly refuses
+the shorthand. That is the gate working: with two repositories on the page, a bare number genuinely is
+ambiguous. Write the card's reference in full — never drop the ledger row to make a card's shorthand
+survive.

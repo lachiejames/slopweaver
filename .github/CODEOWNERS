@@ -1,0 +1,4 @@
+# Owner reviews all non-admin PRs. Admins bypass via branch-protection enforce_admins=false.
+# Forking? Swap the account below for your own: GitHub only requests review from a code owner with write
+# access to the repository, so upstream's account does nothing in a fork.
+* @lachiejames

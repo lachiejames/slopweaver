@@ -1,0 +1,107 @@
+---
+title: Showcase
+---
+
+# Showcase
+
+What the bot actually produces, rather than a description of it. Each section names an artifact the fleet
+emits — a page this machine renders, a message, a ticket, a pull request — and every code block is the
+schema that emits the shape. Nothing here is drawn for the documentation.
+
+## The fleet briefing
+
+One page, rebuilt on every update, that answers "where is each item, what's ready, what's blocked" without
+anyone assembling it. The eyebrow carries the three things that decide whether to trust it — which
+supervisor workspace rendered it, when the state behind it was last refreshed, and when this copy was cut.
+
+## A react-now card
+
+The unit the briefing is made of, and the shape rule 7 is about. A card asks **one question**, links the page
+that establishes its premise, stamps how old that premise is, and folds its evidence behind a summary the
+reader chooses to open. `slopweaver briefing check` refuses a card that puts a wall of text above the fold —
+the shape is enforced by the schema, never by a reviewer. Before the reader opens the fold, the card is a
+question, a premise and a recommendation; the evidence is one click away and goes back out of the way once
+read.
+
+## A seat, mid-run
+
+Nothing above is produced by a daemon. Every turn runs in a **visible session the owner can watch and
+interrupt while it is running**, which is rule 2 and is a property of the window rather than of a process
+count. The sidebar is the whole fleet at once, one row per seat, and each row carries its state, its done
+count, the pull request it opened and its next step, so it answers where that piece of work is before
+anyone opens the session.
+
+## An answer in Slack
+
+One arm, and no second. `answerFormSchema` accepts `kind: "answer"` alone, every object declared with
+`strictForm` — so an undeclared key or a field over its cap is _refused, naming the field_, never silently
+dropped or truncated.
+
+```ts filename="src/outbound/assistant/answerArm.ts — the answer arm's own fields"
+export const answerArmSchema = strictForm({
+  answering: answeringSchema.optional(),
+  body: z.array(detailBlockSchema).default([]),
+  citations: z.array(citationSchema).default([]),
+  documents: answerDocumentsSchema, // the DELIVERABLE a question asked for
+  grounding: answerGroundingSchema, // conversation | verb | unreachable — required
+  images: answerImagesSchema, // the pictures a claim STANDS ON
+  index: z.array(indexLineSchema).default([]),
+  indexStyle: z.enum(INDEX_STYLES).optional(),
+  kind: z.literal("answer"),
+  lead: z.string().min(1),
+});
+```
+
+`lead` is the one line above the fold and `body` is everything the reader chooses to expand — rule 7's
+progressive disclosure, enforced by the schema rather than by a reviewer. `grounding` has no default and no
+optional marker, so an answer that cannot say where it came from does not parse.
+
+The two attachment lanes stay apart all the way to the wire, because only one of them is visual evidence.
+Putting a markdown document in `images` refuses the whole send with `IMAGE_RECORD_MISSING` — correctly,
+since no image record can exist for bytes that are not an image.
+
+Whether a posted message actually renders folded is not a property of the schema, and no Slack API reports
+it. `slopweaver slack shot <permalink>` is the one instrument that answers it: it opens that one
+conversation in your own Chrome through the Playwright relay and photographs the message as the client drew
+it.
+
+## A Linear ticket in our format
+
+A ticket the fleet files carries the whole shape — the context a reader needs, the problem stated with the
+numbers behind it, what changes, why that approach, and what would prove it done. Four terse lines is not a
+ticket; it is a reminder that somebody still has to write one.
+
+## A pull request, in the form its own gate enforces
+
+The description is a table, and every cell has a cap the form checks before the pull request opens.
+**Problem** is fifty words and must carry an anchor back to where the work came from. **Solution** is fifty
+words. **Proof** leads with a hundred and folds the rest. The voice gate above the fold refuses an em dash,
+a colon-introduced list, a semicolon-joined clause and any sentence over thirty words.
+
+## The same door, in the owner's own name
+
+A post under the owner's own name goes through `slack post --as me` and its own forms (`drip`, `one-card`,
+`one-list`), never the answer form, and none of them carries **chrome of any kind** — no caption, no
+provenance, no footer, no evidence, no measurement stamp. Under the owner's own name, anything the owner would not have
+typed is a defect, so the fix is that the field does not exist on those forms rather than a review
+checklist that has to catch it.
+
+```bash
+slopweaver slack post --as me --channel C0… --shape top-level --body "…"   # previewed and gated before it sends
+```
+
+## A policy refusal
+
+Every refusal in this system carries four things, in order, because a block that does not say why is not
+helpful to a human or to an agent:
+
+```text
+<command> blocked because <what caught it, and why>.
+Legitimate exceptions may include <examples>.
+To override use the designated escape hatch SLOPWEAVER_ALLOW_<SUFFIX>=1 <command>.
+Use good judgement to determine whether the owner would approve of this, then proceed or correct your approach.
+```
+
+You do not write that text — you declare a row in its surface's `src/hatch/*Hatches.ts` and the renderer owns the
+wording. The fourth line is a constant on purpose: a gate allowed to word its own escape would eventually
+read "do not override".

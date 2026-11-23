@@ -1,0 +1,44 @@
+// Biome is this repository's IMPORT ORGANISER and nothing else: it sorts and merges import declarations and
+// removes an unused import, then Prettier — the formatter of record — formats the result. The order is
+// load-bearing (`yarn format`, the pre-commit hook): Prettier may rewrap an import line Biome wrote, and a
+// second Biome pass then changes nothing. Its formatter and every other lint rule are off; oxlint is the lint
+// suite. It replaced `prettier-plugin-organize-imports`, which needs TypeScript 6's language service.
+//
+// The file scope is the code files Prettier formats: the same extensions, and every code-relevant exclusion
+// `.prettierignore` makes, restated here because Biome does not read that file. It reads `.gitignore`.
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/generated",
+      "!**/out",
+      "!**/target",
+      "!**/.turbo",
+      "!**/.cache",
+      "!**/coverage",
+      "!**/test-results",
+      "!**/.next",
+      "!.yarn",
+      "!eval/fixtures",
+      "!src/__tests__/fixtures/replay",
+      "!src/__tests__/fixtures/contract"
+    ]
+  },
+  "formatter": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "none",
+      "correctness": { "noUnusedImports": { "level": "error", "fix": "safe" } }
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": { "source": { "organizeImports": "on" } }
+  }
+}

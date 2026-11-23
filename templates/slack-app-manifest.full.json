@@ -1,0 +1,139 @@
+{
+  "display_information": {
+    "background_color": "#1a1a2e",
+    "description": "An AI agent in a session its owner watches. While it listens, people on its roster tag it; it investigates, answers with evidence, acts.",
+    "long_description": "TIER \u2014 STANDARD (the default, and the LEAST SECURE option here). ENABLES: everything \u2014 ingest, posting as the bot AND as you, real-time search, and answering in Slack when the bot is tagged. RISK: the highest of the reversible options \u2014 it grants write scopes on your OWN user token, so a message slopweaver sends is indistinguishable from one you typed. Take MINIMAL instead if that trade is not worth it to you. FIELDS TO POPULATE before pasting: {{APP_NAME}} and {{BOT_DISPLAY_NAME}} \u2014 set them to what you want this app and its bot called in Slack. FIRST INSTALL ONLY. A Slack manifest is applied whole: pasting this over an app that already exists renames it and its bot, and revokes every scope this file does not list. To change a live app, export its own manifest from api.slack.com/apps and edit that instead.",
+    "name": "{{APP_NAME}}"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "always_online": true,
+      "display_name": "{{BOT_DISPLAY_NAME}}"
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "bookmarks:read",
+        "canvases:read",
+        "canvases:write",
+        "channels:history",
+        "channels:join",
+        "channels:read",
+        "chat:write",
+        "chat:write.customize",
+        "chat:write.public",
+        "commands",
+        "dnd:read",
+        "emoji:read",
+        "files:read",
+        "files:write",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "links:read",
+        "links:write",
+        "lists:read",
+        "lists:write",
+        "metadata.message:read",
+        "mpim:history",
+        "mpim:read",
+        "mpim:write",
+        "pins:read",
+        "pins:write",
+        "reactions:read",
+        "reactions:write",
+        "reminders:read",
+        "reminders:write",
+        "search:read.files",
+        "search:read.public",
+        "search:read.users",
+        "team:read",
+        "usergroups:read",
+        "users.profile:read",
+        "users:read",
+        "users:read.email"
+      ],
+      "user": [
+        "bookmarks:read",
+        "bookmarks:write",
+        "canvases:read",
+        "canvases:write",
+        "channels:history",
+        "channels:read",
+        "channels:write",
+        "channels:write.topic",
+        "chat:write",
+        "dnd:read",
+        "emoji:read",
+        "files:read",
+        "files:write",
+        "groups:history",
+        "groups:read",
+        "groups:write",
+        "groups:write.invites",
+        "groups:write.topic",
+        "im:history",
+        "im:read",
+        "im:write",
+        "im:write.topic",
+        "links:read",
+        "links:write",
+        "lists:read",
+        "lists:write",
+        "mpim:history",
+        "mpim:read",
+        "mpim:write",
+        "mpim:write.topic",
+        "pins:read",
+        "pins:write",
+        "reactions:read",
+        "reactions:write",
+        "reminders:read",
+        "reminders:write",
+        "search:read",
+        "search:read.files",
+        "search:read.im",
+        "search:read.mpim",
+        "search:read.private",
+        "search:read.public",
+        "search:read.users",
+        "team:read",
+        "usergroups:read",
+        "users.profile:read",
+        "users.profile:write",
+        "users:read",
+        "users:read.email",
+        "users:write"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_mention",
+        "member_joined_channel",
+        "message.channels",
+        "message.groups",
+        "message.im",
+        "message.mpim",
+        "reaction_added"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true
+    },
+    "is_mcp_enabled": false,
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "observedAtIso": "2026-11-01T08:00:00.000Z",
+  "questions": [
+    {
+      "actions": [
+        "activate",
+        "leave-inactive"
+      ],
+      "batchId": "00000000-0000-4000-8000-0000000000a1",
+      "current": null,
+      "imported": "acme-directive-1: always open a draft pull request for the acme-admin repo",
+      "key": "acme-directive-1",
+      "kind": "activation",
+      "part": "owner-directives",
+      "questionId": "import-q-00000000000000a1",
+      "stagedAtIso": "2026-10-30T09:00:00.000Z"
+    },
+    {
+      "actions": [
+        "keep-current",
+        "take-imported"
+      ],
+      "batchId": "00000000-0000-4000-8000-0000000000b2",
+      "current": "acme-ask-7: review ABC-1 before Friday",
+      "imported": "acme-ask-7: review ABC-1 before Thursday",
+      "key": "acme-ask-7",
+      "kind": "conflict",
+      "part": "standing-asks",
+      "questionId": "import-q-00000000000000b2",
+      "stagedAtIso": "2026-10-31T10:30:00.000Z"
+    },
+    {
+      "actions": [
+        "keep-current"
+      ],
+      "batchId": "00000000-0000-4000-8000-0000000000b2",
+      "current": "lesson: acme's widget queue drains in order",
+      "imported": "lesson: acme's widget queue drains out of order",
+      "key": "l-0000000000000001",
+      "kind": "alignment",
+      "part": "memories",
+      "questionId": "import-q-00000000000000c3",
+      "stagedAtIso": "2026-10-31T10:30:00.000Z"
+    }
+  ]
+}

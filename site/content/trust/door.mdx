@@ -1,0 +1,63 @@
+---
+title: The one door
+---
+
+import { DoorDecision } from "../../components/diagrams/DoorDecision";
+
+# The one door
+
+Every Slack, GitHub, Linear and Vanta read and write goes through the `slopweaver` verbs and the
+`/slopweaver:*` skills. Not `curl`, not raw `gh`, not an MCP tool, not "just this once", and **never a
+hand-driven browser nor a launched one** — a verb driving the owner's Chrome _is_ the door.
+
+<DoorDecision />
+
+What that buys is checkable from outside the codebase. A Notion page the fleet publishes got there through
+`slopweaver notion publish` rather than through a browser somebody was driving, and it opens by saying who
+drafted it and that nobody has reviewed it yet — the write path enforces that, not the author's courtesy.
+
+## The four lines a refusal always carries
+
+A bare block is a defect: a refusal that does not say why helps neither the agent nor a human, and both need
+information. The structure is formal, so that deviating from it is structurally impossible.
+
+```text
+<command> blocked because <what caught it, and why>.
+Legitimate exceptions may include <examples>.
+To override use the designated escape hatch SLOPWEAVER_ALLOW_<SUFFIX>=1 <command>.
+Use good judgement to determine whether the owner would approve of this, then proceed or correct your approach.
+```
+
+**You do not write that text.** Declare a row in its surface's `src/hatch/*Hatches.ts` — the command, what catches it, a
+non-empty list of legitimate exceptions, the key, and the module that reads it — and emit with
+`hatchRefusal`. The fourth line is a constant the renderer owns, precisely so that a gate wording itself
+cannot ever read "do not override".
+
+## A lint gate is the one refusal with no hatch, and it says so
+
+Same four lines; line three refuses a **run-time** override rather than every override. The way through is
+to correct the source.
+
+## Naming an override is not being released by it
+
+Read a hatch into a local and **OR** it with the caller's argument. A hatch read written as a **parameter
+default** fails the `hatch-release` gate anywhere in the tree, with no exemption marker — because a default
+initialiser is skipped whenever a caller passes one.
+
+MEASURED: `SLOPWEAVER_ALLOW_SPENT_PLAN=1 slopweaver cmux spawn <slug> --model fable` printed the
+refusal telling the operator to set the variable already set, because `cmux spawn` always passes its
+own `--force`. The methodology: there is always an escape hatch, and one that cannot open leaves a session stuck.
+
+## An outbound hatch is journalled, not ambient
+
+```bash
+slopweaver hatch open <id> --reason "<why>"
+```
+
+Journalling applies to outbound hatches only. It records a grant naming this session and expiring
+thirty minutes later, rather than leaving no trace behind an exported variable.
+
+## What enforces it
+
+`classifyRawCommand`, `browserSurface.ts` and `no-private-browser-profile` — **tripwires, not fences**. A
+block confirms you were wrong; its absence means nothing.

@@ -1,0 +1,100 @@
+---
+title: The browser as a write surface
+---
+
+import { Callout } from "nextra/components";
+import { ReadBeforeWrite } from "../../components/diagrams/ReadBeforeWrite";
+
+# The browser as a write surface
+
+**A browser signed in as the operator has no read-only mode.** In a browser-extension tool set such as Claude
+in Chrome, `screenshot` and `type` are the same tool, so a session opening a provider's web client to _look_ at
+something is one missed click from posting as the owner.
+
+That is not hypothetical. Once, a search string aimed at Slack's top-bar search box landed in the
+channel composer and was sent. The message carried a `client_msg_id` and no `bot_id`: no door, no send
+reservation, no form schema, no preview, and no row in the send ledger, because nothing in this repository
+had been asked to produce it.
+
+## Claude in Chrome is refused, and Playwright is the transport
+
+All browser work happens through the Playwright verbs Slopweaver builds, never through Claude in Chrome. If
+no verb allows an interaction a page might need, the verbs are not finished.
+
+Every `mcp__claude-in-chrome__*` call is refused **categorically, reads included**, and no break-glass is
+ever consulted. There is no override, and the refusal says so — a waiver would re-open the exact lane that
+was deleted.
+
+```bash
+slopweaver browser <act | aim | break-glass | close | cookies | image-record | inspect | open | pin
+                  | present | profile | read | scroll | sessions | shot | sign-in | verdicts>
+```
+
+`act --do <kind>` performs **one** interaction and photographs its own result in the same command. The
+route underneath is `playwright-core`'s own extension relay, which resolves to the owner's **default** user-data
+directory by design and refuses with an install URL rather than quietly falling back to a fresh profile. It
+returns an ordinary Playwright `Browser`, so a screenshot writes a real file and a response hook gives real
+bodies — neither of which the extension tool set can do.
+
+<Callout type="info">
+  There is no separate profile anywhere, and that is a ruling rather than an implementation detail. **No process this
+  repository starts may launch a browser, attach to one, or keep a profile directory** — machine-enforced by
+  `no-private-browser-profile`, with no allowlist and no exemption marker.
+</Callout>
+
+## Two categories, and moving a platform is one word
+
+A blanket write ban is the wrong answer forever. The better solution keeps the agent capable while it uses good
+judgment on good data, which takes two categories.
+
+| policy               | who                                                  | a write-capable action                                    |
+| -------------------- | ---------------------------------------------------- | --------------------------------------------------------- |
+| `refuse-every-write` | JumpCloud, and every host the register does not name | refused, unless a page-scoped break-glass names that page |
+| `read-before-write`  | Vanta, Slack, GitHub, Linear, Notion, Datadog        | allowed only under the four conditions below              |
+
+Each register entry carries a `policy` and nothing else anywhere is keyed by provider, so moving a platform
+between the two is editing one word. **The policy widens read access by nothing**: a read passes under
+either, so the choice turns on no question the owner was not asked.
+
+## The four conditions
+
+<ReadBeforeWrite />
+
+<Callout type="warning">
+  **The residue, stated plainly.** The incident's own sequence, screenshot the Slack page and then miss the click, is
+  the shape `read-before-write` permits. What still stops it is the **door** rather than the category: a hand-driven
+  Claude in Chrome call is refused, reads included.
+</Callout>
+
+## No platform may exist without a policy
+
+The honest answer to "what governs a platform the guard does not name" was once _nothing_. An atlas or an
+integration must never exist undored, and nothing may be added with no policy, because that brings in
+undefined behaviour.
+
+Two mechanisms carry it. An unregistered host **refuses every write** while reads still pass — the default for
+a new integration is read-only: only GET requests, and no clicking or typing text into the page. And every atlas descriptor declares a required `writePolicy`, so an atlas that
+omits one fails to compile and fails to parse.
+
+## Every refusal is journalled
+
+```bash
+slopweaver browser verdicts
+```
+
+One line per refused Claude in Chrome call, carrying the session, the tool and a stable reason code.
+Measured with no such journal: 191,753 door-ledger rows, not one of them a browser call, and a
+write-capable call on record against a Google Admin tab that nothing anywhere could account for.
+
+## Two things this is not
+
+It is **not a ban on browsers.** A doorless surface — a dashboard, a logs or metrics query, an atlas page —
+is untouched, and that is where the owner's own screenshot evidence overwhelmingly lives.
+
+And it is **not a ban on a verb reaching a page.** Rule 3's own words are that a `slopweaver` verb driving a
+browser _is_ the door. What the guard refuses is a **hand-driven** one.
+
+<Callout type="warning">
+  The guard sees only a tool call it is matched on, so it cannot see a browser reached any other way. A block confirms
+  you were wrong. Its absence means nothing.
+</Callout>

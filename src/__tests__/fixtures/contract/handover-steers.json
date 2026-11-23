@@ -1,0 +1,158 @@
+{
+  "observedAtIso": "2026-10-06T02:00:00.000Z",
+  "repos": [
+    {
+      "commits": 3,
+      "dir": "/repos/slopweaver",
+      "kind": "read",
+      "ledgerUnread": 2,
+      "ref": "origin/main",
+      "refSha": "da5921b065",
+      "repo": "lachiejames/slopweaver",
+      "unjoined": 4
+    },
+    {
+      "dir": "/repos/gone",
+      "kind": "unread",
+      "why": "no origin/main"
+    }
+  ],
+  "steers": [
+    {
+      "againIsos": [
+        "2026-10-05T11:50:00.000Z",
+        null
+      ],
+      "askedIso": "2026-10-05T11:42:00.000Z",
+      "origin": {
+        "anchor": "talk-call:a0000055-0000-4000-8000-000000000061#turn_000000000000000000005",
+        "kind": "cut"
+      },
+      "repo": "/repos/slopweaver",
+      "slug": "applied",
+      "state": {
+        "kind": "applied",
+        "landing": {
+          "branch": "a-console-page",
+          "mergedIso": "2026-10-05T15:00:00+00:00",
+          "number": 1880,
+          "title": "A console page shows each steer",
+          "url": "https://github.com/lachiejames/slopweaver/pull/1880"
+        },
+        "via": "branch"
+      },
+      "timesGiven": 3,
+      "title": "A console page shows each steer",
+      "words": {
+        "anchor": "talk-call:a0000055-0000-4000-8000-000000000061#turn_000000000000000000005",
+        "atIso": "2026-10-05T11:42:00.000Z",
+        "cut": "none",
+        "where": "call",
+        "words": "are you still there?"
+      }
+    },
+    {
+      "againIsos": [],
+      "askedIso": null,
+      "origin": {
+        "kind": "named-in-text",
+        "turn": "turn_000000000000000000009"
+      },
+      "repo": null,
+      "slug": "settled",
+      "state": {
+        "kind": "settled",
+        "settlement": "filed",
+        "witness": null,
+        "witnessPr": null
+      },
+      "timesGiven": 1,
+      "title": "settled",
+      "words": null
+    },
+    {
+      "againIsos": [],
+      "askedIso": "2026-10-04T10:00:00.000Z",
+      "origin": {
+        "anchor": "talk:5a828261-0000-4000-8000-000000000001",
+        "kind": "relay-taken-up"
+      },
+      "repo": "/repos/slopweaver",
+      "slug": "on-a-pr",
+      "state": {
+        "kind": "settled",
+        "settlement": "filed",
+        "witness": "https://github.com/other/repo/pull/7",
+        "witnessPr": {
+          "number": 7,
+          "repo": "other/repo"
+        }
+      },
+      "timesGiven": 1,
+      "title": "on a pr",
+      "words": null
+    },
+    {
+      "againIsos": [],
+      "askedIso": null,
+      "origin": {
+        "anchor": "talk-call:a0000055-0000-4000-8000-000000000061#turn_000000000000000000005",
+        "kind": "cut"
+      },
+      "repo": "/repos/slopweaver",
+      "slug": "moving",
+      "state": {
+        "branch": null,
+        "kind": "in-flight"
+      },
+      "timesGiven": 1,
+      "title": "moving",
+      "words": null
+    },
+    {
+      "againIsos": [],
+      "askedIso": null,
+      "origin": {
+        "anchor": "talk-call:a0000055-0000-4000-8000-000000000061#turn_000000000000000000005",
+        "kind": "cut"
+      },
+      "repo": null,
+      "slug": "unledgered",
+      "state": {
+        "kind": "applied",
+        "landing": {
+          "branch": null,
+          "mergedIso": "2026-10-05T15:00:00+00:00",
+          "number": 1880,
+          "title": "A console page shows each steer",
+          "url": "https://github.com/lachiejames/slopweaver/pull/1880"
+        },
+        "via": "witness"
+      },
+      "timesGiven": 1,
+      "title": "unledgered",
+      "words": null
+    },
+    {
+      "againIsos": [],
+      "askedIso": null,
+      "origin": {
+        "anchor": "talk-call:a0000055-0000-4000-8000-000000000061#turn_000000000000000000005",
+        "kind": "cut"
+      },
+      "repo": null,
+      "slug": "unknown",
+      "state": {
+        "kind": "landing-unknown",
+        "why": "no repository"
+      },
+      "timesGiven": 1,
+      "title": "unknown",
+      "words": null
+    }
+  ],
+  "unreadableDocs": 0,
+  "unreadableJournals": [
+    "broken-journal"
+  ]
+}

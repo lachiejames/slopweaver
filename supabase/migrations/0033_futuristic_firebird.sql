@@ -1,0 +1,2 @@
+ALTER TABLE "store_import_batch" ADD COLUMN "comparison_version" integer;--> statement-breakpoint
+ALTER TABLE "store_import_batch" ADD CONSTRAINT "store_import_batch_comparison_version" CHECK (comparison_version is null or comparison_version > 0);

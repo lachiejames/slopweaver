@@ -1,0 +1,8 @@
+[
+  {
+    "id": "person:owner",
+    "handle": "example-owner",
+    "name": "Example Owner",
+    "identities": [{ "source": "linear", "nativeId": "a0000006-0000-4000-8000-000000000006" }]
+  }
+]

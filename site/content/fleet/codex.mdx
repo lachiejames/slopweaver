@@ -1,0 +1,48 @@
+---
+title: Pairing with Codex
+---
+
+import { CodexLoop } from "../../components/diagrams/CodexLoop";
+
+# Pairing with Codex
+
+Claude and Codex work better together than either does alone.
+
+Codex **plans**, Claude **implements** every line, Codex **reviews** the diff. Judgement picks how many
+passes and which property each one attacks — never an area, and never _whether_.
+
+<CodexLoop />
+
+## The landing gate
+
+```bash
+slopweaver codex status --check
+```
+
+Both landing verbs want a **stale conclusive plan** — conclusive, and from before the tree moved — plus a
+**current review of the diff**. A plan the tree has not moved past has not been implemented yet; a review
+of an older diff is a review of something else.
+
+## A cap stops nothing
+
+When Codex is capped, a **visible Claude session** plans first and reviews after:
+
+```bash
+slopweaver codex plan-fallback
+slopweaver codex review-fallback
+```
+
+Work with no plan at all rides `codex-loop-incomplete`, named rather than assumed satisfied. **A cap proves
+neither half was met** — that is the whole reason both fallbacks exist.
+
+## What a review pass records
+
+A review pass records the tree its **diff** came from, so a queued property cannot report a newer one. The
+same discipline runs the other way on a plan: a pass run from a dirty checkout records its provenance,
+because the frozen copy is compared by content address rather than by a fingerprint it cannot produce.
+
+## The egress this costs
+
+The Codex verbs are one of three OpenAI egress boundaries (the console voice and `chatgpt conversation` are the others): prompts,
+repository reads and review diffs go to **OpenAI**, opt-in per invocation. Every egress is on the
+[security page](/docs/trust/security) too, because it is the fact a reader should not have to find twice.

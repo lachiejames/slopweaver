@@ -1,0 +1,149 @@
+{
+  "answerDigest": "sha256:5e2f925c518427fdfb0a88b6a4c1f4b9c3422e83b40d70b5913dc10ede216d23",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    }
+  ],
+  "imageObservations": [],
+  "outcome": "broken",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1,
+  "voice": {
+    "pathsChecked": [
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]"
+    ],
+    "rulesChecked": 4,
+    "violations": [
+      {
+        "path": "[REDACTED]",
+        "rule": "[REDACTED]"
+      },
+      {
+        "path": "[REDACTED]",
+        "rule": "[REDACTED]"
+      },
+      {
+        "path": "[REDACTED]",
+        "rule": "[REDACTED]"
+      },
+      {
+        "path": "[REDACTED]",
+        "rule": "[REDACTED]"
+      },
+      {
+        "path": "[REDACTED]",
+        "rule": "[REDACTED]"
+      }
+    ]
+  }
+}

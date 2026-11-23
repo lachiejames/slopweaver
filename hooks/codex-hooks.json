@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "additionalContextLimit": 0,
+            "command": "\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/hook.sh\" 20 codex-rules-context \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/bin/slopweaver\" codex rules-context",
+            "timeout": 20,
+            "type": "command"
+          }
+        ],
+        "matcher": "startup|resume|clear|compact"
+      }
+    ]
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.165016,
+          "prompt": {
+            "id": "37fef00a-5e69-4617-9c40-4be910e155d1"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:47:39.139Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.20699150000000002,
+          "prompt": {
+            "id": "37fef00a-5e69-4617-9c40-4be910e155d1"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:47:33.633Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.19020075,
+          "prompt": {
+            "id": "37fef00a-5e69-4617-9c40-4be910e155d1"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:47:13.418Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.18689450000000002,
+          "prompt": {
+            "id": "ae80febc-c657-493f-8c60-ed20ecf6ff52"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:42:43.753Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 10.94540675,
+          "prompt": {
+            "id": "ae80febc-c657-493f-8c60-ed20ecf6ff52"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:42:25.951Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.20879175,
+          "prompt": {
+            "id": "2931f80b-d014-4768-8e30-82fe534b3c60"
+          }
+        },
+        "timestamp": "2026-09-17T13:40:58.040Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.23657,
+          "prompt": {
+            "id": "2931f80b-d014-4768-8e30-82fe534b3c60"
+          }
+        },
+        "timestamp": "2026-09-17T13:40:43.325Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.19596775,
+          "prompt": {
+            "id": "5cb9b4ed-4ff6-4381-8a40-03acff6ec113"
+          }
+        },
+        "timestamp": "2026-09-17T13:39:29.713Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 6.73892425,
+          "prompt": {
+            "id": "5cb9b4ed-4ff6-4381-8a40-03acff6ec113"
+          }
+        },
+        "timestamp": "2026-09-17T13:39:02.089Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.18440525,
+          "prompt": {
+            "id": "97624c03-6b66-4aea-90ce-1b5822bd53a2"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:34:59.456Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.24738875000000002,
+          "prompt": {
+            "id": "97624c03-6b66-4aea-90ce-1b5822bd53a2"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:34:48.281Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.1833215,
+          "prompt": {
+            "id": "fdad8584-c3ea-46bd-975d-6cfdaaf05cfc"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:32:55.261Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.23860125,
+          "prompt": {
+            "id": "fdad8584-c3ea-46bd-975d-6cfdaaf05cfc"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:32:36.725Z"
+      }
+    },
+    {
+      "attributes": {
+        "attributes": {
+          "cost_usd": 0.36552524999999997,
+          "prompt": {
+            "id": "fdad8584-c3ea-46bd-975d-6cfdaaf05cfc"
+          },
+          "organization": {
+            "id": "00000000-0000-4000-8000-000000000004"
+          }
+        },
+        "timestamp": "2026-09-17T13:32:16.492Z"
+      }
+    }
+  ],
+  "meta": {
+    "status": "done"
+  }
+}

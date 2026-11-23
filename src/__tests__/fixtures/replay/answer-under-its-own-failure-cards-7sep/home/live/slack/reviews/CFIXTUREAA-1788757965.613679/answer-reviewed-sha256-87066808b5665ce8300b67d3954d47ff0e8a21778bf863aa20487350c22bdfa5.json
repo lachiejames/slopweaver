@@ -1,0 +1,561 @@
+{
+  "answering": {
+    "permalink": "https://fixture.slack.com/archives/CFIXTUREAA/p1788757827540129",
+    "quote": "[REDACTED]"
+  },
+  "body": [
+    {
+      "runs": [
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "code": true,
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "code": true,
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "code": true,
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "citationId": "c2",
+          "type": "citation"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "label": "[REDACTED]",
+          "type": "link",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "citationId": "c1",
+          "type": "citation"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "runs": [
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "label": "[REDACTED]",
+          "type": "link",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "label": "[REDACTED]",
+          "type": "link",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "columns": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "rows": [
+        [
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ]
+        ]
+      ],
+      "type": "table"
+    },
+    {
+      "runs": [
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "citationId": "c4",
+          "type": "citation"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "columns": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "rows": [
+        [
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ],
+          [
+            {
+              "text": "[REDACTED]",
+              "type": "text"
+            }
+          ]
+        ]
+      ],
+      "type": "table"
+    },
+    {
+      "items": [
+        [
+          {
+            "text": "[REDACTED]",
+            "type": "text"
+          },
+          {
+            "citationId": "c3",
+            "type": "citation"
+          }
+        ],
+        [
+          {
+            "text": "[REDACTED]",
+            "type": "text"
+          },
+          {
+            "citationId": "c6",
+            "type": "citation"
+          }
+        ],
+        [
+          {
+            "text": "[REDACTED]",
+            "type": "text"
+          },
+          {
+            "citationId": "c5",
+            "type": "citation"
+          }
+        ],
+        [
+          {
+            "text": "[REDACTED]",
+            "type": "text"
+          },
+          {
+            "label": "[REDACTED]",
+            "type": "link",
+            "url": "https://redacted.invalid/[REDACTED]"
+          },
+          {
+            "text": "[REDACTED]",
+            "type": "text"
+          }
+        ]
+      ],
+      "type": "bullets"
+    },
+    {
+      "runs": [
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "label": "[REDACTED]",
+          "type": "link",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        },
+        {
+          "label": "[REDACTED]",
+          "type": "link",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "text": "[REDACTED]",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    }
+  ],
+  "citations": [
+    {
+      "id": "[REDACTED]",
+      "label": "[1]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "[REDACTED]",
+      "label": "[2]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "[REDACTED]",
+      "label": "[3]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "[REDACTED]",
+      "label": "[4]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "[REDACTED]",
+      "label": "[5]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "[REDACTED]",
+      "label": "[6]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    }
+  ],
+  "grounding": {
+    "capability": {
+      "command": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "id": "[REDACTED]",
+      "what": "[REDACTED]"
+    },
+    "evidence": {
+      "consultedEmpty": [
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        }
+      ],
+      "couldNotSee": {
+        "blindSpots": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ]
+      },
+      "premiseChecks": [
+        {
+          "checkedAtIso": "[REDACTED]",
+          "finding": "[REDACTED]",
+          "how": "[REDACTED]",
+          "subject": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "checkedAtIso": "[REDACTED]",
+          "finding": "[REDACTED]",
+          "how": "[REDACTED]",
+          "subject": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        }
+      ],
+      "read": [
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://fixture.slack.com/archives/CFIXTUREAA/p1788757827540129"
+        }
+      ],
+      "substitutedForReal": [
+        {
+          "real": "[REDACTED]",
+          "why": "[REDACTED]"
+        }
+      ]
+    },
+    "kind": "verb",
+    "provenance": {
+      "model": "claude-opus-5",
+      "skillsLoaded": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "verbsLoaded": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ]
+    },
+    "result": "[REDACTED]"
+  },
+  "images": [],
+  "index": [
+    [
+      {
+        "text": "[REDACTED]",
+        "type": "text"
+      },
+      {
+        "citationId": "c1",
+        "type": "citation"
+      }
+    ],
+    [
+      {
+        "text": "[REDACTED]",
+        "type": "text"
+      },
+      {
+        "citationId": "c2",
+        "type": "citation"
+      }
+    ],
+    [
+      {
+        "text": "[REDACTED]",
+        "type": "text"
+      },
+      {
+        "citationId": "c3",
+        "type": "citation"
+      }
+    ],
+    [
+      {
+        "text": "[REDACTED]",
+        "type": "text"
+      },
+      {
+        "citationId": "c4",
+        "type": "citation"
+      }
+    ],
+    [
+      {
+        "text": "[REDACTED]",
+        "type": "text"
+      },
+      {
+        "citationId": "c5",
+        "type": "citation"
+      }
+    ]
+  ],
+  "indexStyle": "bullet",
+  "kind": "answer",
+  "lead": "[REDACTED]"
+}

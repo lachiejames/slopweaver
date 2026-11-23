@@ -1,0 +1,195 @@
+name: Desktop release
+
+# Builds the desktop app (`desktop/`) for Apple silicon and publishes it as this repository's GitHub Release
+# `desktop-v<version>`, so somebody with a clone but no `desktop install` build can download the app and point
+# it at their clone. It runs ONLY on a `desktop-v*` tag or a dispatch naming one: never on a pull request, so it
+# adds no check to any rollup and needs no `ci-trigger-contract` row.
+#
+# SIGNING IS SWITCHED BY THE SETTINGS PRESENT, never by a flag: four secrets (CSC_LINK, CSC_KEY_PASSWORD,
+# APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD) and two VARIABLES (CSC_NAME, APPLE_TEAM_ID). The two are variables
+# because a Developer ID signature publishes them in every copy of the app: the certificate's name and its team
+# are what `codesign -dv` and Gatekeeper show anybody, so storing them as secrets would only pretend otherwise.
+# All six empty: the app is ad-hoc signed, NOT notarised, and the release notes say so with the one command
+# Gatekeeper then needs. All six set: Developer ID signed with the hardened runtime, notarised by Apple and
+# stapled, each step verified before anything is published. Some but not all set: refused, naming the missing
+# ones, so a half-configured repository never publishes an ad-hoc build it meant to notarise. What each holds:
+# desktop/docs/download-a-release.md.
+#
+# Its one job runs on macOS, the closed exception `SPECIAL_WORKFLOW_RUNNERS` (src/devLint/ciRunnerFacts.ts)
+# registers by workflow and job; every other job in every workflow stays on RUNNER_SELECTOR.
+
+on:
+  push:
+    tags: ["desktop-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "An existing desktop-v<version> tag to build and publish"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ github.event.inputs.tag || github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+
+      - name: Refuse a tag that is not desktop-v<the version desktop/package.json carries>
+        shell: bash
+        run: |
+          version="$(node -p 'require("./desktop/package.json").version')"
+          if [ "$TAG" != "desktop-v${version}" ]; then
+            echo "::error::tag '${TAG}' is not desktop-v${version}, the version desktop/package.json carries; bump the version and tag that"
+            exit 1
+          fi
+
+      - name: Choose the signing mode from which settings are set
+        id: mode
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_NAME: ${{ vars.CSC_NAME }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          set_names=() missing=()
+          for name in CSC_LINK CSC_KEY_PASSWORD CSC_NAME APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [ -n "${!name}" ]; then set_names+=("$name"); else missing+=("$name"); fi
+          done
+          if [ "${#set_names[@]}" -eq 0 ]; then
+            echo "mode=adhoc" >> "$GITHUB_OUTPUT"
+            echo "no signing settings set: this release is ad-hoc signed and not notarised"
+          elif [ "${#missing[@]}" -eq 0 ]; then
+            echo "mode=developer-id" >> "$GITHUB_OUTPUT"
+            echo "all six signing settings set: this release is Developer ID signed and notarised"
+          else
+            echo "::error::signing settings are half set; also set ${missing[*]}, or remove ${set_names[*]} for an ad-hoc release"
+            exit 1
+          fi
+
+      - name: Install the desktop shell's own dependencies
+        working-directory: desktop
+        run: yarn install --immutable
+
+      - name: Build the app, stamped with the tagged commit
+        id: build
+        working-directory: desktop
+        shell: bash
+        env:
+          MODE: ${{ steps.mode.outputs.mode }}
+          CSC_LINK: ${{ steps.mode.outputs.mode == 'developer-id' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ steps.mode.outputs.mode == 'developer-id' && secrets.CSC_KEY_PASSWORD || '' }}
+          CSC_NAME: ${{ steps.mode.outputs.mode == 'developer-id' && vars.CSC_NAME || '' }}
+        run: |
+          out="${RUNNER_TEMP}/desktop-build"
+          sha="$(git rev-parse HEAD)"
+          committed="$(git log -1 --format=%cI HEAD)"
+          count="$(git rev-list --count HEAD)"
+          flags=(
+            "--config.directories.output=${out}"
+            "--config.buildVersion=${count}"
+            "--config.mac.extendInfo.SlopweaverBuildSha=${sha}"
+            "--config.mac.extendInfo.SlopweaverBuildCommittedIso=${committed}"
+            "--config.mac.extendInfo.SlopweaverBuildTree=clean"
+          )
+          if [ "$MODE" = "developer-id" ]; then
+            flags+=(
+              "--config.mac.identity=${CSC_NAME}"
+              "--config.mac.hardenedRuntime=true"
+              "--config.mac.entitlements=signing/entitlements.mac.plist"
+              "--config.mac.entitlementsInherit=signing/entitlements.mac.plist"
+            )
+          else
+            # An ad-hoc build never reaches for a certificate, even one the runner's keychain happens to hold.
+            unset CSC_LINK CSC_KEY_PASSWORD CSC_NAME
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          # `yarn run`, not bare `yarn app`: knip reads a bare word after `yarn` as a binary, and `app` is
+          # desktop/package.json's script, which the root project knip resolves against does not carry.
+          yarn run app "${flags[@]}"
+          app="${out}/mac-arm64/Slopweaver.app"
+          # Both modes: an ad-hoc signature is checked as strictly as a Developer ID one before anything ships.
+          codesign --verify --deep --strict --verbose=2 "$app"
+          id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${app}/Contents/Info.plist")"
+          if [ "$id" != "ai.slopweaver.desktop" ]; then
+            echo "::error::the built bundle's identifier is '${id}', not ai.slopweaver.desktop"
+            exit 1
+          fi
+          echo "app=${app}" >> "$GITHUB_OUTPUT"
+
+      - name: Notarise, staple and verify (Developer ID only)
+        if: steps.mode.outputs.mode == 'developer-id'
+        shell: bash
+        env:
+          APP: ${{ steps.build.outputs.app }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          submission="${RUNNER_TEMP}/notarise.zip"
+          /usr/bin/ditto -c -k --keepParent "$APP" "$submission"
+          xcrun notarytool submit "$submission" --wait \
+            --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID"
+          xcrun stapler staple "$APP"
+          xcrun stapler validate "$APP"
+          spctl --assess --type execute --verbose=4 "$APP"
+
+      - name: Zip the app and write the release notes
+        shell: bash
+        env:
+          APP: ${{ steps.build.outputs.app }}
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: |
+          zip="Slopweaver-desktop-arm64.zip"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP" "${RUNNER_TEMP}/${zip}"
+          (cd "$RUNNER_TEMP" && shasum -a 256 "$zip" > "${zip}.sha256")
+          notes="${RUNNER_TEMP}/notes.md"
+          {
+            echo "The Slopweaver desktop app for Apple silicon (macOS 13 or later), built from \`$(git rev-parse HEAD)\`."
+            echo
+            if [ "$MODE" = "developer-id" ]; then
+              echo "Developer ID signed, notarised by Apple, and stapled."
+            else
+              echo "**Ad-hoc signed and not notarised.** macOS blocks a downloaded app like this one. After moving"
+              echo "\`Slopweaver.app\` into Applications, run this once, which takes the download mark off that one app"
+              echo "so Gatekeeper stops refusing it — only for a copy you downloaded from here on purpose:"
+              echo
+              echo '```bash'
+              echo 'xattr -dr com.apple.quarantine /Applications/Slopweaver.app'
+              echo '```'
+            fi
+            echo
+            echo "The app serves the console from a Slopweaver clone: on first open it asks you to choose one."
+            echo "Setting up the clone: docs/getting-started.md."
+            echo
+            echo "SHA-256: \`$(cut -d ' ' -f 1 "${RUNNER_TEMP}/${zip}.sha256")\`"
+          } > "$notes"
+
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" \
+            "${RUNNER_TEMP}/Slopweaver-desktop-arm64.zip" \
+            "${RUNNER_TEMP}/Slopweaver-desktop-arm64.zip.sha256" \
+            --verify-tag --title "Slopweaver desktop ${TAG#desktop-v}" --notes-file "${RUNNER_TEMP}/notes.md"

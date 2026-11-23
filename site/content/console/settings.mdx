@@ -1,0 +1,139 @@
+---
+title: Settings
+---
+
+# Settings
+
+The one place what Slopweaver connects to, the plans it thinks with, the console's theme, the orb's presence and a voice
+call's behaviour are chosen. **Integrations** and **Models** read and write the machine through verbs (`secrets status
+--all --json`, `slopweaver plans`); the three preferences are this browser's own stored choices, the same keys the page
+and the call read, bar a `?stage=<presence>` preview address, which wins over the stored presence while it is in the
+address.
+
+Settings is a modal over whatever page you are on, opened from the sidebar's foot, the way claude.ai's settings sit over
+its app, so a modal can sit on top of anything and you can stay on the main app with the sidebar and get a rough feel
+for how these different things make the app look. Its sections run down the left in two groups — **Connect** (Integrations, Models) and **Preferences** (Theme, Presence,
+The call) — under a "Search settings" box that keeps only the sections a query names, and the open one fills the right.
+It opens on Integrations, the first tab. The scrim behind
+it is light, so a theme or presence you press is seen landing on the page underneath. Escape, a click on the scrim or
+the × closes it.
+
+There is no Setup page and no first-run flow: those pages live in the settings modal as tabs, so everyone goes to
+the right place without being forced through a sequence. While no plan is connected the sidebar's Settings entry carries a dot, and every empty page offers
+**Connect a plan**, which opens Settings on Models; every page works without one. The old `/setup` address redirects to
+`/queue#settings/models`.
+
+The address carries it: `#settings/<section>` on any console page opens it there, and `#settings/integrations/<id>`
+opens one integration's page, so a reload or a link reopens it where it was; a bare `#settings`, or a section it does
+not draw, opens Integrations. Opening and closing change only that hash; the page under it keeps its context and any
+card it holds open. A page with its own hash, such as `/workstreams#candidates`, has it carried inside the modal's
+(`#settings/theme&page=candidates`) and gets it back when Settings closes, after a reload too.
+
+<details>
+<summary>Integrations</summary>
+
+**Integrations** is a catalog of every integration Slopweaver reads, one card each with its status, behind a search box
+and four filters — All, Connected, Needs attention and Available — each counting what it would show for the search in
+hand. Needs attention sorts first, then A to Z (search yes, tags no). A card opens that integration's own
+page over the catalog, Datadog's shape: a numbered **Configure** list — where to make the key, the field to paste it
+into, the consent to run — beside what it is stored as, what reads it, what it can reach and how to disconnect it.
+
+A status is read off which store files exist and the verb's verdict on each, plus whether Datadog's site is named
+(the verb's `datadogSite`), never off a key being tried:
+
+- **Connected** — everything it reads is stored and the store reports nothing wrong. Slack needs either token alone; its app-level token, which only lets the bot hear tags live, is optional, though a
+  finding on it still needs attention.
+  A consent door (Gmail, Drive, Calendar, Outlook) needs its grant and its client. Datadog needs its site too.
+- **Needs attention** — some but not all of it is stored (one of Datadog's two keys), a consent grant sits without its
+  client, Datadog's keys sit with no valid site, or the store reports a finding on any of its files (an expired grant
+  cache, a loose file mode, a state this console does not know). Never counted under Connected, so a warning is never
+  hidden among the healthy ones.
+- **Available** — nothing of it is stored. A shared client alone (the Google one) starts none of its doors.
+
+</details>
+
+<details>
+<summary>Models</summary>
+
+Slopweaver runs on your own AI plans; it never buys one or bills you. Setting one up never touches a terminal.
+
+**No plan connected.** Two cards, one per provider: what its plan does here, what it takes, and its **Connect**.
+Codex's Connect starts `slopweaver plans connect --provider codex`, which asks Codex's own sign-in for its page and
+opens it in your browser; signing in there is the consent. No model runs. Claude's card is drawn with its Connect
+disabled and says signing in from here comes next.
+
+**One or more connected.** Each plan's row with its usage-limit drop-down, 10% to 100% in tens, pre-selected at the
+limit the plan already carries, so a personal plan can take a hundred percent and an enterprise plan fifty. A choice is written at once with `plans set-usage-limit`, passing `--from` the limit it was drawn
+at, so a choice made off an older reading is refused rather than written over a newer one; one choice is written at a
+time. A Codex login found on this Mac is never a plan: a plan comes only from your own sign-in.
+On an install whose plans were found on this Mac but never saved, the drop-downs are locked and **Keep these plans**
+writes them down (`plans adopt`). Below the rows, **+ Codex plan** connects another.
+
+**A sign-in in flight.** One row follows the attempt: its step while it waits on you, **Open the sign-in page again**
+if you closed it, **Cancel**, and its end in plain words — connected as which account, or why it failed, with what
+Codex said and **Try again**. It polls every 2 seconds only while an attempt is in flight, and re-reads the plan list
+once when one connects.
+
+</details>
+
+<details>
+<summary>Theme, Presence and The call</summary>
+
+Nine colours, light and dark and a glassiness percentage are confusing and maybe the wrong options, and every
+combination of them can never be made to look right. So **Theme** offers a handful of
+whole appearances, each one picked so its parts look right together, and one press wears the whole of it — no apply
+button, no undo.
+
+A **Presence** tab dictates what happens inside the orb; the presence and the theme are decoupled, so the presence
+choice sticks and the theme supplies its colours; and there are six options for theme and six for presence. So there are six of each, chosen apart, and
+any presence under any theme holds together: every presence is drawn as grey light and the theme's two orb colours
+alone colour it.
+
+No theme carries a glassiness: every console surface is opaque,
+and the glass is its edges and shadow alone.
+
+**Theme.** Six: Night sky, Deep sea, Ember, Dusk, Daylight and Graphite. Each tile previews its theme two ways at
+once, both filled with the presence you wear now: the orb full screen on that theme's own ground, and in its bottom
+right the corner orb on the dark disc it sits on over every other app. A tile is ringed in its accent when it is the
+theme you wear now; when you wear none of them — stored choices that match no theme — a line says so. A first visit
+wears **Night sky**, the blue-tinted dark, the owner's pairing. Graphite is the sixth.
+
+**Presence.** Six: Star cluster, Mist, Ink, Dot matrix, Aurora and Embers. Each tile is the orb filled with that
+presence, live, on the page's own ground and lit in the theme you wear now; one press wears it on the stage and in the
+corner at once, and it stays through every theme change. A first call wears the **star cluster**. Embers is the sixth; a stored presence that names none of the six opens on the star cluster.
+
+**The call** section: a switch for each thing the full-screen stage shows and the orb's badge sounds. The glow round
+the screen's edge has no switch, since it is a constant. The stage has no settings of its own and only honours these (a second place for preferences clutters the call and may conflict with what is being said
+on it). Every change reaches a call already up. Where the voice opens is no setting: it stays in whichever state you
+left it — the orb, the middle or full screen ([the call widget](/docs/console/call-widget)).
+
+A theme's four choices are written one after another in a single press, not as one transaction. Every open window
+re-reads storage on each change it hears and settles on the whole theme; only a press interrupted between two writes
+can leave a mix, which Theme then shows as worn by none. A presence is one choice under its own key.
+
+</details>
+
+<details>
+<summary>What every field is derived from</summary>
+
+| In the modal      | Derived from                                                                                                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open, and where   | the window's hash, `#settings/<section>[/<item>]`, read by `settingsSectionOf` and `settingsItemOf` (`site/lib/settingsModal.ts`); any other hash is closed                                                          |
+| A section search  | each section's label and keywords, every word of the query in them (`settingsSectionsMatching`)                                                                                                                      |
+| An integration    | one row of `INTEGRATIONS` (`site/lib/integrations.ts`) and its guide in `INTEGRATION_GUIDES` (`site/lib/integrationGuides.ts`)                                                                                       |
+| Its status        | the `secrets` live read (`secrets status --all --json`), each file's `stored` and `state`, judged by `integrationStatusOf` (`site/lib/integrationCatalog.ts`)                                                        |
+| Plans             | `slopweaver plans list --json`, read by `readPlanLimits` (`site/components/live/readPlanLimits.ts`)                                                                                                                  |
+| A sign-in         | `slopweaver plans connections --json`, read by `readPlanConnections`; its words are `connectionLineOf` (`site/lib/planConnect.ts`)                                                                                   |
+| Plans acts        | `plans-connect-codex`, `plans-connect-cancel`, `plans-adopt` and `plans-set-usage-limit` (`site/lib/actVerbs.ts`)                                                                                                    |
+| The Settings dot  | `noPlanConnectedOf` (`site/lib/pageEmpty.ts`) over the plans reading, polled on the sidebar's cadence                                                                                                                |
+| A theme           | one row of `THEME_PRESETS` (`site/lib/themePresets.ts`): a colour family, light or dark, the orb's two colours, a corner backing and its strength                                                                    |
+| A tile's ground   | that family and mode's palette in `THEME_PALETTES` (`site/lib/themePalettes.ts`), drawn as the stage draws its ground                                                                                                |
+| A tile's orbs     | the presence worn now (`site/lib/orbPresence.ts`), lit in that theme's two colours set on the tile itself (`orbRampStyle`, `site/lib/orbRamp.ts`), resting, at the stage's and the corner's own calm                 |
+| The orb's colours | two inherited custom properties, `--sw-orb-ramp-dark` and `--sw-orb-ramp-light`, which the appearance stylesheet sets per family and mode (`appearanceStylesheet`, `site/lib/theme.ts`) and the orb reads each frame |
+| Theme worn now    | every one of the four stored choices equals that theme's (`presetWorn`)                                                                                                                                              |
+| A theme press     | writes each of the four under its own key — `sw-theme-family`, `sw-theme-mode` and the two `slopweaver.talk.orbBacking*` keys — so the voice's window and every other open window take it at once                    |
+| A presence        | one entry of `ORB_PRESENCES` (`site/lib/orbPresence.ts`), drawn by its painter (`site/components/voice/presencePainters.ts`)                                                                                         |
+| Presence worn now | the stored `slopweaver.talk.presence.v1`, else the star cluster; a valid `?stage=<presence>` preview address wins over it (`presenceWorn`)                                                                           |
+| The call          | the stage's own stored switches — each of `STAGE_TOGGLES` (`site/lib/voiceStage.ts`) — and the badge's sound (`components/voice/OrbCues.tsx`), the very keys the stage reads                                         |
+
+</details>

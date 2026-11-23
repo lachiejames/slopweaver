@@ -1,0 +1,70 @@
+---
+title: Testing
+---
+
+import { TestLanes } from "../../components/diagrams/TestLanes";
+
+# Testing
+
+Four lanes, selected by **directory**, each answering a different question.
+
+<TestLanes />
+
+## The lane a file lands in is its directory
+
+`config/vitest/unit.ts` collects `src/__tests__/unit/**/*.test.ts` and nothing else. A `*.test.ts` placed
+next to its source is **silently never run** — not an error, simply not collected, and the only symptom is
+a test count that did not move.
+
+```bash
+yarn test:unit        # the pure lane
+yarn vitest run src/__tests__/unit/<path>.test.ts   # one file
+```
+
+## A unit test tests a PURE function
+
+- **Zero mocks.** `vi.mock`, `vi.spyOn`, `vi.fn` are banned and lint-enforced. If a function needs a mock to
+  isolate it, it is not a unit test: extract the pure logic, or inject a plain fake function, which is not
+  a mock.
+- **Zero I/O.** No network, no real clock. The filesystem is allowed only for a genuine round-trip into a
+  `mkdtempSync` temp dir.
+- **No conditionals in an assertion.** A test that can silently pass for any input is worse than no test.
+  For a `Result<T>`, assert `result.ok` then unwrap with the throwing `unwrap(result)` — never
+  `expect(result.ok && result.value)`.
+- **Exact assertions.** `expect(result.id).toBe("abc-123")`, not `toBeDefined()`.
+
+A guard over a declared registry opens with `expect(REGISTRY.length).toBeGreaterThan(0)`, because
+`filter(bad).toEqual([])` and every loop body are true of an empty one.
+
+## The replay lane — an incident becomes a test
+
+A turn that goes wrong leaves everything needed to re-run it. `slopweaver turn freeze` copies that record
+set into a committed fixture, and a replay test points the **real verbs** at it with `--home`, so what is
+under test is the shipped behaviour rather than a restatement of it.
+
+Four rules make it a lane rather than a folder:
+
+- **Redacted by allowlist, and the freeze refuses rather than leaks.** A string survives only when its key
+  is one a replay reads. The freeze then runs the hygiene gate over what it built and writes nothing if a
+  single hit survives.
+- **A fixture is a stopped world, so it carries its own clock.** `replayNowIso` is the last kept event's own
+  instant. A replay judged by the wall clock reports every lease expired the day after it was cut.
+- **Freeze `--through <kind>` when the fix is in the code.** The state *before* the defect fired is what the
+  real verb has to behave correctly over.
+- **Assert on a falsifiable witness, never on silence.** A `not.toContain` is evidence only if the input
+  carries what it calls absent.
+
+Freeze **before** anything cleans the record set up.
+
+## Two sandboxes you never have to think about
+
+`$SLOPWEAVER_HOME` and `$TMPDIR` are both redirected per test FILE by every lane's `setupFiles`, and a test
+that writes into the ambient home **fails itself**. This replaced prose that had asked every `mkdtempSync`
+to clean up after itself — and the prose is what produced the backlog: one `os.scandir` of the shared temp
+directory took **309.9 seconds** and blocked a push outright, against 19.33s on a clean `TMPDIR`.
+
+## Recording a cassette is pre-approved
+
+Owner ruling: recording a live cassette is **always greenlit**, and an agent that stops to ask
+permission for it is a defect. Its traffic is self-addressed — the bot's own DM, a throwaway issue — and the
+duty is **cleanup, not permission**.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slopweaver Handover"
+  short_description: "Track local work without Linear"
+  default_prompt: "Create or continue a local Slopweaver handover for this work."

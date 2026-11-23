@@ -1,0 +1,168 @@
+# Git hooks (installed by `lefthook install`, run automatically). Two gates and two keep-currents:
+#   pre-commit — organise the staged code files' imports (Biome, `biome.jsonc`: sort, merge, drop unused),
+#                then format the staged files (Prettier — code and docs alike) and re-stage both, so every
+#                commit is already formatted + import-sorted the way CI checks; also
+#                refuses a commit made directly in this repository's own main checkout, from ANY driving tool
+#                (see src/admit/mainCheckoutCommitGuard.ts) — `.git/hooks` is shared across every worktree, so
+#                that command's own predicate, not this file's presence, is what scopes the refusal.
+#   pre-push   — refuse old history pushed into a re-cut repository (see src/admit/pushRootGate.ts), then a
+#                working tree that differs from HEAD (see src/admit/prePushWorkingTree.ts), then run
+#                the LOCAL lane of the gate (`yarn validate:local` = `dev lint --lane local`).
+#                That order is the point, and `piped: true` is what enforces it: the gate reads the FILES ON
+#                DISK while `git push` sends the COMMIT, so over a dirty tree its verdict is about code the
+#                push leaves behind. Bypass in an emergency with `--no-verify`.
+#
+#                THIS HOOK IS A SECRETS SCAN AND A WORKING-TREE CHECK. Work is offloaded to CI
+#                aggressively, because `yarn lint:local` measured 220.8s and 273.2s at
+#                load 13-15 while HOLDING the repo-wide stack-operation lock — so unrelated sessions
+#                serialised behind a push, and one seat's push was refused outright by a `node` crash inside
+#                a gate it did not need. Twice before, the lane was narrowed by naming the expensive gates,
+#                and twice it grew back, because an opt-out filter keeps everything nobody remembered to
+#                flag. So the rule is inverted and the criterion is CI's reach, never cost:
+#
+#                  A gate runs here if, and only if, CI cannot see its subject.
+#
+#                Five do, each reading state that exists on this machine and on no runner (measured:
+#                whole lane ~47s — reproduce with `time yarn validate:local`):
+#                  · `hygiene`         — the PRIVATE denylist, $SLOPWEAVER_HOME/hygiene-denylist.txt;
+#                  · `corpus-hygiene`  — the same leak classes over the bronze corpus (41.2s, most of the lane);
+#                  · `register-hygiene`— the handover register under $SLOPWEAVER_HOME;
+#                  · `secrets-registry`— the secrets store under $SLOPWEAVER_HOME;
+#                  · `derived-card-voice` — its voice half needs the private profile.json.
+#                `forbidden-identifiers`, the hygiene gate's committed-rule half, is not one of them: its rules
+#                are committed and its subject is the tree, so CI sees all of it.
+#                The other 58 gates, `typecheck`, `test:unit` + `coverage:ratchet` and `test:subprocess` are
+#                CI's. Every one already ran in CI before any of this, so nothing moved and no CI time was
+#                added — what changed is that the machine stopped duplicating them, and
+#                `src/devLint/ciOffloadContract.ts` is the gate that keeps that true rather than a promise.
+#
+#                So a green pre-push NO LONGER SAYS the tree typechecks, lints, formats or passes a test.
+#                It says no secret is leaving and the tree matches HEAD. Watch `build` with
+#                `slopweaver github checks --number <n> --wait` — the required check standing for CI's
+#                `lint`, `typecheck`, `unit` and `subprocess` jobs — never a poll loop. `dev lint` prints
+#                the gap on every run ("this lane ran 5 of 63 gates").
+#
+#                `yarn validate` is UNCHANGED and still the whole lap for anyone who wants it locally.
+#
+#   post-merge     — after a `git merge` / `git pull`
+#   post-checkout  — after a branch checkout
+#                Both run `src/checkouts/refMoveInstallCli.ts`, which installs when — and ONLY when — the ref
+#                move changed a dependency-defining file, then writes the verified-install mark and takes the
+#                native binaries back off yarn's shared inodes. They ALWAYS print exactly one line: installed,
+#                current, or skipped-and-why. A git hook keeps the main checkout's
+#                node_modules up to date without anyone remembering to.
+#
+#                Two things about them that are not guesses. The trigger is the move's own CONTENT diff and
+#                never `src/checkouts/freshness.ts`'s verdict: that verdict compares mtimes, every ref move
+#                rewrites `package.json`'s mtime, and a hook keyed on it would install on every ref move
+#                forever (`src/checkouts/refMoveInstall.ts` carries the reproduction). And `.git/hooks` is
+#                SHARED across every worktree, exactly as the pre-commit main-checkout-guard note below says,
+#                so what scopes these is that content predicate plus one refusal — a `--deps shared` worktree,
+#                whose `node_modules` is a symlink into a tree every other such worktree reads.
+#                A non-zero exit aborts no checkout or merge, and is what makes lefthook render a failed
+#                install red. But git hands post-checkout's status back as `git worktree add`'s OWN, and in a
+#                fresh tree `node_modules/.bin/tsx` is absent (127), so a verb adding a throwaway worktree runs
+#                it with hooks off (`src/codex/snapshot.ts` `noHooks`, measured there).
+#
+#   rc — the generated shim (`.git/hooks/<hook>`) sources this file before it looks for a lefthook runner. With no
+#        runner the shim prints "Can't find lefthook in PATH" and exits 0, so a `pre-push` from a checkout with no
+#        `node_modules` would pass a push nothing scanned; the file makes exactly that hook exit 1 instead, on every
+#        route — a plain `git push` and `github stack submit` included. Why pre-push alone: the file says.
+rc: scripts/lefthook-rc.sh
+
+pre-commit:
+  # Piped, in order: the refusal first, then Biome's import pass, then Prettier over what it wrote. Prettier may
+  # rewrap an import line Biome wrote; the reverse order would leave Biome's line for the next commit.
+  piped: true
+  commands:
+    main-checkout-guard:
+      priority: 1
+      run: node_modules/.bin/tsx src/admit/mainCheckoutCommitGuardCli.ts
+    biome-imports:
+      priority: 2
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+      run: node_modules/.bin/biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    prettier:
+      priority: 3
+      glob: "*.{js,jsx,ts,tsx,json,jsonc,md,yaml,yml}"
+      run: node_modules/.bin/prettier --write --ignore-unknown {staged_files}
+      stage_fixed: true
+
+pre-push:
+  piped: true
+  commands:
+    # First: a push of the history a re-cut left behind, into the repository that was re-cut, is refused before
+    # anything else runs (`src/admit/pushRootGate.ts`). With no `push-roots.json` in the state home it asks Git
+    # nothing. `use_stdin` hands it git's ref lines; `{1} {2}` are the remote name and the PUSH url it judges.
+    old-history-push:
+      priority: 1
+      use_stdin: true
+      run: node_modules/.bin/tsx src/admit/pushRootGuardCli.ts {1} {2}
+    working-tree-clean:
+      priority: 2
+      run: node_modules/.bin/tsx src/admit/prePushWorkingTreeCli.ts
+    validate:
+      priority: 3
+      run: yarn validate:local
+
+post-merge:
+  commands:
+    node-modules-current:
+      priority: 1
+      run: node_modules/.bin/tsx src/checkouts/refMoveInstallCli.ts post-merge {1}
+    # Second, never first: a build against a node_modules that does not match the lockfile builds nothing
+    # useful. The `test -f` is the WHOLE condition and it belongs here rather than inside the verb: the skip
+    # used to be inside, so a checkout that had never built anything still booted tsx and printed a line on
+    # every ref move to reach it. MEASURED on a throwaway worktree with no `dist-cli`, three runs each:
+    # 0.25 / 0.24 / 0.24 s before, 0.01 s every time after, and the line is gone. Repro:
+    #   git worktree add --detach /tmp/p HEAD && ln -s "$PWD/node_modules" /tmp/p/node_modules
+    #   cd /tmp/p && LEFTHOOK_EXCLUDE=node-modules-current node_modules/.bin/lefthook run post-merge
+    # `unit/checkouts/lefthookBuiltCli.test.ts` pins the path against the constants the verb uses.
+    built-cli-current:
+      priority: 2
+      run: if test -f dist-cli/.slopweaver-build.json; then node_modules/.bin/tsx src/checkouts/refMoveBuildCli.ts post-merge {1}; fi
+    # Third: the production console this checkout serves, rebuilt onto the new HEAD and restarted — in the
+    # BACKGROUND, because the build is about 25 s and a hook must not hold the pull for it. The `test -d` is the
+    # whole condition for the reason `built-cli-current`'s is: only a checkout that has ever run
+    # `docs-site.sh --serve` has a slot, so every other worktree's pull pays one `test` and prints nothing.
+    # `checkout sync` asks for the same refresh after its fast-forward; whichever arrives second is told a
+    # rebuild is already running. A hook does it automatically when main moves — docs/docs-site/runtime.md § The production console.
+    console-current:
+      priority: 3
+      run: if test -d site/.next-serve-a || test -d site/.next-serve-b; then bash scripts/docs-site.sh --refresh --background; fi
+    # Fourth: the Codex install, which Codex re-copies ONLY on `codex plugin add` — so without this it sat on
+    # a build six weeks old. `.git` being a DIRECTORY is the cheap half of "a main checkout, never a
+    # linked worktree"; `--decide` checks the declared main checkouts and the Codex marketplace itself and exits
+    # 3 unless a refresh is due. Only then does THIS shell background `--log`, the ~13 s export plus add, for
+    # the reason `console-current` does — `no-headless` keeps an async child process out of `src/`.
+    # `src/codexPlugin/plan.ts` carries the measurements that ruled out every live route.
+    codex-plugin-current:
+      priority: 4
+      run: if test -d .git && test -f "$HOME/.agents/plugins/marketplace.json"; then if node_modules/.bin/tsx src/cli/index.ts codex plugin-sync --decide; then (node_modules/.bin/tsx src/cli/index.ts codex plugin-sync --log </dev/null >/dev/null 2>&1 &); fi; fi
+    # Fifth: the desktop app, built and signed at the new HEAD into a staged folder so the owner's Update now swaps it in
+    # rather than starting a build (the desktop app is never left to get very old).
+    # The same two halves as `codex-plugin-current`, for the same reasons: `.git` a directory is the cheap half of
+    # "a main checkout", `--decide` checks the rest — the declared main checkout, the signing keychain, a build
+    # already staged or installed — and exits 3 unless one is due, and only then does THIS shell background `--log`.
+    # `src/cli/commands/desktop/prebuildRun.ts` carries the rest.
+    desktop-current:
+      priority: 5
+      run: if test -d .git; then if node_modules/.bin/tsx src/cli/index.ts desktop prebuild --decide; then (node_modules/.bin/tsx src/cli/index.ts desktop prebuild --log </dev/null >/dev/null 2>&1 &); fi; fi
+
+post-checkout:
+  # `skip` because git fires post-checkout ONCE at the START of a rebase, against the commit it is about to
+  # replay onto — measured, lefthook 2.1.12. Installing there is an install against an intermediate lockfile
+  # that nothing corrects when the replay lands, over a tree the user is about to change again. post-merge
+  # carries no such skip: it fires precisely DURING a merge.
+  skip:
+    - rebase
+    - merge
+  commands:
+    node-modules-current:
+      priority: 1
+      run: node_modules/.bin/tsx src/checkouts/refMoveInstallCli.ts post-checkout {1} {2} {3}
+    # Conditioned exactly as `post-merge`'s is, and for the measurement recorded there.
+    built-cli-current:
+      priority: 2
+      run: if test -f dist-cli/.slopweaver-build.json; then node_modules/.bin/tsx src/checkouts/refMoveBuildCli.ts post-checkout {1} {2} {3}; fi

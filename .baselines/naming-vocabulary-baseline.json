@@ -1,0 +1,2989 @@
+{
+  "identifiers": [
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "desktop/src/windowChrome.ts"
+    },
+    {
+      "count": 1,
+      "name": "SlopweaverTurnProvider",
+      "path": "eval/turnProvider.ts"
+    },
+    {
+      "count": 1,
+      "name": "TurnProviderResponse",
+      "path": "eval/turnProvider.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "site/components/live/readPlanLimits.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasCitationPlatforms",
+      "path": "site/lib/citationKinds.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "site/lib/fleetGlancePlans.ts"
+    },
+    {
+      "count": 1,
+      "name": "PLATFORM_SHELL_OPEN",
+      "path": "site/lib/localPageShell.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/accessReview/boundary.ts"
+    },
+    {
+      "count": 1,
+      "name": "PlatformFinding",
+      "path": "src/accessReview/join.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/accessReview/join.ts"
+    },
+    {
+      "count": 1,
+      "name": "AccessPlatformSpec",
+      "path": "src/accessReview/levels.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/accessReview/levels.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/accessReview/privileged.ts"
+    },
+    {
+      "count": 1,
+      "name": "PlatformSection",
+      "path": "src/accessReview/report.ts"
+    },
+    {
+      "count": 1,
+      "name": "PlatformSource",
+      "path": "src/accessReview/report.ts"
+    },
+    {
+      "count": 3,
+      "name": "platform",
+      "path": "src/accessReview/report.ts"
+    },
+    {
+      "count": 1,
+      "name": "platformSectionOf",
+      "path": "src/accessReview/report.ts"
+    },
+    {
+      "count": 1,
+      "name": "refusedPlatformsOf",
+      "path": "src/accessReview/report.ts"
+    },
+    {
+      "count": 1,
+      "name": "AccessPlatformRows",
+      "path": "src/accessReview/rows.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/accessReview/rows.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/accessReview/rows.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/admit/browserPagePolicy.ts"
+    },
+    {
+      "count": 1,
+      "name": "RegisteredPlatform",
+      "path": "src/admit/browserSurface.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/admit/browserSurface.ts"
+    },
+    {
+      "count": 1,
+      "name": "registeredWritePlatforms",
+      "path": "src/admit/browserSurface.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/admit/declinedAtlasGate.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/admit/declinedAtlasGate.ts"
+    },
+    {
+      "count": 1,
+      "name": "ALIAS_PROVIDERS",
+      "path": "src/alias/address.ts"
+    },
+    {
+      "count": 1,
+      "name": "AliasProvider",
+      "path": "src/alias/address.ts"
+    },
+    {
+      "count": 1,
+      "name": "isAliasProvider",
+      "path": "src/alias/address.ts"
+    },
+    {
+      "count": 4,
+      "name": "provider",
+      "path": "src/alias/address.ts"
+    },
+    {
+      "count": 1,
+      "name": "AETHER_PLATFORM",
+      "path": "src/atlas/aether/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/airtable/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "AIRTABLE_ATLAS_PLATFORM",
+      "path": "src/atlas/airtable/model.ts"
+    },
+    {
+      "count": 3,
+      "name": "providerId",
+      "path": "src/atlas/braze/collection.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/braze/docsCatalogue.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/braze/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "BRAZE_ATLAS_PLATFORM",
+      "path": "src/atlas/braze/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "brazeOperationProviderId",
+      "path": "src/atlas/braze/pathKey.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/braze/report.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/braze/sync.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIds",
+      "path": "src/atlas/braze/sync.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/braze/syncGaps.ts"
+    },
+    {
+      "count": 1,
+      "name": "CANVA_ATLAS_PLATFORM",
+      "path": "src/atlas/canva/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "canvaProviderId",
+      "path": "src/atlas/canva/surfaceNaming.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/clerk/browserSurface.ts"
+    },
+    {
+      "count": 3,
+      "name": "providerId",
+      "path": "src/atlas/clerk/disagreement.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/clerk/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "CLERK_ATLAS_PLATFORM",
+      "path": "src/atlas/clerk/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/clerk/specRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "CLERK_PLATFORM_PATH_PREFIX",
+      "path": "src/atlas/clerk/surfaceNaming.ts"
+    },
+    {
+      "count": 1,
+      "name": "clerkProviderId",
+      "path": "src/atlas/clerk/surfaceNaming.ts"
+    },
+    {
+      "count": 1,
+      "name": "CloudflareProviderError",
+      "path": "src/atlas/cloudflare/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "CLOUDFLARE_ATLAS_PLATFORM",
+      "path": "src/atlas/cloudflare/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "CloudflareIdentityProviderDetail",
+      "path": "src/atlas/cloudflare/projection/access.ts"
+    },
+    {
+      "count": 1,
+      "name": "CloudflareIdentityProviderDto",
+      "path": "src/atlas/cloudflare/projection/access.ts"
+    },
+    {
+      "count": 1,
+      "name": "projectCloudflareIdentityProvider",
+      "path": "src/atlas/cloudflare/projection/access.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/atlas/cloudflare/projection/access.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/cloudflare/projection/accountScopedEntity.ts"
+    },
+    {
+      "count": 1,
+      "name": "WAF_PACKAGE_PROVIDER_ID_PREFIX",
+      "path": "src/atlas/cloudflare/projection/legacyWaf.ts"
+    },
+    {
+      "count": 1,
+      "name": "readCloudflareIdentityProviders",
+      "path": "src/atlas/cloudflare/readers/access.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/crowdstrike/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "CROWDSTRIKE_PLATFORM",
+      "path": "src/atlas/crowdstrike/model.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/crowdstrike/projectionEnvelope.ts"
+    },
+    {
+      "count": 1,
+      "name": "requireProviderId",
+      "path": "src/atlas/crowdstrike/projectionEnvelope.ts"
+    },
+    {
+      "count": 1,
+      "name": "crowdstrikeProviderId",
+      "path": "src/atlas/crowdstrike/reconcile.ts"
+    },
+    {
+      "count": 1,
+      "name": "foreignProviderId",
+      "path": "src/atlas/crowdstrike/reconcile.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/crowdstrike/reconcile.ts"
+    },
+    {
+      "count": 1,
+      "name": "TokenProvider",
+      "path": "src/atlas/crowdstrike/tokenProvider.ts"
+    },
+    {
+      "count": 1,
+      "name": "createTokenProvider",
+      "path": "src/atlas/crowdstrike/tokenProvider.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/datadog/estateAcquisition.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/datadog/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "DATADOG_ATLAS_PLATFORM",
+      "path": "src/atlas/datadog/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/datadog/syncApiEntities.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/figma/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "FIGMA_ATLAS_PLATFORM",
+      "path": "src/atlas/figma/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/geminiAiStudio/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "GEMINI_AI_STUDIO_ATLAS_PLATFORM",
+      "path": "src/atlas/geminiAiStudio/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/geminiAiStudio/specRead.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/geminiAiStudio/versions.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/github/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "GITHUB_PLATFORM",
+      "path": "src/atlas/github/model.ts"
+    },
+    {
+      "count": 3,
+      "name": "providerId",
+      "path": "src/atlas/github/projectionBase.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIdOf",
+      "path": "src/atlas/github/projectionBase.ts"
+    },
+    {
+      "count": 1,
+      "name": "googleAdminProviderKey",
+      "path": "src/atlas/googleAdmin/adminApi/records.ts"
+    },
+    {
+      "count": 1,
+      "name": "GOOGLE_ADMIN_ATLAS_PLATFORM",
+      "path": "src/atlas/googleAdmin/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "googleAdminProviderId",
+      "path": "src/atlas/googleAdmin/surfaceNaming.ts"
+    },
+    {
+      "count": 1,
+      "name": "cloudPlatformOnlyCell",
+      "path": "src/atlas/googleSecops/cells.ts"
+    },
+    {
+      "count": 1,
+      "name": "CLOUD_PLATFORM_UNBLOCKED_BY",
+      "path": "src/atlas/googleSecops/fill/plan.ts"
+    },
+    {
+      "count": 1,
+      "name": "GOOGLE_SECOPS_CLOUD_PLATFORM_ONLY_KINDS",
+      "path": "src/atlas/googleSecops/fill/plan.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/googleSecops/fill/project.ts"
+    },
+    {
+      "count": 1,
+      "name": "CLOUD_PLATFORM_SCOPE",
+      "path": "src/atlas/googleSecops/inventory.ts"
+    },
+    {
+      "count": 1,
+      "name": "GOOGLE_SECOPS_ATLAS_PLATFORM",
+      "path": "src/atlas/googleSecops/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/graphqlHive/browserSurface.ts"
+    },
+    {
+      "count": 1,
+      "name": "consolePageProviderId",
+      "path": "src/atlas/graphqlHive/consolePages.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/graphqlHive/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "HIVE_ATLAS_PLATFORM",
+      "path": "src/atlas/graphqlHive/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/graphqlHive/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerKey",
+      "path": "src/atlas/graphqlHive/schemaRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/hex/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "HEX_ATLAS_PLATFORM",
+      "path": "src/atlas/hex/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "hexGraphqlProviderId",
+      "path": "src/atlas/hex/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "hexProbeProviderId",
+      "path": "src/atlas/hex/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/hex/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/hex/report.ts"
+    },
+    {
+      "count": 1,
+      "name": "hexMethodProviderId",
+      "path": "src/atlas/hex/specSurface.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/hex/walkPublish.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/inngest/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "INNGEST_ATLAS_PLATFORM",
+      "path": "src/atlas/inngest/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/inngest/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "inngestOperationProviderId",
+      "path": "src/atlas/inngest/restCatalogue.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/jam/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "JAM_ATLAS_PLATFORM",
+      "path": "src/atlas/jam/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "jamObservedCallProviderId",
+      "path": "src/atlas/jam/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "jamOperationProviderId",
+      "path": "src/atlas/jam/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/jumpcloud/browserProjection.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerSaid",
+      "path": "src/atlas/jumpcloud/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/jumpcloud/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerAnswers",
+      "path": "src/atlas/jumpcloud/kindBoundary.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/jumpcloud/kindBoundary.ts"
+    },
+    {
+      "count": 1,
+      "name": "JUMPCLOUD_ATLAS_PLATFORM",
+      "path": "src/atlas/jumpcloud/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIdOf",
+      "path": "src/atlas/jumpcloud/plan.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIds",
+      "path": "src/atlas/jumpcloud/syncAccumulator.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIdsBySurface",
+      "path": "src/atlas/jumpcloud/syncAccumulator.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIds",
+      "path": "src/atlas/jumpcloud/syncEngine.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIdsBySurface",
+      "path": "src/atlas/jumpcloud/syncEngine.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/jumpcloud/syncEntities.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIds",
+      "path": "src/atlas/jumpcloud/syncEntities.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/answerable.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformGroup",
+      "path": "src/atlas/kit/backlog.ts"
+    },
+    {
+      "count": 5,
+      "name": "platform",
+      "path": "src/atlas/kit/backlog.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/kit/captureErrors.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/kit/channelEntity.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/kit/channelProjection.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/atlas/kit/channelSchemas.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/compiledSync.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerName",
+      "path": "src/atlas/kit/completeRead.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/atlas/kit/deferredBacklog.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/atlas/kit/estateEvidence.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/evidenceLoss.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/atlas/kit/freshnessWindow.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/kit/frontierWalk.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/atlas/kit/generationErrors.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/atlas/kit/generationSchemas.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/mandatoryKinds.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/atlas/kit/mutationLock.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/kit/pageDisagreement.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/pageHtml.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/pageModel.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/kit/pageModel.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/pageReachability.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/kit/pageReachability.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/kit/pageScreenshots.ts"
+    },
+    {
+      "count": 2,
+      "name": "leasePlatform",
+      "path": "src/atlas/kit/publishErrors.ts"
+    },
+    {
+      "count": 8,
+      "name": "platform",
+      "path": "src/atlas/kit/publishErrors.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/publishGuard.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformMissingError",
+      "path": "src/atlas/kit/read.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformUnknownError",
+      "path": "src/atlas/kit/read.ts"
+    },
+    {
+      "count": 11,
+      "name": "platform",
+      "path": "src/atlas/kit/read.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/kit/read.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/atlas/kit/readAnswer.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerCompleteness",
+      "path": "src/atlas/kit/readAnswer.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformRegistration",
+      "path": "src/atlas/kit/registration.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/registration.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformReset",
+      "path": "src/atlas/kit/reset.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/atlas/kit/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/supersedeAdvice.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformUsage",
+      "path": "src/atlas/kit/verbs.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformVerbNames",
+      "path": "src/atlas/kit/verbs.ts"
+    },
+    {
+      "count": 3,
+      "name": "platform",
+      "path": "src/atlas/kit/verbs.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/kit/volume.ts"
+    },
+    {
+      "count": 3,
+      "name": "providerId",
+      "path": "src/atlas/kit/walkSurface.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/atlas/kit/walkTransport.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/kit/walkVerb.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/knock/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "KNOCK_ATLAS_PLATFORM",
+      "path": "src/atlas/knock/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/knowbe4/fill/parentCount.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/knowbe4/fill/projectShapes.ts"
+    },
+    {
+      "count": 1,
+      "name": "KNOWBE4_ATLAS_PLATFORM",
+      "path": "src/atlas/knowbe4/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/linear/graphqlObservations.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/linear/introspection.ts"
+    },
+    {
+      "count": 1,
+      "name": "LINEAR_ATLAS_PLATFORM",
+      "path": "src/atlas/linear/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/linear/projectionKit.ts"
+    },
+    {
+      "count": 1,
+      "name": "operationProviderIds",
+      "path": "src/atlas/linear/rootFieldCensus.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/linear/rootFieldCensus.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/linear/routes.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/linear/settings.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/linear/walk.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/make/fill/project.ts"
+    },
+    {
+      "count": 1,
+      "name": "MAKE_ATLAS_PLATFORM",
+      "path": "src/atlas/make/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/microsoft365/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "MICROSOFT365_ATLAS_PLATFORM",
+      "path": "src/atlas/microsoft365/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/microsoft365/specRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "microsoft365ProviderId",
+      "path": "src/atlas/microsoft365/surfaceNaming.ts"
+    },
+    {
+      "count": 1,
+      "name": "NIGHTFALL_ATLAS_PLATFORM",
+      "path": "src/atlas/nightfall/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "nightfallProviderId",
+      "path": "src/atlas/nightfall/surfaceNaming.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/notion/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "NOTION_ATLAS_PLATFORM",
+      "path": "src/atlas/notion/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "methodProviderId",
+      "path": "src/atlas/notion/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "isSettingsTabProviderId",
+      "path": "src/atlas/notion/settingsWalk.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/notion/settingsWalk.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/nxCloud/disagreement.ts"
+    },
+    {
+      "count": 1,
+      "name": "NX_CLOUD_ATLAS_PLATFORM",
+      "path": "src/atlas/nxCloud/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/nxCloud/webData.ts"
+    },
+    {
+      "count": 1,
+      "name": "onepasswordEdgeProviderId",
+      "path": "src/atlas/onepassword/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "ONEPASSWORD_ATLAS_PLATFORM",
+      "path": "src/atlas/onepassword/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/onepassword/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformDirectories",
+      "path": "src/atlas/platformPaths.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/platformPaths.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_ATLAS_DESCRIPTOR",
+      "path": "src/atlas/prismaDataPlatform/descriptor.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_GAP_CONDITIONS",
+      "path": "src/atlas/prismaDataPlatform/gaps.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformGapCondition",
+      "path": "src/atlas/prismaDataPlatform/gaps.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformEntityId",
+      "path": "src/atlas/prismaDataPlatform/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformGapId",
+      "path": "src/atlas/prismaDataPlatform/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/prismaDataPlatform/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_ATLAS_KINDS",
+      "path": "src/atlas/prismaDataPlatform/kinds.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformAtlasKind",
+      "path": "src/atlas/prismaDataPlatform/kinds.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformKindFor",
+      "path": "src/atlas/prismaDataPlatform/kinds.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformKindPrefixes",
+      "path": "src/atlas/prismaDataPlatform/kinds.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_ATLAS_CHANNELS",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_ATLAS_PLATFORM",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_ATLAS_SCHEMA_VERSION",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_VISIBILITY_SCOPES",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformArtifactRef",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformAtlasChannel",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformCoverageState",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformEntity",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformEvidenceRole",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformGap",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformKindFile",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformKindStatus",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformManifest",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformSource",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformVisibilityScope",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "emptyPrismaDataPlatformKindFile",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "emptyPrismaDataPlatformKindFiles",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "heldPrismaDataPlatformKindFile",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "heldPrismaDataPlatformManifest",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "initialPrismaDataPlatformManifest",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformArtifactRefSchema",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformEntitySchema",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformGapSchema",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformKindFileSchema",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformKindStatusSchema",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformManifestSchema",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformSourceSchema",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformVisibilityScopeFor",
+      "path": "src/atlas/prismaDataPlatform/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformObservations",
+      "path": "src/atlas/prismaDataPlatform/readAdapter.ts"
+    },
+    {
+      "count": 1,
+      "name": "readPrismaDataPlatformSnapshot",
+      "path": "src/atlas/prismaDataPlatform/readAdapter.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_ATLAS_REGISTRATION",
+      "path": "src/atlas/prismaDataPlatform/registration.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformResetOutcome",
+      "path": "src/atlas/prismaDataPlatform/reset.ts"
+    },
+    {
+      "count": 1,
+      "name": "resetPrismaDataPlatformAtlas",
+      "path": "src/atlas/prismaDataPlatform/reset.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_PUBLISH_LOCK_KEY",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_STORE_SPEC",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_SUPERSEDE_REMEDY",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformAtlasPaths",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "PrismaDataPlatformSnapshot",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformAtlasJson",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformAtlasPaths",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "publishPrismaDataPlatformAtlas",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "readPrismaDataPlatformAtlas",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "readPrismaDataPlatformKindFile",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "readPrismaDataPlatformManifest",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "withPrismaDataPlatformPublishLock",
+      "path": "src/atlas/prismaDataPlatform/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "syncPrismaDataPlatformSurfaces",
+      "path": "src/atlas/prismaDataPlatform/sync.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatforms",
+      "path": "src/atlas/registry.ts"
+    },
+    {
+      "count": 1,
+      "name": "findAtlasPlatform",
+      "path": "src/atlas/registry.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/registry.ts"
+    },
+    {
+      "count": 1,
+      "name": "SLACK_ATLAS_PLATFORM",
+      "path": "src/atlas/slackApi/atlasModel.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/slackApi/atlasProjection.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/slackApi/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/trelica/aiProjection.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlas/trelica/entityModel.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/atlas/trelica/entityModel.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerType",
+      "path": "src/atlas/trelica/entityModel.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/atlas/trelica/entityProjection.ts"
+    },
+    {
+      "count": 1,
+      "name": "providers",
+      "path": "src/atlas/trelica/entityProjection.ts"
+    },
+    {
+      "count": 1,
+      "name": "TrelicaIntegrationProviderRecord",
+      "path": "src/atlas/trelica/estateBoundaries.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/trelica/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/trelica/methodFold.ts"
+    },
+    {
+      "count": 1,
+      "name": "TRELICA_ATLAS_PLATFORM",
+      "path": "src/atlas/trelica/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/atlas/trelica/offboardingWorkflows.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/trelica/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "trelicaAppProviderId",
+      "path": "src/atlas/trelica/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "trelicaMethodProviderId",
+      "path": "src/atlas/trelica/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "TRELICA_PROVIDER_TEXT_WITHHELD",
+      "path": "src/atlas/trelica/providerText.ts"
+    },
+    {
+      "count": 1,
+      "name": "heldTrelicaProviderText",
+      "path": "src/atlas/trelica/providerText.ts"
+    },
+    {
+      "count": 1,
+      "name": "reheldTrelicaProviderTexts",
+      "path": "src/atlas/trelica/providerText.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/twilio/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "TWILIO_ATLAS_PLATFORM",
+      "path": "src/atlas/twilio/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/twilio/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/twilio/report.ts"
+    },
+    {
+      "count": 1,
+      "name": "twilioMethodProviderId",
+      "path": "src/atlas/twilio/specSurface.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/twilio/walkPublish.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/vanta/browserPages.ts"
+    },
+    {
+      "count": 1,
+      "name": "vantaCallProviderId",
+      "path": "src/atlas/vanta/browserReduction.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/vanta/census.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/vanta/changes.ts"
+    },
+    {
+      "count": 2,
+      "name": "boundedByProvider",
+      "path": "src/atlas/vanta/client.ts"
+    },
+    {
+      "count": 3,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/client.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/vanta/controlLinks.ts"
+    },
+    {
+      "count": 3,
+      "name": "providerId",
+      "path": "src/atlas/vanta/controlShot.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/vanta/controlShotSurface.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/vanta/controlsEvidence.ts"
+    },
+    {
+      "count": 2,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/groupWriteClient.ts"
+    },
+    {
+      "count": 1,
+      "name": "VANTA_ATLAS_PLATFORM",
+      "path": "src/atlas/vanta/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "VantaTokenProvider",
+      "path": "src/atlas/vanta/oauth.ts"
+    },
+    {
+      "count": 1,
+      "name": "createVantaTokenProvider",
+      "path": "src/atlas/vanta/oauth.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerId",
+      "path": "src/atlas/vanta/pagination.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/vanta/policyDocuments.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/vanta/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/sdk/VantaClient.ts"
+    },
+    {
+      "count": 3,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/sdk/httpBoundary.ts"
+    },
+    {
+      "count": 1,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/sdk/operations/controls.ts"
+    },
+    {
+      "count": 1,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/sdk/operations/documents.ts"
+    },
+    {
+      "count": 1,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/sdk/operations/tests.ts"
+    },
+    {
+      "count": 1,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/sdk/operations/vendors.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/vanta/surfaceWalk.ts"
+    },
+    {
+      "count": 2,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/surfaceWalk.ts"
+    },
+    {
+      "count": 1,
+      "name": "observedProviderIds",
+      "path": "src/atlas/vanta/syncKind.ts"
+    },
+    {
+      "count": 2,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/vulnerabilityWriteClient.ts"
+    },
+    {
+      "count": 6,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/writeClient.ts"
+    },
+    {
+      "count": 1,
+      "name": "tokenProvider",
+      "path": "src/atlas/vanta/writeTransport.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/workos/browserSurface.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/workos/entityShape.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/workos/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "WORKOS_ATLAS_PLATFORM",
+      "path": "src/atlas/workos/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "workosRouteProviderId",
+      "path": "src/atlas/workos/routeCandidates.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/atlas/xero/identity.ts"
+    },
+    {
+      "count": 1,
+      "name": "XERO_ATLAS_PLATFORM",
+      "path": "src/atlas/xero/model.ts"
+    },
+    {
+      "count": 1,
+      "name": "apiProviderId",
+      "path": "src/atlas/xero/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "methodProviderId",
+      "path": "src/atlas/xero/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformPaths",
+      "path": "src/atlasHomeShared.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/atlasHomeShared.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformOf",
+      "path": "src/automations/purpose.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/automations/purpose.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/browser/action.ts"
+    },
+    {
+      "count": 6,
+      "name": "platform",
+      "path": "src/browser/browserErrors.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/browser/cookieCrypto.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/browser/cookieJar.ts"
+    },
+    {
+      "count": 1,
+      "name": "UnsupportedPlatformError",
+      "path": "src/browser/errors.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/browser/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/browser/presentDesktop.ts"
+    },
+    {
+      "count": 5,
+      "name": "platform",
+      "path": "src/browser/relayLease.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/browser/relaySession.ts"
+    },
+    {
+      "count": 1,
+      "name": "SIGN_IN_PROVIDERS",
+      "path": "src/browser/signInPress.ts"
+    },
+    {
+      "count": 1,
+      "name": "SignInProvider",
+      "path": "src/browser/signInPress.ts"
+    },
+    {
+      "count": 1,
+      "name": "isSignInProvider",
+      "path": "src/browser/signInPress.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/browser/signInPress.ts"
+    },
+    {
+      "count": 1,
+      "name": "sessionOpenedOnProvider",
+      "path": "src/browser/signInPress.ts"
+    },
+    {
+      "count": 1,
+      "name": "signInProviderOfHost",
+      "path": "src/browser/signInPress.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/browser/signInProbeStore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cacheHome.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/accessReview/formerCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "refusedPlatforms",
+      "path": "src/cli/commands/accessReview/formerCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "gatherPlatform",
+      "path": "src/cli/commands/accessReview/gather.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/accessReview/gather.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/cli/commands/accessReview/gather.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/accessReview/options.ts"
+    },
+    {
+      "count": 1,
+      "name": "takesPlatform",
+      "path": "src/cli/commands/accessReview/options.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/accessReview/platformCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platformSectionJson",
+      "path": "src/cli/commands/accessReview/platformCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "renderPlatformSection",
+      "path": "src/cli/commands/accessReview/platformCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "accessReviewPlatformCommand",
+      "path": "src/cli/commands/accessReview/platformRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/accessReview/platformRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "runAccessReviewPlatform",
+      "path": "src/cli/commands/accessReview/platformRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "refusedPlatforms",
+      "path": "src/cli/commands/accessReview/privilegedCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platformsFor",
+      "path": "src/cli/commands/accessReview/runShell.ts"
+    },
+    {
+      "count": 1,
+      "name": "takesPlatform",
+      "path": "src/cli/commands/accessReview/runShell.ts"
+    },
+    {
+      "count": 1,
+      "name": "ACCESS_REVIEW_PLATFORM_USAGE",
+      "path": "src/cli/commands/accessReview/usage.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/cli/commands/alias/core.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/backlogCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/backlogRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/coverageCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/coverageRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/coverageRun.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/doctorCore.ts"
+    },
+    {
+      "count": 5,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/doctorRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/doctorRun.ts"
+    },
+    {
+      "count": 2,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/errors.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/freshnessCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/freshnessRun.ts"
+    },
+    {
+      "count": 2,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/freshnessRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformFailure",
+      "path": "src/cli/commands/atlas/platformResolve.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformLookup",
+      "path": "src/cli/commands/atlas/platformResolve.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatforms",
+      "path": "src/cli/commands/atlas/platformResolve.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/platformResolve.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/platformResolve.ts"
+    },
+    {
+      "count": 1,
+      "name": "resolvePlatformSnapshot",
+      "path": "src/cli/commands/atlas/platformResolve.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformDeps",
+      "path": "src/cli/commands/atlas/platformRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformCommand",
+      "path": "src/cli/commands/atlas/platformRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/platformRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "productionAtlasPlatformDeps",
+      "path": "src/cli/commands/atlas/platformRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "runAtlasPlatform",
+      "path": "src/cli/commands/atlas/platformRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformDispatch",
+      "path": "src/cli/commands/atlas/platformVerb.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformDispatch",
+      "path": "src/cli/commands/atlas/platformVerb.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformUsage",
+      "path": "src/cli/commands/atlas/platformVerb.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformWantsHelp",
+      "path": "src/cli/commands/atlas/platformVerb.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/probeCore.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/readCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/readRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/readRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/renderRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/renderRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/resetRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/cli/commands/atlas/resetRun.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/resetRunCore.ts"
+    },
+    {
+      "count": 3,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/restoreCore.ts"
+    },
+    {
+      "count": 3,
+      "name": "platform",
+      "path": "src/cli/commands/atlas/restoreRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/cli/commands/brazeAtlas/reportRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "BrowserVerbDooredProviderError",
+      "path": "src/cli/commands/browser/errors.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/cli/commands/browser/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/cli/commands/browser/profileCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "SHOT_LEASE_PLATFORM",
+      "path": "src/cli/commands/browser/shotCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/browser/shotCore.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/cli/commands/browser/signInLook.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/cli/commands/browser/signInRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "crowdstrikeProviderId",
+      "path": "src/cli/commands/crowdstrike/core.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerNotesDropped",
+      "path": "src/cli/commands/fathom/shareCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/cli/commands/github/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "RefProviderFailedError",
+      "path": "src/cli/commands/github/refsErrors.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/cli/commands/google/revokeSeam.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/hand/deps.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerIds",
+      "path": "src/cli/commands/hexAtlas/reportRun.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/cli/commands/monitor/checkFiredStages.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/monitor/deps.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerReferenceRoute",
+      "path": "src/cli/commands/pdf/core.ts"
+    },
+    {
+      "count": 11,
+      "name": "provider",
+      "path": "src/cli/commands/plans/core.ts"
+    },
+    {
+      "count": 1,
+      "name": "providers",
+      "path": "src/cli/commands/plans/lines.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderChange",
+      "path": "src/cli/commands/plans/thresholdArgs.ts"
+    },
+    {
+      "count": 4,
+      "name": "provider",
+      "path": "src/cli/commands/plans/thresholdArgs.ts"
+    },
+    {
+      "count": 1,
+      "name": "providers",
+      "path": "src/cli/commands/plans/thresholdLines.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_RESET_USAGE",
+      "path": "src/cli/commands/prismaDataPlatformAtlas/resetRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformAtlasResetCommand",
+      "path": "src/cli/commands/prismaDataPlatformAtlas/resetRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "PRISMA_DATA_PLATFORM_SYNC_USAGE",
+      "path": "src/cli/commands/prismaDataPlatformAtlas/syncRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatformAtlasSyncCommand",
+      "path": "src/cli/commands/prismaDataPlatformAtlas/syncRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "publishTargetProvider",
+      "path": "src/cli/commands/proposal/publishCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "PROVIDER_READ_FLAG_NAMES",
+      "path": "src/cli/commands/providerRead/core.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadOptions",
+      "path": "src/cli/commands/providerRead/core.ts"
+    },
+    {
+      "count": 1,
+      "name": "parseProviderReadArgs",
+      "path": "src/cli/commands/providerRead/core.ts"
+    },
+    {
+      "count": 3,
+      "name": "provider",
+      "path": "src/cli/commands/providerRead/core.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerReadUsage",
+      "path": "src/cli/commands/providerRead/core.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadAddressMissingError",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadAfterOnDatabaseError",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadArgsError",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadArgsErrors",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadFilesNotPullRequestError",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadFlagsInvalidError",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadIncludeInvalidError",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadInvalidFlagValueError",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerReadArgsErrorLines",
+      "path": "src/cli/commands/providerRead/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadDeps",
+      "path": "src/cli/commands/providerRead/run.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadError",
+      "path": "src/cli/commands/providerRead/run.ts"
+    },
+    {
+      "count": 1,
+      "name": "productionProviderReadDeps",
+      "path": "src/cli/commands/providerRead/run.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/cli/commands/providerRead/run.ts"
+    },
+    {
+      "count": 1,
+      "name": "runProviderRead",
+      "path": "src/cli/commands/providerRead/run.ts"
+    },
+    {
+      "count": 1,
+      "name": "SLACK_SAVED_LEASE_PLATFORM",
+      "path": "src/cli/commands/slack/savedRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "SLACK_SHOT_LEASE_PLATFORM",
+      "path": "src/cli/commands/slack/shotRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "PlatformRefusal",
+      "path": "src/cli/commands/store/importAtlasCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "PlatformTally",
+      "path": "src/cli/commands/store/importAtlasCore.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/cli/commands/store/importAtlasCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "platformsPlanned",
+      "path": "src/cli/commands/store/importAtlasCore.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/cli/commands/store/importAtlasRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platformPlan",
+      "path": "src/cli/commands/store/importAtlasRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/cli/commands/turn/reachCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "createTokenProvider",
+      "path": "src/cli/commands/vanta/binding.ts"
+    },
+    {
+      "count": 1,
+      "name": "tokenProvider",
+      "path": "src/cli/commands/vanta/binding.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/cli/commands/vanta/changesCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerId",
+      "path": "src/cli/commands/xeroAtlas/familiesRun.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformManifestRow",
+      "path": "src/cli/manifests/atlasPlatformMeta.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/codex/browserProbe.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerUnregistered",
+      "path": "src/codex/fleetCap.ts"
+    },
+    {
+      "count": 1,
+      "name": "LedgerProvider",
+      "path": "src/codex/ledger.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/codex/ledger.ts"
+    },
+    {
+      "count": 1,
+      "name": "CodexProviderUnregisteredEvidence",
+      "path": "src/codex/providerUnregistered.ts"
+    },
+    {
+      "count": 1,
+      "name": "codexProviderUnregistered",
+      "path": "src/codex/providerUnregistered.ts"
+    },
+    {
+      "count": 1,
+      "name": "parseProviderUnregisteredEvidence",
+      "path": "src/codex/providerUnregistered.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerUnregisteredLine",
+      "path": "src/codex/providerUnregistered.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/codex/vendoredCli.ts"
+    },
+    {
+      "count": 1,
+      "name": "ContextProvider",
+      "path": "src/context/alwaysLoaded.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/context/alwaysLoaded.ts"
+    },
+    {
+      "count": 1,
+      "name": "SamlNoProviderError",
+      "path": "src/corpus/github/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "hasProvider",
+      "path": "src/corpus/github/members.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/desktop/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/desktop/installPlan.ts"
+    },
+    {
+      "count": 1,
+      "name": "PlatformBucket",
+      "path": "src/detective/atlasLead.ts"
+    },
+    {
+      "count": 2,
+      "name": "byPlatform",
+      "path": "src/detective/atlasLead.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/detective/atlasLead.ts"
+    },
+    {
+      "count": 1,
+      "name": "ScannedPlatform",
+      "path": "src/devLint/atlasContentCoverage.ts"
+    },
+    {
+      "count": 3,
+      "name": "platform",
+      "path": "src/devLint/atlasContentCoverage.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/devLint/atlasContentCoverage.ts"
+    },
+    {
+      "count": 1,
+      "name": "platformsScanned",
+      "path": "src/devLint/atlasContentCoverage.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/environment/gather.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/gcp/execute.ts"
+    },
+    {
+      "count": 1,
+      "name": "GcpOperationProvider",
+      "path": "src/gcp/request.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/gcp/request.ts"
+    },
+    {
+      "count": 1,
+      "name": "NotThisPlatformError",
+      "path": "src/hand/handSurfaceErrors.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/hand/handSurfaceErrors.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/hand/integration.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/hand/note/raise.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/hand/sessionProbes.ts"
+    },
+    {
+      "count": 1,
+      "name": "sessionProbePlatform",
+      "path": "src/hand/sessionProbes.ts"
+    },
+    {
+      "count": 1,
+      "name": "fleetSignInProviders",
+      "path": "src/handover/fleetSignInGate.ts"
+    },
+    {
+      "count": 3,
+      "name": "provider",
+      "path": "src/handover/fleetSignInGate.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderLocationRule",
+      "path": "src/hygiene/identifierScan.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/hygiene/identifierScan.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerLocations",
+      "path": "src/hygiene/identifierScan.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerLocationLabels",
+      "path": "src/hygiene/installationIdentifiers.ts"
+    },
+    {
+      "count": 1,
+      "name": "PROVIDER_LOCATION_RULES",
+      "path": "src/hygiene/providerLocations.ts"
+    },
+    {
+      "count": 1,
+      "name": "hadNoProviderResponse",
+      "path": "src/lib/ingestError.ts"
+    },
+    {
+      "count": 4,
+      "name": "provider",
+      "path": "src/lib/ingestError.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderBackoff",
+      "path": "src/lib/providerCall.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderRetryObserver",
+      "path": "src/lib/providerCall.ts"
+    },
+    {
+      "count": 6,
+      "name": "provider",
+      "path": "src/lib/providerCall.ts"
+    },
+    {
+      "count": 1,
+      "name": "safeProviderCall",
+      "path": "src/lib/providerCall.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderScope",
+      "path": "src/lib/rateBlock.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/lib/rateBlock.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderRateLimits",
+      "path": "src/lib/rateLimitQuota.ts"
+    },
+    {
+      "count": 1,
+      "name": "PROVIDER_RATE_LIMITS",
+      "path": "src/lib/rateLimits.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderRateLimits",
+      "path": "src/lib/rateLimits.ts"
+    },
+    {
+      "count": 4,
+      "name": "provider",
+      "path": "src/lib/rateLimits.ts"
+    },
+    {
+      "count": 1,
+      "name": "PLATFORM_RATE_LIMITS",
+      "path": "src/lib/rateLimitsPlatforms.ts"
+    },
+    {
+      "count": 5,
+      "name": "provider",
+      "path": "src/live/google/consent.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/live/google/revoke.ts"
+    },
+    {
+      "count": 1,
+      "name": "channelProvider",
+      "path": "src/live/knock/projection.ts"
+    },
+    {
+      "count": 1,
+      "name": "PROVIDER",
+      "path": "src/live/outlook/apiCore.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadAttachment",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadCoverage",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadDocument",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadDocumentSource",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadMedia",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadSource",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProviderReadTarget",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "renderProviderReadJson",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "renderProviderReadText",
+      "path": "src/live/providerRead.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/live/resync/policy.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/live/resync/target.ts"
+    },
+    {
+      "count": 2,
+      "name": "providerTotalObserved",
+      "path": "src/live/slack/completeness.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/live/turn/declinedAtlasReadings.ts"
+    },
+    {
+      "count": 1,
+      "name": "platforms",
+      "path": "src/live/turn/declinedAtlasReadings.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/monitor/fleetHealthFate.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/monitor/fleetHealthSource.ts"
+    },
+    {
+      "count": 1,
+      "name": "providers",
+      "path": "src/monitor/fleetRunsDryCeilings.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/monitor/resyncSignedOut.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/onboard/mailbox.ts"
+    },
+    {
+      "count": 1,
+      "name": "outlookConnectorLines",
+      "path": "src/onboard/outlook.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/organisation/core.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProposalProvider",
+      "path": "src/outbound/proposal/address.ts"
+    },
+    {
+      "count": 1,
+      "name": "proposalDestinationProvider",
+      "path": "src/outbound/proposal/destination.ts"
+    },
+    {
+      "count": 1,
+      "name": "providerCode",
+      "path": "src/outbound/slack/sendFailure.ts"
+    },
+    {
+      "count": 1,
+      "name": "slackPlatformErrorCode",
+      "path": "src/outbound/slack/sendFailure.ts"
+    },
+    {
+      "count": 1,
+      "name": "PLATFORM_SHELL_OPEN",
+      "path": "src/pages/shell.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/plans/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "plansForProvider",
+      "path": "src/plans/register.ts"
+    },
+    {
+      "count": 4,
+      "name": "provider",
+      "path": "src/plans/register.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/plans/removed.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/plans/render.ts"
+    },
+    {
+      "count": 3,
+      "name": "provider",
+      "path": "src/plans/rowEdits.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/plans/structure.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/plans/thresholdMutation.ts"
+    },
+    {
+      "count": 6,
+      "name": "provider",
+      "path": "src/plans/thresholds.ts"
+    },
+    {
+      "count": 1,
+      "name": "PlanProvider",
+      "path": "src/plans/types.ts"
+    },
+    {
+      "count": 11,
+      "name": "provider",
+      "path": "src/plans/types.ts"
+    },
+    {
+      "count": 2,
+      "name": "platform",
+      "path": "src/route/atlasCapability.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformOf",
+      "path": "src/route/atlasReading.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/route/atlasReading.ts"
+    },
+    {
+      "count": 1,
+      "name": "findPlatform",
+      "path": "src/route/atlasReadings.ts"
+    },
+    {
+      "count": 1,
+      "name": "CONNECTOR_CREDENTIALS",
+      "path": "src/secrets/credentials/connectors.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/secrets/credentials/spec.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/secrets/status.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/spend/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "SpendProvider",
+      "path": "src/spend/types.ts"
+    },
+    {
+      "count": 2,
+      "name": "provider",
+      "path": "src/spend/types.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformPaths",
+      "path": "src/stateHome.ts"
+    },
+    {
+      "count": 1,
+      "name": "prismaDataPlatform",
+      "path": "src/stateHome.ts"
+    },
+    {
+      "count": 1,
+      "name": "ProvidersStateHomePaths",
+      "path": "src/stateHome/providers.ts"
+    },
+    {
+      "count": 1,
+      "name": "providersStateHomePaths",
+      "path": "src/stateHome/providers.ts"
+    },
+    {
+      "count": 5,
+      "name": "platform",
+      "path": "src/store/atlas/envelope.ts"
+    },
+    {
+      "count": 1,
+      "name": "AtlasPlatformMismatchError",
+      "path": "src/store/atlas/errors.ts"
+    },
+    {
+      "count": 1,
+      "name": "PlannedPlatform",
+      "path": "src/store/atlas/plan.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/store/atlas/plan.ts"
+    },
+    {
+      "count": 1,
+      "name": "atlasPlatformNamesStatement",
+      "path": "src/store/atlas/probe.ts"
+    },
+    {
+      "count": 1,
+      "name": "foldPlatforms",
+      "path": "src/store/atlas/probe.ts"
+    },
+    {
+      "count": 7,
+      "name": "platform",
+      "path": "src/store/atlas/probe.ts"
+    },
+    {
+      "count": 1,
+      "name": "platformNames",
+      "path": "src/store/atlas/probe.ts"
+    },
+    {
+      "count": 3,
+      "name": "platform",
+      "path": "src/store/atlas/probeRun.ts"
+    },
+    {
+      "count": 4,
+      "name": "platform",
+      "path": "src/store/atlas/project.ts"
+    },
+    {
+      "count": 3,
+      "name": "platform",
+      "path": "src/store/atlas/read.ts"
+    },
+    {
+      "count": 3,
+      "name": "platform",
+      "path": "src/store/atlas/store.ts"
+    },
+    {
+      "count": 1,
+      "name": "platformActive",
+      "path": "src/store/identity/people.ts"
+    },
+    {
+      "count": 1,
+      "name": "provider",
+      "path": "src/supervisor/chairSuccessor.ts"
+    },
+    {
+      "count": 1,
+      "name": "PROVIDER_WAIT_CEILING_MS",
+      "path": "src/wait/loop.ts"
+    },
+    {
+      "count": 1,
+      "name": "PROVIDER_WAIT_SCHEDULE_MS",
+      "path": "src/wait/loop.ts"
+    },
+    {
+      "count": 1,
+      "name": "onPlatform",
+      "path": "src/worktree/fseventsdGauge.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/worktree/fseventsdGauge.ts"
+    },
+    {
+      "count": 1,
+      "name": "platform",
+      "path": "src/worktree/prunePacing.ts"
+    }
+  ]
+}

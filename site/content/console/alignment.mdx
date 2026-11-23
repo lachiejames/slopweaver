@@ -1,0 +1,204 @@
+---
+title: Alignment
+---
+
+# Alignment
+
+Every question about whether something was, or would be, the right call, off the Queue. Each leads with a concrete scene and what the fleet did or would do in it, and takes one freeform reaction. Nothing here blocks any work, and nothing here chases you. The head, and a plain count on its sidebar entry, say how many general-ruling questions wait on your answer; the acts to look back on are never counted. A count taken off an older reading prints with a mark in both places: the quiet progress indicator while it is only being updated, and the warning only when a read failed, saying what failed and when the console tries again — it reads a failed read again on its own, backing off from a minute to ten while the window is in view. The entry sits between the Queue and Pull requests, where it is prominent enough to notice, and the page's last section is [your steers](#steers) and whether each was applied.
+
+<details>
+<summary>What this page shows</summary>
+
+Every question of whether something was the right call belongs on a separate page, out of the Queue. The Queue is
+for actions for you, priorities to consider and unblocking the fleet.
+
+The page opens on **Start here**: the first question you have not answered, what one answer could improve from then
+on, and the count behind it. Touching it makes that question the one you are answering. Then the charts, and where
+alignment stands: **Rough knowledge · your voice is not yet measured from your sent Slack messages** until it is,
+then **Voice measured from your sent Slack messages · everything else is still rough knowledge**. Then the two kinds of
+question, in the order Start here ranks them, and your voice, which asks nothing.
+
+**Make it a general ruling?** A kind of act you have given your word on twice or more, with no standing rule
+covering it, and a kind of card you have sent back twice or more, in one list: whatever you have had to say most
+often first. Your own wordings are quoted with how many acts or drafts each was given on and when. Until you say so,
+a word stays on the one act or draft you gave it on.
+
+**Was this the right call?** Every act the fleet took without asking that carries neither your word nor a standing
+rule, read from `slopweaver autonomy list --json`, as one row per kind of act: how many acts of it there are and when
+the newest was done, the kind with the most acts first. Pressing a row slides that kind's act cards over the page,
+newest first, the way a Queue card opens.
+
+**Your voice.** No questions, because asking is the wrong way to learn it: how the fleet writes as
+you is learnt from the Slack messages you sent. With Slack not connected it offers the Slack connect button. Once
+connected it shows how long your messages run, everything you send and your DMs apart, as `slopweaver profile voice
+--json` measured them, with when and over how many messages. Each Slack refresh measures them from the messages you
+typed (`slopweaver profile voice measure` by hand); until the first one has, it says so rather than guessing. The bans
+you set (`slopweaver slack voice-rules --json`) fold below it: stated by you, not learnt.
+
+The page also names your past Claude sessions (`slopweaver transcripts`) as a source the fleet reads as evidence.
+
+</details>
+
+<details>
+<summary>Why Start here points where it does</summary>
+
+The first question is the one most likely to improve fleet behaviour, and never an old merged pull request asking
+whether it was the right call.
+
+The order is derived, and Start here says so. First, every general ruling, by how many times you have had to say the
+same thing: one answer would settle every later act or card like it. A tie goes to a kind of card, which reaches you
+every time. Then the acts, one row per kind, the kind with the most acts first: a word on one act changes that act only. Your voice asks nothing, so it
+never leads. A question you have answered never leads.
+
+Which question you would care about most is a judgement, and no session has ranked these for you yet, so this is
+counts and how widely one answer applies. A ruling you gave often long ago can still lead, since nothing on the page
+can tell that the behaviour behind it stopped.
+
+</details>
+
+<details>
+<summary>Where your words go</summary>
+
+You answer aloud or in the call's chat, the console's one text input, with the card touched: the call relays your
+words to the supervisor naming that question (`align:<id>`) as the item you had open. The supervisor records it as a ruling when your words make
+one, else as a knowledge row; it never becomes a work item. Your latest answer shows under each question, read with
+`slopweaver talk log --about-prefix align: --json`.
+
+A word on an act, touched inside its kind's slide-over, reaches the supervisor the same way, naming that act, and is recorded on its own ledger line
+(`slopweaver autonomy steer <actionId> --steer "<your words>"`), so it changes that act only.
+
+</details>
+
+<details>
+<summary>What a zero means</summary>
+
+Each section that read nothing says so and why, rather than drawing an empty list. **No kind of act carries your
+word twice without a standing rule covering it** and **every act carries your word or a standing rule** are
+measured zeros, drawn only once the autonomy ledger has read.
+
+</details>
+
+<details>
+<summary>An act card leads with the line written for you</summary>
+
+The autonomy ledger holds two accounts of one act. The **said** is what was done, to what and why it mattered, in
+words written for you; the **why** is the fleet's own note, written for the next session and full of rule numbers,
+slugs and session ids. The card's scene is the said. The why is one of the labelled lines in the folded _the record_,
+held to a line by the cap every record line carries.
+
+An act recorded before the register asked for a said says it has none rather than showing you the fleet's note in the
+said's place, because a card quoting the fleet's note is unparsable to you.
+
+An act is carded once per pattern: one kind on one subject, or in one identical plain-words line, as _Was rebase on
+these 7 pull requests the right call?_, with the earlier acts folded under the newest as _and N earlier like it_. Your
+one word on the newest settles the pattern as the ledger reads it. Acts placed in different workspaces, or one placed
+and one a finding, are never one pattern.
+
+</details>
+
+<details>
+<summary>An act card links what it names</summary>
+
+The folded _the record_ carries a **links** list of everywhere the act can be checked, so you can judge its
+implementation and proof and not only its idea. Every link is derived, never typed: first the open pull
+request the act joins; the subject when it is an address; the board row the subject or `run` names, with every pull
+request that row publishes; then every address and local page in the said, why and witness; then every briefing the
+voice reads through the card, in any spelling, so you can open whatever it can read to you. An act naming nothing
+that opens says so rather than inventing a link. While the board or your open pull requests are still being read, or
+could not be read, the list says that too, so a partial set never passes for the whole.
+
+A finding act is recorded before its pull request exists, so the ledger names only the board slug. An open pull
+request is linked out of your landing reading: the one whose URL is the subject, else the one the slug's board row
+declares, else the one whose head branch spells the slug, and that last only when exactly one does.
+
+That reading holds only your open, undrafted pull requests, so when a finding card opens it looks its pull request up
+by the slug: `slopweaver github search "is:pr head:<slug>"` finds candidates in every state and `github pr summary`
+keeps only one whose head branch is the slug here, never a fork's (`/api/act-pull`). Exactly one, with every match
+read and no other GitHub link on the card, whose description gave its own Problem, Risk and Blast radius, draws the
+card from it, merged or not: its question names `owner/repo#N`, its scene is the pull request's title, and its stakes
+are the Risk and Blast radius cells. Anything else (still looking, not looked up, none, several, matches left unread,
+a description the verb declines) refuses the card: it draws the one sentence saying which and the links it found.
+
+</details>
+
+<details>
+<summary>What a word on an act does</summary>
+
+There is no control on the card: no Approve, no Deny, no option list and no box, because the console takes typed
+words in one place only, the call's chat. Touching the card, or focusing anything inside it,
+makes it the page's open item, and its last line says so: _Say your answer aloud or in the call's chat; touching
+this card makes it what you are answering._ What you say is relayed to the supervisor naming that card, which
+records it on that act's own ledger line with `slopweaver autonomy steer <actionId> --steer <your words>`, so it
+changes that act only. Reproduce the read yourself:
+
+```bash
+slopweaver autonomy list --json
+```
+
+</details>
+
+<details>
+<summary>Your standing rules answer some acts before they reach this page</summary>
+
+An act a rule you already gave answers is not asked again. Each such rule is a class steer
+(`skills/autonomy/reference/class-steers.md`), and the cards it settled leave the page and are counted beside it:
+**settled by your standing rules**, one chip, and one closed fold naming each rule, how many cards it cleared, your
+words and where you said them, and the cards themselves. The ledger keeps every act. Those cards are built exactly as
+the ones drawn here are, in the same workspace and under the same tags, so the two counts are one list; a finding is
+listed in the Slopweaver workspace under its mark, where the default rule places it, and the chip shows a dash until the board it joins has read.
+
+</details>
+
+## Steers
+
+The page's last section, at [`/alignment#steers`](/alignment#steers). It lives here because steers and alignment
+are tracked over time together, and the sidebar stays at five entries.
+
+Each steer you gave on a call, newest first, and whether it has been applied — landed on main. Read from `slopweaver handover steers --json`: the board, the run journals, each named repository's main as this machine last fetched it, and the PR ledger. Nothing is kept by hand.
+
+<details>
+<summary>What this section shows</summary>
+
+The section shows the different steers you give over time, so you never have to give the same steer twice, with
+context carried forward and the learning visibly applied: a steer you say often, such as asking whether the
+supervisor is still there, should be seen going down.
+
+Above the list: how many steers you gave, how many landed on main, how many have a run open, how many no run has
+started on, how many closed with nothing on main, and how many you had to say more than once. Then, in amber, every
+reason a figure may be short — a repository whose main would not read, a board row or journal that would not read,
+and steers that name a call turn only in their text.
+
+Under them, a chart of how many times you steered each week, which shows you giving fewer steers over time. One column per week of your
+days, the newest ending on the day of the reading (and running only up to it), the oldest shorter when the window is
+not whole weeks. Each column stacks the steers you gave for the first time under the times you had to say one again,
+so the whole column is the number you want coming down and its top is the part that did not carry forward. Hover or
+focus a column for its numbers; the same numbers are in a table behind "the numbers, week by week". A time with no
+instant the chart can place is counted under it in amber, never dropped. It does not yet split steers by what they
+were about — capacity or alignment — because whether a turn names a kind is a session's read, never a keyword match,
+and nothing journals that read for call steers yet.
+
+Each row is one line: a tag saying where it stands, what the steer became, when you gave it, and "said N times" when
+you gave it again. Opened, it shows your words, where it stands in full, the pull request that landed it, how it came
+to count as a steer, and the board row.
+
+</details>
+
+<details>
+<summary>What every steer field is derived from</summary>
+
+| On the page        | Derived from                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A steer            | a board row anchored to a call turn (`talk-call:`), a console relay (`talk:` or `call:`) a session started a run on, or a row with no anchor whose summary names a `turn_` token                                          |
+| Your words         | the row's held words at its anchor; a row that names a turn only in its text carries none, and says so                                                                                                                    |
+| Said N times       | one plus the further steers folded onto the same row                                                                                                                                                                      |
+| The chart          | first given: the row's `askedIso`; said again: each further steer's own instant (`againIsos`, the held quote's `ownerWordsSteer<n>Iso`), one per further steer, none for one whose words do not read                      |
+| Applied            | a pull request on main's first-parent history whose branch is the row's declared branch, its run's start branch or its slug — or the pull request its run was settled with, when that one is on its own repository's main |
+| In flight          | the run journal's phase is open or waiting on you                                                                                                                                                                         |
+| Not started        | no journal entry at all                                                                                                                                                                                                   |
+| Closed, not landed | the row was settled, ended, or its run closed, and nothing above found it on main                                                                                                                                         |
+| Unknown            | the row names no repository, that repository's main would not read, or the row's run journal would not read                                                                                                               |
+
+Every field is computed by `src/handover/steers.ts` and read by `src/handover/steersRead.ts`; the section only draws.
+A raw console relay no session took up is not counted: most are conversation, not a steer.
+
+</details>

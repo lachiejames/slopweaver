@@ -1,0 +1,1 @@
+ALTER TABLE "codex_fallback_request" ADD COLUMN "reader_epoch" integer DEFAULT 1 NOT NULL;

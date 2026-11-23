@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The hardened-runtime entitlements a Developer ID release is signed with (.github/workflows/desktop-release.yml).
+  The first three are what Electron's V8 and its frameworks need to run at all under the hardened runtime; the
+  microphone one is what lets a voice call the user starts reach the mic, and the Apple-events one what lets a
+  seat recovery open its cmux tab (NSAppleEventsUsageDescription); the hardened runtime otherwise refuses both
+  silently whatever the user granted. A local `desktop install` build runs without the hardened runtime
+  and never reads this file.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+  </dict>
+</plist>

@@ -1,0 +1,247 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Bug-catching categories (seeded from the archive's curated base), PLUS the type-aware TypeScript rules
+  // that used to be ESLint-only (`devLint.ts` passes `--type-aware`, backed by `oxlint-tsgolint`). React/
+  // browser rules are kept enabled for when React lands (harmless now). Formatting is Prettier's job;
+  // cognitive-complexity, ReDoS and the repo's own house/testing-discipline AST rules are bespoke
+  // `src/devLint` gates (oxlint has no `no-restricted-syntax`-style custom-selector mechanism, and no
+  // cognitive-complexity or ReDoS rule of its own) — see `houseRules.ts`, `testingDiscipline.ts`,
+  // `cognitiveComplexity.ts`, `redosCheck.ts`.
+  "categories": { "correctness": "warn", "perf": "warn", "suspicious": "warn" },
+  "env": { "browser": true, "es2022": true, "node": true },
+  "ignorePatterns": ["**/coverage/**", "**/dist/**", "**/node_modules/**", "**/.yarn/**"],
+  "overrides": [
+    {
+      // Hand-authored inline SVG, not HTML. `role="img"` on an `<svg>` paired with an `aria-label` is the
+      // pattern that makes a drawing announce its own claim to a screen reader; the rule's suggested fix —
+      // an `<img>` tag — would mean a raster file, and the loss of the `currentColor` theming these figures
+      // are built on. The rule is right about HTML and wrong about this directory.
+      // `site/components/live/*.tsx` is the same case, not a second one: the console's sparkline is a
+      // hand-drawn `<svg>` filled with a stage variable, for exactly the reason above.
+      "files": ["site/components/diagrams/*.tsx", "site/components/live/*.tsx"],
+      "rules": { "jsx-a11y/prefer-tag-over-role": "allow" }
+    },
+    {
+      "files": ["**/*.test.ts"],
+      "rules": {
+        // Tests deliberately split string literals (e.g. "gh" + " pr merge") so a scanner/checker under
+        // test doesn't match its OWN fixtures — that concat is intentional, not useless.
+        "no-useless-concat": "allow",
+        "require-await": "allow",
+        "typescript/no-explicit-any": "allow",
+        "typescript/no-non-null-assertion": "allow",
+        // 91 of the original 143 test-file hits are fixed (no-unsafe-type-assertion-followup). The remaining
+        // 39 are deliberate test-double escape hatches — a Proxy-based fake whose every property access
+        // throws, a negative test forcing a known-malformed value through a typed function, a fixture
+        // builder that only fills the handful of fields its own tests read — where a type guard would only
+        // add ceremony around a shape nothing genuinely validates. Left "allow" for those; the next pass is
+        // deciding case by case whether each is worth a narrower fix.
+        "typescript/no-unsafe-type-assertion": "allow",
+        // The same relaxations `eslint.config.js`'s TEST_GLOBS override used to carry: ergonomics tests need
+        // that production code should not lean on.
+        "typescript/no-confusing-void-expression": "allow",
+        "typescript/no-deprecated": "allow",
+        "typescript/no-floating-promises": "allow",
+        "typescript/no-misused-promises": "allow",
+        "typescript/no-unnecessary-condition": "allow",
+        "typescript/only-throw-error": "allow",
+        "typescript/promise-function-async": "allow",
+        "typescript/use-unknown-in-catch-callback-variable": "allow"
+      }
+    },
+    {
+      "files": ["**/*.cjs"],
+      "rules": { "typescript/no-require-imports": "allow" }
+    },
+    {
+      // `firewall-service`/`legacy-waf` deliberately read Cloudflare's classic filters/rules/access-rules/
+      // ua-rules/lockdowns/rate-limits/WAF endpoints — every one of the ten SDK methods these two readers
+      // call carries a `@deprecated` JSDoc tag pointing at the Ruleset Engine, since that IS the surface
+      // this PR exists to read. See `firewallServiceSync.ts`/`legacyWafSync.ts`'s own headers for why the
+      // classic (pre-Rulesets) surfaces are read on purpose here, with modern Rulesets explicitly deferred.
+      "files": ["src/atlas/cloudflare/readers/firewallService.ts", "src/atlas/cloudflare/readers/legacyWaf.ts"],
+      "rules": { "typescript/no-deprecated": "allow" }
+    },
+    {
+      // `api-gateway` deliberately reads the SDK's deprecated `settings.schemaValidation.get` and
+      // `userSchemas.list` — both are real, currently-working data this account may still rely on, even
+      // though the SDK points at a separate, out-of-scope `schemaValidation` resource as their replacement.
+      // See `projection/apiGateway.ts`'s header for why the modern replacement is deliberately not chased.
+      "files": ["src/atlas/cloudflare/readers/apiGateway.ts"],
+      "rules": { "typescript/no-deprecated": "allow" }
+    }
+  ],
+  "plugins": ["eslint", "import", "jsx-a11y", "node", "oxc", "promise", "react", "typescript", "unicorn", "vitest"],
+  "rules": {
+    "array-callback-return": "warn",
+    "import/no-named-as-default": "allow",
+    "import/no-unassigned-import": "allow",
+    "no-await-in-loop": "allow",
+    "no-constructor-return": "warn",
+    // Duplicate imports are merged by Biome's import organiser (`biome.jsonc`); unused locals/params are caught
+    // by tsc (noUnusedLocals/noUnusedParameters) and unused imports removed by the same Biome pass — no triple
+    // coverage.
+    "no-duplicate-imports": "allow",
+    "no-fallthrough": "warn",
+    // Zero-width joiners sit inside the `*​/` sequences in `src/devLint/boundaryResidue.ts` and
+    // `src/__tests__/unit/canon/staleReferences.test.ts` FOR A REASON: they let a JSDoc block quote the
+    // comment terminator it is describing without terminating itself. `skipComments` is exactly the option
+    // for that, and every hit in this tree is such a comment — turning the rule off entirely would give up
+    // a real check on string and identifier bodies to accommodate three deliberate escapes.
+    "no-irregular-whitespace": ["warn", { "skipComments": true }],
+    "no-self-compare": "warn",
+    // `_unsafeUnwrap` / `_unsafeUnwrapErr` are NEVERTHROW's own public API — the names are not ours to
+    // choose, and `.claude/rules/testing.md` prescribes `_unsafeUnwrapErr` for asserting on a failure arm.
+    // This is the rule's own `allow` option doing what it is for, not a suppression: any OTHER dangling
+    // underscore in this repo still fails. `_zod` is ZOD's: `schema._zod.def` is the introspection surface Zod
+    // documents for library authors, which `src/lib/boundary.ts` walks to prove a boundary schema strict.
+    "no-underscore-dangle": ["warn", { "allow": ["_unsafeUnwrap", "_unsafeUnwrapErr", "_zod"] }],
+    "no-unused-vars": "allow",
+    // Off by design: our records are immutable values ("never mutated in place"), so the optional-field
+    // spread `...(cond ? { author } : {})` inside `.map()` is deliberate copy-on-write, not an oversight.
+    // The rule's own note sanctions disabling when copy-on-write is required — its Object.assign autofix
+    // mutates + would break this idiom.
+    "oxc/no-map-spread": "allow",
+    "react/button-has-type": "warn",
+    "react/react-in-jsx-scope": "allow",
+    "unicorn/consistent-function-scoping": "allow",
+    "unicorn/no-negation-in-equality-check": "warn",
+    "unicorn/no-process-exit": "allow",
+    "unicorn/no-useless-promise-resolve-reject": "warn",
+    // Off by design: this rule guards the BROWSER `window.postMessage(msg, targetOrigin)` API, and matches on
+    // the method NAME alone — so it fires on Slack's `client.chat.postMessage({...})`, an HTTP call with no
+    // origin argument to give it. There is no `window` in this Node CLI, so the rule cannot ever be a true
+    // positive here; leaving it on would only pressure us to rename a correct SDK call.
+    "unicorn/require-post-message-target-origin": "allow",
+    "vitest/no-disabled-tests": "warn",
+    "vitest/no-focused-tests": "error",
+    // Off by design: this rule is JEST-shaped and vitest's `expect` genuinely takes a second argument, the
+    // message shown when the assertion fails (`expect(value, "why this matters").toBe(x)`). Every hit in
+    // this tree is that supported two-argument form in `src/__tests__/unit/stubs/sharpAssumptions.test.ts`,
+    // so the rule cannot be a true positive against vitest here.
+    "vitest/valid-expect": "allow",
+
+    // ── Arrived with oxlint 1.80.0 (bumped from 1.57.0 on 6 Sep 2026) and DEFERRED, not dismissed ────────
+    // Each of these is a rule this repo has never run, and each has a real population behind it —
+    // consistent-return 71, no-useless-default-assignment 15, require-to-throw-message 12,
+    // no-unnecessary-type-parameters 6, no-array-fill-with-reference-type 5, no-conditional-expect 4
+    // (reproduce with `yarn oxlint --type-aware --tsconfig ./config/typescript/tsconfig.lint.json .`).
+    // None of them is new CODE; they are newly DETECTED. Adopting ten upstream rules by mass-editing 113
+    // sites inside a dependency bump is precisely the unreviewable change every "Newly adopted" comment in
+    // this file exists to prevent — each rule above it was checked against this codebase on its own merits
+    // first. So these are parked with a board row rather than silently switched on or silently ignored.
+    //
+    // `vitest/no-conditional-expect` is the one to take first: it overlaps `.claude/rules/testing.md`'s own
+    // "no conditionals in an assertion" rule, so its four hits are house-rule violations a bespoke gate
+    // does not currently see.
+    "typescript/consistent-return": "allow",
+    "typescript/no-useless-default-assignment": "allow",
+    "typescript/no-unnecessary-type-parameters": "allow",
+    "unicorn/no-array-fill-with-reference-type": "allow",
+    "vitest/require-to-throw-message": "allow",
+    "vitest/no-conditional-expect": "allow",
+
+    // Every rule `typescript-eslint`'s `recommendedTypeChecked` preset carried (confirmed by reading the
+    // installed package's own config export, not assumed) that `eslint.config.js` did NOT explicitly
+    // override — each stayed at the preset's own "error" default, so each is ported at "error" here too.
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-array-delete": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-duplicate-enum-values": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-extra-non-null-assertion": "error",
+    "typescript/no-misused-new": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-asserted-optional-chain": "error",
+    "typescript/no-this-alias": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unsafe-declaration-merging": "error",
+    "typescript/no-unsafe-enum-comparison": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unsafe-unary-minus": "error",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/prefer-namespace-keyword": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/triple-slash-reference": "error",
+
+    // Rules the preset turned on but `eslint.config.js` explicitly turned OFF — matched here so `--type-
+    // aware` doesn't silently resurrect a rule this codebase deliberately doesn't run (e.g. `unbound-method`
+    // false-positives on `exit = process.exit`-style default-param injection).
+    "typescript/no-redundant-type-constituents": "allow",
+    "typescript/no-require-imports": "allow",
+    "typescript/no-unnecessary-boolean-literal-compare": "allow",
+    "typescript/no-unsafe-argument": "allow",
+    "typescript/no-unsafe-assignment": "allow",
+    "typescript/no-unsafe-call": "allow",
+    "typescript/no-unsafe-member-access": "allow",
+    "typescript/no-unsafe-return": "allow",
+    "typescript/no-unused-vars": "allow",
+    "typescript/require-await": "allow",
+    "typescript/restrict-plus-operands": "allow",
+    "typescript/restrict-template-expressions": "allow",
+    "typescript/unbound-method": "allow",
+    // Its autofix collapses `${x}` to `x` with NO regard for what the template literal's own braces were
+    // grouping — measured: it silently broke operator precedence in a `+`-chain in two files (one dropped an
+    // entire branch's HTML), src/cli/commands/slack/pollRun.ts among them, and it separately
+    // collapsed several test files' DELIBERATELY split leak-shaped fixtures (`` `xoxb${"-"}...` ``, split
+    // specifically so this exact repo's own hygiene gate never sees a whole token-shaped literal) back into
+    // whole literals, which then failed that gate. Both real, both found by reviewing the diff rather than
+    // trusting the tool. Off — not safe to adopt via autofix, and manual adoption isn't worth this risk for
+    // a purely cosmetic rule.
+    "typescript/no-unnecessary-template-expression": "allow",
+
+    // The type-aware TypeScript rules `eslint.config.js` added ON TOP of the preset — same names, same
+    // severities and options, requires `--type-aware`.
+    "typescript/await-thenable": "error",
+    "typescript/explicit-module-boundary-types": "error",
+    "typescript/no-confusing-void-expression": "warn",
+    "typescript/no-deprecated": "warn",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-for-in-array": "error",
+    "typescript/no-implied-eval": "error",
+    "typescript/no-misused-promises": [
+      "error",
+      { "checksConditionals": true, "checksVoidReturn": { "arguments": true, "returns": true, "variables": true } }
+    ],
+    "typescript/no-mixed-enums": "error",
+    "typescript/no-unnecessary-condition": "warn",
+    "typescript/no-unnecessary-type-conversion": "warn",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-nullish-coalescing": "warn",
+    "typescript/prefer-optional-chain": "error",
+    "typescript/promise-function-async": ["warn", { "checkArrowFunctions": false }],
+    "typescript/related-getter-setter-pairs": "error",
+    "typescript/require-array-sort-compare": ["error", { "ignoreStringArrays": true }],
+    "typescript/return-await": ["error", "in-try-catch"],
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "warn",
+    // No `max-lines` here: a file's length has ONE rule, `file-size-ratchet` (`src/devLint/fileSizeRatchet.ts`),
+    // which counts code lines, holds a debt list and reads a reasoned exemption — none of which oxlint can.
+
+    // Newly adopted (oxlint-cycle-and-type-cleanup): each checked individually against this codebase
+    // before being turned on, with every autofix diff reviewed by hand rather than trusted — see
+    // no-unnecessary-template-expression's comment above for why that mattered here.
+    "import/no-cycle": "error",
+    "import/no-self-import": "warn",
+    "import/no-duplicates": "warn",
+    "typescript/consistent-type-imports": "warn",
+    "typescript/consistent-type-exports": "warn",
+    "typescript/no-unnecessary-type-arguments": "warn",
+    "typescript/no-misused-spread": "error",
+    "typescript/prefer-return-this-type": "warn",
+    "typescript/no-useless-empty-export": "warn",
+    "unicorn/prefer-node-protocol": "warn",
+    "unicorn/no-instanceof-array": "warn",
+    "unicorn/error-message": "warn",
+    "unicorn/no-thenable": "warn",
+
+    // Newly adopted (no-unsafe-type-assertion-cleanup): a cast narrower than what the checker actually
+    // knows, at "error" for production code — see the `**/*.test.ts` override above for why tests are
+    // exempt. Measured 111 real production sites; each fixed on its own merits, not blanket-suppressed.
+    "typescript/no-unsafe-type-assertion": "error"
+  }
+}

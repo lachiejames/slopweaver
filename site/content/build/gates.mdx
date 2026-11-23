@@ -1,0 +1,67 @@
+---
+title: The gate surface
+---
+
+import { GateSurface } from "../../components/diagrams/GateSurface";
+
+# The gate surface
+
+Every change runs the house checks in `src/devLint/`, each one a TypeScript walker over the AST rather than
+a grep. How many there are is not written down here — `ls src/devLint/*.entry.ts` answers it, and a hand
+count in prose is wrong within the week. They exist because **a convention both sides promise to keep is not a mechanism** — the discipline in
+this repo was agreed and then broken within the hour, by the session arguing for it.
+
+<GateSurface />
+
+## Running them
+
+```bash
+yarn validate        # the whole gate
+yarn validate:local  # what pre-push runs — deliberately does NOT typecheck
+yarn lint            # every static check, no short-circuit
+yarn format          # Prettier, code and docs
+```
+
+`yarn lint` runs **every** gate with no short-circuit on purpose: one run tells you everything that is
+wrong, rather than making you re-run after each fix.
+
+**Never weaken a gate to get a green.** That is the single standing rule of this whole surface. A gate that
+fires on your correct code is either a defect in the gate — fix the gate — or a signal you have not read
+yet.
+
+## What the classes of gate are
+
+| Class            | Examples                                                              |
+| ---------------- | --------------------------------------------------------------------- |
+| **shape**        | `named-object-params`, `no-nested-ternaries`, `jsdoc-tags`, `no-any`  |
+| **safety**       | `no-headless`, `no-private-browser-profile`, `home-safety`, `escape-hatch` |
+| **correctness**  | `epoch-arithmetic`, `whole-file-json`, `hand-rolled-result`, `redos-check` |
+| **discipline**   | `testing-discipline`, `unnamed-failure-assertion`, `no-python`        |
+| **size**         | `file-size-ratchet`, `max-function-lines`, `cognitive-complexity`, `agent-doc-size` |
+| **canon**        | `command-trigger`, `doc-counts`, `stale-references`, `doc-links`, `gate-registration` |
+
+## Three design choices worth copying
+
+**No allowlist, wherever the criterion can be made exact.** `epoch-arithmetic` and `no-nested-ternaries`
+have no exemption marker at all, because their legitimate shapes were already outside the criterion. A gate
+with a marker invites the marker.
+
+**A debt list that fails when an entry STOPS firing.** `.baselines/*.json` holds the standing violations a
+gate inherited. It can only shrink — and an entry that no longer fires is *also* a failure, because a stale
+debt row is a lie about the tree's state.
+
+**A refusal says why, and names the escape.** Every policy refusal in this system carries four lines: what
+caught it, legitimate exceptions, the override, and an instruction to use judgement. A lint gate is the one
+refusal with no run-time hatch, and it says so rather than staying silent about it.
+
+A refusal that says only that it is blocked, without saying why, helps neither the agent nor a human: both
+need the information.
+
+## Where the heavy work runs
+
+`pre-push` runs `validate:local`, which does **not** typecheck — the heavy laps belong to CI. So a green
+pre-push is not a green build, and the way to find out is to push and watch:
+
+```bash
+slopweaver github checks --wait
+```

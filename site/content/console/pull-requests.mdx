@@ -1,0 +1,246 @@
+---
+title: Pull requests
+---
+
+# Pull requests
+
+Your open pull requests in this workspace, from the last recorded `github landing` reading. One state selector,
+then straight into the cards, highest board priority first.
+
+<details>
+<summary>Why it opens like the Queue</summary>
+
+The page opens like the Queue — no text up top, one dropdown, then straight into
+the cards. So the page has no title block, search box, drafts toggle or grouping switch:
+
+- **One state selector**, each state with its count: **Everything** (the default), **Waiting on review**,
+  **Waiting on code owner**, **Waiting on platform**, **Waiting on CI**, **In the merge queue**, then every other
+  next act the verb emits (Ready to land, Waiting on CodeRabbit, A reviewer is waiting on us, Conflicts, Pressed,
+  no longer queued, Stacked, No merge queue, Opted out, Not yet decidable, Drafts). A state with no cards is
+  greyed out. The state rides the address as `?view=<state>`, so a reload or a shared link lands on it.
+- **Highest priority first.** Under every state, a card whose handover board row is p0 is drawn above one whose
+  row is p1, then p2, p3, then cards no banded row covers; within a band, by next act; within an act, in the
+  reading's order.
+- **How current it is**, one line to the right of the selector, the way the Queue says it: "updated 3m ago",
+  in the warning tone once the reading is past the 30-minute landing cadence, "updating…" beside that age while the console
+  takes a fresh one, and "failed to sync" when that run failed, with the reason one hover away. Nothing is
+  hidden because it is stale: every card stays, and the line says how old they are.
+- **What needs your word stays on the Queue.** This page asks nothing; a card waiting on you only wears the
+  page's one accent, by the Queue's own rule (`site/lib/prNeedsOwner.ts`), and keeps its ask line on the line.
+- **A state you would say out loud, and an age, on every card**: "In merge queue", "CI needs work · fleet to fix",
+  "Conflicts with its base", then how long it has been open ("3d"). Each claims only what the verb measured: a word that
+  leaves two next acts open says both. The verb's own word is on the state's hover.
+- **Every chip is one click away**, never gone: unfolding a card draws who raised it, draft or open, labels,
+  author, checks, open review, seat, the watched cell, the ask line and the suggested reviewer, then the fold
+  below.
+- **How the list is counted, and what it leaves out** is one fold at the foot of the page, holding everything
+  that would otherwise sit above the cards.
+
+</details>
+
+<details>
+<summary>What the states are derived from</summary>
+
+Every state is a reading of the verb's own per-row fields, never a field of the page's (`site/lib/prViews.ts`):
+
+- **Waiting on code owner** — `action` is `blocked-on`.
+- **Waiting on review** — `blocked-on`, and `humanWait.next` says a review is under way: `wait`,
+  `wait-on-channel`, `bump` or `read-the-messages`. A row nobody has been asked about yet (`ask`,
+  `name-the-reviewer`) or whose Slack history is too stale to say (`sync-slack`) is not.
+- **Waiting on platform** — `blocked-on`, and `blockedOn` names a team whose own slug is `platform`.
+- **Every other state** — `action` is that act. `canon/landingActionHeadings.test.ts` fails when the verb emits
+  an act no state names, or a state names one it never emits.
+- **Drafts** — counted only on a reading taken with drafts; on one taken without, its count is a dash, never a
+  measured zero, and an empty Drafts list says the reading left drafts out.
+
+A state holding no pull request draws the console's designed empty state: what will appear under it, that the latest
+GitHub reading places one there, and **Connect a plan**, which opens Settings on Models, while no plan is connected. A reading kept over a failed read, or
+one still being refreshed, proves nothing now, so it draws a plain line under the staleness mark instead: "Not a count
+of zero" and what did not read, the reason in plain words with the raw message folded under **Full message**, one line
+per repository whose open list did not read. Waiting on
+review also reads your reviewer picks, so it is shown as empty only while the reviewer reading is current too.
+
+</details>
+
+<details>
+<summary>What this page shows</summary>
+
+The LAST READING of `slopweaver github landing` anyone recorded, one card per open pull request of yours in the
+selected workspace, each with the ONE next act that gets it over the line, in the verb's own words. The
+console's own invocations — the supervisor tick and the page's own refresh — take every open pull request of
+yours on the organisation's repositories and this build's own, and the fold at the foot prints what the reading shown was actually taken
+over, so a narrower one somebody recorded is visible as narrower rather than read as the whole. The link on
+each card carries the head commit it was read at, so a pull request that has moved since is visible on GitHub
+as a different head rather than as a silent lie.
+
+**The count is GitHub's own, and it is yours.** The fold at the foot opens on _N your open pull requests on
+GitHub at this reading · P placed below · K not placed · M more open by other authors_, and the Pull requests
+badge in the sidebar is the same N: the pull requests in the reading's `census` — GitHub's open list for the
+repositories in your context — that its `--author @me` matches, drafts in, so it matches
+`github.com/<repo>/pulls?q=is:open+author:@me` as of the reading's stamp. Every one of yours no card carries is
+NAMED beneath it: one line per reason (a draft the reading left out, or opened since) with every number under
+it, linked, in a box that scrolls, and titles and authors in a fold. Other authors' are only counted. A reading
+that cannot give GitHub's count draws a staleness mark in the count's place, whose hover says why, and so does a
+count whose reading is past the 30-minute landing cadence — the cards stay, the number does not outlive its reading.
+A read of the ledger that fails keeps the cards already drawn, with a staleness mark beside the freshness line; a
+read in flight is a spinner.
+
+**The console keeps it up to date, on every page, while it is in view.** When the reading shown is 25 minutes old —
+so a new one lands inside the cadence — or it carries no census, or there is no reading to show, the console takes a
+fresh one, at most once per reading per ten minutes however many tabs ask, and tries again eleven minutes after a run
+that failed. A hidden console takes nothing until it is next in view. The line beside the selector says "updating…" while it does. A count it holds back
+says so on the sidebar's mark — why, and what the console is doing about it — never "could not be read".
+
+**Open** on a card slides a read-only panel over the list: the same row GitHub-shaped — the six tests with each
+verdict's why, the checks not green with their logs, reviewer threads counted for CodeRabbit and humans apart,
+the stack position, the Slack asks, the board row, and who is watching it. It is the archive's platform-native
+panel kept as a detail view and never as a place to act: the one control closes it, and so does Escape.
+
+</details>
+
+<details>
+<summary>One pull request, as GitHub draws it</summary>
+
+A card's title, the numbers in the count's fold, and every chip that names a pull request open that pull
+request here, at `/pull-requests/<owner>/<repo>/<n>`, rather than on github.com. **Conversation** shows the
+description, the comments, reviews and inline threads in time order with the code each thread is on, and a
+sidebar of reviewers, checks, labels and merge state. **Files changed** shows every file's diff with each
+review thread under its line. Every person is a chip; hover it for who they are and where they stand on this
+pull request.
+
+It is read from GitHub when the page opens, through `github read <pr> --limit 100 --files --json`, and never
+polled: a stale diff is worse than a link. The line under the title says when it was read, and **read it
+again** re-reads it. A list longer than the read carries, such as files past the first 100, is named at the
+foot of the page. Pictures in a description are counted and linked to GitHub, never fetched. **open it in
+GitHub** is always there.
+
+</details>
+
+<details>
+<summary>Who each pull request is on the hook with</summary>
+
+Every card says, prominently, who was asked, where, when, how long ago, and
+whether to ask again. The **ask line** does that, from the ask trail `github landing` printed: on the line of
+every card waiting on your word, and first thing in every other card's fold.
+It names the people the newest ask went to, the channel or DM, how long ago, and a link to the message, with
+a chip saying whether to ask again. The fold lists every ask, newest first. A card the verb could not settle
+says "not known", and each message it could not settle is a numbered link rather than a line of URLs. The
+page says "nobody asked" only when the verb itself answered no.
+
+A third state sits between those: **shared with a channel, no reviewer named**. You posted
+the link to a channel, named nobody, and nobody has reviewed on GitHub. The line cites the post, and a badge
+carries the verb's business-day clock, with its reason on a line under it. Green means waiting for engagement,
+through the first business day or while the thread is live. Yellow means no engagement, or the conversation
+stalled. Red means no reviewer: name one. Until the clock reads red, the page does not suggest a reviewer, the
+tag is not red, and an unseated card's seat reads "with #channel — no reviewer named yet" rather than "PAUSED …
+nobody seated" — an unknown clock included, whose next act is a Slack sync. The clock and its thresholds are in `skills/github/reference/human-wait.md`.
+
+When nobody is usefully on the hook, the card suggests a reviewer from `github reviewer list --json`. The
+suggestion is a code owner GitHub names first, then someone you asked on earlier pull requests for the same
+team, then someone you asked in the same repository. Its reason is the verb's own sentence, and a history
+tier says "history, not ownership". **Approve** records the pick and sends nothing: asking them stays your job,
+in Slack. A **not them** carries a reason, so it is said in the call's chat with the card open — the page has no
+text box — and once it is recorded the suggestion never offers that person on that pull request again. Approve is
+an act-list row, off on a fixture. The rules are in
+`skills/github/reference/reviewers.md`.
+
+</details>
+
+<details>
+<summary>What this page fixes, and what it does not yet</summary>
+
+The failure it is built against: a board says a pull request is green, you click
+through, and it had conflicts or a review nobody had handled. Three defects hide in that sentence, and
+this page closes the first two:
+
+- **A second computation.** The board derived "green" its own way. Here the state on every card is the verb's
+  own `action` or dispatch `verdict` said in words, one fixed sentence per word, the fold is its six tests with
+  their reasons, and nothing on the page decides a card is green. A state is a choice about what to SHOW; the word
+  behind each card's state is the verb's, and it is on the hover.
+- **An unknown instant.** Every reading here carries when it was true of the machine, in the line beside the
+  selector, and a frozen reading says **FIXTURE** there in exactly the same weight. Open this page with
+  `?fixture=` set to the landing fixture `site/lib/liveFixtures.ts` registers to see eleven written synthetic
+  rows frozen at one instant, labelled as such.
+- **A poll nobody watched** is the third, and this page closes the half of it that is a READ. It runs
+  `github landing` only on the bounded cadence above, and otherwise reads the readings ledger
+  (`slopweaver reading`) — the last document the verb printed, appended by whoever ran it (the supervisor tick
+  as `tick-<n>`, a seat, the page's own refresh as `sync-now`) — and the fold at the foot says who took it and
+  how long ago. The line ages the reading, never the fetch. The page's own refresh runs `github landing` over
+  the organisation's repositories and this build's own as `@me`, with `--record-reading sync-now` and nothing that acts outward, then
+  re-reads the ledger. A run that failed says "failed to sync", with the verb's own reason on hover. The other
+  half — is anybody WATCHING — is the watched cell on every card: `github watchers --json` folds the
+  checks-read register, where a session's `github checks --wait` writes a `watching` row on its first read and
+  a `watch-done` when it returns, and the fold at the foot says how many cards hold a live watch and when the
+  fold was taken. STALE is the verb's word for a watch past its own timeout with no end recorded — a dead
+  session — and a fold that could not be read draws a staleness mark in every cell, whose hover says why,
+  rather than reading as unwatched.
+
+</details>
+
+<details>
+<summary>What each part is derived from</summary>
+
+| On the card             | From                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the state selector      | `action`, `humanWait.next` and `blockedOn` — `site/lib/prViews.ts`; `canon/landingActionHeadings.test.ts` fails on an act without a state                                                                                                                                                                                                                           |
+| the count on a state    | this workspace's cards that state holds; Drafts is a dash on a reading taken without drafts                                                                                                                                                                                                                                                                         |
+| the order               | the handover board row's `priority` band (p0 first) by `boardRowSlug`, then the act, then the reading's own order                                                                                                                                                                                                                                                   |
+| the state               | `humanWait.next` on a row waiting on a human, else `dispatch.verdict` when the verb issued one, else `action`, each said by one fixed sentence (`site/lib/prPlainState.ts`); a word it has never seen prints as itself                                                                                                                                              |
+| the age                 | `createdAtIso`, as minutes, hours or days open                                                                                                                                                                                                                                                                                                                      |
+| the waiting line        | `humanWait.sentence` — who, when requested, the last ask, whether stale, and the next act; the voice reads the same                                                                                                                                                                                                                                                 |
+| the accent              | `humanWait.next` of `name-the-reviewer` with no pick and no `draft-first-review-ask` verdict, or `dispatch.verdict` of `needs-owner-judgment` — the Queue's own rule, `site/lib/prNeedsOwner.ts`                                                                                                                                                                    |
+| the fold's chips        | `ci`, whether a handover board row declares the branch, the stack position                                                                                                                                                                                                                                                                                          |
+| the seat                | a live watcher, else a session on the head branch, else `blockedOn` as PAUSED — or, when the row's wait leaves it with the channel it was shared in, `with #channel — no reviewer named yet` in the info tone, or, when `humanWait.next` is `sync-slack`, `Slack history stale since <humanWait.slackThroughIso>` in the neutral tone, its next-act tag neutral too |
+| the watched cell        | `github watchers --json` — live watchers, STALE ones, or the last `read` of its checks; never an age this page judged                                                                                                                                                                                                                                               |
+| the fold                | `actionDetail`, `dispatch.why`, the six `tests`, `failingChecks`, thread counts, `blockedOn`, the Slack join                                                                                                                                                                                                                                                        |
+| the ask line            | `askTrail` (the newest ask's recipients, channel, instant and permalink) and `bump` for whether to ask again                                                                                                                                                                                                                                                        |
+| the shared badge        | `channelShare` — the channel post's permalink, its replies, and the business-day clock's tone, badge, reason and `seen`                                                                                                                                                                                                                                             |
+| the suggested reviewer  | `github reviewer list --json` — the reading joined with the reviewer register; approve and decline are act rows                                                                                                                                                                                                                                                     |
+| the link                | the number: `url/commits/<headOid>`, the head the row was read at; the title: this console's own view of the pull request                                                                                                                                                                                                                                           |
+| the open count          | `census` — GitHub's own open list per repository in your context, the part the reading's `--author` matches; placed and not placed are joined by repo and number                                                                                                                                                                                                    |
+| the selection line      | `selection` — the repositories, author qualifier and draft flag the document says it was taken over                                                                                                                                                                                                                                                                 |
+| the residue at the foot | what the verb could not decide and why, verbatim — an absence it names is a fact, not a gap                                                                                                                                                                                                                                                                         |
+
+The console's own invocations — the tick and the page's own refresh — run the verb as `--author @me` over the
+organisation's repositories (`slopweaver org set`) and this build's own. `@me` is GitHub's own token-relative
+author, so no login is a constant in this tree, and every card prints its repository before its number, whatever
+selection the document shown records. A toggle between the repositories is the next screen.
+
+**Drafts are the one thing the tick's reading and the page's own differ on**, by the verb's own rule: the tick
+presses, and `--press` refuses `--include-drafts` because a draft has no button. So the document records its
+own `selection`, the fold at the foot prints it, and the Drafts state of a reading taken without drafts counts
+a dash rather than a measured zero. A document from before the verb recorded that field says so in the same
+weight.
+
+</details>
+
+<details>
+<summary>Why it reads a ledger and not the verb</summary>
+
+MEASURED on this machine: `github landing` took **68 seconds** over eleven open pull requests
+with drafts, and about 20 over the undrafted four. Six tests per row, a local merge for every row GitHub
+calls CONFLICTING, and a corpus scan for Slack asks are where the time goes. A page that took that read on
+every open would be a poll nobody watched; one that cached it would be a stale answer dressed as a fresh
+one. So the page reads what the last runner recorded and says who that was — and takes its own reading only
+when that one is due against the 30-minute landing cadence or cannot give GitHub's count:
+
+```bash
+slopweaver reading last --producer "github landing" --json   # what this page reads — fast lane, 20s
+slopweaver github landing --author @me --json --include-drafts --record-reading sync-now   # what the page's own refresh runs, 240s budget
+```
+
+When no reading exists yet the line beside the selector says "no reading yet", with the verb's own words — the
+exit-3 line — on hover, rather than showing an empty list.
+
+</details>
+
+<details>
+<summary>Fixture mode is a labelled mock, not a cache</summary>
+
+`site/lib/liveFixtures.ts` is a closed map — a name off the URL resolves to a basename that file chose,
+so nothing the URL carries becomes a path, the same construction as the verb allowlist. A fixture is the
+verb's own document in the shape the command on its row prints, a capture or a written synthetic one with
+invented people and organisation, and the route answers it with its frozen instant so the stamp ages it
+honestly.
+
+</details>

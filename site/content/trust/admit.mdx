@@ -1,0 +1,82 @@
+---
+title: The admit door's verdict
+---
+
+import { Callout } from "nextra/components";
+import { AdmitVerdict } from "../../components/diagrams/AdmitVerdict";
+
+# The admit door's verdict
+
+[The one door](/docs/trust/door) is the rule: every side effect goes through one gated pathway. This page is
+what that pathway actually **returns**, and what it is honestly not.
+
+<AdmitVerdict />
+
+## What the door does, described honestly
+
+Three things are true at once, and a page that states only the first is a confident lie:
+
+- **It routes and it audits.** Every side-effecting action passes through `src/admit`, the decision is
+  recorded before the effect runs, and a shipped ratchet fails the build if any side-effect seam is not
+  routed through the door or explicitly acknowledged as a local-state write. The routing guarantee is
+  machine-checked rather than asserted.
+- **Its gate list is empty by default.** `DEFAULT_GATES = []`, with gates injected per call site. So for
+  most verbs the door is a routing, audit and refusal mechanism and **not a general content policy**.
+- **Narrower checks exist before it.** The above-the-fold voice gate, the bare-reference gate and the
+  cited-controls gate each refuse before any network call, and each names a per-invocation override. Those
+  scoped checks do not make every admitted write content-checked.
+
+<Callout type="warning">
+  **No gate should describe a routed path as protected.** For every path but one, "routed through the door" means
+  recorded in the ledger, not refused by a rule. Adding more real rules is a product decision. A path that _claims_ to
+  be protected is not possible.
+</Callout>
+
+## The one rule the door enforces itself
+
+A request whose `meta.requiresApproval` is true, passing a gate list that carries no gate built by
+`approvalGate()`, is a **hold**. The effect never runs.
+
+That rule exists because an approval claim with no gate behind it is decorative: measured, **37 verbs printed
+`[approval]` in the catalog while passing the empty gate list** — including `write vanta deactivate`, which
+stops monitoring on a compliance finding. So there is no verb-level approval boolean: the catalog prints
+`[external-write]` from the field the coverage ratchet enforces, and the two requests that declare approval
+each pass a real gate that holds without a content digest.
+
+**None of this authenticates a human.** The same process that prints a digest can compute one. What it buys
+is that the act takes a second deliberate step against content that cannot have changed underneath it, and
+that the unapproved attempt is recorded as refused.
+
+## The ledger records a pass, not only a refusal
+
+```bash
+slopweaver dev door             # the decisions
+slopweaver dev door --refusals  # the attempts that never reached one
+```
+
+Every decided act leaves a row carrying its verdict, and that includes the ones that passed. An audit trail
+holding only the exceptional case cannot tell you that nothing exceptional happened, which is the whole
+reason the pass rows are there.
+
+Refusing **before** the network call also means refusing before the door decides anything, so a pre-door
+refusal appends a fourth class, `refused`,
+carrying the findings that fired and the escape hatch they named, and no authored prose. **Its coverage is
+partial on purpose and the report says so on every run:** one gate writes those rows and the other pre-door
+checks are still unrecorded, so an empty result is not evidence that nothing stopped a send. Which gate, and
+what it is matching, is on [output](/docs/phases/output).
+
+## Where the answer's own verdict is
+
+The bot's replies carry a second, different verdict — one composed by a session that did not write the
+answer, bound to a digest of its bytes. That belongs to the turn rather than to the door, and it is on
+[output](/docs/phases/output) with the three other gates it runs beside. The door's job there is narrow and
+worth repeating: it does not judge the answer, it refuses to send one whose verdict is missing, stale,
+self-issued or bad.
+
+## A withheld reply is a warn, not a hold
+
+The same distinction, read off the ledger. When the turn's own judgement withholds a composed answer, the
+door performs nothing and records the non-send with its reason — but it records it as a `warn`, because
+nothing refused the act. A `hold` means a rule stopped it. The queue the draft lands in, the notice the
+thread gets, and the standing ruling on what a withhold may never be about are all on
+[output](/docs/phases/output).

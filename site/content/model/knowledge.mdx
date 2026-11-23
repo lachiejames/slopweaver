@@ -1,0 +1,67 @@
+---
+title: Knowledge and memory
+---
+
+import { TwoRegisters } from "../../components/diagrams/TwoRegisters";
+
+# Knowledge and memory
+
+Two registers, and they hold different things. Confusing them is how a lesson learned the hard way ends up
+somewhere nothing will ever read it again.
+
+<TwoRegisters />
+
+## The knowledge register — what an investigation LEARNED
+
+One register, domain as a field. Each row carries its verdict, what was measured, and the command that
+settles it again.
+
+```bash
+slopweaver knowledge record    # what this turn found out the hard way
+slopweaver knowledge recall    # by facet: what do we already know about Datadog?
+```
+
+**No run ends without saying whether it learned anything.** That is the closing question on every
+orchestration run, and it is why the register fills from ordinary work rather than from someone
+remembering to write a postmortem.
+
+**A row is only worth having if it can be settled again.** The verdict and the measurement are what make
+the difference between a lesson and an anecdote — a row saying "Datadog is slow" ages into noise, while one
+saying what was measured, on what, and which command re-measures it stays checkable a month later. That is
+the same falsifiability bar the [citations](/docs/model/intent) are held to.
+
+The register is also where a platform's own gotchas live — a per-install id and a platform quirk resolve at
+runtime from `$SLOPWEAVER_HOME`, never from a constant and never from git. Tools in the codebase, state
+outside it.
+
+## Auto-memory — what a session should know before it starts
+
+A separate corpus, one file per fact, with a one-line index loaded at session start. The bar a memory has
+to clear is that it **changes behaviour**; an always-loaded one additionally has to say why retrieval would
+be too late.
+
+```bash
+slopweaver memory sweep --dir <memory dir>                        # lay it out for a keep/adjust/drop pass
+slopweaver memory hygiene --dir <memory dir> --repo <checkout>    # the standing pass that PROPOSES prunes and never makes one
+```
+
+**Proposing and never making is the whole design.** A pass that pruned on its own judgement would quietly
+delete the one memory that was load-bearing, and nothing would notice until a session behaved differently
+for no visible reason. So the hygiene pass produces a list somebody says yes to.
+
+## What belongs in neither
+
+Anything the repository already records — code structure, past fixes, git history, the canon files. A
+memory restating a committed convention is a second copy that can drift from the first, and the drift is
+silent: the file keeps being read as instructions long after the convention it describes has changed.
+
+The same test catches the commonest mistake in the other register. A row recording "we fixed the retry
+loop" is a git fact. A row recording **that the provider's retry header lies, and the command that proves
+it**, is a knowledge fact, because nothing in the repository holds it.
+
+## The recurring-failure register
+
+A failure that has now happened twice is a different object from one that happened once. It earns a row,
+and the row names what would detect it next time — which is usually how a gate in `src/devLint/` comes to
+exist. Several of the gates on the [gate surface](/docs/build/gates) started life as a second occurrence of
+something a careful reviewer had already missed once.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slopweaver Onboard"
+  short_description: "Connect and initialise the local world model"
+  default_prompt: "Onboard this Codex session to Slopweaver."

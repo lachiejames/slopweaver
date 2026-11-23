@@ -1,0 +1,159 @@
+---
+title: Automations
+---
+
+# Automations
+
+Every automation and every corpus sync as one list of collapsed cards, what needs a look first: what each is doing now, whether it is stuck or failing and why, who it waits on, and what its syncs found per channel, repository or project. Read from `slopweaver automation status --json`, local files only.
+
+<details>
+<summary>What this page shows</summary>
+
+One place to see every scheduled job and every sync — what it is doing right now, whether it is
+moving, whether it is stuck or failing silently and why, when it last finished and what it wrote. The daily
+organisation hunt is a card here; so is the Slack resync, which says how many new threads and replies it found and
+in which channels.
+
+With every scheduled row read and none on the schedule, the page draws the console's designed empty state in place
+of the counts and cards: a card appears when an automation is added to the schedule, with **Connect a plan**, which opens
+Settings on Models, while no plan is connected. A schedule that did not read stays a staleness mark, never that empty state, and an empty schedule
+kept over a failed or refreshing read says so in a plain line rather than printing zeros.
+
+Each collapsed card carries a **health chip**, the automation's plain name (never its id), what it is for — or, when
+broken, why — and on the right how long it usually takes, how many of its recent runs worked, and when it last broke
+(`usually 4m · 9/10 worked · last broke 3.0d ago`). The order is **failed, stuck, stopped, waiting, running, paused,
+not measured, healthy, off**; **paused** is an owner hold, never a failure, and it is your own pause only when the
+hold carries your words naming the automation. Above the cards, the automations that broke since you last looked, then
+those broken now, those paused by you and those held with no word of yours naming them, each NAMED, then the plain
+counts, with a
+staleness mark beside them when a store the verb could not read may have cost a card — its hover names each store
+and why. When the scheduled rows would not list at all, that mark stands in place of every count, so none reads as a
+zero. A definition file that is not a row is one red line, the records themselves folded beneath it.
+
+**Every card answers three questions in plain words**: how long it takes, why a broken one is
+broken, and whether a failure is common. **How long** is the median of its ten most recently finished timed
+successes and the run that finished last, a failed one said as failing after so long, ordered by when each finished
+since two runs can end in either order; a row run in this process is timed from when it was taken, a resync
+from when its session began the run, and every other seated row says it is **not timed** — its session's own time is
+not recorded, and the worklist read would be the wrong number. A run under way, or a seat still being waited for, is
+said ahead of it with the time so far; an open firing behind a newer finished or abandoned run is a record nothing settled, never a
+run still going. **How often** is how many of its ten most recently finished firings worked — an abandoned one counted as
+not working — and how many scheduled times went by with no run.
+
+**A broken or paused automation answers five questions, in plain words and no identifiers**: why it is broken, led by one plain sentence of what went wrong and what fixes it (with what the service said
+folded under **Full message**), how long (since when, when it last worked, and for a
+sync its last complete run and its newest stored rows), when it gets fixed and whether that needs you — said as a
+state, never a promise, and red when it is on you — what is worse while it is broken, and what stands in for it now.
+A stopped row says why the supervisor left it: holding it with a reason, passing it over without one (and how many
+checks saw it waiting), no check having looked since, or its record not reading — read off the supervisor's tick
+ledger from the oldest stopped row's last run on, so a malformed row older than every window never blanks the answer.
+It says its last run failed only when the slot ledger did not settle that run as a success: a non-zero exit alone is
+not a failure, since a verb-run's exit 3 means it had nothing to do. Nothing the run printed is quoted above the
+fold: its whole record — exit codes, paths, request lines and whatever the service said — folds under **Full
+message**, and only while it is the newest finished run. The fix row, the pause reason and the row id sit in the
+card's folded **Technical detail**.
+
+**The plain sentence is never guessed**, since no console-side model may read a record (AGENTS.md rule 2).
+It is the visible session's own, written with `slopweaver automation explain` for that exact firing and attempt
+into `$SLOPWEAVER_HOME/live/recipe/failure-explanations.jsonl`, and the register takes only a sentence of words and
+numbers with commas, so no quote, bracket, path or code can carry a pasted record onto the row. Nothing is read off the record's own text, since a code
+named in it can as easily deny the cause as name it, so a firing no session explained leads with the scheduler's own
+why. Every console warning mark
+works the same way: its hover leads with one plain line and folds the raw message under **Full message**
+(`site/lib/plainReason.ts`, rendered once by `WarningMark`), and so does each outside failure drawn inline through
+`PlainWhy` on the surfaces `site/__tests__/unit/plainWhyRenderers.test.ts` lists, the sidebar's failed update among
+them, and a sentence of the console's own that quotes a read's reason carries that reason apart and draws it the
+same way beneath the sentence ([the Queue](/docs/console/queue)). Not yet: the voice session's own failure lines.
+
+**This page replaces a floating note per automation failure.** A note each time a row broke overwhelms the owner, so
+health is READ here, never pushed: a failure is the row's state with its why, and the page leads with how many rows
+failed since you last looked, counted from a mark this browser keeps (`site/lib/automationsLooked.ts`) — each card
+carries its own count beside its chip. A floating note is left for a step only your hands can take.
+
+Opening a card shows the five answers first, then **How long does it take?** and **How often does it work?**, then
+**recent runs** as a timeline: one bullet per run, newest first, at your clock with no zone and never an ISO
+(`today h:mm am`, `Ddd D Mon h:mm am`), a failed run in red with its error in the same plain words as the answers — the runner's framing left to the fold — how long it took by the same rule as
+the answer above it, and what it pulled in: how many new rows and where most landed (`194 new · most in the MX team`,
+a Linear team by name, never `linear/MX`, and never an id), with every kind and every team or channel with its count
+behind a hover.
+A sync draws its sync runs; any other row its firings and what each left (a Slack post, a fix on the board). Then
+what it is for, and a folded **Technical detail**: what it is doing in the verb's words, what the row asks, its kind
+and cadence, who it waits on, when it last succeeded, its newest failure, its firings tally and the records. Then the
+controls, the requests already sent, its timeline, what each recent firing produced, and — for a corpus
+resync — its newest sync run drawn whole, with earlier runs folded. A sync run shows its state, what it is reading now (`channel 14 of 212 — #incidents`), the new rows by
+kind, two measured rates, the containers with new rows (most first, eight shown and the rest folded), and the
+containers it read and found nothing new in, folded. Nothing estimates when a run will finish. `/automations#<recipe-id>` opens that one card, so a Queue card or
+a reply can link straight to a row.
+
+A refresh run by hand writes a run too; a source no scheduled row covers is listed under the cards.
+
+**What each firing produced.** An `investigate` firing records where it posted once Slack confirms the post —
+channel, ts and the moment — so each recent firing shows that line, or why there is none. A failed firing shows the
+board row it filed and how that row stands. Readings and floating notes the row left are listed by their own
+`recipe:<id>` stamp. A kind whose executor records no per-firing post says so once on the card rather than a
+`nothing` on every firing. No Slack link is drawn: this machine stores no workspace address to build one from.
+
+</details>
+
+<details>
+<summary>Every control speaks to the supervisor</summary>
+
+No control on this page changes a row. The page draws no box either: the console's one text input
+is the call's chat. The card you last opened is the page's open item, `recipe:<id>`, and its
+line says so — _Say what should change — disable it, run it now, a new cadence — aloud or in the call's chat while
+this card is open; nothing here changes the row itself._ The call relays what you say to the supervisor naming that
+card, and the supervisor amends the row itself.
+
+Each sent request then shows on its card as **request sent to supervisor**, with the moment, what became of the
+line typed into the supervisor's chat, and the supervisor's recorded answer — the settlement of the board row the
+relay registered — when it lands. The count awaiting an answer sits beside the row's **next firing**, so you can
+see whether the supervisor will have read it before that firing runs.
+
+The **timeline** opens on the row's earliest trace and names which record dates it (the row file's birth or its
+oldest firing on the ledger), beside its wording now, then each request since, and after each one the first firing
+that started, what it posted, and whether the row's file was edited since. The definition store keeps no creation row
+and no revision history, so the timeline never claims when it was first stated or in what older words, and it puts evidence
+beside a steer without claiming the steer caused it.
+
+</details>
+
+<details>
+<summary>What every figure is derived from</summary>
+
+| On the page                    | Derived from                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The cards                      | every file under `live/recipe/definitions/`, read in the lifted view; a file that will not parse is listed by name, never a card; a row `automation retire` took off this install has no file, so no card                                                                                                                                                                         |
+| Health                         | first that applies: your own hold (paused); a standing failure hold (failed); a blocker or deferral (waiting); the scheduler's verdict on the newest firing — cooling, exhausted, retry or dead (failed); its abandoned verdict, or a running sync quiet past the stall mark (stuck); `silentRows` (stopped); a held firing or a running sync (running). A lifted hold is no hold |
+| Name · what it is for          | the row's kind and argv — a resync's `--source` or `--atlas` (the atlas descriptor's own question), an investigation's question — never its id (`src/automations/purpose.ts`)                                                                                                                                                                                                     |
+| The five answers               | the hold and its fix row's stage, the resync blocker or sign-in wall, the firings by when they SETTLED, the newest failed sync run's first error, the supervisor's tick ledger for a stopped row, and the row's purpose (`src/automations/brokenAccount.ts`, `brokenWhy.ts`)                                                                                                      |
+| How long · how often           | the slot ledger's firings: run start (or take, for a row run here) to settle over the ten most recently settled timed successes; the ten most recently settled firings for the rate (`src/automations/runStats.ts`)                                                                                                                                                               |
+| Firings recorded · ok · failed | the slot ledger, one row per FIRING with its final stored outcome — a retry overwrites its firing's row, so this counts firings, not attempts                                                                                                                                                                                                                                     |
+| Last broke                     | the newest firing settled failed or dead                                                                                                                                                                                                                                                                                                                                          |
+| Waiting on                     | the row's hold (the board row whose fix lifts a failure hold, or your own), a resync blocker, a sign-in wall, or the newest firing's deferral                                                                                                                                                                                                                                     |
+| A sync run                     | `live/sync-runs/<source>/<start>-<runId>.jsonl`, written by `slopweaver refresh` as it runs                                                                                                                                                                                                                                                                                       |
+| New rows per channel           | each bronze commit's own appended records, per container and kind; a record re-offered later in the same run counts once                                                                                                                                                                                                                                                          |
+| Read with nothing new          | containers the run offered to bronze where every record was already held                                                                                                                                                                                                                                                                                                          |
+| Reading now                    | the connector's newest heartbeat, written at most every five seconds or on a phase change                                                                                                                                                                                                                                                                                         |
+| A rate                         | new rows over the run's elapsed time, and progress between the newest two checkpoints of one phase — measured, never projected                                                                                                                                                                                                                                                    |
+| Running                        | the run has no finish row and its process still holds that source's refresh slot — the slot, so a recycled pid cannot keep a dead run running                                                                                                                                                                                                                                     |
+| Ended unfinished               | no finish row and no slot holder: the run was killed or crashed after its last row                                                                                                                                                                                                                                                                                                |
+
+| A firing's posting | `live/recipe/postings/<slot-attempt>.json`, written by the `investigate` executor once the post is confirmed |
+| A firing's finding | the board row whose slug the failure hold derives for that firing (`failureFindingSlug`), opened by that slug alone |
+| A request and its answer | the relay receipts whose `about` is `recipe:<id>`, each turn's own file for its delivery, and the board row it registered for the answer |
+| Next firing | the row's cadence from now; none while the row is off |
+| First recorded · row edited | the definition file's birth (or its oldest firing, if older) and its last write |
+
+Every figure is computed by `src/automations/card.ts`, `src/automations/brokenAccount.ts`,
+`src/automations/outputs.ts`, `src/automations/steering.ts` and `src/syncRun/fold.ts`; the page only draws, and
+words a run's clock and what it pulled in with `site/lib/runTimeline.ts`.
+
+</details>
+
+<details>
+<summary>Reused by onboarding</summary>
+
+`SyncRunPanel` (`site/components/live/SyncRunPanel.tsx`) draws one run and nothing about the page around it, and
+`readSyncRun` reads one run out of the payload, so onboarding's sync wait draws the same panel from the same verb.
+
+</details>

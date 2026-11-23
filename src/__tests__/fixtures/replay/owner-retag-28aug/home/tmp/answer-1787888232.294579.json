@@ -1,0 +1,187 @@
+{
+  "kind": "answer",
+  "lead": "[REDACTED]",
+  "index": [
+    [
+      {
+        "type": "mention",
+        "person": "UFIXTUREAG"
+      },
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "mention",
+        "person": "UFIXTUREAB"
+      },
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "1"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "2"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "3"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "4"
+      }
+    ]
+  ],
+  "indexStyle": "bullet",
+  "body": [
+    {
+      "type": "paragraph",
+      "runs": [
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        },
+        {
+          "type": "citation",
+          "citationId": "1"
+        },
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "runs": [
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        },
+        {
+          "type": "citation",
+          "citationId": "2"
+        },
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        },
+        {
+          "type": "citation",
+          "citationId": "3"
+        },
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "runs": [
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        }
+      ]
+    }
+  ],
+  "citations": [
+    {
+      "id": "1",
+      "label": "[1]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "2",
+      "label": "[2]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "3",
+      "label": "[3]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "4",
+      "label": "[4]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    }
+  ],
+  "images": [],
+  "grounding": {
+    "kind": "conversation",
+    "reason": "[REDACTED]",
+    "evidence": {
+      "read": [
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://redacted.invalid/[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        }
+      ],
+      "consultedEmpty": [],
+      "couldNotSee": {
+        "blindSpots": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ]
+      }
+    },
+    "provenance": {
+      "model": "the dispatched worker in workspace:422 (Claude Code, in-turn)",
+      "skillsLoaded": [],
+      "verbsLoaded": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ]
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1790049834.166409",
+    "threadTs": "1790048427.171609"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "the composed answer — the record names a path outside the home, or no longer on disk",
+    "the composed answer — the record names a path outside the home, or no longer on disk"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/ledgers/turn-completions.jsonl",
+    "home/briefs/CFIXTUREAA-1790049834.166409.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1790049834.166409.json",
+    "home/live/slack/turn-markers/CFIXTUREAA-1790049834.166409.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/record.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/verdict.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790049834.166409/draft-sha256-71cd8b21d507fb70808a91cc05188b6a2a50e8f6bee2f45c0f7323b64ca3bc88.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790049834.166409/draft-sha256-73f14483a4262aa540d0f02aa089abfd80dd60a67ce42a07281832aa2c0aed97.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790049834.166409/draft-sha256-ecbccbae8c577f84e6f73e077b9860e892a914a09d848f6b9b24b32351a8609e.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790049834.166409/draft-sha256-f0da15597816619256eee93bba408a21c706baafdd70553e57c69765c5c329c1.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790049834.166409/log.jsonl",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/answer-reviewed-sha256-71cd8b21d507fb70808a91cc05188b6a2a50e8f6bee2f45c0f7323b64ca3bc88.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/answer-reviewed-sha256-73f14483a4262aa540d0f02aa089abfd80dd60a67ce42a07281832aa2c0aed97.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/answer-reviewed-sha256-ecbccbae8c577f84e6f73e077b9860e892a914a09d848f6b9b24b32351a8609e.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/answer-reviewed-sha256-f0da15597816619256eee93bba408a21c706baafdd70553e57c69765c5c329c1.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/verdict-superseded-fixture-uuid-dx-2026-09-22T04-26-19-616Z.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/verdict-superseded-fixture-uuid-dy-2026-09-22T04-56-08-798Z.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790049834.166409/verdict-superseded-fixture-uuid-dz-2026-09-22T04-44-01-646Z.json"
+  ],
+  "frozenAtIso": "2026-11-03T06:42:43.785Z",
+  "incident": "a correction turn superseded its own earlier answer in the acme-bugs thread and the chair deleted the old answer by hand",
+  "regresses": [],
+  "replayNowIso": "2026-09-22T05:21:33.519Z",
+  "reviewRounds": 4,
+  "schemaVersion": 1,
+  "slug": "correction-supersedes-answer-22sep",
+  "syntheticIdCount": 91,
+  "withheldEventKinds": [],
+  "through": "answered"
+}

@@ -1,0 +1,92 @@
+---
+title: Coverage and its bounds
+---
+
+import { Callout } from "nextra/components";
+
+import { CoverageGates } from "../../components/diagrams/CoverageGates";
+
+# Coverage and its bounds
+
+What is actually in bronze, how far back it goes, and — the harder half — how you tell a gap from a
+silence. A corpus that cannot say what it does **not** hold is a corpus you stop trusting the first time a
+number surprises you.
+
+<CoverageGates />
+
+## The two Slack gates, and the one that was blamed for years of history it never touched
+
+The phrase that started this was a real log line: `channel-membership cap 50 applied — <n> active
+channel(s) not resolved`, with `<n>` in the hundreds. It reads like the thing keeping messages out of the corpus. It is not.
+
+- **The channel-membership cap is OPT-IN and it bounds STRUCTURE metadata.** `--slack-membership-cap N`
+  bounds how many channels get a `conversations.members` call during the structure lane — who belongs to
+  a channel. Pass nothing and every active channel is resolved. It has never touched message ingestion.
+- **A capped run stays honest about what it did not ask.** Every channel row carries a
+  `membershipResolved` attribute, silver counts the `false` ones, and `derive` names them on its
+  `structures:` line. Without it a capped channel and a genuinely empty one are both zero member edges
+  downstream — measured at a cap of 50: hundreds of active channels never asked, and **zero** of the 50 asked came
+  back with no members. Every zero in silver was an unasked question.
+- **What gates message history is the backfill window**, so each conversation keeps its own cursor
+  (`src/corpus/slack/channelWatermark.ts`) and archived channels are discovered too. One pooled cursor cannot
+  express _never crawled_: a channel first seen after an earlier walk inherits a floor later than everything it
+  holds. Measured under one: **over a hundred** reachable conversations carrying real messages held zero
+  bronze rows, one of them a channel of thousands of messages reaching back more than a year.
+
+<Callout type="warning">
+  **`is_member: false` does not mean a channel cannot be read.** That belief comes from a join between captured content
+  and the flag, never from asking Slack. Asked directly, the user token read **all but one of hundreds of** non-archived
+  conversations, membership or not — the single refusal was a DM whose counterpart is deactivated. Membership is a fact
+  about a channel, not the access boundary.
+</Callout>
+
+```bash
+slopweaver refresh --source slack --coverage   # reports the remaining gap, and exits non-zero while any exists
+```
+
+## How far back each source reaches, and why they differ so much
+
+A reading of one install, kept here for its **shape** rather than its numbers — every figure
+below is a snapshot of one machine's disk on one day, and `refresh` moves all of them.
+
+| Source | Dense history starts | Why it lands there                                                       |
+| ------ | -------------------- | ------------------------------------------------------------------------ |
+| Slack  | ~3.8 months          | the backfill window; older pins and bookmarks are captured separately    |
+| GitHub | ~3.7 months          | org-wide, no repo cap — stragglers are threads search re-discovers       |
+| Notion | ~7.7 months          | bounded by the integration grant, not by anything in this repo           |
+| Linear | **~2.8 years**       | nothing filters by team, project or age, and there is no membership gate |
+
+**Linear is the outlier and the reason is structural**, not a setting somebody chose: its root list
+queries are workspace-wide and `includeArchived` is on, so its history runs continuously back to 2023-12.
+**Notion is the one source where "do we have all the history" is a question about a permission the owner
+controls outside this codebase** — a Notion internal integration only sees what a human has explicitly
+shared with it, and a widened grant backfills nothing until the next `refresh --source notion`.
+
+## A refresh only appends, so bronze carries duplicates until it is compacted
+
+A refresh never merges overlapping windows, and on that same reading **19% of what was on
+disk was a duplicate capture** — concentrated in Linear and Notion, each of which had more than one
+near-complete full-history window beside later incremental ones.
+
+Nothing downstream is wrong because of it: `latestRecords` reads through the duplication at query time. It
+is a disk and collation cost, and `compact` is what removes it — the `compact-corpus-daily` standing row, once
+`slopweaver automation register-standing` has written it, declares a run due at 02:30 each night, so a
+hand run is only for right now.
+
+```bash
+slopweaver dev manifest --out before.json       # snapshot the corpus first
+slopweaver compact                              # merge overlapping windows, dedupe
+slopweaver dev manifest --compare before.json   # prove it lost nothing it did not touch
+```
+
+## A clean miss is not the same as an empty corpus
+
+A dogfood question asked about a real person **by a misspelled name** and got zero records back, which read
+as a coverage gap. It was not one — the corpus held that person correctly, under the correct spelling,
+across two sources, and re-asking returned three records out of twelve.
+
+What actually happened: retrieval never consults `corpus/members/` to catch a near-miss spelling or offer a
+"did you mean", so a name one character off the roster produces a **clean, silent miss** rather than a
+match or a warning. That is a retrieval-reconciliation gap, and it is filed as one. The lesson generalises
+past this install: a zero from a retrieval path is only evidence of absence if something proves the
+question was asked the way the data was stored.

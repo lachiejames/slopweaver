@@ -1,0 +1,803 @@
+name: CI
+
+on:
+  # Push CI runs ONLY on `main` (the post-merge validation). Every other branch is validated through its
+  # PR's `pull_request` run, so a feature branch is never checked twice (once for the push, once for the PR)
+  # on the same commit — which is the double-run this replaces.
+  push:
+    branches: [main]
+  # A JOB RUNS ONLY ON AN EVENT THAT COULD CHANGE ITS OUTCOME. CI triggers align with reality: a unit test
+  # never reruns because a pull request description was edited, and the same holds for every CI job.
+  #
+  # MEASURED, which is what the rule answers: 49 `ci.yml` laps across 20 merged pull requests, read through
+  # `slopweaver github read <pr-url> --json` and grouped by the run
+  # id in each check's `detailsUrl`. A lap is p50 9m23s / p95 9m45s. TWENTY-NINE of those 49 laps ran on a
+  # head commit whose code had not changed at all — 270m58s of the 457m52s total, 13m32s per landing. One
+  # pull request ran three full laps on a single commit: 9m47s, 9m59s, 9m32s. Reproduce:
+  #   slopweaver github read https://github.com/lachiejames/slopweaver/pull/<n> --json \
+  #     | jq '.data.commits.nodes[0].commit.statusCheckRollup.contexts.nodes[]
+  #           | {name, startedAt, completedAt, detailsUrl}'
+  #
+  # Every job here reads the checked-out MERGE TREE and nothing else about the pull request, so this list is
+  # every action that can hand them a different tree. `ci-trigger-contract` in `yarn lint` holds that: each
+  # job declares the actions that could change its verdict, and a workflow's `types` must equal the union of
+  # its own jobs' declarations, so a job added later cannot silently inherit a trigger nobody chose for it.
+  #
+  # TWO ACTIONS WERE REMOVED, and neither is skipped-at-the-job — the workflow simply does not fire, so no
+  # check run is created at all. That is the whole reason `dev-gate` moved to `pr-body-gate.yml` rather than
+  # staying here behind an `if`: a job skipped by `if` still emits a check run whose `skipped` conclusion
+  # counts as PASSING (GitHub's branch protection, and `PASSING_CONCLUSIONS` in src/live/github/checks.ts),
+  # and it is the LATEST run for that name — so a description edit would have turned a RED `build` green in
+  # the rollup. Splitting the workflows is what makes the saving free of that.
+  #
+  #   `edited`            — a title or body change cannot move a lint, typecheck, test or cassette verdict.
+  #                         It also arrives for a BASE retarget, which CAN: that case is caught at merge
+  #                         instead, by the `merge_group` run below, which tests the entry against the real
+  #                         base tip and carries both of this branch's required contexts. A stale-base green
+  #                         on the pull request therefore cannot merge on its own.
+  #   `ready_for_review`  — no job reads the draft flag. A draft's green now stands through readying instead
+  #                         of being re-earned, which is the lap `github checks --wait` used to spend twice.
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # GitHub's native merge queue tests each entry on its OWN ref (`refs/heads/gh-readonly-queue/main/...`),
+  # which is the base tip plus every entry ahead of it plus this one — never the pull request's branch. That
+  # ref fires `merge_group` and NOTHING else, so a workflow without this trigger produces no check on a queue
+  # entry at all: the entry waits for a required check that can never arrive and the queue stalls rather than
+  # failing. Adding the trigger is therefore the prerequisite for the queue, not an optimisation of it.
+  merge_group:
+
+# THIS FILE IS WHERE THE HEAVY LAPS LIVE. The whole-repo `ts.Program` gate and
+# both test lanes are OFF the developer machine's `pre-push` hook and live here, rather than the heap
+# ceiling being raised to keep them there: raising the heap limit without reducing the memory the underlying
+# code needs would force fewer concurrent slots on the machine, and risk kernel panics. Nothing in this workflow was ADDED to carry them:
+# `build` already ran lint, typecheck, both test lanes and the coverage floor before the split, which is why
+# the offload costs no CI time. What changed is `lefthook.yml`, which stopped duplicating them locally. So
+# a check deleted from a job here is not a check that runs somewhere else any more — it is a check that has
+# stopped running at all.
+#
+# THE LAPS RUN IN PARALLEL, AND `build` IS ONLY THEIR VERDICT. CI took 12min as one job, and none of the laps
+# depends on another, and more tests keep arriving, so they are separate jobs. MEASURED before the split,
+# `build` on three pull requests ran 11m56s/11m53s/11m46s end to end, and it was ONE job running install 42s,
+# lint 4m34s, typecheck 46s, unit 3m18s and subprocess 2m21s in series. None reads another's output, so
+# `lint`, `typecheck`, `unit` and `subprocess` are now four jobs that start together and the lap's wall time
+# is the slowest of them rather than their sum.
+#
+# `build` was KEPT, as the job that turns those four results into one verdict, for two reasons. `build` and
+# `integration` are `main`'s required contexts and the merge queue's, so renaming the check would need a
+# ruleset change and strand every open pull request and queue entry waiting on a context that no longer
+# arrives. And a leg added later joins `build.needs` rather than the ruleset, so the shape scales without
+# anybody touching repository settings. `ci-offload-contract` holds the property that makes this safe: every
+# offloaded command runs in a worker `build` directly needs, and `build` fails unless each one SUCCEEDED.
+#
+# Every job below carries a timeout-minutes ceiling. One `build` check once read running for 68 minutes on
+# a head where dev-gate, integration and both CodeQL checks on the same head had already passed, and the
+# merge hold it owned went stale behind it — with no ceiling a starved or hung run reads running forever,
+# and nobody can tell contention from a hang. Each ceiling
+# below is `max(10, ceil(p95 * 3 / 5) * 5)` minutes, from the measured p95 duration of that job's last 30
+# green runs (MEASURED and RE-MEASURED — see each job's own comment). Reproduce through
+# the door, since rule 3 bans the raw `gh` this line used to name:
+#   slopweaver github read https://github.com/lachiejames/slopweaver/pull/<n> --json \
+#     | jq '.data.commits.nodes[0].commit.statusCheckRollup.contexts.nodes[]
+#           | {name, startedAt, completedAt, detailsUrl}'
+# The 3x multiplier and 10-minute floor absorb runner contention and cold-cache
+# variance the 30-run sample didn't capture, while still catching a real hang far short of 68 minutes.
+# The five root workers' ceilings are PROVISIONAL until they have their own 30 runs: each keeps the 20 minutes the
+# whole serial `build` had, which still bounds a hang in any one of them far short of 68 minutes.
+# The token every job gets is read-only. Only `ci-timing` reads more, and it declares its own block below. This
+# closes CodeQL `actions/missing-workflow-permissions` for every job in this file at once, rather than one per
+# job as each new job is added (the unit shards raised five).
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # PROVISIONAL: the serial `build` job's 20, kept until this job has 30 runs of its own.
+    timeout-minutes: 20
+    env:
+      # The commit this branch's committed coverage floor is compared against. CI is the ONLY place the
+      # history half runs: on a `pull_request`, checkout resolves the MERGE commit, so a branch that never
+      # touched the floor already carries whatever `main` says — which is what stops a raise on `main` from
+      # reading as a lowering here. A local comparison against `origin/main` has no such property.
+      # Three events, three places the base commit lives. On `merge_group` the checked-out ref is the queue's
+      # own throwaway branch, so `github.event.before` names nothing on it — `merge_group.base_sha` is the tip
+      # of `main` the entry is being tested against, which is the commit the floor must be compared to.
+      # It is set on BOTH `lint` and `unit`: `yarn lint` runs `coverage-ratchet --summary-only`, which still
+      # checks floor INTEGRITY against the base, and `yarn coverage:ratchet` in `unit` runs the measured half.
+      SLOPWEAVER_COVERAGE_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.before }}
+    steps:
+      # The premise of the offload, asserted rather than described. Canon (docs/toolchain/rebaseline-and-lanes.md, AGENTS.md,
+      # lefthook.yml) now tells every session that the heavy laps run on a machine this one is not, and a
+      # sentence in a doc cannot notice when that stops being true — this repository's canon said
+      # "self-hosted runner" for weeks after it wasn't. `RUNNER_ENVIRONMENT` is GitHub's own answer
+      # (`github-hosted` or `self-hosted`), so a red here means the docs need changing, not this step.
+      # It runs FIRST and costs milliseconds, so a wrong premise fails before minutes of gates. Every worker
+      # carries it, byte-identical — `ci-offload-contract` compares them — because each worker is its own
+      # machine, and the one that proved the premise is not the one running the next job's lap.
+      #
+      # MIN_TOTAL_MIB is RUNNER_FLOOR_MIB in src/devLint/gateCapacity.ts, not a round number picked for comfort:
+      # the whole `yarn lint` lap MEASURED a 10.1–10.4 GiB peak on this runner at every pool width, and
+      # `named-object-params` alone holds HEAP_BUDGET_MIB, so 12,288 is the smallest whole GiB over that peak. `RUNNER_ENVIRONMENT` alone
+      # would not have caught this — it says who OWNS the runner and nothing about its size, and a
+      # `runs-on:` label can be repointed at a smaller GitHub-hosted machine without changing a byte here.
+      # A pre-mortem named this as a failure mode.
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: &runner-facts |
+          total_mib="$(awk '/^MemTotal:/{printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || echo 0)"
+          echo "environment: ${RUNNER_ENVIRONMENT:-<unset>}"
+          echo "arch/os:     ${RUNNER_ARCH:-?} ${RUNNER_OS:-?}"
+          echo "cpus:        $(nproc 2>/dev/null || echo '?')"
+          echo "memory:      ${total_mib} MiB total (floor ${MIN_TOTAL_MIB} MiB)"
+          if [ "${RUNNER_ENVIRONMENT:-}" != "github-hosted" ]; then
+            echo "::error::canon says the heavy gate laps run on a GitHub-hosted runner, but RUNNER_ENVIRONMENT is '${RUNNER_ENVIRONMENT:-<unset>}'. Fix the claim in docs/toolchain/build.md and this workflow's own comments — do not delete this check."
+            exit 1
+          fi
+          if [ "$total_mib" -lt "$MIN_TOTAL_MIB" ]; then
+            echo "::error::this runner has ${total_mib} MiB of memory, under the ${MIN_TOTAL_MIB} MiB floor the offloaded laps need. The pre-push hook no longer runs them, so they would run nowhere that can hold them. Move the runner back to a larger machine."
+            exit 1
+          fi
+      - uses: actions/checkout@v7
+      # The checkout above fetches ONE commit, on every major this repository has pinned. Measured on a
+      # PR-shaped shallow checkout under `checkout@v4`: every base lookup exits 128 because the base is never
+      # fetched at all. Fetching just that one commit is enough — a full `fetch-depth: 0` is not needed. Runs
+      # AFTER checkout: before it there is no repository or `origin`.
+      - name: Fetch the coverage-floor base commit
+        shell: bash
+        run: &fetch-base |
+          if [ "$SLOPWEAVER_COVERAGE_BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "coverage-floor: base is all zeroes (new ref, no previous commit) — history half will report skipped"
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$SLOPWEAVER_COVERAGE_BASE_SHA"
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      # The installed dependencies, restored from a cache keyed on every file the install reads, with no
+      # fallback key. The install still runs over the restored tree. Only `typecheck` writes the cache, and
+      # only on a `push` to `main` that missed, so every entry is one cold install on a trusted ref.
+      # MEASURED: 0:41 of install in each of fourteen jobs, against 0:10-0:13 restore + 0:10-0:12
+      # install on a hit. One shape, pinned by `ci-offload-contract` (src/devLint/ciDependencyCache.ts);
+      # every other job below reuses the restore by anchor.
+      - &restore-deps
+        name: Restore the installed dependencies
+        id: deps
+        uses: actions/cache/restore@v6
+        with: &deps-cache
+          key: node-modules-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.nvmrc', '.yarnrc.yml', '.yarn/plugins/**', 'package.json', 'yarn.lock', 'stubs/*/package.json') }}
+          path: |
+            node_modules
+            .yarn/install-state.gz
+      - run: yarn install --immutable
+      # One composite (`slopweaver dev lint`), the SAME `yarn lint` run locally: prettier + oxlint (incl.
+      # --type-aware) + the bespoke gates that replace ESLint's job + knip + constraints + hygiene +
+      # door-coverage. Fails on any lint/format/dead-code/pin regression.
+      # Its `coverage-ratchet` entry enforces FLOOR INTEGRITY here (file present, parses, not lowered against
+      # the base); the measured half needs a report and runs in `unit`, after the shards' reports merge.
+      - name: Lint
+        # NO NODE_OPTIONS HERE, AND THAT IS THE CHANGE. This step used to raise the WHOLE job's heap ceiling
+        # to 8192 MiB for ONE gate. `named-object-params` builds a whole-repo TypeScript Program, and at the
+        # runner's ~2GB default it died on GC timing: builds went red AT RANDOM (red, green, red on
+        # commits none of which touched the gate), because a live set of 2,038 MiB under a
+        # ~2,048 MiB ceiling survives or dies on when a major GC happens to run. Binary-searched on one
+        # commit, the gate FAILED at 1024/1280/1536/1792/1920 and both PASSED and FAILED at 2048 — same
+        # commit, same ceiling, two verdicts.
+        #
+        # That ceiling did not go away. It MOVED onto the process that actually needs it: `dev lint` spawns
+        # the gate as its own child with `--expose-gc --max-old-space-size=8192` on the CHILD's argv
+        # (src/devLint/devLint.ts, asserted by src/__tests__/unit/devLint/devLint/lintChecks.test.ts), so the
+        # requirement is declared where the requirement is and every other gate in this composite runs under
+        # V8's default. A job-wide variable could not name which process needed the headroom, and it covered
+        # any other gate that quietly started needing some — which is the failure this whole row is about:
+        # a ceiling raised to make a red go away measures nothing.
+        #
+        # So an out-of-memory red from this step is now INFORMATION. It names a process that grew past the
+        # default, and the answer is to measure that process — `slopweaver dev profile --gate <name> --cpu`
+        # — not to put a variable back here. The gate's own tripwire is HEAP_BUDGET_MIB
+        # (src/devLint/namedObjectParamsHeap.ts), which no session raises: over it, cut what the gate holds,
+        # and a requirement still past it goes to the owner.
+        #
+        # This is the ONLY place `named-object-params` runs: the `pre-push` hook runs
+        # `dev lint --lane local`, which drops it. A red here can no longer have been caught on anyone's
+        # laptop first, so it is the only warning there is. Note the unit job's comment below narrates a
+        # NODE_OPTIONS this file does NOT set — that bump was reverted when the real cause turned
+        # out to be one broken test fixture, so it is not a setting to match.
+        run: yarn lint
+
+  typecheck:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # PROVISIONAL: the serial `build` job's 20, kept until this job has 30 runs of its own.
+    timeout-minutes: 20
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      # The one cache writer (src/devLint/ciDependencyCache.ts): a `push` to `main` that missed.
+      - name: Save the installed dependencies
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with: *deps-cache
+      - name: Typecheck
+        # No NODE_OPTIONS here, deliberately. `yarn typecheck` carries its own bounds on its own
+        # invocation — `bash scripts/tsc-owner.sh --timeout-seconds 1140 --grace-seconds 5
+        # --rss-ceiling-mib 10240 -- node_modules/.bin/tsc` — because TypeScript 7's compiler is native: no V8
+        # flag reaches it, and it ignores TERM and INT (a known upstream TypeScript issue), so the owner holds its
+        # process group, sums the group's resident memory and reaps it at the timeout or the ceiling. A
+        # job-wide env var would be a blanket over every process in the job; a bound on the one invocation
+        # that needs it is attached to its own measurement and cannot drift away from it.
+        #
+        # The SUBJECT is the root `tsconfig.json`, which includes the whole tree rather than
+        # `src/**/*`, `desktop/__tests__/unit/**` and the pure `desktop/src` modules they import among it
+        # (the Electron shells stay out: `desktop/src` is excluded and only reached by import).
+        #
+        # MEASURED on TypeScript 7.1.0-beta, the config this job reads with a cold cache (a warm
+        # `.cache/typecheck.tsbuildinfo` skips unchanged files and under-reports by half), under the owner's
+        # Go soft memory limit: 30,644 files, a whole-tree peak of **7,391 MiB** resident
+        # (`peakRssKiB=7568208`), 16.2s total. 10,240 — `yarn build`'s ceiling, inside this runner's
+        # 12,288 MiB floor — carries over from
+        # the V8 ceiling it replaces. The one structural fix that would move it is TypeScript project
+        # references, a partition decision (`docs/constraints.md`) and not this job's to take. Re-measure the
+        # config this job actually reads, under the owner, never `NODE_OPTIONS`:
+        #   bash scripts/tsc-owner.sh --timeout-seconds 1140 --grace-seconds 5 --rss-ceiling-mib 10240 -- \
+        #     node_modules/.bin/tsc --noEmit -p tsconfig.json --incremental false --extendedDiagnostics
+        run: yarn typecheck
+
+  # The console and docs site is its own Yarn project under `site/` (`scripts/docs-site.sh`), and no root
+  # lane reaches it: `yarn typecheck` does not compile it and no vitest lane imports it. `next build` is the
+  # one typecheck it has — it runs `tsc` over every route, component and the act route's boundary — so it
+  # runs here, immutable install and all, rather than only on whichever machine last remembered to. No
+  # slopweaver binary is needed: the build prerenders the shells and touches no verb. A WORKER of `build`:
+  # outside it, a red console build left the required check green.
+  site:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # PROVISIONAL: one local `next build` took 27 s to compile and under two minutes whole;
+    # the ceiling is the formula's floor until this job has 30 runs of its own.
+    timeout-minutes: 10
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - name: Install the site's own dependencies
+        working-directory: site
+        run: yarn install --immutable
+      # The installed Nextra loader must carry no Twoslash (docs/docs-site/runtime.md): read the bytes Yarn
+      # patched before the build that would otherwise load the classic TypeScript API through them.
+      - name: The Nextra patch is applied
+        working-directory: site
+        run: yarn test:nextra-patch
+      - name: Build the site
+        working-directory: site
+        run: yarn build
+
+  # The desktop shell is its own Yarn project under `desktop/` (desktop/README.md), its source outside the root
+  # tsconfig like `site/`'s, for Electron's types and its own lockfile; its unit tests (and the pure modules
+  # they import) ARE in the root tsconfig, so the `typecheck` job covers them. `yarn build` is its `tsc` over
+  # the main process and the preload; its pure half is also imported by the root unit lane. A WORKER of
+  # `build` from the start, so a red shell never merges green. The Electron binary is not fetched here: the
+  # install runs no scripts and `tsc` needs only the types.
+  desktop:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # PROVISIONAL: the formula's floor until this job has 30 runs of its own.
+    timeout-minutes: 10
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - name: Install the desktop shell's own dependencies
+        working-directory: desktop
+        run: yarn install --immutable
+      - name: Build and typecheck the desktop shell
+        working-directory: desktop
+        run: yarn build
+
+  # The unit lane, split across six runners and merged back into ONE lane's coverage. MEASURED
+  # on this runner (perf-experiment.yml): the whole lane in one job took 6:54 of test step — about
+  # 2,400 worker-seconds, of which import alone was 1,308 — on a machine it already saturated, so neither
+  # concurrency nor a lazy import moved it. Six shards took 1:00–1:41 each and the merge 0:38. The count,
+  # each shard's command and the report set the merge insists on all derive from ONE constant,
+  # `UNIT_SHARD_COUNT` in src/testLanes/unitShards.ts, and `ci-offload-contract` refuses this file when the
+  # jobs below disagree with it. Explicit jobs, never a `strategy.matrix`: the contract bans `strategy` on a
+  # worker, because a matrix leg's name is not a job `build` can require by id.
+  #
+  # Each shard writes a Vitest BLOB report (coverage included) and ships it as an artifact; nothing else
+  # crosses between jobs. This lane, the subprocess lane and the coverage floor run ONLY
+  # here — `pre-push` runs no test — so treat a red in these jobs as the first time anybody has seen it.
+  unit-1:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: one sixth of the unit lane, measured at 1:00–1:41 of test step.
+    timeout-minutes: 10
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Unit tests, shard 1 of 6
+        run: yarn test:unit --shard=1/6 --reporter=default --reporter=blob
+      - uses: actions/upload-artifact@v7
+        with:
+          name: unit-blob-1
+          path: .vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  unit-2:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: one sixth of the unit lane, measured at 1:00–1:41 of test step.
+    timeout-minutes: 10
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Unit tests, shard 2 of 6
+        run: yarn test:unit --shard=2/6 --reporter=default --reporter=blob
+      - uses: actions/upload-artifact@v7
+        with:
+          name: unit-blob-2
+          path: .vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  unit-3:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: one sixth of the unit lane, measured at 1:00–1:41 of test step.
+    timeout-minutes: 10
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Unit tests, shard 3 of 6
+        run: yarn test:unit --shard=3/6 --reporter=default --reporter=blob
+      - uses: actions/upload-artifact@v7
+        with:
+          name: unit-blob-3
+          path: .vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  unit-4:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: one sixth of the unit lane, measured at 1:00–1:41 of test step.
+    timeout-minutes: 10
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Unit tests, shard 4 of 6
+        run: yarn test:unit --shard=4/6 --reporter=default --reporter=blob
+      - uses: actions/upload-artifact@v7
+        with:
+          name: unit-blob-4
+          path: .vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  unit-5:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: one sixth of the unit lane, measured at 1:00–1:41 of test step.
+    timeout-minutes: 10
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Unit tests, shard 5 of 6
+        run: yarn test:unit --shard=5/6 --reporter=default --reporter=blob
+      - uses: actions/upload-artifact@v7
+        with:
+          name: unit-blob-5
+          path: .vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  unit-6:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: one sixth of the unit lane, measured at 1:00–1:41 of test step.
+    timeout-minutes: 10
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Unit tests, shard 6 of 6
+        run: yarn test:unit --shard=6/6 --reporter=default --reporter=blob
+      - uses: actions/upload-artifact@v7
+        with:
+          name: unit-blob-6
+          path: .vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  # The merge: every shard's report into the whole lane's coverage, then the floor. `test:unit:merge`
+  # refuses an inexact report set BEFORE merging, because `vitest --merge-reports` checks only the Vitest
+  # version — a shard whose artifact never arrived would otherwise merge into a smaller lane that passes —
+  # and, after merging, refuses unless every test file the lane selects was merged exactly once, because a
+  # report duplicated under another shard's name merges with exit 0 too.
+  unit:
+    needs: [unit-1, unit-2, unit-3, unit-4, unit-5, unit-6]
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: this job merges reports and runs one gate, measured at 0:38 of merge.
+    timeout-minutes: 10
+    env:
+      # The same base as `lint` — see that job's comment. Here it feeds the MEASURED half of the floor.
+      SLOPWEAVER_COVERAGE_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.before }}
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - name: Fetch the coverage-floor base commit
+        shell: bash
+        run: *fetch-base
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: unit-blob-*
+          path: .vitest-reports
+          merge-multiple: true
+      - name: Merge the shards into the whole lane
+        run: yarn test:unit:merge
+      # In THIS job, after the merge, because it reads the report the merge just wrote into `coverage/`.
+      - name: Coverage floor
+        run: yarn coverage:ratchet
+
+  subprocess:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # PROVISIONAL: the serial `build` job's 20, kept until this job has 30 runs of its own.
+    timeout-minutes: 20
+    # A THROWAWAY STORE, because the door ledger lives in one. Every write a spawned verb's door admits is recorded
+    # in `door_event` before it is performed, so a lane with no store can only skip those cases — which
+    # `test-enshittification` rightly refuses. Plain Postgres 17 (the local stack's `major_version`) carries the
+    # whole schema: `store push` then `store verify` came back clean against `postgres:17`. Test
+    # compute only — nothing here is a credential, and the database dies with the job. The test that needs it
+    # migrates it itself (`subprocess/live/outlook/outlookCli.test.ts`), so the only thing this job hands the lane
+    # is where the store is. That file passes it on as `SLOPWEAVER_STORE_URL` to every verb IT spawns; no other
+    # test file reads this variable, so no other spawned verb is handed a store. The same service's ADMIN connection
+    # serves `subprocess/profile/profileSteersContract.test.ts`, which creates, migrates and drops a database of its own
+    # beside that one and throws when CI is set and the URL is not, so a lane that lost the service reads red.
+    # `STORE_PROOF_ADMIN_URL` is the same admin connection under the shared helper's own name
+    # (`subprocess/proofDatabase.ts`), which `subprocess/identity/identityRosterCli.test.ts` creates its databases through.
+    env:
+      DOOR_LEDGER_STORE_PROOF_URL: postgresql://postgres:postgres@127.0.0.1:55322/door_ledger_proof
+      PROFILE_STEERS_PROOF_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+      STORE_PROOF_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+    services:
+      store:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: door_ledger_proof
+        ports:
+          - 55322:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      # THE LANE SPAWNS `bin/slopweaver`, AND THE LAUNCHER TAKES A BUILT TREE WHEN THERE IS ONE. Without this
+      # step every spawn here was a tsx transform of the whole CLI graph, and tsx caches under `os.tmpdir()`,
+      # which `setup-temp-root.ts` points at a per-test-FILE sandbox — so every file started cold, while every
+      # seat's local lap ran the esbuild tree its worktree was provisioned with (docs/toolchain/built-cli-and-worktrees.md § The built
+      # CLI). MEASURED: on one run the lane was 273.8s wall and `settleLeavesRunOpen.test.ts`
+      # alone 273.3s of it; the same file locally took 69.3s built against 181.2s with the manifest moved aside.
+      # Reproduce the A/B with `yarn vitest run --config config/vitest/subprocess.ts <file>`, once as is and once
+      # with `dist-cli/.slopweaver-build.json` renamed. `guardBuiltTree` refuses a tree older than its source, so
+      # the build cannot be tested stale; `yarn slopweaver` rather than `bin/slopweaver` keeps the launcher's
+      # own `dev` routing out of it.
+      - name: Build the CLI the lane spawns
+        run: yarn slopweaver dev build
+      - name: Subprocess tests
+        # Real `git`-subprocess tests, split out of the unit lane — see the
+        # test-suite-root-cause-and-ci-speed handover. Not part of the OOM fix (that was one broken test
+        # fixture, unrelated to this lane), but genuinely real I/O that does not belong on the unit bar.
+        run: yarn test:subprocess
+
+  # THE CONSOLE'S BROWSER LANE (desktop proof in three layers, this the first). Playwright Test
+  # over the console built from this tree, one `next start` and one seeded throwaway home per worker, and a run's own
+  # store database on the service below (`src/__tests__/e2e/fixtures/`). It runs on every event: a change touching only
+  # prose under docs/ that no shipped code reads PASSES with the not-applicable line in the job summary, decided inside
+  # `yarn test:e2e` from
+  # the diff against the base sha, never by a job `if:` or a `paths:` filter, which would leave a skipped job reading as
+  # a pass. Nothing is cached past the dependency restore: the console and the CLI are built here every run, so a
+  # stale build cannot pass a change it does not hold. The upload runs only on a failure, after the lane has already
+  # failed the job. PROVISIONAL: the formula's floor until this job has 30 runs of its own.
+  desktop-e2e:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    timeout-minutes: 15
+    env:
+      DESKTOP_E2E_STORE_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+    services:
+      store:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 55322:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: The console's browser lane
+        run: yarn test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: desktop-e2e-evidence
+          path: |
+            playwright-report/
+            test-results/playwright/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # THE JOB THAT MAKES THE CHECK NAMED `build` MEAN A BUILD. A CI that never builds lets breakage
+  # through and costs time instead of saving it. Before this job, `yarn build` ran in NO workflow, in no
+  # `lefthook` hook and not in `yarn validate`; its only caller in the tree is `slopweaver worktree create
+  # --build`, which is off by default. And it could not have run: MEASURED, the script was
+  # `tsc -p tsconfig.json` with no heap ceiling and it died with `FATAL ERROR: Ineffective mark-compacts near
+  # heap limit` at 4,085.3 MB after 61s, exit 129. So the one way to discover it was to type the command, and
+  # nothing typed it. The bill was paid elsewhere: `tools/generateDatadogSurfaces.ts` records a
+  # design chosen to stay under a ceiling it believed the CI `build` job runs at deliberately.
+  #
+  # WHAT THIS ADDS OVER `typecheck`, precisely, because "the lint config includes more files" does NOT make
+  # it a superset of diagnostics — `config/typescript/tsconfig.lint.json` widens BOTH `include` and
+  # `rootDir`. Four classes are this job's alone, three of them because TypeScript only computes them when
+  # emit is enabled (`!options.noEmit`, `node_modules/typescript/lib/_tsc.js`): a source import reaching
+  # outside `rootDir: ./src` (TS6059, which the wider lint root admits), an output overwriting an input
+  # (TS5055), two inputs producing one output (TS5056), and emit-dependent option validity. The fifth is the
+  # emission itself — transforms, source maps and the writes, which nothing else in this workflow exercises.
+  #
+  # It does NOT prove the built CLI RUNS. `bin/slopweaver` execs `tsx src/cli/index.ts`, `package.json`
+  # declares no `bin`/`main`/`exports`, and `#lib/*` resolves to `./src/lib/*` — so a clean emit says the
+  # tree compiles, never that `dist/` is runnable. That proof belongs with the built-CLI work, not here.
+  #
+  # Free in WALL clock, not in runner minutes: the lap's critical path is `unit` (p95 6:20, measured
+  # with `slopweaver github ci-runs --branch any --event pull_request --runs 10`) and this compiles in
+  # 60.04s plus its own setup. The ceiling stays PROVISIONAL at the other workers' 20 until it has 30 runs.
+  compile:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # PROVISIONAL: the other workers' 20, kept until this job has 30 runs of its own.
+    timeout-minutes: 20
+    steps:
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Build
+        # No NODE_OPTIONS here, for the reason the `typecheck` job gives at length: `yarn build` carries its
+        # bounds on its own invocation, under `scripts/tsc-owner.sh`, which also hands the compiler a Go soft
+        # memory limit at 70% of that ceiling (its header says why). MEASURED on TypeScript 7.1.0-beta, a cold
+        # cache, `yarn build --extendedDiagnostics`: 30,184 files, Check 6.67s / Emit 10.89s / total 21.40s,
+        # zero errors, a whole-tree peak of 8,156 MiB resident (`peakRssKiB=8351728`) — 2,084 MiB under the
+        # 10,240 ceiling, inside the 12,288 MiB runner floor above. Without the soft limit the same compile was
+        # killed at the ceiling (`peakRssKiB=10542288`) while TypeScript's own "Memory used", the live heap after
+        # a final collection, was 6,452,427K: the difference was uncollected garbage.
+        # Reproduce:
+        #   bash scripts/tsc-owner.sh --timeout-seconds 1140 --grace-seconds 5 --rss-ceiling-mib 10240 -- \
+        #     node_modules/.bin/tsc -p tsconfig.build.json --incremental false --extendedDiagnostics
+        # `tsc-heap-contract` in `yarn lint` is the other half of failing closed: this job proves the ceiling
+        # is ENOUGH, that gate proves a script still DECLARES one.
+        run: yarn build
+
+  # The REQUIRED context, and nothing but the verdict of its workers (`OFFLOADED_COMMANDS` names them). No
+  # checkout, no install.
+  #
+  # `if: always()` is load-bearing, and removing it is the one edit that would make this job dangerous. A
+  # job whose `needs` failed is SKIPPED by default, and a skipped check run's conclusion counts as PASSING —
+  # to GitHub's branch protection and to `PASSING_CONCLUSIONS` in src/live/github/checks.ts. Without it, a
+  # red `unit` would turn `build` green. With it, this job always runs and fails unless every leg's result is
+  # exactly `success`: `failure`, `cancelled` and `skipped` all redden it. The comparison is spelled per leg
+  # rather than as `!contains(needs.*.result, 'failure')`, which admits a cancelled or skipped leg.
+  build:
+    needs:
+      [
+        lint,
+        typecheck,
+        unit-1,
+        unit-2,
+        unit-3,
+        unit-4,
+        unit-5,
+        unit-6,
+        unit,
+        subprocess,
+        desktop-e2e,
+        compile,
+        desktop,
+        site,
+      ]
+    if: ${{ always() }}
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: this job runs one `test` and no gate.
+    timeout-minutes: 10
+    steps:
+      - name: Require every leg to succeed
+        if: ${{ always() }}
+        shell: bash
+        env:
+          ALL_SUCCEEDED: ${{ needs.lint.result == 'success' && needs.typecheck.result == 'success' && needs.unit-1.result == 'success' && needs.unit-2.result == 'success' && needs.unit-3.result == 'success' && needs.unit-4.result == 'success' && needs.unit-5.result == 'success' && needs.unit-6.result == 'success' && needs.unit.result == 'success' && needs.subprocess.result == 'success' && needs.desktop-e2e.result == 'success' && needs.compile.result == 'success' && needs.desktop.result == 'success' && needs.site.result == 'success' }}
+        run: test "$ALL_SUCCEEDED" = "true"
+
+  # The integration lane — the integration suites under Polly replay (offline, no tokens spent, no live
+  # account); a suite whose provider cassette is not committed is quarantined in config/vitest/integration.ts.
+  # PR-only + its own job so a red replay is isolated from unit/lint. Runs `yarn test:integration`, which
+  # defaults to POLLY_MODE=replay.
+  #
+  # It runs on `merge_group` too: it runs only committed suites offline and reads nothing from the pull request, so
+  # it is meaningful on the merged result and belongs in the queue's required set beside `build`.
+  #
+  # This job used to also install the `claude` CLI to replay a distil cassette through it. Under rule 2 (no
+  # spawned model, anywhere — AGENTS.md) `distil` no longer calls a model in-process, so that cassette and
+  # its install steps are gone rather than merely unused: there is nothing left in this repo that shells out
+  # to `claude`.
+  integration:
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # p95 3.38 min when this ceiling was set; RE-MEASURED over 49 runs at 4m11s
+    # (p50 4m03s, max 4m17s), which the formula still floors to 15. See the file-level comment above. (The
+    # ceiling was once set to 1 minute deliberately, to capture gold proof that a run hitting it reads failed
+    # rather than stale.)
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Integration tests (Polly replay — offline, no tokens)
+        run: yarn test:integration
+
+  # CI TIMING. Every job's wall time, printed on every lap and never red: the owner ruled CI job timing
+  # reported, not red. This job reads the run it is itself part of with
+  # `slopweaver github ci-timing`, across every attempt of it, so a re-run of failed jobs times the jobs it left
+  # alone on the attempt that ran them. Its sibling `github ci-runs` reads a window of runs. Neither has a bar:
+  # the five-minute bar is decided after a measured window on the runner the repository settles on
+  # (docs/toolchain/ci-timing.md).
+  #
+  # IT IS NOT A REQUIRED CONTEXT, and that is deliberate: a report that exits 0 on any timing has nothing to
+  # require. It exits non-zero only when the run cannot be read whole.
+  #
+  # It runs on every event. On `push`, `integration` does not run, and the report prints it as not measured.
+  # It needs every lane plus `build`, with `if: always()`, so every job it reports has finished and it still
+  # runs when one of them is red: a lane that went red AND slow should say both.
+  ci-timing:
+    needs: [lint, typecheck, site, unit, subprocess, integration, build]
+    if: ${{ always() }}
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The formula's 10-minute floor: this job installs and makes one bounded API read (at most ten pages).
+    timeout-minutes: 10
+    permissions:
+      # `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` is the one read.
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - name: Report every CI job's wall time
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: yarn slopweaver github ci-timing --repo "$GITHUB_REPOSITORY" --run-id "$GITHUB_RUN_ID"

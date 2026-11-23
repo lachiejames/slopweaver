@@ -1,0 +1,31 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1787888232.294579",
+    "threadTs": "1787878821.099679"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1787888232.294579.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1787888232.294579.json",
+    "home/live/slack/turn-markers/CFIXTUREAA-1787888232.294579.json",
+    "home/live/slack/reviews/CFIXTUREAA-1787888232.294579/record.json",
+    "home/live/slack/reviews/CFIXTUREAA-1787888232.294579/verdict.json",
+    "home/tmp/answer-1787888232.294579.json"
+  ],
+  "frozenAtIso": "2026-08-28T10:00:51.110Z",
+  "incident": "28 Aug 2026 03:37Z, ask CFIXTUREAA/1787888232.294579 — the owner's re-tag on the thread the previous attempt had failed on, with two hard constraints: at most ONE review round, and an answer landing inside 30 minutes. The attempt it replaced died at the admit door with ANSWER_DOES_NOT_TAG_ASKER after five rounds, because the answer mentioned nobody. Frozen whole: the answer that finally landed, and the single review round it took.",
+  "regresses": [],
+  "replayNowIso": "2026-08-28T04:16:24.728Z",
+  "reviewRounds": 2,
+  "schemaVersion": 1,
+  "slug": "owner-retag-28aug",
+  "syntheticIdCount": 7,
+  "withheldEventKinds": []
+}

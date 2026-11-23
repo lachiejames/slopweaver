@@ -1,0 +1,64 @@
+flowchart TB
+  subgraph sources["Sources — read over YOUR credentials, over a rolling window, never an archive"]
+    direction TB
+    gh["GitHub<br/>7 days, per-repo cursor"]
+    sl["Slack<br/>90 days"]
+    li["Linear<br/>90 days, archived too"]
+    no["Notion<br/>90 days"]
+    mine["Yours, only when named<br/>Gmail · Calendar · Fathom, 90 days<br/>one call shared with you: slopweaver fathom share<br/>self, your own notes: refresh --self, a full re-scan<br/>ChatGPT, your downloaded export: chatgpt sync, read whole"]
+  end
+
+  subgraph tiers["Build — bronze to gold, and into the store"]
+    direction LR
+    bronze[("BRONZE — one CorpusRecord per item.<br/>Redacted, deduped, watermarked. Lossless<br/>slopweaver refresh run · src/corpus<br/>slopweaver compact run, a standing row due nightly<br/>distil and audit stream it · src/corpus/corpusCensus.ts")]
+    silver[("SILVER — free, deterministic, a full re-scan:<br/>directory, graph, identity, opportunities<br/>slopweaver derive run · src/silver")]
+    gold[("GOLD — digests composed in the visible<br/>session, content-hash cached<br/>slopweaver distil brief · src/gold")]
+    store[("THE STORE — local Postgres. content.searchable is a<br/>GENERATED tsvector, indexed GIN. No index to build,<br/>no encoder, no gigabytes<br/>src/store")]
+    atlas[("ATLASES — what each live platform CONTAINS,<br/>in their own tables, never content rows<br/>slopweaver atlas vanta sync, one per platform<br/>src/atlas")]
+
+    bronze --> silver --> gold
+    bronze -->|"refresh --store · slopweaver store ingest"| store
+    atlas -->|"slopweaver store import-atlas"| store
+  end
+  sources --> bronze
+  sources -->|"slopweaver store load — straight from the four org sources"| store
+
+  q["A question"]
+
+  subgraph retrieve["Select — Postgres narrows, readers judge, nothing ranks"]
+    direction TB
+    fts["FULL TEXT — websearch_to_tsquery over<br/>content.searchable, ANDing the question's<br/>content words. --search narrows the SELECTION<br/>without changing the question<br/>src/store/predicates.ts"]
+    filt["STRUCTURED FILTERS — source, kind, container,<br/>since/until, visibility, and --person, which spans<br/>every platform a human is known on<br/>src/store/query.ts"]
+    sel["The selection, newest first — never a relevance order<br/>src/store/selection.ts"]
+    probe["ATLAS PROBE — the question's keywords counted<br/>per platform and kind across the atlas tables.<br/>A count of STORED rows, never a provider claim<br/>slopweaver atlas probe · src/store/atlas/probe.ts"]
+
+    fts --> sel
+    filt --> sel
+  end
+  q --> fts
+  q --> filt
+  q --> probe
+  store --> fts
+  store --> probe
+
+  subgraph fanout["Judge — one cheap reader per shard, in the visible session"]
+    direction TB
+    shard["SHARDS — one file per reader, budgeted by<br/>characters and records. A record past the budget<br/>is CLIPPED, and the shard says so<br/>slopweaver store read · src/retrieval/fanout.ts"]
+    readers["Haiku readers, dispatched BY THE SESSION.<br/>Rule 2: no Slopweaver process starts a model"]
+    collect["COLLECT — a finding survives only if its id is in<br/>the shard its reader was given AND its quote is<br/>verbatim in that record. Everything else is refused<br/>by name, and an unanswered shard is reported<br/>slopweaver store collect · src/retrieval/fanout.ts"]
+
+    shard --> readers --> collect
+  end
+  sel --> shard
+  probe -->|"slopweaver store detect: at most one lead per platform"| readers
+
+  subgraph use["Use what survived"]
+    direction LR
+    cite["the raw selected records, no prose<br/>slopweaver store cite"]
+    compose["The visible session composes, citing the ids<br/>collect printed — the citation tokens themselves"]
+  end
+  sel --> cite
+  collect --> compose
+
+  gate["The dev gate proves the HANDOFF accounts for what it<br/>was given — grounding, not retrieval quality<br/>src/devGate/handoffCheck.ts"]
+  collect -.->|"checked by"| gate

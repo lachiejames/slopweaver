@@ -1,0 +1,1607 @@
+{
+  "channelArgv": [
+    "reading",
+    "last",
+    "--producer",
+    "handover wake",
+    "--json"
+  ],
+  "nowIso": "2026-10-15T03:13:00.000Z",
+  "scenarios": {
+    "board-before-reseat": {
+      "boards": {
+        "after": {
+          "detachedAsks": [],
+          "handoverDir": "/h",
+          "observedAtIso": "2026-09-19T10:00:00.000Z",
+          "referenceContext": {
+            "linearTeamKeys": [],
+            "records": []
+          },
+          "rows": [
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T03:14:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "path": "/h/due-clock.md",
+              "prNamed": [],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "a run is currently open",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "due-clock",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what due-clock does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T03:14:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "path": "/h/reseated.md",
+              "prNamed": [],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "a run is currently open",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "reseated",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what reseated does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "running",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 4,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/running"
+              },
+              "path": "/h/running.md",
+              "prNamed": [
+                "o/r#4"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#4, seat closed (workspace:238; /wt/running on running) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "running",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what running does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            }
+          ],
+          "rowsBeforeFilter": 3,
+          "scanStartedIso": "2026-09-19T09:59:30.000Z",
+          "settledThenAsked": [],
+          "summaryTruncation": {
+            "cap": 320,
+            "droppedChars": 0,
+            "keptChars": 54,
+            "longest": 19,
+            "measured": 3,
+            "truncated": 0
+          },
+          "tagFilter": [],
+          "unreadJournals": [],
+          "unreadable": [],
+          "unresolved": 0
+        },
+        "before": {
+          "detachedAsks": [],
+          "handoverDir": "/h",
+          "observedAtIso": "2026-09-19T10:00:00.000Z",
+          "referenceContext": {
+            "linearTeamKeys": [],
+            "records": []
+          },
+          "rows": [
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "due-clock",
+                "parkIndex": 2,
+                "wake": {
+                  "atIso": "2026-10-15T03:00:00Z",
+                  "kind": "at"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/due-clock"
+              },
+              "path": "/h/due-clock.md",
+              "prNamed": [],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked until 2026-10-15T03:00:00Z, seat closed (workspace:238; /wt/due-clock on due-clock) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "due-clock",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what due-clock does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "reseated",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 3,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/reseated"
+              },
+              "path": "/h/reseated.md",
+              "prNamed": [
+                "o/r#3"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#3, seat closed (workspace:238; /wt/reseated on reseated) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "reseated",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what reseated does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "running",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 4,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/running"
+              },
+              "path": "/h/running.md",
+              "prNamed": [
+                "o/r#4"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#4, seat closed (workspace:238; /wt/running on running) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "running",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what running does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            }
+          ],
+          "rowsBeforeFilter": 3,
+          "scanStartedIso": "2026-09-19T09:59:30.000Z",
+          "settledThenAsked": [],
+          "summaryTruncation": {
+            "cap": 320,
+            "droppedChars": 0,
+            "keptChars": 54,
+            "longest": 19,
+            "measured": 3,
+            "truncated": 0
+          },
+          "tagFilter": [],
+          "unreadJournals": [],
+          "unreadable": [],
+          "unresolved": 0
+        }
+      },
+      "wake": {
+        "by": "tick-1",
+        "bytes": 2212,
+        "document": {
+          "reconciliation": {
+            "closedUnmerged": 0,
+            "hidingStep": 0,
+            "landedUnsettled": 0,
+            "settled": 0,
+            "unknown": 0
+          },
+          "settleOnly": false,
+          "attempted": 2,
+          "bootsInFlight": 0,
+          "cleared": 0,
+          "dryRun": false,
+          "due": 2,
+          "duplicateSlugs": [],
+          "finished": 0,
+          "maxSpawns": 3,
+          "observedAtIso": "2026-10-15T03:13:00.000Z",
+          "rows": [
+            {
+              "judgement": {
+                "kind": "due",
+                "observed": {
+                  "atIso": "2026-10-15T03:00:00Z",
+                  "kind": "at"
+                },
+                "reason": "its wake time 2026-10-15T03:00:00Z has passed"
+              },
+              "slug": "due-clock",
+              "wake": {
+                "atIso": "2026-10-15T03:00:00Z",
+                "kind": "at"
+              },
+              "action": "spawned",
+              "attemptNonce": "n-2",
+              "detail": "reseated by cmux spawn due-clock (was parked at 2026-10-15T02:00:00.000Z)",
+              "parkIndex": 2,
+              "parkStanding": "gone",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            },
+            {
+              "judgement": {
+                "kind": "due",
+                "observed": {
+                  "fingerprint": "33e860b800ed728be298a3e79027ceb65eb6b28a68e9636db94553ae7010fc6b",
+                  "headSha": "abc",
+                  "kind": "checks",
+                  "number": 3,
+                  "prState": "OPEN",
+                  "repo": "o/r"
+                },
+                "reason": "o/r#3's checks finished: 1 passed, 0 failed"
+              },
+              "slug": "reseated",
+              "wake": {
+                "kind": "checks",
+                "number": 3,
+                "repo": "o/r"
+              },
+              "action": "spawned",
+              "attemptNonce": "n-1",
+              "detail": "reseated by cmux spawn reseated (was parked at 2026-10-15T02:00:00.000Z)",
+              "parkIndex": 2,
+              "parkStanding": "gone",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            },
+            {
+              "slug": "running",
+              "wake": {
+                "kind": "checks",
+                "number": 4,
+                "repo": "o/r"
+              },
+              "action": "none",
+              "detail": "o/r#4 has 1 running and 0 queued check(s)",
+              "judgement": {
+                "kind": "not-due",
+                "reason": "o/r#4 has 1 running and 0 queued check(s)"
+              },
+              "parkIndex": 2,
+              "parkStanding": "standing",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            }
+          ],
+          "spawned": 2,
+          "suspended": 0,
+          "unreadable": []
+        },
+        "observedAtIso": "2026-10-15T03:33:00.000Z",
+        "producer": "handover wake",
+        "readingId": "<reading-id>",
+        "recordedAtIso": "2026-10-15T03:33:00.000Z"
+      }
+    },
+    "failed-spawn-dispatched": {
+      "boards": {
+        "after": {
+          "detachedAsks": [],
+          "handoverDir": "/h",
+          "observedAtIso": "2026-09-19T10:00:00.000Z",
+          "referenceContext": {
+            "linearTeamKeys": [],
+            "records": []
+          },
+          "rows": [
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T03:14:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "path": "/h/dispatched.md",
+              "prNamed": [],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "a run is currently open",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "dispatched",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what dispatched does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            }
+          ],
+          "rowsBeforeFilter": 1,
+          "scanStartedIso": "2026-09-19T09:59:30.000Z",
+          "settledThenAsked": [],
+          "summaryTruncation": {
+            "cap": 320,
+            "droppedChars": 0,
+            "keptChars": 20,
+            "longest": 20,
+            "measured": 1,
+            "truncated": 0
+          },
+          "tagFilter": [],
+          "unreadJournals": [],
+          "unreadable": [],
+          "unresolved": 0
+        },
+        "before": {
+          "detachedAsks": [],
+          "handoverDir": "/h",
+          "observedAtIso": "2026-09-19T10:00:00.000Z",
+          "referenceContext": {
+            "linearTeamKeys": [],
+            "records": []
+          },
+          "rows": [
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "dispatched",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 6,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/dispatched"
+              },
+              "path": "/h/dispatched.md",
+              "prNamed": [
+                "o/r#6"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#6, seat closed (workspace:238; /wt/dispatched on dispatched) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "dispatched",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what dispatched does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            }
+          ],
+          "rowsBeforeFilter": 1,
+          "scanStartedIso": "2026-09-19T09:59:30.000Z",
+          "settledThenAsked": [],
+          "summaryTruncation": {
+            "cap": 320,
+            "droppedChars": 0,
+            "keptChars": 20,
+            "longest": 20,
+            "measured": 1,
+            "truncated": 0
+          },
+          "tagFilter": [],
+          "unreadJournals": [],
+          "unreadable": [],
+          "unresolved": 0
+        }
+      },
+      "wake": {
+        "by": "tick-1",
+        "bytes": 1365,
+        "document": {
+          "reconciliation": {
+            "closedUnmerged": 0,
+            "hidingStep": 0,
+            "landedUnsettled": 0,
+            "settled": 0,
+            "unknown": 1
+          },
+          "settleOnly": false,
+          "attempted": 1,
+          "bootsInFlight": 0,
+          "cleared": 0,
+          "dryRun": false,
+          "due": 1,
+          "duplicateSlugs": [],
+          "finished": 0,
+          "maxSpawns": 3,
+          "observedAtIso": "2026-10-15T03:13:00.000Z",
+          "rows": [
+            {
+              "judgement": {
+                "kind": "due",
+                "mergeCommitOid": "merge-6",
+                "observed": {
+                  "kind": "checks",
+                  "number": 6,
+                  "prState": "MERGED",
+                  "repo": "o/r"
+                },
+                "reason": "o/r#6 is MERGED"
+              },
+              "slug": "dispatched",
+              "wake": {
+                "kind": "checks",
+                "number": 6,
+                "repo": "o/r"
+              },
+              "action": "spawn-failed",
+              "attemptNonce": "n-1",
+              "detail": "o/r#6 is MERGED, but handover finish ended exit 1 (it printed nothing on stderr), so it did not close the run; cmux spawn ended exit 1; its dispatch cleared the park and the seat was left open — read it, never reseat it",
+              "reconciliation": {
+                "kind": "unknown",
+                "reason": "the pull request's head did not read: no head in the table"
+              },
+              "parkIndex": 2,
+              "parkStanding": "gone",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            }
+          ],
+          "spawned": 0,
+          "suspended": 0,
+          "unreadable": []
+        },
+        "observedAtIso": "2026-10-15T03:33:00.000Z",
+        "producer": "handover wake",
+        "readingId": "<reading-id>",
+        "recordedAtIso": "2026-10-15T03:33:00.000Z"
+      }
+    },
+    "failed-spawn-kept": {
+      "boards": {
+        "after": {
+          "detachedAsks": [],
+          "handoverDir": "/h",
+          "observedAtIso": "2026-09-19T10:00:00.000Z",
+          "referenceContext": {
+            "linearTeamKeys": [],
+            "records": []
+          },
+          "rows": [
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "kept",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 6,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/kept"
+              },
+              "path": "/h/kept.md",
+              "prNamed": [
+                "o/r#6"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#6, seat closed (workspace:238; /wt/kept on kept) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "kept",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what kept does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            }
+          ],
+          "rowsBeforeFilter": 1,
+          "scanStartedIso": "2026-09-19T09:59:30.000Z",
+          "settledThenAsked": [],
+          "summaryTruncation": {
+            "cap": 320,
+            "droppedChars": 0,
+            "keptChars": 14,
+            "longest": 14,
+            "measured": 1,
+            "truncated": 0
+          },
+          "tagFilter": [],
+          "unreadJournals": [],
+          "unreadable": [],
+          "unresolved": 0
+        },
+        "before": {
+          "detachedAsks": [],
+          "handoverDir": "/h",
+          "observedAtIso": "2026-09-19T10:00:00.000Z",
+          "referenceContext": {
+            "linearTeamKeys": [],
+            "records": []
+          },
+          "rows": [
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "kept",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 6,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/kept"
+              },
+              "path": "/h/kept.md",
+              "prNamed": [
+                "o/r#6"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#6, seat closed (workspace:238; /wt/kept on kept) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "kept",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what kept does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            }
+          ],
+          "rowsBeforeFilter": 1,
+          "scanStartedIso": "2026-09-19T09:59:30.000Z",
+          "settledThenAsked": [],
+          "summaryTruncation": {
+            "cap": 320,
+            "droppedChars": 0,
+            "keptChars": 14,
+            "longest": 14,
+            "measured": 1,
+            "truncated": 0
+          },
+          "tagFilter": [],
+          "unreadJournals": [],
+          "unreadable": [],
+          "unresolved": 0
+        }
+      },
+      "wake": {
+        "by": "tick-1",
+        "bytes": 1290,
+        "document": {
+          "reconciliation": {
+            "closedUnmerged": 0,
+            "hidingStep": 0,
+            "landedUnsettled": 0,
+            "settled": 0,
+            "unknown": 1
+          },
+          "settleOnly": false,
+          "attempted": 1,
+          "bootsInFlight": 0,
+          "cleared": 0,
+          "dryRun": false,
+          "due": 1,
+          "duplicateSlugs": [],
+          "finished": 0,
+          "maxSpawns": 3,
+          "observedAtIso": "2026-10-15T03:13:00.000Z",
+          "rows": [
+            {
+              "judgement": {
+                "kind": "due",
+                "mergeCommitOid": "merge-6",
+                "observed": {
+                  "kind": "checks",
+                  "number": 6,
+                  "prState": "MERGED",
+                  "repo": "o/r"
+                },
+                "reason": "o/r#6 is MERGED"
+              },
+              "slug": "kept",
+              "wake": {
+                "kind": "checks",
+                "number": 6,
+                "repo": "o/r"
+              },
+              "action": "spawn-failed",
+              "attemptNonce": "n-1",
+              "detail": "o/r#6 is MERGED, but handover finish ended exit 1 (it printed nothing on stderr), so it did not close the run; cmux spawn ended exit 1; still parked",
+              "reconciliation": {
+                "kind": "unknown",
+                "reason": "the pull request's head did not read: no head in the table"
+              },
+              "parkIndex": 2,
+              "parkStanding": "standing",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            }
+          ],
+          "spawned": 0,
+          "suspended": 0,
+          "unreadable": []
+        },
+        "observedAtIso": "2026-10-15T03:33:00.000Z",
+        "producer": "handover wake",
+        "readingId": "<reading-id>",
+        "recordedAtIso": "2026-10-15T03:33:00.000Z"
+      }
+    },
+    "split-by-state": {
+      "boards": {
+        "board": {
+          "detachedAsks": [],
+          "handoverDir": "/h",
+          "observedAtIso": "2026-09-19T10:00:00.000Z",
+          "referenceContext": {
+            "linearTeamKeys": [],
+            "records": []
+          },
+          "rows": [
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "merged",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 1,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/merged"
+              },
+              "path": "/h/merged.md",
+              "prNamed": [
+                "o/r#1"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#1, seat closed (workspace:238; /wt/merged on merged) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "merged",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what merged does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "closed",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 2,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/closed"
+              },
+              "path": "/h/closed.md",
+              "prNamed": [
+                "o/r#2"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#2, seat closed (workspace:238; /wt/closed on closed) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "closed",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what closed does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "finished",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 3,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/finished"
+              },
+              "path": "/h/finished.md",
+              "prNamed": [
+                "o/r#3"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#3, seat closed (workspace:238; /wt/finished on finished) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "finished",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what finished does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "running",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 4,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/running"
+              },
+              "path": "/h/running.md",
+              "prNamed": [
+                "o/r#4"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#4, seat closed (workspace:238; /wt/running on running) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "running",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what running does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "unread",
+                "parkIndex": 2,
+                "wake": {
+                  "kind": "checks",
+                  "number": 5,
+                  "repo": "o/r"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/unread"
+              },
+              "path": "/h/unread.md",
+              "prNamed": [
+                "o/r#5"
+              ],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked on CI for o/r#5, seat closed (workspace:238; /wt/unread on unread) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "unread",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what unread does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            },
+            {
+              "actionUnreadable": false,
+              "authoredStatus": "in-progress",
+              "blockedBy": [],
+              "ownerWordsSteers": [],
+              "examples": [],
+              "kind": "doc",
+              "movedIso": "2026-10-15T02:00:00.000Z",
+              "options": [],
+              "ownerWait": "not-waiting",
+              "parked": {
+                "atIso": "2026-10-15T02:00:00.000Z",
+                "branch": "clock",
+                "parkIndex": 2,
+                "wake": {
+                  "atIso": "2026-10-15T04:00:00Z",
+                  "kind": "at"
+                },
+                "screenTail": "❯ ",
+                "workspaceRef": "workspace:238",
+                "worktree": "/wt/clock"
+              },
+              "path": "/h/clock.md",
+              "prNamed": [],
+              "prSteers": [],
+              "prUrls": [],
+              "repo": "/w/repo",
+              "reason": "parked until 2026-10-15T04:00:00Z, seat closed (workspace:238; /wt/clock on clock) between turns — `handover wake` reseats it once due",
+              "run": "active",
+              "section": "IN FLIGHT",
+              "slug": "clock",
+              "status": "in-progress",
+              "statusFrom": "authored",
+              "summary": "what clock does",
+              "tags": [
+                {
+                  "key": "kind",
+                  "source": "derived",
+                  "value": "doc"
+                },
+                {
+                  "key": "priority",
+                  "source": "derived",
+                  "value": "p2"
+                },
+                {
+                  "key": "reply",
+                  "source": "derived",
+                  "value": "none"
+                },
+                {
+                  "key": "repo",
+                  "source": "derived",
+                  "value": "repo"
+                },
+                {
+                  "key": "run",
+                  "source": "derived",
+                  "value": "open"
+                }
+              ],
+              "tagsIncomplete": false,
+              "unrecognisedTags": []
+            }
+          ],
+          "rowsBeforeFilter": 6,
+          "scanStartedIso": "2026-09-19T09:59:30.000Z",
+          "settledThenAsked": [],
+          "summaryTruncation": {
+            "cap": 320,
+            "droppedChars": 0,
+            "keptChars": 98,
+            "longest": 18,
+            "measured": 6,
+            "truncated": 0
+          },
+          "tagFilter": [],
+          "unreadJournals": [],
+          "unreadable": [],
+          "unresolved": 0
+        }
+      },
+      "wake": {
+        "by": "tick-1",
+        "bytes": 3807,
+        "document": {
+          "reconciliation": {
+            "closedUnmerged": 0,
+            "hidingStep": 0,
+            "landedUnsettled": 0,
+            "settled": 0,
+            "unknown": 1
+          },
+          "settleOnly": false,
+          "attempted": 3,
+          "bootsInFlight": 0,
+          "cleared": 0,
+          "dryRun": true,
+          "due": 3,
+          "duplicateSlugs": [],
+          "finished": 0,
+          "maxSpawns": 3,
+          "observedAtIso": "2026-10-15T03:13:00.000Z",
+          "rows": [
+            {
+              "slug": "clock",
+              "wake": {
+                "atIso": "2026-10-15T04:00:00Z",
+                "kind": "at"
+              },
+              "action": "none",
+              "detail": "it wakes at 2026-10-15T04:00:00Z",
+              "judgement": {
+                "kind": "not-due",
+                "reason": "it wakes at 2026-10-15T04:00:00Z"
+              },
+              "parkIndex": 2,
+              "parkStanding": "standing",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            },
+            {
+              "judgement": {
+                "kind": "due",
+                "observed": {
+                  "kind": "checks",
+                  "number": 2,
+                  "prState": "CLOSED",
+                  "repo": "o/r"
+                },
+                "reason": "o/r#2 is CLOSED"
+              },
+              "slug": "closed",
+              "wake": {
+                "kind": "checks",
+                "number": 2,
+                "repo": "o/r"
+              },
+              "action": "would-spawn",
+              "detail": "would run cmux spawn closed --model opus",
+              "parkIndex": 2,
+              "parkStanding": "standing",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            },
+            {
+              "judgement": {
+                "kind": "due",
+                "observed": {
+                  "fingerprint": "33e860b800ed728be298a3e79027ceb65eb6b28a68e9636db94553ae7010fc6b",
+                  "headSha": "abc",
+                  "kind": "checks",
+                  "number": 3,
+                  "prState": "OPEN",
+                  "repo": "o/r"
+                },
+                "reason": "o/r#3's checks finished: 1 passed, 0 failed"
+              },
+              "slug": "finished",
+              "wake": {
+                "kind": "checks",
+                "number": 3,
+                "repo": "o/r"
+              },
+              "action": "would-spawn",
+              "detail": "would run cmux spawn finished --model opus",
+              "parkIndex": 2,
+              "parkStanding": "standing",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            },
+            {
+              "judgement": {
+                "kind": "due",
+                "mergeCommitOid": "merge-1",
+                "observed": {
+                  "kind": "checks",
+                  "number": 1,
+                  "prState": "MERGED",
+                  "repo": "o/r"
+                },
+                "reason": "o/r#1 is MERGED"
+              },
+              "slug": "merged",
+              "wake": {
+                "kind": "checks",
+                "number": 1,
+                "repo": "o/r"
+              },
+              "action": "would-spawn",
+              "detail": "o/r#1 is MERGED, but handover finish ended exit 1 (it printed nothing on stderr), so it did not close the run; would run cmux spawn merged --model opus",
+              "reconciliation": {
+                "kind": "unknown",
+                "reason": "the pull request's head did not read: no head in the table"
+              },
+              "parkIndex": 2,
+              "parkStanding": "standing",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            },
+            {
+              "slug": "running",
+              "wake": {
+                "kind": "checks",
+                "number": 4,
+                "repo": "o/r"
+              },
+              "action": "none",
+              "detail": "o/r#4 has 1 running and 0 queued check(s)",
+              "judgement": {
+                "kind": "not-due",
+                "reason": "o/r#4 has 1 running and 0 queued check(s)"
+              },
+              "parkIndex": 2,
+              "parkStanding": "standing",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            },
+            {
+              "slug": "unread",
+              "wake": {
+                "kind": "checks",
+                "number": 5,
+                "repo": "o/r"
+              },
+              "action": "none",
+              "detail": "o/r#5 could not be read: rate limited",
+              "judgement": {
+                "kind": "unknown",
+                "reason": "o/r#5 could not be read: rate limited"
+              },
+              "parkIndex": 2,
+              "parkStanding": "standing",
+              "parkedAtIso": "2026-10-15T02:00:00.000Z"
+            }
+          ],
+          "spawned": 0,
+          "suspended": 0,
+          "unreadable": []
+        },
+        "observedAtIso": "2026-10-15T03:33:00.000Z",
+        "producer": "handover wake",
+        "readingId": "<reading-id>",
+        "recordedAtIso": "2026-10-15T03:33:00.000Z"
+      }
+    }
+  }
+}

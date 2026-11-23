@@ -1,0 +1,14 @@
+{
+  "base": "fe2d2af4071460675dcca083584acdba86f68518",
+  "digest": "cf24103ec8abd7a836ac8352ab931bbe8692e9919350026481e30f4eeafa8853",
+  "loosenings": [
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineRegistry.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    }
+  ],
+  "reason": "registers the new file-size tradeoff register as a ratchet baseline, so a signed tradeoff row is itself a loosening that needs a manifest and witness; it loosens no baseline row and the register ships empty"
+}

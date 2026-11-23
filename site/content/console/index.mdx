@@ -1,0 +1,192 @@
+---
+title: What the console is
+---
+
+# What the console is
+
+The work console, opening on its [Queue](/queue), is the bot's own surface, and every reading on it is a `slopweaver` verb run on this machine.
+
+<details>
+<summary>What this page shows</summary>
+
+It is a sidebar of your six pages — the Queue, whose count waits on your word, then Alignment, with your steers folded in, then Pull requests, whose count waits on your word too, then Workstreams, Automations and Fleet, each but the Queue and Pull requests with a plain count of its own — with Settings, which holds your plans and carries a dot while none is connected, and Docs at its foot, and the voice's controls and record in the call widget rather than a page; an entry with no number says why when you hover it. Every
+reading on them is a `slopweaver` verb run on this machine, and one page — the [queue](/queue) — has rows that open a panel that
+draws the platform the thing lives on and carries the acts a verb already takes. These docs sit beside it at
+`/docs`, one page here per console page saying how it is derived.
+
+Slopweaver is the template; the bot is the instance. The sidebar does not carry the instance's name: its top is
+the context switcher, and the shell explains nothing on its own.
+
+</details>
+
+<details>
+<summary>A pull request as GitHub draws it, and who is on it</summary>
+
+A pull-request row on [pull requests](/console/pull-requests) and in the [queue](/console/queue) is drawn
+GitHub-native: state icon, repository and number, title, labels, the author's avatar and login, a checks chip,
+a review chip naming who is waiting, and a **seat** saying who is on it — a session watching its checks, a
+session on its branch, PAUSED on a codeowner with nobody seated, or nobody — except that a row whose Slack
+history ends before its last activity says `Slack history stale since <watermark>, sync to know` in the neutral
+tone, because whether anyone was asked is exactly what a stale corpus cannot say. The glyph before each queue row
+states **provenance**: CR for a review bot's thread, and otherwise the mark of the workspace the card is placed
+in, the Slopweaver logo for this installation's own and the team's role mark for the team's; hover it and the rule that put the row there is printed. Avatars are the member
+roster's own (`slopweaver identity avatars --source github --json`), loaded from GitHub's avatar CDN and
+nowhere else.
+
+</details>
+
+<details>
+<summary>A Slack thread in the panel, and a reply under it</summary>
+
+A queue ask, a held reply or a board row that carries a Slack permalink opens on the thread itself: every
+message the corpus holds for it, with the author's picture, name and time, and the read's own limits under the
+list, rather than the row's one-line summary. A **held reply** is the queue's fifth register — a reply a
+session drafted and the door is holding for your word — and under the thread the draft reads as it will land,
+each citation a footnote you can hover for what it points at, read-only. With no held draft no reply is drawn; the
+page never writes one, because a draft comes from a session's turn (doctrine rule 2). Under the draft is its
+`slopweaver queue release <id>` line with a button that copies it, and nothing here sends: to change the words, say
+so in the call's chat with the card open — the console's one text input. The read goes through one closed route, `api/thread`, whose only slot is a Slack
+permalink or a channel and timestamp pair.
+
+</details>
+
+<details>
+<summary>The sidebar and the context</summary>
+
+The sidebar collapses to an icon rail with the control at its top, and remembers the choice. The top of the
+sidebar is the **context switcher** — the organisation or Slopweaver, each with its own mark (the team's a role mark, never an organisation's logo) — and the console shows only the rows that belong to the
+context chosen. The team context is named by the organisation's display name, off the same one reading of
+`slopweaver org show --json` that places every row, so the name and the placement never come from two different
+writes; the team provenance mark on a card carries the same name. Before `slopweaver org set` has written one, the
+console draws only its refusal naming that verb, never a stand-in word. The page head carries the
+context's name, and the sidebar's counts are counted in it. A switch runs no verb: the readings are the same, the
+filter is the page's. The team context is the first-visit default, because nine to five is work.
+
+**Nothing sits between the nav and the build status.** A per-source freshness strip, its "N more" notice and an
+Incidents indicator are not drawn, as they are noise. How current a source is now shows only where it
+matters: a Slack panel names its stored copy's age beside its "read" time, which is only when the page fetched it,
+and draws a stale mark when the reading fails, never nothing. A verified sync is the last scheduled resync whose rows
+reached the store; a hand-run refresh does not count. Every source's freshness is `slopweaver automation freshness`,
+and open incidents are `slopweaver org-health status`.
+
+A sidebar click draws at once: a bar across the top of the window and the item it is for marked under way, then the page or its loading skeleton. A click whose page has not arrived four seconds later loads it as a whole page instead (`site/lib/navStall.ts`); a reload cannot end a voice call, which runs in the desktop app's own voice window, never in a console page. Behind both, the live readings share three of the browser’s six connections to the console across every open tab, and a hidden tab reads nothing until it is shown again, so a click is never queued behind them (`site/lib/liveSlots.ts`). Within a window, a press, and every read of a tile not yet drawing a current reading — loading, or drawing one kept from an earlier visit or saved by an earlier console, whatever its age — go ahead of the background polls for those three, and waiting polls still get one turn in every four, oldest first, so a page you open is not left loading behind the sidebar's twenty-second ticks. Among those, the readings that decide what a page holds — the Queue's registers and the readings that take a card on or off it — go first, ahead of the sidebar's badges, so an empty Queue is not left waiting behind the counts beside it.
+
+**Which addresses are the team's is the organisation's**, the one row `slopweaver org set` writes and `slopweaver
+org show --json` prints: its GitHub owner, its Slack hosts, and its Linear and Vanta workspaces where it has them. The
+console reads it once per page load, before anything else draws, and with no row written it draws nothing but a
+refusal naming `slopweaver org set` — never a page placed against a guess. `self` is this build's own repository,
+derived from the checkout's origin; the queue's refusals and stopping reports say `organisation` went unread and list
+no card.
+
+**Where a row belongs is read off its structured fields, never its words** (`site/lib/workspacePlacement.ts`).
+A **stated workspace** — a board row's `workspace:` (`slopweaver handover set-workspace`) or declared `context=` tag
+(`slopweaver handover tag`), a hand step's
+`--context` — and every **address** it carries: a GitHub repository (this build's own is `self`, every other one
+under the organisation's GitHub owner the team's; a `github.com/<owner>/<name>` URL names repository `<name>`, as
+GitHub routes it, and a `github.com/orgs/<owner>/…` page names none), a Slack permalink on one of the organisation's
+Slack hosts (an `/archives/` link to a channel, private channel or DM id, and optionally a `p<timestamp>` message in it; never any other link on the host) a row from the installation's Slack register, or a Slack channel, thread or DM a board row's action posts to (the installation posts to one Slack workspace, the team's), a
+`linear.app/<workspace>` or `app.vanta.com/c/<workspace>` URL in the organisation's own (none, where it has no Linear
+or Vanta), an act whose SUBJECT is `state:` or a `localhost` URL (it
+changed this installation), an act kind whose recorder guarantees the repository, a board row it joins to. Every
+link is read as a web address, `http:` or `https:`, spelled as one, exactly as written (`https://` then a host, in plain
+ASCII with no whitespace or backslash; the scheme and host in either case, since neither has one, and the host with or
+without DNS's trailing root dot, `github.com.` being `github.com`); one on another scheme, or one whose host or path a browser would rewrite (a
+Unicode dot, a `..` or empty segment, a user or default port), names nothing, and a host on another port is another
+server (`github.com:444` is not GitHub; the console's own `localhost` is this machine on any port). A percent-encoded character in a path
+segment reads as the character it encodes, as the server routes it (`%73lopweaver` is `slopweaver`), and one
+decoding to a character a written link may not carry — a slash, a backslash, whitespace, anything outside ASCII —
+names no page. A hand step or act citing such a link — on another scheme, or one a browser would rewrite — on GitHub, the organisation's Slack, Linear, Vanta or
+this machine is a finding whatever else it cites, because where that link points cannot be told. A
+console link anywhere else is no address: the console draws both workspaces, so a hand step sending the owner to the
+Queue names neither, and one opening an ask is placed by the ask it joins, as one is by the board row it unblocks (`hand post --row`). Every piece is gathered and no
+address outranks another: one workspace among them **places** the row, none leaves it **unplaced**, both is a
+**conflict**. A board row whose tags or journal read in part, that declares a `context=` on a board never saying whether its journal read whole, or whose `workspace:` line (a misspelt one, or one declared twice, published as
+`workspaceUnread`), `context=` tag (one the tag registry refused), action or pull-request links would not read, is unplaced whatever else it carries: a hidden
+statement, `context=`, Slack destination or link may say otherwise. So is a pull request whose `repoSlug` or `url` would not read as a GitHub repository, or whose two name
+different repositories that are not one in each workspace (that is a conflict). A stated workspace is the one ruling over a conflict, and it is never silent: the row wears a
+"stated over a conflict" mark naming the address it overruled. A record joined to a row that states its workspace — a hand step unblocking or opening it, an act on it —
+inherits that statement, and the mark with it when it overrules an address, unless it states a workspace of its own,
+which outranks one it inherited. A board row's `repo:` is never evidence — it is the checkout the seat RAN in, and every fleet seat
+runs in Slopweaver's. Nor is its `anchor:`, the place the ruling that made it was spoken: the owner speaks in the team's
+Slack about Slopweaver work as often as the team's. Nor is a Slack permalink its summary quotes (`summaryAnchor`),
+for the same reason: it is the thread the work was discussed in (146 rows carry one, and Slopweaver
+pull-request rows among them quote the Acme thread the owner asked in). Read ahead of everything, it would draw an Acme ISO ask whose pull requests were all
+acme-admin's under Slopweaver, and the reverse: Acme chosen while everything on the page is Slopweaver work.
+
+**An unplaced or conflicting row is a FINDING, placed by ONE default rule.** It is drawn in the Slopweaver
+workspace alone, never the team's, under a "placed by default: no workspace" or "placed by default: workspace
+conflict" mark naming what it rests on, and every page counts its findings beside what the other workspace holds.
+A stateless card drawn on both views reads as the team's on the team view, so the class is placed by rule, not the card. The Workstreams page sets its findings apart in one folded group, because they
+are most of the board. A ranked id no board row carries has nothing to place it, so the Slopweaver fleet lists
+keep it and name it, as they do an id whose board rows are each placed but in different workspaces, a conflict no
+board row is; until the board is read, every ranked row is folded in either context under the board read's mark. A hand step or an act is placed partly by the board row it joins, so it waits for the board too, a hand step on the Queue and an act on Alignment: drawn nowhere and counted in no figure while the board loads, and a finding if the board cannot be read. An open panel follows the selector: a row the other workspace owns is not drawn in one, whether it was open before a switch, its row moved by a board refresh, or named by a link (`?open=`, `?row=`), and the Workstreams page says the row it was asked for is elsewhere. A link to the other workspace's row switches the selector to open it; a switch you make away from an open row closes its panel instead of being switched back. A ranked row that is a
+finding is counted in neither workspace's fleet figures, and the Workstreams page says how many there are
+beside them. Answering a finding is `handover set-workspace <slug> --workspace team|self --because
+"<why>"`.
+
+Both choices are also **addresses**: `?context=slopweaver` and `?rail=icons` show that view whatever the
+browser remembers, so a link can point at one and a screenshot pass can photograph it. The URL overrides
+for that view only and is never written back — a link cannot change which context your next visit opens
+in. That is what lets the pass over every surface reach both without driving a click the door refuses on an
+unregistered host.
+
+</details>
+
+<details>
+<summary>The pages</summary>
+
+The sidebar carries the pages you open; Steers, the call widget and Settings open inside one of them.
+
+| Page                                     | The question it answers                                                                                           | Derivation                                   |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| [Queue](/queue)                          | what is waiting on your word, from seven registers, with the acts                                                 | [queue](/docs/console/queue)                 |
+| [Alignment](/alignment)                  | was each act the fleet took unasked the right call, and how you write                                             | [alignment](/docs/console/alignment)         |
+| [Pull requests](/pull-requests)          | where every open pull request is and what its next act is                                                         | [pull-requests](/docs/console/pull-requests) |
+| [Workstreams](/workstreams)              | how far each of your outcomes is along its own milestones, and why                                                | [workstreams](/docs/console/workstreams)     |
+| [Steers](/alignment#steers)              | each steer you gave on a call, and whether it has been applied                                                    | [steers](/docs/console/alignment#steers)     |
+| [Automations](/automations)              | what each automation and sync is doing, and what it found                                                         | [automations](/docs/console/automations)     |
+| The call widget                          | the voice's conversation, lookups, relays and plan settings, in its trays                                         | [call widget](/docs/console/call-widget)     |
+| [Fleet](/fleet)                          | what the fleet did, which agents are running now, and what is next                                                | [fleet](/docs/console/fleet)                 |
+| [Settings](/queue#settings/integrations) | what is connected and what needs attention, your plans and their Connect, the theme, the orb's presence, the call | [settings](/docs/console/settings)           |
+
+</details>
+
+<details>
+<summary>What it can do, and the line it keeps</summary>
+
+**It acts through verbs, and only through verbs.** The Queue's panels approve,
+so the console has one door that writes: `site/lib/actVerbs.ts`, a closed list where every act is one
+`slopweaver` verb with a literal argv, and the only thing a press may supply is the value of a slot that list
+declared — an id a register printed, or your words. Among them: `hand done`, `hand snooze` and
+`autonomy steer`. An unknown slug is a 404; a value that is not the slot's shape is refused with the reason.
+
+**Nothing on it launches a model.** `turn`, `codex review` and `cmux spawn` are not on any of the three lists
+(`liveVerbs.ts`, `syncVerbs.ts`, `actVerbs.ts`), so no URL and no press reaches one — operating-doctrine
+rule 2, expressed as a data structure rather than a review note.
+
+**A press is a same-origin press, and that is all it proves.** The act route refuses a request with no
+`Origin`, an `Origin` that is not this loopback server, a `Sec-Fetch-Site` other than `same-origin`, or a body
+that is not JSON of exactly the declared slots. That keeps a page on another origin and a stray navigation
+out. It does not, and does not claim to, tell a human's press from a process already running as the owner on this
+machine — the same residue the journalled-grants contract names and accepts. Keeping other machines out is the
+listener's job, not the press check's: every console server listens on 127.0.0.1 only, so a connection from
+anywhere else is refused before any route runs.
+
+**A verb's refusal reaches the panel as the verb wrote it.** The act route keeps a non-zero exit's stdout,
+and a run cut off on its timeout is reported as _outcome unknown_ with the register re-read, never as a
+failure — a local ledger append may well have landed before the kill.
+
+</details>
+
+<details>
+<summary>What is not on it yet</summary>
+
+- **Email drafts to approve.** `gmail send <draft-id> --approve <digest>` exists, but no verb lists your
+  drafts and the read verb prints message ids rather than draft ids. A drafts-list verb comes first.
+- **Releasing a held reply from the page.** The held-reply register is drawn, the thread is read, and the
+  draft carries its `queue release <id>` line to copy, but no press sends. The dry-run panel a send would need comes first.
+- **Enqueue from the pull request panel.** `github enqueue` takes `--pr` and `--repo`, and its dry-run
+  report — the stack scope it would take, every refusal it would make — has to be in front of you before
+  a press. A later change, and the panel says so.
+
+</details>

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "dispatch-orphan-nothing-ran",
+      "description": "a follow-up worker composing over a thread where a dispatch record proves the first worker was alive",
+      "tags": ["judgement-bug", "false-negative-claim"],
+      "incidentFixture": "src/__tests__/fixtures/replay/dispatch-orphan-28aug/fixture.json",
+      "input": {
+        "prompt": "You are a worker picking up a Slack tag mid-investigation. Here is the full, ground-truth ask-lifecycle record for THIS EXACT thread, oldest first:\n\n1. captured — the ask arrived and was recorded.\n2. checklist-posted — an acknowledgement was posted back to the thread.\n3. dispatched — a fresh visible session was started for this ask, at lease-expiry 2026-08-28T03:01:26.617Z, running under session workspace 'workspace:399'.\n\nSeparately, a teammate just tagged you again on the SAME thread, worried nothing is happening, because an automated sweep could not confirm the dispatched worker's pickup was witnessed (the pickup confirmation went unseen — a monitoring gap, not evidence the worker died). No 'failed' or 'abandoned' event exists in the record above. The dispatch record is the ground truth for what actually happened; the sweep's inability to witness pickup is a limitation of the sweep, not a fact about the worker.\n\nCompose the two or three sentences you would post back to the thread right now, explaining the current state of the first attempt to the teammate who just re-tagged."
+      },
+      "expected": {
+        "forbiddenPhrases": [
+          "nothing ran",
+          "never got going",
+          "never ran",
+          "didn't run",
+          "did not run",
+          "no attempt was made",
+          "nothing happened"
+        ],
+        "forbiddenGlyphs": ["⚠️"],
+        "mustMentionLiveWorker": true
+      }
+    },
+    {
+      "id": "owner-retag-review-round-cap",
+      "description": "a reviewer checking a re-tagged ask's draft, where a prior attempt burned five rounds before catching a missing asker mention",
+      "tags": ["judgement-bug", "review-round-spiral"],
+      "incidentFixture": "src/__tests__/fixtures/replay/owner-retag-28aug/fixture.json",
+      "input": {
+        "prompt": "You are reviewing a draft Slack reply before it is sent, on your FIRST review round. Hard constraints from the owner: at most ONE review round for this ask, and the reply must land inside 30 minutes — this is a re-tag of an ask whose PREVIOUS attempt died at the admit door with ANSWER_DOES_NOT_TAG_ASKER after FIVE review rounds, because none of the first four rounds checked whether the draft actually addressed the asker before the fifth one finally caught it.\n\nThe asker's Slack user id is UFIXTUREAB.\n\nHere is the draft to review, verbatim:\n\n\"Pulled the open PRs and the queue — nothing blocked right now, CI is green across the board. Let me know if you want the breakdown by repo.\"\n\nGive your round-1 review verdict: does this draft pass, or does it need to change before it can be sent? Be specific about what, if anything, is wrong with it."
+      },
+      "expected": {
+        "mustMentionAsker": true,
+        "mustFlagMissingAskerMention": true,
+        "forbiddenGlyphs": ["⚠️"]
+      }
+    }
+  ]
+}

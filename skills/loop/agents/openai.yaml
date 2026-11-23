@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slopweaver Loop"
+  short_description: "Run the foreground owner-only Slack loop"
+  default_prompt: "Run the foreground Slopweaver Slack loop in this Codex session."

@@ -1,0 +1,144 @@
+---
+title: The merge queue
+---
+
+import { MergeQueueEntry } from "../../components/diagrams/MergeQueueEntry";
+
+# The merge queue
+
+[Proof and landing](/docs/fleet/proof) is the grade a pull request carries. This is how one actually lands: on a
+base branch with a native merge queue, `slopweaver github enqueue` presses the same **Merge when ready**
+button a human clicks, and GitHub merges it once the queue's own checks pass on the **merged result**.
+
+On this repository's `main` it is _the_ landing verb, with no hand-run lane beside
+it. A base branch with no queue uses `github merge --admin`.
+
+<MergeQueueEntry />
+
+## No seat, no wave, and no rebase for a mergeable pull request
+
+A green, gold-anchored, mergeable pull request goes to the queue **the moment it is ready**, however many
+entries are already in it. GitHub owns the ordering, and a session that dies after queueing stalls nobody.
+
+**Rebase only when GitHub itself says so** — the pull request reads conflicting, or the queue kicked the
+entry back out. Rebasing a mergeable one before queueing buys nothing the queue is not already about to do.
+
+Measured, which is why this is written down: a supervisor released a parked fleet three at a
+time — each turn a rebase, a local validation lap, a push and a wait for a fresh green — and **ten
+already-green pull request sessions sat idle for hours** behind that self-imposed lane. The whole point of a
+merge queue is that nobody sits idling waiting for a seat: you just add the pull request to the queue.
+
+## The three landing verbs do different things
+
+| Verb                      | What it does                                                                |
+| ------------------------- | --------------------------------------------------------------------------- |
+| `github enqueue`          | puts the pull request in GitHub's native queue and lets GitHub land it      |
+| `github merge --admin`    | squash-merges **now**, through the administrator's branch-protection bypass |
+| `github hold` / `release` | governs Slopweaver's own advisory lane; reaches no repository at all        |
+
+Different is not independent: **a standing hold refuses the enqueue**, before the token and before any read.
+Taking an entry back out is exempt — leaving a queue only narrows what happens next, so a guard there would
+refuse the very action a caller reaches for when something is wrong.
+
+## Four refusals no acknowledgement can clear
+
+Three because the write is impossible, and one because it would be unsafe.
+
+- **the pull request is not open** — there is nothing to queue; if it merged already, pull the base;
+- **it is still a draft** — GitHub will not queue one;
+- **the landing branch has no merge queue** — there is no button to press;
+- **that queue requires no status-check contexts at all** — the write would work, and merge on arrival
+  **untested**.
+
+That last one is a refusal rather than a finding because acknowledging it could not make the queue wait.
+Every reason to reach for a queue is gone at that point, and the verb would be pressing a button that only
+looks like a gate. See the measurement in the figure above.
+
+**The required contexts are read from both governance mechanisms and unioned**, because a branch may be
+under either and each is reported by a different API. Reading one alone is a defect that was actually
+committed here first: the REST half went in on the unverified assumption that `main` is ruleset-governed,
+and it is not — measured, `main` is under **classic** branch protection, so the REST-only read
+reported a queue gated on nothing against one genuinely gated on two contexts, and would have false-refused
+every enqueue on this repository. **A read that fails on either half refuses too.** It never defaults to
+"gated", and never falls back to the half that answered.
+
+## The findings, which are acknowledgeable
+
+```bash
+slopweaver github enqueue --pr <n> --repo <owner/name> --dry-run   # every fact and finding, no write
+slopweaver github enqueue --pr <n> --repo <owner/name>             # then press it
+slopweaver github enqueue --pr <n> --repo <owner/name> --dequeue   # take it back out
+```
+
+| Subject                    | Fires when                                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `codex-loop-incomplete`    | the pairing floor is unmet, or no checkout here holds the head commit                          |
+| `ci-not-green`             | a check on the head failed, is running or is queued                                            |
+| `ci-rollup-superseded`     | every check on the head passed, and a run a re-run already replaced still pins the rollup      |
+| `required-context-missing` | a context the base **requires** has no run on the head at all                                  |
+| `review-not-approved`      | the review decision is neither approved nor absent — or absent with an open code-owner request |
+| `not-mergeable`            | GitHub reports the pull request conflicting, or has not finished computing                     |
+
+Accepting one silences the **refusal**, never the visibility of what was accepted — the reason is required
+and printed verbatim, so an acceptance is never a bare flag.
+
+**`ci-not-green` will often be acknowledged, and that is the design.** Queueing while the required checks
+still run is the ordinary case a queue exists for; the queue re-runs them on the merged result anyway.
+
+**`ci-rollup-superseded` is a separate subject so that routine acknowledgement cannot reach a live red.** The
+rollup folds in every check suite on the head, superseded ones included, so a run that failed and was then
+replaced pins it red while every check you can still look at reads passed. This repository's own landing
+sequence produces that on nearly every pull request. The finding names each pinning run by id, so accepting
+it is a check rather than a habit — and a green head under a failing rollup with **no** superseded failure
+behind it keeps the sharper subject.
+
+**`required-context-missing` is the one not to wave through.** The rollup summarises the runs _present_ on
+the head, so a required context that never registered is absent rather than red, and the rollup reads green
+over whatever else did run. That is a false green, and `ci-not-green` stays silent through it. The remedy is
+a rebase or a re-trigger — accepting it is accepting a gate that holds no verdict.
+
+## The witness is a read-back, never the write's own word
+
+Both mutations return an entry and discard it. Success is reported only after a **separate read**: an
+enqueue that reads back with no entry is `UNCONFIRMED` and exits non-zero, and so is a dequeue that reads
+back still holding one.
+
+The press is pinned to the head commit the report measured, exactly as the admin squash pins itself to a
+SHA — so a force-push landing between the measurement and the call is refused by GitHub rather than queued
+unseen.
+
+## The sweep presses it, so nobody has to remember
+
+The [supervisor sweep](/docs/fleet/supervisor) runs the landing read **every tick**, and a cadence register
+rations it: a tick whose cadence has not elapsed makes **no GitHub request at all** and exits zero.
+
+- **Every valid unknown answers due** — no record, or a row dated in the future — because the measured
+  failure is a read that never happened.
+- **Failed knowledge is not absence.** Both registers live in the local store; one that cannot be reached, or
+  a row that will not decode, refuses the tick before any GitHub request, so a broken register never reads as
+  an empty one.
+- **Only a read that succeeded is recorded**, so a failed fleet read leaves the cadence due rather than
+  inheriting a window it never earned.
+- **Green mergeable rows are enqueued in the same pass that found them**, under a per-invocation cap. The
+  rest are **registered as board rows**, and spawn nothing — capacity is measured later in the tick, so a
+  spawn here would happen before the reading that can hold it.
+- **Every guard still applies**, because the press calls the enqueue in process: the hold, the opt-out
+  label, a head re-read and a conversation re-read immediately before each click, and the read-back.
+- **A press leaves an [autonomy-ledger](/docs/fleet/autonomy-ledger) row.** A press this machine made that is
+  invisible to the owner is indistinguishable from a press nobody made. A ledger row that cannot be
+  written does not hide the press — the outcome says both.
+
+This exists because the owner asked for it twice: a green, twice-approved, mergeable pull request with the
+button showing still waited for a hand. Graduated autonomy already covers it: a pull request that needs only the button pressed is merged
+automatically, never left for a steer; a chair pressed it by hand seven minutes later.
+
+**One finding the press answers for itself, on one criterion.** `codex-loop-incomplete` fires for a head no
+checkout on this machine holds — which is every pull request of the owner's that a human wrote and humans reviewed —
+so the press names that subject itself **when a standing human approval covers the pull request**, and the
+reason is a constant written once, so a door-ledger row an automatic press wrote is told from a chair's
+hand-typed one by the string alone. Nothing else is waived: red CI, a missing required context and an
+unmergeable branch all still refuse.
+
+Why an approval and not "it passed the checks": a pull request of the owner's touching no code-owner rule passes
+every one of them with no reviewer at all. Waiving the floor there would repeat a known fleet finding
+verbatim — **a floor acknowledged every time is not a floor**.

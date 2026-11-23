@@ -1,0 +1,23 @@
+{
+  "author": {
+    "name": "Slopweaver"
+  },
+  "description": "Fork it, live in it, and it becomes yours: Claude Code and Codex agents on your own machine, kept in step with you through a Queue, briefings and every correction you make.",
+  "keywords": ["corpus", "local-first", "zero-key", "retrieval", "slack", "github", "linear", "notion"],
+  "name": "slopweaver",
+  "userConfig": {
+    "GITHUB_TOKEN": {
+      "description": "Leave blank to use your existing `gh` CLI login (recommended — no token to manage). Only set this if you don't use the `gh` CLI: a fine-grained read-only PAT.",
+      "required": false,
+      "sensitive": true,
+      "title": "GitHub token (optional)",
+      "type": "string"
+    },
+    "SLOPWEAVER_HOME": {
+      "description": "Where Slopweaver stores your local corpus",
+      "required": false,
+      "title": "Slopweaver home",
+      "type": "directory"
+    }
+  }
+}

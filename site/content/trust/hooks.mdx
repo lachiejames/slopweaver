@@ -1,0 +1,133 @@
+---
+title: What refuses before a tool runs
+---
+
+import { Callout } from "nextra/components";
+
+# What refuses before a tool runs
+
+The [gate surface](/docs/build/gates) checks a change. These check a **tool call**, while it is still a
+proposal. Everything under `hooks/` is invoked by the Claude Code harness, never by a person; every hook
+file is a top-level invocation and nothing else, and the logic it runs lives in `src/admit/` where it is
+unit-tested.
+
+## Ten checks, one process, in a declared order
+
+`PreToolUse` is a **single** entry whose matcher is exactly the union of the ten it replaced — no wider,
+because a matcher-less dispatcher would fire on `Read`, `Grep` and `Glob`, which pay nothing.
+
+| Applies to                  | Check                        | On failure |
+| --------------------------- | ---------------------------- | ---------- |
+| `Bash`/`Monitor`            | `bot-live-write-guard`       | **closed** |
+| `Bash`/`Monitor`/`Artifact` | `admit`                      | **closed** |
+| `Bash`                      | `main-checkout-guard`        | open       |
+| `Bash`                      | `main-checkout-dirty-guard`  | open       |
+| `Bash`                      | `session-depth-warning`      | open       |
+| `Bash`                      | `cmux-send-supervisor-guard` | open       |
+| `Bash`/`TaskOutput`         | `poll-gate`                  | open       |
+| `Edit`/`Write`              | `main-checkout-edit-guard`   | open       |
+| chrome MCP                  | `browser-door-guard`         | **closed** |
+| `Agent`/`Task`              | `agent-tool-ban`             | open       |
+| `Edit`/`Write`              | `memory-write-guard`         | open       |
+
+Three rules the fold is built on, each a behaviour you would otherwise have to discover:
+
+- **The first refusal wins _and_ short-circuits.** One process runs every check and stops at the first that
+  refuses, so the declaration order is what decides which refusal a caller sees when two would both refuse.
+- **One check's exception never decides another's verdict.** Each row carries its own failure policy, which
+  is what keeps three fail-closed guards inside a process with eight fail-open ones.
+- **The matchers are copied, never re-derived, and read the way the harness reads them.** A matcher of only
+  letters, digits and separators is an exact-name list; anything else is a regex tested **unanchored**. So
+  `Edit|Write` never matched `TodoWrite` and `Agent|Task` never matched `TaskOutput`. Rewriting a matcher
+  into a "better" one is a guard change wearing a refactor's clothes.
+
+<Callout type="info">
+  **No figure on this page, deliberately.** Ten ordered checks with a per-row failure policy is exactly what a table
+  carries better than a drawing, and inventing one to make this page match its siblings would be decoration.
+</Callout>
+
+## Why it is one process, and why every entry has a deadline
+
+Measured: the supervisor chair sat **27 minutes** on hook 6 of 7 for a single `Bash` call, and
+six other seats showed 50 minutes to 2h19m on the same line. Ten entries were registered, none carried a
+`timeout`, and each exec'd a TypeScript runner over its own file — so one `Bash` call in one seat booted six
+compilers, and twenty seats at once booted a hundred and twenty.
+
+| shape                                  | wall  | CPU       |
+| -------------------------------------- | ----- | --------- |
+| the six-hook fan-out a Bash call fired | 0.99s | **2.15s** |
+| the folded dispatcher on a bundle      | 0.24s | **0.17s** |
+
+The cost that mattered was **CPU**, not wall clock: twenty seats contending for it is how a hook boot
+starves for 27 minutes.
+
+<Callout type="warning">
+  A timed-out hook is **killed and the tool call proceeds**, so a timeout is a liveness bound and never a gate. A guard
+  that must refuse has to refuse in time. The harness default is 600 seconds, not the 60 this repo's comments once
+  asserted, and tool-call events are held far tighter than that by a test that also fails an entry carrying no `timeout`
+  at all.
+</Callout>
+
+## A guard is fleet policy, so it runs from the installed plugin
+
+Not from the session's own checkout. A dogfood session boots with its own worktree as the plugin directory,
+so before this it obeyed only the guards its own branch carried — measured, **148 Python calls
+ran after the Python gate landed**, every one from a session whose base predated it.
+
+The trade is named rather than discovered: a branch that changes a guard is covered by its subprocess tests,
+not tried live by its own session before it merges.
+
+## The three that fail closed, and why the rest do not
+
+The **`admit`** check is the raw-tool guard. It defends a boundary rather than a workflow, so being broken
+must stop the tool call.
+
+The **`bot-live-write-guard`** runs ahead of it: a bot turn never runs a migration or writes to staging or
+production unless the owner asked for it directly, so a guard that cannot decide must refuse rather than let one
+through.
+
+The **`browser-door-guard`** fails closed one step further: the shim itself exits 2 when it cannot resolve a
+runtime _and_ the payload is a browser call. What it guards is a post under the owner's own identity with no
+door, no ledger and no preview, and because the tool name is narrow the entire cost of failing closed is
+that browser calls stop. See [the browser as a write surface](/docs/trust/browser).
+
+**The three main-checkout guards fail open, deliberately.** They protect a pinned checkout from a branch
+switch, a branch rename, a dirty write or a stray edit from another worktree — a workflow safety net, not a
+security boundary, and a broken toolchain must never wedge every tool call.
+
+## The poll gate, and why it names its replacement
+
+The rule: never poll; set monitors with timeouts on everything.
+
+Measured by replaying the previous 24 hours of every transcript on the machine through the gate's
+own classifier: **1,959 of 15,540 requests** did nothing but re-read a log, `kill -0` a pid, call for task
+output again or run an `until` loop. That is **13.7% of the day's spend**, and 642 of the 909 repeats came
+under 60 seconds after the previous poll of the same target, median 16 seconds — each re-sending a
+~300K-token context to learn that nothing had changed.
+
+A call is poll-shaped when **every** segment is a probe or a no-op, so one segment of real work makes the
+whole call work. The gate refuses the **second** poll of the same target within 60 seconds, so a blocking
+wait that genuinely waited a minute is never refused, and a single read after a process finished never is
+either.
+
+It **names the one command that replaces the poll** rather than only naming a shape, and that is the part
+worth copying. One measured week saw 568 hand-rolled poll loops while the gate named only a shape:
+a session refused a shape writes the loop again.
+
+## What hooks do not do
+
+- **The raw block covers named tools, never a capability.** A bare invocation with no argument is allowed,
+  because it prints help and touches nothing. General-purpose interpreters, local dev tools and package
+  managers are deliberately absent, each for a measured reason recorded beside the table.
+- **A hook is not the write door.** Rule 3 is a discipline you keep. A script the command runs is opened one
+  level deep and judged by its text, but what it still cannot follow is a variable, a substitution, an
+  alias, a script a script calls, or a relative path after a `cd` in the same command.
+- **No hook enforces the model-process policy.** There is no `claude` branch anywhere in the classifier;
+  rule 2 is held by a lint gate instead.
+- **No hook writes to a provider.** Every one of them is local: a refusal, a local-state check, or a console
+  line.
+
+<Callout type="warning">
+  **Treat a block as confirmation you were about to do something wrong, and the absence of one as meaning nothing at
+  all.** Every guard on this page is a tripwire, not a fence.
+</Callout>

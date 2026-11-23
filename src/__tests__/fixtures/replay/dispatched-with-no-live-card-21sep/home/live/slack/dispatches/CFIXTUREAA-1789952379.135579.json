@@ -1,0 +1,64 @@
+{
+  "channel": "CFIXTUREAA",
+  "messageTs": "1789952379.135579",
+  "threadTs": "1789775392.910229",
+  "askPermalink": "https://fixture.slack.com/archives/CFIXTUREAA/p1789952379135579?thread_ts=1789775392.910229&cid=CFIXTUREAA",
+  "briefPath": "${SLOPWEAVER_HOME}/briefs/CFIXTUREAA-1789952379.135579.json",
+  "decision": {
+    "confidence": "high",
+    "model": "opus",
+    "needs": [
+      {
+        "capabilityId": "github-live",
+        "reason": "[REDACTED]",
+        "requirement": "required"
+      },
+      {
+        "capabilityId": "github-vulnerability-atlas",
+        "reason": "[REDACTED]",
+        "requirement": "required"
+      },
+      {
+        "capabilityId": "github-vulnerability-evidence",
+        "reason": "[REDACTED]",
+        "requirement": "required"
+      },
+      {
+        "capabilityId": "github-live-detail",
+        "reason": "[REDACTED]",
+        "requirement": "optional"
+      },
+      {
+        "capabilityId": "slack-live",
+        "reason": "[REDACTED]",
+        "requirement": "optional"
+      },
+      {
+        "capabilityId": "knowledge-register",
+        "reason": "[REDACTED]",
+        "requirement": "optional"
+      }
+    ],
+    "rationale": "[REDACTED]",
+    "response": "respond",
+    "schemaVersion": 1,
+    "tier": "fresh-visible-session",
+    "truthMode": "current"
+  },
+  "dispatchId": "[\"CFIXTUREAA\",\"1789952379.135579\",\"1789775392.910229\"]",
+  "execution": {
+    "mode": "continuous-drain",
+    "supervisorHost": "claude-code"
+  },
+  "leaseExpiresAt": "2026-09-21T04:39:27.978Z",
+  "schemaVersion": 3,
+  "session": {
+    "cwd": "/fixture/user/dev/personal/slopweaver/.claude/worktrees.noindex/live-bot-loop-21sep-a",
+    "host": "claude-code",
+    "sessionName": "ask-CFIXTUREAA-1789952379.135579",
+    "surfaceId": "fixture-uuid-dn",
+    "surfaceRef": "surface:161",
+    "workspaceId": "fixture-uuid-do",
+    "workspaceRef": "workspace:152"
+  }
+}

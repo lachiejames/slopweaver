@@ -1,0 +1,43 @@
+[
+  {
+    "title": "Lease renewal",
+    "create_time": 1790200000.0,
+    "update_time": 1790200060.0,
+    "current_node": "c-r1",
+    "id": "a0000100-0000-4000-8000-000000000109",
+    "mapping": {
+      "c-root": { "id": "c-root", "message": null, "parent": null, "children": ["c-u1"] },
+      "c-u1": {
+        "id": "c-u1",
+        "message": {
+          "id": "c-u1",
+          "author": { "role": "user", "name": null, "metadata": {} },
+          "create_time": 1790200010.0,
+          "content": { "content_type": "text", "parts": ["Should I renew the lease for twelve months or six?"] },
+          "status": "finished_successfully",
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "c-root",
+        "children": ["c-r1"]
+      },
+      "c-r1": {
+        "id": "c-r1",
+        "message": {
+          "id": "c-r1",
+          "author": { "role": "assistant", "name": null, "metadata": {} },
+          "create_time": 1790200020.0,
+          "content": {
+            "content_type": "text",
+            "parts": ["Twelve, if the rent is fixed for the term; six if you may move."]
+          },
+          "status": "finished_successfully",
+          "metadata": { "model_slug": "gpt-5-mini" },
+          "recipient": "all"
+        },
+        "parent": "c-u1",
+        "children": []
+      }
+    }
+  }
+]

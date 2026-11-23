@@ -1,0 +1,35 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1789788122.066099",
+    "threadTs": "1789772045.369529"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "live/slack/reviews/CFIXTUREAA-1789788122.066099/record.json — written after the last kept event (2026-09-19T03:45:00.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789788122.066099/verdict.json — written after the last kept event (2026-09-19T03:45:00.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789788122.066099/answer-reviewed-sha256-bd4b20b2d1522d4d8fe1d6085db990e00bd53758ff306b5db7b47e2a66cd5a92.json — written after the last kept event (2026-09-19T03:45:00.000Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1789788122.066099.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789788122.066099/answer-reviewed-sha256-d663f001ead08cd36069154bf1928f30629b8a08a610557c58258b47beef8508.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789788122.066099/verdict-superseded-fixture-uuid-dn-2026-09-19T03-32-14-579Z.json"
+  ],
+  "frozenAtIso": "2026-09-24T22:27:27.065Z",
+  "incident": "a one-word thread reply ('yo') under the bot's own digest was dispatched INLINE at 03:23:40Z and answered at 04:13:06Z; for those 50 minutes, two independent-review rounds included (the first ~28 min), the progress card sat on its capture-time placeholder because an inline turn writes no progress log, starts no ticker and gets no sweep push — the owner read it at 03:45Z as 'did it even work? looks like it didn't'",
+  "regresses": [],
+  "replayNowIso": "2026-09-19T03:45:00.000Z",
+  "reviewRounds": 1,
+  "schemaVersion": 1,
+  "slug": "inline-turn-silent-card-19sep",
+  "syntheticIdCount": 92,
+  "withheldEventKinds": [
+    "answered"
+  ],
+  "through": "dispatched"
+}

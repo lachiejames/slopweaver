@@ -1,0 +1,34 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1787995161.031119",
+    "threadTs": "1787942086.747699"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/reviews/CFIXTUREAA-1787995161.031119/record.json — written after the last kept event (2026-08-29T09:21:12.267Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1787995161.031119.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1787995161.031119.json",
+    "home/live/slack/turn-markers/CFIXTUREAA-1787995161.031119.json",
+    "home/live/slack/reviews/CFIXTUREAA-1787995161.031119/verdict.json"
+  ],
+  "frozenAtIso": "2026-08-29T17:30:57.546Z",
+  "incident": "a validate-time answer refusal for being over the count/aggregate cap wrote the SAME durable, sweep-finalised FAILED marker a worker's own --failed give-up writes, so the loop's sweep finalised the ask and told the owner to re-tag while the worker was still alive, trimmed the answer, and got a reviewer",
+  "regresses": [],
+  "replayNowIso": "2026-08-29T09:21:12.267Z",
+  "reviewRounds": 1,
+  "schemaVersion": 1,
+  "slug": "validate-refusal-finalised",
+  "syntheticIdCount": 26,
+  "withheldEventKinds": [
+    "failed",
+    "answered"
+  ],
+  "through": "dispatched"
+}

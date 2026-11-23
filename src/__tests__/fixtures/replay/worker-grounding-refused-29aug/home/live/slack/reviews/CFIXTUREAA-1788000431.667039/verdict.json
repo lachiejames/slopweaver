@@ -1,0 +1,93 @@
+{
+  "answerDigest": "sha256:b7da32e8ea3cd75a9076df1ea606662a9d0a0f26a1ec8eab27355b03819cb75b",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    }
+  ],
+  "outcome": "[REDACTED]",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1
+}

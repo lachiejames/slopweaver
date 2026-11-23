@@ -1,0 +1,626 @@
+/*
+ * The console's ONE stylesheet: Tailwind v4, shadcn/ui's variables and the console's palette, in one declared
+ * cascade. Only `app/(console)/layout.tsx` imports it, so nothing here reaches `/docs`, whose root layout
+ * loads Nextra's theme and `diagram.css` on their own.
+ *
+ * Every console page draws with utilities over Tailwind's own preflight. `diagram.css` is the one other
+ * file, because /docs draws the same tiles: it sits in the `console` layer, ABOVE the reset (`base`) so its
+ * rules still beat it, and BELOW `utilities`, so a class on the element always wins. An unlayered import
+ * would beat every Tailwind layer regardless of specificity.
+ *
+ * There is ONE palette: the `--c-*` oklch tokens below, the archive's `theme-core.css` — a near-black
+ * ground, a card one step up, a sidebar one step down, a teal primary. shadcn's variables are names for
+ * them, never a second set of colours. Every colour is measured against its own ground for 13px text; a
+ * pale word on a pale fill is the one render the owner rejects.
+ */
+
+@layer theme, base, components, console, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "tw-animate-css";
+@import "./diagram.css" layer(console);
+
+@source "../components";
+@source "./";
+@source "../lib/sourceFreshnessTones.ts";
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/code/dist/*.js";
+
+/* The palette sits on :root, so a Radix portal rendered into <body> reads it too. The nine `--c-*` tokens are
+   NOT written here: each family's light and dark palette is `site/lib/themePalettes.ts`'s `THEME_PALETTES`, rendered
+   into the head by the layout (`appearanceStylesheet`) on `:root[data-sw-family][data-sw-mode]`, so the table
+   the unit test measures is the one the page draws. */
+:root {
+  --radius: 0.5rem;
+  --background: var(--c-bg);
+  --foreground: var(--c-ink);
+  --card: var(--c-card);
+  --card-foreground: var(--c-ink);
+  --popover: var(--c-panel);
+  --popover-foreground: var(--c-ink);
+  --primary: var(--c-primary);
+  --primary-foreground: var(--c-primary-ink);
+  --secondary: var(--c-panel);
+  --secondary-foreground: var(--c-ink);
+  --muted: var(--c-panel);
+  --muted-foreground: var(--c-muted);
+  --accent: var(--c-panel);
+  --accent-foreground: var(--c-ink);
+  /* shadcn's destructive is the verdict danger, so the one measured red covers both names. */
+  --destructive: var(--a-danger);
+  --border: var(--c-border);
+  --input: var(--c-border);
+  --ring: var(--c-primary);
+  --success: var(--a-success);
+  --warning: var(--a-warning);
+  --danger: var(--a-danger);
+  --info: var(--a-info);
+}
+
+/*
+ * Light or dark: the console's own stored choice on `<html data-sw-mode>`, never the system's, since the setting is
+ * independent of the operating system's. The mode owns what no family changes —
+ * the browser's own controls here, and the verdict colours, which `lib/theme.ts`'s `VERDICT_INKS` writes per mode
+ * so its unit test can measure them against every family's glass.
+ */
+:root[data-sw-mode="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-sw-mode="light"] {
+  color-scheme: light;
+}
+
+/*
+ * shadcn's `dark:` utilities follow the console's mode, not a `.dark` class nothing sets — and a Slack surface is dark
+ * in every look (`slackSurfaceBlock`, `site/lib/theme.ts`), so inside one every `dark:` utility takes its dark form
+ * too: Streamdown's Shiki code block picks its dark token colours that way, and would draw the light theme on Slack's
+ * dark ground otherwise.
+ */
+@custom-variant dark (&:where([data-sw-mode="dark"], [data-sw-mode="dark"] *, .sw-slack, .sw-slack *));
+
+/*
+ * Glass without translucency. Every surface is filled with its own OPAQUE palette token, because the voice messenger at about half
+ * opacity over the Queue read badly: solid, a hundred percent opacity, is the default for every surface, and reduced
+ * opacity does not make a surface more glassy. The glassy look
+ * is the edges alone: a bright top edge, a darker bottom one and a soft drop shadow, which tint whatever opaque fill
+ * they sit on and never let what is behind a surface through it.
+ */
+:root {
+  --sw-glass-border: color-mix(in oklch, var(--c-border) 75%, transparent);
+  --sw-glass-specular: color-mix(in oklch, white 22%, transparent);
+  --sw-glass-shade: color-mix(in oklch, black 22%, transparent);
+  --sw-glass-shadow: color-mix(in oklch, black 28%, transparent);
+}
+
+:root[data-sw-mode="light"] {
+  --sw-glass-specular: color-mix(in oklch, white 75%, transparent);
+  --sw-glass-shade: color-mix(in oklch, black 8%, transparent);
+  --sw-glass-shadow: color-mix(in oklch, black 12%, transparent);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/*
+ * GitHub's own colours, for the pull request page ONLY (`components/console/PullView.tsx`): the one deliberate second
+ * palette here, because the page must look exactly like GitHub, native colours included. They are Primer's functional colours, dark
+ * and light, following the console's mode the way every `--a-*` verdict ink does; nothing else may draw with them.
+ */
+:root,
+:root[data-sw-mode="dark"] {
+  --gh-fg: #f0f6fc;
+  --gh-muted: #9198a1;
+  --gh-accent: #4493f8;
+  --gh-success: #3fb950;
+  --gh-danger: #f85149;
+  --gh-attention: #d29922;
+  --gh-done: #ab7df8;
+  --gh-success-emphasis: #238636;
+  --gh-danger-emphasis: #da3633;
+  --gh-done-emphasis: #8957e5;
+  --gh-neutral-emphasis: #656c76;
+  --gh-border: #3d444d;
+}
+
+:root[data-sw-mode="light"] {
+  --gh-fg: #1f2328;
+  --gh-muted: #59636e;
+  --gh-accent: #0969da;
+  --gh-success: #1a7f37;
+  --gh-danger: #d1242f;
+  --gh-attention: #9a6700;
+  --gh-done: #8250df;
+  --gh-success-emphasis: #1f883d;
+  --gh-danger-emphasis: #cf222e;
+  --gh-done-emphasis: #8250df;
+  --gh-neutral-emphasis: #59636e;
+  --gh-border: #d1d9e0;
+}
+
+@theme inline {
+  --color-gh-fg: var(--gh-fg);
+  --color-gh-muted: var(--gh-muted);
+  --color-gh-accent: var(--gh-accent);
+  --color-gh-success: var(--gh-success);
+  --color-gh-danger: var(--gh-danger);
+  --color-gh-attention: var(--gh-attention);
+  --color-gh-done: var(--gh-done);
+  --color-gh-success-emphasis: var(--gh-success-emphasis);
+  --color-gh-danger-emphasis: var(--gh-danger-emphasis);
+  --color-gh-done-emphasis: var(--gh-done-emphasis);
+  --color-gh-neutral-emphasis: var(--gh-neutral-emphasis);
+  --color-gh-border: var(--gh-border);
+}
+
+/*
+ * What `lib/githubMarkdown.ts` writes into a pull request body: a shields badge drawn from its own address (its two
+ * grounds inline, its shape here, shields' flat style), and GitHub's alert box. Plain CSS because `site/lib` is not a
+ * Tailwind source, in `components` so a utility on the element still wins.
+ */
+@layer components {
+  .gh-badge {
+    display: inline-flex;
+    overflow: hidden;
+    height: 20px;
+    border-radius: 3px;
+    vertical-align: middle;
+    font:
+      11px / 20px Verdana,
+      "DejaVu Sans",
+      Geneva,
+      sans-serif;
+    white-space: nowrap;
+  }
+
+  .gh-badge-square {
+    border-radius: 0;
+  }
+
+  .gh-badge-part {
+    padding: 0 6px;
+    background-image: linear-gradient(rgb(187 187 187 / 0.1), rgb(0 0 0 / 0.1));
+    text-shadow: 0 1px 0 rgb(1 1 1 / 0.3);
+  }
+
+  .gh-alert {
+    margin: 0 0 1rem;
+    padding: 0.5rem 1rem;
+    border-left: 0.25em solid var(--gh-alert);
+    color: inherit;
+  }
+
+  .gh-alert > :last-child {
+    margin-bottom: 0;
+  }
+
+  .gh-alert-title {
+    margin: 0 0 0.25rem;
+    font-weight: 500;
+    color: var(--gh-alert);
+  }
+
+  .gh-alert-note {
+    --gh-alert: var(--gh-accent);
+  }
+
+  .gh-alert-tip {
+    --gh-alert: var(--gh-success);
+  }
+
+  .gh-alert-important {
+    --gh-alert: var(--gh-done);
+  }
+
+  .gh-alert-warning {
+    --gh-alert: var(--gh-attention);
+  }
+
+  .gh-alert-caution {
+    --gh-alert: var(--gh-danger);
+  }
+}
+
+/* The console voice's corner orb (components/voice/VoiceWidget.tsx) is the stage's own look at a calmer pace, so its
+   motion is the stage keyframes below; the theme utilities left are its badge's pop and the screen dim's fade in. */
+@theme {
+  --animate-orb-pop: sw-orb-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-focus-in: sw-focus-in 160ms ease-out 1 both;
+
+  /* A badge arriving: it pops on. */
+  @keyframes sw-orb-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+/* A call reconnecting (components/voice/StageOrb.tsx): the whole orb, in either view, squashes and tilts off true
+   while the colour drops to the reconnecting slate, denting twice as it goes and then holding the squashed shape until
+   the call is back, so a reconnect changes colour and shape for a while. Reduce-motion keeps the
+   shape and drops the dents (`motion-reduce:animate-none!` on the box). */
+.sw-stage-orb {
+  transition: transform 450ms ease;
+}
+
+[data-mood="reconnecting"] .sw-stage-orb {
+  animation: sw-stage-reconnect 1.1s ease-in-out 2;
+  transform: scale(0.92, 0.8) rotate(-7deg);
+}
+
+@keyframes sw-stage-reconnect {
+  0%,
+  100% {
+    transform: scale(0.92, 0.8) rotate(-7deg);
+  }
+  35% {
+    transform: scale(1.04, 0.66) rotate(5deg);
+  }
+  70% {
+    transform: scale(0.8, 0.94) rotate(-12deg);
+  }
+}
+
+/* One region of the owner's screen lifted on their ask (components/voice/ScreenFocus.tsx): the dim fades in, nothing moves. */
+@keyframes sw-focus-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* The window's edge (components/voice/EdgeGlow.tsx): one bright flash per frame the voice takes of the owner's screen,
+   played once and gone. */
+@keyframes sw-edge-pulse {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The voice editing a parked draft live (components/console/DraftEditFrame.tsx): a border that travels round the
+   card while it reads the owner's words and writes, still under reduced motion. The angle is registered so it animates. */
+@property --sw-edit-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes sw-edit-travel {
+  to {
+    --sw-edit-angle: 360deg;
+  }
+}
+
+.sw-draft-editing {
+  background:
+    linear-gradient(var(--background), var(--background)) padding-box,
+    conic-gradient(from var(--sw-edit-angle), transparent 0 55%, var(--warning) 75%, transparent 95%) border-box;
+  border: 2px solid transparent;
+  animation: sw-edit-travel 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-draft-editing {
+    animation: none;
+    border-color: var(--warning);
+  }
+}
+
+/* The mood colour is a registered colour so a change of state EASES what wears it instead of jumping; the stage
+   sets `transition: --v-ring` on itself. */
+@property --v-ring {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.6 0.02 250);
+}
+
+@layer base {
+  /* shadcn's own base rule. */
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /* The document draws in the console's own palette and sans-serif, the ground included, so an overscroll
+     bounce never shows the browser's canvas and a Radix portal in <body> draws in the console's face. Its
+     light or dark comes from `<html data-sw-mode>`, which `body` inherits rather than restating. */
+  html,
+  body {
+    background: var(--c-bg);
+    color: var(--c-ink);
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      sans-serif;
+  }
+
+  body {
+    color-scheme: inherit;
+  }
+
+  /* A field's placeholder in full muted ink, the secondary text measured on every ground: Tailwind's preflight
+     draws it at half the field's own ink, about 3.1:1 on teal light's opaque ground (contrastOpacity.test.ts). */
+  ::placeholder {
+    color: var(--color-muted-foreground);
+    opacity: 1;
+  }
+
+  /* Held for the instant a theme or mode changes (`switchTheme`): a colour transition would start from the old
+     palette's ink over a ground that has already switched. `!important` in this first layer outranks any later one. */
+  .sw-appearance-switching,
+  .sw-appearance-switching *,
+  .sw-appearance-switching *::before,
+  .sw-appearance-switching *::after {
+    transition: none !important;
+  }
+
+  /* In a browser tab the window's own ground is a wallpaper in the family's own hue: broad glows, hundreds of pixels
+     wide, seen wherever no surface covers the window. Every surface is opaque, so no word is ever drawn through it.
+     Fixed, so it stays put while the page scrolls over it. */
+  body {
+    background:
+      radial-gradient(60vmax 50vmax at 8% 4%, color-mix(in oklch, var(--c-primary) 42%, transparent), transparent 70%),
+      radial-gradient(
+        55vmax 45vmax at 96% 92%,
+        color-mix(in oklch, oklch(from var(--c-primary) l c calc(h + 70)) 34%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        40vmax 30vmax at 55% 45%,
+        color-mix(in oklch, oklch(from var(--c-primary) l c calc(h - 50)) 18%, transparent),
+        transparent 75%
+      ),
+      var(--c-bg);
+    background-attachment: fixed;
+  }
+
+  /* Shown by the desktop shell (`?sw-surface=native`): the app's window is opaque like every surface in it, so the
+     page paints its palette's flat ground and no wallpaper. */
+  html[data-sw-surface="native"],
+  html[data-sw-surface="native"] body {
+    background: var(--c-bg);
+  }
+
+  /* The voice overlay is the one transparent page: its window is larger than anything it draws (a corner, or the
+     whole display while the stage or the messenger is up), and around the orb and its panels the owner's desktop must show
+     through. Its panels themselves are opaque surfaces like any other, the messenger included. */
+  html[data-shell="overlay"],
+  html[data-shell="overlay"] body {
+    background: transparent;
+  }
+
+  /* The console root. It remaps the light-card tokens `diagram.css` gives every tile (`--sw-figure-*`)
+     onto the palette, so the tiles /docs also renders draw here in the dark. */
+  .sw-console {
+    --sw-figure-bg: var(--c-card);
+    --sw-figure-line: var(--c-border);
+    --sw-figure-ink: var(--c-ink);
+    --sw-figure-muted: var(--c-muted);
+    --sw-figure-panel: var(--c-panel);
+
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  a {
+    color: var(--c-primary);
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    background: color-mix(in oklch, var(--c-panel) 80%, transparent);
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+  }
+}
+
+/*
+ * The glass surfaces. `.sw-glass` is a major plane that floats — the sticky sidebar, a menu, a popover, a dialog, the
+ * slide-over, the voice's messenger — and `.sw-glass-plane` one in the page's flow — a page head, a queue card, a
+ * list row's card. Both draw the same: an opaque palette fill, a bright top edge and a darker bottom one for
+ * thickness, and a soft drop shadow. A plane picks its tint with `--sw-glass-fill`. `.sw-glass-control` is anything
+ * nested IN a plane — an input, a code block, a row — on the page's own ground colour, opaque too.
+ *
+ * No backdrop-filter anywhere: an opaque fill has nothing behind it to blur, and a filter would still make its
+ * element the containing block for every `position: fixed` descendant — the voice orb, dialogs and the slide-over
+ * are all fixed.
+ */
+@layer components {
+  .sw-glass,
+  .sw-glass-plane {
+    background: var(--sw-glass-fill, var(--c-card));
+    border-color: var(--sw-glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--sw-glass-specular),
+      inset 0 -1px 0 var(--sw-glass-shade),
+      0 12px 40px var(--sw-glass-shadow);
+  }
+
+  .sw-glass-sidebar {
+    --sw-glass-fill: var(--c-sidebar);
+    box-shadow:
+      inset -1px 0 0 var(--sw-glass-specular),
+      inset 0 1px 0 var(--sw-glass-specular);
+  }
+
+  .sw-glass-panel {
+    --sw-glass-fill: var(--c-panel);
+  }
+
+  .sw-glass-ground {
+    --sw-glass-fill: var(--c-bg);
+  }
+
+  /* The page column's own ground, so no word sits on the bare wallpaper, where muted text over the top-left glow
+     falls under 4.5:1 (contrastOpacity.test.ts, "puts a ground under the page column"). The ground fill alone — no edges and
+     no shadow. */
+  .sw-glass-page {
+    background: var(--c-bg);
+  }
+
+  .sw-glass-control {
+    background: var(--c-bg);
+    border-color: var(--sw-glass-border);
+  }
+
+  /*
+   * A Slack message surface — a draft, a stored thread, a drafted reply — drawn in Slack's OWN dark desktop palette
+   * in every look, Daylight included, never the console family's glass: a dark grey ground that looks like Slack
+   * itself, which is dark. The colours, and the console tokens re-pointed inside the surface so its
+   * muted words, hairlines and verdict words read on the dark ground, are `lib/theme.ts`'s `slackSurfaceBlock`,
+   * rendered into the head beside the palettes and measured by its unit test. These rules only apply them.
+   */
+  .sw-slack {
+    background: var(--slack-bg);
+    border-color: var(--slack-border);
+    color: var(--slack-text);
+  }
+
+  .sw-slack a {
+    color: var(--slack-link);
+  }
+
+  .sw-slack .sw-slack-chip {
+    background: var(--slack-chip-bg);
+    color: var(--slack-chip-text);
+  }
+
+  .sw-slack code,
+  .sw-slack pre {
+    background: var(--slack-code-bg);
+    border-color: var(--slack-border);
+    color: var(--slack-code-text);
+  }
+
+  .sw-slack .text-muted-foreground {
+    color: var(--slack-muted);
+  }
+
+  /* A panel's columns keep their own width whatever they hold (`SlideOver.tsx`'s SLIDE_BODY). A
+     Queue card whose quoted thread carried a 300-character URL ran its body under the facts column. A citation chip
+     truncates its label, but a truncated label still counts its WHOLE width toward min-content, and every grid whose
+     track is `auto` — each one the card nests — grew to that width and overflowed. Zeroing a grid item's automatic
+     minimum bounds each such track by its container, and capping it at its grid area holds an item that a start-
+     justified list sizes to its content (the facts column's Related rows), so the chip's own `max-w-full` truncates
+     it, and a long plain-text token wraps at the edge of its now-bounded box. `break-word`, never `anywhere`: the
+     latter is inherited into every box sized to its own text and shrinks its minimum to one character, which split
+     "(edited)" and an "APP" badge mid-word in a draft's message head and a gauge's value one digit per line. Here,
+     below `utilities`, so a `min-w-*` or `max-w-*` an element sets for itself still wins. */
+  .sw-slide-body {
+    overflow-wrap: break-word;
+  }
+
+  .sw-slide-body :where(.grid) > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/*
+ * The desktop app's window has no title strip: the sidebar blends into the window like the
+ * ChatGPT, Linear and Raycast apps, the window dots embedded beside its controls. The preload stamps
+ * `data-window-controls="inset"` on the console window while its three buttons stand over the top-left corner, and
+ * `none` in full-screen, where macOS hides them; a browser tab and the voice overlay never match, so nothing here
+ * changes a byte of their layout. Unlayered on purpose, so it outranks the sidebar's Tailwind padding and grid.
+ *
+ * The sidebar's top row is the title bar: it holds the buttons' space and moves the window, and the icon rail
+ * widens just enough for the cluster to clear its edge. Any control placed in a drag region must be `no-drag`, or
+ * the window takes its clicks — so every direct child of one is, and a page head's text stays selectable.
+ */
+.sw-titlebar {
+  display: none;
+}
+
+html[data-shell="main"][data-window-controls="inset"] .sw-titlebar {
+  display: flex;
+}
+
+html[data-shell="main"][data-window-controls="inset"] .sw-sidebar {
+  padding-top: 0;
+}
+
+html[data-shell="main"][data-window-controls="inset"] .sw-console[data-sidebar="full"] .sw-sidebar-toggle-inline {
+  display: none;
+}
+
+html[data-shell="main"][data-window-controls="inset"] .sw-console[data-sidebar="icons"] {
+  grid-template-columns: 84px minmax(0, 1fr);
+}
+
+html[data-shell="main"][data-window-controls="inset"] .sw-window-drag {
+  -webkit-app-region: drag;
+}
+
+html[data-shell="main"][data-window-controls="inset"] .sw-window-drag > * {
+  -webkit-app-region: no-drag;
+}
+
+/* A tile's unmeasured state is amber in the dark, the one `diagram.css` rule the console recolours. */
+@layer console {
+  .sw-console .sw-tile-unmeasured {
+    color: var(--a-warning);
+  }
+}
+
+/* Streamdown's code blocks, drawn on the same ground as `code-block.tsx`'s and measured the same way (foregroundHarness.ts,
+   the `highlighter` measure): its `<code>` clears the global `code` panel tint so the tokens sit on the theme's own
+   ground, and its line numbers, which it fades to `muted-foreground/50`, draw in full muted ink. In `utilities`, and
+   more specific than Streamdown's own `before:` utility, so both win there. */
+@layer utilities {
+  [data-streamdown="code-block-body"] pre > code {
+    background: transparent;
+  }
+
+  [data-streamdown="code-block-body"] pre > code > span::before {
+    color: var(--color-muted-foreground);
+  }
+}

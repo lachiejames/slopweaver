@@ -1,0 +1,260 @@
+{
+  "directories": {
+    "src": {
+      "statements": 93.06
+    },
+    "src/accessReview": {
+      "statements": 97.59
+    },
+    "src/admit": {
+      "statements": 88.07
+    },
+    "src/appSurfaces": {
+      "statements": 91.08
+    },
+    "src/atlas": {
+      "statements": 80.44
+    },
+    "src/automations": {
+      "statements": 48.89
+    },
+    "src/autonomy": {
+      "statements": 92.99
+    },
+    "src/briefing": {
+      "statements": 95.38
+    },
+    "src/browser": {
+      "statements": 66.03
+    },
+    "src/builtCli": {
+      "statements": 89.61
+    },
+    "src/canon": {
+      "statements": 97.58
+    },
+    "src/capacity": {
+      "statements": 80.63
+    },
+    "src/checkouts": {
+      "statements": 77.18
+    },
+    "src/claude": {
+      "statements": 94.44
+    },
+    "src/cli": {
+      "statements": 59.66
+    },
+    "src/cmux": {
+      "statements": 75.52
+    },
+    "src/codex": {
+      "statements": 88.78
+    },
+    "src/codexPlugin": {
+      "statements": 81.67
+    },
+    "src/connect": {
+      "statements": 62.18
+    },
+    "src/consoleProfile": {
+      "statements": 39.74
+    },
+    "src/context": {
+      "statements": 74.51
+    },
+    "src/corpus": {
+      "statements": 76.96
+    },
+    "src/cycle": {
+      "statements": 87
+    },
+    "src/datadog": {
+      "statements": 77.31
+    },
+    "src/desktop": {
+      "statements": 95.14
+    },
+    "src/detective": {
+      "statements": 95.15
+    },
+    "src/devLint": {
+      "statements": 64.98
+    },
+    "src/environment": {
+      "statements": 78.86
+    },
+    "src/eval": {
+      "statements": 98.02
+    },
+    "src/events": {
+      "statements": 91.73
+    },
+    "src/fleet": {
+      "statements": 86.07
+    },
+    "src/freshCut": {
+      "statements": 34.05
+    },
+    "src/gcp": {
+      "statements": 79.58
+    },
+    "src/gcpAudit": {
+      "statements": 91.35
+    },
+    "src/gold": {
+      "statements": 96.44
+    },
+    "src/goldDebt": {
+      "statements": 92.46
+    },
+    "src/hand": {
+      "statements": 90.78
+    },
+    "src/handover": {
+      "statements": 95.1
+    },
+    "src/hex": {
+      "statements": 92.19
+    },
+    "src/home": {
+      "statements": 89.43
+    },
+    "src/hygiene": {
+      "statements": 76.94
+    },
+    "src/incident": {
+      "statements": 93.23
+    },
+    "src/integrations": {
+      "statements": 98.52
+    },
+    "src/judgement": {
+      "statements": 87.49
+    },
+    "src/knowledge": {
+      "statements": 82.55
+    },
+    "src/lib": {
+      "statements": 93.14
+    },
+    "src/live": {
+      "statements": 87.61
+    },
+    "src/measurement": {
+      "statements": 72.1
+    },
+    "src/memory": {
+      "statements": 96.07
+    },
+    "src/monitor": {
+      "statements": 85.64
+    },
+    "src/onboard": {
+      "statements": 96.5
+    },
+    "src/orgHealth": {
+      "statements": 91.99
+    },
+    "src/outbound": {
+      "statements": 91.6
+    },
+    "src/pages": {
+      "statements": 94.47
+    },
+    "src/pane": {
+      "statements": 85.11
+    },
+    "src/perf": {
+      "statements": 93.59
+    },
+    "src/plans": {
+      "statements": 94.93
+    },
+    "src/policy": {
+      "statements": 74.31
+    },
+    "src/prformat": {
+      "statements": 94.07
+    },
+    "src/profile": {
+      "statements": 97.76
+    },
+    "src/proof": {
+      "statements": 88.16
+    },
+    "src/readings": {
+      "statements": 90.67
+    },
+    "src/reflect": {
+      "statements": 92.99
+    },
+    "src/retrieval": {
+      "statements": 96.68
+    },
+    "src/review": {
+      "statements": 94.17
+    },
+    "src/route": {
+      "statements": 94.58
+    },
+    "src/ruling": {
+      "statements": 94.81
+    },
+    "src/secrets": {
+      "statements": 88.6
+    },
+    "src/sessionHarness": {
+      "statements": 92.53
+    },
+    "src/sessions": {
+      "statements": 94.03
+    },
+    "src/sessionStart": {
+      "statements": 95.15
+    },
+    "src/silver": {
+      "statements": 94.32
+    },
+    "src/spend": {
+      "statements": 95.82
+    },
+    "src/store": {
+      "statements": 61.7
+    },
+    "src/supervisor": {
+      "statements": 94.89
+    },
+    "src/sweep": {
+      "statements": 95.89
+    },
+    "src/syncRun": {
+      "statements": 88.66
+    },
+    "src/talk": {
+      "statements": 90.07
+    },
+    "src/testLanes": {
+      "statements": 77.37
+    },
+    "src/transcripts": {
+      "statements": 95.64
+    },
+    "src/visualEvidence": {
+      "statements": 93.14
+    },
+    "src/workstreams": {
+      "statements": 95.21
+    },
+    "src/worktree": {
+      "statements": 84.12
+    }
+  },
+  "summary": {
+    "branches": 81.28,
+    "functions": 82.49,
+    "lines": 82.72,
+    "statements": 82.74
+  },
+  "version": 2
+}

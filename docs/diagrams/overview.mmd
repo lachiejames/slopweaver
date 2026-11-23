@@ -1,0 +1,23 @@
+flowchart TB
+  tag["A colleague tags the bot in Slack"] --> turn
+
+  subgraph turn["ONE VISIBLE SESSION PER TURN — watchable, interruptible, never a daemon"]
+    direction LR
+    tb["pins the question and<br/>what this context can reach<br/>slopweaver turn brief"]
+    ti["investigates, with<br/>every tool it has"]
+    ta["grounds, renders, posts<br/>slopweaver turn answer"]
+    tb --> ti --> ta
+  end
+
+  turn --> reply["One reply in the thread:<br/>the outcome above the fold,<br/>the evidence below it"]
+  turn -.-> stands
+
+  subgraph stands["WHAT THE TURN IS STANDING ON"]
+    direction TB
+    wm["THE CORPUS<br/>four org sources, plus opt-in<br/>mail, diary and calls,<br/>bronze files and a Postgres store<br/>src/corpus"]
+    at["A MAP OF EACH LIVE SYSTEM<br/>look up what exists rather<br/>than guess at names<br/>src/atlas"]
+    vb["A VERB FOR EVERYTHING<br/>one door for every<br/>read and every write<br/>src/cli"]
+    ql["QUALITY ENFORCED BY SHAPE<br/>typed forms, checked<br/>citations, a second opinion<br/>src/outbound"]
+    sv["A SUPERVISOR FLEET<br/>one intake chat, a visible<br/>seat per workstream<br/>src/handover"]
+    cv["A CONSOLE AND A VOICE<br/>the Queue you answer,<br/>the fleet you can watch<br/>slopweaver desktop install"]
+  end

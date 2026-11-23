@@ -1,0 +1,71 @@
+---
+title: Sessions and visibility
+---
+
+import { FeedbackLoop } from "../../components/diagrams/FeedbackLoop";
+import { SessionVisibility } from "../../components/diagrams/SessionVisibility";
+
+# Sessions and visibility
+
+## The lap every session is one leg of
+
+A seat is not spawned for its own sake. It is one leg of a closed loop that starts and ends with the owner, and
+the shape of that loop is what decides everything below — why a seat has to be visible, why its state
+reaches the owner only as a Queue card or a floating note, and why it ends by handing something back rather than by going quiet.
+
+<FeedbackLoop />
+
+The rest of this page is the middle of that picture: what a seat is allowed to be, which model it runs on,
+and what it owes while it runs.
+
+## The rule itself
+
+A Slopweaver process may launch a model only into a session the owner can see and interrupt **as it runs**.
+Never detached, never resident, never invisible.
+
+<SessionVisibility />
+
+## Right model for the host
+
+In Claude Code the supervisor chat is the one chat on Fable. Every spawn **names** its model —
+`cmux spawn --model` is required, and `fable` refuses without `ALLOW_FABLE_OVERRIDE`.
+
+| Work                                         | Model  |
+| -------------------------------------------- | ------ |
+| rebase, resolve conflicts, land, investigate | Opus   |
+| a mechanical leaf                            | Sonnet |
+| roughly one spawn in twenty                  | Fable  |
+
+Codex is a **substitute host** — every tier the Claude host drives, subagents included. There is no hidden
+executor of any model.
+
+## What the fleet is doing, right now
+
+```bash
+slopweaver session list --json     # every live workspace, its status and its model
+slopweaver session depth --json    # token spend, and which sessions are past the respawn threshold
+slopweaver claude gauge --json     # what each plan has left
+```
+
+Those three are the console's fast lane. A session past the respawn threshold is carrying more context
+than the verb's own limit and is the next candidate for a successor.
+
+## How a seat's state reaches the owner
+
+Only as a **Queue card** or a **floating note**. A seat publishes no sidebar checklist and no status lane —
+the owner reads neither. Its sidebar row carries identity only: the title, the role colour
+and the `workspace:N` ref pill.
+
+```bash
+slopweaver handover ask <slug> --question "…"                     # a question only the owner can settle: a Queue card
+slopweaver handover park <slug> --wake-on-checks owner/repo#N     # a CI or clock wait closes the seat
+```
+
+## Reaping what died
+
+```bash
+slopweaver machine reap
+```
+
+Kills the orphaned fleet shells whose seat is dead — parent launchd, argv sourcing a shell snapshot no live
+process shares — and reports what it killed.

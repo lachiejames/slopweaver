@@ -1,0 +1,84 @@
+---
+title: Reaching a seat
+---
+
+import { SeatReach } from "../../components/diagrams/SeatReach";
+
+# Reaching a seat
+
+[Sessions and visibility](/docs/fleet/sessions) is the rule: a model only ever runs where the owner can see it. This
+page is the other half — what a supervisor can **learn** about a seat it did not write, and how it reaches
+one. Both directions are one-way, and neither interrupts.
+
+<SeatReach />
+
+## What a seat reports without being asked
+
+Every tool call, every ended turn, every permission prompt arrives as its own JSON line, carrying the
+session, the working directory, the workspace and the tool. Measured across roughly fifteen live sessions in
+one evening: 1,174 `PreToolUse`, 84 `Stop`, 20 `SubagentStop`, 16 `Notification`, 6
+`SessionStart`, 2 `AskUserQuestion`.
+
+Filter it to one workspace or leave it open for the whole fleet. A cursor file plus reconnect means a reader
+that dies and restarts resumes exactly where it stopped — **no replay gap and no double count**.
+
+`Notification` is aptly named: it says something needs attention, and never what.
+
+## A seat is keyed by what the caller already knows
+
+Never by a Claude Code session id, which the harness assigns after the tab boots and nobody can know at
+spawn time. And **never by a pid**: measured, the board printed thirteen rows reading `exited`
+while four of those sessions were demonstrably running, because a run journal's pid belongs to the
+short-lived `slopweaver` command rather than to the session.
+
+The key is the handover slug for a seat that was spawned for one, or a free-form key the supervisor chose
+for a chat it did not spawn.
+
+## Three witnesses that a pickup landed, and the hole all three share
+
+A spawn types its pickup into a fresh seat, and "did it arrive" has three independent answers, consulted in
+this order:
+
+| Witness             | What it proves                                |
+| ------------------- | --------------------------------------------- |
+| the event stream    | the seat booted and started acting            |
+| the delivery record | the exact text submitted, with its instant    |
+| the screen          | last, and weakest — a render, read under load |
+
+**A pickup that is QUEUED but not yet consumed is invisible to all three.** It raises no hook, can leave the
+delivery record empty, and shows an idle prompt — so every witness agrees on a false negative. Measured.
+
+The retry added alongside the chain made it worse rather than better: both sends land, and the duplicate
+fires as a whole second run when the first turn ends. So the pickup is sent **once**, and the unwitnessed
+case is a **reported state** rather than a failure — the dispatch records `dispatch-unwitnessed`, holds its
+slot, is swept like a running worker, and is reconciled against the delivery record on a later pass.
+
+An absence proves nothing here. Saying so is the fix.
+
+## What this socket does not give you
+
+- **What a seat decided, and why.** Every mechanism above reports that a seat acted. The reasoning is still
+  only in the transcript or on the screen.
+- **The text of a change.** There is no diff method on this socket at all — `git` against the seat's own
+  working directory is still how you read one, and the branch field is a cheap clean-or-dirty pre-filter
+  before paying for it.
+- **A talk channel.** Events and status are telemetry out. Two-way coordination is Claude Code's own
+  cross-session channel, or typing into the surface — and that channel carries a name with no session id and
+  no host, which is why every message from another session is
+  [anchored on its claim, never on its sender](/docs/trust/doctrine).
+- **A mapping from a workspace to a handover row.** Nothing computes that correlation; it is a judgement.
+
+## Ending one
+
+```bash
+slopweaver session close-done   # every finished, settled or terminal seat whose screen is idle
+```
+
+That closes a seat. What to do about the shells a dead seat leaves behind is
+[reaping what died](/docs/fleet/sessions#reaping-what-died), on the page that owns the lifecycle.
+
+`close-done` holds a row it reports as `screen busy` — that is a finished session still talking, so read it
+rather than closing it by hand. The one case it cannot reach is a seat whose pull request **landed** while
+its run never recorded a finish: nothing marks it done, so it is held forever. Nudge it once; if the next
+pass still shows no finish, settle its board row on the merged commit and close it, because the landing is
+the fact and the journal event was only its witness. Measured, twice.

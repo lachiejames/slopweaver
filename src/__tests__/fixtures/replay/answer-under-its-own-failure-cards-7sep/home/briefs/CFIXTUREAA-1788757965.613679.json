@@ -1,0 +1,2027 @@
+{
+  "channel": "CFIXTUREAA",
+  "messageTs": "1788757965.613679",
+  "question": "[REDACTED]",
+  "routingInput": {
+    "availableCapabilities": [
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "snapshot"
+        },
+        "id": "fixture-uuid-ac",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-ad",
+        "owner": "[REDACTED]",
+        "sourceClass": "repository",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "complete"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-ae",
+        "owner": "[REDACTED]",
+        "sourceClass": "orchestration",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "complete"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-af",
+        "owner": "[REDACTED]",
+        "sourceClass": "orchestration",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "complete"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "snapshot"
+        },
+        "id": "fixture-uuid-ag",
+        "owner": "[REDACTED]",
+        "sourceClass": "world-model",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "complete"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "snapshot"
+        },
+        "id": "fixture-uuid-ah",
+        "owner": "[REDACTED]",
+        "sourceClass": "artifact",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "snapshot"
+        },
+        "id": "fixture-uuid-ai",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-aj",
+        "owner": "[REDACTED]",
+        "sourceClass": "provider",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-ak",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-al",
+        "owner": "[REDACTED]",
+        "sourceClass": "provider",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-am",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-an",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-ao",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-ap",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "snapshot"
+        },
+        "id": "fixture-uuid-aq",
+        "owner": "[REDACTED]",
+        "sourceClass": "artifact",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-ar",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-as",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-at",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-au",
+        "owner": "[REDACTED]",
+        "sourceClass": "provider",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-av",
+        "owner": "[REDACTED]",
+        "sourceClass": "provider",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-aw",
+        "owner": "[REDACTED]",
+        "sourceClass": "provider",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-ax",
+        "owner": "[REDACTED]",
+        "sourceClass": "provider",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-ay",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "complete"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-az",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-ba",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bb",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bc",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-bd",
+        "owner": "[REDACTED]",
+        "sourceClass": "provider",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-be",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bf",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bg",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bh",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bi",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bj",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bk",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bl",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bm",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bn",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bo",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bp",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bq",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "live"
+        },
+        "id": "fixture-uuid-br",
+        "owner": "[REDACTED]",
+        "sourceClass": "provider",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bs",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      },
+      {
+        "availability": {
+          "kind": "available"
+        },
+        "command": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "coverage": {
+          "detail": "[REDACTED]",
+          "kind": "bounded"
+        },
+        "effect": "read",
+        "freshness": {
+          "detail": "[REDACTED]",
+          "kind": "cached"
+        },
+        "id": "fixture-uuid-bt",
+        "owner": "[REDACTED]",
+        "sourceClass": "atlas",
+        "terms": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ],
+        "truthMode": "current",
+        "what": "[REDACTED]"
+      }
+    ],
+    "context": {
+      "controlPlane": {
+        "ownerAddressingText": "[REDACTED]",
+        "structuralMetadata": [
+          {
+            "key": "[REDACTED]",
+            "value": "[REDACTED]"
+          },
+          {
+            "key": "[REDACTED]",
+            "value": "[REDACTED]"
+          },
+          {
+            "key": "[REDACTED]",
+            "value": "[REDACTED]"
+          },
+          {
+            "key": "[REDACTED]",
+            "value": "[REDACTED]"
+          },
+          {
+            "key": "[REDACTED]",
+            "value": "[REDACTED]"
+          }
+        ]
+      },
+      "quotedEvidence": []
+    },
+    "execution": {
+      "mode": "single-turn",
+      "supervisorHost": "claude-code"
+    },
+    "ownerDirectives": [
+      {
+        "id": "[REDACTED]",
+        "source": {
+          "contentHash": "sha256:a5b2199725349b34440813980f74072efe3afa8c695714b48a59fb187f9dc79e",
+          "file": "[REDACTED]",
+          "modified": "[REDACTED]"
+        },
+        "text": "[REDACTED]"
+      },
+      {
+        "id": "[REDACTED]",
+        "source": {
+          "contentHash": "sha256:141e9cd02066192bf997a5403ee902d6cda734519c398cda9f87f9a022c7b8ea",
+          "file": "[REDACTED]",
+          "modified": "[REDACTED]"
+        },
+        "text": "[REDACTED]"
+      }
+    ],
+    "profile": {
+      "provenance": {
+        "minedAt": "2026-08-11T07:26:34.402Z",
+        "sourceManifestHash": "sha256:005f3d14370bb4a3b85be6cdb4aa995ea02396a3cf5594ed8965734cdd6a6482"
+      },
+      "routing": {
+        "counterexamples": [
+          {
+            "example": {
+              "sourceHash": "sha256:fcc976d62a34e6ba000fecda73a75961542f1bae0bffb0a042f545d3a19c76cf",
+              "text": "[REDACTED]"
+            },
+            "whyRejected": "[REDACTED]"
+          },
+          {
+            "example": {
+              "sourceHash": "sha256:c178ef48376c0f724ca733baf3148d02cadf6358579ff666c37336af1743bdb1",
+              "text": "[REDACTED]"
+            },
+            "whyRejected": "[REDACTED]"
+          }
+        ],
+        "examples": [
+          {
+            "sourceHash": "sha256:c54c0b463b73c0aef88d1181e52473c01b16b1b791aca989651268070ef48693",
+            "text": "[REDACTED]"
+          },
+          {
+            "sourceHash": "sha256:66dfce47f5337e7b3c7cce740e41c9f5024fe735f106ac1b1906cf5335ecde98",
+            "text": "[REDACTED]"
+          },
+          {
+            "sourceHash": "sha256:e352cb351d9ac4a8d85e9b5d83ce44e1a90727e7b16532519f8fd6e51137d456",
+            "text": "[REDACTED]"
+          },
+          {
+            "sourceHash": "sha256:800401995545986bfd2d2fbffcc0b7f7a47d472a78ce4badd77efc256c351d50",
+            "text": "[REDACTED]"
+          }
+        ],
+        "principles": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ]
+      },
+      "schemaVersion": 1,
+      "voice": {
+        "examples": [
+          {
+            "sourceHash": "sha256:17a28f9f7d7391722f8849406066ae2701b49caa771783989d948d857b0d5f14",
+            "text": "[REDACTED]"
+          },
+          {
+            "sourceHash": "sha256:8d671af283725e83eb40d17abf500d735dbd18a064cd2a1f13492d538f830f80",
+            "text": "[REDACTED]"
+          },
+          {
+            "sourceHash": "sha256:4d01d0a5810a46bdb3de5bca2dd8fb66656a4d0ad9fc5815691f757224198413",
+            "text": "[REDACTED]"
+          },
+          {
+            "sourceHash": "sha256:a4297a5b4253c852cf2decf84a16f85fc53f49abf52b50dfffdf368ed86d38ed",
+            "text": "[REDACTED]"
+          }
+        ],
+        "principles": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ]
+      }
+    }
+  },
+  "surface": "channel",
+  "threadTs": "1788757827.540129",
+  "unavailableCapabilities": [
+    {
+      "availability": {
+        "kind": "unavailable",
+        "reason": "[REDACTED]"
+      },
+      "command": [],
+      "coverage": {
+        "detail": "[REDACTED]",
+        "kind": "unknown"
+      },
+      "effect": "read",
+      "freshness": {
+        "detail": "[REDACTED]",
+        "kind": "unknown"
+      },
+      "id": "fixture-uuid-bu",
+      "owner": "[REDACTED]",
+      "sourceClass": "provider",
+      "terms": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "truthMode": "current",
+      "what": "[REDACTED]"
+    },
+    {
+      "availability": {
+        "kind": "unavailable",
+        "reason": "[REDACTED]"
+      },
+      "command": [],
+      "coverage": {
+        "detail": "[REDACTED]",
+        "kind": "unknown"
+      },
+      "effect": "read",
+      "freshness": {
+        "detail": "[REDACTED]",
+        "kind": "unknown"
+      },
+      "id": "fixture-uuid-bv",
+      "owner": "[REDACTED]",
+      "sourceClass": "provider",
+      "terms": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "truthMode": "current",
+      "what": "[REDACTED]"
+    },
+    {
+      "availability": {
+        "kind": "unavailable",
+        "reason": "[REDACTED]"
+      },
+      "command": [],
+      "coverage": {
+        "detail": "[REDACTED]",
+        "kind": "unknown"
+      },
+      "effect": "read",
+      "freshness": {
+        "detail": "[REDACTED]",
+        "kind": "unknown"
+      },
+      "id": "fixture-uuid-bw",
+      "owner": "[REDACTED]",
+      "sourceClass": "artifact",
+      "terms": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "truthMode": "current",
+      "what": "[REDACTED]"
+    },
+    {
+      "availability": {
+        "kind": "unavailable",
+        "reason": "[REDACTED]"
+      },
+      "command": [],
+      "coverage": {
+        "detail": "[REDACTED]",
+        "kind": "unknown"
+      },
+      "effect": "read",
+      "freshness": {
+        "detail": "[REDACTED]",
+        "kind": "unknown"
+      },
+      "id": "fixture-uuid-bx",
+      "owner": "[REDACTED]",
+      "sourceClass": "provider",
+      "terms": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "truthMode": "current",
+      "what": "[REDACTED]"
+    }
+  ],
+  "userId": "UFIXTUREAB",
+  "version": 6
+}

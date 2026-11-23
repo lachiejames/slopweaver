@@ -1,0 +1,14 @@
+{
+  "description": "Marketplace for Slopweaver — fork it, live in it, and it becomes yours: one supervisor chat routing Claude Code and Codex sessions you can watch, on your own machine.",
+  "name": "slopweaver-dev",
+  "owner": {
+    "name": "Slopweaver"
+  },
+  "plugins": [
+    {
+      "description": "Fork it, live in it, and it becomes yours: Claude Code and Codex agents on your own machine, kept in step with you through a Queue, briefings and every correction you make.",
+      "name": "slopweaver",
+      "source": "./"
+    }
+  ]
+}

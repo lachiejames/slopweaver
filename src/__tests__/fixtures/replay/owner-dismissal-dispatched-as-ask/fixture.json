@@ -1,0 +1,31 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788231440.612829",
+    "threadTs": "1788227494.225289"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1788231440.612829.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1788231440.612829.json"
+  ],
+  "frozenAtIso": "2026-09-01T03:04:42.513Z",
+  "incident": "The owner replied 'thanks for nothing' to a turn the bot had already answered, quoting the answer's own 'monitors are not deployed / these charts are a replay' caveat back at it. The router read that dismissal as a fresh ask and dispatched a full fresh-visible-session worker to answer it. A supervisor stop caught the worker mid-investigation, before it composed or posted anything. Open question the fixture is for: whether an owner's sarcastic dismissal of an existing answer should route to respond at all, and if so whether it should ever be a fresh-session answer rather than a recorded question back to the owner.",
+  "regresses": [],
+  "replayNowIso": "2026-09-01T02:57:21.246Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "owner-dismissal-dispatched-as-ask",
+  "syntheticIdCount": 26,
+  "withheldEventKinds": [
+    "checklist-posted",
+    "dispatched"
+  ],
+  "through": "captured"
+}

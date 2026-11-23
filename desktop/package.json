@@ -1,0 +1,97 @@
+{
+  "name": "slopweaver-desktop",
+  "productName": "Slopweaver",
+  "description": "The Slopweaver console in a native macOS window, with a menu bar icon that changes with state — a shell around the local console, nothing more.",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "author": "Slopweaver",
+  "packageManager": "yarn@4.18.1",
+  "main": "build/main.js",
+  "scripts": {
+    "app": "yarn build && yarn native:build && node build/makeIcon.js && electron-builder --dir --mac --arm64",
+    "build": "bash ../scripts/tsc-owner.sh --timeout-seconds 540 --grace-seconds 5 --rss-ceiling-mib 4096 -- node_modules/.bin/tsc -p tsconfig.json",
+    "electron:fetch": "node node_modules/electron/install.js",
+    "native:build": "node build/makeSystemAudioPermission.js",
+    "start": "yarn build && yarn native:build && yarn electron:fetch && electron ."
+  },
+  "dependencies": {
+    "@agentclientprotocol/codex-acp": "2.5.0",
+    "@agentclientprotocol/sdk": "2.1.0",
+    "@anthropic-ai/claude-agent-sdk": "0.3.316",
+    "@anthropic-ai/sdk": "0.137.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "neverthrow": "8.2.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "electron": "44.9.3",
+    "electron-builder": "26.17.0",
+    "typescript": "7.1.0-beta"
+  },
+  "build": {
+    "appId": "ai.slopweaver.desktop",
+    "productName": "Slopweaver",
+    "directories": {
+      "output": "dist"
+    },
+    "protocols": [
+      {
+        "name": "Slopweaver link",
+        "role": "Viewer",
+        "schemes": [
+          "slopweaver"
+        ]
+      }
+    ],
+    "files": [
+      "assets/**",
+      "build/**",
+      "!build/native/**",
+      "!node_modules/@openai/**",
+      "!node_modules/@agentclientprotocol/codex-acp/**",
+      "!node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/@agentclientprotocol/codex-acp/dist/index.js",
+        "to": "session-harness/codex-acp.js"
+      },
+      {
+        "from": "node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin",
+        "to": "session-harness/codex/bin"
+      },
+      {
+        "from": "node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/codex-path",
+        "to": "session-harness/codex/codex-path"
+      },
+      {
+        "from": "node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
+        "to": "session-harness/claude/claude"
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "build/native/slopweaver-system-audio",
+        "to": "MacOS/slopweaver-system-audio"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "icon": "build/icon.icns",
+      "extendInfo": {
+        "LSUIElement": false,
+        "NSAppleEventsUsageDescription": "Slopweaver opens a cmux tab you can see to bring your sessions back after a restart.",
+        "NSAudioCaptureUsageDescription": "Slopweaver asks for System Audio Recording so a voice call keeps playing when you switch headphones or speakers. It does not record other apps' audio.",
+        "NSMicrophoneUsageDescription": "Slopweaver uses the microphone only when you start a voice call.",
+        "NSScreenCaptureUsageDescription": "Slopweaver's voice takes one picture of your screen each time it looks, only during a call you started.",
+        "SlopweaverDesktopE2EMenuBarProtocol": "1",
+        "SlopweaverDesktopE2EProtocol": "2"
+      }
+    }
+  }
+}

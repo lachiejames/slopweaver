@@ -1,0 +1,751 @@
+---
+title: The call widget
+---
+
+# The call widget
+
+A voice to think out loud with, about whatever the console is showing you. Press the **orb the desktop app floats
+at the bottom right of your screen** and it listens, opening [fullscreen](#the-stage-and-the-corner) until you send it
+back to the corner; it follows you from page to page, can read the page you are on and
+the card you have open, the board row behind it, the tracked files of this
+checkout, any other file on this machine but a credential, the action items the console is showing, **your whole screen** when you ask, and **your
+conversation with the supervisor** — and when you settle on a steer, it types it into the supervisor's chat
+**as your word**, with a board row behind it. It is a go-between, both ways and optional: typing to the
+supervisor yourself stays first class. The call widget holds its own record: the conversation in the Messenger, and
+what it read, every relay it made, the earlier calls' transcripts and the call's plan settings in its session
+details tray. They sit there, not on a page of their own, because the sidebar holds only your five.
+
+**The voice lives in the desktop app only**, since two floating widgets would serve no purpose when you never run
+two calls at once. The app's overlay is the one floating widget and the one place a call runs;
+the app's console window hands a start to it. A console page open in a browser tab draws no orb and starts no call
+(`site/lib/voiceStart.ts`).
+
+The voice exists to simplify things and to think them through out loud, particularly about the items on the page.
+It works on all pages and has knowledge of all pages, and it is token efficient: quality over speed.
+
+It is also **the one thing in the console that reaches a language model**, which is why the trade is stated
+here in full rather than in a footnote.
+
+## What it is built on
+
+**The owner's ChatGPT plan pays, through Codex, and nothing else does.** The voice is hooked into the plan, with
+no platform.openai usage, so platform credits can never run out mid-call. A call is minted the way Codex CLI's own `/voice` mints one — the console starts
+one `codex app-server` for the call, checks it is signed in with ChatGPT, and opens a protocol-v3 realtime
+thread with the voice window's offer. When the plan refuses — no ChatGPT login, the plan's realtime or its usage
+limit refused — the call widget shows the refusal in the plan's own words and nothing else is tried: no second key,
+model or voice. The page sends nothing on the call's data channel — a nudge is the console server's own
+instruction to answer your last words and a stop of its own Codex turn, sent over localhost to the child — and mute silences your microphone only;
+`docs/console-voice-boundary.md` § Who pays, and how a call runs has the detail.
+
+**The call rides OpenAI's own WebRTC client** (`OpenAILiveWebRTC`, from the `openai` SDK). No OpenAI-authored UI
+kit speaks it: ChatKit is text chat whose component loads from OpenAI's CDN (a third egress), and
+`@openai/agents-realtime` and the Realtime reference apps target the older Realtime API and want a short-lived
+key in the browser. So the widget is this console's own, on the official client.
+
+**The voice is yours to pick.** A call speaks in one of the **chatgpt.com voices** — juniper, maple, spruce,
+ember, vale, breeze, arbor, sol — picked in the **ChatGPT plan** section of the session details tray's **call
+settings** (`components/voice/CallPlanSettings.tsx`), and kept in the desktop app. It starts on `sol`, the owner's pick in
+Codex CLI's `/voice`. A voice is fixed for a call, so a new pick made during a call says it takes effect when the call restarts and offers a **Restart call**
+button, which ends the call and starts one in the new voice, so it tells you the pick won't take
+effect until you restart the call. Restarting ends a screen share, and the
+notice says so when one is open.
+
+**The plan section says what you are on and what is left, and never estimates.** It answers which model you are using, how much of your plan is left and how many talk minutes you get. Beside the
+voice, the same section shows three facts (`site/lib/talkPlanFacts.ts`). **Model** is what the open call was minted as —
+the realtime protocol and the model it thinks with — and reads unknown until a call opens. **Plan left** is
+`slopweaver codex quota show --routed`'s live read of the registered plan a call spends — routed exactly as `talk offer`
+routes the call — one line per metered window with
+its reset and the time it was read. A call spends from it, so it is read when the section opens and again every five
+minutes; a timed read that falls during a call waits, and is taken when you hang up. **Talk minutes** reads unknown: nothing measures how much of the plan a
+call minute draws yet, and the row names where that number would come from rather than guessing it.
+
+**Every tool row shows how long it took** , because a lookup shown as "checking" can
+take over 15 seconds to respond. The pause is measured from the call arriving to its answer going back, which is
+the silence you hear. What each turn of the plan thread cost in tokens is written into the call's own record.
+
+**The record reads as a conversation.** Messenger draws what you and the voice said
+(`components/voice/Messenger.tsx`), pinned to the newest line as they are heard. The session details tray
+(`components/voice/VoiceSession.tsx`) draws each lookup on the same Tool parts a session's turn uses, each with how
+long it took, and under them the call's relays, folded to one line of counts (`site/lib/talkContext.ts`) that opens
+to every relay: how it ended, what the voice heard and what it read back.
+
+**A call is written down as it runs, so a dropped one is not lost.** Every line of a call — what you both said,
+what it looked at, what it relayed — is appended to a file on this machine as it lands
+(`$SLOPWEAVER_HOME/talk/calls/`, readable by you alone), never sent anywhere else. Each lookup keeps exactly what the
+voice was handed, up to 24 KiB, a picture only named, written once the answer reached
+the voice so keeping it never slows one: the result the session tray folds outlives the call and the page, and
+`slopweaver talk call-tools --call <id>` reads a call's back a page at a time. In the session details tray, under
+the relays, **earlier calls** folds the last few (`slopweaver talk calls`), each saying how it ended — or "no end recorded" for one that dropped — with speech it dropped in the
+middle of marked _(cut off)_. The next call opens from what you said after your last relayed steer,
+so you never have to say it again (`docs/console/voice-context-and-calls.md` § The call is written down as it runs).
+
+**What you say to a card you have open lands on that card.** When the voice judges your words an answer to the
+card you opened — "yes, go ahead", "send it", "drop that one" — they become the answer on an ask, or a row carrying
+them for any other card, and the card leaves your queue: it waits on a session now, not on you. A greeting, a
+"where was I", or a steer about other work said with the card merely open leaves it where it is, and a hand step
+never leaves on words at all: it settles when the step is done, and its paste fields take a value while it is open.
+If words still landed on the wrong card, a session puts it back (`slopweaver talk restore`). When one thing you say
+answers two cards, the session closes both (`docs/console/card-landing.md`).
+
+**No AI Elements voice part is used, and why.** The library's two are _Speech Input_, which transcribes through
+the browser's speech service or a recorder posting to an outside transcriber — a second audio path beside the
+call, so a transport change — and _Persona_, an animated figure that needs the Rive WebGL runtime and
+its animation files, a new dependency and a new asset load. The console's own orb stays the voice's
+state.
+
+## What the orb shows
+
+A voice that stops answering, never considers your turn done or ghosts you leaves you unable to tell whether it is
+doing a big thing or stuck. Measured: 24 seconds of the backend reasoning after a tool answer drew as "listening".
+So the orb draws **every turn the session has handed to its
+thinking model, and every tool in flight**, not only the audio:
+
+- **hearing** while you speak, and **speaking** while it answers, each swelling with the level;
+- **your turn** for about a second and a half when you speak over the voice and it stops for you, before it reads
+  as **hearing**, so you can see the voice will stop to listen to you. Nothing on the call's wire says the voice yielded, so it is
+  read off the two meters (`site/lib/voiceTurnTaking.ts`): you started after the voice did, kept talking over it for a
+  quarter of a second, and were still talking once it went quiet. The voice starting while you talk ("Go on.") is never
+  it, and nor is the voice's own sound leaking into your microphone, which stops when it does;
+- **reasoning**, **writing**, **checking** `<tool>` or **answering** with the work's badge and a seconds count, for as
+  long as a delegated turn is open — including the gap after a tool answers, while the backend reads it, and
+  backend work that arrives before the session has said which turn it belongs to;
+- **handing to Codex** from the moment the voice hands your turn to its Codex thread until that thread's turn
+  starts, and then the Codex turn itself — **reasoning**, **writing**, **checking** `<tool>` or **working** —
+  with its own age, until it ends;
+- **no update** once one of those has shown no progress for 35 seconds, naming what went quiet;
+- **still waiting** once your last words — or a Codex turn that ended without the voice saying anything — have
+  gone 12 seconds with nothing in flight and no answer;
+- under **no update** or **still waiting**, one press: **nudge it to answer**, or **stop Codex and ask it to
+  answer** when a Codex turn is what went quiet. The voice answers what you last said — it already has your words,
+  so it never asks you to repeat them — and the stopped turn is stopped after it is asked to answer, so the call is
+  never left silent (one fixed line would sound like a toy making a single sound every time). It is offered
+  once per silence, never while a tool runs, and the press is written into the call's record either way, so a
+  stuck voice always has a nudge button;
+- under **listening**, the same **nudge it to answer** once the voice spoke last, asked you nothing and has been
+  quiet 12 seconds: the next turn is its own, so a press has it carry on from what you last said, never hand the
+  floor back with "keep going", since it was the voice's turn to say something next. A question or
+  a nod is never taken unpressed, since you may still be thinking. **A promise is**: when the whole turn only says it
+  will do something ("Right. Let me check those. One sec.", nothing asked) and nothing started, after 10 quiet seconds the page presses
+  the nudge itself, once per thing you said, telling it to hand the work to Codex now or say why it cannot. The
+  call's log reads **nudge**, _pressed it itself_, and your own press is still offered 12 seconds later if that
+  comes to nothing (measured: it promised, started nothing, and sat on **listening** for 114 seconds). Whichever
+  press it was, or the page's own resume, the voice saying "On it." is not the work starting: if
+  no Codex turn starts within 2.5 seconds, the console starts one itself, and the call's log reads **owed-start**
+  (measured: a resume, a promise press and later your own nudge each drew "On it." and nothing).
+  On a resume the voice is asked only to say it heard you, and the answer is Codex's, told to read off your Queue
+  (measured: asked to answer and carry on itself, the voice offered a "missing NPM token" card no Queue held). Saying "next card please" needs no press at all: if no Codex turn started while you said it, the
+  console starts one 2.5 seconds after your words end that opens the next card before saying anything, and the log
+  reads **owed-start**, _they asked for the next card_ (measured: the voice said "Pulling it up now. Okay, got it
+  here.", started nothing, and the finished card stayed up 40 seconds);
+- **error** with the backend's own reason when a delegated turn fails, is cut short or is cancelled. If either of you is
+  talking when it lands, the reason sits under **hearing** or **speaking** instead, and your words do not clear it for
+  4 seconds.
+
+**A meeting starting while you talk gets your attention** , because when you are already
+talking to the voice it is the best one to get your attention and point you at the button to join. Every 30 seconds of a call the console reads your primary calendar (`slopweaver talk meeting-due`) for a
+meeting you have not declined, with a Meet, Zoom or Teams link, starting within two minutes or started within ten.
+The voice names it once, a second after the **reminder** chime: a heads-up when the floor is clear before it starts,
+or, once it has started, cutting in over whoever is talking without stopping any work. A **Join meeting** link sits beside the orb, opening in your
+browser, until you click it, dismiss it, or the meeting ends — it stays after you hang up, since hanging up to join
+is the point. When a briefing page is tagged to that meeting (`slopweaver page tag <slug> --meeting <event-id>`) and
+still published, an **Open briefing** link sits beside it and opens the page in the app's viewer, leaving the join
+link up. Each 30-second check re-reads the tag, so a briefing re-tagged to another meeting leaves this one; ten
+minutes past the start the calendar is no longer read for it, so the briefing link goes and the join link stays. A
+check that fails hides the briefing link the same way until the next good one.
+
+You go to every meeting unless you say otherwise. Tell the voice you already had one or are skipping it, and it reads
+your calendar and holds that exact meeting (`meeting_skip`): no heads-up, no join link, and a pill already up goes at
+once. It matches the calendar instance, never the title, so another meeting of the same name still gets its heads-up.
+The voice keeps your word until the console reloads. A heads-up whose check was already under way when you spoke can
+still be said, though its join link never shows.
+
+**Say what you are about to do, and it notices when you drift**. Tell the voice
+what you will work on and it holds that plan (`focus_set`). In the desktop app, every 15 seconds of a call it reads
+which window is in front — names only, never a picture — and when one off the plan has held the front for three
+minutes, it says one line on a clear floor: _"By the way, you said you'd do the access review, but you've been in
+Slack for 4 minutes."_ Wave it off and that window is never named again, every line quiet for half an hour
+(`focus_quiet`); `focus_end` drops the plan. In work hours the same read **nudges you back to the `workstream=iso-certification` work**: away from it for ten minutes with a card carrying that exact tag waiting, it names that one card, once, and once more
+only an hour later if you are still away. Nothing is drawn.
+
+**The orb wears a face for what it is doing**, the face of the supervisor you are talking to: an eyeballs emoji
+while it looks at your screen, a Slack icon while it reads Slack, and a little silliness besides. Each state above becomes a mood with its own colour and pace, and the work in flight sits on the
+orb as a badge — over **speaking** and **hearing** too, so "one sec, pulling that up" said over a screen read wears 👀.
+**Working adds nothing that circles the orb**, since a line going round in circles reads as a spinning wheel: the badge and the words say what it is doing, and work changes only the
+orb's shape and pace. A look's own motion is part of its shape rather than a spinner — the swarm keeps flowing
+whatever it is doing.
+
+| Mood                       | When                                                 | Badge    |
+| -------------------------- | ---------------------------------------------------- | -------- |
+| listening                  | nothing in flight, nobody talking                    | —        |
+| hearing you                | you are talking                                      | the work |
+| your turn                  | it just stopped talking because you spoke over it    | the work |
+| speaking                   | it is talking                                        | the work |
+| thinking                   | a turn is reasoning                                  | 💭       |
+| writing                    | a turn is writing its answer, or `offer_copy`        | ✍️       |
+| looking at your screen     | `read_screen`, `focus_screen`, `read_page`           | 👀       |
+| reading Slack              | `slack_thread_after`, any tool naming Slack          | Slack    |
+| reading the code           | `code_*`, `file_*`, a Codex command                  | 💻       |
+| remembering                | the board, the supervisor, the list, history, search | 🔎       |
+| in your browser            | `browser`, `browser_open`, any tool naming a browser | 🌐       |
+| relaying to the supervisor | `relay_steer`                                        | 📨       |
+| working                    | any other tool, or a hand-off nothing picked up yet  | ⚙️       |
+| no update / still waiting  | the stalls above                                     | 💤       |
+| error                      | the error above                                      | ⚠️       |
+| reconnecting               | a live call lost its link and is coming back         | —        |
+
+**A dropped call changes the orb's colour and shape**, with a Messenger-style cut-out sound. The drop plays a short cut-out — a bright glide falling and clipped
+off over a lower one — and while the console reconnects the orb goes slate, squashes and tilts off true, denting twice
+before it holds; once it is back, the same glides rise and the orb returns to its mood. The reconnect itself is
+`site/lib/callReconnect.ts`, the sounds `site/lib/callDropCue.ts`.
+
+**A lost link is heard and seen at once, never mistaken for a slow reply**, so you always know whether the voice is there or just taking time to respond. The moment the network goes, the cut-out plays,
+the orb goes slate and reads _connection lost — reconnecting_, and a quiet pip repeats while it is coming back, until
+it succeeds — the reconnect never gives up, and waits for the network rather than spending attempts without one. A
+link back within a few seconds plays the rising glides and the call carries on; one still down is re-opened, the line
+naming each attempt. A call that is only slow stays in its own mood and makes none of these sounds
+(`site/lib/callLink.ts`).
+
+Every motion stops under the system's reduce-motion setting; the colour, the reconnect's squashed shape and the badge
+still change. The mood is named in
+`site/lib/orbMood.ts` off the same status and in-flight rows the orb already drew, so nothing about the call changes.
+**`?orb=<mood>` on the overlay window's address draws one face with no call up** — `?orb=looking`, or
+`?orb=speaking,slack` for a badge — so each can be tried; a call that starts ignores it. A browser tab draws no orb,
+so it draws no preview either.
+
+**The badge makes a sound too**, giving audio feedback that says the same things without saying too much. As the orb starts thinking, writing, looking, reading Slack or the code,
+remembering, browsing, relaying, working or stalls, a short quiet earcon plays — each badge its own, under a quarter
+of a second and well below the voice. It says only as much as the badge does:
+
+- **once per badge** — a badge it already announced stays quiet, however long it is worn; the one repeat is the
+  **working** sound while a hand-off runs on — 15 seconds after the voice last spoke, then every 30 — played only
+  while that work still runs, nobody is talking and the sound is on, never at all on a typed conversation;
+- **never over either of you** — while you or the voice are talking, the badge waits, and is announced at the next
+  quiet moment only if the orb is still wearing it;
+- **a flicker is one sound** — tool after tool within 1.2 seconds sounds once, and the same sound does not repeat
+  within 6 seconds;
+- **no sound for an error** — a call that drops already plays its own cut-out; listening, hearing and
+  speaking have none, since you can hear those already;
+- **still due when it plays** — a cue that waited on the speaker is checked again at the instant it would sound, and
+  dropped if the call ended, somebody started talking, the badge moved on, the pick changed or the speaker changed
+  meanwhile;
+- **through the voice's speaker, or not at all** — where the browser cannot route the sound to the device the voice
+  is on, it stays silent rather than play from the wrong one. A `?orb=` preview is always silent;
+- **a silence says why** — every badge, working sound and sample leaves one `cue` line on the call file
+  (`site/lib/cueTrace.ts`): played, held while somebody was talking, silenced by the 1.2 or 6 second rule, dropped
+  before or after routing naming the check it failed, or refused by the browser; one cut short mid-note writes a
+  second line, faded, after its played. Nothing is written off a call, nor once its file has closed, so a cue the
+  hang-up itself cuts short keeps only its played. Measured: a call had no work sound and nothing on its record to say which rule held it.
+
+**sounds**, on [Settings](/docs/console/settings), picks one of a few — **chimes** (soft little melodies),
+**taps** (the quietest: a few dry ticks) or **glass** (a small bell, a note per kind of work) — or **off**. On a call,
+in a quiet moment, it plays a sample of the one you pick, held to the same rules as a cue. It is kept in the desktop app and takes effect on the call already up. The sound is decided in `site/lib/orbCue.ts` off the live
+badge and played by `components/voice/orbCueSound.ts`. The microphone's echo cancellation is not promised to remove a
+page's own sound, which is part of why a cue never plays while you are talking.
+
+**A chime comes before every line you did not ask for**: focus nudges are spoken, never visual-only, and a light chime signals what the line is, one chime per kind (four in all)
+rather than one for all automated speech. The same voice says the
+same line; a second before it, one of four chimes says what kind of line it is:
+
+- **focus** — one long bell: you drifted from the plan you stated, or work tagged `workstream=iso-certification` is waiting while you are away from it;
+- **reminder** — a falling ding-dong: a meeting is about to start, or has started;
+- **done** — a quick rising pair: kept as the fourth kind, though no line rings it now, since a Slack send that went
+  is never said unasked;
+- **attention** — three level strikes: something needs your word — a send held or failed, or a triage card's two
+  minutes are up.
+
+Lines that answer you — the "on it", the look line, a resume, the reply to a typed message — carry none. A chime
+never waits for quiet, since it exists to come just before the voice speaks and a started meeting cuts in over you on
+purpose: it plays whenever a call is up and the sound is not **off**, the same four under every pick. The server sends
+it, then waits one second before the line is written (`site/lib/talkPlanAnnounce.ts`), holding every other line of
+its own off meanwhile, so the chime only ever introduces its own line: an "on it" or a look line falling due in that
+second is dropped, as one is while any line of its own is being handed over (`site/lib/talkPlanFloor.ts`). Your own nudge press is
+yours, so it still cuts in; a page that reconnects inside that second is sent the chime, and one back after it never is. Each leaves a `cue` line on the call file
+like a badge's, `focus (announce) played`, so a missing one says why. The chimes are `site/lib/announceCue.ts`.
+
+**session details**, an info mark on the orb's card, opens the voice's own session in its tray, never beside another
+(there are never two trays). It reads like a session card on the fleet page and
+scrolls like one: every lookup this call, oldest at the top, what is still running at the foot, each result folded
+until you open it — what the voice asked and what it was handed back, the same answer the call's file keeps after
+the page has gone (`slopweaver talk call-tools`); it opens at the bottom and follows it until you scroll up, and a round button takes you back down
+(`components/voice/VoiceSession.tsx`). Its **mic and speaker** opens the microphone and speaker tray. The
+states are one pure fold over the session's own events (`site/lib/voiceActivity.ts`, with which turn an event
+belongs to in `site/lib/voiceTurns.ts`), tested against a replay of that call. A tool call runs once however many times it arrives: the page claims
+each one from the console server before running it, so a late copy of an answered call never shows as a fresh
+ask (`docs/console-voice-boundary.md`).
+
+## The stage, and the corner
+
+Starting a voice conversation can open a fullscreen view with an expressive orb, for a more one-on-one exchange,
+and getting out of the way must be easy. None of this is a hard ruling yet: the stage is an experiment, open to
+change toward whatever you gravitate to in practice. So the voice has three states, and it stays in whichever you leave it in —
+across calls and restarts — opening in the middle the first time (`site/lib/voiceWindow.ts`):
+the orb alone, the middle (the call card over the orb, below), and full screen, the stage. A call starting never
+moves it. A click into another app shows the orb alone until your next move, and a press on the orb brings back
+the state you left; a click into Slopweaver's own console window moves nothing.
+
+- **Full screen is the stage**: the whole window, the orb large on the left with what it is doing in words, and the
+  **conversation history** the full height of the right (`components/voice/VoiceStage.tsx`); narrow or portrait, they
+  stack. **There is no live caption under the orb**, since it is clutter: a turn still being said is at the foot of the history as it is said, unfilled and lighter with a soft
+  caret, never a bubble whose text keeps changing; when it ends that row settles into its bubble where it stands. While you are talking before any of
+  your words are recognised, three pulsing dots stand there instead (`site/lib/voiceTranscript.ts`). They read you
+  talking, never a sound: they show once your microphone has carried you for about a quarter of a second, stay up across
+  a pause between words, and a quiet room, a breath or a click never brings them up (`site/lib/ownerTalkingShown.ts`).
+- **Scrolling the history up holds it** where you are, and a **↓** at its foot takes you back to the live end and
+  keeps you there: only scrolling up again lets go, never new words arriving.
+- **Your own finished turns fold; the voice's stay open.** The history is the view you read; a long turn of yours shows two lines of where it started and two of where it landed, with an
+  ellipsis between, and a click opens it whole or folds it back. A turn still being said never folds.
+- **An activity line by the orb** names what the voice is consulting — the Queue card's title (opening to the decision
+  it needs), a file, your screen, the supervisor — with a thumbnail when it looks at a picture; it stays until you
+  speak again, and never draws a whole card (`site/lib/voiceStageActivity.ts`).
+- **One gesture takes it to the middle**, so the page is yours again while the call goes on: **Escape**, a **click
+  on the big orb**, a **scroll** or swipe anywhere but the history, the **corner** button, or **Alt+V**. The page
+  under it never moved — a Queue card you had open is still open.
+- **One gesture brings it back**: **Full screen** in the card's size menu, or **Alt+V** from anywhere during a call.
+- **The call's trays and controls sit along a bar at the bottom**, as icons that name themselves on hover: the
+  trays' buttons first — the running list, session details — then the microphone, struck through and filled
+  solid while muted; the screen share where the app cannot look natively; then, well apart on the right, a **big red
+  hang-up** wearing Meet's phone put down. The only control left top right is the shrink arrow to the corner, so
+  nobody feels stuck in full screen (four buttons crammed into the top right are friction, and mute and end call take
+  distinct colours with distance between them;
+  `site/lib/stageRail.ts`, `components/voice/StageControls.tsx`). The microphone wears Google Meet's chevron on its
+  left, one pill, which is the **microphone and speaker** tray's button (Meet is the model for which icon buttons
+  are used and where they sit;
+  `components/voice/AudioDeviceMenu.tsx`). No microphone level and no test sound.
+- **The card's trays are on the stage too**, the same one open in both views, so the tray carries
+  across and keeps the place you were reading. The running list, session details and the microphone and speaker
+  take the left half while open, the orb shrunk to a small indicator above them. Messenger on the stage is only its box under the history on the right,
+  since the history already is its conversation (`site/lib/callTrays.ts`). Scrolled up in one view, the other opens on the same line
+  (`site/lib/readingPlace.ts`).
+- **The stage has no settings of its own; it honours [Settings](/docs/console/settings)** (a second place for preferences clutters the call and may conflict with what is being said on it, so
+  there is no settings cog on the full screen page). The chevron is device routing, not a preference. Its
+  **call** section holds a switch for each stage behaviour — the activity line, picture previews, and opening cards
+  and links — and the badge's **sounds** (`components/voice/CallSettings.tsx`). The glow round the screen's edge has
+  no switch: it stays on through every call, since it is a constant with no configurability option. Every switch reaches a call already up, mid-call,
+  and is kept in the desktop app. **Telling the voice works too** — "turn the picture previews off" — through
+  `set_stage_setting`, which flips the very switch you would click (`components/voice/useStageToggles.ts`).
+
+Neither gesture touches the call: both views read the same session (`components/voice/VoiceProvider.tsx`), and the
+view is decided in `site/lib/voiceStage.ts`. The stage is modal while it shows — focus stays in it and the page behind
+does not scroll — and Escape or Alt+V typed into a field is the field's, never the stage's.
+
+**What fills the orb is its presence, and its theme colours it**: the presence dictates what happens inside the orb, and the presence and the theme are decoupled, so the presence
+choice sticks and the theme supplies its colours. Both are picked on [Settings](/docs/console/settings), each on its own tab, the
+big orb and the corner's at once, and kept for the next launch: changing the theme never changes the presence, and
+the other way round. **Star cluster** is the presence a first call wears; a stored presence that names none of the
+six reads as unset and opens on it.
+
+| Presence     | What moves inside the orb                                    |
+| ------------ | ------------------------------------------------------------ |
+| Star cluster | sparse haloed points twinkling, the cloud where they gather  |
+| Mist         | two soft clouds breathing                                    |
+| Ink          | ink blooming and fading in water                             |
+| Dot matrix   | a grid of points rippling out from its middle                |
+| Aurora       | curtains of light swaying                                    |
+| Embers       | sparks rising from below, yours and the voice's struck apart |
+
+**Every presence is drawn as additive grey light, with no hue of its own** (`components/voice/presencePainters.ts`).
+**Its colour is a gradient map the theme supplies** (`site/lib/orbRamp.ts`): the canvas wears an SVG filter that reads
+each pixel's brightness and maps it through black, the theme's dark orb colour, its light one and white, so faint
+light takes the darker colour, gathered light the lighter and the hottest spots go white — two colours, so they never
+clash, whichever presence is worn. The pair rides two custom properties the theme sets on the page and the orb reads
+each frame, so a theme change re-colours the orb within a quarter of a second, mid-call. The same brightness becomes
+the opacity, so the presence's empty space is clear and it spills a little past its disc. **On a light page the black
+and the white drop out**: faint light takes the light colour as a tint and gathered light deepens to the dark one,
+colour on paper rather than light on black, since a black-edged dot with a white core read as a blemish on Daylight's
+pale ground. The corner orb always sits on its dark disc, so it keeps the full ramp.
+
+**The states change shape and brightness, never hue** (your turn and the voice's must stay
+clearly distinct): every presence reads your voice and the voice's own apart, by direction, density, speed and
+spread (`site/lib/presenceInput.ts`); while you speak the orb dims toward its darker colour, while the voice speaks it burns toward
+white (`rampGainOf`), eased over about a quarter of a second — on a light page the same gain fades it toward its light
+tint and deepens it toward its darker colour. Each moves at the mood's pace — quicker while it works, slower while it
+listens, nearly still when a turn stalls — and puts the work's badge and name in words under it. Each
+swells with **your** voice while it listens and its own while it speaks (`stageOrbLevel`), so it is visibly hearing
+you. It is one canvas with a frame loop outside React, with no dependency or asset, and every motion stops under
+reduce-motion, leaving only the swell.
+
+**The star cluster's particles gather into a shape for what the voice is doing** (`site/lib/particleField.ts`), with no outline, halo
+or clip anywhere, and keep moving while it answers:
+
+| It is                                  | The swarm                                                     |
+| -------------------------------------- | ------------------------------------------------------------- |
+| listening, hearing you, speaking       | a cloudy sky, its two layers turning opposite ways            |
+| your turn                              | the sky catches, draws in, and a ring of light runs inward    |
+| thinking, writing, working             | two rings, the outer one way, the inner the other and quicker |
+| looking, reading Slack or code, recall | rows of light, a bright head reading along them               |
+| handing on to the supervisor           | a loop streaming round                                        |
+| stalled                                | a low, flat drift                                             |
+| an error                               | thrown wide, shivering                                        |
+
+**The cloud is crisp dots under moving sky** (a scattered swarm is visually unappealing; the target reads as cloudy skies whose clouds keep moving, with
+crisp little dots that overlap into a solid-looking shape). The dots sit on one even sunflower lattice and the clouds move through them
+(`site/lib/particleCloud.ts`): two layers, one per band, turning opposite ways, where a cloud lights its dots and pulls
+them into a bright, dense core with dim sky between. **Who is talking shows in the motion and the brightness**: the
+clouds drift in toward the middle while you speak, dimmer, and out from it while the voice speaks, hotter.
+
+**Full screen, the dots stay points of light, never a field of discs** (a full-screen field of discs gives a
+trypophobic feeling, like mold in a petri dish, where the view should read a bit more high-tech and futuristic, which meant dialling the full-screen look from fifty percent to thirty percent). The swarm stops adding
+dots well before the stage stops growing, so drawn plain a lit dot on the 480px stage grows into a crisp disc on a
+sunflower: the seed-head pattern, which only the big view would draw. So the stage draws **refined**
+(`site/lib/swarmDetail.ts`): it caps that growth at what the corner draws, the orb you like looking at; gives every
+point a glow feathered into three faint passes, so a bright cloud still reads as one solid shape, as light rather than
+touching discs; and nudges each dot a little off the sunflower. The corner and the Settings modal's corner previews,
+too small for any dot to grow into a disc, draw **plain**. Every other presence holds its own work to the same two
+details: the corner's about half the stage's (`PRESENCE_BUDGETS`, `site/lib/presenceInput.ts`).
+
+**When it stops for you, the swarm says so in one beat** (`yieldBeat`, `site/lib/particleMotion.ts`): it lights near
+white in your colour (its deepest on a light page), its clouds all but stop, their drift swings from outward to inward at once, the whole swarm draws
+in, and one ring of light runs in from its rim to its centre — then it eases into the plain hearing cloud. Under
+reduce-motion only the colour and the words change. `?stage=star-cluster&orb=yielded&voice=sim` plays a cut-in on a loop
+through the same detector a call runs (`site/lib/cutInScene.ts`): speaking, your turn, hearing you, listening.
+
+**The orb's size follows the voice frame for frame**, so the diameter changes with the dynamic of your voice: your level while it hears you and its own while it speaks scale the whole swarm as it is
+drawn, the cloud about half again as wide at the loudest, rather than a target its dots spring toward a moment later
+(`swellOf`, `site/lib/particleMotion.ts`).
+
+**Now and then it does a little something extra**, a little dice roll once every few minutes or one in twenty times it thinks, never constantly: one entry into thinking in twenty gathers the rings
+into twelve spokes, and while it listens with nobody talking, every few minutes, never on a beat and never within 20 seconds of a turn, the clouds let go
+and the bare sunflower shows. Each gathers, holds and fizzles back in about four seconds (`scheduleFlourish`).
+
+**`?stage=<presence>` draws the stage with no call up**, beside `?orb=<mood>`: `?stage=aurora&orb=speaking,slack`, and
+`&said=speaking|mid-turn|settled|folded|linked` fills its history at one moment of your turn — `folded` a long one of
+yours, `linked` one carrying a pasted link. `?said=` alone, with no call up, fills the call card's Messenger the same way.
+`&voice=sim` plays a made-up voice into it, so the swell can be seen with nobody talking — `?stage=star-cluster&orb=hearing&voice=sim` —
+and brings the flourish round every few seconds instead of minutes. The preview wears the theme the console wears and
+stores nothing, so it never changes the presence you picked. A name that is no presence opens no preview, rather than
+a different presence under it.
+
+**The corner orb is the same orb, calmer** (collapsed, it is the same orb moving in similar
+ways with animations a little less pronounced, so you still feel it there while you look at other things). It draws the
+presence the stage wears, in the same colours, at a slower pace and moving less with the level — while its glow with the voice
+stays as bright as on the stage (`orbTuning`, `site/lib/voiceStage.ts`). With no call up it is that orb too, in the
+console's own colour and a little dimmed, with nothing drawn over it — so the desktop app's overlay floats the orb over
+your whole screen rather than a microphone button. **Between the two it flies**: collapsing
+shrinks the stage's orb into the corner and expanding grows the corner's into the stage, eased, never a jump
+(`site/lib/orbFlight.ts`), and the desktop overlay stays whole until the orb has landed.
+
+**In the corner it sits on a dark disc** (small, the orb alone reads as a squiggly line; the disc is dark, not grey, and crisp, with the swarm spilling out of it a bit, not too much): near-black,
+one hairline rim in the mood's colour, no gloss or shadow, reaching about the swarm's resting edge so a loud swell
+spills just past it. The disc flies with the orb, gathering in as it lands and fading as it grows into the stage, so
+where the orb ends reads at a glance mid-flight too; the stage itself has none. **Every theme on
+[Settings](/docs/console/settings) keeps the dark disc at full strength** (black
+is the one ground no orb colour clashes with, over whatever app is beneath). The orb still reads the backing and its
+strength from storage — a hairline ring, a glow only or nothing (a full disc can look like plastic), none to full in tens, a background opacity for the minimised orb — so a stored choice
+still draws, and the flight fades to that strength rather than past it. Under nothing, or at
+none, only the orb's own button takes a click, so no invisible disc sits over the app beneath (`backingIsPressable`).
+
+**The middle is the call card over the orb**, an intercom-style widget with a voice function at the bottom right that you can type into or switch to voice mode. It opens above the orb. Drag its left or
+top edge to resize it, or pick Small, Large or Full screen in its size menu. Two fixed-height rows sit up top. **The header** says what the voice is doing over what it is running or why a call failed, with round icons
+named on hover and no avatar. **The band** names what you are looking at on one line each, a long title cut short:
+**App in front**, or **Last app before messenger** while the messenger has the focus, at most ~2s old: names only,
+never a picture. Its second line says what the voice has read of it, call or typed: **Looked at your screen** once a look
+was actually taken while that app stayed in front (a refused look claims nothing), and with Slack in front **read the
+thread** or **read the channel** beside it once that read came back, so a look never hides the read that followed it (`site/lib/messengerBand.ts`).
+
+**Under them is Messenger**, the conversation and a box placeholdered **Message**, one line tall until you type
+more: Enter sends, Shift+Enter is a new line, and the send icon is greyed while the box is empty. During a call its
+button is **send to the call**, and it and Enter hand what you typed or pasted to the voice as your turn, the call
+staying up: paste a Slack thread link and the voice reads the whole thread and tells you what it says. Messenger has no button of its own; the header opens one tray at most over it (max trays is one, min is zero) — the **running list**, **session details**, or the **microphone and speaker**, the last
+by Meet's chevron beside mute rather than a three-dots menu — every tray Messenger's height, and pressing an open
+tray's button again goes back to Messenger (`site/lib/callTrays.ts`). The header stays where it is while trays open and
+close, so a second press lands on the same button. A press on the orb, the card's close or **Escape** minimises it to
+the orb, keeping what you typed and the tray you had open; while it is minimised the orb's colour and badge still say
+what the voice is doing (`site/lib/messengerMode.ts`). Moving to the stage carries the open tray onto the stage, and
+coming back from the stage lands on the card with it open there.
+
+**The running list** is what you, the voice and the fleet leave each other, apart from the transcript and is always available. It keeps the newest ten across calls, typed conversations and restarts, in
+`$SLOPWEAVER_HOME/talk/running-list.json`, and works the same with a call up or none. It opens where you are: the
+card's tray, or the stage's left half. Each item says who left it and when, and has a copy icon at its top right: the
+voice's are drawn the way Slack will show them and copy formatted — a paste into Slack keeps its bold, code and links,
+a plain-text field gets the mrkdwn — and yours and the fleet's copy exactly as written. The icon turns to a tick only
+once the clipboard took it. Type into the list's own box to add your own, which the voice and the supervisor both read
+(`running_list`, `slopweaver talk list`); a fleet session adds with `slopweaver talk list-add --origin fleet`. A dot on
+the list's button — and on the orb while the card is not up — says the voice or the fleet left something you have not
+opened the list on since; your own adds never light it (`site/lib/runningList.ts`).
+
+Every draft meant to stand as your words goes on the list with `offer_copy` (a tray to copy messages from the voice to paste, all formatted) — a message, a reply, a review comment, a script
+or talk line, talking points — whether you will paste it, say it or only react to it, one you ask for ("give me
+something to paste", "how would I open") and one it proposes ("here's what I'd say"). The voice says one line, "it's
+on your running list, what do you think?", instead of reading it out (read aloud, a draft is a wall of text, and you only need to see it); ask to hear it and it reads it. That line is the console's, added only to the answer of a turn
+whose `offer_copy` landed, never the voice's own, since a voice saying it unprompted could claim a draft that never reached the list (the voice once said it about ten times with nothing added). If the voice says in its own words that it put a draft there after you moved on from the last one to land, it says at once "Correction: nothing new went on your running list." Every draft is written to your voice rules from its first try, whether or not it was asked to read them. Its own explanation, summary or advice to you is spoken as normal. One you ask the fleet to send is a relay, never the list. A typed conversation adds it the same way.
+
+A long message folds the way you would write it (so you can tell what sits below the fold): the voice writes the head and the rest separately, the list shows the rest
+behind **Show more**, and copy takes the whole message, head, one newline, then the rest, up to 8192 characters
+together. The fold is the one the voice chose, not Slack's own, which depends on the width of the window you paste into.
+A person it tags is written `<@U…>`, so the paste is a real mention, and the list draws it as their name when the Queue's
+reading knows them, else as the member id.
+
+The list reads like Messenger (it always shows the most recent ten things). The oldest of the ten sits at the top and the newest at the bottom, in the order each landed, with no
+paging. It opens at the bottom and a new item scrolls into view while you are there; while you are reading older ones
+it stays put and shows **New message below ↓** instead, the same way Messenger does it.
+
+Nothing on the list is sent. On a call every message the voice adds is also written to the call's own file under
+`$SLOPWEAVER_HOME/talk/calls/` as it lands, byte for byte, so the call's record holds what the voice offered you in it;
+one with no open call record to hold it is refused rather than added (`site/lib/runningListCopy.ts`,
+`src/talk/callOffer.ts`). When you react to it and the voice relays it, the board row
+carries the newest message offered since the last relay, word for word, in a marked block headed **Running-list offer the owner
+reacted to**: its label, what shows at once and what sits below the fold. That block is what you were shown. Your
+quoted words beside it are what you decided, whether that was send it, drop it or change it; nothing reads a yes or a
+no out of them for you. A retry carrying a different message is refused rather than written over the first.
+
+Before a message reaches the list, your exact voice rules judge it on this machine (`slack voice-rules --check-stdin`,
+through `/api/talk/copy-voice`). A message breaking one never lands: the voice is told which rule and rewrites it. If
+the check cannot answer, nothing lands either, and the voice says the check is not answering. A rule such as the em-dash ban is enforced by the check, never left to your eye (`site/lib/copyVoiceCheck.ts`).
+
+A message whose `destination` is Slack, one you will post as yourself, is held to the shape of a parked draft too
+(`--slack-draft`): at most three paragraphs and 100 words, one figure, one question, and a paragraph that asks ends
+on its ask. The voice adds no extra sentences once a message is right; you say when the message ends. No one paragraph of it may run past 70 words either,
+which those whole-message caps never see, since a long block (84 words in one paragraph) needs more vertical white space. A review comment, a script or talking points keep the exact rules alone.
+
+## What leaves this machine while it is live
+
+| What                        | Where it comes from                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| your microphone audio       | the desktop app, once you grant the permission                                                         |
+| the transcripts, both sides | the provider's own speech recognition, returned over the data channel                                  |
+| what the page shows         | only when it calls `read_page`: the card or PR you have open, whole, and what else is drawn            |
+| a board row                 | only when it calls `board_row`: the whole row, your earlier words first                                |
+| excerpts of tracked files   | `slopweaver talk code find\|read\|list`, when it calls one                                             |
+| any other file you name     | `slopweaver talk file read\|list`, when it calls one: credentials refused or masked                    |
+| the action items            | the same readings the Queue page draws, when it calls `action_items`                                   |
+| the card it read            | when it calls `read_card`: that card, its pages' paths, its thread link                                |
+| the open card's draft       | with no tool call, into each turn your words start over a post card: its draft, or A and B             |
+| the card it opened          | when it calls `open_card`: that card, its pages' paths, its thread link, what each opening did         |
+| a frame of your screen      | when you ask for a look or it calls `read_screen`, in the app or while you share: one image            |
+| the supervisor conversation | when it calls `read_supervisor`: your turns and its prose replies, newest first, ≤12 KiB               |
+| the glossary                | when it calls `glossary`: the fleet's own words — atlas, seat, card, gate — defined                    |
+| a row's origin              | when it calls `origin`: your quoted words, the row's anchors, a finding said to be one                 |
+| the knowledge register      | when it calls `knowledge`: recalled claims with verdict and evidence, ≤14 KiB                          |
+| your supervisor history     | when it calls `supervisor_history`: your turns and the chair's with a phrase, ≤24h, ≤14 KiB            |
+| what you said and ruled     | when it calls `recall` or `recall_open`: calls, steers, rulings, claims, all time, ≤16 KiB             |
+| what a read verb printed    | when it calls `verb`: a PR, an issue, your mail, ≤20 KiB, a longer one kept whole to page              |
+| one page in your Chrome     | when it calls `browser`: the outline of one registered page, its tab closed, ≤20 KiB                   |
+| where a page landed         | when it calls `browser_open`: the address it settled on and its title — never its elements             |
+| one Slack thread, live      | when it calls `slack_thread_after`: the linked message and what came after it, whole, ≤18 KiB          |
+| your unread Slack, live     | when it calls `slack_unread`: one line a DM or thread — channel, people, a quote, replies              |
+| one Slack channel, live     | when it calls `slack_channel`: its newest 50 top-level messages, reply counts, ≤16 KiB                 |
+| the Slack row you named     | when it calls `slack_open`: that thread whole, or the DM conversation around it, ≤18 KiB               |
+| what became of a Slack send | when it calls `slack_send_outcome`, or a send you asked for ends: its link, reason or error            |
+| one fixed instruction       | only when you press the nudge: the server's own instruction to answer your last words, never page text |
+
+Everything goes to **OpenAI**, one of three OpenAI boundaries this product has — the others are
+the `slopweaver codex` verbs and `slopweaver chatgpt conversation`. Every egress is named in [security](/docs/trust/security). No credential is in this page: the voice's window
+makes a WebRTC offer, the console's `codex app-server` child trades it with OpenAI on this machine, and only the
+SDP answer comes back.
+
+**Moving between pages keeps the session; pressing **end** beside the orb or quitting the desktop app ends it.**
+There is no session that outlives the app you can see.
+
+**Typing instead of speaking.** The box under the conversation on this page sends what you type to the same
+thinking thread, on the same plan, with no microphone and no realtime session: everything in the table above
+crosses the same way except your audio and the provider's transcripts, and what you type is sent in their place. A
+Slack link you paste is read whole with `slack_open`, or with `slack_thread_after` when you ask only what came after
+it, as when you say one. The answer is written onto the same
+transcript. Typed "look at my screen" takes one frame, the same as when you say it, and a question about seeing ("are
+you looking at my screen?") is answered in words and takes none (`site/lib/typedLookGate.ts`). While a call is up the box sends into that call instead, as your turn; starting a call ends an idle typed
+conversation, and waits for an answer still being written.
+
+## What it may do
+
+| Tool                 | What it runs                                                                      | What it can do                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `read_page`          | nothing — the page answers it                                                     | what the page you are on registered: on the Queue the open card and what else is drawn; on Pull requests the tally, every drawn row by group, and the PR you have open                                                                                                                                                                                                                                                                                                                                       |
+| `read_screen`        | nothing — the page grabs one frame                                                | your whole screen, every app on it: the desktop app looks itself, one too old to look only while you share — one frame per ask                                                                                                                                                                                                                                                                                                                                                                               |
+| `focus_screen`       | nothing — the desktop app draws it                                                | only when you ask to be shown where or which: lifts one box of the frame it just took and dims the rest, until you speak or tap — the desktop app only, nothing leaves                                                                                                                                                                                                                                                                                                                                       |
+| `offer_copy`         | `slack voice-rules --check-stdin`, then `slopweaver talk list-add --origin voice` | every draft of your words (a message, review comment or script) you will paste, say or react to, asked for or proposed, its `destination` Slack or other: on your running list once your voice rules pass (one for Slack the parked-draft shape too and no paragraph past 70 words, `--slack-draft`), a long one folded behind Show more, kept across calls, typed conversations and restarts and on a call's file too, never read out or sent — a retried call is the one item, nothing leaves this machine |
+| `running_list`       | `slopweaver talk list --voice-safe`                                               | your running list's ten, newest first — every item's credentials masked, and one still carrying a secret withheld by number                                                                                                                                                                                                                                                                                                                                                                                  |
+| `set_stage_setting`  | nothing — the page flips the switch                                               | turns the activity line, picture previews or opening cards on or off, the same switch Settings clicks — nothing leaves the page                                                                                                                                                                                                                                                                                                                                                                              |
+| `focus_set`          | nothing — the page holds the plan                                                 | the plan you just said, with the apps and title words that mean you are on it; the desktop app then reads the front window's names, never a picture                                                                                                                                                                                                                                                                                                                                                          |
+| `focus_end`          | nothing — the page drops the plan                                                 | stops watching once you say you are done or have moved on                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `focus_quiet`        | nothing — the page quiets the watch                                               | your wave-off: that window is never named again for the plan, and every drift line is quiet for half an hour                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `meeting_skip`       | the page holds the skip                                                           | a meeting you just said you had or are skipping, named by the exact calendar event a read printed: no heads-up and no join link for it until the console reloads                                                                                                                                                                                                                                                                                                                                             |
+| `read_supervisor`    | `slopweaver talk supervisor`                                                      | what you and the supervisor chat said, newest first, no tool output                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `board_row`          | `slopweaver talk row --slug`                                                      | one board row, bounded, with its `ruling` and the owner's-words sections first                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `action_items`       | nothing — the page answers it                                                     | the rows this console is showing, with any unread source NAMED, and each count it prints under its own label, the only counts the voice says                                                                                                                                                                                                                                                                                                                                                                 |
+| `read_card`          | nothing — the page answers it                                                     | a card and every address it links, with the text of every briefing it links (each one also a link on the card itself, so it never reads you a page you cannot see), opening nothing on your screen: the one you already have open, one read ahead in a walk until it gets there, one you said not to open, or one that left your Queue                                                                                                                                                                       |
+| `open_card`          | the page, then `slopweaver browser present`                                       | the card it is about to talk about, or a card you ask to see: that card on your Queue, then its first published page as a new tab in the desktop app (never Chrome) and its Slack thread in your Slack app, the thread skipped when the call already put it in front of you                                                                                                                                                                                                                                  |
+| `triage_next`        | the page, then `slopweaver browser present`                                       | "it's triaging time", and only once you say triage, so "the next card" alone runs no clock: the next Queue card opened as `open_card` opens it, a rewritten one first, on a clock the voice says aloud and the menu bar counts down — the length you name ("ten on this one"), else two minutes a card and ten a briefing; at zero it gives your three ways out with one suggested and never parks a card; a card you park stays on your Queue, parked, with your label on it                                |
+| `triage_end`         | nothing — the page answers it                                                     | ends the pass: how many cards you saw, what you ruled, what is out being rewritten; your place is kept for half an hour, after a reload too, so triaging again inside it goes to the next card you have not seen or one back rewritten, never another you ruled                                                                                                                                                                                                                                              |
+| `triage_clock`       | nothing — the page holds the clock                                                | "pause the timer", or Pause timer on the menu bar, the voice's overlay or a floating note, stops the clock until you start it again; "give me five more minutes" restarts it on that length                                                                                                                                                                                                                                                                                                                  |
+| `code_find`          | `slopweaver talk code find --text-hex`                                            | literal search of the TRACKED files of the serving checkout, its text passed as UTF-8 hex so a flag such as `--json` is searchable too                                                                                                                                                                                                                                                                                                                                                                       |
+| `code_read`          | `slopweaver talk code read --path`                                                | a bounded window of one tracked file, continuable by byte offset                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `code_list`          | `slopweaver talk code list`                                                       | the tracked files under one directory                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `file_read`          | `slopweaver talk file read --path`                                                | a bounded window of any file on this machine by absolute or `~/` path, a PNG, JPEG or WebP as the picture — a credential store refused, credentials masked                                                                                                                                                                                                                                                                                                                                                   |
+| `file_list`          | `slopweaver talk file list --dir`                                                 | one directory anywhere on this machine, one level deep, each credential marked as not read                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `glossary`           | `slopweaver talk glossary`                                                        | what one of the fleet's words means, the specific entry first — never answered from memory                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `origin`             | `slopweaver talk origin --slug`                                                   | where a card or row came from: your words verbatim, transcript anchors resolved to what you typed, a finding named as not yours                                                                                                                                                                                                                                                                                                                                                                              |
+| `knowledge`          | `slopweaver talk knowledge --query`                                               | what the fleet already learned, from the knowledge register                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `supervisor_history` | `slopweaver talk history --phrase`                                                | every turn of yours and the chair's in the last 24 hours holding a phrase, newest first, and in `unread` any stretch it could not read                                                                                                                                                                                                                                                                                                                                                                       |
+| `recall`             | `slopweaver talk recall --words`                                                  | everything you said and ruled, all time unless you name a window: call turns, relayed steers, rulings, knowledge claims — each source's exact count, then the newest hits                                                                                                                                                                                                                                                                                                                                    |
+| `recall_open`        | `slopweaver talk recall --open`                                                   | one `recall` hit whole — a call turn with a preview of the turns around it, a steer, a ruling or a claim — paged when it is long                                                                                                                                                                                                                                                                                                                                                                             |
+| `verb`               | `slopweaver talk verb --request`                                                  | one read verb a seat can run, from the closed list in `src/talk/modelReads.ts` — a row's PRs with `github read`, Linear, Datadog, the corpus, atlases, the Codex plan meter                                                                                                                                                                                                                                                                                                                                  |
+| `browser`            | `slopweaver browser inspect --url`                                                | one page on a platform the browser register names that no verb reads, opened in your Chrome, read and closed again, saying when the answer left part of it out — nothing clicks or types; never a Slack message link (`slack_open`) or a GitHub pull request, issue or discussion page (`verb github read`), which it refuses; a pull request's commit or checks view is still a look                                                                                                                        |
+| `browser_open`       | `slopweaver browser present`                                                      | takes you to Datadog on this install's site, Linear, your pull requests, a registered link, or a published or console page as a desktop tab, and leaves it open — nothing clicks or types; a Slack thread opens in your Slack desktop app, and one the call already put in front of you is not opened again; a page your screen already shows, a pull request included, it is told never to open again                                                                                                       |
+| `slack_thread_after` | `slopweaver talk slack-after --url`                                               | one Slack thread read live from a message link off your screen: what came after that message, authors named — writes nothing                                                                                                                                                                                                                                                                                                                                                                                 |
+| `slack_unread`       | `slopweaver slack unread`                                                         | your unread DMs first, then threads where a person spoke after your last word, one line each — never claims what you have seen, writes nothing                                                                                                                                                                                                                                                                                                                                                               |
+| `slack_channel`      | `slopweaver talk slack-channel --channel`                                         | "read this channel": the one on your screen, by the name the Slack app shows, a link or an id — its newest 50 top-level messages with their reply counts and links, never every reply, and never an id asked of you — writes nothing                                                                                                                                                                                                                                                                         |
+| `slack_open`         | `slopweaver talk slack-open --url`                                                | one Slack thread whole from any message link in it, or the DM conversation around one, authors named, saying so when it is not the thread the call last put in front of you — writes nothing                                                                                                                                                                                                                                                                                                                 |
+| `slack_send_outcome` | `slopweaver talk slack-send-outcome --url`                                        | what became of a Slack send you asked for on the call: sent with its link, held with the reason, failed with the error, or not sent yet — writes nothing                                                                                                                                                                                                                                                                                                                                                     |
+| `relay_steer`        | `slopweaver talk relay`, if the gate opens                                        | registers your steer as a p1 board row, your words first, with the frame `read_screen` last took this turn — or "no picture", never a frame of its own                                                                                                                                                                                                                                                                                                                                                       |
+
+Untracked files are invisible to the code tools, and the verb says so in its own answer. A path outside the
+checkout, a symlink, a hard link and a file that is not a regular file are each refused by name
+(`src/talk/checkout.ts`). `board_row` returns the files a row names as names, and never opens them — the
+row's own, and every local file its body or its run journal's question names (`files`), as a card's `links.files`
+does for the card's words; `file_read` is how the voice reads one (`docs/console/voice-finds-a-deliverable.md`).
+`file_read` is the other trade, the owner's pick: any file, a symlink followed, and only a credential
+kept on this machine — `docs/console-voice-boundary.md` § Any file on this machine. A PNG, JPEG or WebP comes
+back as the picture itself, which the page fits and re-encodes exactly as a `read_screen` frame before the
+model sees it (reading a PNG is effectively looking at your screen).
+Every window of an `.html` page also carries its `outline`, each heading with the byte it opens at, so the
+voice reads the section a question is about rather than answering it from whichever window it holds
+(`src/talk/pageOutline.ts`). `words: true` adds `--words`: the page read as its words, masked after the markup is
+gone, its `from` and `nextFrom` counting bytes of the words — how the voice reads a card's partial briefing on to its
+end from the briefing's `rest` (`docs/console/voice-opens-the-card.md`).
+
+**Both prompts carry this whole list, one line a tool** (`talkToolInventory`, `src/talk/shippedReach.ts`). The
+tools live on the thinking model the voice delegates to. Measured: a voice that was told only some of them answered
+"I have three tools" from its own prompt. Asked what it can do, it names every one.
+
+**They also carry what slopweaver it reaches, derived from the catalog** (`src/talk/voiceReach.ts`): one line per
+noun it can read, and a rule to run `talk capabilities <noun>` before telling you it cannot, so it never guesses a verb such as `slack history` that does not exist and then claims it cannot read a DM it could read from the corpus.
+
+**When one of these fails, the console window says so** (five card openings refused with nothing on screen must never happen again). A refused tool, a part of `open_card` that did not open, or a relay
+that did not reach the supervisor raises one red toast at the top middle of the console window, under the tabs:
+bottom left is the sidebar's foot, and beside the orb would draw it over whatever app you have open. One line shows,
+"Details" holds the reason, and each failure is its own toast, so a repeat you missed is shown again rather than
+counted. A card that did not open adds "Open in new tab", which opens that card on the Queue as a new tab in the
+desktop app, never your browser, on your click and never by itself. Each clears after 8 seconds unless you hover or open it. With the
+console window hidden or minimized it is dropped rather than raising the window; the session details tray keeps
+the line.
+
+## What a relay actually does, and why it is yours
+
+You say _"okay, let's go with that instead"_; it says _"cool, relaying to supervisor"_; the steer lands on the
+board. There is no button, so what makes it YOUR steer is a gate (`site/lib/relayGate.ts`) that reads the
+session's own record of who said what, and refuses the write unless:
+
+1. **you have spoken since the last relay** — so it cannot relay on its own initiative, or twice off one
+   sentence; and
+2. **nothing it read reached it after you last spoke** — so a card, a board row or a source file whose words
+   say "relay this" cannot become a steer. It is told to ask you to say it in your own words, and your "yes,
+   send that" opens the gate again.
+
+The row it writes leads with **your transcribed words**, labelled as speech-to-text, then its reading of the
+steer, then the item you had open — at p1, like a steer typed into the Queue. `talk relay` is **idempotent on
+the turn id**, which the page mints once per accepted relay, so a replay of the same turn reports _already
+relayed_ instead of writing a second row.
+
+**The voice never waits on it.** The post takes a few seconds — it writes the row and types a line into the
+supervisor's chat — so the page answers the voice the moment the gate opens and posts behind the call, in the
+order you gave them (`site/components/voice/relayAttempt.ts`). A steer that asks for nothing outside the call gets a
+word or two and the next thing. One that asks for an act — send it, merge it, post it — is never said to be done:
+for a Slack send it says _"On it. I'll tell you if it doesn't go."_, and when the send is held for your yes or
+refused, it tells you unasked, with the reason or the error. A send that went is never said unasked; ask, and it
+reads you what became of it. Anything you say while a post runs belongs to the next relay, and a relay the gate accepted is still
+posted if you hang up before it finishes. A steer you type in the call's chat — the console's one
+text input — rides this same relay as a spoken one does.
+`slopweaver talk log` lists what has been relayed and what became of each typed line, and never claims the
+supervisor acted on anything.
+
+**It is typed into the supervisor's chat as your turn.** After the row is on the board, one line opening
+`[voice relay <slug>]` is typed into the pinned supervisor's cmux chat (`src/talk/supervisorDelivery.ts`). It
+never types over words you have half-typed there, never interrupts a running turn — the line queues behind it
+— and a retried relay types nothing twice. **The voice says nothing about a relay**: not that it is passing
+your steer along, nor whether the supervisor has it — you know the supervisor reads the call live — so it
+answers you or goes on to the next item. When the line is not in that chat — the console was started outside
+cmux, or cmux refused it — the transcript marks it amber and the supervisor's next pass lists it anyway
+(`handover reconcile`). Ask whether a steer landed and it tells you: the supervisor has it only when the line
+is in that chat, and otherwise that it is on the board but not in the supervisor's chat, and why. It never
+tells you the supervisor has acted on it: it has only been handed.
+
+## Your whole screen, when you ask
+
+**There is nothing to share.** Say "look at my screen", or "what's this", and the app takes one
+picture of the screen its voice sits on, natively — no picker, no button, no share left running. The picture is what
+you see, the voice's own orb, widget and transcript included, so a visual defect on the app itself is one it can see
+(what you see is also what the voice sees, which it needs in order to test anything visual). macOS lets only one app share your screen at a time, and the floating voice is the one you
+already have open, so asking you to share from a browser console as well was asking for the impossible. The
+first look asks macOS for **Screen Recording**; until you turn it on in System Settings › Privacy & Security ›
+Screen & System Audio Recording and restart Slopweaver, the voice says exactly that instead of a picture
+(`desktop/src/nativeCapture.ts`).
+
+**Under a desktop app too old to look itself, press look at my screen** — beside the corner orb or across the top of
+the stage — and pick _Entire Screen_ in the picker; then say "look at my screen" and it reads it. Typing "look at my screen" is confusing because it works only on that page: typing goes to the supervisor, which cannot see your screen; the button and the phrase are the
+voice's, in either view. A share that is open wins over the app's own look. Without one the voice refuses and asks
+you to press the button.
+
+Either way `read_screen` hands the model one frame of whatever is in front of you — a Slack thread, a terminal, a
+PR in another app — fitted to the size the provider actually looks at (`site/lib/screenFrame.ts`), about **1,105
+input tokens** for a 16:10 display at high detail.
+
+**It is told to look only when you ask, one frame per ask**, because you say when you want it to look. That is the voice's instruction, not a gate, so the edge flash is how you know it looked.
+An open share or a granted Screen Recording permission is never licence for another look, no frame is sampled on a timer,
+and switching to another app sends nothing. Ask it to keep looking — a few Slack threads in a row — and it takes one frame each time you show it the
+next, until you say stop. **A relay carries only the frame a look already took this turn** — since the call opened
+or the last relay — and otherwise its row and the supervisor's line say _no picture: no screen frame was taken
+this turn_; the relay never grabs one of its own, so a frame of whatever you switched to since can never ride it. The
+frame it carries is the same pixels the voice looked at, kept at relay size (`grabScreenFrames`,
+`components/voice/screenGrab.ts`); stopping a share drops it. A screen-capture verb over macOS `screencapture` was
+weighed instead: the same token cost, but a tool the model could fire at any moment to photograph every app with
+nothing on screen to say so. The desktop app's look is not that: it is taken by the page, only on a `read_screen`
+call or a look you asked for, and the edge pulses for every look that took one. Whatever is on the screen when it fires is in the frame.
+
+What the app's look does not promise, named rather than discovered:
+
+- the voice is in the picture wherever it is drawn: with the stage up, the stage is most of what it sees;
+- it is of the display the floating voice sits on; Electron reads every display's picture to find that one;
+- macOS may ask again from time to time whether Slopweaver may keep reading your screen, and a rebuilt app that is
+  not signed the same way can lose the grant and ask once more.
+
+**The window's edge glows while your screen is shared** — a steady border in the looking colour, in either view —
+**and pulses once for each frame a look takes** (a relay takes none, so it never pulses), and glows softly with the
+voice while it speaks (a glow around your screen while the voice sees it, the way an agentic browser glows while it works; `site/lib/edgeGlow.ts`). The desktop app draws no steady
+border, because nothing is shared; its pulse lands just after the frame, so it is never in the picture. Looks that
+land together — the voice asking for two at once — share one flash, and a look you talk over still flashes. Under
+reduce-motion a share's steady border stands in for the flash; with no share the flash still fades in, as the only
+mark a picture was taken. The glow has no switch: it is the same through every call, a constant with no configurability option. In the desktop
+app the glow, and a live share's amber "Sharing your screen" frame, are drawn by four thin windows along the screen's
+edges, shown only while lit, so the voice's own window stays in its corner through a call and ⌘⇧5's window picker
+finds the app you point at rather than the voice (`desktop/src/edgeGlowShell.ts`).
+
+"What am I looking at" goes to `read_screen` first — the screen is what you see, every app on it; `read_page` is
+only the console's own record. When `read_screen` is refused the voice reads the console page instead, and if you
+meant another app it says why it could not look — Screen Recording off in the app, or nothing shared under one too old to look —
+rather than describing the console card you left behind (`src/talk/sessionConfig.ts`).
+
+The moment a turn that asks for a look ("look at my screen", "take a look at this", "take a screenshot") is handed
+to the thinking model, the voice says it is looking — "okay, having a look" — rather than nothing until the look
+is answered. The line is the console's, not the model's: the page spots the ask in your transcribed words
+(`site/lib/lookAck.ts`) and the server has the voice say one of its own fixed lines (`lookSpeech`,
+`site/lib/talkPlanCall.ts`), once per turn, and only once the turn has been handed off and the voice has said nothing
+since. Without it, measured, three asks in a row each sat 11–13 seconds in silence.
+
+Any other turn handed to the thinking model gets the same kind of line, a second in: "on it", worded differently each
+time and in the voice's own phrasing, unless the voice has already said something or you are still talking. That one
+line is the only thing said for you. If the work then runs on with the voice silent, the console plays the **working**
+sound 15 seconds in, and again every 30 seconds after that — a sound, never words (`site/lib/talkPlanHandOffSpeech.ts`
+times it, `site/lib/orbCue.ts` plays it). The words are the annoying part, not the frequency, so a subtle sound effect stands in for them. Without the first line, one
+hand-off in five leaves you 10 seconds or more with nothing (`docs/console/walk-silences.md` § Every hand-off says it is
+on it).
+
+**The same ask takes the frame.** At that hand-off the page takes one frame, and the console server steers it into
+the thinking model's running turn beside one fixed sentence of its own, so the answer is drawn from your screen as
+you asked rather than from whether the model chose to call `read_screen` — the model often calls it late or not
+at all, and saying "look at this" should be answered as if it had just looked.
+A screenshot merely named — "we're showing a Datadog screenshot" — is not an ask and takes nothing. Your screen is
+taken once per ask: a `read_screen` the model makes on the same turn within 15 seconds gets that same frame. The picture
+reaches the model as a picture: the two tools that answer with one are called directly, never from inside the
+model's code mode, where an image came back as text it could not see. The measurement and the replay:
+`docs/console/voice-sees-the-owners-screen.md`.
+
+## If it will not start
+
+| What it says                               | What it means                                                                                                                                        |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the microphone was not available           | the browser refused or has no input; nothing was sent                                                                                                |
+| the call could not start                   | no session exists; the reason names who said no — Codex not signed in (`codex login`), Codex refusing the realtime session, or the app-server dying  |
+| the plan may still have a session open     | the handshake stopped after the realtime request went out, so nothing was retried; try again                                                         |
+| the call was never put to the ChatGPT plan | `slopweaver talk offer` did not compose the call, so the plan was never asked; its reason follows, and "press again" when it was killed or timed out |
+| the tool lists disagree                    | `src/talk/talkToolSchemas.ts` and `site/lib/talkTools.ts` have drifted, in names or in which writes                                                  |
+| is not a voice the picker offers           | the picker and the verb's voice lists have drifted; `talkVoices.test.ts` should already be red                                                       |

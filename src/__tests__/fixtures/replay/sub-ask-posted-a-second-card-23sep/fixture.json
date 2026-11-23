@@ -1,0 +1,39 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1790141967.816599",
+    "threadTs": "1790137657.683209"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "live/slack/turn-markers/CFIXTUREAA-1790141967.816599.json — written after the last kept event (2026-09-23T06:49:51.268Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1790141967.816599/record.json — written after the last kept event (2026-09-23T06:49:51.268Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1790141967.816599/verdict.json — written after the last kept event (2026-09-23T06:49:51.268Z), outside this freeze's window",
+    "live/slack/detectives/CFIXTUREAA-1790141967.816599/store-1790146276354/wave.json — written after the last kept event (2026-09-23T06:49:51.268Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1790141967.816599/answer-reviewed-sha256-d33a4064dbd55beb99f47880a8a50273b40e96519e36f78737c1a645eab62239.json — written after the last kept event (2026-09-23T06:49:51.268Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1790141967.816599.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1790141967.816599.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790141967.816599/log.jsonl"
+  ],
+  "frozenAtIso": "2026-09-23T07:02:57.918Z",
+  "incident": "The owner tagged the bot in a thread to add two people to the allow-list and answer one of their questions. The loop did the adds, then re-dispatched that person's earlier question as its own turn, and the dispatch posted a SECOND progress card under the owner's own, in the same thread, for one tag. Frozen through captured: the state before the dispatch's card gate posted.",
+  "regresses": [],
+  "replayNowIso": "2026-09-23T06:49:51.268Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "sub-ask-posted-a-second-card-23sep",
+  "syntheticIdCount": 95,
+  "withheldEventKinds": [
+    "checklist-posted",
+    "dispatched",
+    "answered"
+  ],
+  "through": "captured"
+}

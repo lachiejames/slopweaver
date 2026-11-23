@@ -1,0 +1,257 @@
+{
+  "kind": "answer",
+  "lead": "[REDACTED]",
+  "indexStyle": "bullet",
+  "index": [
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "1"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "2"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "3"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "4"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      },
+      {
+        "type": "citation",
+        "citationId": "5"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "[REDACTED]"
+      }
+    ]
+  ],
+  "body": [
+    {
+      "type": "paragraph",
+      "runs": [
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        },
+        {
+          "type": "citation",
+          "citationId": "1"
+        },
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        },
+        {
+          "type": "citation",
+          "citationId": "2"
+        },
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        },
+        {
+          "type": "citation",
+          "citationId": "3"
+        },
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "runs": [
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "runs": [
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "runs": [
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        },
+        {
+          "type": "citation",
+          "citationId": "4"
+        },
+        {
+          "type": "text",
+          "text": "[REDACTED]"
+        }
+      ]
+    }
+  ],
+  "citations": [
+    {
+      "id": "1",
+      "label": "[1]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "2",
+      "label": "[2]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "3",
+      "label": "[3]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "4",
+      "label": "[4]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    },
+    {
+      "id": "5",
+      "label": "[5]",
+      "url": "https://redacted.invalid/[REDACTED]"
+    }
+  ],
+  "measurements": [
+    {
+      "figures": [
+        "143",
+        "136"
+      ],
+      "repro": "[REDACTED]",
+      "takenAtIso": "2026-09-22T04:22:08.000Z"
+    }
+  ],
+  "images": [],
+  "documents": [],
+  "grounding": {
+    "kind": "verb",
+    "capability": {
+      "id": "[REDACTED]",
+      "command": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "what": "[REDACTED]"
+    },
+    "result": "[REDACTED]",
+    "evidence": {
+      "read": [
+        {
+          "label": "[REDACTED]",
+          "url": "https://fixture.slack.com/archives/CFIXTUREAA/p1790048427171609"
+        },
+        {
+          "label": "[REDACTED]",
+          "url": "https://fixture.slack.com/archives/CFIXTUREDW/p1790049026903469"
+        },
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        }
+      ],
+      "consultedEmpty": [
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        },
+        {
+          "label": "[REDACTED]"
+        }
+      ],
+      "substitutedForReal": [
+        {
+          "real": "[REDACTED]",
+          "why": "[REDACTED]"
+        }
+      ],
+      "couldNotSee": {
+        "blindSpots": [
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]"
+        ]
+      }
+    },
+    "provenance": {
+      "model": "the dispatched worker in workspace:239 (Claude Code, in-turn)",
+      "skillsLoaded": [
+        "[REDACTED]",
+        "[REDACTED]"
+      ],
+      "verbsLoaded": [
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]"
+      ]
+    }
+  }
+}

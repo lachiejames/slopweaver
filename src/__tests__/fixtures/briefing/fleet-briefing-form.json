@@ -1,0 +1,188 @@
+{
+  "header": {
+    "workspace": "ws:598",
+    "handoff": "handoff-9012",
+    "model": "opus",
+    "pinnedAt": "23:57",
+    "sleeping": false,
+    "lede": [
+      {
+        "kind": "text",
+        "text": "One thing needs your word, below. Everything else on this page is folded."
+      }
+    ]
+  },
+  "reactNow": {
+    "teamFacing": [
+      {
+        "question": "Do you want the render verb landed as gold, or is silver with gold owed enough tonight?",
+        "what": [
+          {
+            "kind": "text",
+            "text": "The verb emits this page from a typed form, so a wall cannot be authored at all. A gold proof is one CI run compared to this exact commit, and landing it silver means a weaker proof with gold still owed. "
+          },
+          {
+            "kind": "link",
+            "text": "#100",
+            "url": "https://github.com/lachiejames/slopweaver/pull/100"
+          },
+          {
+            "kind": "text",
+            "text": " stays as the reader."
+          }
+        ],
+        "detail": {
+          "summary": "what the form carries",
+          "blocks": [
+            {
+              "kind": "para",
+              "content": [
+                {
+                  "kind": "text",
+                  "text": "The header, the cards, the recent blocks and the folded sections."
+                }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+                [
+                  {
+                    "kind": "text",
+                    "text": "Caps imported from "
+                  },
+                  {
+                    "kind": "code",
+                    "text": "src/briefing/caps.ts"
+                  }
+                ],
+                [
+                  {
+                    "kind": "text",
+                    "text": "Voice rules applied at the door, not in the schema."
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        "whyYou": [
+          {
+            "kind": "text",
+            "text": "It is your page and your ruling on the proof grade."
+          }
+        ],
+        "options": [
+          {
+            "letter": "A",
+            "text": "Land it gold once this page is published from a form."
+          },
+          {
+            "letter": "B",
+            "text": "Land it silver tonight with gold owed."
+          },
+          {
+            "letter": "C",
+            "text": "Hold it until you have read the form."
+          }
+        ],
+        "lean": [
+          {
+            "kind": "text",
+            "text": "A."
+          }
+        ],
+        "ifSilent": [
+          {
+            "kind": "text",
+            "text": "It lands gold, since the proof is cheap."
+          }
+        ],
+        "premise": {
+          "kind": "composed",
+          "readIso": "2026-08-31T20:00:00.000Z"
+        }
+      }
+    ],
+    "meFacing": []
+  },
+  "awaiting": [],
+  "recent": [
+    {
+      "headline": [
+        {
+          "kind": "strong",
+          "text": "The render verb is built."
+        },
+        {
+          "kind": "text",
+          "text": " Schema, renderer, verb and tests are in. The page you are reading came out of a form."
+        }
+      ],
+      "detail": {
+        "summary": "the rest",
+        "blocks": [
+          {
+            "kind": "list",
+            "ordered": false,
+            "items": [
+              [
+                {
+                  "kind": "text",
+                  "text": "The verb runs briefing check over its own output."
+                }
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "earlierToday": {
+    "summary": "earlier today, in order",
+    "notes": [
+      {
+        "headline": [
+          {
+            "kind": "strong",
+            "text": "00:5x sweep, quiet."
+          },
+          {
+            "kind": "text",
+            "text": " Nothing moved."
+          }
+        ]
+      }
+    ]
+  },
+  "history": [
+    {
+      "summary": "history: 29 Aug landings",
+      "notes": [
+        {
+          "headline": [
+            {
+              "kind": "text",
+              "text": "The briefing gate landed as #100."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "alignment": {
+    "headline": [
+      {
+        "kind": "text",
+        "text": "2 of 3 live sessions are on the board's top 5, 1 is lower down, 4 rows carry no priority."
+      }
+    ],
+    "intake": [
+      {
+        "kind": "text",
+        "text": "Owner turns: 4 read across 1 supervisor session(s), all witnessed."
+      }
+    ]
+  }
+}

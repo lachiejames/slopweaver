@@ -1,0 +1,245 @@
+{
+  "items": [
+    {
+      "draft": {
+        "author": "colleague",
+        "body": "I think this is close. Two things inline, neither blocking.",
+        "comments": [
+          {
+            "body": "maybe gate this on the job kind, since Retry skips the checks here",
+            "hunk": [
+              {
+                "kind": "header",
+                "text": "@@ -330,8 +330,9 @@ export function JobTransitions() {"
+              },
+              {
+                "kind": "context",
+                "newLine": 338,
+                "oldLine": 338,
+                "text": "  const notice ="
+              },
+              {
+                "kind": "del",
+                "oldLine": 339,
+                "text": "    \"use Stop below\";"
+              },
+              {
+                "kind": "add",
+                "newLine": 339,
+                "text": "    \"use Stop/Retry below\";"
+              }
+            ],
+            "line": 339,
+            "path": "src/workflows/JobTransitions.ts"
+          },
+          {
+            "body": "probably dead now that the legacy arm is gone",
+            "hunk": [
+              {
+                "kind": "header",
+                "text": "@@ -388,4 +389,3 @@"
+              },
+              {
+                "kind": "context",
+                "newLine": 390,
+                "oldLine": 389,
+                "text": "  return ("
+              },
+              {
+                "kind": "add",
+                "newLine": 391,
+                "text": "    isSkipChecksEnabled(job)"
+              }
+            ],
+            "line": 391,
+            "path": "src/workflows/JobTransitions.ts",
+            "startLine": 390
+          }
+        ],
+        "deeperReview": "the staging e2e suites were not run; running them needs a staging login",
+        "headSha": "0000000000000000000000000000000000000001",
+        "number": 123,
+        "repo": "acme/acme-admin",
+        "title": "Job transitions skip checks",
+        "tsIso": "2026-09-28T10:00:00.000Z",
+        "url": "https://github.com/acme/acme-admin/pull/123",
+        "verdict": "COMMENT",
+        "why": "a colleague's pull request, reviewed before the thanks reply",
+        "digest": "1d6535194d43f9f222dd8aa1ffaa5966",
+        "id": "rd-held0001"
+      },
+      "id": "rd-held0001",
+      "state": "held",
+      "post": {
+        "command": "slopweaver github review-draft post rd-held0001 --approve 1d6535194d43f9f222dd8aa1ffaa5966"
+      }
+    },
+    {
+      "draft": {
+        "body": "",
+        "comments": [],
+        "headSha": "0000000000000000000000000000000000000001",
+        "number": 123,
+        "repo": "acme/acme-admin",
+        "title": "Job transitions skip checks",
+        "tsIso": "2026-09-28T10:00:00.000Z",
+        "url": "https://github.com/acme/acme-admin/pull/123",
+        "verdict": "APPROVE",
+        "why": "a colleague's pull request, reviewed before the thanks reply",
+        "digest": "b825aea79eb894a949fb82b809b7573f",
+        "id": "rd-appr0002"
+      },
+      "id": "rd-appr0002",
+      "state": "held",
+      "post": {
+        "command": "slopweaver github review-draft post rd-appr0002 --approve b825aea79eb894a949fb82b809b7573f"
+      }
+    },
+    {
+      "draft": {
+        "author": "colleague",
+        "body": "I think this is close. Two things inline, neither blocking.",
+        "comments": [
+          {
+            "body": "maybe gate this on the job kind, since Retry skips the checks here",
+            "hunk": [
+              {
+                "kind": "header",
+                "text": "@@ -330,8 +330,9 @@ export function JobTransitions() {"
+              },
+              {
+                "kind": "context",
+                "newLine": 338,
+                "oldLine": 338,
+                "text": "  const notice ="
+              },
+              {
+                "kind": "del",
+                "oldLine": 339,
+                "text": "    \"use Stop below\";"
+              },
+              {
+                "kind": "add",
+                "newLine": 339,
+                "text": "    \"use Stop/Retry below\";"
+              }
+            ],
+            "line": 339,
+            "path": "src/workflows/JobTransitions.ts"
+          },
+          {
+            "body": "probably dead now that the legacy arm is gone",
+            "hunk": [
+              {
+                "kind": "header",
+                "text": "@@ -388,4 +389,3 @@"
+              },
+              {
+                "kind": "context",
+                "newLine": 390,
+                "oldLine": 389,
+                "text": "  return ("
+              },
+              {
+                "kind": "add",
+                "newLine": 391,
+                "text": "    isSkipChecksEnabled(job)"
+              }
+            ],
+            "line": 391,
+            "path": "src/workflows/JobTransitions.ts",
+            "startLine": 390
+          }
+        ],
+        "deeperReview": "the staging e2e suites were not run; running them needs a staging login",
+        "headSha": "0000000000000000000000000000000000000001",
+        "number": 123,
+        "repo": "acme/acme-admin",
+        "title": "Job transitions skip checks",
+        "tsIso": "2026-09-28T10:00:00.000Z",
+        "url": "https://github.com/acme/acme-admin/pull/123",
+        "verdict": "REQUEST_CHANGES",
+        "why": "a colleague's pull request, reviewed before the thanks reply",
+        "digest": "3d874f92ce74a48f6fdd3d5dd5447c16",
+        "id": "rd-post0003"
+      },
+      "id": "rd-post0003",
+      "state": "posted",
+      "resolvedIso": "2026-09-28T11:00:00.000Z",
+      "outcome": "https://github.com/acme/acme-admin/pull/123#pullrequestreview-1"
+    },
+    {
+      "draft": {
+        "author": "colleague",
+        "body": "I think this is close. Two things inline, neither blocking.",
+        "comments": [
+          {
+            "body": "maybe gate this on the job kind, since Retry skips the checks here",
+            "hunk": [
+              {
+                "kind": "header",
+                "text": "@@ -330,8 +330,9 @@ export function JobTransitions() {"
+              },
+              {
+                "kind": "context",
+                "newLine": 338,
+                "oldLine": 338,
+                "text": "  const notice ="
+              },
+              {
+                "kind": "del",
+                "oldLine": 339,
+                "text": "    \"use Stop below\";"
+              },
+              {
+                "kind": "add",
+                "newLine": 339,
+                "text": "    \"use Stop/Retry below\";"
+              }
+            ],
+            "line": 339,
+            "path": "src/workflows/JobTransitions.ts"
+          },
+          {
+            "body": "probably dead now that the legacy arm is gone",
+            "hunk": [
+              {
+                "kind": "header",
+                "text": "@@ -388,4 +389,3 @@"
+              },
+              {
+                "kind": "context",
+                "newLine": 390,
+                "oldLine": 389,
+                "text": "  return ("
+              },
+              {
+                "kind": "add",
+                "newLine": 391,
+                "text": "    isSkipChecksEnabled(job)"
+              }
+            ],
+            "line": 391,
+            "path": "src/workflows/JobTransitions.ts",
+            "startLine": 390
+          }
+        ],
+        "deeperReview": "the staging e2e suites were not run; running them needs a staging login",
+        "headSha": "0000000000000000000000000000000000000001",
+        "number": 123,
+        "repo": "acme/acme-admin",
+        "title": "Job transitions skip checks",
+        "tsIso": "2026-09-28T10:00:00.000Z",
+        "url": "https://github.com/acme/acme-admin/pull/123",
+        "verdict": "COMMENT",
+        "why": "a colleague's pull request, reviewed before the thanks reply",
+        "digest": "1d6535194d43f9f222dd8aa1ffaa5966",
+        "id": "rd-drop0004"
+      },
+      "id": "rd-drop0004",
+      "state": "dropped",
+      "resolvedIso": "2026-09-28T12:00:00.000Z",
+      "outcome": "the owner said the thanks reply is enough"
+    }
+  ]
+}

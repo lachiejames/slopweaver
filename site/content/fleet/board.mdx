@@ -1,0 +1,58 @@
+---
+title: The one board
+---
+
+import { BoardLifecycle } from "../../components/diagrams/BoardLifecycle";
+
+# The one board
+
+The board is the **only** register of what is in flight. There is no workstream list, and a status document
+is never the answer — add a row.
+
+<BoardLifecycle />
+
+## One board, and everything ranks on it
+
+A planned document, an ask the owner made, and an unanswered Slack tag rank **together**. Three registers would be
+three places to forget to look.
+
+```bash
+slopweaver handover list             # the board
+slopweaver handover list --json      # the same placement, as a document
+slopweaver handover resume <slug>    # rebuild an open run's brief from its journal
+slopweaver handover register <slug>  # add a row
+slopweaver handover settle <slug>    # close one, with a witness
+```
+
+If a run is open, `resume` comes **first**. It reconstructs the doc, branch, probe state, any recorded
+question and the next step from a file that survives both compaction and session death. It is read-only,
+and a run another session is writing is not yours to mutate.
+
+## The section is computed, never authored
+
+Three inputs — the doc's own `status:`, a repository probe, and the run journal — are combined **once** by
+`boardState.ts`, by an ordered precedence list that stops at the first match. Before it, three callers each
+interpreted a slice and the board could say `RUN NOW` for work `start` itself refused.
+
+**A probe downgrades confidence; it never flips a doc.** Proving a symptom absent is not the scope having
+shipped, and an unreadable file is never a pass.
+
+## Why `--json` exists
+
+The rendered board is sections, banners, a truncation caveat and a typo'd-slug footnote. Every one of those
+is right for a reader and wrong for a caller. Until `--json` existed, the only way to get the board into a
+program was to parse that prose — a shape no test covers, breaking silently the first time a heading was
+reworded.
+
+It emits **every** row, including the closed sections `--all` governs, because a caller can filter on
+`section` and cannot recover a row that was dropped before it ever saw one. MEASURED on the live board:
+2,476 rows, `unresolved: 0`.
+
+## Typed endings
+
+A recorded question is a **legitimate ending** — it is what separates this from a loop that wakes forever
+to report it still cannot proceed. The exception is a stop on standing doctrine: recording a cassette is
+always greenlit, so a recorded question asking permission to record one is classified, labelled on the row
+and reported on every push.
+
+**No run ends without saying whether it learned anything.**

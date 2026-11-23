@@ -1,0 +1,42 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788757965.613679",
+    "threadTs": "1788757827.540129"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "live/slack/reviews/CFIXTUREAA-1788757965.613679/record.json — written after the last kept event (2026-09-07T08:56:23.278Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788757965.613679/verdict.json — written after the last kept event (2026-09-07T08:56:23.278Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788757965.613679/answer-reviewed-sha256-91c22f8d341c23cde33889ae4cdae32f046102c0b96e3b27900c2a84992987c7.json — written after the last kept event (2026-09-07T08:56:23.278Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/ledgers/turn-completions.jsonl",
+    "home/briefs/CFIXTUREAA-1788757965.613679.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788757965.613679/answer-reviewed-sha256-58623c46dce96d69ca0c18974d0cf22f536553da34c2c18502c8b890ba89bd4b.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788757965.613679/answer-reviewed-sha256-87066808b5665ce8300b67d3954d47ff0e8a21778bf863aa20487350c22bdfa5.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788757965.613679/answer-reviewed-sha256-b4dffcc3a29c812ce558ec71c9733ad27069e6ce3784cdcbae95ce8c02071822.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788757965.613679/answer-reviewed-sha256-c04cf7e191239ea517dd73105cc95dae4edf2e7402e3db0a31b503f427c9c827.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788757965.613679/verdict-superseded-fixture-uuid-by-2026-09-07T07-42-04-428Z.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788757965.613679/verdict-superseded-fixture-uuid-bz-2026-09-07T07-04-43-165Z.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788757965.613679/verdict-superseded-fixture-uuid-ca-2026-09-07T08-18-08-005Z.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788757965.613679/verdict-superseded-fixture-uuid-cb-2026-09-07T06-16-05-454Z.json"
+  ],
+  "frozenAtIso": "2026-09-16T21:49:11.739Z",
+  "incident": "A turn the admit door refused (ANSWER_VERDICT_STALE) left its working checklist and its failure card in the team thread. A later turn on the same ask posted the real answer 26 minutes after, and retracted neither, so the bot's failure stood directly above the bot's answer for 22 hours until both were deleted by hand. Frozen through 'failed': the state a correct implementation must act on is a failed completion naming both cards, with the answer about to post.",
+  "regresses": [],
+  "replayNowIso": "2026-09-07T08:56:23.278Z",
+  "reviewRounds": 4,
+  "schemaVersion": 1,
+  "slug": "answer-under-its-own-failure-cards-7sep",
+  "syntheticIdCount": 54,
+  "withheldEventKinds": [
+    "answered"
+  ],
+  "through": "failed"
+}

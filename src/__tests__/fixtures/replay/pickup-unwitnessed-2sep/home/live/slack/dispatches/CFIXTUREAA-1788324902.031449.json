@@ -1,0 +1,43 @@
+{
+  "channel": "CFIXTUREAA",
+  "messageTs": "1788324902.031449",
+  "threadTs": "1788316731.433259",
+  "askPermalink": "https://fixture.slack.com/archives/CFIXTUREAA/p1788324902031449?thread_ts=1788316731.433259&cid=CFIXTUREAA",
+  "briefPath": "${SLOPWEAVER_HOME}/live/loop-31aug-b/brief-CFIXTUREAA-1788324902.031449.json",
+  "decision": {
+    "confidence": "high",
+    "needs": [
+      {
+        "capabilityId": "github-live-detail",
+        "reason": "[REDACTED]",
+        "requirement": "required"
+      },
+      {
+        "capabilityId": "owner-open-prs",
+        "reason": "[REDACTED]",
+        "requirement": "optional"
+      }
+    ],
+    "rationale": "[REDACTED]",
+    "response": "respond",
+    "schemaVersion": 1,
+    "tier": "fresh-visible-session",
+    "truthMode": "current"
+  },
+  "dispatchId": "[\"CFIXTUREAA\",\"1788324902.031449\",\"1788316731.433259\"]",
+  "execution": {
+    "mode": "continuous-drain",
+    "supervisorHost": "claude-code"
+  },
+  "leaseExpiresAt": "2026-09-02T07:03:50.232Z",
+  "schemaVersion": 3,
+  "session": {
+    "cwd": "/fixture/user/dev/personal/slopweaver/.claude/worktrees/live-[redacted-word]-loop-31aug-b",
+    "host": "claude-code",
+    "sessionName": "ask-CFIXTUREAA-1788324902.031449",
+    "surfaceId": "fixture-uuid-ac",
+    "surfaceRef": "surface:1045",
+    "workspaceId": "fixture-uuid-ad",
+    "workspaceRef": "workspace:979"
+  }
+}

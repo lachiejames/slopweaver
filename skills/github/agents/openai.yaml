@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slopweaver GitHub"
+  short_description: "Push branches and perform typed GitHub writes"
+  default_prompt: "Use the Slopweaver GitHub door for this push or pull-request operation."

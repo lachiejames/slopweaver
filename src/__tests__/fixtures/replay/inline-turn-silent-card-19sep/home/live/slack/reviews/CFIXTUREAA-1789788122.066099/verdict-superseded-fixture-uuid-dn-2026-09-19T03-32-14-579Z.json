@@ -1,0 +1,87 @@
+{
+  "answerDigest": "sha256:d663f001ead08cd36069154bf1928f30629b8a08a610557c58258b47beef8508",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    }
+  ],
+  "imageObservations": [],
+  "outcome": "broken",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1,
+  "voice": {
+    "pathsChecked": [
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]"
+    ],
+    "rulesChecked": 4,
+    "violations": [
+      {
+        "path": "[REDACTED]",
+        "rule": "[REDACTED]"
+      },
+      {
+        "path": "[REDACTED]",
+        "rule": "[REDACTED]"
+      }
+    ]
+  }
+}

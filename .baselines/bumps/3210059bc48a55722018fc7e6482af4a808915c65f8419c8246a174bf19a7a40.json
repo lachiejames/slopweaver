@@ -1,0 +1,42 @@
+{
+  "base": "882bdb893898e433d0d6863c190c8a6325cfe083",
+  "digest": "3210059bc48a55722018fc7e6482af4a808915c65f8419c8246a174bf19a7a40",
+  "loosenings": [
+    {
+      "entry": "policy",
+      "file": "src/codex/baselineBumpWitnessRun.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineAgainstMain.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineBump.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineComparison.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineRegistry.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    }
+  ],
+  "reason": "the ratchet bump records move from the repository to the state home, so the policy files that write and read them change"
+}

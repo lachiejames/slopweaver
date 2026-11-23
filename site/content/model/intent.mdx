@@ -1,0 +1,86 @@
+---
+title: What it was asked for
+---
+
+import { Callout } from "nextra/components";
+
+import { QuestionRouting } from "../../components/diagrams/QuestionRouting";
+
+# What it was asked for
+
+The world model has a design brief, and the brief is the owner's recorded intent rather than a spec somebody
+wrote for it. It is worth reading before proposing a change to retrieval, because most of the arguments have
+already been had, and the positions below are the ones that held.
+
+<QuestionRouting />
+
+## The split between live and history
+
+A question about the present is answered from the live provider, and a question about the past is answered
+from the corpus. The corpus exists for the org world model; a poll of what is happening now is live.
+
+So "why did the staging pool exhaust" is answered by going and looking, and "what did we decide about X"
+is answered from history. Both are the same bot; only the second leans on the corpus at all.
+
+## Routing, never deletion
+
+A world model that intercepts every question and answers them all badly is worse than not having one. The
+corpus therefore stays **out** of the live answer path, and the fix for a bad answer is **routing, not
+deletion**: the corpus is still the right source for the questions only history can settle. Holding either half
+of that alone misrepresents the intent.
+
+## Recency, sharpened
+
+Newer material is weighted above older material: on a 30-day question, a record from two days ago outranks one
+from 28 days ago.
+
+<Callout type="warning">
+  **Time is one input among several, and importance can outrank it outright.** A 200-character Slack post reversing an
+  earlier decision ranks above a long Notion doc. And recency is not only a ranking preference but a **correctness**
+  property: a pain point raised a while ago may no longer be true, in which case it is correct not to name stale
+  information. Down-ranking an old record is right; citing it as current is wrong, and those are different behaviours.
+</Callout>
+
+There is no score left to weight: the ranker that carried an exponential recency decay was deleted with the
+hybrid path it weighted, so **recency is the ORDER**, and `--since` / `--until` are how a caller bounds a
+window deliberately.
+
+## Fail loudly, and never fall back silently
+
+Six weeks before the defect was measured, the shape was predicted. Remove a fallback path and fail fast, loudly. A fallback costs trust: a run that deceptively looks like it
+passed and did everything right can take weeks to reveal that it did not.
+
+That is the same instinct the [no-silent-fallback gate](/docs/build/gates) enforces in code, and the same
+one behind an atlas refusing to report a zero it cannot prove.
+
+## Nothing lossy, and nothing that pollutes the context
+
+Two requirements pull against each other, and both stand.
+
+- **No truncation.** A reader that sees half of every file produces a mess. A long record is split into
+  pieces, never cut off.
+- **And no context pollution.** The model's context is its working memory, so the output is only as good as what
+  surfaced into it. The world model explains things to the model in the model's own terms, as the model explains
+  things to the owner in the owner's voice.
+
+The resolution is **agent-driven expansion** — a first pass that is deliberately small with a real path to the
+whole record — rather than a smaller cap. Progressive disclosure applies to the model's context, not just to
+the reader's screen.
+
+## Citations are first class, and abstaining is a feature
+
+- Everything is a citation cross-linking to another, so everything is verifiable and falsifiable.
+- Similarity can nominate, never conclude, because false positives break trust immediately.
+- Saying "I don't know" is essential. A human who bluffs instead breaks trust, and so does the bot.
+
+Self-reported confidence percentages are refused: a model's own estimate of its confidence is misleading. A
+citation is something a human could have produced themselves: the same link, the same screenshot, reached the
+same way.
+
+## Bronze is disposable; gold is the bill
+
+Deleting the old corpus and building a new one is fine, since bronze is only the raw layer. Do not build around
+bronze as a constraint, because an artificial constraint can prevent reaching the best solution.
+
+A multi-hour first build is expected rather than a defect. Cost is largely ignorable. The **ordering** argument
+— prove it on a small subset before paying for a large one — still holds; only the price is relaxed.

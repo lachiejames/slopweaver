@@ -1,0 +1,64 @@
+{
+  "gaps": [
+    "supervisor: no supervisor chain is recorded, so no supervisor turn was read — `slopweaver supervisor chain --rescan`",
+    "profile.json: declares no slackBot.selfHandles — a turn naming the bot by handle is not offered"
+  ],
+  "kinds": [
+    {
+      "kind": "em-dashes",
+      "lastCorrectedIso": "2026-10-09T23:00:00.000Z",
+      "points": [
+        {
+          "anchor": "slack:acme/C0FIXTURE/1760000000.000100",
+          "atIso": "2026-10-09T23:00:00.000Z",
+          "quote": "no em dashes",
+          "says": "corrects"
+        }
+      ],
+      "title": "Em dashes"
+    },
+    {
+      "kind": "voice",
+      "points": [],
+      "title": "Other voice rules"
+    },
+    {
+      "kind": "length",
+      "points": [],
+      "title": "Length"
+    },
+    {
+      "kind": "stakeholders",
+      "points": [],
+      "title": "The right people tagged"
+    },
+    {
+      "kind": "proof",
+      "points": [],
+      "title": "Proof attached"
+    },
+    {
+      "kind": "place",
+      "points": [],
+      "title": "Sent to the right place"
+    },
+    {
+      "kind": "withheld",
+      "points": [],
+      "title": "Withheld: the world moved"
+    }
+  ],
+  "observedAtIso": "2026-10-20T00:00:00.000Z",
+  "read": 0,
+  "residue": [
+    "a turn is offered for reading only when it holds a kind's cue and a word placing it on Slack; one naming a kind in other words is never read",
+    "the owner's words before the supervisor chain's first chair, and anything said outside a console call, the console or a chair, are not read",
+    "a kind with no turn naming it is not a solved kind: it stays open until a turn of the owner's says it stopped"
+  ],
+  "sinceIso": "2026-08-21T00:00:00.000Z",
+  "surface": "slack",
+  "unparsed": [
+    1
+  ],
+  "unread": 0
+}

@@ -1,0 +1,45 @@
+{
+  "actions": [
+    {
+      "kind": "artifact-published",
+      "outcome": "completed",
+      "subject": {
+        "kind": "artifact",
+        "id": "af415a0a-f9cd-43b1-aac2-187e71642802"
+      }
+    }
+  ],
+  "judgements": [
+    {
+      "kind": "hold-rationale",
+      "subject": {
+        "kind": "outcome",
+        "id": "outcome-08"
+      }
+    },
+    {
+      "kind": "hold-rationale",
+      "subject": {
+        "kind": "outcome",
+        "id": "outcome-02"
+      }
+    }
+  ],
+  "sources": {
+    "capacity": {
+      "status": "read",
+      "facts": {
+        "hold": false,
+        "holdSubjects": [],
+        "load1": 3.77
+      }
+    },
+    "gauge": {
+      "status": "read",
+      "facts": {
+        "nextAllModels": "plan-four"
+      }
+    }
+  },
+  "tickId": "handoff-9291-tick-288"
+}

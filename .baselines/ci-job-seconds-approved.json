@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "approval": {
+    "approvedIso": "2026-11-10T00:54:01.921Z",
+    "recordedIso": "2026-11-10T01:34:30.309Z"
+  },
+  "baseline": {
+    "build": 3,
+    "compile": 79,
+    "desktop": 34,
+    "desktop-e2e": 191,
+    "integration": 106,
+    "lint": 293,
+    "site": 69,
+    "subprocess": 259,
+    "typecheck": 79,
+    "unit": 146,
+    "unit-1": 223,
+    "unit-2": 215,
+    "unit-3": 236,
+    "unit-4": 239,
+    "unit-5": 233,
+    "unit-6": 214
+  },
+  "reference": {
+    "runId": 42734360854,
+    "headSha": "777de6d8be0f8ff42820b80cdb1a9b029cf8b004",
+    "jobs": {
+      "build": {
+        "wallSeconds": 3,
+        "workSeconds": 0
+      },
+      "compile": {
+        "wallSeconds": 79,
+        "workSeconds": 20
+      },
+      "desktop": {
+        "wallSeconds": 34,
+        "workSeconds": 1
+      },
+      "desktop-e2e": {
+        "wallSeconds": 191,
+        "workSeconds": 127
+      },
+      "integration": {
+        "wallSeconds": 106,
+        "workSeconds": 50
+      },
+      "lint": {
+        "wallSeconds": 293,
+        "workSeconds": 237
+      },
+      "site": {
+        "wallSeconds": 69,
+        "workSeconds": 33
+      },
+      "subprocess": {
+        "wallSeconds": 259,
+        "workSeconds": 194
+      },
+      "typecheck": {
+        "wallSeconds": 79,
+        "workSeconds": 18
+      },
+      "unit": {
+        "wallSeconds": 146,
+        "workSeconds": 89
+      },
+      "unit-1": {
+        "wallSeconds": 223,
+        "workSeconds": 161
+      },
+      "unit-2": {
+        "wallSeconds": 215,
+        "workSeconds": 153
+      },
+      "unit-3": {
+        "wallSeconds": 236,
+        "workSeconds": 173
+      },
+      "unit-4": {
+        "wallSeconds": 239,
+        "workSeconds": 177
+      },
+      "unit-5": {
+        "wallSeconds": 233,
+        "workSeconds": 171
+      },
+      "unit-6": {
+        "wallSeconds": 214,
+        "workSeconds": 151
+      }
+    },
+    "subjects": {
+      "desktop": {
+        "bytes": 1310144,
+        "files": 158
+      },
+      "docs": {
+        "bytes": 7692466,
+        "files": 838
+      },
+      "integration-tests": {
+        "bytes": 830911,
+        "files": 76
+      },
+      "site": {
+        "bytes": 9619504,
+        "files": 1249
+      },
+      "source": {
+        "bytes": 78081760,
+        "files": 9037
+      },
+      "subprocess-tests": {
+        "bytes": 2065032,
+        "files": 249
+      },
+      "unit-tests": {
+        "bytes": 61204964,
+        "files": 9005
+      }
+    }
+  }
+}

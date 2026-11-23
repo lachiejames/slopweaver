@@ -1,0 +1,65 @@
+---
+title: Automations
+---
+
+import { AutomationShape } from "../../components/diagrams/AutomationShape";
+
+# Automations
+
+Rows that come due on a schedule. Two shapes, and the difference decides who runs them.
+
+<AutomationShape />
+
+## There is no clock, and there will not be one
+
+The rule: no cron, no launch agent, no headless Claude, nothing that spins up sessions a visible
+seat does not control. **An automation runs because a [supervisor tick](/docs/fleet/supervisor) decided it
+should.** That is the same rule as [sessions and visibility](/docs/fleet/sessions), applied to time.
+
+The read is free, so the tick runs it every pass: no network, no model, nothing claimed, nothing written,
+and it exits zero whatever it finds — which makes a non-zero exit a real fault rather than a full queue.
+
+| Shape         | What runs it                                       |
+| ------------- | -------------------------------------------------- |
+| **a command** | run it directly — it exits, and the row is stamped |
+| **a session** | seat ONE visible session on it                     |
+
+Measured against the kind registry, a verb run, an alert summary, an alert digest and an investigation all
+run in the calling process with no model. **Resync is the one kind that is a session**, because it walks a
+provider for minutes.
+
+```bash
+slopweaver automation due          # what is due now
+slopweaver automation run-due      # run the rows that are a command
+slopweaver automation claim        # claim a row, so the next tick does not spawn it again
+slopweaver automation seat         # open one visible workspace on the claimed rows
+```
+
+**Claim a row as you seat it**, or the next tick spawns it again; the claim expires at the row's own next
+firing. A row that is a command is not a fill decision at all — run it in the tick and move on. Holding a
+session-shaped row is a legitimate choice when the machine reading says so, narrated by name with how late
+it is, exactly as an unfilled slot is.
+
+## Three exit codes a scheduler reads differently
+
+| Code | Name                  | What it means                                         | Does the row get stamped? |
+| ---- | --------------------- | ----------------------------------------------------- | ------------------------- |
+| `0`  | success               | it worked                                             | yes                       |
+| `2`  | `EXIT_USAGE`          | a caller mistake, refused before the act phase        | no                        |
+| `3`  | `EXIT_EXPECTED_EMPTY` | it did its work and there was none                    | **yes**                   |
+| `4`  | `EXIT_DEFERRED`       | a prerequisite is still in progress; nothing was done | **no** — still due        |
+
+`3` and `4` are not interchangeable, and a scheduler is where the difference bites. Reaching for `3` on a
+not-yet silences the row until its next firing — measured on the vulnerability-fix digest.
+
+## Freshness rows
+
+```bash
+slopweaver atlas freshness      # which atlases are behind their own window
+slopweaver refresh --if-stale   # the corpus half of the same window
+```
+
+Both exit non-zero when something is behind, so a scheduled row can act on the exit code rather than
+parsing prose. The landing read is the same contract in a different domain —
+[the merge queue](/docs/fleet/merge-queue) presses on a cadence and makes no request at all on a tick whose
+window has not elapsed.

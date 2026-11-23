@@ -1,0 +1,38 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1789708136.457099",
+    "threadTs": "1789691856.827339"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "live/slack/turn-markers/CFIXTUREAA-1789708136.457099.json — written after the last kept event (2026-09-18T06:19:51.314Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789708136.457099/record.json — written after the last kept event (2026-09-18T06:19:51.314Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789708136.457099/verdict.json — written after the last kept event (2026-09-18T06:19:51.314Z), outside this freeze's window",
+    "live/slack/checkpoints/CFIXTUREAA-1789708136.457099/log.jsonl — written after the last kept event (2026-09-18T06:19:51.314Z), outside this freeze's window",
+    "live/slack/detectives/CFIXTUREAA-1789708136.457099/store-1789712566950/wave.json — written after the last kept event (2026-09-18T06:19:51.314Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789708136.457099/answer-reviewed-sha256-249f51f1e5d7aad94d30ce10e11ca6b7737ed458f01987fa139dbe9861b6f4db.json — written after the last kept event (2026-09-18T06:19:51.314Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1789708136.457099.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1789708136.457099.json",
+    "home/live/slack/detectives/CFIXTUREAA-1789708136.457099/store-1789708958236/wave.json"
+  ],
+  "frozenAtIso": "2026-09-18T09:22:05.174Z",
+  "incident": "a phantom finding correctly warned the tag at 06:12:14Z; the loop re-dispatched a live worker at 06:19:51Z and nothing put the capture emoji back, so a working turn advertised itself as failed for 43 minutes",
+  "regresses": [],
+  "replayNowIso": "2026-09-18T06:19:51.314Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "self-recovery-keeps-the-warning-18sep",
+  "syntheticIdCount": 93,
+  "withheldEventKinds": [
+    "answered"
+  ],
+  "through": "dispatched"
+}

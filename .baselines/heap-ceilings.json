@@ -1,0 +1,11 @@
+{
+  "ceilingsMiB": {
+    "desktop.package-script.build.process-tree-rss": 4096,
+    "lint-gate.named-object-params": 8192,
+    "named-object-params.budget": 6543,
+    "package-script.build.process-tree-rss": 10240,
+    "package-script.typecheck.process-tree-rss": 10240
+  },
+  "raises": [],
+  "schemaVersion": 1
+}

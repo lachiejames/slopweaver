@@ -1,0 +1,586 @@
+{
+  "by": "fixture-capture",
+  "bytes": 15000,
+  "document": {
+    "ceilings": {
+      "ceilings": [
+        {
+          "account": null,
+          "freeResets": null,
+          "headroom": 0.57,
+          "id": "machine",
+          "kind": "machine",
+          "reason": null,
+          "status": "open",
+          "windows": [{ "available": 22, "resetAtIso": null, "used": 9.46, "window": "load1" }]
+        },
+        {
+          "account": "plan-account-01@acme.com",
+          "freeResets": null,
+          "headroom": 0.2,
+          "id": "claude:plan-one",
+          "kind": "claude",
+          "reason": null,
+          "status": "open",
+          "windows": [
+            { "available": 100, "resetAtIso": "2026-10-07T23:00:00.000Z", "used": 2, "window": "five-hour" },
+            { "available": 100, "resetAtIso": "2026-10-08T19:00:00.000Z", "used": 80, "window": "seven-day" },
+            { "available": 100, "resetAtIso": "2026-10-08T19:00:00.000Z", "used": 100, "window": "fable-seven-day" }
+          ]
+        },
+        {
+          "account": "plan-account-02@acme.com",
+          "freeResets": null,
+          "headroom": 0.31,
+          "id": "claude:plan-two",
+          "kind": "claude",
+          "reason": null,
+          "status": "open",
+          "windows": [
+            { "available": 100, "resetAtIso": "2026-10-07T19:40:00.000Z", "used": 0, "window": "five-hour" },
+            { "available": 100, "resetAtIso": "2026-10-10T22:00:00.000Z", "used": 69, "window": "seven-day" },
+            { "available": 100, "resetAtIso": "2026-10-10T22:00:00.000Z", "used": 44, "window": "fable-seven-day" }
+          ]
+        },
+        {
+          "account": "plan-account-03@acme.com",
+          "freeResets": null,
+          "headroom": 0.28,
+          "id": "claude:plan-three",
+          "kind": "claude",
+          "reason": null,
+          "status": "open",
+          "windows": [
+            { "available": 100, "resetAtIso": "2026-10-07T19:30:00.000Z", "used": 7, "window": "five-hour" },
+            { "available": 100, "resetAtIso": "2026-10-09T07:00:00.000Z", "used": 72, "window": "seven-day" },
+            { "available": 100, "resetAtIso": "2026-10-09T07:00:00.000Z", "used": 71, "window": "fable-seven-day" }
+          ]
+        },
+        {
+          "account": "plan-account-04@acme.com",
+          "freeResets": null,
+          "headroom": null,
+          "id": "claude:plan-four",
+          "kind": "claude",
+          "reason": "monthly spend is NOT MEASURED; no routing gate reads a per-plan spend yet, so this plan takes no autonomous work",
+          "status": "unreadable",
+          "windows": []
+        },
+        {
+          "account": "plan-account-05@acme.com",
+          "freeResets": null,
+          "headroom": 0.99,
+          "id": "claude:plan-five",
+          "kind": "claude",
+          "reason": null,
+          "status": "open",
+          "windows": [
+            { "available": 100, "resetAtIso": "2026-10-07T19:10:00.000Z", "used": 1, "window": "five-hour" },
+            { "available": 100, "resetAtIso": "2026-10-14T11:00:00.000Z", "used": 1, "window": "seven-day" },
+            { "available": 100, "resetAtIso": "2026-10-14T11:00:00.000Z", "used": 0, "window": "fable-seven-day" }
+          ]
+        },
+        {
+          "account": "plan-account-06@acme.com",
+          "freeResets": 0,
+          "headroom": 0,
+          "id": "codex:codex-ambient",
+          "kind": "codex",
+          "reason": "weekly window at 30% used, at its usage limit of 30% (resets 2026-10-14T03:30:15.000Z) — the owner's own limit, not provider cap evidence, and no --force crosses it",
+          "status": "at-usage-limit",
+          "windows": [{ "available": 30, "resetAtIso": "2026-10-14T03:30:15.000Z", "used": 30, "window": "weekly" }]
+        },
+        {
+          "account": "plan-account-07@acme.com",
+          "freeResets": 1,
+          "headroom": 0.83,
+          "id": "codex:codex-two",
+          "kind": "codex",
+          "reason": null,
+          "status": "open",
+          "windows": [{ "available": 100, "resetAtIso": "2026-10-14T03:40:18.000Z", "used": 17, "window": "weekly" }]
+        },
+        {
+          "account": "plan-account-08@acme.com",
+          "freeResets": 1,
+          "headroom": 0.83,
+          "id": "codex:codex-three",
+          "kind": "codex",
+          "reason": null,
+          "status": "open",
+          "windows": [{ "available": 100, "resetAtIso": "2026-10-14T03:55:59.000Z", "used": 17, "window": "weekly" }]
+        },
+        {
+          "account": "plan-account-09@acme.com",
+          "freeResets": 0,
+          "headroom": 0,
+          "id": "codex:codex-four",
+          "kind": "codex",
+          "reason": "Codex reported a usage limit reached (detected 2026-09-28T10:18:19.042Z); the event names no window, so there is no reset to wait for — bypass once with --force, or run `slopweaver codex quota clear` once it's confirmed fixed",
+          "status": "refusing",
+          "windows": [{ "available": 100, "resetAtIso": "2026-10-14T18:46:46.000Z", "used": 0, "window": "weekly" }]
+        },
+        {
+          "account": "plan-account-10@acme.com",
+          "freeResets": 1,
+          "headroom": 0.83,
+          "id": "codex:codex-one",
+          "kind": "codex",
+          "reason": null,
+          "status": "open",
+          "windows": [{ "available": 100, "resetAtIso": "2026-10-14T04:06:00.000Z", "used": 17, "window": "weekly" }]
+        }
+      ],
+      "observedAtIso": "2026-10-07T18:46:39.677Z",
+      "problems": [],
+      "lowest": "machine",
+      "routes": [
+        {
+          "driver": "claude",
+          "headroom": 0.2,
+          "limitingCeilingId": "claude:plan-one",
+          "planCeilingId": "claude:plan-one"
+        },
+        { "driver": "codex", "headroom": 0.57, "limitingCeilingId": "machine", "planCeilingId": "codex:codex-two" }
+      ],
+      "selectedRoute": {
+        "driver": "codex",
+        "headroom": 0.57,
+        "limitingCeilingId": "machine",
+        "planCeilingId": "codex:codex-two"
+      }
+    },
+    "alert": false,
+    "recentBoots": {
+      "boots": [
+        {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-005",
+          "pid": 80720,
+          "seconds": 170,
+          "sessionId": "a0000123-0000-4000-8000-000000000136"
+        }
+      ],
+      "hold": 3,
+      "windowSeconds": 180
+    },
+    "cpuHogs": {
+      "cpuAttributed": true,
+      "hogs": [
+        {
+          "classification": "foreign",
+          "cpuPct": 109.8,
+          "elapsedSeconds": 11515,
+          "label": "Google Chrome Helper (Renderer)",
+          "pid": 78768
+        },
+        { "classification": "fleet", "cpuPct": 104, "elapsedSeconds": 522429, "label": "cmux", "pid": 5088 },
+        { "classification": "foreign", "cpuPct": 53.8, "elapsedSeconds": 447, "label": "mds", "pid": 60163 },
+        {
+          "classification": "foreign",
+          "cpuPct": 19,
+          "elapsedSeconds": 523436,
+          "label": "com.example.devicetray.EndpointSecurity",
+          "pid": 872
+        },
+        { "classification": "foreign", "cpuPct": 18.3, "label": "pid 0", "pid": 0 },
+        {
+          "classification": "foreign",
+          "cpuPct": 16.6,
+          "elapsedSeconds": 523446,
+          "label": "opendirectoryd",
+          "pid": 581
+        },
+        { "classification": "foreign", "cpuPct": 15.4, "elapsedSeconds": 522427, "label": "Finder", "pid": 5098 },
+        {
+          "classification": "fleet",
+          "cpuPct": 15.4,
+          "elapsedSeconds": 26710,
+          "label": "Slopweaver Helper",
+          "pid": 97044
+        }
+      ]
+    },
+    "dispatch": {
+      "backoffSeconds": 0,
+      "covering": 28,
+      "open": 90,
+      "subject": "session a0000058-0000-4000-8000-000000000064"
+    },
+    "compressedPagesPct": 4,
+    "diskFreeGb": 263.2,
+    "diskUsedPct": 73,
+    "fleet": {
+      "cpuAttributed": true,
+      "orphanCount": 0,
+      "orphanCpuPct": 0,
+      "orphans": [],
+      "sessions": [
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 9.9,
+          "nonHookProcessCount": 8,
+          "parallelToolCalls": 0,
+          "pid": 64679,
+          "processCount": 8,
+          "sessionId": "a0000117-0000-4000-8000-000000000130",
+          "toolShellsInFlight": 2,
+          "tree": [
+            { "cpuPct": 8.2, "elapsedSeconds": 28, "label": "node", "pid": 94005 },
+            { "cpuPct": 1.7, "elapsedSeconds": 3797, "label": "claude", "pid": 64679 },
+            { "cpuPct": 0, "label": "(git)", "pid": 1431 },
+            { "cpuPct": 0, "elapsedSeconds": 28, "label": "zsh", "pid": 93999 },
+            { "cpuPct": 0, "elapsedSeconds": 28, "label": "zsh", "pid": 94000 },
+            { "cpuPct": 0, "elapsedSeconds": 28, "label": "tail", "pid": 94002 },
+            { "cpuPct": 0, "elapsedSeconds": 3795, "label": "trajectory", "pid": 65219 },
+            { "cpuPct": 0, "elapsedSeconds": 47, "label": "caffeinate", "pid": 92105 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 3.7,
+          "nonHookProcessCount": 3,
+          "parallelToolCalls": 0,
+          "pid": 80720,
+          "processCount": 3,
+          "sessionId": "a0000123-0000-4000-8000-000000000136",
+          "toolShellsInFlight": 0,
+          "tree": [
+            { "cpuPct": 3.7, "elapsedSeconds": 170, "label": "claude", "pid": 80720 },
+            { "cpuPct": 0, "elapsedSeconds": 168, "label": "trajectory", "pid": 80901 },
+            { "cpuPct": 0, "elapsedSeconds": 136, "label": "caffeinate", "pid": 83460 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 1.5,
+          "nonHookProcessCount": 4,
+          "parallelToolCalls": 0,
+          "pid": 75697,
+          "processCount": 4,
+          "sessionId": "a0000113-0000-4000-8000-000000000124",
+          "toolShellsInFlight": 1,
+          "tree": [
+            { "cpuPct": 1.4, "elapsedSeconds": 117, "label": "node", "pid": 85942 },
+            { "cpuPct": 0.1, "elapsedSeconds": 1280, "label": "claude", "pid": 75697 },
+            { "cpuPct": 0, "elapsedSeconds": 117, "label": "zsh", "pid": 85937 },
+            { "cpuPct": 0, "elapsedSeconds": 1278, "label": "trajectory", "pid": 75870 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 1.2,
+          "nonHookProcessCount": 2,
+          "parallelToolCalls": 0,
+          "pid": 3128,
+          "processCount": 2,
+          "sessionId": "a0000121-0000-4000-8000-000000000134",
+          "toolShellsInFlight": 0,
+          "tree": [
+            { "cpuPct": 1.2, "elapsedSeconds": 52633, "label": "claude", "pid": 3128 },
+            { "cpuPct": 0, "elapsedSeconds": 52629, "label": "trajectory", "pid": 4719 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 1.1,
+          "nonHookProcessCount": 6,
+          "parallelToolCalls": 0,
+          "pid": 67450,
+          "processCount": 6,
+          "sessionId": "a0000126-0000-4000-8000-000000000139",
+          "toolShellsInFlight": 1,
+          "tree": [
+            { "cpuPct": 1.1, "elapsedSeconds": 1408, "label": "claude", "pid": 67450 },
+            { "cpuPct": 0, "label": "ps", "pid": 1445 },
+            { "cpuPct": 0, "elapsedSeconds": 12, "label": "zsh", "pid": 95345 },
+            { "cpuPct": 0, "elapsedSeconds": 12, "label": "node", "pid": 95364 },
+            { "cpuPct": 0, "elapsedSeconds": 1405, "label": "trajectory", "pid": 67604 },
+            { "cpuPct": 0, "elapsedSeconds": 119, "label": "caffeinate", "pid": 85492 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.4,
+          "nonHookProcessCount": 7,
+          "parallelToolCalls": 0,
+          "pid": 45488,
+          "processCount": 7,
+          "sessionId": "a0000118-0000-4000-8000-000000000131",
+          "toolShellsInFlight": 0,
+          "tree": [
+            { "cpuPct": 0.4, "elapsedSeconds": 123100, "label": "claude", "pid": 45488 },
+            { "cpuPct": 0, "elapsedSeconds": 123098, "label": "node", "pid": 45675 },
+            { "cpuPct": 0, "elapsedSeconds": 123098, "label": "trajectory", "pid": 45680 },
+            { "cpuPct": 0, "elapsedSeconds": 123096, "label": "node", "pid": 45942 },
+            { "cpuPct": 0, "elapsedSeconds": 123095, "label": "node", "pid": 46097 },
+            { "cpuPct": 0, "elapsedSeconds": 123093, "label": "node", "pid": 46480 },
+            { "cpuPct": 0, "elapsedSeconds": 123092, "label": "node", "pid": 46518 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.3,
+          "nonHookProcessCount": 7,
+          "parallelToolCalls": 0,
+          "pid": 93946,
+          "processCount": 7,
+          "sessionId": "a0000109-0000-4000-8000-000000000120",
+          "toolShellsInFlight": 0,
+          "tree": [
+            { "cpuPct": 0.3, "elapsedSeconds": 124838, "label": "claude", "pid": 93946 },
+            { "cpuPct": 0, "elapsedSeconds": 124837, "label": "node", "pid": 94149 },
+            { "cpuPct": 0, "elapsedSeconds": 124837, "label": "trajectory", "pid": 94164 },
+            { "cpuPct": 0, "elapsedSeconds": 124835, "label": "node", "pid": 94330 },
+            { "cpuPct": 0, "elapsedSeconds": 124834, "label": "node", "pid": 94464 },
+            { "cpuPct": 0, "elapsedSeconds": 124832, "label": "node", "pid": 94763 },
+            { "cpuPct": 0, "elapsedSeconds": 124831, "label": "node", "pid": 94951 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.2,
+          "nonHookProcessCount": 5,
+          "parallelToolCalls": 0,
+          "pid": 11822,
+          "processCount": 5,
+          "sessionId": "a0000070-0000-4000-8000-000000000076",
+          "toolShellsInFlight": 1,
+          "tree": [
+            { "cpuPct": 0.2, "elapsedSeconds": 893, "label": "claude", "pid": 11822 },
+            { "cpuPct": 0, "elapsedSeconds": 599, "label": "zsh", "pid": 46592 },
+            { "cpuPct": 0, "elapsedSeconds": 599, "label": "node", "pid": 46594 },
+            { "cpuPct": 0, "elapsedSeconds": 598, "label": "node", "pid": 46704 },
+            { "cpuPct": 0, "elapsedSeconds": 890, "label": "trajectory", "pid": 12156 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.2,
+          "nonHookProcessCount": 2,
+          "parallelToolCalls": 0,
+          "pid": 55504,
+          "processCount": 2,
+          "sessionId": "a0000120-0000-4000-8000-000000000133",
+          "toolShellsInFlight": 0,
+          "tree": [
+            { "cpuPct": 0.2, "elapsedSeconds": 98274, "label": "claude", "pid": 55504 },
+            { "cpuPct": 0, "elapsedSeconds": 98256, "label": "trajectory", "pid": 57761 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.1,
+          "nonHookProcessCount": 6,
+          "parallelToolCalls": 0,
+          "pid": 90719,
+          "processCount": 6,
+          "sessionId": "a0000094-0000-4000-8000-000000000101",
+          "toolShellsInFlight": 2,
+          "tree": [
+            { "cpuPct": 0.1, "elapsedSeconds": 7075, "label": "claude", "pid": 90719 },
+            { "cpuPct": 0, "elapsedSeconds": 1198, "label": "zsh", "pid": 86702 },
+            { "cpuPct": 0, "elapsedSeconds": 1198, "label": "tail", "pid": 86704 },
+            { "cpuPct": 0, "elapsedSeconds": 7001, "label": "zsh", "pid": 96171 },
+            { "cpuPct": 0, "elapsedSeconds": 7001, "label": "node", "pid": 96176 },
+            { "cpuPct": 0, "elapsedSeconds": 7073, "label": "trajectory", "pid": 90846 }
+          ]
+        }
+      ]
+    },
+    "fleetChildAlert": false,
+    "foreignAlertGb": 8,
+    "graded": ["memory", "cpu"],
+    "hiddenCpu": {
+      "busyCores": 6.8,
+      "hiddenFromTop": [
+        "com.example.endpoint.Agent",
+        "PredictService",
+        "ScanService",
+        "Endpoint Notifications",
+        "PlistXPathService",
+        "InstalledBrowserExtensionService"
+      ],
+      "unattributedCores": 2.1,
+      "visibleCores": 4.7
+    },
+    "hold": false,
+    "hookStallHoldSeconds": 300,
+    "holdSubjects": [],
+    "load": { "load1": 9.46, "load15": 10, "load5": 9.73 },
+    "loadHold": 22,
+    "parallelCallAlert": 8,
+    "processes": [
+      {
+        "classification": "foreign",
+        "footprintBytes": 6499074048,
+        "footprintGb": 6.1,
+        "label": "com.apple.Virtualization.VirtualMachine",
+        "pid": 6972
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 2489319424,
+        "footprintGb": 2.3,
+        "label": "Google Chrome Helper (Renderer)",
+        "pid": 78768
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 2129657856,
+        "footprintGb": 2,
+        "label": "mdm-agent",
+        "pid": 855
+      },
+      { "classification": "fleet", "footprintBytes": 1827667968, "footprintGb": 1.7, "label": "cmux", "pid": 5088 },
+      {
+        "classification": "fleet",
+        "footprintBytes": 1236271104,
+        "footprintGb": 1.2,
+        "label": "node",
+        "pid": 94005,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-006",
+          "pid": 64679,
+          "sessionId": "a0000117-0000-4000-8000-000000000130"
+        }
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 891289600,
+        "footprintGb": 0.8,
+        "label": "Google Chrome",
+        "pid": 63028
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 551550976,
+        "footprintGb": 0.5,
+        "label": "WindowServer",
+        "pid": 612
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 470810624,
+        "footprintGb": 0.4,
+        "label": "claude",
+        "pid": 67450,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-007",
+          "pid": 67450,
+          "sessionId": "a0000126-0000-4000-8000-000000000139"
+        }
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 458227712,
+        "footprintGb": 0.4,
+        "label": "Slopweaver Helper (Renderer)",
+        "pid": 97106
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 457179136,
+        "footprintGb": 0.4,
+        "label": "trajectory",
+        "pid": 6999
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 450887680,
+        "footprintGb": 0.4,
+        "label": "node",
+        "pid": 85942,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-008",
+          "pid": 75697,
+          "sessionId": "a0000113-0000-4000-8000-000000000124"
+        }
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 437256192,
+        "footprintGb": 0.4,
+        "label": "claude",
+        "pid": 11822,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-009",
+          "pid": 11822,
+          "sessionId": "a0000070-0000-4000-8000-000000000076"
+        }
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 425721856,
+        "footprintGb": 0.4,
+        "label": "claude",
+        "pid": 93946,
+        "session": {
+          "cwd": "/Users/operator/dev/acme-admin/.claude/worktrees.noindex/synthetic-worktree-010",
+          "pid": 93946,
+          "sessionId": "a0000109-0000-4000-8000-000000000120"
+        }
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 413138944,
+        "footprintGb": 0.4,
+        "label": "Google Chrome Helper",
+        "pid": 63107
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 363855872,
+        "footprintGb": 0.3,
+        "label": "claude",
+        "pid": 45488,
+        "session": {
+          "cwd": "/Users/operator/dev/acme-admin/.claude/worktrees.noindex/synthetic-worktree-011",
+          "pid": 45488,
+          "sessionId": "a0000118-0000-4000-8000-000000000131"
+        }
+      }
+    ],
+    "registeredWorktrees": 33,
+    "segmentsHoldPct": 40,
+    "segmentsLimit": 1677721,
+    "segmentsPct": 12,
+    "segmentsUsed": 197347,
+    "swapAlertGb": 4,
+    "swapTotalGb": 3,
+    "swapUsedGb": 1.7,
+    "swapfileCount": 3,
+    "swapfileHoldCount": 12,
+    "topFleetChild": {
+      "classification": "fleet",
+      "footprintBytes": 1236271104,
+      "footprintGb": 1.2,
+      "label": "node",
+      "pid": 94005,
+      "session": {
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-006",
+        "pid": 64679,
+        "sessionId": "a0000117-0000-4000-8000-000000000130"
+      }
+    },
+    "topForeign": {
+      "classification": "foreign",
+      "footprintBytes": 6499074048,
+      "footprintGb": 6.1,
+      "label": "com.apple.Virtualization.VirtualMachine",
+      "pid": 6972
+    },
+    "watchedProcesses": [
+      { "classification": "foreign", "footprintBytes": 8421376, "footprintGb": 0, "label": "fseventsd", "pid": 97860 }
+    ],
+    "ungraded": [],
+    "verdict": "machine capacity: ok on memory and cpu — 1-min load 9.46 · top foreign hog 'com.apple.Virtualization.VirtualMachine' at 6.1 GB · hidden from top: 'com.example.endpoint.Agent' +5 more, 2.1 cores of cpu unattributed · swap 1.7/3 GB · compressor 12% of segments limit · 3 swapfiles",
+    "worktreeRepos": [
+      { "registered": 16, "repoRoot": "/Users/operator/dev/slopweaver" },
+      { "registered": 17, "repoRoot": "/Users/operator/dev/acme-admin" }
+    ]
+  },
+  "observedAtIso": "2026-10-07T18:46:51Z",
+  "producer": "machine capacity",
+  "readingId": "2026-10-07T18:47:12.450Z-machine-capacity",
+  "recordedAtIso": "2026-10-07T18:47:12.450Z"
+}

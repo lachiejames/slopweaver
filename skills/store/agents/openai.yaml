@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slopweaver Store"
+  short_description: "Answer from the local corpus, or hand back its cited records"
+  default_prompt: "Answer this question from Slopweaver's store with grounded citations."

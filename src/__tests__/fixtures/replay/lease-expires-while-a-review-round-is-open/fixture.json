@@ -1,0 +1,44 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1789952379.135579",
+    "threadTs": "1789775392.910229"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "live/slack/turn-markers/CFIXTUREAA-1789952379.135579.json — written after the last kept event (2026-09-21T04:39:29.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789952379.135579/record.json — written after the last kept event (2026-09-21T04:39:29.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789952379.135579/verdict.json — written after the last kept event (2026-09-21T04:39:29.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789952379.135579/answer-reviewed-sha256-0de5c2b2a766f2e95fe1066337e9f56b88df3454df7bc1d9862d99f93456678e.json — written after the last kept event (2026-09-21T04:39:29.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789952379.135579/answer-reviewed-sha256-6e2f214c8b1591688f5d0476d7fa56b5d450e91e455cbe35c51da46db54183e4.json — written after the last kept event (2026-09-21T04:39:29.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789952379.135579/verdict-superseded-fixture-uuid-dq-2026-09-21T04-43-00-208Z.json — written after the last kept event (2026-09-21T04:39:29.000Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1789952379.135579.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1789952379.135579.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1789952379.135579/draft-sha256-5e2f925c518427fdfb0a88b6a4c1f4b9c3422e83b40d70b5913dc10ede216d23.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1789952379.135579/log.jsonl",
+    "home/live/slack/reviews/CFIXTUREAA-1789952379.135579/answer-reviewed-sha256-5e2f925c518427fdfb0a88b6a4c1f4b9c3422e83b40d70b5913dc10ede216d23.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789952379.135579/verdict-superseded-fixture-uuid-dp-2026-09-21T04-28-41-703Z.json"
+  ],
+  "frozenAtIso": "2026-09-21T17:07:10.259Z",
+  "incident": "The dispatch lease expired at 2026-09-21T04:39:27.978Z. Round 1's reviewer had just written its verdict (04:39:29Z, outcome broken), so reviewPostureOf's inFlight was false and a broken verdict is not a usable one — and leaseState fell straight through to the wall clock over a review record whose releasedAt was not stamped until 05:17:02.952Z. Any turn dispatch --sweep lap landing in that window, or in the two like it at 04:55:19-04:59:07 and 05:12:31-05:14:53, would have reported lease-expired and finalised a turn that was mid fix-and-re-review.",
+  "regresses": [
+    "bot-answer-review-rounds-uncapped"
+  ],
+  "replayNowIso": "2026-09-21T04:39:29.000Z",
+  "reviewRounds": 1,
+  "schemaVersion": 1,
+  "slug": "lease-expires-while-a-review-round-is-open",
+  "syntheticIdCount": 95,
+  "withheldEventKinds": [
+    "failed",
+    "answered"
+  ],
+  "through": "dispatched"
+}

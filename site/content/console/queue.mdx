@@ -1,0 +1,370 @@
+---
+title: Queue
+---
+
+# Queue
+
+Everything waiting on your word, in one card: the steps only your hands can take, every run parked on you
+with its recorded question, the replies the door is holding, the messages a session composed under your own
+name and parked, the reviews of a colleague's pull request a session parked under your name as draft line
+comments, and the pull requests whose next act `github landing` handed to you. Each row opens a panel that draws
+the platform the thing lives on — the floating note, the board row as the terminal prints it, the pull request as
+GitHub draws it — with the verb's own reason it is in the queue beside it, and a footer carrying the acts
+a `slopweaver` verb already takes. Deep-link a row with `?open=<kind>:<id>`. A step that asks you to decide
+opens the ask holding its choice, so its card shows that ask's problem, options, trade-offs and stakes, and its
+panel the pull requests, the thread and any Slack draft it would post, exactly as it would post; a link to the
+ask opens that step.
+
+A row is its question and nothing piled before it: no kind, no action badge, no pill and no placement tag — every
+label earns its place, and those are what the question already says. Its age, its currency mark and a
+chevron sit on the right. An opened card carries one properties section, Linear-style — status, priority, the
+workstream by its name (hover for its progress, click for its page), who the message tags and who is in its thread,
+and what it is related to ([properties](/docs/console/queue-card-properties)) — and no tag pills under it. A person
+is a chip only there; everywhere else on the card a person is a first name, and you are "you". Numbers in one
+sentence read one way: 1.7K beside 5.9K, or 1,734 beside 5,977, never one of each — and a quoted span is someone's
+words, so it is never rewritten and never decides.
+
+## What each register is derived from
+
+| Register       | Verb                                                         | The rows it shows                                                                                                                                                                                                                                  | Lane             |
+| -------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| hands          | `slopweaver hand list --json`                                | every open hand step, oldest first, the order the register publishes                                                                                                                                                                               | polled every 20s |
+| asks           | `slopweaver handover list --json`                            | every board row carrying a `question` — a run parked on you — in board order                                                                                                                                                                       | read once        |
+| replies        | `slopweaver queue list --json`                               | every withheld reply still `held` — the door drafted it and is holding it for your word                                                                                                                                                            | polled every 20s |
+| as you         | `slopweaver slack draft list --json`                         | every parked as-me draft still `held` — composed under your own name, and nothing sent                                                                                                                                                             | polled every 20s |
+| reviews as you | `slopweaver github review-draft list --json`                 | every parked review still `held` — a verdict, a body and line comments on a colleague's pull request, each drawn on its hunk, and nothing posted                                                                                                   | polled every 20s |
+| judgment       | `slopweaver reading last --producer "github landing" --json` | rows whose `humanWait.next` is `name-the-reviewer` first (not one dispatched `draft-first-review-ask`, whose seat records the ask or a discussion opener), then rows whose dispatch verdict is `needs-owner-judgment`, off the tick's last reading | polled every 20s |
+
+The judging word in every register is the verb's: a hand step is one `hand` recorded, an ask is a row the
+board marks parked, a pull request is one `github landing` itself refused to dispatch to a session, and a parked draft is one `slack draft record`
+wrote without any way to send it, and a parked review one `github review-draft record` wrote without any way to
+post it. The page filters on those words and issues none.
+
+## The one bar above the cards
+
+The page opens on one bar and then the cards. **The view selector** names the view you are on and its count, and
+opens a list of views, each with its count: Everything, Urgent (`priority` p0 or p1), Blocking a colleague, Blocking
+the fleet, Slack drafts, Reviews under your name, New findings and Check-ins. The view rides the address as
+`?view=<name>`, so a link opens on it. A tag a link carries (`?tag=key:value`) is a removable chip beside it. **The
+freshness line** on the right is quiet when every card is current — _updated 2m ago_, the oldest reading on screen —
+is a spinner while a read is in flight, and is a staleness mark when a register's cards are an earlier reading or
+could not be read: pointing at it names every such register on a line of its own, with the verb's reason and the age
+of what is still drawn. A reading that fails keeps the cards it already drew, so a poll that stumbles never blanks
+the list; a press's own re-read never brings a settled card back.
+
+The page ends at its last card, with nothing drawn under it. There is no text box: the console's one text input is the call's chat,
+so answer aloud or there, and the open card is what "this" means — so an ask's panel has no act bar and no line at
+its foot saying so. Where a panel's act bar explains a command rather than pressing one, the explanation sits behind
+one closed line.
+
+## A card you already spoke to leaves the list
+
+Words you say on a call while a card YOU opened is open land on that card (`slopweaver talk cards`, polled every
+20s): an ask gets them as your answer, and any other card a row carrying them, so the card waits on a session and
+is not drawn again. Until that reading arrives nothing is hidden, and the gap is named as _your spoken steers_; a
+card put back with `talk restore` is drawn again. An ask asking a question you already ruled on, word for word,
+is drawn as a check-in carrying that ruling, never as a fresh question.
+
+A card the voice put in front of you is different: its address carries `by=voice`, and nothing you say over it is
+landed on it, so the voice reading a card out never takes it off your Queue. A steer the voice relays still lands
+on it, and clicking the card yourself makes it yours, so what you say next lands as before. A relay that named no
+card lands too, once the chair marks that turn as relayed: `talk cards` reads its intake mark back to the card the
+voice had open while you spoke, and shows it as _recorded by the chair_. A turn the chair only answered — you asking,
+not steering — lands nothing.
+
+Moving on is reacting too. When the voice puts the next card up, by name or in a triage pass, the one before leaves
+your Queue until it has news, unless you said to come back to it or parked it. That holds when you followed the card's
+own link first, so no card was open as you ruled and moved on: the card the voice last put in front of you is still the
+one you left, and a ruling said from its linked page can name it.
+
+Your words land only on the card as it stood when you said them. An ask whose question is asked again after you spoke
+is a new question and is drawn again; a held post whose hold or change of meaning was recorded after you spoke is
+drawn again so you read why your yes is not sent. A not-a-yes hold (the reason `DRAFT_HOLD_REASONS` lists first) is not that: it is a session reading your steer
+as "not yet", so the card stays off your list while the better version is made — unless its meaning changed after you
+spoke.
+
+**Recut in flight.** A card your words landed on whose work row a session is running now — in flight, its run active
+— is drawn as _Recut in flight, &lt;row&gt;_ among the check-ins, off the badge, instead of the old question. Once
+nothing is running it, it leaves the list until the recut comes back to you.
+
+The card you have OPEN leaves the list but stays open until you close it or open another, its buttons held. A
+plain line at its head says it has left your queue, and that once you close it you may not be able to reopen it
+yet. Its **Since you opened this** section says who took it off and when, quoting the words that did it and the row a session
+acts on: your words heard with the card open, your words relayed by the voice, or a session landing them from another
+card — the first one that took it off, and any later ones behind a fold — and keeps naming them after a session
+settles the row. A card no register holds and no reading names keeps its register's own word, and says that unless
+your own press did it, no ledger this page reads names who removed it. The voice reads the same line, so it
+does not ask you to rule again on a card your words already took off.
+
+## What the badge counts, and how fresh each row is
+
+The card has three sections, each headed with its count, in the one order every surface of what waits on you
+shares. **Blocking a colleague** leads: a held reply, a post as you, a review as you, a hand step or pull request on
+the work side, and an ask a colleague's address places there — a pull request, a Slack, Linear or Vanta link, never
+a stated workspace alone. An ask wears the mark of the workspace it is placed in. **Blocking the fleet** is the fleet's own work stopped on your word. Those two are the number on
+the sidebar badge. **Check-ins — your word is a review** come last and are never in the badge: a hand step posted
+`--check-in` (a review of something already built), an ask that looks answered already, and a hand step whose ask you
+already ruled on. A line in the fold at the
+bottom says which context the count is taken in, how many rows name neither context (shown, and counted, in both) and how
+many the other context holds and this one does not. That last figure is also a note above the list, and under the
+empty state, so an empty Queue in one context never hides the cards waiting in the other; the voice says it too.
+
+**One order, the same everywhere.** The order this list puts things in is the order the voice raises them and the
+order a triage pass walks them: the order the voice raises things in matches the order the Queue puts them to you in. It opens on three sections ahead of the ones above:
+
+- **Blocking your priorities**: any card blocking one of your priorities, by the priority it blocks.
+- **Your priorities**: every card carrying a priority's board tag, your first priority first, then by its board band,
+  then by the controls it resolves, most first.
+- **Stopped automations**: an automation that stopped, or that you held. It is not a blocker, so it comes after your
+  priorities.
+
+A priority is a workstream on your outcomes register at priority _urgent_ that names the board tag its cards carry
+(`queueWorkstream`, for ISO `iso-certification`); its rank orders it against the others. A blocker or a stopped
+automation shows in both contexts, whichever one it belongs to, and putting it off does not move it down. Its decision
+and options are on its face, so the choice is above the fold. The supervisor's chat update raises it in the same place
+(`slopweaver queue stopping` prints those cards). None of these sections folds, so card N here is the voice's Nth.
+
+The order is driven by the register, so lowering a priority puts the order back. It never moves a card's tier, so the
+badge and the counts do not change. A check-in is never lifted. A card you put off joins no priority, and a card whose
+tags read only in part never does either. When the register has never been read, a mark says so and every card stands
+by its tier; when a later read fails, the priorities it last read stay lifted, marked as an earlier reading, as any
+register's kept reading is.
+
+Whether something the fleet already did was the right call is never asked here: those acts are on the
+[Alignment page](/docs/console/alignment), the sidebar entry under this one, whose badge is a plain count of the
+cards waiting on your answer, and nothing there blocks any work.
+
+A collapsed row shows its title, what kind of request it is (an ask, a held reply, a draft as you, your hands…), its
+priority when there is a read on one, and a **currency mark** saying when it was last checked — never when it first
+reached your screen. The mark (`cardCurrencyOf`, `site/lib/cardCurrencyMark.ts`) has two halves, and a card
+is **fresh** only when both were rechecked: its **facts** and **your steers**. Both come from the latest recorded
+`handover currency` reading, which carries one row for every hand step, ask, held reply, draft, parked review
+and pull request waiting on you, joined to its card by the card's exact key and the instant it reached you — a card
+that changed since the reading is a card the reading has not checked, so a card is ranked by what needs your attention most right now, with the facts and the steers both checked. Its facts are re-confirmed by the
+register still holding it, by a monitor's own last pass still naming it (never by the register alone: a monitor
+gone clear leaves its card unconfirmed), by the landing poll for a pull request, or by an ask's still-real check or
+a read of its Slack thread. Your steers pass only when nothing you said after it reached you could bear on it; a draft
+as you counts from when its words were last written, its newest voice revision or your pick, so the words you said to
+rework it are already folded in:
+
+- **fresh · checked 3m ago** — both halves passed; the age is the older of the two. Ready to react to on first look.
+  Each section lists its fresh cards first, whatever kind each is: a fresh ask is drawn above a stale hand step, never
+  below it because hands are drawn first. Each kind still shows its first eight in a section, its fold straight after the last of them
+  (`queueLayout`, `site/lib/queueLayout.ts`), and the voice's `action_items` ranks by the same reading, so the card it
+  names first is the card numbered 1 here.
+- **facts checked 3m ago · not your steers** — its facts were re-read, but you have said things since that are filed
+  to it or not filed anywhere yet, one of your memories, your owner profile or a ruling of yours changed since it
+  reached you, a source would not read, or the reading has not checked this card as it stands. A ruling filed to
+  another row does not count unless it places a gate still in force, read from every run journal whether or not
+  its doc is still on the board; a check older than schema 3 never read your
+  standing guidance, so it never passes this half.
+- **your steers checked 3m ago · not its facts** — nothing you said and no change to your standing guidance since
+  bears on it, but nothing re-confirmed its facts, or its done-check could not run.
+- **not re-confirmed · you said things since** — a check ran over it and neither half passed, so the badge names what
+  each half needs rather than an age: its facts _not re-confirmed_, _facts read failed_, _facts check not run_ or _facts
+  not checked_; your steers _you said things since_, _your guidance changed since_, _some steers unread_, _standing
+  guidance not checked_ or _steers not checked_. An age there read as a late check when the check was seconds old.
+  **not checked yet** when no check has run.
+- A supervisor chat whose transcript will not read on this machine leaves a card's steers unread only when it held
+  the chair after that card reached you; one that handed the chair on before then cannot hold a word about it
+  (`chairSince`, `src/handover/currency.ts`).
+- A read inside the check that failed — a place your words are read from, whether you replied, or what re-confirms its
+  facts — is a staleness mark beside the badge and the Checked line, its hover naming what and why, never a sentence
+  in the lines. The facts line says why they are not confirmed only in one of the phrases the check itself writes
+  (`NOT_CONFIRMED_WHYS`, `src/handover/currency.ts`); any other reason a reading carries, which can name an id or a
+  path, goes to that mark and the line says only that they are not confirmed.
+- **looks answered** — you replied in its Slack thread after the message it is anchored to.
+- **you ruled on it** — a hand step whose ask already carries your ruling; a seat executes it.
+- **you reacted** — something you said after it reached you is filed to this card; a seat folds it in, and nothing
+  on it waits on you until it comes back. A word filed nowhere yet fails the steers half but is not a reaction.
+
+**Opening the Queue refreshes that reading**, so opening a page triggers a freshness refresh of its
+cards. The supervisor tick records one whenever it runs; when you open the page and the check it shows is ten
+minutes old or more, or there is none, or the latest read of it failed, the page takes its own check once
+(`slopweaver handover currency --json --record-reading sync-now`) and the marks redraw when it lands. One attempt per
+opening: a check under ten minutes old is kept, a run that fails leaves the reading you were shown on screen with its
+real age, and a page left open asks nothing more — no timer runs behind it (`currencyOpeningRefreshPlan`,
+`site/lib/currencyOpeningRefresh.ts`).
+
+A card that is not fresh STAYS, drawn apart from the fresh ones: it may be superseded, stale or closed with nothing
+needed from you. A looks-answered, ruled or reacted card moves to the check-ins, off the badge, until the chair
+settles it, marks its step done, or it comes back changed. The opened card's **Checked** section is one closed line at its foot — _Checked · facts checked 3m
+ago · not your steers_ — and nothing else until you open it (`CheckedFold`). Opened, it and the hover say
+each half, against what, and what done means for this card — at most four lines however much you have said since, a
+cap the mark's type holds (`CheckedLines`), with ages rather than instants and no transcript pointer. What you said
+since sits under those lines, **folded shut behind its count** ("148 things you said since it was asked — none yet tied to
+a card"; `SaidSince`, `site/components/console/CurrencySaid.tsx`), newest first and split into what is tied to this
+card and what is not yet tied to any. Each row says where and how long ago you said it, then the opening
+of your own words; opening the row shows the whole of them, and says when the record kept only part. A read that
+failed is the staleness mark beside the line, which says only that it failed. How the check was taken is never on
+the card, since no page carries a note on how it is derived: it reads the supervisor chat, your
+console calls and the voice relays, and a card whose done-check is declared rather than a Slack reply says so
+without listing the checks, which can name a path.
+
+A held reply and a draft under your own name also carry the first 140 characters of the message itself, tags named
+the way the card names them (`reviewLineFor`, `site/lib/queueRows.ts`) — the two kinds whose release sends
+something. Every other row sends nothing when you act on it, so it has no such line.
+
+## Every open card leads with your own words
+
+Above its what, an expanded card says where it came from, with a direct quote of your exact words, prominent on the expanded card. An ask anchored on something you said to the
+console, on a call or in a Claude session shows those words on one line as the record captured them — never a prompt
+Claude Code suggested and you only accepted, nor a session's words under a call anchor naming no segment, nor a
+session turn Claude Code's own wrapper was cut from the middle of — with where and
+the instant that record carries — for a console turn, when it was relayed — and marked cut short wherever the record
+holds more than it shows; a hand step shows the words of
+the ask it belongs to, and says it is not read when that row is no longer on the live board or two rows share its
+name. A draft parked for a board row, and your own pull request landing for one, show that row's words the same way,
+joined as the card is drawn, so a card queued before the join shows them too; when that row should carry your words
+and does not, the card says so and still draws the draft.
+
+A card about a pull request carries **every row of yours that names it**, not only its own: the board joins rows by
+the exact `owner/repo#number` each names (`prSteersByRow`, `src/handover/prSteers.ts`), before any filter — a word of
+yours travels only when it is about that pull request: its row names no other, or the words themselves name it — and the
+opened card draws your words stored on the other rows under one closed fold — _2 more things you said about its pull
+request, on other cards_ — each placed like any quote and naming the pull request. When one of them asked for proof (a
+screenshot, an Actions run link, a Datadog link) and the pull request's live body still lacks it, the card **leads
+with that gap**, above its question: the collapsed row says what is missing on which pull request, and the opened card
+says when you asked, in your words. The body is read by `handover currency`, the tick's or the Queue opening's, its one GitHub
+read (`pullRequests` in the reading, `src/handover/prProof.ts`); a body it could not read leads with nothing here, and
+the voice says it was not checked, never that the proof is missing (`site/lib/prProof.ts`).
+
+A card no particular steer of yours produced — a fleet finding, a bot reply held for someone else, a row a session
+registered with no anchor, an act, a card naming no row — quotes the **standing ask** it rests on instead, under
+_your standing ask_, placed like any quote and followed by _no particular steer of yours is behind this card beyond
+it_ and where it did come from. Your standing asks are recorded with
+`slopweaver profile standing add <id> --anchor <anchor> --covers <coverage>`, the words read off the anchor and never
+typed; each covers `findings`, `bot-replies`,
+`registered-rows`, `unlinked-cards` or one exact `act:<kind>`, an act's own kind first, and one ask at most covers
+each (`site/lib/standingAskSource.ts`). When none covers the card, it still says _no words of yours behind this_ or
+that nothing records whose words are behind it — then that no standing ask of yours covers it; the commands a session
+runs to tie the card to your words or record a standing ask fold shut under _what a session can do about it_, each
+marked a session step by the code that wrote it (`site/lib/sessionSteps.ts`); while your standing asks are unread, or do not read, it says that instead. The words
+are stored on the row by `slopweaver handover register`, by the card landing a call's words close, and backfilled by
+`slopweaver handover quote --apply`, and a card whose anchor
+names your words but carries none is refused rather than drawn without them (`site/lib/queueCardSource.ts`), and so
+held off the Queue (below).
+
+Words too long to draw whole fold shut, and the line the fold shows is the stretch of your turn that names what the
+card is about — never whatever you said first, which may be filler or an aside. It is chosen by the words it shares with the card's row and by phrasing that states what
+you want, with a call's fillers, stutters and pauses dropped and a muted ellipsis wherever more of your words stand
+around it; it never adds a word or changes one, never starts on the card's own text read back, an `if` it cuts off,
+or a stretch you took back, and a typed turn loses only its annotations. Opening the fold — _your whole words,
+verbatim_ — shows every word as the record holds it (`site/lib/quoteLead.ts`).
+
+Where you steered the same thing more than once, the rest follow it, shut under one line — _2 more times you
+steered this, oldest first_ — each quoted and placed exactly like the first, so the card shows how your view moved
+without growing by a list you did not open. A steer whose words would not read is said, not dropped. Last comes _why this is in front of you_:
+the one line the session that put the card there wrote, drawn after your words because it is drawn from them. Words
+you say on a call with an ask's card open are related to it this way, and `slopweaver handover quote <slug>
+--add-steer <anchor> --apply` relates any other.
+
+## An ask names its pull requests inline
+
+A pull request an ask names reads as its number in the heading and the what, and the number is the link: hover
+or focus it for the pull request and its diff. The URL the question carries is folded into the
+number rather than printed after it, and there is no row of chips under the card. A pull request the row names
+that the card never does, the Slack thread and where it was asked are lines in the folded record. In the list,
+where the whole row is already a link, the number is printed alone.
+
+## A card about a Slack thread shows the thread
+
+When an ask is about a Slack thread — its anchor or its words name one — the card opens on the thread itself, the
+way you would stumble on it in Slack: each message's author, time and text in Slack's order, read from the corpus,
+with _open in Slack_ beside it. It comes before the what, rather than a sentence describing it. When a draft is held for that thread it sits under it read-only, with the
+`slopweaver queue release <id>` line to copy; nothing on the card sends, and a change to its words is said in the
+call's chat with the card open.
+
+## A draft card leads with its receipts
+
+A draft parked for your yes says first what it brings for its claim, since no card reaches you without its receipts: `Receipts: 2 links, 1 attachment.`, or why none is needed, or what was tried
+and what stopped it. A draft with none of those is refused before it is parked, so it never reaches you. When Codex's
+draft beside it drops the link the original brings, the card says so and choosing it means a re-cut with the link
+first. A yes you gave on a draft stays given: a session cannot set it down as not a yes unless you said something
+newer on that card.
+
+## One held draft, one card
+
+A held draft is on ONE card, since a second card for it is a duplicate of the one already approved.
+When an ask or hand step asks you to send a held draft, that card owns it and the draft's own post card is not drawn:
+the ask carries the problem, the stakes and your ruling, and answering it sends the draft. A link to the post
+(`?open=post:<id>`, or a dropped cut's id) opens the owning card, which is team-facing as the post was. While Codex's
+draft sits beside it, the owning card draws both — labelled by who wrote each, since the ask's letters are its own
+options — and an ask's what opens on the choice: _Codex drafted the same message blind to Claude's draft … say which
+one goes before either can be sent._ An ask naming several held drafts owns them all but takes no post card, since the
+voice reads one draft or one pair per card, so each keeps its own. Any further card naming a draft another card already owns is held off the Queue
+(below), naming the draft and the card that owns it (`site/lib/queueDraftOwnership.ts`). A sent or dropped draft is a
+record, not a decision, so any number of cards may say what became of it.
+
+## The acts, and what each one does
+
+| Panel      | Button                             | Verb                                                                                      | What it writes                                                             |
+| ---------- | ---------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| your hands | Mark done                          | `slopweaver hand done <id> --did "done, marked on the console" --by-session work-console` | a `settled` row on the hand register; the note comes down; the row leaves  |
+| your hands | Not now: 1 hour, 3 hours, Tomorrow | `slopweaver hand snooze <id> --for 1h\|3h\|tomorrow --by-session work-console`            | a snooze record and marker — the step stays OPEN, the note comes back then |
+| your hands | Set (a secret field)               | `slopweaver secrets set <name> --stdin --json`, the value on stdin, never the argv        | the secret, `0600` in the store; the field reads `set <name>`, no value    |
+
+Every control prints the exact words it records, and every one is a click: the console has no hotkeys. The panel is
+folded: its question and where to check it sit above the fold, and the whole briefing — what happened, why it is
+yours, the stakes, the options and where it was read from — is one disclosure away. A press **settles** the row
+(`components/console/settling.tsx`): the panel closes at once, the row leaves the queue and every count, and
+one line above the list says what was recorded, with what the verb wrote behind _what the verb wrote_. The row comes
+back only if the verb refused or its outcome is unknown — then the line says so and the register's re-read decides.
+
+A hand step's panel is not a briefing: it draws the step's own fields — what it unblocks, where to go, what to
+paste, what settles it, what it cites and who posted it — and a field the step left off is no row. A step opening
+a shaped ask adds that ask's own problem, options, lean and stakes. A card that would draw a sentence neither
+record wrote is refused, and held off the Queue rather than drawn.
+
+## A card that fails its own checks never reaches you
+
+Every card passes the same checks before it is drawn: no sentence its record did not write, your words present when
+its anchor names them, a draft it asks about that it can actually show, no draft drawn twice, no held draft another
+card already owns, a page it cites cited
+first, and no session, call, talk, turn or run named by its machine id. A card that fails one is **held off the
+Queue**: out of every list, count, badge, triage walk, spoken item and recently-left card, and its words are never
+drawn, so a card that reaches you always passed every requirement and the Queue fails closed. One
+line above the list says how many are held, a link to one opens a note saying it is held and which check held it, and
+the supervisor's tick reads every held card with `slopweaver queue refusals --json` and sends a session to fix the
+record that same pass. An act the fleet took is not held: those are the Alignment page's, and a finding act reads as
+refused until its pull request is looked up (`site/lib/queueWithholding.ts`).
+
+**A reason the Queue quotes is said plainly, never pasted in.** Where the Queue's own sentence rests on a read that
+failed — a stored quote of yours that does not read, your standing asks, a pull request a finding act looks up, a
+detached run's doc, a word of yours on its pull request — the sentence is the Queue's alone, the read's reason sits
+beneath it in plain words, and the raw message is closed under **Full message**. Held
+cards' checks, refused cards and the source block all draw it the same way (`site/components/console/ReasonLines.tsx`),
+the same shape a staleness or warning mark already has; the voice and `queue refusals --json` read it as one line.
+
+The words are also refused where they are written: `slack draft record` refuses a `--why` or `--meaning-changed`,
+and `slack draft hold` a `--why`, that names a machine id, and `hand post` refuses a step whose card would draw one
+in any prose field — its sentence, `--witness`, `--unblocks`, `--if-ignored`, `--no-address`, a checklist line or a
+carried decision — so the session fixes them while it still holds them.
+
+A recorded ask has no button: `handover answer` is gated on the run's writer session, which this page is
+not, so the answer is given aloud or in the call's chat, as the top of this page says. A parked as-me draft
+has none either, and that one is the point rather than a gap: releasing it posts under your own name, so the
+panel prints `slopweaver slack post --as me --draft <id> --approve <digest>` behind its one closed line for you to run — `slack reply` for a
+draft that replies in a thread, whose card names the message it goes under — and offers no press. A pull request has no enqueue
+button yet, for the reason on [the console overview](/docs/console#what-is-not-on-it-yet).
+
+A press is one POST to `/api/act/<slug>`, the argv is built from `site/lib/actVerbs.ts`'s declared slots and
+nothing else, and the answer is one of four: **done** with what the verb wrote, **refused** with the verb's
+own reason, **unknown** when the verb was cut off on its timeout — the register is re-read either way, so the
+list and the panel move together. Reproduce any of them yourself:
+
+```bash
+slopweaver hand list --json
+slopweaver handover list --json
+slopweaver queue list --json
+slopweaver slack draft list --json
+slopweaver reading last --producer "github landing" --json
+```
+
+## What is not here, and why
+
+The supervisor chair's open-pages index — the pages it has put in front of you with their options — is a
+scratch file the chair carries from one seat to the next, not a document any `slopweaver` verb prints. Every
+field on this site comes from a verb a reader can run, so that list waits for a verb that prints it rather
+than a route that reads a chair's scratch directory. Email drafts and enqueue are absent for the reasons the
+page itself states beneath the card.

@@ -1,0 +1,69 @@
+---
+title: Run it yourself
+---
+
+# Run it yourself
+
+Everything on this site runs on **this** machine. There is no hosted copy, no deployment and no published
+build — the site is rendered locally, which is why the [console](/fleet) can shell real verbs at all.
+
+## The toolchain
+
+Yarn 4 (Berry) with `node-modules`, Node pinned in `.nvmrc`, TypeScript 6.0 ESM under `strict` plus
+`exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`.
+
+```bash
+nvm use
+yarn install
+yarn build        # the CLI
+bin/slopweaver catalog
+```
+
+## The whole loop, without touching a provider
+
+```bash
+slopweaver seed --demo
+```
+
+`seed --demo` is the **free whole-loop exerciser**: it stands up a corpus with no provider credential and no
+egress, so retrieval, the board and the outbound forms can all be driven end to end before anything is
+configured. Reach for it before building test machinery of your own.
+
+## The docs site
+
+```bash
+bash scripts/docs-site.sh --serve   # the console as it runs: a production build on http://localhost:3000
+cd site && yarn install && yarn dev # a dev server, for editing the site itself
+```
+
+The served console rebuilds and restarts itself when the checkout moves — lefthook's `post-merge` and
+`slopweaver checkout sync` both ask for it — so it is started once, not per pull (`docs/docs-site/runtime.md`).
+
+The console tiles shell `slopweaver` from the serving shell's PATH. If the binary is not on PATH the tiles
+say so in words rather than rendering a zero — which is the behaviour to expect on a fresh checkout that
+has never run `yarn build`.
+
+## Where state lives
+
+**Tools in the codebase, state outside it.** `$SLOPWEAVER_HOME` holds the per-install id, the handover
+journals, the door ledger, grants, secrets and the hygiene denylist. None of it is in git, and none of it is
+a constant in the source.
+
+```bash
+echo "$SLOPWEAVER_HOME"
+ls "$SLOPWEAVER_HOME"
+```
+
+## The gate before you push
+
+```bash
+yarn validate:local   # what pre-push runs
+yarn format           # Prettier, code and docs
+```
+
+Then push and let CI carry the heavy laps:
+
+```bash
+slopweaver github push
+slopweaver github checks --wait
+```

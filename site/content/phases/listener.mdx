@@ -1,0 +1,104 @@
+---
+title: Listener
+---
+
+import { Callout } from "nextra/components";
+import { ListenerAddress } from "../../components/diagrams/ListenerAddress";
+import { ReArmLadder } from "../../components/diagrams/ReArmLadder";
+
+# 1 · Listener
+
+One outbound websocket, nothing inbound. It decides three things and hands everything else on: **what
+counts as being addressed**, **who is allowed to address it**, and **what a second tag from the same person
+does** while the first is still running.
+
+## What counts as an address
+
+The owner's rule was _only respond when addressed_, because a bot that joins conversations uninvited "can
+be like really annoying really fast". Three shapes count. Everything else is not captured at all — no
+reaction, no card, nothing durable.
+
+<ListenerAddress />
+
+<Callout type="info">
+  A tagged message in a **DM** does not produce an `app_mention` at all — measured, it arrives as a `message` event with
+  `channel_type: "im"`, so the tag has to be found in the event text. A listener subscribed to `app_mention` alone is
+  simply deaf in a DM.
+</Callout>
+
+An untagged DM message is refused at the parse, which is what makes "not captured at all" true rather than
+aspirational. The reason: if every DM message counted as address, the bot would start a turn on each draft
+composed there as the owner, leaving hourglass reactions and working cards on the owner's own drafts.
+
+## Who may command it
+
+`responders.json` is an explicit list of Slack user ids. No display names, no handles, no email matching,
+no domain rules, no "anyone in this channel". A file with one malformed entry is refused whole.
+
+```ts filename="src/live/listen/whitelist.ts"
+// Three concerns that COMPOSE, and are deliberately not collapsed into one setting:
+//
+//   who may command it  → this whitelist       → deterministic, an explicit list
+//   what it may say     → the withhold verdict → judgement
+//   what it may read    → nothing constrains it → deliberately unconstrained
+```
+
+There is no model anywhere in this path and there will not be one. A mistake about who is driving the bot
+is worse than a mistake about phrasing.
+
+## Staying on the air
+
+The listener is one shell process inside the live-loop session and it **dies with it** — that is the
+owner's ruling, not an accident of implementation. So something has to watch it, and the interesting part
+of that watcher is where it stops trying.
+
+<ReArmLadder />
+
+```bash
+slopweaver listen arm            # prints the ONE line the loop session runs; starts nothing itself
+slopweaver listen status --json  # the supervisor's shape: a grade, and why
+slopweaver listen supervise      # one death-watch tick: reconcile, count, re-arm or escalate
+slopweaver listen reconcile      # back-write deaths nothing was alive to record; never escalates
+slopweaver listen disarm         # clear the record; sends no signal
+```
+
+Two details carry the whole contract:
+
+- **A disconnect is normal.** Slack rotates a Socket Mode connection routinely and warns first. A listener
+  that backs off eight seconds every rotation spends its life asleep, so the beat carries when the socket
+  _entered_ its state, not when the beat was written, and only 90 continuous seconds counts as down.
+- **The escalation stands.** A standing escalation holds until a person runs `listen arm` or `listen disarm`.
+  A tick that sees an unarmed home must not conclude "nothing is running" and hand back an arm command, which
+  would make the whole contract decoration.
+
+## A second tag while the first is still running
+
+There is no burst queue, and its absence is the design.
+
+A queue that parks a later tag unjudged until the ask ahead of it releases strands it: measured,
+one held **34 rows behind targets that had already ended** — nothing was ever going to release them — and one
+of them was a real question the owner had asked the day before.
+
+The rule: answer the first tag, **judge** each later one, answer it when it needs answering,
+and otherwise put it on the exclusion registry so it never comes up again.
+
+What a queue would protect is two workers composing on the same thread, and the brief carries that property
+instead. The asker's own in-flight asks go into it:
+
+```ts filename="src/live/ask/burst.ts"
+// activeAsks is read by cli/commands/turn/briefAskContext.ts, which puts the asker's own in-flight asks in the
+// brief as `otherActiveAsks` — so the judging session can fold the follow-up into the ask already
+// running, answer it separately, or decline it.
+//
+// A judge that can SEE the holder does not need a queue to stop it double-working the thread.
+```
+
+<Callout type="warning">
+  An ask **blocked on the owner** is deliberately not counted as in flight. The worker stood down and gave back its
+  lease, and that state has no time bound at all — "might be one minute, might be one week" — so counting it would hide
+  every later tag from that person behind a wait nobody is serving.
+</Callout>
+
+## Where to look next
+
+The brief this phase produces is where [processing](/docs/phases/processing) starts.

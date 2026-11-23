@@ -1,0 +1,546 @@
+{
+  "exempt": [
+    {
+      "codeLines": 427,
+      "path": "src/atlas/datadog/generated/responseInventory.ts"
+    },
+    {
+      "codeLines": 1738,
+      "path": "src/atlas/datadog/generated/surfaces.ts"
+    },
+    {
+      "codeLines": 571,
+      "path": "src/atlas/jam/generated/surfaces.ts"
+    },
+    {
+      "codeLines": 1859,
+      "path": "src/atlas/slackApi/browser.ts"
+    }
+  ],
+  "offenders": [
+    {
+      "codeLines": 928,
+      "path": "desktop/__tests__/unit/fleetAutomation.test.ts"
+    },
+    {
+      "codeLines": 630,
+      "path": "desktop/__tests__/unit/overlayWindow.test.ts"
+    },
+    {
+      "codeLines": 924,
+      "path": "desktop/src/main.ts"
+    },
+    {
+      "codeLines": 697,
+      "path": "desktop/src/preload.ts"
+    },
+    {
+      "codeLines": 499,
+      "path": "desktop/src/tabsShell.ts"
+    },
+    {
+      "codeLines": 561,
+      "path": "site/__tests__/unit/cardReferences.test.ts"
+    },
+    {
+      "codeLines": 646,
+      "path": "site/__tests__/unit/desktopShell.test.ts"
+    },
+    {
+      "codeLines": 719,
+      "path": "site/__tests__/unit/fleetGlance.test.ts"
+    },
+    {
+      "codeLines": 852,
+      "path": "site/__tests__/unit/planCallEventHandler.test.ts"
+    },
+    {
+      "codeLines": 1279,
+      "path": "site/__tests__/unit/queueCard.test.ts"
+    },
+    {
+      "codeLines": 833,
+      "path": "site/__tests__/unit/queueVoice.test.ts"
+    },
+    {
+      "codeLines": 524,
+      "path": "site/__tests__/unit/quoteLead.test.ts"
+    },
+    {
+      "codeLines": 603,
+      "path": "site/__tests__/unit/readSlackDrafts.test.ts"
+    },
+    {
+      "codeLines": 743,
+      "path": "site/__tests__/unit/relayAttempt.test.ts"
+    },
+    {
+      "codeLines": 917,
+      "path": "site/__tests__/unit/steeredCards.test.ts"
+    },
+    {
+      "codeLines": 1144,
+      "path": "site/__tests__/unit/talkActionItems.test.ts"
+    },
+    {
+      "codeLines": 1126,
+      "path": "site/__tests__/unit/talkPlanHeldAnswers.test.ts"
+    },
+    {
+      "codeLines": 545,
+      "path": "site/__tests__/unit/talkRelayRequest.test.ts"
+    },
+    {
+      "codeLines": 597,
+      "path": "site/__tests__/unit/talkSpokenClaims.test.ts"
+    },
+    {
+      "codeLines": 1199,
+      "path": "site/__tests__/unit/talkToolRun.test.ts"
+    },
+    {
+      "codeLines": 532,
+      "path": "site/__tests__/unit/talkTypedSession.test.ts"
+    },
+    {
+      "codeLines": 888,
+      "path": "site/__tests__/unit/transcriptSink.test.ts"
+    },
+    {
+      "codeLines": 739,
+      "path": "site/__tests__/unit/triageWalk.test.ts"
+    },
+    {
+      "codeLines": 762,
+      "path": "site/__tests__/unit/voicePlanStall.test.ts"
+    },
+    {
+      "codeLines": 515,
+      "path": "site/__tests__/unit/voiceRecordWiring.test.ts"
+    },
+    {
+      "codeLines": 935,
+      "path": "site/components/voice/VoiceProvider.tsx"
+    },
+    {
+      "codeLines": 515,
+      "path": "site/components/voice/VoiceWidget.tsx"
+    },
+    {
+      "codeLines": 533,
+      "path": "site/lib/liveVerbs.ts"
+    },
+    {
+      "codeLines": 450,
+      "path": "src/__tests__/cassetteRedactConfig.ts"
+    },
+    {
+      "codeLines": 528,
+      "path": "src/__tests__/subprocess/admit/hookBudget.test.ts"
+    },
+    {
+      "codeLines": 626,
+      "path": "src/__tests__/subprocess/context/profileBashLane.test.ts"
+    },
+    {
+      "codeLines": 776,
+      "path": "src/__tests__/unit/admit/callStateGuard.test.ts"
+    },
+    {
+      "codeLines": 687,
+      "path": "src/__tests__/unit/automations/brokenAccount.test.ts"
+    },
+    {
+      "codeLines": 512,
+      "path": "src/__tests__/unit/automations/card.test.ts"
+    },
+    {
+      "codeLines": 511,
+      "path": "src/__tests__/unit/autonomy/adopt.test.ts"
+    },
+    {
+      "codeLines": 600,
+      "path": "src/__tests__/unit/briefing/nothingStale.test.ts"
+    },
+    {
+      "codeLines": 548,
+      "path": "src/__tests__/unit/briefing/yourList.test.ts"
+    },
+    {
+      "codeLines": 704,
+      "path": "src/__tests__/unit/browser/present.test.ts"
+    },
+    {
+      "codeLines": 616,
+      "path": "src/__tests__/unit/claude/signinEnrolment.test.ts"
+    },
+    {
+      "codeLines": 1145,
+      "path": "src/__tests__/unit/cli/briefingRender.test.ts"
+    },
+    {
+      "codeLines": 547,
+      "path": "src/__tests__/unit/cli/commands/automation/dueAndClaim.test.ts"
+    },
+    {
+      "codeLines": 625,
+      "path": "src/__tests__/unit/cli/commands/github/landingRegister.test.ts"
+    },
+    {
+      "codeLines": 722,
+      "path": "src/__tests__/unit/cli/commands/github/mergeAdminRun.test.ts"
+    },
+    {
+      "codeLines": 805,
+      "path": "src/__tests__/unit/cli/commands/github/reviewerRun.test.ts"
+    },
+    {
+      "codeLines": 765,
+      "path": "src/__tests__/unit/cli/commands/github/reviewStateReport.test.ts"
+    },
+    {
+      "codeLines": 582,
+      "path": "src/__tests__/unit/cli/commands/github/settledEvidenceCore.test.ts"
+    },
+    {
+      "codeLines": 761,
+      "path": "src/__tests__/unit/cli/commands/github/stackPushCreation.test.ts"
+    },
+    {
+      "codeLines": 877,
+      "path": "src/__tests__/unit/cli/commands/gmail/clearMeetingNotes.test.ts"
+    },
+    {
+      "codeLines": 654,
+      "path": "src/__tests__/unit/cli/commands/handover/settleCardRun.test.ts"
+    },
+    {
+      "codeLines": 549,
+      "path": "src/__tests__/unit/cli/commands/linear/briefingRun.test.ts"
+    },
+    {
+      "codeLines": 560,
+      "path": "src/__tests__/unit/cli/commands/linear/stepUp.test.ts"
+    },
+    {
+      "codeLines": 646,
+      "path": "src/__tests__/unit/cli/commands/monitor/verbs.test.ts"
+    },
+    {
+      "codeLines": 1317,
+      "path": "src/__tests__/unit/cli/commands/session/closeDone.test.ts"
+    },
+    {
+      "codeLines": 559,
+      "path": "src/__tests__/unit/cli/commands/slack/draftCompose.test.ts"
+    },
+    {
+      "codeLines": 513,
+      "path": "src/__tests__/unit/cli/commands/slack/draftCore.test.ts"
+    },
+    {
+      "codeLines": 642,
+      "path": "src/__tests__/unit/cli/commands/slack/draftJudgementRun.test.ts"
+    },
+    {
+      "codeLines": 829,
+      "path": "src/__tests__/unit/cli/commands/slack/lifecycleRun.test.ts"
+    },
+    {
+      "codeLines": 781,
+      "path": "src/__tests__/unit/cli/commands/supervisor/tickRecordGates.test.ts"
+    },
+    {
+      "codeLines": 745,
+      "path": "src/__tests__/unit/cli/commands/turn/brief.test.ts"
+    },
+    {
+      "codeLines": 636,
+      "path": "src/__tests__/unit/devLint/ciOffloadContract.test.ts"
+    },
+    {
+      "codeLines": 792,
+      "path": "src/__tests__/unit/hand/panel.test.ts"
+    },
+    {
+      "codeLines": 677,
+      "path": "src/__tests__/unit/hand/step.test.ts"
+    },
+    {
+      "codeLines": 1099,
+      "path": "src/__tests__/unit/hand/store.test.ts"
+    },
+    {
+      "codeLines": 508,
+      "path": "src/__tests__/unit/handover/parkPolicy.test.ts"
+    },
+    {
+      "codeLines": 547,
+      "path": "src/__tests__/unit/live/automation/standingRows.test.ts"
+    },
+    {
+      "codeLines": 538,
+      "path": "src/__tests__/unit/live/automation/supervisorStops.test.ts"
+    },
+    {
+      "codeLines": 605,
+      "path": "src/__tests__/unit/live/github/mergeQueue.test.ts"
+    },
+    {
+      "codeLines": 510,
+      "path": "src/__tests__/unit/live/turn/dispatch.test.ts"
+    },
+    {
+      "codeLines": 668,
+      "path": "src/__tests__/unit/monitor/evaluate.test.ts"
+    },
+    {
+      "codeLines": 1060,
+      "path": "src/__tests__/unit/monitor/pass.test.ts"
+    },
+    {
+      "codeLines": 871,
+      "path": "src/__tests__/unit/outbound/slack/findingProof.test.ts"
+    },
+    {
+      "codeLines": 660,
+      "path": "src/__tests__/unit/review/askClassification.test.ts"
+    },
+    {
+      "codeLines": 672,
+      "path": "src/__tests__/unit/review/bumpSelection.test.ts"
+    },
+    {
+      "codeLines": 511,
+      "path": "src/__tests__/unit/review/channelShare.test.ts"
+    },
+    {
+      "codeLines": 1035,
+      "path": "src/__tests__/unit/review/landingDispatch.test.ts"
+    },
+    {
+      "codeLines": 524,
+      "path": "src/__tests__/unit/sessionStart/slackLeg.test.ts"
+    },
+    {
+      "codeLines": 535,
+      "path": "src/__tests__/unit/supervisor/approvedDraftGate.test.ts"
+    },
+    {
+      "codeLines": 661,
+      "path": "src/__tests__/unit/supervisor/chairCadence.test.ts"
+    },
+    {
+      "codeLines": 583,
+      "path": "src/__tests__/unit/supervisor/digestActFirst.test.ts"
+    },
+    {
+      "codeLines": 639,
+      "path": "src/__tests__/unit/supervisor/idleCapacityGate.test.ts"
+    },
+    {
+      "codeLines": 554,
+      "path": "src/__tests__/unit/supervisor/intake.test.ts"
+    },
+    {
+      "codeLines": 690,
+      "path": "src/__tests__/unit/supervisor/tickDigest.test.ts"
+    },
+    {
+      "codeLines": 693,
+      "path": "src/__tests__/unit/talk/callRecord.test.ts"
+    },
+    {
+      "codeLines": 899,
+      "path": "src/__tests__/unit/talk/contextPack.test.ts"
+    },
+    {
+      "codeLines": 647,
+      "path": "src/__tests__/unit/talk/continuity.test.ts"
+    },
+    {
+      "codeLines": 655,
+      "path": "src/__tests__/unit/talk/continuityCalls.test.ts"
+    },
+    {
+      "codeLines": 809,
+      "path": "src/__tests__/unit/talk/relayDraft.test.ts"
+    },
+    {
+      "codeLines": 631,
+      "path": "src/__tests__/unit/talk/relayStore.test.ts"
+    },
+    {
+      "codeLines": 574,
+      "path": "src/__tests__/unit/talk/supervisorDelivery.test.ts"
+    },
+    {
+      "codeLines": 563,
+      "path": "src/__tests__/unit/talk/unreadRead.test.ts"
+    },
+    {
+      "codeLines": 441,
+      "path": "src/atlas/braze/sync.ts"
+    },
+    {
+      "codeLines": 420,
+      "path": "src/atlas/clerk/browserSurface.ts"
+    },
+    {
+      "codeLines": 418,
+      "path": "src/atlas/cloudflare/inventory.ts"
+    },
+    {
+      "codeLines": 515,
+      "path": "src/atlas/datadog/consolePages.ts"
+    },
+    {
+      "codeLines": 424,
+      "path": "src/atlas/googleAdmin/generated/surfaces.ts"
+    },
+    {
+      "codeLines": 419,
+      "path": "src/atlas/hex/entitySync.ts"
+    },
+    {
+      "codeLines": 304,
+      "path": "src/atlas/hex/generated/clientSurface.ts"
+    },
+    {
+      "codeLines": 506,
+      "path": "src/atlas/jumpcloud/generated/surfaces.ts"
+    },
+    {
+      "codeLines": 342,
+      "path": "src/atlas/kit/read.ts"
+    },
+    {
+      "codeLines": 548,
+      "path": "src/atlas/microsoft365/browserPages.ts"
+    },
+    {
+      "codeLines": 420,
+      "path": "src/atlas/nxCloud/webData.ts"
+    },
+    {
+      "codeLines": 514,
+      "path": "src/atlas/prismaDataPlatform/sync.ts"
+    },
+    {
+      "codeLines": 419,
+      "path": "src/atlas/slackApi/surfacePages.ts"
+    },
+    {
+      "codeLines": 425,
+      "path": "src/atlas/twilio/sync.ts"
+    },
+    {
+      "codeLines": 487,
+      "path": "src/atlas/vanta/client.ts"
+    },
+    {
+      "codeLines": 529,
+      "path": "src/atlas/vanta/sdk/operations/vendors.ts"
+    },
+    {
+      "codeLines": 408,
+      "path": "src/briefing/narrative.ts"
+    },
+    {
+      "codeLines": 481,
+      "path": "src/briefing/reactNowCard.ts"
+    },
+    {
+      "codeLines": 437,
+      "path": "src/browser/actionExecutor.ts"
+    },
+    {
+      "codeLines": 463,
+      "path": "src/browser/vantaPolicyVersionSnippet.ts"
+    },
+    {
+      "codeLines": 324,
+      "path": "src/claude/drawdownAnomaly.ts"
+    },
+    {
+      "codeLines": 410,
+      "path": "src/cli/commands/atlas/slackDriveRun.ts"
+    },
+    {
+      "codeLines": 392,
+      "path": "src/cli/commands/claude/signinRun.ts"
+    },
+    {
+      "codeLines": 459,
+      "path": "src/cli/commands/claude/watch.ts"
+    },
+    {
+      "codeLines": 446,
+      "path": "src/cli/commands/handover/lifecycle.ts"
+    },
+    {
+      "codeLines": 432,
+      "path": "src/cli/commands/refresh/core.ts"
+    },
+    {
+      "codeLines": 418,
+      "path": "src/cli/commands/store/datadogCore.ts"
+    },
+    {
+      "codeLines": 423,
+      "path": "src/corpus/linear/project.ts"
+    },
+    {
+      "codeLines": 486,
+      "path": "src/corpus/slack/project.ts"
+    },
+    {
+      "codeLines": 468,
+      "path": "src/events/event.ts"
+    },
+    {
+      "codeLines": 392,
+      "path": "src/live/listen/errors.ts"
+    },
+    {
+      "codeLines": 480,
+      "path": "src/live/machine/fleetLoad.ts"
+    },
+    {
+      "codeLines": 526,
+      "path": "src/outbound/artifact/alertSummary.ts"
+    },
+    {
+      "codeLines": 444,
+      "path": "src/outbound/briefing/render.ts"
+    },
+    {
+      "codeLines": 435,
+      "path": "src/outbound/briefing/schema.ts"
+    },
+    {
+      "codeLines": 426,
+      "path": "src/outbound/linkify/bareRefs.ts"
+    },
+    {
+      "codeLines": 401,
+      "path": "src/outbound/slack/render.ts"
+    },
+    {
+      "codeLines": 396,
+      "path": "src/review/askClassification.ts"
+    },
+    {
+      "codeLines": 411,
+      "path": "src/review/reviewState.ts"
+    },
+    {
+      "codeLines": 508,
+      "path": "src/store/identity/people.ts"
+    },
+    {
+      "codeLines": 501,
+      "path": "src/store/lifecycle.ts"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "base": "a2a86a51e5f8477218c448af35cf51292f7310ce",
+  "digest": "144ea5ecb23606a0a4468aa7262735907718447422f46ce33146382d28bf9a45",
+  "loosenings": [
+    {
+      "entry": "policy",
+      "file": "src/cli/commands/github/baselineBumpGate.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/codex/baselineBumpCheckouts.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/codex/baselineBumpWitness.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/codex/baselineBumpWitnessRun.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/codex/branchEvidenceRoots.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/codex/ledgerUnion.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineAgainstMain.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineBump.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineComparison.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    }
+  ],
+  "reason": "the transient-reference sweep removes historical provenance from comments without changing baseline policy"
+}

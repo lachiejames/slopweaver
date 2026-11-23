@@ -1,0 +1,104 @@
+---
+title: People and identity
+---
+
+import { Callout } from "nextra/components";
+
+import { IdentityKey } from "../../components/diagrams/IdentityKey";
+
+# People and identity
+
+Every record in the corpus was written by somebody, and half of what a world model is for is answering
+questions about people. That only works if one human is one row.
+
+<IdentityKey />
+
+## The email is the key; each platform's id is a column
+
+Pulling the identities from Google admin left thousands of `person` rows, hundreds of them named by a Slack id and hundreds more by a UUID. The rule
+that closes that: identities come from Google admin, the email address is the key, and the Slack user id, Linear user id, GitHub user id and handle are columns.
+
+So `person` is one row per human — `email` unique, not null and normalised, the Google Workspace fields
+beside it, and `slack_user_id`, `linear_user_id`, `linear_display_name`, `github_id`, `github_login`,
+`notion_user_id`, `google_id`, each nullable, each unique, each pinned by a CHECK to that platform's own id
+shape. **There is no identity array, no identity table and no trigger over one.**
+
+**Every defect above became a refusal rather than a row.** One email is one person, so a human cannot be
+two rows. One platform id is one column on one row, so it cannot belong to two people. A Slack id in the
+Linear column fails its shape check; a display name in it fails the same way. A person cannot be named by
+their id because nothing here ever names one.
+
+## Three sources, in order of authority
+
+1. **The Google Workspace directory** — read through the existing read-only Admin grant and **replaced
+   whole** each pull, because the directory is the one list where absence is information.
+2. **The member pull** `refresh` already writes. A member with a _trusted_ address — unique, personal, not
+   a role alias — joins the person carrying that address, and their platform id lands on that row. A
+   trusted address Google does **not** hold still becomes a person with `google_id` null: directory
+   absence does not discard a member-derived identity. A person
+   who leaves is never forgotten.
+3. **A name-only match is recorded, never applied** — it lands in `person_link_candidate` for review,
+   because a wrong auto-merge is invisible afterwards and a wrong candidate is a row somebody rejects.
+
+**One name is allowed to link, and its three conditions are the whole argument.** A GitHub account that is
+a member of the organisation, whose profile carries a full name matching a person's exactly after
+normalisation, where that name is unique across every person. MEASURED: GitHub exposes a public
+address for only a small minority of org members, so without that rule most logins, and tens of thousands of
+GitHub rows, reach nobody.
+
+## Three address shapes the email key cannot see through
+
+Each is closed exactly rather than heuristically, and each is a real case rather than a hypothetical:
+
+- **A deactivated Slack member** is rewritten to `deactivateduser<n>-<workspace>@slack-corp.com`, which the
+  member pull rates trusted because it genuinely is unique — to nobody. It is refused as a key; over a dozen
+  people had been built on that one address.
+- **An off-boarded person** is renamed to `term_emp_<local>@<domain>` while every platform still knows them
+  by `<local>@<domain>`, so the used address folds into the directory's — unless the directory has since
+  re-issued it to somebody else.
+- **A Linear author named by handle alone.** Captures older than the connector's id fix carry a display name
+  and nothing else, so `linear_display_name` is a column, taken only from an org member: across every member, dozens of
+  handles appear on more than one, while the org members' handles are all distinct.
+
+## A bot is never a person, and loses nothing by it
+
+A Datadog post carries a Slack bot id and no mailbox. There is nothing to key it on and nothing to join it
+to, so it never enters `person`. What it authored keeps the platform's own author id:
+`content.author_native_id` is set for **every** row whose record names an author, human or bot, and
+`content.author_id` is the person that id resolved to — null for a bot or a stranger. Every reader falls
+back through the native id, so a bot's post is still attributed, to the bot.
+
+## What still does not resolve, stated rather than discovered
+
+MEASURED on the live store: the person rows roughly halved, most of them keyed by Google Admin, hundreds
+carrying two or more platform ids, and **zero** named by a Slack id or a UUID. About three quarters of content
+rows with an author resolve to a person — but that is over 90% on Linear and **about a tenth on GitHub**, and
+the GitHub number is
+the honest ceiling of what this install can see rather than a bug: most unresolved rows are `coderabbitai`
+and `github-actions`, and the rest are org members whose GitHub profile carries neither a public address nor
+a full name. The route that completes it is the login-to-SSO-email join, and it needs an org-admin scope
+this install's token does not carry.
+
+```sql
+select source, round(100.0 * count(author_id) / count(author_native_id), 1) pct
+from content where author_native_id is not null group by 1 order by 2 desc;
+```
+
+<Callout type="info">
+  **A departure is a field, not an absence**. A person Google no longer lists keeps their row, their email and their
+  history, and is simply not upserted. Member bronze cannot express a departure — an unchanged member writes no row, and
+  a missing file reads as empty — so a reconciler that withdrew on absence would strip a source the first time one pull
+  failed. Only an id that **moved** to another address is released, because two people cannot hold one. `active` is
+  three-valued on purpose: `null` means nobody said, which is a different claim from `true`.
+</Callout>
+
+## Per-person judgement is a column, and its null is load-bearing
+
+`person.judgement` carries what the fleet has learned about how to work with someone — facts, channel
+preferences, register, what makes them say yes or no, which reviews they are the right person for — each
+statement naming where it came from and when it was observed.
+
+Of the people the member pull places, the owner briefs roughly ten, so the overwhelmingly common value is `null`
+— which means **uncurated**, not _measured to have no preferences_. Every reader says so in as many words
+rather than printing an empty list. Only curation writes that column: the member pull's upsert enumerates
+the columns a conflicting row overwrites, so it physically cannot clobber judgement it did not author.

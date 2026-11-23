@@ -1,0 +1,442 @@
+#!/usr/bin/env bash
+# Portable `slopweaver` launcher. Resolves config env, then runs the in-repo CLI (repo root) via tsx.
+# For a cache install with no node_modules, links to the deps lazily installed into the persistent
+# plugin-data dir. The absolute launcher path is authoritative; ambient PATH may name another checkout.
+set -euo pipefail
+
+# A ONE-SHOT MARKER, read here and gone before anything below runs: a process already under a tsx wrapper that
+# `execve`s this launcher sets it so the source starts at ITS tier (the last lines of this file). Unset at once, so
+# nothing the config loop can start sees it, and skipped by that loop, so a config line cannot supply it.
+# `builtin`: an inherited function named unset cannot keep it.
+launcher_no_tsx_wrapper="${SLOPWEAVER_LAUNCHER_NO_TSX_WRAPPER:-}"
+builtin unset SLOPWEAVER_LAUNCHER_NO_TSX_WRAPPER
+
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}/slopweaver/env"
+if [ -f "$CFG" ]; then
+  while IFS='=' read -r k v; do
+    case "$k" in ''|\#*|SLOPWEAVER_LAUNCHER_NO_TSX_WRAPPER) continue ;; esac
+    if [ -z "${!k:-}" ]; then export "$k=$v"; fi
+  done < "$CFG"
+fi
+: "${SLOPWEAVER_HOME:=${CLAUDE_PLUGIN_OPTION_SLOPWEAVER_HOME:-}}"
+: "${GITHUB_TOKEN:=${CLAUDE_PLUGIN_OPTION_GITHUB_TOKEN:-}}"
+export SLOPWEAVER_HOME GITHUB_TOKEN
+
+# The path shim (scripts/plugin-path-shim.sh) installs this launcher's home under ~/.local/bin as a
+# SYMLINK to the real mirrored copy. `dirname` on an unresolved symlink names the LINK's own directory,
+# never the target's — so through the shim HERE landed on ~/.local/bin and the `source` below died with
+# "No such file or directory" on every single invocation. Walk the link chain by hand rather than reach
+# for `readlink -f`: macOS ships no such flag by default, so this has to be portable.
+SELF="${BASH_SOURCE[0]:-$0}"
+while [ -L "$SELF" ]; do
+  link_dir="$(cd "$(dirname "$SELF")" && pwd)"
+  SELF="$(readlink "$SELF")"
+  case "$SELF" in
+    /*) : ;;
+    *) SELF="$link_dir/$SELF" ;;
+  esac
+done
+HERE="$(cd "$(dirname "$SELF")" && pwd)"
+
+# THE SEAT CHECK A SEAT ALREADY PASSED STARTS NO NODE. `claude seat --from-payload` is the UserPromptSubmit hook
+# every prompt waits on, and under load node's boot alone outran its 15 s budget; hooks/lib/seat-pass.sh carries
+# the measurement, the cache key and why a miss is always safe. It sits HERE, ahead of every git child below, and
+# in the launcher rather than a new hooks.json entry because a running seat reads hooks.json once, at its boot.
+# A miss hands the payload back as stdin and the full check runs unchanged. A session whose context lacks his
+# profile always misses, because the full check is what carries the profile into its prompt (seatProfile.ts).
+if [ "$#" -eq 3 ] && [ "$1" = claude ] && [ "$2" = seat ] && [ "$3" = --from-payload ]; then
+  # shellcheck source=../hooks/lib/seat-pass.sh
+  source "$HERE/../hooks/lib/seat-pass.sh"
+  # shellcheck source=../hooks/lib/profile-delivered.sh
+  source "$HERE/../hooks/lib/profile-delivered.sh"
+  seat_payload=""
+  IFS= read -r -d '' seat_payload || true
+  if seat_pass_cached "$seat_payload" && profile_delivery_present "$seat_payload"; then
+    exit 0
+  fi
+  exec 0<<<"$seat_payload"
+fi
+
+# shellcheck source=../hooks/lib/resolve-root.sh
+source "$HERE/../hooks/lib/resolve-root.sh"
+
+# A cmux-launched Claude session leaks its own NODE_OPTIONS pair into every child, and read as an operator's
+# explicit ceiling it pinned every seated verb — `derive` inside a scheduled resync included — at V8's
+# default. Strip it BEFORE the host sizing below reads NODE_OPTIONS; hooks/lib/cmux-node-options.sh carries
+# the mechanism and the 29 Sep 2026 measurement. No cmux token, no change.
+# shellcheck source=../hooks/lib/cmux-node-options.sh
+source "$HERE/../hooks/lib/cmux-node-options.sh"
+if cmux_kept="$(cmux_node_options_without_injection "${NODE_OPTIONS:-}" "${CMUX_ORIGINAL_NODE_OPTIONS_PRESENT:-}" "${CMUX_ORIGINAL_NODE_OPTIONS:-}")"; then
+  if [ -n "$cmux_kept" ]; then
+    export NODE_OPTIONS="$cmux_kept"
+  else
+    unset NODE_OPTIONS
+  fi
+fi
+
+# INTERIM, and labelled as one on the owner's ruling of 24 Aug 2026. V8's old-space ceiling is a fixed
+# table lookup, not a reading of the machine: 4,288 MiB on a 48 GiB host, the same 4,288 MiB on an 8 GiB
+# one. Slopweaver's reader budgets against that ceiling (src/lib/heapBudget.ts), so on a large machine the
+# CLI refused a corpus that fits in a tenth of the RAM sitting idle beside it — measured that morning,
+# `ask` refused a 5.0 GB corpus needing 4,376 MiB live. This sizes the ceiling from the HOST instead: a
+# quarter of physical memory, never below V8's own default (it can only raise), never above 12 GiB (a
+# runaway must stay survivable). An explicit --max-old-space-size in NODE_OPTIONS always wins — cmux's
+# injected one is not explicit, and is stripped above.
+#
+# It is NOT the fix, and must not be read as one. The owner accepted it with the objection attached:
+# "are there performance optimizations so that you don't need 12 gigabytes... sometimes you'll have three
+# people asking [the bot] a question at once... I'm only on a 48 gig RAM laptop." A ceiling one process
+# may safely reach is not one three may reach, so it ships with a concurrency guard
+# (src/lib/loadSlots.ts). What retires this block is a query that stops loading the whole corpus into heap.
+# The prebuilt lexical index (#488) is NOT that, measured: it removed the per-query BM25 build, but the
+# records are the larger half, and with #488 landed `ask` at the default ceiling still died during the
+# bronze read.
+#
+# A QUERY NO LONGER NEEDS THIS, and the number is unchanged anyway — both halves of that are measurements,
+# 25 Aug 2026, one corpus of 1,930,477 records / 7,811 MiB, one question, `facts`:
+#
+#   with a prebuilt index    at 4,288 MiB (V8's own default): answers, 3,194 MiB peak RSS
+#   with the index parked    at 4,288 MiB: refuses (exit 1) at 7,803 of 7,811 MiB read
+#   with the index parked    at 12,288 MiB: answers, 11,811 MiB peak RSS
+#
+# The first line is what this block existed for and no longer covers: a migrated query reads the rows it
+# cites and runs under the untouched default. The third is why the number cannot simply come down — the
+# un-migrated fallback still wants nearly all of it, and "no artefact yet" is a legitimate state an
+# operator is in until they run `slopweaver lexical build` once. That verb WAS the other holder — it has to
+# see every record to index them, and it used to do that by loading them.
+#
+# It no longer does, as of 30 Aug 2026 — it streams (src/retrieval/lexicalIndexStream.ts) and
+# holds no record at any point. Measured on the same 7,863 MiB corpus, `/usr/bin/time -l slopweaver lexical
+# build --force`: 12,720 MiB peak RSS before, 3,080-3,155 MiB after over three runs, and the artefact it
+# writes is byte-identical
+# (`shasum -a 256` over lexical.idx and identity-candidates.jsonl). It now runs under a 4,096 MiB ceiling,
+# which is BELOW V8's own default, so this block does nothing for it either way.
+#
+# The clamp is held by `derive`, the one verb that still loads the whole corpus (`readCorpusDir`) to do its
+# job. On the owner's corpus (7,811 MiB of bronze) that read refuses at 7,803 of 7,811 MiB under V8's own
+# 4,288 MiB default (docs/constraints/7-9.md has the table). `distil`, `audit`, `slice verify`, `dev manifest` and
+# the console's WORLD MODEL section stream the corpus census instead (src/corpus/corpusCensus.ts), and run
+# under a 4,096 MiB ceiling on a 10,833 MiB corpus — measured 24 Sep 2026, `NODE_OPTIONS=--max-old-space-size=4096
+# /usr/bin/time -l slopweaver audit run --json`: 2,235 MiB peak RSS, where the whole-corpus read refused.
+#
+# A query never loads the corpus: `store read` and `store cite` select from the store and refuse outright
+# when it is unreachable, so they run under the untouched default and hold none of this clamp.
+#
+# THE EXPORT BELOW IS THE ONE STANDING ENTRY ON THE `ambient-heap-ceiling` DEBT LIST, and the gate reports
+# it on every run. The entry names a SITE, not this file: `STANDING_CEILING_SITES`
+# (src/devLint/ambientHeapCeiling.ts) carries the path AND the assignment text, so a SECOND ceiling added
+# to this very file is fresh and refused. Nothing may join it — an ambient ceiling anywhere else in the
+# tree is refused outright, owner turn 291-65. When `derive` streams and this export goes,
+# delete the entry too: the gate fails just as loudly on a debt row that has stopped firing, because the
+# list would then be a lie about the tree.
+#
+# The clamp retires when `derive` streams bronze instead of loading it whole. Lower it here
+# rather than growing it. A sliced query is nevertheless RATIONED — it is smaller, not free, at 1,295 MiB
+# peak RSS measured 6 Sep 2026 — so it takes a load slot like every other heavy verb, on the owner's own
+# word (src/lib/loadSlots.ts carries the ruling, the measurement and the command that reproduces it).
+if [[ "${NODE_OPTIONS:-}" != *max-old-space-size* ]]; then
+  mem_bytes=""
+  if [ "$(uname -s)" = "Darwin" ]; then
+    mem_bytes="$(sysctl -n hw.memsize 2>/dev/null || true)"
+  elif [ -r /proc/meminfo ]; then
+    mem_kib="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || true)"
+    [ -n "$mem_kib" ] && mem_bytes=$((mem_kib * 1024))
+  fi
+  if [ -n "$mem_bytes" ] && [ "$mem_bytes" -gt 0 ] 2>/dev/null; then
+    heap_mib=$((mem_bytes / 1024 / 1024 / 4))
+    [ "$heap_mib" -lt 4288 ] && heap_mib=4288
+    [ "$heap_mib" -gt 12288 ] && heap_mib=12288
+    export NODE_OPTIONS="--max-old-space-size=$heap_mib${NODE_OPTIONS:+ $NODE_OPTIONS}"
+  fi
+fi
+
+PLUGIN_ROOT="$(resolve_plugin_root "$HERE/..")"
+PLUGIN_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/slopweaver}}"
+export PLUGIN_ROOT PLUGIN_DATA
+DIR="${SLOPWEAVER_CLI_DIR:-$PLUGIN_ROOT}"
+DATA="$PLUGIN_DATA/cli-deps"
+
+# Git exports GIT_DIR to its hooks, and GIT_DIR overrides which repository every later `git` call reads.
+# `src/lib/gitRepo.ts` exists because of exactly this: its header records that the bespoke gates were
+# "inert in the hook that runs them" until they scrubbed these five. The checks below resolve which tree is
+# which, so under `pre-push` they answered about the wrong repository and this launcher's own refusal
+# misfired inside its own validate — the same class the refusal is here to prevent, reached from inside.
+# Same five variables as `gitEnv()`, kept in step with it deliberately.
+git_clean() {
+  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_OBJECT_DIRECTORY -u GIT_COMMON_DIR git "$@"
+}
+
+# ADVISORIES ARE SUPPRESSIBLE, and two callers suppress them: a `command:` probe, and the console.
+#
+# The console (`site/lib/launcherQuiet.ts`, set on every child `site/lib/spawnVerb.ts` launches) reads stdout
+# and names a failure by its stderr tail, so an advisory there is noise in a tile's reason, never a note. The
+# same marker also silences the stale-seat warning `src/cli/staleSeat.ts` prints, before its git work runs.
+#
+# Every line routed through this helper precedes a SUCCESSFUL run: it is a note for a human at a terminal and
+# it changes no exit code. A `command:` probe (`src/handover/commandProbe.ts`) is not that reader — it runs
+# the launcher inside a pipeline, and a doc's probe written as `… 2>&1 | head -1 | grep -q '<verdict>'` reads
+# whichever line comes FIRST. MEASURED 14 Sep 2026 on one run: the
+# cross-worktree warning below became line one of that pipeline, grep missed the verdict, and the probe
+# reported a failure no hand re-run could reproduce — a hand re-run is a shell with no inherited PLUGIN_ROOT,
+# so it prints no warning at all. `src/lib/launcherEnv.ts` carries the one-command repro and why silencing
+# the advisory, rather than scrubbing PLUGIN_ROOT, is the fix.
+#
+# A hard failure is NEVER routed through here: those exit non-zero, which a probe already reads correctly.
+advise() {
+  if [ -z "${SLOPWEAVER_LAUNCHER_QUIET:-}" ]; then
+    printf '%s\n' "$@" >&2
+  fi
+}
+
+# Warn (never block) when the checkout about to run is a DIFFERENT worktree of the SAME repo than
+# the one the caller is standing in — the trap a stale shell PATH produces: `slopweaver` silently
+# answers with another checkout's code while you test this one's. Compares canonical repo roots
+# (never `$DIR` itself — it can carry an unresolved `/bin/..` suffix that breaks string equality).
+# Fails open: either side missing a `.git` (a cache install, an unrelated cwd) means no warning.
+#
+# Skipped outright when quiet: its only output is `advise`, which quiet discards, and its two `git` children are
+# paid by every console tile's read (`site/lib/launcherQuiet.ts`). MEASURED 4 Oct 2026 at load 23 on 15 cores, each
+# `rev-parse` took 254–339ms of wall clock for 25ms of CPU — repro: `time git rev-parse --show-toplevel`.
+cwd_root=""
+dir_root=""
+if [ -z "${SLOPWEAVER_LAUNCHER_QUIET:-}" ]; then
+  cwd_root="$(git_clean rev-parse --show-toplevel 2>/dev/null || true)"
+  dir_root="$(git_clean -C "$DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+fi
+if [ -n "$cwd_root" ] && [ -n "$dir_root" ] && [ "$cwd_root" != "$dir_root" ]; then
+  cwd_common="$(git_clean -C "$cwd_root" rev-parse --git-common-dir 2>/dev/null || true)"
+  dir_common="$(git_clean -C "$dir_root" rev-parse --git-common-dir 2>/dev/null || true)"
+  case "$cwd_common" in /*) : ;; *) cwd_common="$cwd_root/$cwd_common" ;; esac
+  case "$dir_common" in /*) : ;; *) dir_common="$dir_root/$dir_common" ;; esac
+  if [ -n "$cwd_common" ] && [ "$cwd_common" = "$dir_common" ]; then
+    # The remedy is the explicit SLOPWEAVER_CLI_DIR override, never `$cwd_root/bin/slopweaver` alone: the host
+    # exports PLUGIN_ROOT and the launcher prefers it, so that path resolves the same foreign tree again and
+    # prints this same warning (skills/github/reference/proof-gathering.md).
+    #
+    # The printed command is built with `printf %q` so it is paste-safe: a plain `$*` loses argument boundaries
+    # (a space, an empty argument, a quote or a glob would change what the pasted line runs).
+    remedy="SLOPWEAVER_CLI_DIR=$(printf '%q' "$cwd_root") $(printf '%q' "$cwd_root/bin/slopweaver")"
+    for remedy_arg in "$@"; do
+      remedy="$remedy $(printf '%q' "$remedy_arg")"
+    done
+    advise "slopweaver: WARNING — running $dir_root's code, but you're standing in $cwd_root (a different worktree of the same repo)." \
+      "slopweaver:   re-running $cwd_root/bin/slopweaver alone does not change that: the host's PLUGIN_ROOT outranks the launcher's own path." \
+      "slopweaver:   to run THIS worktree's code instead, name it with SLOPWEAVER_CLI_DIR and re-run:" \
+      "slopweaver:     $remedy"
+  fi
+fi
+
+# A `dev` VERB RUNS THE CHECKOUT ITS OWN LAUNCHER LIVES IN, ahead of any ambient PLUGIN_ROOT.
+#
+# `hooks/lib/resolve-root.sh` prefers `PLUGIN_ROOT`/`CLAUDE_PLUGIN_ROOT` for a good reason of its own: a hook
+# shim has no checkout to fall back to, and a stale cache dir must not win over a live one. But a host
+# EXPORTS those variables into every session, so typing `<checkout>/bin/slopweaver dev lint` ran the plugin
+# mirror instead — the caller named a tree explicitly and got a different one's verdict. Measured 2 Sep 2026:
+# `would run: …/plugins/data/slopweaver-inline/mirror/a` while standing in, and invoking the launcher of,
+# this worktree.
+#
+# An explicitly typed path is a stronger signal of intent than an inherited variable, so for `dev` — and only
+# `dev`, the verb group whose output is a verdict ABOUT a checkout — the launcher's own tree wins. Refusing
+# instead was the first shape of this and it was the weaker one: it reports the problem correctly and still
+# leaves the caller unable to do the obvious right thing. The refusal below is kept for the case this cannot
+# resolve, which is the genuine mismatch: standing in one checkout, invoking a different one's launcher.
+#
+# Unchanged for everything else. A mirror or cache install has no checkout here, so `self_root` is empty and
+# the ambient value keeps winning, exactly as `resolve-root.sh` intends.
+# `SLOPWEAVER_CLI_DIR` is an EXPLICIT override and outranks this preference, which only ever displaces an
+# INHERITED default. Getting that backwards made the refusal below unreachable, because the one deliberate
+# way to name another tree was being silently overwritten by the tree the launcher sits in.
+if [ "${1:-}" = "dev" ] && [ -z "${SLOPWEAVER_CLI_DIR:-}" ]; then
+  self_root="$(git_clean -C "$HERE" rev-parse --show-toplevel 2>/dev/null || true)"
+  if [ -n "$self_root" ] && [ -x "$self_root/bin/slopweaver" ]; then
+    DIR="$self_root"
+  fi
+fi
+
+# REFUSE a `dev` verb that would report on ONE checkout while running ANOTHER one's code.
+#
+# The warning above is the same family and deliberately stays a warning, but it cannot see this case at
+# all: it compares two git roots, and the copy that actually runs here has no `.git` whatsoever. The
+# plugin mirror is a plain directory tree, so `dir_root` comes back empty and that block fails open by
+# design. Measured 2 Sep 2026, standing in a worktree of this repo:
+#
+#   $ ~/.local/bin/slopweaver dev gate
+#   fatal: not a git repository (or any of the parent directories): .git
+#   hygiene: not a git checkout (git ls-files failed)
+#   ENOENT: .../plugins/data/slopweaver-inline/mirror/b/eval/baseline.recall.json
+#
+# That is the whole class in one output. The mirror answered, reported on nothing, and named a path in a
+# tree the caller has never edited. The reason it is reachable at all is that `slopweaver` resolves to a
+# shell FUNCTION in an interactive shell (which prefers the standing checkout's own launcher) and to the
+# `~/.local/bin` SYMLINK anywhere that function is not loaded — a non-interactive shell, a script, an
+# agent's tool call. Same command name, two different programs, and `binSlopweaverSymlink.test.ts`'s own
+# header already records that nobody noticed the symlink was broken for the same reason.
+#
+# Scoped to `dev` deliberately, and that scope is the point rather than caution. `dev` is the verb group
+# whose entire output is a VERDICT ABOUT A CHECKOUT, so running it from a foreign tree does not fail — it
+# succeeds, and lies. Every other verb reads a corpus or drives a provider, where which copy of the CLI
+# ran is genuinely uninteresting. Hooks invoke `memory hook` and `init` and are untouched; `yarn validate`
+# calls `tsx src/cli/index.ts` directly and never reaches this file.
+if [ "${1:-}" = "dev" ] && [ -z "${SLOPWEAVER_ALLOW_FOREIGN_CLI:-}" ]; then
+  gate_stand="$(git_clean rev-parse --show-toplevel 2>/dev/null || true)"
+  # Only a checkout carrying its own launcher can be meant here. Standing anywhere else — an unrelated
+  # repo, a home directory, a plugin install with no checkout at all — is the ordinary case and passes.
+  if [ -n "$gate_stand" ] && [ -x "$gate_stand/bin/slopweaver" ]; then
+    gate_running="$(cd "$DIR" 2>/dev/null && pwd -P || true)"
+    gate_standing="$(cd "$gate_stand" 2>/dev/null && pwd -P || true)"
+    if [ -n "$gate_running" ] && [ -n "$gate_standing" ] && [ "$gate_running" != "$gate_standing" ]; then
+      {
+        echo "slopweaver: REFUSED [foreign-cli] — \`slopweaver ${1} ${2:-}\` reports a verdict about a checkout,"
+        echo "slopweaver:   and this invocation would run a DIFFERENT checkout's code to produce it."
+        echo "slopweaver:     standing in: $gate_standing"
+        echo "slopweaver:     would run:   $gate_running"
+        echo "slopweaver:   A green from foreign code describes code you did not edit. Run this checkout's own:"
+        echo "slopweaver:     $gate_standing/bin/slopweaver $*"
+        echo "slopweaver:   Deliberate (comparing two checkouts, say)? Re-run with:"
+        echo "slopweaver:     SLOPWEAVER_ALLOW_FOREIGN_CLI=1 $0 $*"
+      } >&2
+      exit 1
+    fi
+  fi
+fi
+
+# THE HATCH STATES THE TREE, because otherwise it restores the exact invisibility the refusal removes.
+#
+# A break-glass that prints nothing turns a deliberate foreign run back into one indistinguishable from a
+# correct one, which is the whole defect. So an overridden run says which tree produced the verdict. The
+# generalisation is owed to the session that met the same class from the other side (a merge guard reading a
+# stale ref): correcting the ref is half a fix, and the half that generalises is making the report NAME the
+# tree it measured — a wrong verdict that states its own base is a VISIBLE wrong verdict.
+if [ "${1:-}" = "dev" ] && [ -n "${SLOPWEAVER_ALLOW_FOREIGN_CLI:-}" ]; then
+  hatch_stand="$(git_clean rev-parse --show-toplevel 2>/dev/null || true)"
+  hatch_running="$(cd "$DIR" 2>/dev/null && pwd -P || true)"
+  if [ -n "$hatch_running" ]; then
+    advise "slopweaver: [foreign-cli] override in force — this verdict is computed over $hatch_running"
+    if [ -n "$hatch_stand" ] && [ "$hatch_stand" != "$hatch_running" ]; then
+      advise "slopweaver:   you are standing in $hatch_stand, which is NOT the tree being measured."
+    fi
+  fi
+fi
+
+# FIND NODE BEFORE ANYTHING EXECS ONE, and refuse in our own words when none fits. HERE, because `DIR` is final
+# only now (a `dev` verb may have moved it above), and every Node start below — the worktree's `yarn install`,
+# plugin-install-deps.sh, the built entry, the courier's `command node`, tsx's `env node` shebang — reaches it
+# through PATH, so a pinned or `.nvmrc` Node goes first on PATH and an ambient one stays where it is. The tiers,
+# the cost measurement, and why a pin refuses where a broken `.nvmrc` install warns: hooks/lib/node-resolve.sh. The seat-pass
+# fast path above starts no Node and exits before this, so it pays none of it.
+# shellcheck source=../hooks/lib/node-resolve.sh
+source "$HERE/../hooks/lib/node-resolve.sh"
+if ! node_resolve "$DIR"; then
+  exit 1
+fi
+if [ -n "$NODE_NOTE" ]; then
+  advise "$NODE_NOTE"
+fi
+if [ -n "$NODE_PREPEND" ]; then
+  PATH="$NODE_PREPEND${PATH:+:$PATH}"
+  export PATH
+fi
+
+# A LINKED WORKTREE INSTALLS ITS OWN TREE, and never borrows the shared one. `.git` being a FILE rather
+# than a directory is exactly what makes a checkout a linked worktree, so that one test separates this case
+# from the main checkout and from a cache install, both of which keep the shared path below unchanged.
+#
+# This block is the fix for the class defect measured 27-28 Aug 2026. Until it existed, the shared-tree path
+# below ran here too: a worktree with no node_modules got a SYMLINK to one tree shared by the main checkout
+# and every other worktree, and a dependency only that branch's package.json lists was silently unlinked the
+# moment anything installed that tree from a checkout without it. Worse, `deps_match` failing here made the
+# worktree REINSTALL the shared tree from its own manifests, so two branches with different dependencies
+# took it in turns to break each other.
+#
+# The owner's rule, from the v1 system that already hit this: each worktree auto-installs, and node_modules
+# is never symlinked across worktrees. `slopweaver worktree create` normally does it at creation time; this
+# is the same install for a worktree made some other way, or made before that verb existed. It is affordable
+# because `.yarnrc.yml` sets `nmMode: hardlinks-global` — measured on this machine, a worktree's own tree
+# costs 316 KiB of unique blocks rather than 2.3 GB (`du -sch ~/.yarn/berry/store <worktree>/node_modules`).
+if [ ! -x "$DIR/node_modules/.bin/tsx" ] && [ -f "$DIR/.git" ]; then
+  advise "[slopweaver] $DIR has no node_modules of its own — installing this worktree's own tree (one-time)…"
+  if (cd "$DIR" && (corepack enable >/dev/null 2>&1 || true) && yarn install >/dev/null 2>&1); then
+    advise "[slopweaver] worktree dependencies ready."
+  else
+    advise "[slopweaver] \`yarn install\` failed in $DIR — falling back to the shared tree below."
+  fi
+  # A fallback that quietly serves a DIFFERENT lockfile's tree is the defect this whole block removes, so
+  # it refuses instead. Break glass by running the install by hand and reading yarn's own output.
+  if [ ! -x "$DIR/node_modules/.bin/tsx" ] \
+    && ! diff -q "$DIR/yarn.lock" "$DATA/yarn.lock" >/dev/null 2>&1; then
+    echo "slopweaver: $DIR could not install its own dependencies, and the shared tree at $DATA was" >&2
+    echo "slopweaver:   installed from a different yarn.lock — a dependency only this branch declares would" >&2
+    echo "slopweaver:   be missing. Run \`yarn install\` in $DIR and read the failure." >&2
+    exit 1
+  fi
+fi
+
+# Prefer a WORKING in-repo node_modules (dev). Else make the persistent data-dir deps match THIS plugin
+# version before linking them (cache install). SessionStart normally prepares that directory, but a plugin
+# can be installed and invoked dynamically inside an already-running Codex session, where SessionStart has
+# already happened. Checking only for tsx reused an older dependency tree and made newly imported runtime
+# packages fail at first use.
+if [ ! -x "$DIR/node_modules/.bin/tsx" ]; then
+  # Both files are compared, not just package.json: every direct dep is exact-pinned, so a transitive
+  # resolution bump moves yarn.lock alone and a package.json-only check would keep serving a tree no
+  # lockfile describes. See scripts/plugin-install-deps.sh for the measured failure this mirrors.
+  deps_match() {
+    diff -q "$PLUGIN_ROOT/package.json" "$DATA/package.json" >/dev/null 2>&1 \
+      && diff -q "$PLUGIN_ROOT/yarn.lock" "$DATA/yarn.lock" >/dev/null 2>&1
+  }
+  if [ ! -x "$DATA/node_modules/.bin/tsx" ] || ! deps_match; then
+    "$PLUGIN_ROOT/scripts/plugin-install-deps.sh"
+  fi
+  if ! deps_match; then
+    echo "slopweaver: installed dependencies do not match this plugin version" >&2
+    exit 1
+  fi
+  if [ -x "$DATA/node_modules/.bin/tsx" ]; then
+    rm -rf "$DIR/node_modules" 2>/dev/null || true   # clear stale dir / broken symlink (only when its tsx is absent)
+    ln -s "$DATA/node_modules" "$DIR/node_modules" 2>/dev/null || true
+  fi
+fi
+# THE BUILT CLI, WHEN THIS CHECKOUT HAS ONE. `slopweaver dev build` emits it and a `post-merge` /
+# `post-checkout` hook keeps it current across pulls (src/checkouts/refMoveBuildCli.ts). MEASURED 20 Sep
+# 2026 on this tree: `catalog` answers in 0.63 s built against 1.37 s under tsx.
+#
+# The choice is made on the MANIFEST rather than on the entrypoint, and that is the whole of the safety
+# argument here: a tree emitted before the staleness guard existed carries no manifest, so it is not
+# selected at all. What makes a stale build impossible to test is NOT this block — it is the guard inside
+# the artifact (src/builtCli/guard.ts), which the entrypoint reaches before any verb dispatch, so
+# `node dist-cli/cli/index.js` is checked exactly as this invocation is.
+#
+# A checkout that has never built has no manifest and runs the source under tsx, unchanged. That includes
+# CI and the subprocess test lane, neither of which builds.
+# `dev build` IS THE FIX, so it never runs from the thing it fixes. A guard whose own remedy the guard
+# blocks is the wedge measured on SLOPWEAVER_ALLOW_SPENT_PLAN — the refusal told the operator to set a
+# variable they had already set. Routing this one verb to the source is not a silent substitution either:
+# it is the one invocation whose whole job is to make the built tree match the source, and it says so.
+BUILT_MANIFEST="$DIR/dist-cli/.slopweaver-build.json"
+BUILT_ENTRY="$DIR/dist-cli/cli/index.js"
+if [ -f "$BUILT_MANIFEST" ] && [ -f "$BUILT_ENTRY" ]; then
+  if [ "${1:-}" = "dev" ] && [ "${2:-}" = "build" ]; then
+    advise "slopweaver: running \`dev build\` from source — it is the verb that rebuilds $DIR/dist-cli."
+  else
+    exec node "$BUILT_ENTRY" "$@"
+  fi
+fi
+
+TSX_NODE_MODULES="$DIR/node_modules"
+if [ ! -x "$TSX_NODE_MODULES/.bin/tsx" ]; then
+  TSX_NODE_MODULES="$DATA/node_modules"   # last resort: run straight from the data dir
+fi
+# THE SOURCE STARTS AT THE CALLER'S TIER WHEN MARKED. `tsx` is a WRAPPER: it forks a child `node --require
+# <dist>/preflight.cjs --import <dist>/loader.mjs …` that runs the CLI, waits on it, and relays signals to it. A
+# process that is already that child and `execve`s this launcher (the courier's in-place re-exec,
+# src/cli/commands/talk/courierReexec.ts) would turn its own pid into a SECOND wrapper, and the first would wait on it
+# forever: MEASURED 2 Nov 2026, 24 idle wrappers over one live courier (`pgrep -fl 'cli/index.ts talk cour'`). So the
+# marked start is the child's own command line, under the same preflight the wrapper above it already listens for.
+# The loader goes in as a URL built by node itself: a raw path or a hand-built `file://` breaks on a space or a `%`.
+# `command` keeps an exported shell function named `node` out of that one call, as `exec` already does below.
+if [ "$launcher_no_tsx_wrapper" = "1" ]; then
+  TSX_DIST="$TSX_NODE_MODULES/tsx/dist"
+  TSX_LOADER_URL="$(NODE_OPTIONS='' command node --print 'require("node:url").pathToFileURL(process.argv[1]).href' "$TSX_DIST/loader.mjs")"
+  exec node --require "$TSX_DIST/preflight.cjs" --import "$TSX_LOADER_URL" "$DIR/src/cli/index.ts" "$@"
+fi
+exec "$TSX_NODE_MODULES/.bin/tsx" "$DIR/src/cli/index.ts" "$@"

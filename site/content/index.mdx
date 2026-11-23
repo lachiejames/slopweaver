@@ -1,0 +1,99 @@
+---
+title: What the bot does
+---
+
+import { FeedbackLoop } from "../components/diagrams/FeedbackLoop";
+import { TurnOverview } from "../components/diagrams/TurnOverview";
+
+# What the bot does
+
+Tag **@acme-bot** in Slack and a visible Claude Code or Codex session picks up the turn with every tool
+it has, goes and looks, and replies in the thread with the evidence attached.
+
+The local corpus of the team's history is **one source it reads**. It is never the author of the answer. "Why did the staging pool exhaust" is answered by going and looking; "what did we decide
+about X" is answered from history. Both are the same bot.
+
+<TurnOverview />
+
+## The loop that actually runs the day
+
+One tag answered in one thread is the unit of work. The loop below is how dozens of them get done at once
+without any of them needing the owner — and it is the thing the owner values most.
+
+The owner speaks to **one** chat: the pinned supervisor. That chair spawns a visible seat per board row and reads
+the artifacts and recorded asks those seats send back. Everything that needs the owner lands on **one** page — the
+console's [Queue](/docs/console/queue), one card per question. Nothing else asks the owner for anything.
+
+<FeedbackLoop />
+
+Two of the six arrows are the owner, and they are the whole of the owner's attention budget. The other four carry verbs,
+and every one of those is a command on this machine:
+
+```bash
+slopweaver cmux spawn <slug> --model opus                  # the chair opens a seat on a board row
+slopweaver page publish <slug> --page ./scratchpad/x.html --review <id>  # a seat hands back a reviewed page the owner reacts to
+slopweaver handover ask <slug> --problem … --options … …   # or puts what only the owner can settle on the Queue
+slopweaver handover list                                   # the chair reads every lap still open
+```
+
+The board is the **only** register of what is in flight — a planned doc, an ask and an unanswered Slack tag
+all rank together on it. See [the one board](/docs/fleet/board) and
+[sessions and visibility](/docs/fleet/sessions).
+
+## The three phases
+
+Each stage above has a page. Start at the one you have a question about — none of them assume you read
+the others.
+
+| Phase                                         | What it decides                                        |
+| --------------------------------------------- | ------------------------------------------------------ |
+| [**1 · Listener**](/docs/phases/listener)     | what counts as an address, and who may send one        |
+| [**2 · Processing**](/docs/phases/processing) | how much effort the question earns, and what gets read |
+| [**3 · Output**](/docs/phases/output)         | who reviews the answer, and whose voice it speaks in   |
+
+## The live console
+
+[**The console**](/fleet) is this machine, read now: what every agent session is doing, what the plans have
+left, each host's token burn, and what the fleet did and does next. Every number is produced by a
+`slopweaver` verb you can run yourself. A read in flight is a spinner, and a reading that could not be taken is a
+staleness mark in place of the number, whose hover says why, rather than a zero.
+
+## The rest of the site
+
+- **[What it knows](/docs/model/corpus)** — the local corpus, [what is in it and how far
+  back](/docs/model/coverage), [people and identity](/docs/model/people), the [store schema](/docs/model/store),
+  [retrieval](/docs/model/retrieval), the [atlases](/docs/model/atlases), the [knowledge ledger](/docs/model/knowledge)
+  and the [brief it was built against](/docs/model/intent).
+- **[What it may do](/docs/trust/security)** — the [trust model](/docs/trust/security), the
+  [one door](/docs/trust/door), the [ten doctrine rules](/docs/trust/doctrine), the [voice rules](/docs/trust/voice) and
+  [graduated autonomy](/docs/trust/autonomy).
+- **[How the fleet runs](/docs/fleet/sessions)** — [sessions and visibility](/docs/fleet/sessions), the
+  [one board](/docs/fleet/board), [pairing with Codex](/docs/fleet/codex), [proof and landing](/docs/fleet/proof) and
+  [automations](/docs/fleet/automations).
+- **[How it is built](/docs/build/verbs)** — the [full verb surface](/docs/build/verbs) read live off this machine,
+  [skills and rules](/docs/build/skills), the [module layout](/docs/build/modules), the
+  [gate surface](/docs/build/gates), [testing](/docs/build/testing), [error handling](/docs/build/errors),
+  [known debt](/docs/build/debt) and [how to run it](/docs/build/install).
+
+## Run it yourself
+
+The whole loop is exercisable without touching a provider — `seed --demo` writes a synthetic corpus to
+bronze, and `store ingest` reads each of its four sources into the local Postgres `store status` names:
+
+```bash
+slopweaver seed --demo
+slopweaver store ingest --source slack --limit 500 --all   # then github, linear and notion
+slopweaver store read "what did we decide about the retention window?"
+```
+
+## Two things worth knowing up front
+
+**One visible session per turn, never a daemon.** A Slopweaver process may launch a model only into a
+session you can see and interrupt as it runs. A Slack tag that arrives when no session is running is a
+no-op by design — nothing answers it later on its own.
+
+**Everything is on this machine, with the exceptions named.** Each opt-in: the `codex` verbs send prompts,
+repository reads and review diffs to OpenAI; the console voice (`talk`) is a realtime session with OpenAI on
+the ChatGPT plan; `chatgpt conversation` reads one ChatGPT chat back. The store itself never leaves this
+machine: a URL naming another host is refused, with no escape hatch, and `store backup` uploads nothing. The
+full list is on [the trust model](/docs/trust/security).

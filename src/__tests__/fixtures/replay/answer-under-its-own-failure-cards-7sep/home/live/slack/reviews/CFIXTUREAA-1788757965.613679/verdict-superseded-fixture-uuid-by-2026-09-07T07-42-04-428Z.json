@@ -1,0 +1,114 @@
+{
+  "answerDigest": "sha256:c04cf7e191239ea517dd73105cc95dae4edf2e7402e3db0a31b503f427c9c827",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "unsupported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "unsupported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "live",
+      "support": "supported",
+      "evidence": "[REDACTED]"
+    },
+    {
+      "text": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "live",
+      "support": "unsupported",
+      "evidence": "[REDACTED]"
+    }
+  ],
+  "outcome": "broken",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1
+}

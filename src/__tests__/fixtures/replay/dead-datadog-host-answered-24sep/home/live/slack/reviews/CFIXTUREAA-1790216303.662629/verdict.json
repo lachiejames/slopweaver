@@ -1,0 +1,131 @@
+{
+  "answerDigest": "sha256:5c3662e05536327aba39d2104defe397f8544758438e406dafdb953396fe927b",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "restsOn": "answer",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "high",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "readAtIso": "[REDACTED]",
+      "readCommand": "[REDACTED]",
+      "restsOn": "live",
+      "support": "supported",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "low",
+      "restsOn": "live",
+      "support": "unsupported",
+      "text": "[REDACTED]"
+    }
+  ],
+  "imageObservations": [],
+  "outcome": "clean",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1,
+  "voice": {
+    "pathsChecked": [
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]",
+      "[REDACTED]"
+    ],
+    "rulesChecked": 4,
+    "violations": []
+  }
+}

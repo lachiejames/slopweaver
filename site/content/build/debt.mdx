@@ -1,0 +1,59 @@
+---
+title: Known debt
+---
+
+import { DebtRatchets } from "../../components/diagrams/DebtRatchets";
+
+# Known debt
+
+Debt here is **declared, counted and ratcheted** rather than remembered. Every standing violation of a
+house rule sits in a baseline file that can only shrink.
+
+<DebtRatchets />
+
+## The baselines
+
+```bash
+ls .baselines/
+```
+
+| File                                       | What it holds                                            |
+| ------------------------------------------ | -------------------------------------------------------- |
+| `file-size-baseline.json`                  | files over the code-line cap                             |
+| `internal-exports-baseline.json`           | exports nothing outside their file imports               |
+| `error-shape-threshold-baseline.json`      | directories past four plain error shapes                 |
+| `no-silent-fallback-baseline.json`         | surviving `??` / `||=` sites                              |
+| `unnamed-failure-assertion-baseline.json`  | tests asserting only that something failed                |
+| `clone-baseline.json`                      | duplicated blocks the clone detector found                |
+
+## The property that makes a baseline honest
+
+**An entry that stops firing is also a failure.** A debt list that silently accepts a fixed entry is a list
+that drifts out of date without anyone noticing — so removing the violation and leaving the row is caught
+just as loudly as adding a new violation. The list only ever shrinks, and it shrinks deliberately.
+
+The same shape holds the `no-python` DEBT list and `whole-file-json`'s.
+
+## Ratchets, not thresholds
+
+A ratchet stores the measured number and refuses an increase. `file-size-ratchet`, `coverage-ratchet`,
+`primitive-ratchet` and `count-ratchet` all work this way. The difference from a threshold matters: a
+threshold invites you to sit just under it forever; a ratchet makes every landing that improves the number
+permanent.
+
+**A bump with no fresh measurement is the weaken-the-gate move.** A measured one is the intended act — the
+heap budget in `namedObjectParamsHeap.ts` carries its own measurement history, phase profile and scaling
+axis for exactly that reason.
+
+## Named debt that is not in a file
+
+- **Relative imports into `src/lib/`.** New code uses `#lib/…`; most of the tree is still relative, and
+  converting it is a follow-up row rather than a gate.
+- **Domain errors wrapping a `safe*` boundary.** `.mapErr()` at the boundary is the target, not a proven
+  pattern — every domain here was built around a raw `try/catch`.
+- **The ambient hatch variable for outbound rows.** `hatch open` cannot yet be taken inside a `PreToolUse`
+  hook or a subprocess fixture, so the environment variable is still honoured. Removing it is the named
+  next step.
+- **No vitest lane reaches `site/components/`.** A verb that changes its `--json` shape cannot fail a test
+  there — it can only break a tile. That is why every reader on the [console](/fleet) refuses rather than
+  substitutes.

@@ -1,0 +1,59 @@
+{
+  "channel": "CFIXTUREAA",
+  "messageTs": "1790141967.816599",
+  "threadTs": "1790137657.683209",
+  "askPermalink": "https://fixture.slack.com/archives/CFIXTUREAA/p1790141967816599?thread_ts=1790137657.683209&cid=CFIXTUREAA",
+  "briefPath": "${SLOPWEAVER_HOME}/briefs/CFIXTUREAA-1790141967.816599.json",
+  "decision": {
+    "confidence": "high",
+    "model": "opus",
+    "needs": [
+      {
+        "capabilityId": "vanta-person-atlas",
+        "reason": "[REDACTED]",
+        "requirement": "required"
+      },
+      {
+        "capabilityId": "vanta-group-atlas",
+        "reason": "[REDACTED]",
+        "requirement": "required"
+      },
+      {
+        "capabilityId": "vanta-user-atlas",
+        "reason": "[REDACTED]",
+        "requirement": "optional"
+      },
+      {
+        "capabilityId": "slack-live",
+        "reason": "[REDACTED]",
+        "requirement": "required"
+      },
+      {
+        "capabilityId": "corpus",
+        "reason": "[REDACTED]",
+        "requirement": "optional"
+      }
+    ],
+    "rationale": "[REDACTED]",
+    "response": "respond",
+    "schemaVersion": 1,
+    "tier": "fresh-visible-session",
+    "truthMode": "current"
+  },
+  "dispatchId": "[\"CFIXTUREAA\",\"1790141967.816599\",\"1790137657.683209\"]",
+  "execution": {
+    "mode": "continuous-drain",
+    "supervisorHost": "claude-code"
+  },
+  "leaseExpiresAt": "2026-09-23T08:50:17.002Z",
+  "schemaVersion": 3,
+  "session": {
+    "cwd": "/fixture/user/dev/personal/slopweaver/.claude/worktrees.noindex/live-bot-loop-21sep-c",
+    "host": "claude-code",
+    "sessionName": "ask-CFIXTUREAA-1790141967.816599",
+    "surfaceId": "fixture-uuid-dp",
+    "surfaceRef": "surface:76",
+    "workspaceId": "fixture-uuid-dq",
+    "workspaceRef": "workspace:73"
+  }
+}

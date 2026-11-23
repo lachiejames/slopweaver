@@ -1,0 +1,286 @@
+/*
+ * The diagram frame, and the two things that make a render unreadable:
+ * pale fills carrying pale text, and a figure that inherits the page's dark ground and lost its contrast.
+ *
+ * Both are fixed here rather than per-diagram. Every figure draws on its OWN light card, in both themes,
+ * so a saturated fill with white text reads the same way whichever ground the reader is on. The stage
+ * colours below are the only hues any diagram uses, and each is dark enough for white text at 13px.
+ */
+
+:root {
+  /*
+   * nextra-theme-docs reads this in exactly one place — `max-width: var(--nextra-content-width)` on the
+   * shell — and ships no value for it, so an unconfigured site leaves that max-width invalid. 90rem is the
+   * value Nextra sets on its own documentation. Honest limit: at the viewport this was checked at, moving
+   * it between 40rem and 90rem changed the rendered page by zero bytes, so it caps the shell only on a
+   * window wider than that. Verify against a real one before treating this as the knob for page width.
+   */
+  --nextra-content-width: 90rem;
+
+  --sw-stage-in: #c2410c;
+  --sw-stage-mid: #6d28d9;
+  --sw-stage-out: #047857;
+  --sw-figure-bg: #ffffff;
+  --sw-figure-line: #cbd5e1;
+  --sw-figure-ink: #0f172a;
+  --sw-figure-muted: #475569;
+  --sw-figure-panel: #f1f5f9;
+}
+
+.dark {
+  /* The card stays light on a dark page on purpose — see the comment above. Only the frame changes. */
+  --sw-figure-bg: #f8fafc;
+  --sw-figure-line: #94a3b8;
+  --sw-figure-ink: #0f172a;
+  --sw-figure-muted: #475569;
+  --sw-figure-panel: #e2e8f0;
+}
+
+.sw-figure {
+  margin: 2rem 0;
+}
+
+.sw-figure > svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  background: var(--sw-figure-bg);
+  border: 1px solid var(--sw-figure-line);
+  border-radius: 12px;
+  color: var(--sw-figure-ink);
+}
+
+.sw-figure > figcaption {
+  margin-top: 0.7rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.dark .sw-figure > figcaption {
+  color: #94a3b8;
+}
+
+.sw-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sw-logo > svg {
+  /* The owner's mark is a full-bleed square, so the navbar rounds it the way an app icon reads. The artwork is
+     untouched: `site/components/SlopweaverMark.tsx` is a trace of the file the owner supplied and nothing
+     here should ever redraw it. */
+  border-radius: 4px;
+}
+
+/*
+ * The live console.
+ *
+ * Every tile is a reading of this machine taken by a `slopweaver` verb, so the three things this stylesheet
+ * has to make legible are the value, its AGE, and the case where there is no value at all. The unmeasured
+ * state is styled as loudly as a value on purpose: a console whose failures render as an empty card is one
+ * you stop trusting the moment a number looks surprising.
+ */
+
+.sw-tile-unmeasured {
+  margin: 0;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--sw-stage-in) 12%, transparent);
+  border-left: 3px solid var(--sw-stage-in);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--sw-figure-ink);
+}
+
+.sw-tile-note {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--sw-figure-muted);
+}
+
+.sw-tile-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sw-tile-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--sw-figure-muted);
+  border-bottom: 1px solid var(--sw-figure-line);
+  /* The same right padding the cells carry. Without it two narrow headings touch, and "model repo" read as
+     one word "modelrepo" in the agents tile the moment a long workspace slug squeezed the columns. */
+  padding: 0 0.5rem 0.2rem 0;
+}
+
+.sw-tile-table td {
+  padding: 0.22rem 0.5rem 0.22rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--sw-figure-line) 45%, transparent);
+}
+
+/*
+ * The live verb catalog. It is a reading of the machine like any tile, but it is a whole PAGE of one, so
+ * it gets a filter and per-noun sections rather than the tile frame.
+ */
+
+.sw-catalog {
+  margin: 1.5rem 0;
+}
+
+.sw-catalog-filter {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.9rem;
+}
+
+.sw-catalog-noun {
+  margin-top: 1.6rem;
+}
+
+.sw-catalog-noun h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0 0 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* Set apart by size and weight, never faded: text dimmed with `opacity` is text no contrast test measures. */
+.sw-catalog-noun h3 span {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: inherit;
+}
+
+.sw-catalog .sw-tile-note {
+  color: inherit;
+  margin-top: 0.5rem;
+}
+
+.sw-catalog .sw-tile-table td:first-child {
+  white-space: nowrap;
+  vertical-align: top;
+  padding-right: 1rem;
+}
+
+/*
+ * The catalog sits on the PAGE ground, not on a figure card, so it inherits the page ink in both themes
+ * rather than borrowing the light-card palette above. A table forced to `--sw-figure-ink` here would be
+ * dark text on the dark theme, which is the exact defect the figure card exists to prevent.
+ */
+.sw-catalog .sw-tile-table td,
+.sw-catalog .sw-tile-table th {
+  color: inherit;
+  border-color: currentColor;
+}
+
+.sw-verb-tag {
+  margin-left: 0.45rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.sw-verb-write {
+  background: var(--sw-stage-in);
+}
+
+.sw-verb-item {
+  background: var(--sw-stage-mid);
+}
+
+/*
+ * The codebase atlas. Same ground and the same filter as the verb catalog above, so it reuses `.sw-catalog`
+ * wholesale; what it adds is a SIZE, because this table is every top-level tree in five columns rather than
+ * a tile's handful (`slopweaver catalog trees` counts them). `table-layout: fixed` is what stops the widest
+ * single blurb from deciding every column's width, and the percentages below are the reading order: what
+ * lives there earns the most room, the rule path the least.
+ */
+
+.sw-atlas-table {
+  table-layout: fixed;
+  font-size: 0.72rem;
+}
+
+.sw-atlas-table th:nth-child(1),
+.sw-atlas-table td:nth-child(1) {
+  width: 15%;
+}
+
+.sw-atlas-table th:nth-child(2),
+.sw-atlas-table td:nth-child(2) {
+  width: 38%;
+}
+
+.sw-atlas-table th:nth-child(3),
+.sw-atlas-table td:nth-child(3),
+.sw-atlas-table th:nth-child(4),
+.sw-atlas-table td:nth-child(4) {
+  width: 17%;
+}
+
+.sw-atlas-skills th:nth-child(1),
+.sw-atlas-skills td:nth-child(1) {
+  width: 22%;
+}
+
+.sw-atlas-skills th:nth-child(2),
+.sw-atlas-skills td:nth-child(2) {
+  width: 78%;
+}
+
+/*
+ * A fixed layout cannot let one cell push the table wide, so the cells that hold derived LISTS wrap instead.
+ * The first column overrides `.sw-catalog`'s `nowrap` for the same reason: `src/visualEvidence` beside its
+ * module count is wider than 15% at this font size, and nowrap would make it overflow the column silently.
+ */
+.sw-catalog .sw-atlas-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+/*
+ * The module or reference-file count beside a name. Present on every row, so it is set small for the eye to skip,
+ * in full ink: faded to 55% it was about 3.45:1 on graphite light.
+ */
+.sw-atlas-count {
+  margin-left: 0.4rem;
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The archive's own token values.
+ *
+ * The `--a-*` set is the old SaaS's `theme-core.css` (oklch, one hue per platform) carried as plain custom
+ * properties — the design is what is ported, not the Tailwind layer that held it. They colour tags and
+ * verdicts across the console, as `console-tw.css` maps them onto the `success`/`warning`/`danger` utilities.
+ */
+:root {
+  --a-primary: oklch(0.65 0.16 185);
+  --a-success: oklch(0.72 0.16 145);
+  --a-warning: oklch(0.78 0.14 75);
+  --a-danger: oklch(0.62 0.18 25);
+  --a-info: oklch(0.62 0.06 210);
+  --a-slack: oklch(0.35 0.15 320);
+  --a-linear: oklch(0.5 0.15 265);
+  --a-github: oklch(0.25 0.01 250);
+}

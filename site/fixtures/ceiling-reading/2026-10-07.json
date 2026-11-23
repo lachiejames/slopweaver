@@ -1,0 +1,120 @@
+{
+  "by": "fixture-capture",
+  "bytes": 2565,
+  "document": {
+    "combinedUnusedShareUpperBound": 0.13,
+    "observedExpiredPlanWeeks": 5,
+    "unusedPlanWeeksUpperBound": 0.65,
+    "burn": {
+      "kind": "measured",
+      "overlapHours": 106.02043638888888,
+      "planWeeksDrawn": 3.0297324706312545,
+      "planWeeksPerWorkingSeatHour": 0.008726314956986307,
+      "workingSeatHours": 347.19494833333334
+    },
+    "ceiling": {
+      "burnPerWorkingSeatHour": 0.008726314956986307,
+      "kind": "measured",
+      "plans": [
+        {
+          "hoursToReset": 24.209711111111112,
+          "observedAtIso": "2026-10-07T18:47:00.703Z",
+          "planAlias": "plan-one",
+          "resetAtIso": "2026-10-08T19:00:00.000Z",
+          "spendCap": 0.95,
+          "sustainablePlanWeeksPerHour": 0.006195860797824928,
+          "utilization": 0.8
+        },
+        {
+          "hoursToReset": 75.2097111111111,
+          "observedAtIso": "2026-10-07T18:47:00.703Z",
+          "planAlias": "plan-two",
+          "resetAtIso": "2026-10-10T22:00:00.000Z",
+          "spendCap": 0.95,
+          "sustainablePlanWeeksPerHour": 0.003457000381451923,
+          "utilization": 0.69
+        },
+        {
+          "hoursToReset": 36.20971111111111,
+          "observedAtIso": "2026-10-07T18:47:00.703Z",
+          "planAlias": "plan-three",
+          "resetAtIso": "2026-10-09T07:00:00.000Z",
+          "spendCap": 0.95,
+          "sustainablePlanWeeksPerHour": 0.006351887185573913,
+          "utilization": 0.72
+        },
+        {
+          "hoursToReset": 80.2097111111111,
+          "observedAtIso": "2026-10-07T18:47:00.703Z",
+          "planAlias": "plan-four",
+          "resetAtIso": "2026-10-11T03:00:00.000Z",
+          "spendCap": 0.95,
+          "sustainablePlanWeeksPerHour": 0.005859639605844347,
+          "utilization": 0.48
+        },
+        {
+          "hoursToReset": 160.20971111111112,
+          "observedAtIso": "2026-10-07T18:47:00.703Z",
+          "planAlias": "plan-five",
+          "resetAtIso": "2026-10-14T11:00:00.000Z",
+          "spendCap": 0.95,
+          "sustainablePlanWeeksPerHour": 0.005867309749707224,
+          "utilization": 0.01
+        }
+      ],
+      "seats": 3,
+      "sustainablePlanWeeksPerHour": 0.027731697720402335
+    },
+    "fromIso": "2026-09-30T18:47:25.040Z",
+    "planAliases": ["plan-one", "plan-two", "plan-three", "plan-four", "plan-five"],
+    "problems": [],
+    "seats": {
+      "coveredHours": 109.27045,
+      "meanOpenSeats": 12.629583450461167,
+      "meanWorkingSeats": 3.274925128431337,
+      "peakOpenSeats": 29,
+      "peakWorkingSeats": 12,
+      "samples": 363,
+      "unknownHours": 58.72955,
+      "widestGapSeconds": 21579,
+      "workingSeatHours": 357.8525425
+    },
+    "toIso": "2026-10-07T18:47:25.040Z",
+    "unusedByPlan": [
+      {
+        "expiredWindows": 1,
+        "planAlias": "plan-one",
+        "unusedPlanWeeksUpperBound": 0.01,
+        "widestLastReadingToResetSeconds": 19
+      },
+      {
+        "expiredWindows": 1,
+        "planAlias": "plan-two",
+        "unusedPlanWeeksUpperBound": 0.27,
+        "widestLastReadingToResetSeconds": 51
+      },
+      {
+        "expiredWindows": 1,
+        "planAlias": "plan-three",
+        "unusedPlanWeeksUpperBound": 0.14,
+        "widestLastReadingToResetSeconds": 10
+      },
+      {
+        "expiredWindows": 1,
+        "planAlias": "plan-four",
+        "unusedPlanWeeksUpperBound": 0.23,
+        "widestLastReadingToResetSeconds": 148
+      },
+      {
+        "expiredWindows": 1,
+        "planAlias": "plan-five",
+        "unusedPlanWeeksUpperBound": 0,
+        "widestLastReadingToResetSeconds": 226
+      }
+    ]
+  },
+  "observedAtIso": "2026-10-07T18:47:25.040Z",
+  "producer": "fleet ceiling",
+  "readingId": "2026-10-07T18:47:52.663Z-fleet-ceiling",
+  "recordedAtIso": "2026-10-07T18:47:52.663Z"
+}

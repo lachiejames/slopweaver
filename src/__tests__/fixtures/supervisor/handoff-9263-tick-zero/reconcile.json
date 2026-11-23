@@ -1,0 +1,3669 @@
+{
+  "headline": "3 of 19 live session(s) are on the board's top 5, 13 are lower down, 1 are on an unplaced row, 2 are on nothing the board knows, 1 more exist by contract, 2 top row(s) have nobody, 374 ask(s) are over 6 hours old, 9 row(s) carry no priority.",
+  "source": "cmux",
+  "rankedCount": 718,
+  "ungroomed": 9,
+  "unregistered": ["workspace:242", "workspace:223"],
+  "top": [
+    {
+      "id": "row-0001",
+      "label": "Synthetic board row 0001 about ratchet",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 162,
+      "openedIso": "2026-09-07T16:45:00Z"
+    },
+    {
+      "id": "row-0002",
+      "label": "Synthetic board row 0002 about reviewer",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 153,
+      "openedIso": "2026-09-08T01:16:11Z"
+    },
+    {
+      "id": "row-0003",
+      "label": "Synthetic board row 0003",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 126,
+      "openedIso": "2026-09-09T04:33:00.000Z"
+    },
+    {
+      "id": "row-0004",
+      "label": "Synthetic board row 0004 about slack thread",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 124,
+      "openedIso": "2026-09-09T06:42:28Z"
+    },
+    {
+      "id": "row-0005",
+      "label": "Synthetic board row 0005 about dogfood, slack thread",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 124,
+      "openedIso": "2026-09-09T06:42:28Z"
+    }
+  ],
+  "starving": [
+    {
+      "id": "row-0004",
+      "label": "Synthetic board row 0004 about slack thread",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 124,
+      "openedIso": "2026-09-09T06:42:28Z"
+    },
+    {
+      "id": "row-0005",
+      "label": "Synthetic board row 0005 about dogfood, slack thread",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 124,
+      "openedIso": "2026-09-09T06:42:28Z"
+    }
+  ],
+  "staleAsks": [
+    {
+      "id": "row-0001",
+      "label": "Synthetic board row 0001 about ratchet",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 162,
+      "openedIso": "2026-09-07T16:45:00Z"
+    },
+    {
+      "id": "row-0002",
+      "label": "Synthetic board row 0002 about reviewer",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 153,
+      "openedIso": "2026-09-08T01:16:11Z"
+    },
+    {
+      "id": "row-0003",
+      "label": "Synthetic board row 0003",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 126,
+      "openedIso": "2026-09-09T04:33:00.000Z"
+    },
+    {
+      "id": "row-0004",
+      "label": "Synthetic board row 0004 about slack thread",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 124,
+      "openedIso": "2026-09-09T06:42:28Z"
+    },
+    {
+      "id": "row-0005",
+      "label": "Synthetic board row 0005 about dogfood, slack thread",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 124,
+      "openedIso": "2026-09-09T06:42:28Z"
+    },
+    {
+      "id": "row-0006",
+      "label": "Synthetic board row 0006 about backfill",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 93,
+      "openedIso": "2026-09-10T13:12:00Z"
+    },
+    {
+      "id": "row-0007",
+      "label": "Synthetic board row 0007 about dogfood, slack thread",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 90,
+      "openedIso": "2026-09-10T16:15:00Z"
+    },
+    {
+      "id": "row-0008",
+      "label": "Synthetic board row 0008",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 58,
+      "openedIso": "2026-09-12T00:02:00Z"
+    },
+    {
+      "id": "row-0009",
+      "label": "Synthetic board row 0009",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 58,
+      "openedIso": "2026-09-11T23:58:00Z"
+    },
+    {
+      "id": "row-0010",
+      "label": "Synthetic board row 0010",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 55,
+      "openedIso": "2026-09-12T03:16:00Z"
+    },
+    {
+      "id": "row-0011",
+      "label": "Synthetic board row 0011 about schema, dogfood",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 52,
+      "openedIso": "2026-09-12T06:04:09.031Z"
+    },
+    {
+      "id": "row-0012",
+      "label": "Synthetic board row 0012 about dogfood",
+      "priority": "p0",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 51,
+      "openedIso": "2026-09-12T07:53:40.033Z"
+    },
+    {
+      "id": "row-0013",
+      "label": "Synthetic board row 0013 about schema",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 284,
+      "openedIso": "2026-09-02T14:35:01.000Z"
+    },
+    {
+      "id": "row-0014",
+      "label": "Synthetic board row 0014 about reviewer",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 266,
+      "openedIso": "2026-09-03T08:23:43.891Z"
+    },
+    {
+      "id": "row-0015",
+      "label": "Synthetic board row 0015",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 259,
+      "openedIso": "2026-09-03T15:08:53.547Z"
+    },
+    {
+      "id": "row-0016",
+      "label": "Synthetic board row 0016 about slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 250,
+      "openedIso": "2026-09-04T00:46:15Z"
+    },
+    {
+      "id": "row-0017",
+      "label": "Synthetic board row 0017",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 246,
+      "openedIso": "2026-09-04T04:15:39Z"
+    },
+    {
+      "id": "row-0018",
+      "label": "Synthetic board row 0018 about backfill, slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 243,
+      "openedIso": "2026-09-04T07:29:45.429Z"
+    },
+    {
+      "id": "row-0019",
+      "label": "Synthetic board row 0019 about slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 243,
+      "openedIso": "2026-09-04T07:29:29.517Z"
+    },
+    {
+      "id": "row-0020",
+      "label": "Synthetic board row 0020 about backfill, slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 237,
+      "openedIso": "2026-09-04T13:45:00Z"
+    },
+    {
+      "id": "row-0021",
+      "label": "Synthetic board row 0021 about backfill, notion",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 237,
+      "openedIso": "2026-09-04T13:45:00Z"
+    },
+    {
+      "id": "row-0022",
+      "label": "Synthetic board row 0022",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 235,
+      "openedIso": "2026-09-04T15:20:07.311Z"
+    },
+    {
+      "id": "row-0023",
+      "label": "Synthetic board row 0023",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 225,
+      "openedIso": "2026-09-05T01:08:56.916Z"
+    },
+    {
+      "id": "row-0024",
+      "label": "Synthetic board row 0024",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 223,
+      "openedIso": "2026-09-05T03:55:00Z"
+    },
+    {
+      "id": "row-0025",
+      "label": "Synthetic board row 0025",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 223,
+      "openedIso": "2026-09-05T03:00:00Z"
+    },
+    {
+      "id": "row-0026",
+      "label": "Synthetic board row 0026",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 203,
+      "openedIso": "2026-09-05T23:07:52.932Z"
+    },
+    {
+      "id": "row-0027",
+      "label": "Synthetic board row 0027 about notion",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 200,
+      "openedIso": "2026-09-06T02:39:42Z"
+    },
+    {
+      "id": "row-0028",
+      "label": "Synthetic board row 0028",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 200,
+      "openedIso": "2026-09-06T02:40:25Z"
+    },
+    {
+      "id": "row-0029",
+      "label": "Synthetic board row 0029 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 199,
+      "openedIso": "2026-09-06T03:33:24.925Z"
+    },
+    {
+      "id": "row-0030",
+      "label": "Synthetic board row 0030",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 197,
+      "openedIso": "2026-09-06T05:22:10.702Z"
+    },
+    {
+      "id": "row-0031",
+      "label": "Synthetic board row 0031 about notion",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 196,
+      "openedIso": "2026-09-06T06:05:00Z"
+    },
+    {
+      "id": "row-0032",
+      "label": "Synthetic board row 0032",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 194,
+      "openedIso": "2026-09-06T08:40:00Z"
+    },
+    {
+      "id": "row-0033",
+      "label": "Synthetic board row 0033",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 192,
+      "openedIso": "2026-09-06T10:07:23.308Z"
+    },
+    {
+      "id": "row-0034",
+      "label": "Synthetic board row 0034 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 187,
+      "openedIso": "2026-09-06T15:11:36.844Z"
+    },
+    {
+      "id": "row-0035",
+      "label": "Synthetic board row 0035 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 187,
+      "openedIso": "2026-09-06T15:11:04.738Z"
+    },
+    {
+      "id": "row-0036",
+      "label": "Synthetic board row 0036",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 187,
+      "openedIso": "2026-09-06T15:11:49.803Z"
+    },
+    {
+      "id": "row-0037",
+      "label": "Synthetic board row 0037",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 181,
+      "openedIso": "2026-09-06T21:39:50.135Z"
+    },
+    {
+      "id": "row-0038",
+      "label": "Synthetic board row 0038 about ratchet",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 178,
+      "openedIso": "2026-09-07T00:00:00Z"
+    },
+    {
+      "id": "row-0039",
+      "label": "Synthetic board row 0039",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 177,
+      "openedIso": "2026-09-07T01:21:00Z"
+    },
+    {
+      "id": "row-0040",
+      "label": "Synthetic board row 0040 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 177,
+      "openedIso": "2026-09-07T01:28:13.044Z"
+    },
+    {
+      "id": "row-0041",
+      "label": "Synthetic board row 0041 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 176,
+      "openedIso": "2026-09-07T02:05:20.402Z"
+    },
+    {
+      "id": "row-0042",
+      "label": "Synthetic board row 0042",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 176,
+      "openedIso": "2026-09-07T02:06:19.193Z"
+    },
+    {
+      "id": "row-0043",
+      "label": "Synthetic board row 0043 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 176,
+      "openedIso": "2026-09-07T02:05:50.668Z"
+    },
+    {
+      "id": "row-0044",
+      "label": "Synthetic board row 0044",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 176,
+      "openedIso": "2026-09-07T02:07:45.844Z"
+    },
+    {
+      "id": "row-0045",
+      "label": "Synthetic board row 0045",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 176,
+      "openedIso": "2026-09-07T02:06:56.779Z"
+    },
+    {
+      "id": "row-0046",
+      "label": "Synthetic board row 0046",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 175,
+      "openedIso": "2026-09-07T03:03:28.348Z"
+    },
+    {
+      "id": "row-0047",
+      "label": "Synthetic board row 0047",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 175,
+      "openedIso": "2026-09-07T03:10:09.723Z"
+    },
+    {
+      "id": "row-0048",
+      "label": "Synthetic board row 0048",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 175,
+      "openedIso": "2026-09-07T03:22:01.541Z"
+    },
+    {
+      "id": "row-0049",
+      "label": "Synthetic board row 0049 about backfill, slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 174,
+      "openedIso": "2026-09-07T04:51:56.313Z"
+    },
+    {
+      "id": "row-0050",
+      "label": "Synthetic board row 0050",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 172,
+      "openedIso": "2026-09-07T06:28:56.909Z"
+    },
+    {
+      "id": "row-0051",
+      "label": "Synthetic board row 0051 about slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 172,
+      "openedIso": "2026-09-07T06:42:39.550Z"
+    },
+    {
+      "id": "row-0052",
+      "label": "Synthetic board row 0052",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 172,
+      "openedIso": "2026-09-07T06:29:47.467Z"
+    },
+    {
+      "id": "row-0053",
+      "label": "Synthetic board row 0053",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 171,
+      "openedIso": "2026-09-07T07:05:57.623Z"
+    },
+    {
+      "id": "row-0054",
+      "label": "Synthetic board row 0054",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 171,
+      "openedIso": "2026-09-07T07:02:07.790Z"
+    },
+    {
+      "id": "row-0055",
+      "label": "Synthetic board row 0055 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 170,
+      "openedIso": "2026-09-07T08:11:36.250Z"
+    },
+    {
+      "id": "row-0056",
+      "label": "Synthetic board row 0056",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 169,
+      "openedIso": "2026-09-07T09:22:20.651Z"
+    },
+    {
+      "id": "row-0057",
+      "label": "Synthetic board row 0057 about slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 169,
+      "openedIso": "2026-09-07T09:21:50.884Z"
+    },
+    {
+      "id": "row-0058",
+      "label": "Synthetic board row 0058",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 168,
+      "openedIso": "2026-09-07T10:02:55.794Z"
+    },
+    {
+      "id": "row-0059",
+      "label": "Synthetic board row 0059",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 168,
+      "openedIso": "2026-09-07T10:49:12.823Z"
+    },
+    {
+      "id": "row-0060",
+      "label": "Synthetic board row 0060",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 161,
+      "openedIso": "2026-09-07T17:33:00Z"
+    },
+    {
+      "id": "row-0061",
+      "label": "Synthetic board row 0061 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 161,
+      "openedIso": "2026-09-07T17:48:00Z"
+    },
+    {
+      "id": "row-0062",
+      "label": "Synthetic board row 0062 about rebase",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 161,
+      "openedIso": "2026-09-07T17:45:00Z"
+    },
+    {
+      "id": "row-0063",
+      "label": "Synthetic board row 0063 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 161,
+      "openedIso": "2026-09-07T17:00:00Z"
+    },
+    {
+      "id": "row-0064",
+      "label": "Synthetic board row 0064 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 160,
+      "openedIso": "2026-09-07T18:33:00Z"
+    },
+    {
+      "id": "row-0065",
+      "label": "Synthetic board row 0065",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 160,
+      "openedIso": "2026-09-07T18:52:00Z"
+    },
+    {
+      "id": "row-0066",
+      "label": "Synthetic board row 0066",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 160,
+      "openedIso": "2026-09-07T18:42:00Z"
+    },
+    {
+      "id": "row-0067",
+      "label": "Synthetic board row 0067",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 156,
+      "openedIso": "2026-09-07T22:19:58.670Z"
+    },
+    {
+      "id": "row-0068",
+      "label": "Synthetic board row 0068 about slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 153,
+      "openedIso": "2026-09-08T01:16:11Z"
+    },
+    {
+      "id": "row-0069",
+      "label": "Synthetic board row 0069 about reviewer",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 130,
+      "openedIso": "2026-09-09T00:45:00.000Z"
+    },
+    {
+      "id": "row-0070",
+      "label": "Synthetic board row 0070 about schema",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 126,
+      "openedIso": "2026-09-09T04:50:00Z"
+    },
+    {
+      "id": "row-0071",
+      "label": "Synthetic board row 0071 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 125,
+      "openedIso": "2026-09-09T05:48:05.320Z"
+    },
+    {
+      "id": "row-0072",
+      "label": "Synthetic board row 0072 about schema",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 118,
+      "openedIso": "2026-09-09T12:02:00Z"
+    },
+    {
+      "id": "row-0073",
+      "label": "Synthetic board row 0073 about schema",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 118,
+      "openedIso": "2026-09-09T12:02:00Z"
+    },
+    {
+      "id": "row-0074",
+      "label": "Synthetic board row 0074 about reviewer",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 118,
+      "openedIso": "2026-09-09T12:15:00.481Z"
+    },
+    {
+      "id": "row-0075",
+      "label": "Synthetic board row 0075 about merge queue",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 112,
+      "openedIso": "2026-09-09T18:47:44.304Z"
+    },
+    {
+      "id": "row-0076",
+      "label": "Synthetic board row 0076",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 112,
+      "openedIso": "2026-09-09T17:59:58.490Z"
+    },
+    {
+      "id": "row-0077",
+      "label": "Synthetic board row 0077",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 109,
+      "openedIso": "2026-09-09T21:06:25.665Z"
+    },
+    {
+      "id": "row-0078",
+      "label": "Synthetic board row 0078",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 108,
+      "openedIso": "2026-09-09T22:19:10.537Z"
+    },
+    {
+      "id": "row-0079",
+      "label": "Synthetic board row 0079",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 104,
+      "openedIso": "2026-09-10T02:46:00Z"
+    },
+    {
+      "id": "row-0080",
+      "label": "Synthetic board row 0080",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 104,
+      "openedIso": "2026-09-10T02:50:00Z"
+    },
+    {
+      "id": "row-0081",
+      "label": "Synthetic board row 0081 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 102,
+      "openedIso": "2026-09-10T04:48:25Z"
+    },
+    {
+      "id": "row-0082",
+      "label": "Synthetic board row 0082 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 97,
+      "openedIso": "2026-09-10T09:32:31.122Z"
+    },
+    {
+      "id": "row-0083",
+      "label": "Synthetic board row 0083",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 95,
+      "openedIso": "2026-09-10T11:17:00Z"
+    },
+    {
+      "id": "row-0084",
+      "label": "Synthetic board row 0084",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 94,
+      "openedIso": "2026-09-10T12:13:00Z"
+    },
+    {
+      "id": "row-0085",
+      "label": "Synthetic board row 0085 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 94,
+      "openedIso": "2026-09-10T12:04:11Z"
+    },
+    {
+      "id": "row-0086",
+      "label": "Synthetic board row 0086 about merge queue",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 93,
+      "openedIso": "2026-09-10T13:53:45Z"
+    },
+    {
+      "id": "row-0087",
+      "label": "Synthetic board row 0087 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 92,
+      "openedIso": "2026-09-10T14:47:31Z"
+    },
+    {
+      "id": "row-0088",
+      "label": "Synthetic board row 0088 about home data",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 85,
+      "openedIso": "2026-09-10T21:30:00Z"
+    },
+    {
+      "id": "row-0089",
+      "label": "Synthetic board row 0089 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 84,
+      "openedIso": "2026-09-10T22:55:49.417Z"
+    },
+    {
+      "id": "row-0090",
+      "label": "Synthetic board row 0090",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 80,
+      "openedIso": "2026-09-11T02:20:00Z"
+    },
+    {
+      "id": "row-0091",
+      "label": "Synthetic board row 0091 about ratchet",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 79,
+      "openedIso": "2026-09-11T03:27:00Z"
+    },
+    {
+      "id": "row-0092",
+      "label": "Synthetic board row 0092",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 60,
+      "openedIso": "2026-09-11T22:08:23.115Z"
+    },
+    {
+      "id": "row-0093",
+      "label": "Synthetic board row 0093 about rebase",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 60,
+      "openedIso": "2026-09-11T22:32:00Z"
+    },
+    {
+      "id": "row-0094",
+      "label": "Synthetic board row 0094 about reviewer",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 57,
+      "openedIso": "2026-09-12T01:40:20.439Z"
+    },
+    {
+      "id": "row-0095",
+      "label": "Synthetic board row 0095",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 56,
+      "openedIso": "2026-09-12T02:38:51.002Z"
+    },
+    {
+      "id": "row-0096",
+      "label": "Synthetic board row 0096 about schema",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 55,
+      "openedIso": "2026-09-12T03:12:00Z"
+    },
+    {
+      "id": "row-0097",
+      "label": "Synthetic board row 0097 about schema",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 55,
+      "openedIso": "2026-09-12T03:05:00Z"
+    },
+    {
+      "id": "row-0098",
+      "label": "Synthetic board row 0098 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 55,
+      "openedIso": "2026-09-12T03:25:55.058Z"
+    },
+    {
+      "id": "row-0099",
+      "label": "Synthetic board row 0099 about backfill, dogfood, slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:52:50.258Z"
+    },
+    {
+      "id": "row-0100",
+      "label": "Synthetic board row 0100 about backfill, dogfood, slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:23:37.845Z"
+    },
+    {
+      "id": "row-0101",
+      "label": "Synthetic board row 0101 about merge queue",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:24:34.097Z"
+    },
+    {
+      "id": "row-0102",
+      "label": "Synthetic board row 0102 about merge queue",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:14:19.253Z"
+    },
+    {
+      "id": "row-0103",
+      "label": "Synthetic board row 0103 about dogfood, slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:52:19.033Z"
+    },
+    {
+      "id": "row-0104",
+      "label": "Synthetic board row 0104 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:53:01.185Z"
+    },
+    {
+      "id": "row-0105",
+      "label": "Synthetic board row 0105 about merge queue",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:14:25.415Z"
+    },
+    {
+      "id": "row-0106",
+      "label": "Synthetic board row 0106 about reviewer, rebase",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 53,
+      "openedIso": "2026-09-12T05:30:00.372Z"
+    },
+    {
+      "id": "row-0107",
+      "label": "Synthetic board row 0107",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 53,
+      "openedIso": "2026-09-12T05:49:13.001Z"
+    },
+    {
+      "id": "row-0108",
+      "label": "Synthetic board row 0108 about dogfood, slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 53,
+      "openedIso": "2026-09-12T05:27:12.895Z"
+    },
+    {
+      "id": "row-0109",
+      "label": "Synthetic board row 0109",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 53,
+      "openedIso": "2026-09-12T04:59:49.810Z"
+    },
+    {
+      "id": "row-0110",
+      "label": "Synthetic board row 0110",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 52,
+      "openedIso": "2026-09-12T06:50:42.123Z"
+    },
+    {
+      "id": "row-0111",
+      "label": "Synthetic board row 0111",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 51,
+      "openedIso": "2026-09-12T07:21:47.694Z"
+    },
+    {
+      "id": "row-0112",
+      "label": "Synthetic board row 0112",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 50,
+      "openedIso": "2026-09-12T08:25:48.328Z"
+    },
+    {
+      "id": "row-0113",
+      "label": "Synthetic board row 0113 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 44,
+      "openedIso": "2026-09-12T14:36:14.084Z"
+    },
+    {
+      "id": "row-0114",
+      "label": "Synthetic board row 0114 about schema",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 39,
+      "openedIso": "2026-09-12T18:58:09Z"
+    },
+    {
+      "id": "row-0115",
+      "label": "Synthetic board row 0115",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 39,
+      "openedIso": "2026-09-12T19:32:53Z"
+    },
+    {
+      "id": "row-0116",
+      "label": "Synthetic board row 0116",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 38,
+      "openedIso": "2026-09-12T20:42:29.193Z"
+    },
+    {
+      "id": "row-0117",
+      "label": "Synthetic board row 0117 about schema, backup",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 37,
+      "openedIso": "2026-09-12T21:27:53Z"
+    },
+    {
+      "id": "row-0118",
+      "label": "Synthetic board row 0118 about slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 33,
+      "openedIso": "2026-09-13T01:55:17Z"
+    },
+    {
+      "id": "row-0119",
+      "label": "Synthetic board row 0119",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 29,
+      "openedIso": "2026-09-13T05:28:00Z"
+    },
+    {
+      "id": "row-0120",
+      "label": "Synthetic board row 0120",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 25,
+      "openedIso": "2026-09-13T09:43:04Z"
+    },
+    {
+      "id": "row-0121",
+      "label": "Synthetic board row 0121 about schema, backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 23,
+      "openedIso": "2026-09-13T11:23:08.223Z"
+    },
+    {
+      "id": "row-0122",
+      "label": "Synthetic board row 0122 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 23,
+      "openedIso": "2026-09-13T11:23:19.251Z"
+    },
+    {
+      "id": "row-0123",
+      "label": "Synthetic board row 0123 about schema, notion, slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 22,
+      "openedIso": "2026-09-13T12:18:49.156Z"
+    },
+    {
+      "id": "row-0124",
+      "label": "Synthetic board row 0124 about schema, backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 22,
+      "openedIso": "2026-09-13T12:39:17.866Z"
+    },
+    {
+      "id": "row-0125",
+      "label": "Synthetic board row 0125 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 20,
+      "openedIso": "2026-09-13T14:53:24Z"
+    },
+    {
+      "id": "row-0126",
+      "label": "Synthetic board row 0126 about slack thread",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 20,
+      "openedIso": "2026-09-13T14:53:24Z"
+    },
+    {
+      "id": "row-0127",
+      "label": "Synthetic board row 0127 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 19,
+      "openedIso": "2026-09-13T15:16:16.243Z"
+    },
+    {
+      "id": "row-0128",
+      "label": "Synthetic board row 0128",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 19,
+      "openedIso": "2026-09-13T15:16:17.358Z"
+    },
+    {
+      "id": "row-0129",
+      "label": "Synthetic board row 0129 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 18,
+      "openedIso": "2026-09-13T16:30:18.486Z"
+    },
+    {
+      "id": "row-0130",
+      "label": "Synthetic board row 0130 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 18,
+      "openedIso": "2026-09-13T16:11:03.439Z"
+    },
+    {
+      "id": "row-0131",
+      "label": "Synthetic board row 0131 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 18,
+      "openedIso": "2026-09-13T16:36:46.828Z"
+    },
+    {
+      "id": "row-0132",
+      "label": "Synthetic board row 0132 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 18,
+      "openedIso": "2026-09-13T16:48:20.457Z"
+    },
+    {
+      "id": "row-0133",
+      "label": "Synthetic board row 0133 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 18,
+      "openedIso": "2026-09-13T16:48:40.273Z"
+    },
+    {
+      "id": "row-0134",
+      "label": "Synthetic board row 0134 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 17,
+      "openedIso": "2026-09-13T17:29:40.286Z"
+    },
+    {
+      "id": "row-0135",
+      "label": "Synthetic board row 0135 about schema",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 17,
+      "openedIso": "2026-09-13T17:04:57.000Z"
+    },
+    {
+      "id": "row-0136",
+      "label": "Synthetic board row 0136",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 17,
+      "openedIso": "2026-09-13T17:04:57.000Z"
+    },
+    {
+      "id": "row-0137",
+      "label": "Synthetic board row 0137",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 15,
+      "openedIso": "2026-09-13T19:14:39.490Z"
+    },
+    {
+      "id": "row-0138",
+      "label": "Synthetic board row 0138 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 15,
+      "openedIso": "2026-09-13T19:18:09.000Z"
+    },
+    {
+      "id": "row-0139",
+      "label": "Synthetic board row 0139 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 15,
+      "openedIso": "2026-09-13T19:18:20.115Z"
+    },
+    {
+      "id": "row-0140",
+      "label": "Synthetic board row 0140 about backfill, dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 15,
+      "openedIso": "2026-09-13T19:18:31.777Z"
+    },
+    {
+      "id": "row-0141",
+      "label": "Synthetic board row 0141",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 15,
+      "openedIso": "2026-09-13T19:04:49.224Z"
+    },
+    {
+      "id": "row-0142",
+      "label": "Synthetic board row 0142 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:06:32.318Z"
+    },
+    {
+      "id": "row-0143",
+      "label": "Synthetic board row 0143 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:55:49.024Z"
+    },
+    {
+      "id": "row-0144",
+      "label": "Synthetic board row 0144 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:56:07.009Z"
+    },
+    {
+      "id": "row-0145",
+      "label": "Synthetic board row 0145 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:56:22.152Z"
+    },
+    {
+      "id": "row-0146",
+      "label": "Synthetic board row 0146 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:02:25.242Z"
+    },
+    {
+      "id": "row-0147",
+      "label": "Synthetic board row 0147 about backfill, notion",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:06:21.244Z"
+    },
+    {
+      "id": "row-0148",
+      "label": "Synthetic board row 0148 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:10:07.990Z"
+    },
+    {
+      "id": "row-0149",
+      "label": "Synthetic board row 0149 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:02:42.698Z"
+    },
+    {
+      "id": "row-0150",
+      "label": "Synthetic board row 0150 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:10:16.990Z"
+    },
+    {
+      "id": "row-0151",
+      "label": "Synthetic board row 0151 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:51:00.161Z"
+    },
+    {
+      "id": "row-0152",
+      "label": "Synthetic board row 0152 about backfill",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:55:34.769Z"
+    },
+    {
+      "id": "row-0153",
+      "label": "Synthetic board row 0153 about backup",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 12,
+      "openedIso": "2026-09-13T21:59:58.059Z"
+    },
+    {
+      "id": "row-0154",
+      "label": "Synthetic board row 0154",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 12,
+      "openedIso": "2026-09-13T22:50:00Z"
+    },
+    {
+      "id": "row-0155",
+      "label": "Synthetic board row 0155 about schema, backup",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 11,
+      "openedIso": "2026-09-13T23:05:00Z"
+    },
+    {
+      "id": "row-0156",
+      "label": "Synthetic board row 0156 about dogfood",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 10,
+      "openedIso": "2026-09-14T00:34:36.571Z"
+    },
+    {
+      "id": "row-0157",
+      "label": "Synthetic board row 0157 about reviewer",
+      "priority": "p1",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 6,
+      "openedIso": "2026-09-14T04:03:58.457Z"
+    },
+    {
+      "id": "row-0158",
+      "label": "Synthetic board row 0158",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 374,
+      "openedIso": "2026-08-29T20:00:00Z"
+    },
+    {
+      "id": "row-0159",
+      "label": "Synthetic board row 0159 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 298,
+      "openedIso": "2026-09-02T00:41:00Z"
+    },
+    {
+      "id": "row-0160",
+      "label": "Synthetic board row 0160",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 296,
+      "openedIso": "2026-09-02T02:02:41Z"
+    },
+    {
+      "id": "row-0161",
+      "label": "Synthetic board row 0161",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 296,
+      "openedIso": "2026-09-02T02:52:00Z"
+    },
+    {
+      "id": "row-0162",
+      "label": "Synthetic board row 0162",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 293,
+      "openedIso": "2026-09-02T05:26:13.512Z"
+    },
+    {
+      "id": "row-0163",
+      "label": "Synthetic board row 0163",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 292,
+      "openedIso": "2026-09-02T06:47:50.742Z"
+    },
+    {
+      "id": "row-0164",
+      "label": "Synthetic board row 0164",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 292,
+      "openedIso": "2026-09-02T06:36:19.235Z"
+    },
+    {
+      "id": "row-0165",
+      "label": "Synthetic board row 0165 about reviewer",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 292,
+      "openedIso": "2026-09-02T06:53:20.690Z"
+    },
+    {
+      "id": "row-0166",
+      "label": "Synthetic board row 0166",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 290,
+      "openedIso": "2026-09-02T08:24:59.101Z"
+    },
+    {
+      "id": "row-0167",
+      "label": "Synthetic board row 0167",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 286,
+      "openedIso": "2026-09-02T12:23:58.890Z"
+    },
+    {
+      "id": "row-0168",
+      "label": "Synthetic board row 0168",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 285,
+      "openedIso": "2026-09-02T13:04:57.305Z"
+    },
+    {
+      "id": "row-0169",
+      "label": "Synthetic board row 0169 about reviewer",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 285,
+      "openedIso": "2026-09-02T13:05:11.599Z"
+    },
+    {
+      "id": "row-0170",
+      "label": "Synthetic board row 0170",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 285,
+      "openedIso": "2026-09-02T13:49:43.008Z"
+    },
+    {
+      "id": "row-0171",
+      "label": "Synthetic board row 0171",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 285,
+      "openedIso": "2026-09-02T13:04:57.305Z"
+    },
+    {
+      "id": "row-0172",
+      "label": "Synthetic board row 0172",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 283,
+      "openedIso": "2026-09-02T15:14:27Z"
+    },
+    {
+      "id": "row-0173",
+      "label": "Synthetic board row 0173",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 282,
+      "openedIso": "2026-09-02T16:28:56.768Z"
+    },
+    {
+      "id": "row-0174",
+      "label": "Synthetic board row 0174",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 279,
+      "openedIso": "2026-09-02T19:48:00Z"
+    },
+    {
+      "id": "row-0175",
+      "label": "Synthetic board row 0175",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 274,
+      "openedIso": "2026-09-03T00:40:00.000Z"
+    },
+    {
+      "id": "row-0176",
+      "label": "Synthetic board row 0176 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 274,
+      "openedIso": "2026-09-03T00:00:00Z"
+    },
+    {
+      "id": "row-0177",
+      "label": "Synthetic board row 0177 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 270,
+      "openedIso": "2026-09-03T04:42:00Z"
+    },
+    {
+      "id": "row-0178",
+      "label": "Synthetic board row 0178",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 269,
+      "openedIso": "2026-09-03T05:36:00Z"
+    },
+    {
+      "id": "row-0179",
+      "label": "Synthetic board row 0179",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 269,
+      "openedIso": "2026-09-03T05:10:00Z"
+    },
+    {
+      "id": "row-0180",
+      "label": "Synthetic board row 0180",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 268,
+      "openedIso": "2026-09-03T06:05:00Z"
+    },
+    {
+      "id": "row-0181",
+      "label": "Synthetic board row 0181",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 260,
+      "openedIso": "2026-09-03T14:53:04.962Z"
+    },
+    {
+      "id": "row-0182",
+      "label": "Synthetic board row 0182",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 259,
+      "openedIso": "2026-09-03T15:50:05.334Z"
+    },
+    {
+      "id": "row-0183",
+      "label": "Synthetic board row 0183 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 258,
+      "openedIso": "2026-09-03T16:17:11.311Z"
+    },
+    {
+      "id": "row-0184",
+      "label": "Synthetic board row 0184 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 257,
+      "openedIso": "2026-09-03T17:38:59.880Z"
+    },
+    {
+      "id": "row-0185",
+      "label": "Synthetic board row 0185",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 257,
+      "openedIso": "2026-09-03T17:00:00Z"
+    },
+    {
+      "id": "row-0186",
+      "label": "Synthetic board row 0186 about backfill, dogfood",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 255,
+      "openedIso": "2026-09-03T19:32:51.080Z"
+    },
+    {
+      "id": "row-0187",
+      "label": "Synthetic board row 0187",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 249,
+      "openedIso": "2026-09-04T01:18:51Z"
+    },
+    {
+      "id": "row-0188",
+      "label": "Synthetic board row 0188 about notion",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 248,
+      "openedIso": "2026-09-04T02:30:33Z"
+    },
+    {
+      "id": "row-0189",
+      "label": "Synthetic board row 0189 about notion",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 248,
+      "openedIso": "2026-09-04T02:32:00Z"
+    },
+    {
+      "id": "row-0190",
+      "label": "Synthetic board row 0190",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 248,
+      "openedIso": "2026-09-04T02:31:00Z"
+    },
+    {
+      "id": "row-0191",
+      "label": "Synthetic board row 0191",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 245,
+      "openedIso": "2026-09-04T05:21:11.447Z"
+    },
+    {
+      "id": "row-0192",
+      "label": "Synthetic board row 0192",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 244,
+      "openedIso": "2026-09-04T06:25:44.759Z"
+    },
+    {
+      "id": "row-0193",
+      "label": "Synthetic board row 0193 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 243,
+      "openedIso": "2026-09-04T07:39:42.080Z"
+    },
+    {
+      "id": "row-0194",
+      "label": "Synthetic board row 0194",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 243,
+      "openedIso": "2026-09-04T07:09:26.600Z"
+    },
+    {
+      "id": "row-0195",
+      "label": "Synthetic board row 0195 about reviewer",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 239,
+      "openedIso": "2026-09-04T11:15:43.322Z"
+    },
+    {
+      "id": "row-0196",
+      "label": "Synthetic board row 0196 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 239,
+      "openedIso": "2026-09-04T11:42:53.666Z"
+    },
+    {
+      "id": "row-0197",
+      "label": "Synthetic board row 0197",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 239,
+      "openedIso": "2026-09-04T11:16:14.518Z"
+    },
+    {
+      "id": "row-0198",
+      "label": "Synthetic board row 0198",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 238,
+      "openedIso": "2026-09-04T12:40:00Z"
+    },
+    {
+      "id": "row-0199",
+      "label": "Synthetic board row 0199",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 238,
+      "openedIso": "2026-09-04T12:16:47.096Z"
+    },
+    {
+      "id": "row-0200",
+      "label": "Synthetic board row 0200 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 238,
+      "openedIso": "2026-09-04T12:16:29.690Z"
+    },
+    {
+      "id": "row-0201",
+      "label": "Synthetic board row 0201",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 235,
+      "openedIso": "2026-09-04T15:05:00Z"
+    },
+    {
+      "id": "row-0202",
+      "label": "Synthetic board row 0202",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 234,
+      "openedIso": "2026-09-04T16:12:00Z"
+    },
+    {
+      "id": "row-0203",
+      "label": "Synthetic board row 0203 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 233,
+      "openedIso": "2026-09-04T17:05:00Z"
+    },
+    {
+      "id": "row-0204",
+      "label": "Synthetic board row 0204",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 233,
+      "openedIso": "2026-09-04T17:53:54.886Z"
+    },
+    {
+      "id": "row-0205",
+      "label": "Synthetic board row 0205 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 233,
+      "openedIso": "2026-09-04T17:45:43.127Z"
+    },
+    {
+      "id": "row-0206",
+      "label": "Synthetic board row 0206 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 230,
+      "openedIso": "2026-09-04T20:02:30.045Z"
+    },
+    {
+      "id": "row-0207",
+      "label": "Synthetic board row 0207",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 229,
+      "openedIso": "2026-09-04T21:37:34.462Z"
+    },
+    {
+      "id": "row-0208",
+      "label": "Synthetic board row 0208",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 228,
+      "openedIso": "2026-09-04T22:45:32.091Z"
+    },
+    {
+      "id": "row-0209",
+      "label": "Synthetic board row 0209 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 226,
+      "openedIso": "2026-09-05T00:00:00Z"
+    },
+    {
+      "id": "row-0210",
+      "label": "Synthetic board row 0210",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 225,
+      "openedIso": "2026-09-05T01:19:04Z"
+    },
+    {
+      "id": "row-0211",
+      "label": "Synthetic board row 0211 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 225,
+      "openedIso": "2026-09-05T01:50:00Z"
+    },
+    {
+      "id": "row-0212",
+      "label": "Synthetic board row 0212",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 225,
+      "openedIso": "2026-09-05T01:50:00Z"
+    },
+    {
+      "id": "row-0213",
+      "label": "Synthetic board row 0213 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 222,
+      "openedIso": "2026-09-05T04:53:54.980Z"
+    },
+    {
+      "id": "row-0214",
+      "label": "Synthetic board row 0214 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 221,
+      "openedIso": "2026-09-05T05:04:04.851Z"
+    },
+    {
+      "id": "row-0215",
+      "label": "Synthetic board row 0215 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 220,
+      "openedIso": "2026-09-05T06:45:26.630Z"
+    },
+    {
+      "id": "row-0216",
+      "label": "Synthetic board row 0216",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 218,
+      "openedIso": "2026-09-05T08:20:00Z"
+    },
+    {
+      "id": "row-0217",
+      "label": "Synthetic board row 0217 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 217,
+      "openedIso": "2026-09-05T09:32:17.177Z"
+    },
+    {
+      "id": "row-0218",
+      "label": "Synthetic board row 0218 about backfill, ratchet",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 216,
+      "openedIso": "2026-09-05T10:57:42.310Z"
+    },
+    {
+      "id": "row-0219",
+      "label": "Synthetic board row 0219 about backfill, ratchet",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 214,
+      "openedIso": "2026-09-05T12:10:59.679Z"
+    },
+    {
+      "id": "row-0220",
+      "label": "Synthetic board row 0220 about backfill, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 214,
+      "openedIso": "2026-09-05T12:01:50.844Z"
+    },
+    {
+      "id": "row-0221",
+      "label": "Synthetic board row 0221 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 213,
+      "openedIso": "2026-09-05T13:11:19.766Z"
+    },
+    {
+      "id": "row-0222",
+      "label": "Synthetic board row 0222",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 206,
+      "openedIso": "2026-09-05T20:47:34.221Z"
+    },
+    {
+      "id": "row-0223",
+      "label": "Synthetic board row 0223 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 206,
+      "openedIso": "2026-09-05T20:05:51.978Z"
+    },
+    {
+      "id": "row-0224",
+      "label": "Synthetic board row 0224 about rebase",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 206,
+      "openedIso": "2026-09-05T20:48:02.935Z"
+    },
+    {
+      "id": "row-0225",
+      "label": "Synthetic board row 0225",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 206,
+      "openedIso": "2026-09-05T20:40:37.561Z"
+    },
+    {
+      "id": "row-0226",
+      "label": "Synthetic board row 0226",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 206,
+      "openedIso": "2026-09-05T20:40:19.006Z"
+    },
+    {
+      "id": "row-0227",
+      "label": "Synthetic board row 0227",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 203,
+      "openedIso": "2026-09-05T23:07:26.392Z"
+    },
+    {
+      "id": "row-0228",
+      "label": "Synthetic board row 0228",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 202,
+      "openedIso": "2026-09-06T00:22:39.224Z"
+    },
+    {
+      "id": "row-0229",
+      "label": "Synthetic board row 0229",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 199,
+      "openedIso": "2026-09-06T03:36:10.937Z"
+    },
+    {
+      "id": "row-0230",
+      "label": "Synthetic board row 0230",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 199,
+      "openedIso": "2026-09-06T03:34:17.639Z"
+    },
+    {
+      "id": "row-0231",
+      "label": "Synthetic board row 0231",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 199,
+      "openedIso": "2026-09-06T03:35:51.819Z"
+    },
+    {
+      "id": "row-0232",
+      "label": "Synthetic board row 0232",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 199,
+      "openedIso": "2026-09-06T03:36:36.228Z"
+    },
+    {
+      "id": "row-0233",
+      "label": "Synthetic board row 0233",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 199,
+      "openedIso": "2026-09-06T03:36:57.384Z"
+    },
+    {
+      "id": "row-0234",
+      "label": "Synthetic board row 0234 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 198,
+      "openedIso": "2026-09-06T04:34:05.261Z"
+    },
+    {
+      "id": "row-0235",
+      "label": "Synthetic board row 0235",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 198,
+      "openedIso": "2026-09-06T04:34:35.205Z"
+    },
+    {
+      "id": "row-0236",
+      "label": "Synthetic board row 0236",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 196,
+      "openedIso": "2026-09-06T06:20:06.215Z"
+    },
+    {
+      "id": "row-0237",
+      "label": "Synthetic board row 0237",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 195,
+      "openedIso": "2026-09-06T07:55:00Z"
+    },
+    {
+      "id": "row-0238",
+      "label": "Synthetic board row 0238",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 193,
+      "openedIso": "2026-09-06T09:40:46.594Z"
+    },
+    {
+      "id": "row-0239",
+      "label": "Synthetic board row 0239",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 191,
+      "openedIso": "2026-09-06T11:15:00Z"
+    },
+    {
+      "id": "row-0240",
+      "label": "Synthetic board row 0240 about dogfood",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 190,
+      "openedIso": "2026-09-06T12:18:00.000Z"
+    },
+    {
+      "id": "row-0241",
+      "label": "Synthetic board row 0241",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 190,
+      "openedIso": "2026-09-06T12:18:00.000Z"
+    },
+    {
+      "id": "row-0242",
+      "label": "Synthetic board row 0242",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 190,
+      "openedIso": "2026-09-06T12:18:00.000Z"
+    },
+    {
+      "id": "row-0243",
+      "label": "Synthetic board row 0243 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 186,
+      "openedIso": "2026-09-06T16:24:57.608Z"
+    },
+    {
+      "id": "row-0244",
+      "label": "Synthetic board row 0244",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 186,
+      "openedIso": "2026-09-06T16:24:51.774Z"
+    },
+    {
+      "id": "row-0245",
+      "label": "Synthetic board row 0245 about ratchet",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 185,
+      "openedIso": "2026-09-06T17:55:00Z"
+    },
+    {
+      "id": "row-0246",
+      "label": "Synthetic board row 0246",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 185,
+      "openedIso": "2026-09-06T17:55:00Z"
+    },
+    {
+      "id": "row-0247",
+      "label": "Synthetic board row 0247",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 185,
+      "openedIso": "2026-09-06T17:55:00Z"
+    },
+    {
+      "id": "row-0248",
+      "label": "Synthetic board row 0248",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 184,
+      "openedIso": "2026-09-06T18:45:03.634Z"
+    },
+    {
+      "id": "row-0249",
+      "label": "Synthetic board row 0249 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 184,
+      "openedIso": "2026-09-06T18:45:22.458Z"
+    },
+    {
+      "id": "row-0250",
+      "label": "Synthetic board row 0250 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 184,
+      "openedIso": "2026-09-06T18:08:11.998Z"
+    },
+    {
+      "id": "row-0251",
+      "label": "Synthetic board row 0251",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 183,
+      "openedIso": "2026-09-06T19:49:17.078Z"
+    },
+    {
+      "id": "row-0252",
+      "label": "Synthetic board row 0252",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 183,
+      "openedIso": "2026-09-06T19:03:40.199Z"
+    },
+    {
+      "id": "row-0253",
+      "label": "Synthetic board row 0253 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 183,
+      "openedIso": "2026-09-06T19:55:10.558Z"
+    },
+    {
+      "id": "row-0254",
+      "label": "Synthetic board row 0254",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 178,
+      "openedIso": "2026-09-07T00:16:06.871Z"
+    },
+    {
+      "id": "row-0255",
+      "label": "Synthetic board row 0255",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 177,
+      "openedIso": "2026-09-07T01:27:30.371Z"
+    },
+    {
+      "id": "row-0256",
+      "label": "Synthetic board row 0256 about rebase",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 174,
+      "openedIso": "2026-09-07T04:16:45.677Z"
+    },
+    {
+      "id": "row-0257",
+      "label": "Synthetic board row 0257",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 172,
+      "openedIso": "2026-09-07T06:05:00Z"
+    },
+    {
+      "id": "row-0258",
+      "label": "Synthetic board row 0258",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 171,
+      "openedIso": "2026-09-07T07:13:01.699Z"
+    },
+    {
+      "id": "row-0259",
+      "label": "Synthetic board row 0259 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 171,
+      "openedIso": "2026-09-07T07:37:52.540Z"
+    },
+    {
+      "id": "row-0260",
+      "label": "Synthetic board row 0260",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 170,
+      "openedIso": "2026-09-07T08:00:00.000Z"
+    },
+    {
+      "id": "row-0261",
+      "label": "Synthetic board row 0261",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 170,
+      "openedIso": "2026-09-07T08:52:49.205Z"
+    },
+    {
+      "id": "row-0262",
+      "label": "Synthetic board row 0262",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 169,
+      "openedIso": "2026-09-07T09:55:00Z"
+    },
+    {
+      "id": "row-0263",
+      "label": "Synthetic board row 0263 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 164,
+      "openedIso": "2026-09-07T14:24:52.373Z"
+    },
+    {
+      "id": "row-0264",
+      "label": "Synthetic board row 0264",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 161,
+      "openedIso": "2026-09-07T17:42:00Z"
+    },
+    {
+      "id": "row-0265",
+      "label": "Synthetic board row 0265",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 161,
+      "openedIso": "2026-09-07T17:29:00.305Z"
+    },
+    {
+      "id": "row-0266",
+      "label": "Synthetic board row 0266",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 161,
+      "openedIso": "2026-09-07T17:05:00Z"
+    },
+    {
+      "id": "row-0267",
+      "label": "Synthetic board row 0267 about rebase",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 160,
+      "openedIso": "2026-09-07T18:23:06.509Z"
+    },
+    {
+      "id": "row-0268",
+      "label": "Synthetic board row 0268 about dogfood",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 160,
+      "openedIso": "2026-09-07T18:04:04Z"
+    },
+    {
+      "id": "row-0269",
+      "label": "Synthetic board row 0269",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 160,
+      "openedIso": "2026-09-07T18:04:04Z"
+    },
+    {
+      "id": "row-0270",
+      "label": "Synthetic board row 0270",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 158,
+      "openedIso": "2026-09-07T20:29:27.979Z"
+    },
+    {
+      "id": "row-0271",
+      "label": "Synthetic board row 0271",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 158,
+      "openedIso": "2026-09-07T20:55:00Z"
+    },
+    {
+      "id": "row-0272",
+      "label": "Synthetic board row 0272",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 157,
+      "openedIso": "2026-09-07T21:45:54Z"
+    },
+    {
+      "id": "row-0273",
+      "label": "Synthetic board row 0273 about slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 156,
+      "openedIso": "2026-09-07T21:58:00Z"
+    },
+    {
+      "id": "row-0274",
+      "label": "Synthetic board row 0274 about slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 153,
+      "openedIso": "2026-09-08T01:16:11Z"
+    },
+    {
+      "id": "row-0275",
+      "label": "Synthetic board row 0275 about reviewer",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 152,
+      "openedIso": "2026-09-08T02:22:00Z"
+    },
+    {
+      "id": "row-0276",
+      "label": "Synthetic board row 0276",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 150,
+      "openedIso": "2026-09-08T04:55:00Z"
+    },
+    {
+      "id": "row-0277",
+      "label": "Synthetic board row 0277 about backfill, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 149,
+      "openedIso": "2026-09-08T05:23:12.604Z"
+    },
+    {
+      "id": "row-0278",
+      "label": "Synthetic board row 0278 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 148,
+      "openedIso": "2026-09-08T06:05:00Z"
+    },
+    {
+      "id": "row-0279",
+      "label": "Synthetic board row 0279",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 148,
+      "openedIso": "2026-09-08T06:25:00Z"
+    },
+    {
+      "id": "row-0280",
+      "label": "Synthetic board row 0280",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 148,
+      "openedIso": "2026-09-08T06:25:00Z"
+    },
+    {
+      "id": "row-0281",
+      "label": "Synthetic board row 0281",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 148,
+      "openedIso": "2026-09-08T06:05:00Z"
+    },
+    {
+      "id": "row-0282",
+      "label": "Synthetic board row 0282",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 135,
+      "openedIso": "2026-09-08T19:10:27Z"
+    },
+    {
+      "id": "row-0283",
+      "label": "Synthetic board row 0283",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 127,
+      "openedIso": "2026-09-09T03:51:10.855Z"
+    },
+    {
+      "id": "row-0284",
+      "label": "Synthetic board row 0284 about rebase",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 126,
+      "openedIso": "2026-09-09T04:48:02.020Z"
+    },
+    {
+      "id": "row-0285",
+      "label": "Synthetic board row 0285 about backfill, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 125,
+      "openedIso": "2026-09-09T05:44:30.964Z"
+    },
+    {
+      "id": "row-0286",
+      "label": "Synthetic board row 0286 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 123,
+      "openedIso": "2026-09-09T07:10:00.000Z"
+    },
+    {
+      "id": "row-0287",
+      "label": "Synthetic board row 0287 about backfill, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 122,
+      "openedIso": "2026-09-09T08:09:31.981Z"
+    },
+    {
+      "id": "row-0288",
+      "label": "Synthetic board row 0288",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 119,
+      "openedIso": "2026-09-09T11:53:00Z"
+    },
+    {
+      "id": "row-0289",
+      "label": "Synthetic board row 0289 about rebase",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 119,
+      "openedIso": "2026-09-09T11:53:00Z"
+    },
+    {
+      "id": "row-0290",
+      "label": "Synthetic board row 0290 about slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 116,
+      "openedIso": "2026-09-09T14:41:00Z"
+    },
+    {
+      "id": "row-0291",
+      "label": "Synthetic board row 0291 about backfill, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 116,
+      "openedIso": "2026-09-09T14:41:00Z"
+    },
+    {
+      "id": "row-0292",
+      "label": "Synthetic board row 0292 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 113,
+      "openedIso": "2026-09-09T17:15:00Z"
+    },
+    {
+      "id": "row-0293",
+      "label": "Synthetic board row 0293 about backfill, notion, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 113,
+      "openedIso": "2026-09-09T17:14:00Z"
+    },
+    {
+      "id": "row-0294",
+      "label": "Synthetic board row 0294 about dogfood, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 102,
+      "openedIso": "2026-09-10T04:48:25Z"
+    },
+    {
+      "id": "row-0295",
+      "label": "Synthetic board row 0295",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 98,
+      "openedIso": "2026-09-10T08:38:43.141Z"
+    },
+    {
+      "id": "row-0296",
+      "label": "Synthetic board row 0296 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 95,
+      "openedIso": "2026-09-10T11:41:21.000Z"
+    },
+    {
+      "id": "row-0297",
+      "label": "Synthetic board row 0297 about home data",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 94,
+      "openedIso": "2026-09-10T12:29:59.212Z"
+    },
+    {
+      "id": "row-0298",
+      "label": "Synthetic board row 0298 about backfill, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 93,
+      "openedIso": "2026-09-10T13:12:00Z"
+    },
+    {
+      "id": "row-0299",
+      "label": "Synthetic board row 0299 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 93,
+      "openedIso": "2026-09-10T13:33:00Z"
+    },
+    {
+      "id": "row-0300",
+      "label": "Synthetic board row 0300 about backfill, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 93,
+      "openedIso": "2026-09-10T13:31:38.288Z"
+    },
+    {
+      "id": "row-0301",
+      "label": "Synthetic board row 0301 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 93,
+      "openedIso": "2026-09-10T13:12:00Z"
+    },
+    {
+      "id": "row-0302",
+      "label": "Synthetic board row 0302 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 92,
+      "openedIso": "2026-09-10T14:05:21Z"
+    },
+    {
+      "id": "row-0303",
+      "label": "Synthetic board row 0303 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 91,
+      "openedIso": "2026-09-10T15:04:19.417Z"
+    },
+    {
+      "id": "row-0304",
+      "label": "Synthetic board row 0304 about notion",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 90,
+      "openedIso": "2026-09-10T16:28:10.232Z"
+    },
+    {
+      "id": "row-0305",
+      "label": "Synthetic board row 0305",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 86,
+      "openedIso": "2026-09-10T20:01:17.774Z"
+    },
+    {
+      "id": "row-0306",
+      "label": "Synthetic board row 0306 about dogfood, merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 85,
+      "openedIso": "2026-09-10T21:13:16.139Z"
+    },
+    {
+      "id": "row-0307",
+      "label": "Synthetic board row 0307 about merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 83,
+      "openedIso": "2026-09-10T23:24:54.335Z"
+    },
+    {
+      "id": "row-0308",
+      "label": "Synthetic board row 0308",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 82,
+      "openedIso": "2026-09-11T00:52:00Z"
+    },
+    {
+      "id": "row-0309",
+      "label": "Synthetic board row 0309",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 82,
+      "openedIso": "2026-09-10T23:59:12.923Z"
+    },
+    {
+      "id": "row-0310",
+      "label": "Synthetic board row 0310",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 80,
+      "openedIso": "2026-09-11T02:28:16.393Z"
+    },
+    {
+      "id": "row-0311",
+      "label": "Synthetic board row 0311",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 78,
+      "openedIso": "2026-09-11T04:57:31.600Z"
+    },
+    {
+      "id": "row-0312",
+      "label": "Synthetic board row 0312",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 61,
+      "openedIso": "2026-09-11T21:45:39.197Z"
+    },
+    {
+      "id": "row-0313",
+      "label": "Synthetic board row 0313",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 58,
+      "openedIso": "2026-09-12T00:55:36.671Z"
+    },
+    {
+      "id": "row-0314",
+      "label": "Synthetic board row 0314 about notion, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 58,
+      "openedIso": "2026-09-12T00:33:08.362Z"
+    },
+    {
+      "id": "row-0315",
+      "label": "Synthetic board row 0315",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:19:25.113Z"
+    },
+    {
+      "id": "row-0316",
+      "label": "Synthetic board row 0316",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 54,
+      "openedIso": "2026-09-12T04:19:30.222Z"
+    },
+    {
+      "id": "row-0317",
+      "label": "Synthetic board row 0317 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 52,
+      "openedIso": "2026-09-12T06:49:24.806Z"
+    },
+    {
+      "id": "row-0318",
+      "label": "Synthetic board row 0318 about backfill, notion",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 51,
+      "openedIso": "2026-09-12T07:36:56.562Z"
+    },
+    {
+      "id": "row-0319",
+      "label": "Synthetic board row 0319",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 47,
+      "openedIso": "2026-09-12T11:51:50.524Z"
+    },
+    {
+      "id": "row-0320",
+      "label": "Synthetic board row 0320",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 47,
+      "openedIso": "2026-09-12T11:24:40.750Z"
+    },
+    {
+      "id": "row-0321",
+      "label": "Synthetic board row 0321 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 47,
+      "openedIso": "2026-09-12T11:24:04.099Z"
+    },
+    {
+      "id": "row-0322",
+      "label": "Synthetic board row 0322 about ratchet, merge queue",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 46,
+      "openedIso": "2026-09-12T12:20:00Z"
+    },
+    {
+      "id": "row-0323",
+      "label": "Synthetic board row 0323",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 45,
+      "openedIso": "2026-09-12T13:19:00.417Z"
+    },
+    {
+      "id": "row-0324",
+      "label": "Synthetic board row 0324",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 39,
+      "openedIso": "2026-09-12T19:52:48.912Z"
+    },
+    {
+      "id": "row-0325",
+      "label": "Synthetic board row 0325",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 38,
+      "openedIso": "2026-09-12T20:37:31.242Z"
+    },
+    {
+      "id": "row-0326",
+      "label": "Synthetic board row 0326 about backup",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 37,
+      "openedIso": "2026-09-12T21:27:53Z"
+    },
+    {
+      "id": "row-0327",
+      "label": "Synthetic board row 0327 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 36,
+      "openedIso": "2026-09-12T22:57:42.789Z"
+    },
+    {
+      "id": "row-0328",
+      "label": "Synthetic board row 0328 about reviewer",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 36,
+      "openedIso": "2026-09-12T22:47:02.237Z"
+    },
+    {
+      "id": "row-0329",
+      "label": "Synthetic board row 0329",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 36,
+      "openedIso": "2026-09-12T22:04:42.354Z"
+    },
+    {
+      "id": "row-0330",
+      "label": "Synthetic board row 0330 about reviewer",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 34,
+      "openedIso": "2026-09-12T23:58:36.696Z"
+    },
+    {
+      "id": "row-0331",
+      "label": "Synthetic board row 0331",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 33,
+      "openedIso": "2026-09-13T01:55:37.175Z"
+    },
+    {
+      "id": "row-0332",
+      "label": "Synthetic board row 0332",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 33,
+      "openedIso": "2026-09-13T01:07:40.024Z"
+    },
+    {
+      "id": "row-0333",
+      "label": "Synthetic board row 0333 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 30,
+      "openedIso": "2026-09-13T04:13:31.511Z"
+    },
+    {
+      "id": "row-0334",
+      "label": "Synthetic board row 0334 about backfill, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 24,
+      "openedIso": "2026-09-13T10:30:03.678Z"
+    },
+    {
+      "id": "row-0335",
+      "label": "Synthetic board row 0335",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 23,
+      "openedIso": "2026-09-13T11:23:36.330Z"
+    },
+    {
+      "id": "row-0336",
+      "label": "Synthetic board row 0336",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 23,
+      "openedIso": "2026-09-13T11:23:59.777Z"
+    },
+    {
+      "id": "row-0337",
+      "label": "Synthetic board row 0337 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 23,
+      "openedIso": "2026-09-13T11:39:14.809Z"
+    },
+    {
+      "id": "row-0338",
+      "label": "Synthetic board row 0338",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 22,
+      "openedIso": "2026-09-13T12:19:18.892Z"
+    },
+    {
+      "id": "row-0339",
+      "label": "Synthetic board row 0339 about dogfood",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 22,
+      "openedIso": "2026-09-13T12:26:35Z"
+    },
+    {
+      "id": "row-0340",
+      "label": "Synthetic board row 0340 about backfill, notion",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 22,
+      "openedIso": "2026-09-13T12:23:28.764Z"
+    },
+    {
+      "id": "row-0341",
+      "label": "Synthetic board row 0341 about home data, slack thread",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 20,
+      "openedIso": "2026-09-13T14:21:58Z"
+    },
+    {
+      "id": "row-0342",
+      "label": "Synthetic board row 0342 about dogfood",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 20,
+      "openedIso": "2026-09-13T14:21:58Z"
+    },
+    {
+      "id": "row-0343",
+      "label": "Synthetic board row 0343 about backfill, dogfood",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 20,
+      "openedIso": "2026-09-13T14:21:58Z"
+    },
+    {
+      "id": "row-0344",
+      "label": "Synthetic board row 0344 about schema, backup",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 18,
+      "openedIso": "2026-09-13T16:11:23.030Z"
+    },
+    {
+      "id": "row-0345",
+      "label": "Synthetic board row 0345 about schema",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 18,
+      "openedIso": "2026-09-13T16:11:46.833Z"
+    },
+    {
+      "id": "row-0346",
+      "label": "Synthetic board row 0346",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 18,
+      "openedIso": "2026-09-13T16:03:56.933Z"
+    },
+    {
+      "id": "row-0347",
+      "label": "Synthetic board row 0347 about backfill",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 16,
+      "openedIso": "2026-09-13T18:15:38.183Z"
+    },
+    {
+      "id": "row-0348",
+      "label": "Synthetic board row 0348",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 7,
+      "openedIso": "2026-09-14T03:06:03.577Z"
+    },
+    {
+      "id": "row-0349",
+      "label": "Synthetic board row 0349",
+      "priority": "p2",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 6,
+      "openedIso": "2026-09-14T04:48:23.464Z"
+    },
+    {
+      "id": "row-0350",
+      "label": "Synthetic board row 0350 about backfill",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 293,
+      "openedIso": "2026-09-02T05:26:20.165Z"
+    },
+    {
+      "id": "row-0351",
+      "label": "Synthetic board row 0351",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 292,
+      "openedIso": "2026-09-02T06:02:23.735Z"
+    },
+    {
+      "id": "row-0352",
+      "label": "Synthetic board row 0352",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 274,
+      "openedIso": "2026-09-03T00:05:00Z"
+    },
+    {
+      "id": "row-0353",
+      "label": "Synthetic board row 0353",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 205,
+      "openedIso": "2026-09-05T21:57:02.369Z"
+    },
+    {
+      "id": "row-0354",
+      "label": "Synthetic board row 0354",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 192,
+      "openedIso": "2026-09-06T10:23:31.708Z"
+    },
+    {
+      "id": "row-0355",
+      "label": "Synthetic board row 0355",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 192,
+      "openedIso": "2026-09-06T10:30:58.632Z"
+    },
+    {
+      "id": "row-0356",
+      "label": "Synthetic board row 0356",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 192,
+      "openedIso": "2026-09-06T10:16:54.572Z"
+    },
+    {
+      "id": "row-0357",
+      "label": "Synthetic board row 0357",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 187,
+      "openedIso": "2026-09-06T15:45:00Z"
+    },
+    {
+      "id": "row-0358",
+      "label": "Synthetic board row 0358",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 186,
+      "openedIso": "2026-09-06T16:56:21.025Z"
+    },
+    {
+      "id": "row-0359",
+      "label": "Synthetic board row 0359",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 186,
+      "openedIso": "2026-09-06T16:05:00Z"
+    },
+    {
+      "id": "row-0360",
+      "label": "Synthetic board row 0360",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 185,
+      "openedIso": "2026-09-06T17:16:00Z"
+    },
+    {
+      "id": "row-0361",
+      "label": "Synthetic board row 0361",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 184,
+      "openedIso": "2026-09-06T18:57:52.488Z"
+    },
+    {
+      "id": "row-0362",
+      "label": "Synthetic board row 0362",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 184,
+      "openedIso": "2026-09-06T18:02:33.214Z"
+    },
+    {
+      "id": "row-0363",
+      "label": "Synthetic board row 0363",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 184,
+      "openedIso": "2026-09-06T18:06:00Z"
+    },
+    {
+      "id": "row-0364",
+      "label": "Synthetic board row 0364",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 161,
+      "openedIso": "2026-09-07T17:31:20.363Z"
+    },
+    {
+      "id": "row-0365",
+      "label": "Synthetic board row 0365",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 151,
+      "openedIso": "2026-09-08T03:45:00Z"
+    },
+    {
+      "id": "row-0366",
+      "label": "Synthetic board row 0366",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 102,
+      "openedIso": "2026-09-10T04:14:38.802Z"
+    },
+    {
+      "id": "row-0367",
+      "label": "Synthetic board row 0367",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 81,
+      "openedIso": "2026-09-11T01:13:22.174Z"
+    },
+    {
+      "id": "row-0368",
+      "label": "Synthetic board row 0368 about notion",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 74,
+      "openedIso": "2026-09-11T08:14:08.986Z"
+    },
+    {
+      "id": "row-0369",
+      "label": "Synthetic board row 0369",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 60,
+      "openedIso": "2026-09-11T22:15:58.196Z"
+    },
+    {
+      "id": "row-0370",
+      "label": "Synthetic board row 0370 about backfill",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 37,
+      "openedIso": "2026-09-12T21:27:53Z"
+    },
+    {
+      "id": "row-0371",
+      "label": "Synthetic board row 0371",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:50:39.466Z"
+    },
+    {
+      "id": "row-0372",
+      "label": "Synthetic board row 0372 about backfill",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 14,
+      "openedIso": "2026-09-13T20:50:25.312Z"
+    },
+    {
+      "id": "row-0373",
+      "label": "Synthetic board row 0373 about dogfood",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 7,
+      "openedIso": "2026-09-14T03:27:42.652Z"
+    },
+    {
+      "id": "row-0374",
+      "label": "Synthetic board row 0374 about ratchet",
+      "priority": "p3",
+      "kind": "ask",
+      "groomed": true,
+      "waitingHours": 6,
+      "openedIso": "2026-09-14T04:48:23.464Z"
+    }
+  ],
+  "aligned": [
+    {
+      "session": "workspace:248",
+      "rank": 1,
+      "row": {
+        "id": "row-0001",
+        "label": "Synthetic board row 0001 about ratchet",
+        "priority": "p0",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 162,
+        "openedIso": "2026-09-07T16:45:00Z"
+      }
+    },
+    {
+      "session": "workspace:250",
+      "rank": 3,
+      "row": {
+        "id": "row-0003",
+        "label": "Synthetic board row 0003",
+        "priority": "p0",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 126,
+        "openedIso": "2026-09-09T04:33:00.000Z"
+      }
+    },
+    {
+      "session": "workspace:249",
+      "rank": 2,
+      "row": {
+        "id": "row-0002",
+        "label": "Synthetic board row 0002 about reviewer",
+        "priority": "p0",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 153,
+        "openedIso": "2026-09-08T01:16:11Z"
+      }
+    }
+  ],
+  "misaligned": [
+    {
+      "session": "workspace:255",
+      "rank": 315,
+      "row": {
+        "id": "fresh-supervisor-handoff-9263",
+        "label": "Synthetic board row h9263",
+        "priority": "p1",
+        "kind": "doc",
+        "groomed": true,
+        "waitingHours": 0,
+        "openedIso": null
+      }
+    },
+    {
+      "session": "workspace:251",
+      "rank": 523,
+      "row": {
+        "id": "row-0376",
+        "label": "Synthetic board row 0376",
+        "priority": "p2",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 1,
+        "openedIso": "2026-09-14T09:05:00.000Z"
+      }
+    },
+    {
+      "session": "workspace:252",
+      "rank": 161,
+      "row": {
+        "id": "row-0377",
+        "label": "Synthetic board row 0377 about merge queue",
+        "priority": "p1",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 1,
+        "openedIso": "2026-09-14T09:30:58.108Z"
+      }
+    },
+    {
+      "session": "workspace:253",
+      "rank": 624,
+      "row": {
+        "id": "row-0378",
+        "label": "Synthetic board row 0378",
+        "priority": "p3",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 2,
+        "openedIso": "2026-09-14T08:12:37.234Z"
+      }
+    },
+    {
+      "session": "workspace:193",
+      "rank": 156,
+      "row": {
+        "id": "row-0155",
+        "label": "Synthetic board row 0155 about schema, backup",
+        "priority": "p1",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 11,
+        "openedIso": "2026-09-13T23:05:00Z"
+      }
+    },
+    {
+      "session": "workspace:226",
+      "rank": 157,
+      "row": {
+        "id": "row-0156",
+        "label": "Synthetic board row 0156 about dogfood",
+        "priority": "p1",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 10,
+        "openedIso": "2026-09-14T00:34:36.571Z"
+      }
+    },
+    {
+      "session": "workspace:245",
+      "rank": 622,
+      "row": {
+        "id": "row-0374",
+        "label": "Synthetic board row 0374 about ratchet",
+        "priority": "p3",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 6,
+        "openedIso": "2026-09-14T04:48:23.464Z"
+      }
+    },
+    {
+      "session": "workspace:221",
+      "rank": 417,
+      "row": {
+        "id": "row-0247",
+        "label": "Synthetic board row 0247",
+        "priority": "p2",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 185,
+        "openedIso": "2026-09-06T17:55:00Z"
+      }
+    },
+    {
+      "session": "workspace:192",
+      "rank": 137,
+      "row": {
+        "id": "row-0136",
+        "label": "Synthetic board row 0136",
+        "priority": "p1",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 17,
+        "openedIso": "2026-09-13T17:04:57.000Z"
+      }
+    },
+    {
+      "session": "workspace:198",
+      "rank": 416,
+      "row": {
+        "id": "row-0246",
+        "label": "Synthetic board row 0246",
+        "priority": "p2",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 185,
+        "openedIso": "2026-09-06T17:55:00Z"
+      }
+    },
+    {
+      "session": "workspace:188",
+      "rank": 155,
+      "row": {
+        "id": "row-0154",
+        "label": "Synthetic board row 0154",
+        "priority": "p1",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 12,
+        "openedIso": "2026-09-13T22:50:00Z"
+      }
+    },
+    {
+      "session": "workspace:194",
+      "rank": 415,
+      "row": {
+        "id": "row-0245",
+        "label": "Synthetic board row 0245 about ratchet",
+        "priority": "p2",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 185,
+        "openedIso": "2026-09-06T17:55:00Z"
+      }
+    },
+    {
+      "session": "workspace:187",
+      "rank": 136,
+      "row": {
+        "id": "row-0135",
+        "label": "Synthetic board row 0135 about schema",
+        "priority": "p1",
+        "kind": "ask",
+        "groomed": true,
+        "waitingHours": 17,
+        "openedIso": "2026-09-13T17:04:57.000Z"
+      }
+    }
+  ],
+  "unprioritised": [
+    {
+      "session": "workspace:243",
+      "rank": 595,
+      "row": {
+        "id": "row-0379",
+        "label": "Synthetic board row 0379 about dogfood",
+        "priority": "p2",
+        "kind": "doc",
+        "groomed": false,
+        "waitingHours": 0,
+        "openedIso": null
+      }
+    }
+  ]
+}

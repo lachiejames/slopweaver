@@ -1,0 +1,550 @@
+{
+  "by": "fixture-capture",
+  "bytes": 15770,
+  "document": {
+    "alert": true,
+    "cpuHogs": {
+      "cpuAttributed": true,
+      "hogs": [
+        { "classification": "fleet", "cpuPct": 142.6, "elapsedSeconds": 78926, "label": "cmux", "pid": 1548 },
+        {
+          "classification": "foreign",
+          "cpuPct": 121.5,
+          "elapsedSeconds": 78913,
+          "label": "com.apple.Virtualization.VirtualMachine",
+          "pid": 2386
+        },
+        {
+          "classification": "fleet",
+          "cpuPct": 91.1,
+          "elapsedSeconds": 20,
+          "label": "node",
+          "pid": 73369,
+          "sessionId": "a0000022-0000-4000-8000-000000000025"
+        },
+        {
+          "classification": "fleet",
+          "cpuPct": 65.3,
+          "elapsedSeconds": 2056,
+          "label": "bfs",
+          "pid": 5344,
+          "sessionId": "a0000111-0000-4000-8000-000000000122"
+        },
+        { "classification": "foreign", "cpuPct": 64.7, "elapsedSeconds": 3, "label": "pid 78812", "pid": 78812 },
+        { "classification": "foreign", "cpuPct": 63.8, "label": "pid 0", "pid": 0 },
+        {
+          "classification": "foreign",
+          "cpuPct": 60.4,
+          "elapsedSeconds": 78937,
+          "label": "DataScanAgent",
+          "pid": 562
+        },
+        { "classification": "foreign", "cpuPct": 54.1, "label": "node", "pid": 78620 }
+      ]
+    },
+    "dispatch": {
+      "backoffSeconds": 0,
+      "covering": 0,
+      "open": 3,
+      "subject": "session a0000022-0000-4000-8000-000000000025"
+    },
+    "compressedPagesPct": 9,
+    "culprit": {
+      "kill": "kill 5126",
+      "subject": "session a0000022-0000-4000-8000-000000000025",
+      "why": "139.5% cpu across 14 processes"
+    },
+    "diskFreeGb": 349.7,
+    "diskUsedPct": 64,
+    "fleet": {
+      "cpuAttributed": true,
+      "orphanCount": 0,
+      "orphanCpuPct": 0,
+      "orphans": [],
+      "sessions": [
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 139.5,
+          "nonHookProcessCount": 14,
+          "parallelToolCalls": 0,
+          "pid": 5126,
+          "processCount": 14,
+          "sessionId": "a0000022-0000-4000-8000-000000000025",
+          "toolShellsInFlight": 3,
+          "tree": [
+            { "cpuPct": 91.1, "elapsedSeconds": 20, "label": "node", "pid": 73369 },
+            { "cpuPct": 45.9, "elapsedSeconds": 4, "label": "node", "pid": 78690 },
+            { "cpuPct": 2.1, "elapsedSeconds": 30626, "label": "claude", "pid": 5126 },
+            { "cpuPct": 0.4, "elapsedSeconds": 5, "label": "node", "pid": 78640 },
+            { "cpuPct": 0, "elapsedSeconds": 25, "label": "zsh", "pid": 70944 },
+            { "cpuPct": 0, "elapsedSeconds": 25, "label": "node", "pid": 70946 },
+            { "cpuPct": 0, "elapsedSeconds": 25, "label": "ugrep", "pid": 70947 },
+            { "cpuPct": 0, "elapsedSeconds": 24, "label": "node", "pid": 71223 },
+            { "cpuPct": 0, "elapsedSeconds": 23, "label": "node", "pid": 71815 },
+            { "cpuPct": 0, "elapsedSeconds": 20, "label": "esbuild", "pid": 73320 },
+            { "cpuPct": 0, "elapsedSeconds": 5, "label": "zsh", "pid": 78633 },
+            { "cpuPct": 0, "elapsedSeconds": 5, "label": "zsh", "pid": 78635 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 67.5,
+          "nonHookProcessCount": 13,
+          "parallelToolCalls": 0,
+          "pid": 98342,
+          "processCount": 13,
+          "sessionId": "a0000111-0000-4000-8000-000000000122",
+          "toolShellsInFlight": 5,
+          "tree": [
+            { "cpuPct": 65.3, "elapsedSeconds": 2056, "label": "bfs", "pid": 5344 },
+            { "cpuPct": 2.1, "elapsedSeconds": 23809, "label": "claude", "pid": 98342 },
+            { "cpuPct": 0.1, "elapsedSeconds": 764, "label": "ugrep", "pid": 83454 },
+            { "cpuPct": 0, "elapsedSeconds": 2056, "label": "zsh", "pid": 5341 },
+            { "cpuPct": 0, "elapsedSeconds": 2056, "label": "zsh", "pid": 5342 },
+            { "cpuPct": 0, "elapsedSeconds": 2056, "label": "wc", "pid": 5343 },
+            { "cpuPct": 0, "elapsedSeconds": 2056, "label": "tr", "pid": 5345 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "sleep", "pid": 79044 },
+            { "cpuPct": 0, "elapsedSeconds": 2148, "label": "zsh", "pid": 81030 },
+            { "cpuPct": 0, "elapsedSeconds": 764, "label": "zsh", "pid": 83451 },
+            { "cpuPct": 0, "elapsedSeconds": 764, "label": "tail", "pid": 83453 },
+            { "cpuPct": 0, "elapsedSeconds": 357, "label": "zsh", "pid": 85404 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 28.4,
+          "nonHookProcessCount": 6,
+          "parallelToolCalls": 0,
+          "pid": 82759,
+          "processCount": 6,
+          "sessionId": "a0000089-0000-4000-8000-000000000096",
+          "toolShellsInFlight": 1,
+          "tree": [
+            { "cpuPct": 27.8, "elapsedSeconds": 32, "label": "git", "pid": 67831 },
+            { "cpuPct": 0.6, "elapsedSeconds": 30730, "label": "claude", "pid": 82759 },
+            { "cpuPct": 0, "elapsedSeconds": 6304, "label": "zsh", "pid": 60322 },
+            { "cpuPct": 0, "elapsedSeconds": 6304, "label": "node", "pid": 60324 },
+            { "cpuPct": 0, "elapsedSeconds": 6303, "label": "node", "pid": 60348 },
+            { "cpuPct": 0, "elapsedSeconds": 6302, "label": "esbuild", "pid": 60602 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 5.7,
+          "nonHookProcessCount": 7,
+          "parallelToolCalls": 0,
+          "pid": 28352,
+          "processCount": 7,
+          "sessionId": "a0000116-0000-4000-8000-000000000129",
+          "toolShellsInFlight": 2,
+          "tree": [
+            { "cpuPct": 5.7, "elapsedSeconds": 28354, "label": "claude", "pid": 28352 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "zsh", "pid": 79045 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "zsh", "pid": 79047 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "sed", "pid": 79049 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "node", "pid": 79054 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "node", "pid": 79070 },
+            { "cpuPct": 0, "elapsedSeconds": 49, "label": "caffeinate", "pid": 61079 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 2.9,
+          "nonHookProcessCount": 10,
+          "parallelToolCalls": 0,
+          "pid": 76490,
+          "processCount": 10,
+          "sessionId": "a0000114-0000-4000-8000-000000000125",
+          "toolShellsInFlight": 3,
+          "tree": [
+            { "cpuPct": 2.9, "elapsedSeconds": 23571, "label": "claude", "pid": 76490 },
+            { "cpuPct": 0, "elapsedSeconds": 15, "label": "zsh", "pid": 75526 },
+            { "cpuPct": 0, "elapsedSeconds": 15, "label": "node", "pid": 75555 },
+            { "cpuPct": 0, "elapsedSeconds": 15, "label": "node", "pid": 75637 },
+            { "cpuPct": 0, "elapsedSeconds": 5, "label": "zsh", "pid": 78432 },
+            { "cpuPct": 0, "elapsedSeconds": 5, "label": "zsh", "pid": 78435 },
+            { "cpuPct": 0, "elapsedSeconds": 5, "label": "tail", "pid": 78437 },
+            { "cpuPct": 0, "elapsedSeconds": 5, "label": "node", "pid": 78450 },
+            { "cpuPct": 0, "elapsedSeconds": 5, "label": "node", "pid": 78526 },
+            { "cpuPct": 0, "elapsedSeconds": 10, "label": "caffeinate", "pid": 76829 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 2.5,
+          "nonHookProcessCount": 8,
+          "parallelToolCalls": 0,
+          "pid": 3541,
+          "processCount": 8,
+          "sessionId": "a0000125-0000-4000-8000-000000000138",
+          "toolShellsInFlight": 1,
+          "tree": [
+            { "cpuPct": 2.5, "elapsedSeconds": 30265, "label": "claude", "pid": 3541 },
+            { "cpuPct": 0, "elapsedSeconds": 7, "label": "zsh", "pid": 78129 },
+            { "cpuPct": 0, "elapsedSeconds": 7, "label": "time", "pid": 78145 },
+            { "cpuPct": 0, "elapsedSeconds": 7, "label": "node", "pid": 78149 },
+            { "cpuPct": 0, "elapsedSeconds": 6, "label": "node", "pid": 78284 },
+            { "cpuPct": 0, "elapsedSeconds": 6, "label": "esbuild", "pid": 78368 },
+            { "cpuPct": 0, "label": "ps", "pid": 79413 },
+            { "cpuPct": 0, "elapsedSeconds": 154, "label": "caffeinate", "pid": 33149 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 1.9,
+          "nonHookProcessCount": 9,
+          "parallelToolCalls": 0,
+          "pid": 65241,
+          "processCount": 9,
+          "sessionId": "a0000115-0000-4000-8000-000000000126",
+          "toolShellsInFlight": 1,
+          "tree": [
+            { "cpuPct": 1.9, "elapsedSeconds": 23309, "label": "claude", "pid": 65241 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "node", "pid": 79043 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "node", "pid": 79058 },
+            { "cpuPct": 0, "elapsedSeconds": 2, "label": "esbuild", "pid": 79064 },
+            { "cpuPct": 0, "elapsedSeconds": 357, "label": "zsh", "pid": 85421 },
+            { "cpuPct": 0, "elapsedSeconds": 357, "label": "node", "pid": 85438 },
+            { "cpuPct": 0, "elapsedSeconds": 356, "label": "node", "pid": 85658 },
+            { "cpuPct": 0, "elapsedSeconds": 355, "label": "node", "pid": 85811 },
+            { "cpuPct": 0, "elapsedSeconds": 352, "label": "esbuild", "pid": 86274 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 1.9,
+          "nonHookProcessCount": 16,
+          "parallelToolCalls": 0,
+          "pid": 34782,
+          "processCount": 16,
+          "sessionId": "a0000085-0000-4000-8000-000000000092",
+          "toolShellsInFlight": 3,
+          "tree": [
+            { "cpuPct": 1.9, "elapsedSeconds": 19308, "label": "claude", "pid": 34782 },
+            { "cpuPct": 0, "elapsedSeconds": 1, "label": "node", "pid": 79147 },
+            { "cpuPct": 0, "elapsedSeconds": 1, "label": "node", "pid": 79166 },
+            { "cpuPct": 0, "elapsedSeconds": 1, "label": "esbuild", "pid": 79183 },
+            { "cpuPct": 0, "elapsedSeconds": 0, "label": "git", "pid": 79349 },
+            { "cpuPct": 0, "elapsedSeconds": 364, "label": "zsh", "pid": 84729 },
+            { "cpuPct": 0, "elapsedSeconds": 364, "label": "node", "pid": 84731 },
+            { "cpuPct": 0, "elapsedSeconds": 363, "label": "node", "pid": 84763 },
+            { "cpuPct": 0, "elapsedSeconds": 362, "label": "node", "pid": 84799 },
+            { "cpuPct": 0, "elapsedSeconds": 357, "label": "esbuild", "pid": 85348 },
+            { "cpuPct": 0, "elapsedSeconds": 353, "label": "zsh", "pid": 86080 },
+            { "cpuPct": 0, "elapsedSeconds": 353, "label": "zsh", "pid": 86084 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 1.8,
+          "nonHookProcessCount": 14,
+          "parallelToolCalls": 0,
+          "pid": 4502,
+          "processCount": 14,
+          "sessionId": "a0000119-0000-4000-8000-000000000132",
+          "toolShellsInFlight": 2,
+          "tree": [
+            { "cpuPct": 1.8, "elapsedSeconds": 19087, "label": "claude", "pid": 4502 },
+            { "cpuPct": 0, "elapsedSeconds": 283, "label": "node", "pid": 7167 },
+            { "cpuPct": 0, "elapsedSeconds": 283, "label": "tail", "pid": 7168 },
+            { "cpuPct": 0, "elapsedSeconds": 282, "label": "node", "pid": 7317 },
+            { "cpuPct": 0, "elapsedSeconds": 282, "label": "node", "pid": 7336 },
+            { "cpuPct": 0, "elapsedSeconds": 277, "label": "docker", "pid": 8712 },
+            { "cpuPct": 0, "elapsedSeconds": 263, "label": "zsh", "pid": 9540 },
+            { "cpuPct": 0, "elapsedSeconds": 263, "label": "node", "pid": 9543 },
+            { "cpuPct": 0, "elapsedSeconds": 263, "label": "tail", "pid": 9544 },
+            { "cpuPct": 0, "elapsedSeconds": 263, "label": "node", "pid": 9560 },
+            { "cpuPct": 0, "elapsedSeconds": 263, "label": "node", "pid": 9565 },
+            { "cpuPct": 0, "elapsedSeconds": 886, "label": "zsh", "pid": 65222 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 1.4,
+          "nonHookProcessCount": 3,
+          "parallelToolCalls": 0,
+          "pid": 67325,
+          "processCount": 3,
+          "sessionId": "a0000105-0000-4000-8000-000000000116",
+          "toolShellsInFlight": 1,
+          "tree": [
+            { "cpuPct": 1.4, "elapsedSeconds": 56303, "label": "claude", "pid": 67325 },
+            { "cpuPct": 0, "elapsedSeconds": 44, "label": "sleep", "pid": 63212 },
+            { "cpuPct": 0, "elapsedSeconds": 5206, "label": "zsh", "pid": 63320 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.9,
+          "nonHookProcessCount": 6,
+          "parallelToolCalls": 0,
+          "pid": 68483,
+          "processCount": 6,
+          "sessionId": "a0000103-0000-4000-8000-000000000114",
+          "toolShellsInFlight": 1,
+          "tree": [
+            { "cpuPct": 0.5, "elapsedSeconds": 1996, "label": "node", "pid": 25523 },
+            { "cpuPct": 0.4, "elapsedSeconds": 23591, "label": "claude", "pid": 68483 },
+            { "cpuPct": 0, "elapsedSeconds": 1997, "label": "zsh", "pid": 24990 },
+            { "cpuPct": 0, "elapsedSeconds": 1997, "label": "node", "pid": 25004 },
+            { "cpuPct": 0, "elapsedSeconds": 1997, "label": "tail", "pid": 25005 },
+            { "cpuPct": 0, "elapsedSeconds": 1996, "label": "node", "pid": 25237 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.7,
+          "nonHookProcessCount": 1,
+          "parallelToolCalls": 0,
+          "pid": 48367,
+          "processCount": 1,
+          "sessionId": "a0000095-0000-4000-8000-000000000102",
+          "toolShellsInFlight": 0,
+          "tree": [{ "cpuPct": 0.7, "elapsedSeconds": 52643, "label": "claude", "pid": 48367 }]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.6,
+          "nonHookProcessCount": 6,
+          "parallelToolCalls": 0,
+          "pid": 56512,
+          "processCount": 6,
+          "sessionId": "a0000092-0000-4000-8000-000000000099",
+          "toolShellsInFlight": 2,
+          "tree": [
+            { "cpuPct": 0.6, "elapsedSeconds": 15881, "label": "claude", "pid": 56512 },
+            { "cpuPct": 0, "elapsedSeconds": 52, "label": "zsh", "pid": 59773 },
+            { "cpuPct": 0, "elapsedSeconds": 52, "label": "zsh", "pid": 59780 },
+            { "cpuPct": 0, "elapsedSeconds": 52, "label": "tail", "pid": 59782 },
+            { "cpuPct": 0, "elapsedSeconds": 52, "label": "node", "pid": 59797 },
+            { "cpuPct": 0, "elapsedSeconds": 52, "label": "node", "pid": 59881 }
+          ]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.6,
+          "nonHookProcessCount": 1,
+          "parallelToolCalls": 0,
+          "pid": 51226,
+          "processCount": 1,
+          "sessionId": "a0000112-0000-4000-8000-000000000123",
+          "toolShellsInFlight": 0,
+          "tree": [{ "cpuPct": 0.6, "elapsedSeconds": 64413, "label": "claude", "pid": 51226 }]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.6,
+          "nonHookProcessCount": 1,
+          "parallelToolCalls": 0,
+          "pid": 98688,
+          "processCount": 1,
+          "sessionId": "a0000098-0000-4000-8000-000000000105",
+          "toolShellsInFlight": 0,
+          "tree": [{ "cpuPct": 0.6, "elapsedSeconds": 62164, "label": "claude", "pid": 98688 }]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.3,
+          "nonHookProcessCount": 1,
+          "parallelToolCalls": 0,
+          "pid": 71265,
+          "processCount": 1,
+          "sessionId": "a0000081-0000-4000-8000-000000000088",
+          "toolShellsInFlight": 0,
+          "tree": [{ "cpuPct": 0.3, "elapsedSeconds": 55515, "label": "claude", "pid": 71265 }]
+        },
+        {
+          "bootsInFlight": 0,
+          "cpuPct": 0.3,
+          "nonHookProcessCount": 1,
+          "parallelToolCalls": 0,
+          "pid": 53831,
+          "processCount": 1,
+          "sessionId": "a0000122-0000-4000-8000-000000000135",
+          "toolShellsInFlight": 0,
+          "tree": [{ "cpuPct": 0.3, "elapsedSeconds": 60913, "label": "claude", "pid": 53831 }]
+        }
+      ]
+    },
+    "fleetChildAlert": false,
+    "foreignAlertGb": 8,
+    "graded": ["memory", "cpu"],
+    "hiddenCpu": {
+      "busyCores": 13.3,
+      "hiddenFromTop": [
+        "com.example.endpoint.Agent",
+        "PredictService",
+        "ScanService",
+        "FileMetadataService",
+        "Endpoint Notifications",
+        "PlistXPathService"
+      ],
+      "unattributedCores": 3.6,
+      "visibleCores": 9.7
+    },
+    "hold": false,
+    "hookStallHoldSeconds": 300,
+    "holdSubjects": [],
+    "load": { "load1": 14.92, "load15": 17.78, "load5": 16.7 },
+    "loadHold": 22,
+    "parallelCallAlert": 8,
+    "processes": [
+      { "classification": "foreign", "footprintBytes": 10737418240, "footprintGb": 10, "label": "mds", "pid": 11843 },
+      {
+        "classification": "foreign",
+        "footprintBytes": 6459228160,
+        "footprintGb": 6,
+        "label": "com.apple.Virtualization.VirtualMachine",
+        "pid": 2386
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 2754609152,
+        "footprintGb": 2.6,
+        "label": "next-server (v15.5.25)",
+        "pid": 43917,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-001",
+          "pid": 2728,
+          "sessionId": "a0000036-0000-4000-8000-000000000039"
+        }
+      },
+      { "classification": "fleet", "footprintBytes": 1073741824, "footprintGb": 1, "label": "node", "pid": 49922 },
+      { "classification": "fleet", "footprintBytes": 918552576, "footprintGb": 0.9, "label": "cmux", "pid": 1548 },
+      {
+        "classification": "fleet",
+        "footprintBytes": 666894336,
+        "footprintGb": 0.6,
+        "label": "node",
+        "pid": 73369,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-002",
+          "pid": 5126,
+          "sessionId": "a0000022-0000-4000-8000-000000000025"
+        }
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 575668224,
+        "footprintGb": 0.5,
+        "label": "mdm-agent",
+        "pid": 569
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 542113792,
+        "footprintGb": 0.5,
+        "label": "claude",
+        "pid": 2728,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-001",
+          "pid": 2728,
+          "sessionId": "a0000036-0000-4000-8000-000000000039"
+        }
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 505413632,
+        "footprintGb": 0.5,
+        "label": "claude",
+        "pid": 65241,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-003",
+          "pid": 65241,
+          "sessionId": "a0000115-0000-4000-8000-000000000126"
+        }
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 481296384,
+        "footprintGb": 0.4,
+        "label": "Google Chrome",
+        "pid": 10226
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 478150656,
+        "footprintGb": 0.4,
+        "label": "WindowServer",
+        "pid": 417
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 475004928,
+        "footprintGb": 0.4,
+        "label": "claude",
+        "pid": 3541,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-004",
+          "pid": 3541,
+          "sessionId": "a0000125-0000-4000-8000-000000000138"
+        }
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 461373440,
+        "footprintGb": 0.4,
+        "label": "Slack Helper (Renderer)",
+        "pid": 67712
+      },
+      {
+        "classification": "foreign",
+        "footprintBytes": 441450496,
+        "footprintGb": 0.4,
+        "label": "DataScanAgent",
+        "pid": 562
+      },
+      {
+        "classification": "fleet",
+        "footprintBytes": 437256192,
+        "footprintGb": 0.4,
+        "label": "claude",
+        "pid": 5126,
+        "session": {
+          "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-002",
+          "pid": 5126,
+          "sessionId": "a0000022-0000-4000-8000-000000000025"
+        }
+      }
+    ],
+    "registeredWorktrees": 595,
+    "segmentsHoldPct": 40,
+    "segmentsLimit": 1234944,
+    "segmentsPct": 28,
+    "segmentsUsed": 351055,
+    "swapAlertGb": 4,
+    "swapTotalGb": 4,
+    "swapUsedGb": 3,
+    "swapfileCount": 4,
+    "swapfileHoldCount": 12,
+    "topFleetChild": {
+      "classification": "fleet",
+      "footprintBytes": 2754609152,
+      "footprintGb": 2.6,
+      "label": "next-server (v15.5.25)",
+      "pid": 43917,
+      "session": {
+        "cwd": "/Users/operator/dev/slopweaver/.claude/worktrees.noindex/synthetic-worktree-001",
+        "pid": 2728,
+        "sessionId": "a0000036-0000-4000-8000-000000000039"
+      }
+    },
+    "topForeign": {
+      "classification": "foreign",
+      "footprintBytes": 10737418240,
+      "footprintGb": 10,
+      "label": "mds",
+      "pid": 11843
+    },
+    "ungraded": [],
+    "verdict": "machine capacity: ALERT on memory (foreign footprint over 8 GB) · SUBJECT session a0000022-0000-4000-8000-000000000025 — 139.5% cpu across 14 processes; end it with `kill 5126` — 1-min load 14.92 · top foreign hog 'mds' at 10 GB · hidden from top: 'com.example.endpoint.Agent' +5 more, 3.6 cores of cpu unattributed · swap 3/4 GB · compressor 28% of segments limit · 4 swapfiles",
+    "worktreeRepos": [
+      { "registered": 555, "repoRoot": "/Users/operator/dev/slopweaver" },
+      { "registered": 40, "repoRoot": "/Users/operator/dev/acme-admin" }
+    ]
+  },
+  "observedAtIso": "2026-09-20T08:58:39Z",
+  "producer": "machine capacity",
+  "readingId": "2026-09-20T09:12:41.082Z-machine-capacity",
+  "recordedAtIso": "2026-09-20T09:12:41.082Z"
+}

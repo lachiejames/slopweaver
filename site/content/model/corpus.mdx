@@ -1,0 +1,84 @@
+---
+title: The corpus
+---
+
+import { Callout } from "nextra/components";
+
+import { CorpusTiers } from "../../components/diagrams/CorpusTiers";
+
+# The corpus
+
+Slack, GitHub, Linear and Notion history, on this machine, in three tiers. Gmail, the Calendar diary and
+recorded Fathom calls are ingested only when they are explicitly named (`refresh --source gmail|calendar|fathom`).
+
+**It is one source the bot reads. It is never the author of the answer.** Getting that backwards is the
+commonest way this repository is mis-described. _"Why did the staging pool exhaust"_ is answered by going
+and looking — at Datadog, at the repository, at a browser. _"What did we decide about X"_ is answered from
+history. Both are the same bot, and only the second one leans on the corpus.
+
+<CorpusTiers />
+
+## What each tier is, and which of them a model touches
+
+| Tier       | Built by             | Model involved | What it holds                                                                            |
+| ---------- | -------------------- | -------------- | ---------------------------------------------------------------------------------------- |
+| **bronze** | `slopweaver refresh` | none           | the record set as ingested, in `.jsonl` windows `compact` folds into one file per source |
+| **silver** | `slopweaver derive`  | none           | the people directory, the cross-reference graph, opportunities                           |
+| **gold**   | `slopweaver distil`  | yes — visibly  | distilled markdown, composed in a session you can see                                    |
+
+Two of the three are **pure code**, which is what makes a rebuild provable: run `derive` twice and the
+silver is identical. Gold is the only tier a model composes, it is composed in a visible session rather
+than inside the CLI, and **it is never required to answer a question** — the question path reads bronze and
+silver.
+
+<Callout type="info">
+  **Bronze is disposable and gold is the bill.** That asymmetry is deliberate: deleting the old corpus and building a
+  new one is fine, since it is only bronze, and no design builds around bronze as a constraint. A design that avoids a
+  corpus rebuild to save work is optimising the cheap half. [What it was asked for](/docs/model/intent) has the rest of
+  the brief.
+</Callout>
+
+## Bronze keeps everything, on purpose
+
+Bronze stores the record as the provider gave it, fields included, rather than a projection of the fields
+somebody thought would be needed. The reason is a cost asymmetry rather than tidiness: _"I'd probably want
+all the raw data and all the fields in the bronze corpus just to minimize the risk of ever having to bin it
+and re-download everything from scratch due to us projecting away some stuff."_
+
+It is also **append-only**: a refresh writes a new window file rather than editing an old one, so an
+ingest that goes wrong is recoverable by reading around it instead of by re-downloading. The cost is
+duplicate rows across overlapping windows, which is what [`compact`](/docs/model/coverage) exists to remove and
+what `latestRecords` reads through in the meantime; the `compact-corpus-daily` standing row, once
+`slopweaver automation register-standing` has written it, declares a run due every night.
+
+## What silver derives, and why it is pure
+
+`derive` builds the people directory, the cross-reference graph and the opportunity list from bronze with
+no model and no network. Purity is what lets a run **prove** a rebuild rather than assert it: the same
+input produces the same silver, so a directory that has changed means the input changed.
+
+It is also the answer to three symptoms that look like bugs and are not — a `refresh` that reads stale, a
+mention that will not resolve, and a roster a run reports absent all send you to `derive` first.
+
+## Exercising the whole loop without a provider
+
+`seed --demo` builds a synthetic corpus and answers against it. It is the free whole-loop exerciser, and
+it is the right thing to reach for before proposing test machinery:
+
+```bash
+slopweaver seed --demo
+slopweaver store read "what did we decide about the retention window?"
+```
+
+## Keeping it current
+
+```bash
+slopweaver refresh                              # pull recent activity into bronze
+slopweaver derive                               # rebuild silver deterministically
+slopweaver compact                              # merge overlapping windows, dedupe
+slopweaver dev manifest --out before.json       # snapshot the corpus before a rebuild
+slopweaver dev manifest --compare before.json   # after it: prove it lost nothing it did not touch
+```
+
+Next: what is actually in there and how far back — [coverage and its bounds](/docs/model/coverage) — and who the
+records are about, on [people and identity](/docs/model/people).

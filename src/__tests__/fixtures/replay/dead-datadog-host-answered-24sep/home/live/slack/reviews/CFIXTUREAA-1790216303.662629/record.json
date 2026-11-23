@@ -1,0 +1,29 @@
+{
+  "answerDigest": "sha256:5c3662e05536327aba39d2104defe397f8544758438e406dafdb953396fe927b",
+  "answerPath": "/private/tmp/claude-501/-Users-ada-owner-ctr-dev-personal-slopweaver--claude-worktrees-noindex-live-bot-loop-23sep-a/fixture-uuid-ds/scratchpad/answer.json",
+  "authorSession": "[REDACTED]",
+  "carriedUnresolved": [
+    "[REDACTED]",
+    "[REDACTED]"
+  ],
+  "channel": "CFIXTUREAA",
+  "messageTs": "1790216303.662629",
+  "packetPath": "${SLOPWEAVER_HOME}/live/slack/reviews/CFIXTUREAA-1790216303.662629/packet.md",
+  "reviewer": {
+    "cwd": "/fixture/user/dev/personal/slopweaver/.claude/worktrees.noindex/live-bot-loop-23sep-a",
+    "host": "claude-code",
+    "sessionName": "review-CFIXTUREAA-1790216303.662629",
+    "surfaceId": "fixture-uuid-dt",
+    "surfaceRef": "surface:152",
+    "workspaceId": "fixture-uuid-du",
+    "workspaceRef": "workspace:148"
+  },
+  "reviewStartedAt": "[REDACTED]",
+  "reviewerSession": "[REDACTED]",
+  "round": 2,
+  "schemaVersion": 2,
+  "spawnedAt": "2026-09-24T04:04:18.251Z",
+  "threadTs": "1790208337.731879",
+  "verdictPath": "${SLOPWEAVER_HOME}/live/slack/reviews/CFIXTUREAA-1790216303.662629/verdict.json",
+  "releasedAt": "[REDACTED]"
+}

@@ -1,0 +1,1190 @@
+{
+  "base": "dc22ff34de5daca182e86d00171d30f7c8ccd4de",
+  "digest": "d48108b6971536e69d355f16d09674b2ac65bc86b4bfb0dc78212c76544d4318",
+  "loosenings": [
+    {
+      "entry": "files:desktop/README.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 8,
+      "to": 9,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:desktop/src/consoleCardAddress.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 7,
+      "to": 8,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:desktop/src/main.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 14,
+      "to": 15,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:desktop/src/overlayWindow.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 13,
+      "to": 14,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:desktop/src/shellState.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:desktop/src/surface.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 7,
+      "to": 9,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:docs/console/alignment.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 6,
+      "to": 8,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:docs/console/call-reconnect.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:docs/console/presence-moves-to-what-we-discuss.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:docs/console/queue-card-properties.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:docs/console/typed-and-voice-one-conversation.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 7,
+      "to": 10,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:docs/console/voice-context-and-calls.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:docs/console/walk-silences.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/cardPages.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/meetingDueWatch.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/openCard.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 6,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/prPlainState.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/quoteLead.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/slackEscapes.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/slideBodyContainment.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/stillRealLead.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/__tests__/unit/workstreamsAbsent.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/Alignment.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 7,
+      "to": 9,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/ApprovalActions.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/PageEmpty.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/Queue.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/QueueEmpty.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/QueueViewBar.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/ReadingIndicator.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/Shell.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 6,
+      "to": 9,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/useQueueRowsOpen.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/ViewSelector.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/console/WarningMark.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 8,
+      "to": 9,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/live/FleetNext.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/live/PullRequestsList.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/live/Tile.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/live/WorkstreamTiles.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/voice/MessengerAttachments.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/voice/openCardRun.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 8,
+      "to": 9,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/voice/openCardsSettingNote.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/voice/StageHistory.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 6,
+      "to": 8,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/voice/StageSide.tsx#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/voice/swarmPainter.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/voice/useOrbFlight.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/components/voice/useWindowFileDrop.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/alignment.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/alignmentVoice.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/askAction.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/callTrays.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/cardPages.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 8,
+      "to": 9,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/cardProperties.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/citedRecord.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/fleetViews.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/inAppView.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 5,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/liveMachine.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/liveMachineClient.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/liveState.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/lookAck.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 7,
+      "to": 8,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/messengerAttachment.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/orbFlight.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/pageEmpty.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/particleField.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/plainReason.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 35,
+      "to": 36,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/prFreshness.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/prPlainState.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 15,
+      "to": 16,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/prViews.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/queueFocus.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/queueViews.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/quotedReason.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/registerFreshness.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/sidebarCounts.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/slackPeople.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/sourceBlockWords.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/stalenessLabel.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/stillRealLead.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/talkCallAppend.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 6,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/voiceStage.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/voiceStageActivity.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/voiceTranscript.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 9,
+      "to": 10,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/workingSessions.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/workstreamCandidatesPage.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/workstreams.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:site/lib/workstreamsReading.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/automation/reference/declared-rows.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/automation/reference/organisation-hunt.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/compliance/reference/reaching-the-owner.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/github/reference/backlog.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/github/reference/pull-requests.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/github/SKILL.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/gmail/reference/triage.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/handover/reference/message-in-parts.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/handover/reference/row-priority.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/loop-bot/reference/what-the-reply-may-share.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/monitor/reference/org-health.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/onboard/reference/alignment.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:skills/slack/reference/channel-steer.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/fixtures/talk/answered-triage-witness/README.md#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/cli/commands/github/bumpDriveCore.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/cli/commands/github/bumpDriveRun/seat.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/handover/askActionInput.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/handover/hisWordsResolve.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 6,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/handover/listJson/artifact.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/handover/listJson/movedIso.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/hatch/registry.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/orgHealth/investigation.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/outbound/slack/draftChannelSteer.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 15,
+      "to": 17,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/review/bumpSelection.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/cardLandApply/harness.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/chairReceipt.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 5,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/continuity.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 8,
+      "to": 11,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/continuityCalls.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 21,
+      "to": 22,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/relayDraft.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 5,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/sessionConfig/cardLookup.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/sessionConfig/noRecord.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/sessionConfig/preferenceTools.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 4,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/sessionConfig/promptBasics.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 11,
+      "to": 12,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/steerCallContext.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/supervisorDelivery.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 5,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/typedConversation.test.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 11,
+      "to": 12,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/automations/steering.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/briefing/untranslatedCode.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/browser/present.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/browser/slackApp.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/claude/spawnStore.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 9,
+      "to": 10,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/cli/commands/handover/askRowArgs.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/cli/commands/handover/listJson.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/cli/commands/handover/quoteUsage.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/cli/commands/handover/setPriorityRun.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/cli/commands/orgHealth/statusRun.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/cli/commands/talk/offerRun.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/cli/commands/talk/relayRun.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/cli/commands/vulnerabilityFix/topup.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 2,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/context/profileDelivery.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/handover/askAction.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/handover/resumePhase.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 6,
+      "to": 12,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/live/automation/standingMeetingPrepRows.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/live/calendar/prepDue.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/live/turn/replyDisclosure.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/monitor/orgHealth.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 5,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/orgHealth/investigation.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/orgHealth/sightings.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 5,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/orgHealth/standing.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/outbound/github/tooltips.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/outbound/slack/draftChannelSteer.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 9,
+      "to": 10,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/outbound/slack/draftEarnsItsPlace.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/outbound/slack/draftFigures.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/pages/machineIds.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/profile/voiceMeasure.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/review/bumpSelection.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/review/businessTime.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/review/cadence.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/supervisor/heldWork.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/supervisor/noWorkClaimGate.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 3,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/supervisor/stoppedRecipeSeat.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/answerContext.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 5,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/cardMove.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/chairReceipt.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 8,
+      "to": 13,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/copyToolSchemas.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 15,
+      "to": 16,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/relayChannelSteer.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 7,
+      "to": 9,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/relayReadSources.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/relayRowQuote.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/runningList.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/spokenClaimLines.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/spokenRecordLines.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/steerCallContext.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/supervisorWindow.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 1,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/triageVocabulary.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/talk/typedConversation.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": 12,
+      "to": 13,
+      "cause": "widening"
+    },
+    {
+      "entry": "files:src/worktree/pruneProgress.ts#call-id",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    }
+  ],
+  "reason": "transient-references now counts a talk id as call-id in every separator the other call names already take (talk-<hex>, talk:<hex>, talk <hex>, talk #<hex>), and a cmux relay file id; a bare talk id is as transient as talk-call <hex>, so counting the space form is intended. Every grown or new call-id row is a reference trunk already carried, many moved from commit-hash, none written by this change"
+}

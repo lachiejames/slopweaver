@@ -1,0 +1,83 @@
+---
+title: Error handling
+---
+
+import { ErrorShape } from "../../components/diagrams/ErrorShape";
+
+# Error handling
+
+Two layers, one type library, and a hard rule that there is **no hand-rolled `Result` anywhere**.
+`Result`/`ResultAsync` are thin aliases over real neverthrow.
+
+<ErrorShape />
+
+## The infra boundary
+
+One shared typed error for every external call: `IngestError`, produced by the `safe*` wrappers
+(`safeCodex`, `safeEmbed`, `safeFs`, `safeProviderCall`). Every external throw becomes a typed error here,
+once. These essentially never need touching.
+
+## Domain errors
+
+Every other area that can fail gets its **own** `<Domain>Error` discriminated union plus a `<Domain>Errors`
+factory, scoped to that one bounded module:
+
+```typescript
+export interface RepoNotFoundError {
+  readonly code: "REPO_NOT_FOUND";
+  readonly message: string;
+  readonly repo: string;
+}
+
+export const GithubFetchErrors = {
+  repoNotFound: ({ owner, repo }: { owner: string; repo: string }): RepoNotFoundError => ({
+    code: "REPO_NOT_FOUND",
+    message: `repo ${owner}/${repo} not found or inaccessible — check the org slug`,
+    repo: `${owner}/${repo}`,
+  }),
+} as const;
+```
+
+`code` is what a caller branches on; `message` is what a caller displays. **There is no `AppError` umbrella,
+ever** — if two domains look similar, that is a coincidence of shape, not a reason to merge them.
+
+## When NOT to introduce a union — and the threshold past which you must
+
+Failures that are one or two messages nobody branches on stay on the default `Result<T>`, whose `E` is
+`readonly string[]`. A one-variant union invented for its own sake is ceremony. The same restraint holds
+for a function whose whole point is a variable-length list of same-shaped problems — a Zod pass stays a
+string list, because one discriminated error would lose the multiplicity that is the actual behaviour.
+
+The other side of that line is a **gate**, not a judgement: past **four** distinct plain error shapes in a
+directory, `error-shape-threshold` requires the union. A union site and a forwarded message are not shapes,
+so the count falls as sites move.
+
+## Why the ban is a gate
+
+The criterion, stated rather than counted: *a union type whose members are object literals, where at least
+one member declares `ok` with the literal type `true`.*
+
+A dedup refactor once minted a fresh member of this family **while the family was being counted** — with
+both offending files open. The class regenerates through ordinary, careful work, which is exactly what
+review does not catch and a gate does.
+
+## A policy refusal is not a domain error
+
+A failure of fact is everything above. A refusal of **policy** — a gate saying no to something that would
+otherwise have worked — has one shape, and you do not write its text:
+
+```text
+<command> blocked because <what caught it, and why>.
+Legitimate exceptions may include <examples>.
+To override use the designated escape hatch SLOPWEAVER_ALLOW_<SUFFIX>=1 <command>.
+Use good judgement to determine whether the owner would approve of this, then proceed or correct your approach.
+```
+
+Declare the row in its surface's `src/hatch/*Hatches.ts` and emit with `hatchRefusal`. The fourth line is a constant the
+renderer owns — one a gate could word itself would eventually read "do not override", and judgement is
+first class here.
+
+**Naming an override is not being released by it.** Read a hatch into a local and **OR** it with the
+caller's argument. A hatch read as a parameter default fails anywhere in the tree: measured, a
+default initialiser is skipped whenever a caller passes an argument, so a hatch written that way printed a
+refusal telling the operator to set the variable they had just set.

@@ -1,0 +1,4200 @@
+{
+  "base": "f483f81791f9c4caee8a377a2e756707d1653399",
+  "digest": "336a9b9bf2c0e5ccbad825d48ca555403e4b097a64d0a229e5b5faec6714b2ad",
+  "loosenings": [
+    {
+      "entry": "identifiers:desktop/src/windowChrome.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:eval/turnProvider.ts#SlopweaverTurnProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:eval/turnProvider.ts#TurnProviderResponse",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:site/components/live/readPlanLimits.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:site/lib/citationKinds.ts#atlasCitationPlatforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:site/lib/fleetGlancePlans.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:site/lib/localPageShell.ts#PLATFORM_SHELL_OPEN",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/boundary.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/join.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/join.ts#PlatformFinding",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/levels.ts#AccessPlatformSpec",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/levels.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/privileged.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/report.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/report.ts#PlatformSection",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/report.ts#platformSectionOf",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/report.ts#PlatformSource",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/report.ts#refusedPlatformsOf",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/rows.ts#AccessPlatformRows",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/rows.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/accessReview/rows.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/admit/browserPagePolicy.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/admit/browserSurface.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/admit/browserSurface.ts#RegisteredPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/admit/browserSurface.ts#registeredWritePlatforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/admit/declinedAtlasGate.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/admit/declinedAtlasGate.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/alias/address.ts#ALIAS_PROVIDERS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/alias/address.ts#AliasProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/alias/address.ts#isAliasProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/alias/address.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/aether/model.ts#AETHER_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/airtable/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/airtable/model.ts#AIRTABLE_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/collection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/docsCatalogue.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/model.ts#BRAZE_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/pathKey.ts#brazeOperationProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/report.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/sync.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/sync.ts#providerIds",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/braze/syncGaps.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/canva/model.ts#CANVA_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/canva/surfaceNaming.ts#canvaProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/clerk/browserSurface.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/clerk/disagreement.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/clerk/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/clerk/model.ts#CLERK_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/clerk/specRead.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/clerk/surfaceNaming.ts#CLERK_PLATFORM_PATH_PREFIX",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/clerk/surfaceNaming.ts#clerkProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/errors.ts#CloudflareProviderError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/model.ts#CLOUDFLARE_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/projection/access.ts#CloudflareIdentityProviderDetail",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/projection/access.ts#CloudflareIdentityProviderDto",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/projection/access.ts#projectCloudflareIdentityProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/projection/access.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/projection/accountScopedEntity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/projection/legacyWaf.ts#WAF_PACKAGE_PROVIDER_ID_PREFIX",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/cloudflare/readers/access.ts#readCloudflareIdentityProviders",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/model.ts#CROWDSTRIKE_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/projectionEnvelope.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/projectionEnvelope.ts#requireProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/reconcile.ts#crowdstrikeProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/reconcile.ts#foreignProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/reconcile.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/tokenProvider.ts#createTokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/crowdstrike/tokenProvider.ts#TokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/datadog/estateAcquisition.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/datadog/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/datadog/model.ts#DATADOG_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/datadog/syncApiEntities.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/figma/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/figma/model.ts#FIGMA_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/geminiAiStudio/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/geminiAiStudio/model.ts#GEMINI_AI_STUDIO_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/geminiAiStudio/specRead.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/geminiAiStudio/versions.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/github/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/github/model.ts#GITHUB_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/github/projectionBase.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/github/projectionBase.ts#providerIdOf",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleAdmin/adminApi/records.ts#googleAdminProviderKey",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleAdmin/model.ts#GOOGLE_ADMIN_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleAdmin/surfaceNaming.ts#googleAdminProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleSecops/cells.ts#cloudPlatformOnlyCell",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleSecops/fill/plan.ts#CLOUD_PLATFORM_UNBLOCKED_BY",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleSecops/fill/plan.ts#GOOGLE_SECOPS_CLOUD_PLATFORM_ONLY_KINDS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleSecops/fill/project.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleSecops/inventory.ts#CLOUD_PLATFORM_SCOPE",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/googleSecops/model.ts#GOOGLE_SECOPS_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/graphqlHive/browserSurface.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/graphqlHive/consolePages.ts#consolePageProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/graphqlHive/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/graphqlHive/model.ts#HIVE_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/graphqlHive/projection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/graphqlHive/schemaRead.ts#providerKey",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/hex/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/hex/model.ts#HEX_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/hex/projection.ts#hexGraphqlProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/hex/projection.ts#hexProbeProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/hex/projection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/hex/report.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/hex/specSurface.ts#hexMethodProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/hex/walkPublish.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/inngest/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/inngest/model.ts#INNGEST_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/inngest/projection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/inngest/restCatalogue.ts#inngestOperationProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jam/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jam/model.ts#JAM_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jam/projection.ts#jamObservedCallProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jam/projection.ts#jamOperationProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/browserProjection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/errors.ts#providerSaid",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/kindBoundary.ts#providerAnswers",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/kindBoundary.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/model.ts#JUMPCLOUD_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/plan.ts#providerIdOf",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/syncAccumulator.ts#providerIds",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/syncAccumulator.ts#providerIdsBySurface",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/syncEngine.ts#providerIds",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/syncEngine.ts#providerIdsBySurface",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/syncEntities.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/jumpcloud/syncEntities.ts#providerIds",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/answerable.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/backlog.ts#AtlasPlatformGroup",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/backlog.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/captureErrors.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/channelEntity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/channelProjection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/channelSchemas.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/compiledSync.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/completeRead.ts#providerName",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/deferredBacklog.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/estateEvidence.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/evidenceLoss.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/freshnessWindow.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/frontierWalk.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/generationErrors.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/generationSchemas.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/mandatoryKinds.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/mutationLock.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/pageDisagreement.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/pageHtml.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/pageModel.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/pageModel.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/pageReachability.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/pageReachability.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/pageScreenshots.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/publishErrors.ts#leasePlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/publishErrors.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 8,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/publishGuard.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/read.ts#AtlasPlatformMissingError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/read.ts#AtlasPlatformUnknownError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/read.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 11,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/read.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/readAnswer.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/readAnswer.ts#providerCompleteness",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/registration.ts#AtlasPlatformRegistration",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/registration.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/reset.ts#AtlasPlatformReset",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/store.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/supersedeAdvice.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/verbs.ts#atlasPlatformUsage",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/verbs.ts#atlasPlatformVerbNames",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/verbs.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/volume.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/walkSurface.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/walkTransport.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/kit/walkVerb.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/knock/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/knock/model.ts#KNOCK_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/knowbe4/fill/parentCount.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/knowbe4/fill/projectShapes.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/knowbe4/model.ts#KNOWBE4_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/graphqlObservations.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/introspection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/model.ts#LINEAR_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/projectionKit.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/rootFieldCensus.ts#operationProviderIds",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/rootFieldCensus.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/routes.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/settings.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/linear/walk.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/make/fill/project.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/make/model.ts#MAKE_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/microsoft365/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/microsoft365/model.ts#MICROSOFT365_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/microsoft365/specRead.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/microsoft365/surfaceNaming.ts#microsoft365ProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/nightfall/model.ts#NIGHTFALL_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/nightfall/surfaceNaming.ts#nightfallProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/notion/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/notion/model.ts#NOTION_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/notion/projection.ts#methodProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/notion/settingsWalk.ts#isSettingsTabProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/notion/settingsWalk.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/nxCloud/disagreement.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/nxCloud/model.ts#NX_CLOUD_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/nxCloud/webData.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/onepassword/identity.ts#onepasswordEdgeProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/onepassword/model.ts#ONEPASSWORD_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/onepassword/projection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/platformPaths.ts#AtlasPlatformDirectories",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/platformPaths.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/descriptor.ts#PRISMA_DATA_PLATFORM_ATLAS_DESCRIPTOR",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/gaps.ts#PRISMA_DATA_PLATFORM_GAP_CONDITIONS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/gaps.ts#PrismaDataPlatformGapCondition",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/identity.ts#prismaDataPlatformEntityId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/identity.ts#prismaDataPlatformGapId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/kinds.ts#PRISMA_DATA_PLATFORM_ATLAS_KINDS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/kinds.ts#PrismaDataPlatformAtlasKind",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/kinds.ts#prismaDataPlatformKindFor",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/kinds.ts#prismaDataPlatformKindPrefixes",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#emptyPrismaDataPlatformKindFile",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#emptyPrismaDataPlatformKindFiles",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#heldPrismaDataPlatformKindFile",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#heldPrismaDataPlatformManifest",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#initialPrismaDataPlatformManifest",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PRISMA_DATA_PLATFORM_ATLAS_CHANNELS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PRISMA_DATA_PLATFORM_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PRISMA_DATA_PLATFORM_ATLAS_SCHEMA_VERSION",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PRISMA_DATA_PLATFORM_VISIBILITY_SCOPES",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformArtifactRef",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#prismaDataPlatformArtifactRefSchema",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformAtlasChannel",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformCoverageState",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformEntity",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#prismaDataPlatformEntitySchema",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformEvidenceRole",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformGap",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#prismaDataPlatformGapSchema",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformKindFile",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#prismaDataPlatformKindFileSchema",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformKindStatus",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#prismaDataPlatformKindStatusSchema",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformManifest",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#prismaDataPlatformManifestSchema",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformSource",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#prismaDataPlatformSourceSchema",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#PrismaDataPlatformVisibilityScope",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/model.ts#prismaDataPlatformVisibilityScopeFor",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/readAdapter.ts#prismaDataPlatformObservations",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/readAdapter.ts#readPrismaDataPlatformSnapshot",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/registration.ts#PRISMA_DATA_PLATFORM_ATLAS_REGISTRATION",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/reset.ts#PrismaDataPlatformResetOutcome",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/reset.ts#resetPrismaDataPlatformAtlas",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#PRISMA_DATA_PLATFORM_PUBLISH_LOCK_KEY",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#PRISMA_DATA_PLATFORM_STORE_SPEC",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#PRISMA_DATA_PLATFORM_SUPERSEDE_REMEDY",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#prismaDataPlatformAtlasJson",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#prismaDataPlatformAtlasPaths",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#PrismaDataPlatformAtlasPaths",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#PrismaDataPlatformSnapshot",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#publishPrismaDataPlatformAtlas",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#readPrismaDataPlatformAtlas",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#readPrismaDataPlatformKindFile",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#readPrismaDataPlatformManifest",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/store.ts#withPrismaDataPlatformPublishLock",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/prismaDataPlatform/sync.ts#syncPrismaDataPlatformSurfaces",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/registry.ts#atlasPlatforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/registry.ts#findAtlasPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/registry.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/slackApi/atlasModel.ts#SLACK_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/slackApi/atlasProjection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/slackApi/errors.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/aiProjection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/entityModel.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/entityModel.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/entityModel.ts#providerType",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/entityProjection.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/entityProjection.ts#providers",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/estateBoundaries.ts#TrelicaIntegrationProviderRecord",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/methodFold.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/model.ts#TRELICA_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/offboardingWorkflows.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/projection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/projection.ts#trelicaAppProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/projection.ts#trelicaMethodProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/providerText.ts#heldTrelicaProviderText",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/providerText.ts#reheldTrelicaProviderTexts",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/trelica/providerText.ts#TRELICA_PROVIDER_TEXT_WITHHELD",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/twilio/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/twilio/model.ts#TWILIO_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/twilio/projection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/twilio/report.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/twilio/specSurface.ts#twilioMethodProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/twilio/walkPublish.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/browserPages.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/browserReduction.ts#vantaCallProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/census.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/changes.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/client.ts#boundedByProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/client.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/controlLinks.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/controlsEvidence.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/controlShot.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/controlShotSurface.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/groupWriteClient.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/model.ts#VANTA_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/oauth.ts#createVantaTokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/oauth.ts#VantaTokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/pagination.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/policyDocuments.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/projection.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/sdk/httpBoundary.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/sdk/operations/controls.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/sdk/operations/documents.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/sdk/operations/tests.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/sdk/operations/vendors.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/sdk/VantaClient.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/surfaceWalk.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/surfaceWalk.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/syncKind.ts#observedProviderIds",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/vulnerabilityWriteClient.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/writeClient.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/vanta/writeTransport.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/workos/browserSurface.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/workos/entityShape.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/workos/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/workos/model.ts#WORKOS_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/workos/routeCandidates.ts#workosRouteProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/xero/identity.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/xero/model.ts#XERO_ATLAS_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/xero/projection.ts#apiProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlas/xero/projection.ts#methodProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlasHomeShared.ts#atlasPlatformPaths",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/atlasHomeShared.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/automations/purpose.ts#atlasPlatformOf",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/automations/purpose.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/action.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/browserErrors.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/cookieCrypto.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/cookieJar.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/errors.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/errors.ts#UnsupportedPlatformError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/presentDesktop.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/relayLease.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/relaySession.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/signInPress.ts#isSignInProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/signInPress.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/signInPress.ts#sessionOpenedOnProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/signInPress.ts#SIGN_IN_PROVIDERS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/signInPress.ts#SignInProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/signInPress.ts#signInProviderOfHost",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/browser/signInProbeStore.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cacheHome.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/formerCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/formerCore.ts#refusedPlatforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/gather.ts#gatherPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/gather.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/gather.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/options.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/options.ts#takesPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/platformCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/platformCore.ts#platformSectionJson",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/platformCore.ts#renderPlatformSection",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/platformRun.ts#accessReviewPlatformCommand",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/platformRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/platformRun.ts#runAccessReviewPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/privilegedCore.ts#refusedPlatforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/runShell.ts#platformsFor",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/runShell.ts#takesPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/accessReview/usage.ts#ACCESS_REVIEW_PLATFORM_USAGE",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/alias/core.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/backlogCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/backlogRun.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/coverageCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/coverageRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/coverageRun.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/doctorCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/doctorRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/doctorRun.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/errors.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/freshnessCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/freshnessRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/freshnessRun.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformResolve.ts#AtlasPlatformFailure",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformResolve.ts#AtlasPlatformLookup",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformResolve.ts#AtlasPlatforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformResolve.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformResolve.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformResolve.ts#resolvePlatformSnapshot",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformRun.ts#atlasPlatformCommand",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformRun.ts#AtlasPlatformDeps",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformRun.ts#productionAtlasPlatformDeps",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformRun.ts#runAtlasPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformVerb.ts#atlasPlatformDispatch",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformVerb.ts#AtlasPlatformDispatch",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformVerb.ts#atlasPlatformUsage",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/platformVerb.ts#atlasPlatformWantsHelp",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/probeCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/readCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/readRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/readRun.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/renderRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/renderRun.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/resetRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/resetRun.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/resetRunCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/restoreCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/atlas/restoreRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/brazeAtlas/reportRun.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/browser/errors.ts#BrowserVerbDooredProviderError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/browser/errors.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/browser/profileCore.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/browser/shotCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/browser/shotCore.ts#SHOT_LEASE_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/browser/signInLook.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/browser/signInRun.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/crowdstrike/core.ts#crowdstrikeProviderId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/fathom/shareCore.ts#providerNotesDropped",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/github/errors.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/github/refsErrors.ts#RefProviderFailedError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/google/revokeSeam.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/hand/deps.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/hexAtlas/reportRun.ts#providerIds",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/monitor/checkFiredStages.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/monitor/deps.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/pdf/core.ts#providerReferenceRoute",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/plans/core.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 11,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/plans/lines.ts#providers",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/plans/thresholdArgs.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/plans/thresholdArgs.ts#ProviderChange",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/plans/thresholdLines.ts#providers",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/prismaDataPlatformAtlas/resetRun.ts#PRISMA_DATA_PLATFORM_RESET_USAGE",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/prismaDataPlatformAtlas/resetRun.ts#prismaDataPlatformAtlasResetCommand",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/prismaDataPlatformAtlas/syncRun.ts#PRISMA_DATA_PLATFORM_SYNC_USAGE",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/prismaDataPlatformAtlas/syncRun.ts#prismaDataPlatformAtlasSyncCommand",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/proposal/publishCore.ts#publishTargetProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/core.ts#parseProviderReadArgs",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/core.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/core.ts#PROVIDER_READ_FLAG_NAMES",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/core.ts#ProviderReadOptions",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/core.ts#providerReadUsage",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#ProviderReadAddressMissingError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#ProviderReadAfterOnDatabaseError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#ProviderReadArgsError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#providerReadArgsErrorLines",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#ProviderReadArgsErrors",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#ProviderReadFilesNotPullRequestError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#ProviderReadFlagsInvalidError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#ProviderReadIncludeInvalidError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/errors.ts#ProviderReadInvalidFlagValueError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/run.ts#productionProviderReadDeps",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/run.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/run.ts#ProviderReadDeps",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/run.ts#ProviderReadError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/providerRead/run.ts#runProviderRead",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/slack/savedRun.ts#SLACK_SAVED_LEASE_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/slack/shotRun.ts#SLACK_SHOT_LEASE_PLATFORM",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/store/importAtlasCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/store/importAtlasCore.ts#PlatformRefusal",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/store/importAtlasCore.ts#platformsPlanned",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/store/importAtlasCore.ts#PlatformTally",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/store/importAtlasRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/store/importAtlasRun.ts#platformPlan",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/turn/reachCore.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/vanta/binding.ts#createTokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/vanta/binding.ts#tokenProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/vanta/changesCore.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/commands/xeroAtlas/familiesRun.ts#providerId",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/cli/manifests/atlasPlatformMeta.ts#atlasPlatformManifestRow",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/browserProbe.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/fleetCap.ts#providerUnregistered",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/ledger.ts#LedgerProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/ledger.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/providerUnregistered.ts#codexProviderUnregistered",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/providerUnregistered.ts#CodexProviderUnregisteredEvidence",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/providerUnregistered.ts#parseProviderUnregisteredEvidence",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/providerUnregistered.ts#providerUnregisteredLine",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/codex/vendoredCli.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/context/alwaysLoaded.ts#ContextProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/context/alwaysLoaded.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/corpus/github/errors.ts#SamlNoProviderError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/corpus/github/members.ts#hasProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/desktop/errors.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/desktop/installPlan.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/detective/atlasLead.ts#byPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/detective/atlasLead.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/detective/atlasLead.ts#PlatformBucket",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/devLint/atlasContentCoverage.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/devLint/atlasContentCoverage.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/devLint/atlasContentCoverage.ts#platformsScanned",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/devLint/atlasContentCoverage.ts#ScannedPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/environment/gather.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/gcp/execute.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/gcp/request.ts#GcpOperationProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/gcp/request.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hand/handSurfaceErrors.ts#NotThisPlatformError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hand/handSurfaceErrors.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hand/integration.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hand/note/raise.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hand/sessionProbes.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hand/sessionProbes.ts#sessionProbePlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/handover/fleetSignInGate.ts#fleetSignInProviders",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/handover/fleetSignInGate.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hygiene/identifierScan.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hygiene/identifierScan.ts#ProviderLocationRule",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hygiene/identifierScan.ts#providerLocations",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hygiene/installationIdentifiers.ts#providerLocationLabels",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/hygiene/providerLocations.ts#PROVIDER_LOCATION_RULES",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/ingestError.ts#hadNoProviderResponse",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/ingestError.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/providerCall.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/providerCall.ts#ProviderBackoff",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/providerCall.ts#ProviderRetryObserver",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/providerCall.ts#safeProviderCall",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/rateBlock.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/rateBlock.ts#ProviderScope",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/rateLimitQuota.ts#ProviderRateLimits",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/rateLimits.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/rateLimits.ts#PROVIDER_RATE_LIMITS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/rateLimits.ts#ProviderRateLimits",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/lib/rateLimitsPlatforms.ts#PLATFORM_RATE_LIMITS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/google/consent.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/google/revoke.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/knock/projection.ts#channelProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/outlook/apiCore.ts#PROVIDER",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#ProviderReadAttachment",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#ProviderReadCoverage",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#ProviderReadDocument",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#ProviderReadDocumentSource",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#ProviderReadMedia",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#ProviderReadSource",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#ProviderReadTarget",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#renderProviderReadJson",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/providerRead.ts#renderProviderReadText",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/resync/policy.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/resync/target.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/slack/completeness.ts#providerTotalObserved",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/turn/declinedAtlasReadings.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/live/turn/declinedAtlasReadings.ts#platforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/monitor/fleetHealthFate.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/monitor/fleetHealthSource.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/monitor/fleetRunsDryCeilings.ts#providers",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/monitor/resyncSignedOut.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/onboard/mailbox.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/onboard/outlook.ts#outlookConnectorLines",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/organisation/core.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/outbound/proposal/address.ts#ProposalProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/outbound/proposal/destination.ts#proposalDestinationProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/outbound/slack/sendFailure.ts#providerCode",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/outbound/slack/sendFailure.ts#slackPlatformErrorCode",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/pages/shell.ts#PLATFORM_SHELL_OPEN",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/errors.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/register.ts#plansForProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/register.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/removed.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/render.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/rowEdits.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/structure.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/thresholdMutation.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/thresholds.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 6,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/types.ts#PlanProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/plans/types.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 11,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/route/atlasCapability.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/route/atlasReading.ts#atlasPlatformOf",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/route/atlasReading.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/route/atlasReadings.ts#findPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/route/liveProviderCapabilities.ts#LIVE_PROVIDER_CAPABILITIES",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/secrets/credentials/connectors.ts#CONNECTOR_CREDENTIALS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/secrets/credentials/spec.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/secrets/status.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/spend/store.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/spend/types.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 2,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/spend/types.ts#SpendProvider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/stateHome.ts#AtlasPlatformPaths",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/stateHome.ts#prismaDataPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/stateHome/providers.ts#providersStateHomePaths",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/stateHome/providers.ts#ProvidersStateHomePaths",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/envelope.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 5,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/errors.ts#AtlasPlatformMismatchError",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/plan.ts#PlannedPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/plan.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/probe.ts#atlasPlatformNamesStatement",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/probe.ts#foldPlatforms",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/probe.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 7,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/probe.ts#platformNames",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/probeRun.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/project.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 4,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/read.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/atlas/store.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 3,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/store/identity/people.ts#platformActive",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/supervisor/chairSuccessor.ts#provider",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/wait/loop.ts#PROVIDER_WAIT_CEILING_MS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/wait/loop.ts#PROVIDER_WAIT_SCHEDULE_MS",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/worktree/fseventsdGauge.ts#onPlatform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/worktree/fseventsdGauge.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "identifiers:src/worktree/prunePacing.ts#platform",
+      "file": ".baselines/naming-vocabulary-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "widening"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineRegistry.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    }
+  ],
+  "reason": "seed the naming-vocabulary debt measured when the 7 Nov vocabulary gate landed"
+}

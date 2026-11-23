@@ -1,0 +1,1260 @@
+{
+  "items": [
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "inline-every-element",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "range": "here",
+                      "type": "broadcast"
+                    },
+                    {
+                      "channel_id": "C0SYN000001",
+                      "type": "channel"
+                    },
+                    {
+                      "type": "color",
+                      "value": "#1d9bd1"
+                    },
+                    {
+                      "fallback": "Sun 27 Sep",
+                      "format": "{date_short}",
+                      "timestamp": 1790431200,
+                      "type": "date"
+                    },
+                    {
+                      "name": "pray",
+                      "type": "emoji"
+                    },
+                    {
+                      "text": "ACME-101",
+                      "type": "link",
+                      "url": "https://linear.app/acme/issue/ACME-101"
+                    },
+                    {
+                      "team_id": "T0SYN000001",
+                      "type": "team"
+                    },
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    },
+                    {
+                      "type": "user",
+                      "user_id": "U0SYN000001"
+                    },
+                    {
+                      "type": "usergroup",
+                      "usergroup_id": "S0SYN000001"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "id": "inline-every-element",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft inline-every-element --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "leadingReceipt": {
+        "notes": [
+          "the failing control"
+        ],
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "block-rich_text_list",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "elements": [
+                        {
+                          "text": "quoted words",
+                          "type": "text"
+                        }
+                      ],
+                      "type": "rich_text_section"
+                    }
+                  ],
+                  "style": "bullet",
+                  "type": "rich_text_list"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "id": "block-rich_text_list",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft block-rich_text_list --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "block-rich_text_preformatted",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_preformatted"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "id": "block-rich_text_preformatted",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft block-rich_text_preformatted --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "block-rich_text_quote",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_quote"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "id": "block-rich_text_quote",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft block-rich_text_quote --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "block-rich_text_section",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "id": "block-rich_text_section",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft block-rich_text_section --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "sd-00000001",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "can you check the changelog too",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_quote"
+                },
+                {
+                  "elements": [
+                    {
+                      "text": "checked the changelog side, thanks for sorting it 🙏",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "&gt; can you check the changelog too\n\nchecked the changelog side, thanks for sorting it 🙏",
+          "unfurl_links": true,
+          "unfurl_media": true
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "id": "sd-00000001",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft sd-00000001 --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "nested-list",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "lead",
+                      "type": "text"
+                    },
+                    {
+                      "text": "\n\n",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                },
+                {
+                  "elements": [
+                    {
+                      "elements": [
+                        {
+                          "text": "headline",
+                          "type": "text"
+                        }
+                      ],
+                      "type": "rich_text_section"
+                    }
+                  ],
+                  "style": "bullet",
+                  "type": "rich_text_list"
+                },
+                {
+                  "elements": [
+                    {
+                      "elements": [
+                        {
+                          "text": "sub-point",
+                          "type": "text"
+                        }
+                      ],
+                      "type": "rich_text_section"
+                    }
+                  ],
+                  "indent": 1,
+                  "style": "bullet",
+                  "type": "rich_text_list"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "lead\n\n• headline\n    ◦ sub-point",
+          "unfurl_links": true,
+          "unfurl_media": true
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "id": "nested-list",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft nested-list --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "thread-reply",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "thread",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "threadParent": {
+          "permalink": "https://acme.slack.com/archives/C0SYN000001/p1789407961767649",
+          "text": "build cache is cold",
+          "userId": "U0SYN000001"
+        },
+        "threadTs": "1789407961.767649"
+      },
+      "id": "thread-reply",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack reply --as me --draft thread-reply --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      }
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "thread-why-top-level",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "THREAD REPLY, not top-level"
+      },
+      "id": "thread-why-top-level",
+      "state": "held",
+      "release": {
+        "kind": "re-record",
+        "why": "parked top-level, but its why says thread reply — the release refuses it. Re-record it into its thread, which spends this row and carries their yes: slopweaver slack draft record --thread-ts <root ts> --supersedes thread-why-top-level"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "bot-finding",
+        "kind": "finding",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "attachments": [
+            {
+              "blocks": [
+                {
+                  "elements": [
+                    {
+                      "text": ":robot_face:  *acme-bot*",
+                      "type": "mrkdwn"
+                    }
+                  ],
+                  "type": "context"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "elements": [
+                    {
+                      "elements": [
+                        {
+                          "text": "quoted words",
+                          "type": "text"
+                        }
+                      ],
+                      "type": "rich_text_section"
+                    }
+                  ],
+                  "type": "rich_text"
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "elements": [
+                    {
+                      "text": "*Details*",
+                      "type": "mrkdwn"
+                    }
+                  ],
+                  "type": "context"
+                }
+              ],
+              "color": "#7c3aed",
+              "fallback": "quoted words"
+            }
+          ],
+          "metadata": {
+            "event_payload": {
+              "artifactFingerprint": "0000000000000000",
+              "artifactKind": "update",
+              "renderer": "slack-card-v1",
+              "schemaVersion": 1
+            },
+            "event_type": "slopweaver_card"
+          },
+          "text": "",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "actor": "bot"
+      },
+      "id": "bot-finding",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as bot --draft bot-finding --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link",
+        "impact"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "held-approved-blocked",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "approval": {
+          "anchor": "talk-call:c0000001#12",
+          "atIso": "2026-10-08T00:16:54.000Z",
+          "heard": "Go ahead and send it"
+        }
+      },
+      "id": "held-approved-blocked",
+      "state": "held",
+      "hold": {
+        "atIso": "2026-10-08T02:00:00.000Z",
+        "reason": "no-fleet-slot",
+        "why": "every slot is busy"
+      },
+      "judgedIso": "2026-10-08T02:00:00.000Z",
+      "release": {
+        "command": "slopweaver slack post --as me --draft held-approved-blocked --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "held-meaning-changed",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "meaningChanged": "the thread moved on"
+      },
+      "id": "held-meaning-changed",
+      "state": "held",
+      "hold": {
+        "atIso": "2026-10-08T02:01:00.000Z",
+        "reason": "meaning-changed",
+        "why": "the thread moved on"
+      },
+      "judgedIso": "2026-10-08T02:01:00.000Z",
+      "release": {
+        "command": "slopweaver slack post --as me --draft held-meaning-changed --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "id": "held-set-down-blocked",
+      "judgedIso": "2026-10-08T02:02:00.000Z",
+      "state": "held",
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "held-set-down-blocked",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "hold": {
+        "atIso": "2026-10-08T02:03:00.000Z",
+        "reason": "no-fleet-slot",
+        "why": "every seat is busy",
+        "setDown": {
+          "approval": {
+            "anchor": "talk-call:c0000001#12",
+            "atIso": "2026-10-08T00:16:54.000Z",
+            "heard": "Go ahead and send it"
+          },
+          "atIso": "2026-10-08T02:02:00.000Z",
+          "why": "the requested date changed"
+        }
+      },
+      "release": {
+        "command": "slopweaver slack post --as me --draft held-set-down-blocked --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "id": "held-changed-blocked",
+      "judgedIso": "2026-10-08T02:02:00.000Z",
+      "state": "held",
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "held-changed-blocked",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "meaningChanged": "the requested date changed"
+      },
+      "hold": {
+        "atIso": "2026-10-08T02:03:00.000Z",
+        "reason": "no-fleet-slot",
+        "why": "every seat is busy"
+      },
+      "release": {
+        "command": "slopweaver slack post --as me --draft held-changed-blocked --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "receipts-attached",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "ACME-101",
+                      "type": "link",
+                      "url": "https://linear.app/acme/issue/ACME-101"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "receipts": {
+          "kind": "attached",
+          "links": [
+            "https://linear.app/acme/issue/ACME-101"
+          ],
+          "media": 0
+        }
+      },
+      "id": "receipts-attached",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft receipts-attached --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "leadingReceipt": {
+        "notes": [
+          "the failing control"
+        ],
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "receipts-self-evident",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "receipts": {
+          "kind": "self-evident",
+          "why": "the message is the question itself"
+        }
+      },
+      "id": "receipts-self-evident",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft receipts-self-evident --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "receipts-tried",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "receipts": {
+          "kind": "tried",
+          "tried": "the dashboard share link 403s outside the org"
+        }
+      },
+      "id": "receipts-tried",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft receipts-tried --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "link"
+      ]
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "receipts-codex-drops",
+        "kind": "message",
+        "media": [
+          {
+            "bytes": 68,
+            "name": "control.png",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "ACME-101",
+                      "type": "link",
+                      "url": "https://linear.app/acme/issue/ACME-101"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture",
+        "comparison": {
+          "state": "pending"
+        },
+        "receipts": {
+          "kind": "attached",
+          "links": [
+            "https://linear.app/acme/issue/ACME-101"
+          ],
+          "media": 0
+        }
+      },
+      "id": "receipts-codex-drops",
+      "state": "held",
+      "comparison": {
+        "candidate": {
+          "advisory": [],
+          "digest": "fc7bd957c8f96810c9c5255c3fea1078",
+          "form": "{}",
+          "mentions": [],
+          "payload": {
+            "blocks": [
+              {
+                "elements": [
+                  {
+                    "elements": [
+                      {
+                        "text": "quoted words",
+                        "type": "text"
+                      }
+                    ],
+                    "type": "rich_text_section"
+                  }
+                ],
+                "type": "rich_text"
+              }
+            ],
+            "form": "rich",
+            "text": "fallback",
+            "unfurl_links": false,
+            "unfurl_media": false
+          }
+        },
+        "elapsedMs": 4200,
+        "requestedModel": "gpt-test",
+        "state": "ready",
+        "atIso": "2026-09-28T06:14:00.000Z"
+      },
+      "release": {
+        "command": "slopweaver slack post --as me --draft receipts-codex-drops --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "leadingReceipt": {
+        "notes": [
+          "the failing control"
+        ],
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "codexDropsReceipts": true
+    },
+    {
+      "draft": {
+        "advisory": [],
+        "channel": "C0SYN000001",
+        "digest": "6e1175e94259c84bd39a9c9156a1d554",
+        "form": "{}",
+        "id": "first-message-bare",
+        "kind": "message",
+        "mentions": [],
+        "payload": {
+          "blocks": [
+            {
+              "elements": [
+                {
+                  "elements": [
+                    {
+                      "text": "quoted words",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "rich_text_section"
+                }
+              ],
+              "type": "rich_text"
+            }
+          ],
+          "form": "rich",
+          "text": "fallback",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "shape": "top-level",
+        "tsIso": "2026-09-28T06:13:44.268Z",
+        "why": "a contract fixture"
+      },
+      "id": "first-message-bare",
+      "state": "held",
+      "release": {
+        "command": "slopweaver slack post --as me --draft first-message-bare --approve 6e1175e94259c84bd39a9c9156a1d554",
+        "kind": "send"
+      },
+      "proofMissing": [
+        "screenshot",
+        "link",
+        "annotation"
+      ]
+    }
+  ],
+  "people": [
+    {
+      "bot": false,
+      "deactivated": false,
+      "firstNameUnique": true,
+      "handle": "person.one",
+      "name": "Person One",
+      "nameUnique": true,
+      "nativeId": "U0SYN000001",
+      "org": {
+        "department": "Imaginary Systems",
+        "orgUnit": "/Staff",
+        "title": {
+          "source": "google-admin",
+          "value": "Imaginary Systems Specialist"
+        },
+        "vantaGroups": [
+          "Synthetic group",
+          "Everyone"
+        ],
+        "vantaStatus": "CURRENT"
+      },
+      "title": "Software Engineer"
+    }
+  ],
+  "picks": {
+    "byModel": {},
+    "codex": 0,
+    "original": 0
+  }
+}

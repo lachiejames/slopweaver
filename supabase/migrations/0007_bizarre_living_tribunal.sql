@@ -1,0 +1,4 @@
+ALTER POLICY "content_github_bot_read" ON "content_github" TO slopweaver_bot USING (exists (select 1 from content c where c.id = content_id and c.visibility = 'public'));--> statement-breakpoint
+ALTER POLICY "content_linear_bot_read" ON "content_linear" TO slopweaver_bot USING (exists (select 1 from content c where c.id = content_id and c.visibility = 'public'));--> statement-breakpoint
+ALTER POLICY "content_notion_bot_read" ON "content_notion" TO slopweaver_bot USING (exists (select 1 from content c where c.id = content_id and c.visibility = 'public'));--> statement-breakpoint
+ALTER POLICY "content_slack_bot_read" ON "content_slack" TO slopweaver_bot USING (exists (select 1 from content c where c.id = content_id and c.visibility = 'public'));

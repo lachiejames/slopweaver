@@ -1,0 +1,23 @@
+{
+  "by": "fixture-capture",
+  "bytes": 540,
+  "document": {
+    "deathsInWindow": 0,
+    "escalated": false,
+    "grade": "unarmed",
+    "heartbeatAgoMs": 103365853,
+    "lastDeath": { "armId": "c50b34f4", "atIso": "2026-09-17T10:20:43.159Z", "reason": "superseded" },
+    "lastEventAgoMs": 103403849,
+    "liveness": { "state": "unarmed" },
+    "socketState": "disconnected",
+    "threadReplyChannels": [],
+    "why": "unarmed — no listener is running. A tag arriving now is a no-op BY DESIGN.",
+    "problems": [
+      "loop freshness: nothing to measure — no armed listener pid and no recorded worktree, so which commit the loop is running is UNKNOWN rather than current"
+    ]
+  },
+  "observedAtIso": "2026-09-20T08:58:42Z",
+  "producer": "listen status",
+  "readingId": "2026-09-20T09:12:39.087Z-listen-status",
+  "recordedAtIso": "2026-09-20T09:12:39.087Z"
+}

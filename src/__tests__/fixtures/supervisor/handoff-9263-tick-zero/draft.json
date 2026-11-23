@@ -1,0 +1,666 @@
+{
+  "actions": [
+    {
+      "actionId": "h9263-t0-a1",
+      "kind": "artifact-published",
+      "outcome": "completed",
+      "recordedIso": "2026-09-14T11:07:35Z",
+      "subject": {
+        "id": "fleet-briefing",
+        "kind": "artifact",
+        "label": "tick zero page written locally, frozen 512abd6c, five cards on him unchanged"
+      },
+      "witness": {
+        "kind": "artifact",
+        "ref": "briefing-t9263-0.html; published-pages/af415a0a-f9cd-43b1-aac2-187e71642592/512abd6c…html"
+      },
+      "detail": "handoff-9263 took the pin on workspace:255 at 10:55:29Z; handoff-9262's block archived to supervisor-state-21aug-2026-09-14-1726-to-2053.md."
+    },
+    {
+      "actionId": "h9263-t0-a2",
+      "kind": "spawned",
+      "outcome": "completed",
+      "recordedIso": "2026-09-14T11:07:35Z",
+      "subject": {
+        "id": "gold-owed-677-cq265-c1-plan-half-capped",
+        "kind": "handover",
+        "label": "seated on workspace:256 at reading 21.65, opus on plan-four; repo line added to the finding row first"
+      },
+      "witness": {
+        "kind": "command",
+        "ref": "spawn9263-1.log"
+      },
+      "detail": "handover-finish-probe-reports-1-of-2-probes seated on workspace:257 at reading 10.56; re-ingesting-a-corrected-gemini-meeting-roster-appends and a-client-secret-survives-the-redaction-pass-in held at 23.18 and 22.93."
+    }
+  ],
+  "handoff": "handoff-9263",
+  "judgements": [
+    {
+      "judgementId": "h9263-t0-j1",
+      "kind": "watch-disposition",
+      "claim": "All fifteen needs-input rows carry the same tool count as handoff-9262's pass fourteen: five are carded on him (226, 249, 250, 252, 253), 187 is paused on 258-1, 245 owes what it learned, the loop and scheduler are standing heartbeats, and the six older parked pages (cassette-fidelity, ci-pull-request-run, clear-legacy, jared, widen-github, whole-file-json) are unchanged; the grooming seat 254 finished at 10:48Z and close-done closed it with handoff-9262.",
+      "recordedIso": "2026-09-14T11:07:35Z",
+      "whyNotDerived": "operational-context",
+      "subject": {
+        "id": "workspace:255",
+        "kind": "session",
+        "label": "handoff-9263 tick zero"
+      },
+      "witness": {
+        "kind": "command",
+        "ref": "diff of watch9262-14.txt and watch9263-0.txt with counts masked; runs/groom-the-boards-ungroomed-ready-set-14-sep.jsonl finished 10:48:41Z"
+      }
+    }
+  ],
+  "sources": {
+    "capacity": {
+      "facts": {
+        "dispatchBackoffSeconds": 0,
+        "dispatchCovering": 0,
+        "dispatchOpen": 0,
+        "dispatchSubject": "",
+        "hold": false,
+        "holdSubjects": [],
+        "load1": 8.68,
+        "segmentsPct": 14,
+        "swapfileCount": 3,
+        "topForeignGb": 6,
+        "topForeignLabel": "com.apple.Virtualization.VirtualMachine"
+      },
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "read",
+      "verbatimLine": "machine capacity: ok on memory and cpu — 1-min load 8.68 · top foreign hog 'com.apple.Virtualization.VirtualMachine' at 6 GB · hidden from top: 'com.example.endpoint.Agent' +6 more, 3.6 cores of cpu unattributed · swap 1.8/3 GB · compressor 14% of segments limit · 3 swapfiles",
+      "witness": {
+        "command": "read capacity9263-0.json, the tick's redirected `slopweaver machine capacity --json` (undated: observed at the caller's --captured instant)",
+        "exitCode": null
+      }
+    },
+    "closeDone": {
+      "facts": {
+        "closedChats": 2,
+        "closedLedgerRows": 0,
+        "heldBusy": 0,
+        "keptOpen": 36
+      },
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "read",
+      "witness": {
+        "command": "read closedonej9263-0.json, the tick's redirected `slopweaver session close-done --json` (undated: observed at the caller's --captured instant)",
+        "exitCode": null
+      }
+    },
+    "friction": {
+      "facts": {
+        "hasGap": false,
+        "newestReport": "2026-09-03"
+      },
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "read",
+      "witness": {
+        "command": "read friction9263-0.json, the tick's redirected `slopweaver reflect friction-review --json` (undated: observed at the caller's --captured instant)",
+        "exitCode": null
+      }
+    },
+    "gauge": {
+      "facts": {
+        "nextAllModels": "plan-four",
+        "nextFable": "plan-four",
+        "plans": [
+          {
+            "fablePct": 92,
+            "fiveHourPct": 0,
+            "plan": "plan-one",
+            "resetsIso": "2026-09-17T19:00:00.000Z",
+            "weekPct": 61
+          },
+          {
+            "fablePct": 16,
+            "fiveHourPct": 5,
+            "plan": "plan-two",
+            "resetsIso": "2026-09-19T22:00:00.000Z",
+            "weekPct": 30
+          },
+          {
+            "fablePct": 16,
+            "fiveHourPct": 0,
+            "plan": "plan-three",
+            "resetsIso": "2026-09-18T07:00:00.000Z",
+            "weekPct": 65
+          },
+          {
+            "fablePct": 11,
+            "fiveHourPct": 6,
+            "plan": "plan-four",
+            "resetsIso": "2026-09-20T03:00:00.000Z",
+            "weekPct": 27
+          }
+        ],
+        "reactNowLines": [
+          "REACT NOW — plan-one fable week at 92%, resets 2026-09-17T19:00:00.000Z: it stops Fable spawns; move them to plan-four"
+        ]
+      },
+      "observedAtIso": "2026-09-14T11:08:12.540Z",
+      "status": "read",
+      "verbatimLine": "acceptance: not triggered — 4/4 plans readable, no plan has hit a limit, so the test has not run rather than passed",
+      "witness": {
+        "command": "read gaugej9263-0.json, the tick's redirected `slopweaver claude gauge --json`",
+        "exitCode": null
+      }
+    },
+    "listener": {
+      "facts": {
+        "armId": "1d92d104",
+        "grade": "healthy",
+        "pid": 92147,
+        "socketState": "connected",
+        "why": "healthy — arm 1d92d104 pid 92147, beat 2s ago, socket connected"
+      },
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "read",
+      "witness": {
+        "command": "read listen9263-0.json, the tick's redirected `slopweaver listen status --json` (undated: observed at the caller's --captured instant)",
+        "exitCode": null
+      }
+    },
+    "recipeDue": {
+      "facts": {
+        "rows": [
+          {
+            "heldBy": null,
+            "id": "resync-atlas-github",
+            "label": "resync-atlas-github",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-google-admin",
+            "label": "resync-atlas-google-admin",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-graphql-hive",
+            "label": "resync-atlas-graphql-hive",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-hex",
+            "label": "resync-atlas-hex",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-hibob",
+            "label": "resync-atlas-hibob",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-hubspot",
+            "label": "resync-atlas-hubspot",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-inngest",
+            "label": "resync-atlas-inngest",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-jam",
+            "label": "resync-atlas-jam",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-jumpcloud",
+            "label": "resync-atlas-jumpcloud",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-knock",
+            "label": "resync-atlas-knock",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-knowbe4",
+            "label": "resync-atlas-knowbe4",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-nx-cloud",
+            "label": "resync-atlas-nx-cloud",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-onepassword",
+            "label": "resync-atlas-onepassword",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-prisma-data-platform",
+            "label": "resync-atlas-prisma-data-platform",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-slack",
+            "label": "resync-atlas-slack",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-small-improvements",
+            "label": "resync-atlas-small-improvements",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-trelica",
+            "label": "resync-atlas-trelica",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-twilio",
+            "label": "resync-atlas-twilio",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-typeform",
+            "label": "resync-atlas-typeform",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-vanta",
+            "label": "resync-atlas-vanta",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-workos",
+            "label": "resync-atlas-workos",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-xero",
+            "label": "resync-atlas-xero",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-corpus-calendar",
+            "label": "resync-corpus-calendar",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-corpus-fathom",
+            "label": "resync-corpus-fathom",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-corpus-github",
+            "label": "resync-corpus-github",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-corpus-gmail",
+            "label": "resync-corpus-gmail",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-corpus-linear",
+            "label": "resync-corpus-linear",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-corpus-notion",
+            "label": "resync-corpus-notion",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-airtable",
+            "label": "resync-atlas-airtable",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-braze",
+            "label": "resync-atlas-braze",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-canva",
+            "label": "resync-atlas-canva",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-clerk",
+            "label": "resync-atlas-clerk",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-crowdstrike",
+            "label": "resync-atlas-crowdstrike",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-datadog",
+            "label": "resync-atlas-datadog",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-docker-hub",
+            "label": "resync-atlas-docker-hub",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-figma",
+            "label": "resync-atlas-figma",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-gemini-ai-studio",
+            "label": "resync-atlas-gemini-ai-studio",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-linear",
+            "label": "resync-atlas-linear",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-microsoft365",
+            "label": "resync-atlas-microsoft365",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-nightfall",
+            "label": "resync-atlas-nightfall",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-atlas-notion",
+            "label": "resync-atlas-notion",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          },
+          {
+            "heldBy": null,
+            "id": "resync-corpus-slack",
+            "label": "resync-corpus-slack",
+            "lateMinutes": 57,
+            "runs": "in-process"
+          }
+        ]
+      },
+      "observedAtIso": "2026-09-14T10:57:42.983Z",
+      "status": "read",
+      "witness": {
+        "command": "read due9263-0.json, the tick's redirected `slopweaver recipe due --json`",
+        "exitCode": null
+      }
+    },
+    "reconcile": {
+      "facts": {
+        "alignedCount": 3,
+        "headline": "3 of 19 live session(s) are on the board's top 5, 13 are lower down, 1 are on an unplaced row, 2 are on nothing the board knows, 1 more exist by contract, 2 top row(s) have nobody, 374 ask(s) are over 6 hours old, 9 row(s) carry no priority.",
+        "intakeClause": "Owner turns: 3 read across 8 supervisor session(s) since 2026-09-13T10:57:52.966Z, all witnessed. 0 message(s) from other sessions landed on a chair after it handed over and 45 more got no reply inside a chair's own span; `slopweaver supervisor intake` lists them.",
+        "misalignedCount": 13,
+        "rankedCount": 718,
+        "staleAskCount": 374,
+        "starvingCount": 2,
+        "unregisteredCount": 2
+      },
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "read",
+      "verbatimLine": "3 of 19 live session(s) are on the board's top 5, 13 are lower down, 1 are on an unplaced row, 2 are on nothing the board knows, 1 more exist by contract, 2 top row(s) have nobody, 374 ask(s) are over 6 hours old, 9 row(s) carry no priority.",
+      "witness": {
+        "command": "read reconcile9263-0.json, the tick's redirected `slopweaver handover reconcile --json` (undated: observed at the caller's --captured instant)",
+        "exitCode": null
+      }
+    },
+    "velocity": {
+      "facts": {
+        "caution": "\"faster does not necessarily equal better\" — this reads the machine's OWN pace, never a target. Pair every number below with the quality gates' state (review rounds, gold rate) before sizing a batch on it.",
+        "docsLandedToday": 28
+      },
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "read",
+      "witness": {
+        "command": "read velocity9263-0.json, the tick's redirected `slopweaver velocity --json` (undated: observed at the caller's --captured instant)",
+        "exitCode": null
+      }
+    },
+    "watch": {
+      "facts": {
+        "rows": [
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Reset store onto properly architected schema",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ cq265 cassette fidelity handover execution",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ CI pull request run does not fire on some heads",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ CQ265 clear legacy mentions and gate vocabulary",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Meeting prep one-pager",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Widen the GitHub selection set and refetch all",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ cq265 whole-file JSON gate path function",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ CQ265 redaction fixtures carry the secret",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ People waiting on him 8 Sep e2e 16894",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Dispatched worker skips watch ticker",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Re-architect plan routing as load balancer",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Live bot loop handover execution",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Bracketedowners mints handover execution",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Codex quota show OpenAI blind spot",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "/Users/ada.owner/dev/personal/slopweaver/.claude/worktrees.noindex/fresh-supervisor-handoff-9262 [unmapped: id 40A67660-C130-4C5B-BCE1-BF153AC90A8B not in cmux inventory — check `cmux list --json` / `session list --json`]",
+            "state": "needs-input"
+          },
+          {
+            "on": "waiting on you (notification)",
+            "session": "✳ Gate the tests whose only assertion is that it failed",
+            "state": "needs-input"
+          },
+          {
+            "on": "quiet 23m after agent.hook.PreToolUse",
+            "session": "/Users/ada.owner/dev/personal/slopweaver/.claude/worktrees.noindex/groom-the-boards-ungroomed-ready-set-14-sep [unmapped: id AC56B24F-A742-4DD7-900E-6A64DE152E23 not in cmux inventory — check `cmux list --json` / `session list --json`]",
+            "state": "silent"
+          },
+          {
+            "on": "quiet 2m after agent.hook.PreToolUse",
+            "session": "◐ Land 654 and finish store backup upload",
+            "state": "working"
+          },
+          {
+            "on": "quiet 1m after agent.hook.PreToolUse",
+            "session": "◐ Land the register bindings branch",
+            "state": "working"
+          },
+          {
+            "on": "quiet 0m after agent.hook.UserPromptSubmit",
+            "session": "◐ Recipe scheduler registration",
+            "state": "working"
+          },
+          {
+            "on": "quiet 0m after agent.hook.UserPromptSubmit",
+            "session": "◑ Linear SDK handover execution",
+            "state": "working"
+          },
+          {
+            "on": "quiet 0m after agent.hook.PreToolUse",
+            "session": "/slopweaver:supervisor",
+            "state": "working"
+          },
+          {
+            "on": "quiet 0m after agent.hook.PreToolUse",
+            "session": "◑ Gold-owed-677-cq265-c1 plan half-capped",
+            "state": "working"
+          },
+          {
+            "on": "quiet 0m after agent.hook.PreToolUse",
+            "session": "◑ Handover finish probe reports 1 of 2",
+            "state": "working"
+          }
+        ],
+        "suppressed": 1009
+      },
+      "observedAtIso": "2026-09-14T11:08:29.002Z",
+      "status": "read",
+      "witness": {
+        "command": "read watchj9263-0.json, the tick's redirected `slopweaver session watch --json-report`",
+        "exitCode": null
+      }
+    },
+    "depth": {
+      "diagnostic": "not drafted: `session depth` grades a session `review`, which is not a respawn decision, and nothing produces the tick's `respawnCandidate`",
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "unavailable",
+      "witness": {
+        "command": "slopweaver supervisor tick-draft",
+        "exitCode": null
+      }
+    },
+    "github": {
+      "diagnostic": "not drafted: no pull-request source reaches this verb, and `github hold --status` carries no pull-request or base-branch facts",
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "unavailable",
+      "witness": {
+        "command": "slopweaver supervisor tick-draft",
+        "exitCode": null
+      }
+    },
+    "landings": {
+      "diagnostic": "not drafted: no verb names what landed — `github landing` reports next acts and `velocity` counts landings without identities",
+      "observedAtIso": "2026-09-14T10:58:04Z",
+      "status": "unavailable",
+      "witness": {
+        "command": "slopweaver supervisor tick-draft",
+        "exitCode": null
+      }
+    }
+  },
+  "startedIso": "2026-09-14T10:57:11Z",
+  "tickId": "handoff-9263-tick-0",
+  "workspace": "workspace:255"
+}

@@ -1,0 +1,116 @@
+import { describe, expect, it } from "vitest";
+
+import { TWILIO_CONSOLE_ROUTES } from "../../../../../atlas/twilio/generated/consoleRoutes.js";
+
+/* Every row, written out whole and by hand-reviewed copy: the registry is a checked-in denominator, so a
+   row added, dropped, reordered or re-cited must show up here as a deliberate edit. */
+const EXPECTED_ROWS = [
+    { citedBy: ["https://www.twilio.com/docs/iam/access-tokens", "https://www.twilio.com/docs/lookup/magic-numbers-for-lookup", "https://www.twilio.com/docs/video/android-getting-started"], route: "/{region}/account/keys-credentials/api-keys", section: "account" },
+    { citedBy: ["https://www.twilio.com/docs/video/javascript-getting-started"], route: "/{region}/account/keys-credentials/api-keys/create", section: "account" },
+    { citedBy: ["https://www.twilio.com/docs/conversation-intelligence-classic/encrypting-transcripts-and-operator-results"], route: "/{region}/account/keys-credentials/credentials", section: "account" },
+    { citedBy: ["https://www.twilio.com/docs/usage/rest-api-best-practices"], route: "/{region}/account/manage-account/general-settings", section: "account" },
+    { citedBy: ["https://www.twilio.com/docs/voice/brand-your-calls-using-cnam"], route: "/{region}/account/trust-hub/cnam", section: "account" },
+    { citedBy: ["https://www.twilio.com/docs/glossary/cps", "https://www.twilio.com/docs/sip-trunking/scale-and-limits", "https://www.twilio.com/docs/sip-trunking/troubleshooting", "https://www.twilio.com/docs/verify/singapore", "https://www.twilio.com/docs/voice/brand-your-calls-using-cnam"], route: "/{region}/account/trust-hub/customer-profiles", section: "account" },
+    { citedBy: ["https://www.twilio.com/docs/voice/brand-your-calls-using-cnam"], route: "/{region}/account/trust-hub/overview", section: "account" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/connect-to-dialogflow", "https://www.twilio.com/docs/marketplace/listings", "https://www.twilio.com/docs/usage/manage-unused-resources"], route: "/{region}/develop/add-ons/installed", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/marketplace/publishers"], route: "/{region}/develop/add-ons/publish/marketplace-terms", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/marketplace/publishers"], route: "/{region}/develop/add-ons/publish/my-listings", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/marketplace/publishers"], route: "/{region}/develop/add-ons/publish/overview", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/facebook-messenger", "https://www.twilio.com/docs/flex/building-checklist"], route: "/{region}/develop/channels/facebook-messenger", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversation-intelligence-classic/generative-custom-operators"], route: "/{region}/develop/conversational-intelligence/overview", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversation-intelligence-classic/conversation-relay-integration", "https://www.twilio.com/docs/conversation-intelligence-classic/encrypting-transcripts-and-operator-results", "https://www.twilio.com/docs/conversation-intelligence-classic/onboarding"], route: "/{region}/develop/conversational-intelligence/services", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversation-intelligence-classic/conversation-relay-integration", "https://www.twilio.com/docs/conversation-intelligence-classic/generative-custom-operators", "https://www.twilio.com/docs/conversation-intelligence-classic/onboarding"], route: "/{region}/develop/conversational-intelligence/transcripts", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/connect-to-dialogflow"], route: "/{region}/develop/conversations/channels/addresses", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/connect-to-dialogflow"], route: "/{region}/develop/conversations/manage/webhooks", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/use-twilio-sandbox-for-whatsapp"], route: "/{region}/develop/conversations/tryout/whatsapp", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/events/segment-quickstart", "https://www.twilio.com/docs/verify/verify-events-webhook-onboarding-guide"], route: "/{region}/develop/event-streams/sinks", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/flex/ai"], route: "/{region}/develop/flex/ai-features/copilot", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/flex/building-checklist"], route: "/{region}/develop/flex/channels/messaging/conversations", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/flex/building-checklist"], route: "/{region}/develop/flex/channels/webchat", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/flex/how-we-release-flex"], route: "/{region}/develop/flex/manage/features/ga", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/flex/flex-ui-eol-reference", "https://www.twilio.com/docs/flex/how-we-release-flex"], route: "/{region}/develop/flex/settings/ui-versions", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/flex/ai"], route: "/{region}/develop/flex/settings/unified-profiles", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/usage/manage-unused-resources"], route: "/{region}/develop/functions/services", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/messaging/quickstart", "https://www.twilio.com/docs/usage/manage-unused-resources", "https://www.twilio.com/docs/voice/brand-your-calls-using-cnam", "https://www.twilio.com/docs/whatsapp/self-sign-up"], route: "/{region}/develop/phone-numbers/manage/incoming", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/usage/manage-unused-resources"], route: "/{region}/develop/phone-numbers/manage/restore", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/messaging/services", "https://www.twilio.com/docs/smpp/initial-setup-and-connection", "https://www.twilio.com/docs/whatsapp/register-senders-using-api"], route: "/{region}/develop/phone-numbers/manage/search", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/voice/whatsapp-business-calling"], route: "/{region}/develop/phone-numbers/manage/twiml-apps", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/smpp/initial-setup-and-connection"], route: "/{region}/develop/phone-numbers/port-host/porting-requests", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/verify/verify-countries-and-regions-deliverability"], route: "/{region}/develop/phone-numbers/sender-ids", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/smpp/initial-setup-and-connection"], route: "/{region}/develop/phone-numbers/short-codes", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/proxy/reserved-phone-numbers"], route: "/{region}/develop/proxy/services", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/rcs/onboarding", "https://www.twilio.com/docs/rcs/send-an-rcs-message"], route: "/{region}/develop/rcs/senders", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/sip-trunking/connect-to-zoom-phone", "https://www.twilio.com/docs/sip-trunking/trunking-3cx-pbx"], route: "/{region}/develop/sip-trunking", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/sip-trunking/trunking-3cx-pbx"], route: "/{region}/develop/sip-trunking/manage/cls", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/sip-trunking/trunking-3cx-pbx"], route: "/{region}/develop/sip-trunking/manage/ip-acls", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/sip-trunking/call-transfer", "https://www.twilio.com/docs/sip-trunking/connect-to-zoom-phone", "https://www.twilio.com/docs/sip-trunking/cps-trunk-termination", "https://www.twilio.com/docs/sip-trunking/trunking-3cx-pbx", "https://www.twilio.com/docs/usage/manage-unused-resources"], route: "/{region}/develop/sip-trunking/manage/trunks", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/content/overview"], route: "/{region}/develop/sms/content-editor", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/content/manage-your-templates-with-the-content-template-builder", "https://www.twilio.com/docs/verify/verification-templates"], route: "/{region}/develop/sms/content-template-builder", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/numbers-and-senders/port-host"], route: "/{region}/develop/sms/regulatory-compliance/a2p-10dlc-overview", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/verify/developer-best-practices", "https://www.twilio.com/docs/verify/singapore"], route: "/{region}/develop/sms/senders/sender-ids/applications/create", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/flex/building-checklist", "https://www.twilio.com/docs/whatsapp/register-senders-using-api", "https://www.twilio.com/docs/whatsapp/self-sign-up"], route: "/{region}/develop/sms/senders/whatsapp-senders", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/content/using-facebook-messenger-with-content-editor", "https://www.twilio.com/docs/glossary/what-is-a-sticky-sender", "https://www.twilio.com/docs/messaging/services", "https://www.twilio.com/docs/proxy/flex-a2p-10dlc", "https://www.twilio.com/docs/rcs/onboarding", "https://www.twilio.com/docs/rcs/send-an-rcs-message", "https://www.twilio.com/docs/usage/manage-unused-resources"], route: "/{region}/develop/sms/services", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/flex/building-checklist", "https://www.twilio.com/docs/glossary/what-is-sms-pumping-fraud"], route: "/{region}/develop/sms/settings/geo-permissions", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/messaging/quickstart", "https://www.twilio.com/docs/proxy/flex-a2p-10dlc"], route: "/{region}/develop/sms/try-it-out/send-an-sms", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/use-twilio-sandbox-for-whatsapp", "https://www.twilio.com/docs/whatsapp/api", "https://www.twilio.com/docs/whatsapp/quickstart"], route: "/{region}/develop/sms/try-it-out/whatsapp-learn", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/connect-to-dialogflow"], route: "/{region}/develop/studio/flows", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/trust-hub/addresses"], route: "/{region}/develop/trusthub/compliance-addresses", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/trust-hub/profiles"], route: "/{region}/develop/trusthub/compliance-profiles/primary", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/trust-hub/registrations"], route: "/{region}/develop/trusthub/registrations/a2p-brands/brands", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/usage/manage-unused-resources", "https://www.twilio.com/docs/voice/whatsapp-business-calling"], route: "/{region}/develop/twiml-bins/twiml-bins", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/whatsapp/register-senders-using-api", "https://www.twilio.com/docs/whatsapp/self-sign-up"], route: "/{region}/develop/twimlets/create", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/verify/preventing-toll-fraud"], route: "/{region}/develop/verify/geopermissions", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/verify/email", "https://www.twilio.com/docs/verify/sna-testing-guide", "https://www.twilio.com/docs/verify/supported-languages", "https://www.twilio.com/docs/verify/verification-templates", "https://www.twilio.com/docs/verify/verify-events-webhook-onboarding-guide"], route: "/{region}/develop/verify/services", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/verify/email"], route: "/{region}/develop/verify/settings/email", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/verify/verify-countries-and-regions-deliverability"], route: "/{region}/develop/verify/settings/geopermissions", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/verify/verify-sna-live-test-number"], route: "/{region}/develop/verify/settings/sna", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/usage/manage-unused-resources", "https://www.twilio.com/docs/voice/bring-your-own-carrier-byoc"], route: "/{region}/develop/voice/manage/byoc-trunks", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/global-infrastructure/regional-sip-domains", "https://www.twilio.com/docs/usage/manage-unused-resources", "https://www.twilio.com/docs/voice/sip"], route: "/{region}/develop/voice/manage/sip-domains", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/global-infrastructure/use-the-voice-android-sdk-with-a-non-us-twilio-region", "https://www.twilio.com/docs/global-infrastructure/use-the-voice-ios-sdk-with-a-non-us-twilio-region"], route: "/{region}/develop/voice/manage/twiml-apps", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/voice/virtual-agent"], route: "/{region}/develop/voice/settings/dialogflow", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/sip-trunking/extended-call-duration", "https://www.twilio.com/docs/voice/pci-workflows", "https://www.twilio.com/docs/voice/recording-settings"], route: "/{region}/develop/voice/settings/general", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/events/event-delivery-and-duplication"], route: "/{region}/monitor/alarms/manage", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/usage/manage-unused-resources"], route: "/{region}/monitor/insights/voice/calls", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/usage/manage-unused-resources"], route: "/{region}/monitor/insights/voice/settings", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/usage/manage-unused-resources"], route: "/{region}/monitor/logs/call-recordings", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/global-infrastructure/create-an-outbound-call-via-rest-api-in-a-non-us-twilio-region", "https://www.twilio.com/docs/global-infrastructure/use-the-programmable-voice-javascript-sdk-with-a-non-us-twilio-region"], route: "/{region}/monitor/logs/calls", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/bulk-messaging/troubleshooting", "https://www.twilio.com/docs/events/event-delivery-and-duplication", "https://www.twilio.com/docs/rcs/send-an-rcs-message", "https://www.twilio.com/docs/sip-trunking/trunking-3cx-pbx", "https://www.twilio.com/docs/whatsapp/register-senders-using-api", "https://www.twilio.com/docs/whatsapp/self-sign-up"], route: "/{region}/monitor/logs/debugger/errors", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/error-handling-diagnostics", "https://www.twilio.com/docs/conversations-classic/sdk-overview"], route: "/{region}/monitor/logs/debugger/events", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/conversations-classic/use-twilio-sandbox-for-whatsapp", "https://www.twilio.com/docs/rcs/send-an-rcs-message"], route: "/{region}/monitor/logs/sms", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/usage/global-safe-list", "https://www.twilio.com/docs/verify/viewing-logs-with-twilio-console"], route: "/{region}/monitor/logs/verify-fraud-logs", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/verify/viewing-logs-with-twilio-console"], route: "/{region}/monitor/logs/verify-logs", section: "monitor" },
+    { citedBy: ["https://www.twilio.com/docs/global-infrastructure/regional-support-functions-assets", "https://www.twilio.com/docs/sip-trunking/connect-to-zoom-phone", "https://www.twilio.com/docs/sip-trunking/trunking-3cx-pbx", "https://www.twilio.com/docs/verify/verify-events-webhook-onboarding-guide"], route: "/develop/explore", section: "develop" },
+    { citedBy: ["https://www.twilio.com/docs/iam/organizations", "https://www.twilio.com/docs/usage/how-do-i"], route: "/organization/settings/accounts/managed-accounts", section: "organization" },
+    { citedBy: ["https://www.twilio.com/docs/iam/organizations"], route: "/organization/settings/overview", section: "organization" },
+    { citedBy: ["https://www.twilio.com/docs/iam/organizations"], route: "/organization/settings/users/managed-users", section: "organization" },
+    { citedBy: ["https://www.twilio.com/docs/usage/how-do-i"], route: "/user/settings/personal-details", section: "user" },
+    { citedBy: ["https://www.twilio.com/docs/smpp/initial-setup-and-connection"], route: "/user/unified-account/details", section: "user" },
+];
+
+describe("TWILIO_CONSOLE_ROUTES", () => {
+  it("holds exactly the reviewed rows, every citation included, in order", () => {
+    expect(TWILIO_CONSOLE_ROUTES).toStrictEqual(EXPECTED_ROWS);
+  });
+
+  it("declares the 80 routes its header claims", () => {
+    expect(TWILIO_CONSOLE_ROUTES.length).toBe(80);
+  });
+
+  it("splits the routes across the five sections its header claims", () => {
+    const countIn = ({ section }: { section: string }): number =>
+      TWILIO_CONSOLE_ROUTES.filter((row) => row.section === section).length;
+    expect({
+      account: countIn({ section: "account" }),
+      develop: countIn({ section: "develop" }),
+      monitor: countIn({ section: "monitor" }),
+      organization: countIn({ section: "organization" }),
+      user: countIn({ section: "user" }),
+    }).toStrictEqual({ account: 7, develop: 58, monitor: 10, organization: 3, user: 2 });
+  });
+
+  it("is sorted by route with the comparison the generator uses", () => {
+    const routes = TWILIO_CONSOLE_ROUTES.map((row) => row.route);
+    const sorted = [...routes].toSorted((left, right) => left.localeCompare(right));
+    expect(routes).toStrictEqual(sorted);
+  });
+});

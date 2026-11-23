@@ -1,0 +1,97 @@
+---
+title: The store and its schema
+---
+
+import { Callout } from "nextra/components";
+
+import { StoreSchema } from "../../components/diagrams/StoreSchema";
+
+# The store and its schema
+
+Postgres, local only (another host is refused, with no escape hatch), with the schema in one module and every type derived from it. `ContentRow` is not a
+hand-written interface kept in step with a table — it is `typeof contentTable.$inferSelect`, so a column
+rename is a compile error at every call site rather than a runtime surprise at one.
+
+<StoreSchema />
+
+## One content table, one `source` discriminator
+
+Every record from every source is a row in `content`. The columns that are genuinely source-neutral live
+there: `source`, `source_id`, `kind`, `url`, `occurred_at`, `title`, `body`, `visibility`, `metadata`, and
+the two author columns. Which human those author columns point at, and why there are two of them, is
+[people and identity](/docs/model/people) — this page keeps the table and hands the resolution over.
+
+One discriminator is what makes a cross-source question a `where`, not a union of four queries: `source`
+names the platform, `kind` varies inside it, and `source_id`, `url` and `occurred_at` mean the same thing
+whatever those two say.
+
+## Per-source columns, not a metadata bag
+
+A platform's fields are real columns, never a key Postgres checks for inside a `metadata` jsonb
+(`metadata ? 'channel'`). The reason: a proper table aligns the database schema with
+the reality of what a platform gives us, and the generated types are far cleaner.
+
+So a Slack row's channel is `content_slack.channel_id`, `NOT NULL` and indexed. Four side tables hang off
+the content row:
+
+| Table            | What that platform actually gives you                          |
+| ---------------- | -------------------------------------------------------------- |
+| `content_slack`  | `channel_id`, `message_ts`, `thread_ts`, reply/reaction counts |
+| `content_github` | repository, number, review state                               |
+| `content_linear` | team, identifier, workflow state                               |
+| `content_notion` | page id, parent, last edited                                   |
+
+### The unique key that looks redundant and is not
+
+`uq_content_id_source` duplicates the primary key's own uniqueness. It exists so each side table can carry
+a **composite** foreign key onto `(id, source)` — which is what makes attaching a `content_slack` row to a
+GitHub content row a database refusal rather than a review note. Postgres requires a unique constraint over
+exactly the referenced column list, and a primary key over `id` alone is not one.
+
+It is declared with `unique()` rather than `uniqueIndex()`, and that is not a style choice.
+`drizzle-kit generate` emits `CREATE TABLE`, then `ADD CONSTRAINT`, then `CREATE INDEX` — so a unique index
+lands in the last phase while the foreign keys referencing it land in the middle one. MEASURED
+while squashing the migration journal to a single `0000`: applying it to an empty database stopped at the
+first side table with `there is no unique constraint matching given keys for referenced table "content"`.
+
+## The closed vocabularies are the corpus's own
+
+`content_kind` is exactly the corpus's own kind union and `content_source` its source union minus `gold`,
+which is synthesised at query time and never persisted. Nothing in the type system connects a Postgres enum
+to a TypeScript union, so the agreement is a **test** — and it was written because the first draft of the
+enum was wrong in both directions at once: no word for `need`, `huddle` or `transcript`, so every Slack
+huddle and Google Meet transcript in bronze was unstorable, and an `email` no connector has ever emitted.
+
+## Row-level security is declared, per table
+
+`content` is the one table with a private lane, so it is the one whose bot predicate is not `true`. A
+private channel, a direct message, the mailbox and the diary are denied to the Slack-facing role **by the
+database**, rather than by a filter every future caller has to remember.
+
+<Callout type="warning">
+  **Three things only a live apply catches**, which is why the migration is applied against the real local stack rather
+  than trusted for generating. A `text` column typechecks, generates cleanly, and fails on apply with `no default
+  operator class for access method "gin"` — `searchable` is a custom type emitting `tsvector` for exactly that. A policy
+  set can be **complete and still deny everyone**: the first version granted `SELECT` on every table and never granted
+  `USAGE` on the schema, so all three roles got "relation does not exist" and no policy was ever consulted. And a role
+  can exist, hold every policy, and be **assumable by nothing** — measured, every `set role slopweaver_bot` answered
+  `permission denied to set role`, which was invisible on the plain Postgres the first pass checked against, where a
+  superuser may assume any role.
+</Callout>
+
+## The ledgers are not content
+
+Five tables hold what the fleet did rather than what the org said: `door_event` (every outbound act),
+`autonomy_event` (every act taken without asking), `grant_row` (one row, one change), `run` /
+`run_event` (the orchestration journal) and `board_row`.
+
+The separation is load-bearing rather than tidy. A ledger answers "what did we do", a content row answers
+"what did they say", and a question that mixes them is a join rather than a table — which is what keeps the
+bot's own activity from ever being retrieved as if it were somebody's opinion.
+
+## There is no vectors table
+
+No table holds embeddings, and the migration history a fresh install replays never enables pgvector.
+Embeddings were judged on answer quality and lost. Full text search over the
+whole store answers in single digit milliseconds and already covers every row for free, so no pgvector and no
+index build is needed. What selects instead is on [retrieval](/docs/model/retrieval).

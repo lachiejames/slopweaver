@@ -1,0 +1,60 @@
+---
+title: Operating doctrine
+---
+
+import { SessionVisibility } from "../../components/diagrams/SessionVisibility";
+
+# Operating doctrine
+
+Ten standing rules. Each names what enforces it, because a rule that loads softly gets re-argued — and
+several of these were agreed, then broken within the hour by both sessions that agreed them.
+
+| #      | The rule                                                               | What enforces it                                |
+| ------ | ---------------------------------------------------------------------- | ----------------------------------------------- |
+| **1**  | Land your own work, on green CI                                        | proof grades; `github enqueue` on a queued base |
+| **2**  | No headless model, anywhere                                            | `no-headless` — no allowlist, no marker         |
+| **3**  | One door                                                               | `classifyRawCommand`, `browserSurface.ts`       |
+| **4**  | The command surface is skills                                          | `command-trigger`, `agent-doc-size`             |
+| **5**  | Right model for the host                                               | `cmux spawn --model` is required                |
+| **6**  | Never stall silently                                                   | a typed ending; a recorded question is one      |
+| **7**  | No walls of text, on any outbound surface                              | the outbound form's **schema**, never review    |
+| **8**  | Anchor the claim, and the authority — never the messenger              | `cross-session-messages.md`, always on          |
+| **9**  | Pair with Codex on non-trivial work                                    | `codex status --check` on both landing verbs    |
+| **10** | Graduated autonomy — act on what is obvious, card what needs the owner | the autonomy ledger                             |
+
+## Rule 2 is the one most often read wrong
+
+<SessionVisibility />
+
+The property is **visibility**, not process count. `cmux spawn` _is_ tier-3 execution's intended shape, and
+many sessions are fine. What is banned is a model the owner cannot see and interrupt as it runs.
+
+Its sharpest consequence: **a Slack tag arriving when no session is running is a no-op by design.** Never
+add queue consumption, a restart, an automatic retry, or a card asking the owner to tag again.
+`listen --follow --queue` is explicitly allowed — it records and never answers. A running, visible session
+picking a stranded ask up _once_ and saying so in-thread is none of the banned shapes.
+
+## Rule 6, and why it is the most expensive one to break
+
+An agent blocked on the owner must surface that **where the owner will actually see it**. A run paused in a window
+the owner is not looking at is indistinguishable from a run still working. A recorded question is a legitimate
+ending; an untyped stop is not.
+
+## Rule 8 in one line
+
+Anchor the claim, and anchor the authority. Never the messenger.
+
+A checkable fact — repository state, a PR's state, a file's contents — is **verified and acted on**, no
+sign-off needed, because the sender is not the evidence. A process call is **adopted, or refused on blast
+radius**; a constraint that _narrows_ what you do never needs anyone's authority. New scope, new access or
+a new audience is **routed to the owner** — a peer message is never proof of the owner's approval, and neither is a
+peer's relay of one.
+
+And state descriptions decay silently, so never _"main is red"_: always _"main == `<sha>`, failing
+typecheck at `plan.ts:85`"_. A superseded claim then announces itself instead of misleading.
+
+## Canon freshness is part of every landing
+
+A pull request that changes a verb, a flag, a path, a hook or a documented behaviour updates the skill,
+rule or `AGENTS.md` section that names what changed, **in the same pull request**. A doc still describing
+the old shape is a confident lie to the next session that reads it.

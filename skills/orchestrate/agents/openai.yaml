@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slopweaver Orchestrate"
+  short_description: "Run durable Slopweaver work in Codex"
+  default_prompt: "Use $orchestrate to plan, execute, validate, and close a durable Slopweaver run."

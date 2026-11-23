@@ -1,0 +1,35 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "DFIXTUREAA",
+    "messageTs": "1789186868.576709",
+    "threadTs": "1789186868.576709"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/turn-markers/DFIXTUREAA-1789186868.576709.json — written after the last kept event (2026-09-12T04:24:59.799Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1789186868.576709/record.json — written after the last kept event (2026-09-12T04:24:59.799Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/DFIXTUREAA-1789186868.576709.json",
+    "home/live/slack/dispatches/DFIXTUREAA-1789186868.576709.json",
+    "home/live/slack/reviews/DFIXTUREAA-1789186868.576709/verdict.json"
+  ],
+  "frozenAtIso": "2026-09-12T19:03:30.794Z",
+  "incident": "12 Sep 2026 04:24:59Z, a DM ask dispatched to a fresh visible worker on a two-hour lease. The worker ran six review rounds and answered at 08:05:55Z, 3h40m after dispatch and 1h41m past its lease, and nothing ever told it a clock was running: the lease was a single mark, and the loop's sweep had no warn to raise. Frozen through 'dispatched' — the state before any warn mark existed. The replay drives the real sweep across the provisional warn mark (two thirds of the lease) and the scoped witness note, owner ruling 240-13 on page 1ed59d23.",
+  "regresses": [
+    "stalled-session-still-reported-as-in-flight"
+  ],
+  "replayNowIso": "2026-09-12T04:24:59.799Z",
+  "reviewRounds": 6,
+  "schemaVersion": 1,
+  "slug": "long-dispatch-no-warn-12sep",
+  "syntheticIdCount": 52,
+  "withheldEventKinds": [
+    "answered"
+  ],
+  "through": "dispatched"
+}

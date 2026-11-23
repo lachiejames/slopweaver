@@ -1,0 +1,1 @@
+ALTER TABLE "content" ADD COLUMN "author_is_bot" boolean DEFAULT false NOT NULL;

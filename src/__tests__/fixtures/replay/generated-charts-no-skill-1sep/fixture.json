@@ -1,0 +1,33 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788227827.821199",
+    "threadTs": "1788227494.225289"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/turn-markers/CFIXTUREAA-1788227827.821199.json — written after the last kept event (2026-09-01T02:02:19.765Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788227827.821199/record.json — written after the last kept event (2026-09-01T02:02:19.765Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1788227827.821199.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1788227827.821199.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788227827.821199/verdict.json"
+  ],
+  "frozenAtIso": "2026-09-01T04:25:50.352Z",
+  "incident": "a worker answered a Datadog monitor backtest ask with charts it drew itself and a hand-rolled API replay, loaded no skill at all, and named the missing local deploy without ever saying why it was missing",
+  "regresses": [],
+  "replayNowIso": "2026-09-01T02:02:19.765Z",
+  "reviewRounds": 2,
+  "schemaVersion": 1,
+  "slug": "generated-charts-no-skill-1sep",
+  "syntheticIdCount": 26,
+  "withheldEventKinds": [
+    "answered"
+  ],
+  "through": "dispatch-witnessed"
+}

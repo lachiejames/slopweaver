@@ -1,0 +1,81 @@
+{
+  "answerDigest": "sha256:cf8fcb933664521286844dbe280fede6aa48c732334abd6bc4e4b16337546d64",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    }
+  ],
+  "outcome": "[REDACTED]",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1
+}

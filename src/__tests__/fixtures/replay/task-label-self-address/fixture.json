@@ -1,0 +1,32 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "DFIXTUREAA",
+    "messageTs": "1787993553.285869",
+    "threadTs": "1787993553.285869"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "the composed answer — the record names a path outside the home, or no longer on disk",
+    "the composed answer — the record names a path outside the home, or no longer on disk"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/DFIXTUREAA-1787993553.285869.json",
+    "home/live/slack/dispatches/DFIXTUREAA-1787993553.285869.json",
+    "home/live/slack/turn-markers/DFIXTUREAA-1787993553.285869.json",
+    "home/live/slack/reviews/DFIXTUREAA-1787993553.285869/record.json",
+    "home/live/slack/reviews/DFIXTUREAA-1787993553.285869/verdict.json"
+  ],
+  "frozenAtIso": "2026-08-30T06:55:45.466Z",
+  "incident": "the task label led with the raw @(id) addressing tag and lost a third of the question to the clamp",
+  "regresses": [],
+  "replayNowIso": "2026-08-29T09:16:23.469Z",
+  "reviewRounds": 2,
+  "schemaVersion": 1,
+  "slug": "task-label-self-address",
+  "syntheticIdCount": 29,
+  "withheldEventKinds": []
+}

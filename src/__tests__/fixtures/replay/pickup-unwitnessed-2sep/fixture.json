@@ -1,0 +1,35 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788324902.031449",
+    "threadTs": "1788316731.433259"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/turn-markers/CFIXTUREAA-1788324902.031449.json — written after the last kept event (2026-09-02T05:04:29.565Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788324902.031449/record.json — written after the last kept event (2026-09-02T05:04:29.565Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/live/slack/dispatches/CFIXTUREAA-1788324902.031449.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788324902.031449/verdict.json"
+  ],
+  "frozenAtIso": "2026-09-02T08:06:16.666Z",
+  "incident": "2 Sep 2026 05:04Z, ask CFIXTUREAA/1788324902.031449. cmux spawn typed the pickup line into workspace:979 and no witness saw it inside the 30-tick window, so the spawn gave up and recorded dispatch-unwitnessed — the state this fixture is frozen at. Nothing in band could act on it: the ask sat unreconciled for 11m11s until a supervisor sweep read cmux's own delivery record at 05:15:40.801Z. Three of three dispatches that day ended the same way, and two consecutive acme-admin spawns (ws 960, 961) ended worse, with the line typed into the composer and never submitted at all. Fixed by making cmux spawn SUBMIT the composer once after the window (never re-type the line) and watch again — src/cmux/spawn.ts resubmitPickupThenWitness.",
+  "regresses": [
+    "stalled-session-still-reported-as-in-flight"
+  ],
+  "replayNowIso": "2026-09-02T05:04:29.565Z",
+  "reviewRounds": 1,
+  "schemaVersion": 1,
+  "slug": "pickup-unwitnessed-2sep",
+  "syntheticIdCount": 4,
+  "withheldEventKinds": [
+    "dispatch-witnessed",
+    "answered"
+  ],
+  "through": "dispatch-unwitnessed"
+}

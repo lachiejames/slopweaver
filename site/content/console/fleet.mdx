@@ -1,0 +1,337 @@
+---
+title: Fleet
+---
+
+# Fleet
+
+What the fleet did, is doing and does next, behind one **Past · Now · Next** switch. Now is the default; anything
+that needs you stays on the [queue](/queue), and nothing here reorders the work — steer through the supervisor or
+the voice.
+
+<details>
+<summary>The three views</summary>
+
+The page lives at `/fleet` and is the sidebar's Fleet entry, fifth of its pages. The switch writes `?view=past|now|next`, so the
+view you picked is the one a bookmark keeps, and only the selected view reads anything. `site/lib/fleetViews.ts` is
+the pure projection behind Past and Next.
+
+| View | What it shows                                                                                     | Read from                                                        |
+| ---- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Past | **The machine, last hour**: cpu, load against its hold, and memory, charted                       | `machine series --json`                                          |
+| Past | **Landed on main**: each change, your words behind it, the rule its last act ran under, proof     | `fleet landed --json` — main's first-parent history              |
+| Past | **Settled**: DONE rows still on the board, newest move first                                      | `handover list --json` — each row's `movedIso`                   |
+| Past | **Done without asking**: every act the fleet took on its own judgement, newest first              | `autonomy list --json`                                           |
+| Now  | **Machine**: cpu, memory, load and live sessions, read every two seconds, the reading's age shown | the console's own read of `ps`, `vm_stat` and `sysctl`           |
+| Now  | **Agents**: the fleet's state, then one card per working session, and one line of health          | the readings below                                               |
+| Next | **What you'll wake up to**: what the measured pace lands overnight, and how long the work lasts   | `handover list`'s DONE rows, placed against `handover reconcile` |
+| Next | **Next up**: the ready rows nobody is on yet, in the board's order, ten then a fold               | `handover reconcile`'s `ready`, joined to `handover list`        |
+| Next | **Your steers**: every row holding your words, grouped by where it stands                         | `handover list`, placed against `handover reconcile`             |
+
+**Now has two empty states, both answers rather than failures.** Before the supervisor records its first check of
+the working sessions, `reading last --producer "session watch"` exits 3, `NO_READING`, and the Agents tile says fleet
+activity will appear once it does; the sidebar's Fleet count reads zero, saying why. With checks recorded and no
+session working, the list says working sessions appear while a visible agent is working. Both offer **Connect a plan**,
+which opens Settings on Models, while no plan is connected, and both draw only over a latest read that answered: one kept over a failed read is a
+plain line under the staleness mark.
+
+**What you'll wake up to is a measured pace carried forward, never an estimate of one row**
+(`site/lib/fleetForecast.ts`). The pace is the board's DONE rows whose run journal last moved in the last 72 hours,
+divided by 72 — three days, because the board sweeps a settled row away after about that long. It opens on one
+sentence: about how many rows settle in the next 12 hours at that pace, with how many settled in the last day against
+the three-day average (within 10% either way reads as about the same). Four figures follow: that count, the ready rows
+nobody is on, how long those last at the pace if nothing new arrives (arrivals are not measured), and how many rows
+wait on you. Then the rows themselves, one line each: the rows a live seat is on first, then the top of Next up, cut
+at the count — and a line saying so when the board holds fewer rows than the pace reaches, which is the fleet running
+out of work before morning. What waits on you sits behind one fold: those rows do not move overnight. No settle in
+the window reads as no pace, never as zero.
+
+**Next is the board's order, derived, never hand-written.** It is `handover reconcile`'s ranked `ready` list
+(`src/handover/rank.ts`: band, then your landing pull requests within p1, then rows you ruled on, then placed rows,
+then longest-waiting)
+minus every row in `aligned`, `misaligned` or `unprioritised` — a row a live seat is on. The supervisor walks this
+list when it fills a seat, but which row it takes within a band is its judgement over your words, so a seat may
+start lower down. Each row shows your words under its line, its band (marked **default** when nobody chose it), the
+outcomes it serves, how long it has waited, and — behind its fold — where and when you said them. A reading that
+could not observe the fleet, or carries one id on two ready rows, is refused whole rather than drawn wrong.
+
+**Every Next tile is stamped with the older of the two readings it stands on.** The reconcile reading polls each
+minute and the board is read once, so the wake-up tile, Next up and Your steers each age whichever is older
+(`site/lib/readingAge.ts`), its hover naming it, and the age keeps counting while the page is open.
+
+**Your steers answer "is anyone on this, and if not, where is it in line".** A steer is a board row holding your own
+words (`site/lib/steerStanding.ts`). Each reads your words as its line and one state as its tag: **working** (a seat
+is on it, named), **asking you** (a seat is on it and its row waits on you), **queued Nth** (its position in Next
+up, the same number that list prints, with how many rows stand ahead of it and how many of those are yours too),
+**waiting on you**, **blocked**, **paused**, **started, nobody on it**, **settled**, or **outside the ranking**
+(awaiting ship, closed, or registered since the last tick ranked the board). They are grouped, not listed by date:
+**Being worked** first, then **Queued** in place order — ten, then a fold — then folds for **Held**, **Outside the
+ranking** and **Settled**, each newest said first. The count line says how many seats are on work holding none of
+your words — what is being worked instead. Places and counts only, never when. It is refused exactly when Next up is.
+
+**Landed on main is a release history you go looking for, never a list of things to do.** Every change is one line —
+its number, title and whether your words are behind it — and opening it shows your words (or your ruling on its
+row), the standing rule the fleet's last act on it ran under (named, since it is often not the merge), and the proof its description carried, folded once more. The top line
+counts what landed since you last had the view open. A change a fleet finding raised says **unasked**, because it
+was; a row that records no anchor and is not a finding says its words are **not shown**, since an ask of yours may
+sit behind it. The self-merge rule is a licence to merge, never your words on the change, so it is drawn beside
+them, as its register records it rather than in quotation marks. A ruling
+is shown only when you gave it before the change landed, it was recorded as you gave it rather than reconstructed,
+and its anchor is a record of your own words that still reads; one that fails any of those says which, rather than
+reading as unasked. The quote is read off that record, never the ruling's text — the session that heard you wrote
+that down in its own words, so it sits beneath the quote as the session's. A quote that is a voice relay the console
+typed into a session is the relay's words, not yours, so it is not shown either, and names the relay. Nor is a turn
+typed into a session that did not hold the supervisor pin, by the rule `profile words` applies — another session
+can type into it. The join is exact — pull request to the PR ledger, its branch to the board row of that name — so a row
+spawned under another branch reads **not joined** and names the branch, and a PR-ledger file that would not read is
+counted above the list.
+
+**Settled is what settled recently, not everything that landed.** Archived runs leave the board, and `movedIso` is
+the run journal's last event, not a merge instant; a settled row with no readable instant is counted as "not placed
+in time" rather than guessed into the list.
+
+</details>
+
+<details>
+<summary>What the Now view shows</summary>
+
+What each agent is doing right now — one tile, **Agents**, and one line of machine health under it. Anything
+that needs you stays on the [queue](/queue), and this page holds no control that answers it. Every word that judges
+something is a verb's own — a seat's `signal`, a board row's `standing`, the listener's `grade`, the machine's
+`verdict`. This page sorts them and never issues one.
+
+No seat is ever "asked you". A session that is parked needs to leave the fleet immediately. A seat that parks on you is closed by `slopweaver session close-done`, with its
+checkpoint (draft text included) on its board row and its question on the [queue](/queue); `cmux spawn <slug>`
+resumes it. So a row waiting on you is the queue's to show, never a card here. A seat that parks on CI or a clock
+(`handover park --wake-on-checks` or `--wake-at`) closes too, and `handover wake` reseats it once due; that row is
+counted in the state at the top, never as a card.
+
+Under the state sit the **working sessions** only — the seats `session watch` judged `working` — one card each, the
+way a Queue card collapses, and looking identical to the Queue cards except for the contents. There are no groupings and no counts row: the state sentence
+already opens on the working count. A card is one short plain title and the Queue card's chips:
+
+- **The supervisor** is pinned first, titled `Supervisor`, marked with a crown and a tinted stripe. It is the pinned
+  workspace titled `/slopweaver:supervisor` — `session watch`'s own `manager` flag, never a title match on this page.
+- **Every other card** is titled by the title the session gave itself, else its cmux title without the terminal's
+  glyph, else the first clause of the summary of the board row the same tick placed it on, else `outcome not read` —
+  never an id, a slug or any other one-word token, a slash command or a paragraph. When the board could not be joined, one line above the
+  cards says why. `site/lib/workingSessions.ts` is the projection.
+- **The chips** are its host, its board row's priority, and whether it has moved recently: `active 4m ago`, or
+  `quiet 2.5h` once ten minutes pass without an event.
+
+Opening a card slides its transcript over the list in four fifths of the panel, with the session's properties in a
+sticky column in the last fifth: **status**, **priority**, **worktree**, **open for**, **phase**, **review rounds**,
+**tool calls**, **quiet for**, **last activity**, and the **goal** — the prompt that opened its latest
+turn, off the same transcript read, or `goal not read`. **Phase and review rounds read `not read`**, on purpose: no
+record says whether a live session is planning, implementing or reviewing, nor how many review passes it has run, and
+a completed Codex pass proves only that the pass completed, so the page draws no guess.
+`?seat=<workspace id>` opens a card from a link.
+
+</details>
+
+<details>
+<summary>The state at the top: badge, sentence, why not more, and its history</summary>
+
+The page opens on one state badge, then how many are working, then one sentence per line: what holds, each reason
+with its figure, and what releases the hold:
+
+| Badge                                     | When                                                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------- |
+| at capacity                               | the working count is at or above what the plans' week carries               |
+| picking up more                           | there is room, and the fleet starts the next ready row                      |
+| holding: machine busy                     | the machine refuses another session: load, memory, boots or disk            |
+| holding: nothing ready                    | there is room, but every ready row already has a session                    |
+| holding: plans won't take another session | no Claude plan is taking new work                                           |
+| holding: at the week's pace               | at the week's pace, with plans behind their week the fleet is not yet using |
+| not measured                              | a reading the judgement needs did not arrive, the board's ready rows too    |
+
+Under those lines, **what the working count leaves out** (the working count alone can mislead, as when it read only two working): how many rows are parked on CI or a clock, closed until they wake, then when the next clock wake is, and
+each row behind a closed **what each waits on** fold, clock wakes first by instant, then CI, then any whose wake did
+not read. A clock wake past its time reads due, since the next supervisor tick reseats it. Nothing is drawn while
+the board loads or when none is parked; a fixture page, or a board that could not be read, says it was not read.
+They change no badge and are never a session: `site/lib/parkedWaits.ts` writes every word. The board is read once
+while the rest of the tile polls, so the lines carry **board read** and that reading's own age, which keeps counting,
+rather than the tile's fresher stamp.
+
+**Why not more** sits under it like a Queue card's quote: the figures and when they were read, and on a machine hold
+the three heaviest processes by cpu (a one-second sample) and by memory, and whether a load investigation is running
+— since when, and which working session has it. The rest is under **more**. The heaviest processes are what was
+running at the reading, not proof of the cause.
+
+**History** is closed by default: the last day's states, each run of supervisor ticks in one state for one cause,
+newest first, read from `slopweaver fleet history --hours 24 --json` when the page opens and every five minutes. Each tick is judged by the same rules as
+the badge. Room alone is never "picking up more": with the board unread, the badge and a tick alike read
+not measured, and a tick that did not record the board never reads as measured. The badge reads the fleet live and a tick
+is recorded once a sweep, so the fold names its newest tick and says so when the badge has read the fleet since it.
+A fixture page never shows this machine's history.
+
+</details>
+
+<details>
+<summary>The Claude and Codex usage lines under the state</summary>
+
+Under the state sit two closed lines, Claude's then Codex's: each line shows that host's week left as an average across its plans, how many sessions are running and, under
+that, its burn. Opening a line lists its plans by alias — `plan-one`, `plan-two` — with the account on hover, and
+three bars each: the week, the 5-hour session (`no limit` on an Ultra plan, which has none) and the free reset. `site/lib/planMeters.ts` (`fleetUsageOf`)
+derives every word from the readings, and its header states the rules so you can disagree with them:
+
+- **The average** is the unweighted mean of each plan's `100 − used%` on its weekly window (`seven-day` for
+  Claude, `weekly` for Codex), over the plans that take work. A plan paused on purpose is named after it and not
+  counted; when every plan is paused, the line says so and names them. If a plan that is not paused lacks that
+  window, the line names that plan and says the plans are not averaged.
+- **A paused plan** says "paused on purpose since" and its reason. A paused Claude plan is never probed, so its week
+  reads as it stood when it paused. A paused weekly Codex plan is still read for its sign-in and limits, so its bars
+  are this reading's; it is still not counted or routed.
+- **A plan stopped at its usage limit** says "stopped at your usage limit of 30% of its week (your own setting, not
+  the provider's)", never "capped", since a cap of thirty percent means the fleet turns off rather than exceed thirty percent. The limit is the weekly window's `available`. Under it a button raises the limit one step
+  and continues, writing `plans set-usage-limit --percent 40 --from 30`, which refuses unless the limit is still the
+  30% the page showed. The button is held on a fixture and on a capacity reading that is stale or being re-read; at 100% it
+  is not drawn, nor when the week's use already reaches the next step, since routing would still stop the plan. A Claude Fable week already past the next step leaves the raise drawn, saying Fable work stays stopped, because routing reads that week only for a Fable spawn; a five-hour window at 100% likewise leaves it drawn, saying the plan continues once that resets. One raise per capacity reading: once any is pressed, every raise holds until a reading newer than that one
+  arrives, because the re-read keeps the old reading drawn. The page, not the button, remembers the press, because a
+  re-read can unmount the row. Routing reads the new limit at its next pick; the row moves at the next capacity reading.
+  `site/lib/planUsageLimit.ts` owns these rules.
+- **A monthly-spend plan** is not measured, never routed autonomous work and offered no raise; it is named after
+  the average and not counted.
+- **Sessions running**: for Claude, the seats judged `working` whose hooks named `claude`. A Codex pass fires no
+  cmux hook, so for Codex it is the rollouts `fleet burn` saw drawing tokens in its last ten minutes. A working seat
+  whose hooks named no host is said under both lines, never counted on either.
+- **The burn** is the tokens counted over the last 24 hours, with the seven-day amount at that rate (an amount, never
+  a time), labelled a forecast from the usage trend and not a fact. A partial reading shows a lower bound with no projection and lists its reading problems inside the line.
+- **A bar with nothing measured** is drawn dashed and empty, never as spent. A reset is the instant the provider
+  named, measured from the capacity reading's own instant. Claude's Fable week sits beside the bars and is never
+  counted.
+
+</details>
+
+<details>
+<summary>The doctrine panel: is the fleet running the way the doctrine says</summary>
+
+First on the Agents tile, under the live Machine tile, sit five lines, one sentence each, every item they count folded behind the sentence (so you can see whether the fleet is actually running the way the doctrine says it should, and a board is never called quiet while two supervisor workspaces are open or red drafts are unseated). A dot marks each:
+green the doctrine kept, amber work left on the table, red a breach, grey not read. `site/lib/fleetDoctrine.ts`
+writes every word, and a reading that did not arrive (loading, failed, or drawn over a read that failed since) makes its
+line say not read and why, never a zero. The line itself reads only "&lt;subject&gt;: not read."; the console's own
+reasons fold under _why it was not read_ (`site/lib/fleetDoctrineGaps.ts`), so three unread lines no longer repeat
+one long reason inline. A read's own reason is never set inside the sentence either: it sits beneath it, one line per
+read, as the console's words, the reason in plain words and the raw message folded under **Full message**.
+
+1. **Seats working** against the working seats the plans' week carries: the same two figures the badge judges.
+2. **Board rows kept from a seat, and why**, off `handover reconcile`'s own holds: no `repo:`, a supervisor chair a
+   later one retired, a finding the trunk moved under, a run released by its seat (`releasedRows`), a row parked with
+   no wake and not on you, a run started with no seat on it, and a ready slug two docs claim. Where the verb could not
+   look (no chair judged, a trunk unread, an older reading) the count reads "at least" and a `not checked` fold names
+   each place.
+3. **Your open pull requests with no seat**: GitHub's own open list off `github landing`'s census, yours by its
+   `viewer`, less every one a placed seat's row names or the landing reading joined to a placed row's branch. Drafts
+   and red CI are counted; a draft the landing rows leave out reads CI not read. Any repository's list unread, or a
+   placed row whose pull requests did not all read, makes the whole line not read.
+4. **Supervisor workspaces open**: every open seat whose cmux title is `/slopweaver:supervisor`, pinned or not. More
+   than one is red. Seats with no title, and seats `session watch` left out, are named as places a copy could hide.
+5. **Plan headroom unused**: the seats the week carries that nobody is in, and the plans behind their week whose
+   five-hour burst nobody is drawing.
+
+A fixture page reads lines 2 and 3 as not read: no board or landing capture is committed beside the seats.
+
+</details>
+
+<details>
+<summary>Why a stopped seat's band never comes from the signal</summary>
+
+`session watch` raises `needs-input` on ANY Claude Code `Notification` hook, and that hook also fires when a
+finished turn has merely sat idle (`src/cmux/sessionActivity.ts`, `attentionKindOf`). MEASURED on one tick's
+reading: 15 seats read `needs-input`, and only 5 sat on a board row parked on you. So
+the tile joins the seats to the board the SAME tick reconciled — `supervisor tick-capture` records
+`session watch` and then `handover reconcile` under one `by` — and a stopped seat is between turns or on no row
+by that placement, never by a hook event. The join is `site/lib/nowSeats.ts`, a pure function.
+
+A join that cannot be trusted is refused whole, never half-made. When the board reading is missing, is
+another tick's (a different `by`, or observed before the seats or more than ten minutes after them), did
+not observe the live seats, carries an instant that cannot be read, placed one seat on two rows, is too old to carry a row's standing, or names a
+standing this page does not know, the tile says which in one line, judges the state by the signal alone — working or
+stopped, with no "asked you" at all — and titles each card from cmux. For about a minute after each tick records its seats and before
+it records its reconcile, that fallback is the honest answer. The line reads "Not joined to the board:" and
+the reason; `boardGapLine` in `site/lib/nowSeats.ts` writes it. A board reading still loading draws a progress
+indicator there instead, and one the route could not measure a staleness mark whose hover carries the verb's own sentence. Re-measure the join yourself:
+
+```bash
+slopweaver reading last --producer "session watch" --json | jq -c '.by, ([.document.rows[] | .signal] | group_by(.) | map({(.[0]): length}) | add)'
+slopweaver reading last --producer "handover reconcile" --json | jq -c '.by, ([(.document.aligned + .document.misaligned + .document.unprioritised)[] | .row.standing] | group_by(.) | map({(.[0]): length}) | add)'
+```
+
+A card's panel is read-only: nothing in it sends, and Escape, the backdrop or its one button closes it. Its transcript
+opens by the session id `session watch` read off the session's own hooks — never a guess by working directory. A
+seat whose reading carried no session id (one recorded before the field) still opens, and says NOT MEASURED where
+the transcript would be.
+
+The transcript — in the panel, and whole at `/fleet/session/<id>` — is that session's latest turn and the one before it,
+read-only: the prompt, then every text, thinking block and tool call after it with its result, read ONCE when it
+opens from `slopweaver transcripts last-turn --session <id> --turns <n> --json` and never on a timer, so it holds
+still while you read it. Every run of consecutive tool calls between two pieces of prose is ONE row whose line says
+what the run did (`4 reads · 2 searches · 1 command`), its calls behind the fold in order, and a run holding a failed
+call opens itself with that call open. **show N earlier turn(s)** reads ten more turns back at a time, up to 40 turns
+and as far as the transcript's last 8 MiB holds. Close and reopen the card to read it again.
+
+</details>
+
+<details>
+<summary>What the page is derived from</summary>
+
+| Part           | Reading of                               | The word it carries                                                                                                       |
+| -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Agents         | `slopweaver session watch --json-report` | `signal`, `sessionId` and `manager` per open seat, with its activity instants, tool calls and the drain's `diagnostics`   |
+| Agents (board) | `slopweaver handover reconcile --json`   | which row each seat is placed on, and that row's `standing`                                                               |
+| Health line    | `slopweaver listen status --json`        | the listener's `grade`; a tag arriving under `unarmed` is a no-op BY DESIGN (rule 2)                                      |
+| Health line    | `slopweaver machine capacity --json`     | `HOLD`, `ALERT` or clear, and the 1-min load against the verb's own `loadHold`                                            |
+| Usage lines    | `slopweaver machine capacity --json`     | each plan's `ceilings` windows, `account` and `freeResets`                                                                |
+| Usage lines    | `slopweaver fleet burn --json`           | each host's 24-hour tokens, the seven-day amount at that rate, and the sessions drawing now                               |
+| Parked rows    | `slopweaver handover list --json`        | each row's `parked.wake`: a clock instant, or the pull request whose CI it waits on                                       |
+| State history  | `slopweaver fleet history --json`        | per supervisor tick: the hold, load, plans' ceilings, working count and ready rows with nobody on — every five minutes    |
+| Doctrine       | `slopweaver handover reconcile --json`   | `repolessRows`, `supersededSupervisors`, `trunkMovedRows`, `releasedRows`, `sharedSlugs`, `held`, and what went unchecked |
+| Doctrine       | `slopweaver handover list --json`        | each row's `parked` checkpoint with or without a `wake`, its `ownerWait`, and the `prUrls` it names                       |
+| Doctrine       | `slopweaver github landing --json`       | the `census` of open pull requests per repository, its `viewer`, and each landing row's `ci` and board row                |
+
+Each row is read with `slopweaver reading last --producer "<verb>" --json` on the fast lane: a file read of
+the readings ledger, polled every twenty seconds to notice a new tick. The line under each title says who
+took the reading and how long ago it was true; the stamp ages the reading, never the fetch. The health line
+has no title and no stamp: until a reading arrives each half is a spinner after its name, then the verb's word,
+or a staleness mark whose hover carries the route's reason.
+
+</details>
+
+<details>
+<summary>Why this page reads the ledger and never the verb</summary>
+
+MEASURED: `session watch --json-report` spawned from the live route printed **nothing at all**
+on exit 0, twice, while the same command from a shell had printed 6,141 bytes minutes earlier. The verb is
+a cursor **drain** — it reads the cmux events after a shared cursor and advances it — so a second drain
+inside the same quiet window has nothing to print, and a page draining it on a timer would starve the
+supervisor tick's own drain of the very events it judges. Reproduce it:
+
+```bash
+slopweaver session watch --json-report; slopweaver session watch --json-report   # the second prints nothing
+slopweaver reading list                                                            # what the tick recorded, and when
+```
+
+That is the mechanism: the rows come from the supervisor tick's own
+gauges. `supervisor tick-capture` records every one of these verbs' documents as readings, so the page reads
+what the tick saw — `machine capacity`'s exit-1 document included, verdict and all — without running a
+gauge of its own. When a producer has no reading yet, the Agents tile and the health line both print the verb's own exit-3
+sentence rather than an empty list.
+
+</details>
+
+<details>
+<summary>Fixture mode freezes the seats and the health line, and says so</summary>
+
+Open `/fleet?fixture=<name>`, with the name of a capture `site/lib/liveFixtures.ts` commits, to see one frozen instant — 15 open
+seats, no listener armed, an ALERT on memory with no HOLD. The Agents tile is stamped **FIXTURE** where a live age
+would go, and the health line, which carries no age, opens with **FIXTURE** and the capture's name.
+No reconcile capture is committed, so the fixture page never joins its frozen seats to the live board (whose `reconcile-reading`
+channel the page still polls, and sets aside while the seats are frozen): its cards take their cmux titles, under a staleness mark whose hover says "no board capture is committed beside a fixture's seats". That is
+the fallback working, not a gap in the capture. No `fleet burn` capture is committed either, so the usage lines'
+burns and Codex's sessions draw a staleness mark on a fixture page, and a seat captured before the host field
+counts as unnamed rather than as Claude's.
+
+Each frozen file is in exactly the shape the command on its row in `site/lib/liveFixtures.ts` prints, recorded
+into a throwaway home within half an hour of the others. The listener reading is a capture, re-taken rather
+than hand-edited; the seats and capacity are written synthetic, with invented seats, paths and accounts.
+
+</details>

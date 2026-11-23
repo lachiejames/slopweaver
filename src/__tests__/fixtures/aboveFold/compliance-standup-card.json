@@ -1,0 +1,45 @@
+{
+  "citations": [],
+  "index": [
+    [
+      {
+        "type": "text",
+        "text": "tell "
+      },
+      {
+        "type": "mention",
+        "person": "person"
+      },
+      {
+        "type": "text",
+        "text": " if it is noise, they can turn it off"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "🟢 21 docs, 5 drafted and not published, 3 still to write. closes ABC-117, ABC-118, ABC-119, ABC-12, ABC-31"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "🟡 access reviews weekly, 23 people pending since 9 june. closes ABC-64, ABC-65"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "🟡 all 9 acme VMs to label, mfa on 14 test accounts, 32 due secure-code training. closes ABC-208, ABC-209, ABC-7"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "text": "🔴 annual pentest report, a supplier does it. closes ABC-90, ABC-140"
+      }
+    ]
+  ],
+  "source": "https://acme.slack.com/archives/C0SYN000001/p0000000000000001",
+  "tldr": "trying a synthetic acme compliance stand-up. every morning this shows what is complete and what moves next. 53 of 110 done, 14 one item from green."
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slopweaver Slack"
+  short_description: "Read and write Slack through the typed door"
+  default_prompt: "Use Slopweaver to perform this Slack operation safely."

@@ -1,0 +1,53 @@
+<div class="eyebrow">
+  supervisor ws:598 (handoff-9012, opus, pinned 23:57) · last refreshed 2026-09-01 19:07:42 AEST · ready for review
+  2026-09-01 19:12:03 AEST · refreshed every sweep
+</div>
+<h1>Fleet Briefing</h1>
+<h2>react now</h2>
+<div class="need">
+  <div class="q">1. should a background ticker rewrite the Slack progress card every 90 seconds?</div>
+  <div class="age" data-premise-kind="composed" data-premise-iso="2026-09-11T21:18:59Z">premise 2 hours old</div>
+  <dl class="f">
+    <dt>what</dt>
+    <dd>
+      The card freezes for ten to seventeen minutes at a time today, because nothing updates it on a clock. A ticker
+      would rewrite it every 90 seconds from what the worker is already doing. No model runs in that loop, so it cannot
+      change the answer.
+      <details>
+        <summary>how the ticker works, and what it costs</summary>
+        <div>
+          The ticker reads the worker's own progress file and rewrites one collapsed line, "Investigating: how many
+          criticals are left, 6m". Expanded, the row shows the steps done so far and the step running now. It writes
+          through the same outbound door every other card uses, so the schema still refuses a wall. The cost is one more
+          resident writer per turn and one more thing that can fail while the turn is otherwise fine. The alternative
+          that needs no new process is a rewrite on each tool result, which is cheaper to build and jumps around rather
+          than ticking.
+        </div>
+      </details>
+    </dd>
+    <dt>why you</dt>
+    <dd>You are the only person who reads these cards while the work is running.</dd>
+    <dt>options</dt>
+    <dd>
+      A: add the ticker on a 90 second clock. B: rewrite the card on each tool result instead. C: leave the card frozen
+      and say so in it.
+    </dd>
+    <dt>lean</dt>
+    <dd>A.</dd>
+    <dt>if silent</dt>
+    <dd>the card stays frozen.</dd>
+  </dl>
+</div>
+<h2>what we are actually working</h2>
+<p class="align">2 of 3 live sessions are on the board's top 5, 1 is lower down.</p>
+<h2>done since you last looked</h2>
+<div class="need"><div class="q">landed the 1Password atlas.</div></div>
+<div class="need"><div class="q">landed the code-scanning alert verbs.</div></div>
+<details>
+  <summary>everything older</summary>
+  <div class="need"><div class="q">landed the react-now card gate.</div></div>
+  <div class="need"><div class="q">landed the config move.</div></div>
+  <div class="need"><div class="q">landed the optStr cleanup.</div></div>
+  <div class="need"><div class="q">landed the stacked pull request door.</div></div>
+  <div class="need"><div class="q">landed the merge hold store.</div></div>
+</details>

@@ -1,0 +1,54 @@
+# Prettier is the formatter of record for everything — code and docs alike. Import order is Biome's
+# (`biome.jsonc`, which restates this file's code exclusions, since Biome does not read it).
+
+# Binary / media — not text Prettier should touch.
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.svg
+**/*.pdf
+**/*.mp4
+**/*.woff
+**/*.woff2
+
+# Auto-generated / vendored / build output — not ours to format.
+**/node_modules/
+**/dist/
+**/build/
+**/generated/
+**/out/
+**/target/
+**/.turbo/
+**/.cache/
+**/coverage/
+**/test-results/
+**/*.tsbuildinfo
+
+# Lockfiles — auto-generated; formatting corrupts them.
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+.yarn/
+
+# Frozen eval corpus + recorded baseline — reformatting would break determinism.
+eval/fixtures/
+eval/baseline.recall.json
+
+# Frozen turn replay fixtures — `slopweaver turn freeze` is their only writer, and it emits
+# `JSON.stringify(…, null, 2)`. Prettier collapses short arrays onto one line, so formatting these makes
+# every re-freeze a spurious diff and invites someone to hand-edit a redacted file instead of re-cutting it.
+src/__tests__/fixtures/replay/
+
+# Cross-project contract goldens — a vitest file snapshot is their only writer, compared BYTE for byte, and
+# Prettier collapsing a short array would fail the producer test on a file nobody changed.
+src/__tests__/fixtures/contract/
+
+# Next.js build output for the local docs site.
+**/.next/
+
+# The redacted per-case answer-quality artifact — `slopweaver dev answer-quality --selftest --artifact` is its
+# only writer, and it emits an unpadded markdown table. Prettier pads table cells to a common width, so
+# formatting it makes every re-cut a spurious diff and stops the committed file from being what the verb
+# actually produces.
+eval/answer-quality-per-case.artifact.md

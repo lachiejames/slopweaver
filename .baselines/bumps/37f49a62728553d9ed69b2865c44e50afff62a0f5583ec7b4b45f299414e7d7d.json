@@ -1,0 +1,28 @@
+{
+  "base": "d3b608d8c023786e9768cb715880714b94494404",
+  "digest": "37f49a62728553d9ed69b2865c44e50afff62a0f5583ec7b4b45f299414e7d7d",
+  "loosenings": [
+    {
+      "entry": "policy",
+      "file": "src/codex/baselineBumpCheckouts.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/codex/baselineBumpWitnessRun.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "policy",
+      "file": "src/devLint/baselineRegistry.ts",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    }
+  ],
+  "reason": "the witness's checkout read asks candidates lazily and stops at the first that will do, so a press stops asking every worktree's origin; what counts as a loosening and what witnesses one is unchanged, only which checkouts are asked and in what order. The two new files that now hold that choice and the ledger fold, branchEvidenceRoots.ts and ledgerUnion.ts, are registered as policy files, which is the registry row"
+}

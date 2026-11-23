@@ -1,0 +1,51 @@
+flowchart TB
+  owner["THE OWNER, SPEAKING — in the desktop app, after one press of the orb<br/>typing to the supervisor stays first class; the voice is optional"]
+
+  subgraph browser["1 · In the desktop app's voice window. The audio never passes through this machine's verbs"]
+    direction TB
+    widget["The floating voice widget, in the desktop app only<br/>its session follows the owner page to page"]
+    gate["THE RELAY GATE — refused unless the owner has spoken since the last relay.<br/>If third-party text reached the model after the owner spoke, only the owner's words travel.<br/>While a context pack rides in, every relay is the owner's words only.<br/>Whether it IS a steer is the model's judgement, not the gate's"]
+  end
+
+  openai["OPENAI REALTIME — the one egress that carries the owner's voice.<br/>WebRTC straight from the voice window. The owner's ChatGPT plan pays through a<br/>codex app-server the console holds for the call, and nothing else;<br/>a plan refusal is shown, never paid around<br/>slopweaver talk offer · src/talk/planSession.ts · site/lib/talkPlanLaunch.ts<br/>At mint it carries the context pack talk pack --write stored<br/>src/talk/contextPack.ts"]
+
+  subgraph reads["2 · What the voice may read, over localhost, when it calls a tool"]
+    direction TB
+    rs["The chair's prose and the owner's turns, never tool output<br/>slopweaver talk supervisor · src/talk/supervisorWindow.ts"]
+    rr["A board row · tracked files of this checkout · any other file, credentials kept here<br/>slopweaver talk row · slopweaver talk code · slopweaver talk file"]
+    rk["The fleet's words · where a row came from · recalled knowledge · the owner's turns in the last 24 hours · all the owner said and ruled<br/>slopweaver talk glossary · origin · knowledge · history · recall"]
+    rp["The page the owner is on · the owner's shared screen<br/>answered inside the page, no verb"]
+  end
+
+  subgraph relay["3 · The relay — the row first, then the line"]
+    direction TB
+    verb["The owner's transcribed words, the item the owner had open, a picture of the owner's screen if the owner shares one<br/>slopweaver talk relay · src/talk/relayStore.ts"]
+    row[("A p1 board row, anchored talk:turn-id, the owner's words first<br/>slopweaver handover register · src/talk/relayDraft.ts")]
+    line(["Type one line into the pinned chair's chat as the owner's turn —<br/>did cmux take it?<br/>src/talk/supervisorDelivery.ts"])
+  end
+
+  boardonly["NOT CONFIRMED IN THE CHAT — every other kind. The row is there.<br/>skipped typed nothing; stranded sits unsent in the owner's composer;<br/>failed, unconfirmed and attempting may or may not have landed.<br/>The voice says so when the owner asks. Until the row is taken up, a reconcile<br/>pass within 24 hours flags it<br/>slopweaver handover reconcile · src/talk/relayIntake.ts"]
+
+  subgraph chair["4 · The supervisor chair — OWED by its routing rule, not enforced by code"]
+    direction TB
+    anchor["Anchor it — the slug is a row on the board and not a repeat<br/>slopweaver talk log"]
+    act["Act on it as the owner's typed word — route, resume or spawn"]
+    wit["Witness the typed turn, or intake counts it unread<br/>slopweaver supervisor intake-mark · src/supervisor/intake.ts"]
+  end
+
+  subgraph back["5 · How the answer reaches the owner"]
+    direction TB
+    b1["The chair's reply in its own chat — the one voice-specific way back:<br/>the voice reads it when the owner asks"]
+    b2["Otherwise the chair's ordinary routes: a react-now card<br/>on the briefing page, or the owner's bot DM"]
+    b3["The durable record is the log, not the call widget,<br/>which keeps only this console session's last 40 relays<br/>slopweaver talk log"]
+  end
+
+  owner <-->|speech| widget
+  widget <-->|audio, transcripts, tool calls and results| openai
+  widget -->|a tool call| reads
+  widget -->|relay_steer, the model's call — answered at once,<br/>the post queued behind the call| gate
+  gate --> verb --> row --> line
+  line -->|typed, or queued behind a running turn| chair
+  line -->|anything else| boardonly
+  anchor -.-> act -.-> wit
+  chair -.-> back

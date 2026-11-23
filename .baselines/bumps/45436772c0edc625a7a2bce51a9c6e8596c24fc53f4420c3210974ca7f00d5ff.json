@@ -1,0 +1,28 @@
+{
+  "base": "54379cedd1ca65402434533455d86656281ae4d4",
+  "digest": "45436772c0edc625a7a2bce51a9c6e8596c24fc53f4420c3210974ca7f00d5ff",
+  "loosenings": [
+    {
+      "entry": "ceilingsMiB:desktop.package-script.build.process-tree-rss",
+      "file": ".baselines/heap-ceilings.json",
+      "from": null,
+      "to": 4096,
+      "cause": "growth"
+    },
+    {
+      "entry": "ceilingsMiB:package-script.build.process-tree-rss",
+      "file": ".baselines/heap-ceilings.json",
+      "from": null,
+      "to": 10240,
+      "cause": "growth"
+    },
+    {
+      "entry": "ceilingsMiB:package-script.typecheck.process-tree-rss",
+      "file": ".baselines/heap-ceilings.json",
+      "from": null,
+      "to": 10240,
+      "cause": "growth"
+    }
+  ],
+  "reason": "TypeScript 7.1's native compiler has no V8 heap flag, so each compiler ceiling is a process-tree RSS ceiling now: package-script.build and package-script.typecheck keep 10240 MiB under their .process-tree-rss subject names (predecessorCeiling maps old to new), and the desktop build gains the 4096 MiB the owner's 4 Sep ruling allows a new subject. No value rises."
+}

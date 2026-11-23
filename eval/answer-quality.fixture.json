@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "fixture-diagnosis",
+      "goldenText": "The schema error in the linked thread is unrelated to the original failure, the two just went briefly out of sync.\n\nI am still seeing the old view on the staging account, so I am not sure whether this is the thing that was reported broken.\n\nThe runbook in Notion says a rebuild is needed after a migration, which would explain the drift.",
+      "paraphrase": "That schema error is a separate problem, nothing to do with the first one. The two had drifted apart for a bit and went out of sync.\n\nChecked staging and the old layout is still rendering, so I cannot confirm it is the same fault anyone flagged.\n\nOur Notion runbook wants a rebuild once a migration lands, which fits what we are seeing.",
+      "claims": [
+        {
+          "id": "linked-error-is-separate",
+          "label": "the linked schema error is a separate failure",
+          "requires": [["schema"], ["unrelated", "separate", "not related", "different failure"]]
+        },
+        {
+          "id": "briefly-desynced",
+          "label": "the two went briefly out of sync",
+          "requires": [["out of sync", "desync", "drifted apart"]]
+        }
+      ],
+      "caveats": [
+        {
+          "id": "reported-bug-not-reproduced",
+          "label": "does not claim the reported bug was reproduced",
+          "requires": [["not sure whether", "cannot confirm", "unconfirmed", "cannot tell whether"]]
+        }
+      ],
+      "attributions": [
+        {
+          "id": "rebuild-rule-from-notion",
+          "label": "the rebuild-after-migration rule is credited to the Notion runbook",
+          "source": "notion",
+          "requires": [["notion"], ["runbook", "guide", "written procedure"]]
+        }
+      ],
+      "inventedCertainty": ["this confirms the root cause", "definitely the cause", "this resolves the question"]
+    },
+    {
+      "id": "fixture-refusal",
+      "goldenText": "Nothing in the corpus records an on-call payment policy.\n\nI checked the obvious wordings and the thirty closest hits were all about coverage rosters and paging behaviour, none of them about money.\n\nThat is only as good as the wordings I tried, so treat it as not found rather than not existing.\n\nWorth asking whoever owns the roster, I do not think we have ever written it down.",
+      "paraphrase": "Nothing written down about on-call pay, as far as I can see. I searched and the thirty nearest matches were duty rosters plus alert paging, zero about money.\n\nOnly as good as the terms I searched though, so read it as not found rather than not existing.\n\nAsk whoever runs the roster.",
+      "claims": [
+        {
+          "id": "no-policy-on-record",
+          "label": "no on-call payment policy is on record",
+          "requires": [
+            ["on-call", "on call"],
+            ["nothing in the corpus", "nothing written down", "not recorded anywhere", "never written"]
+          ]
+        },
+        {
+          "id": "near-hits-were-rosters-and-paging",
+          "label": "the close hits were rosters and paging, not compensation",
+          "requires": [["roster"], ["paging", "alert"]]
+        }
+      ],
+      "caveats": [
+        {
+          "id": "absence-is-only-as-good-as-the-queries",
+          "label": "the absence is only as good as the wordings tried",
+          "requires": [["only as good as", "not found rather than not existing"]]
+        }
+      ],
+      "attributions": [],
+      "inventedCertainty": ["there is no such policy", "we definitely do not pay", "confirmed that nobody is paid"]
+    }
+  ]
+}

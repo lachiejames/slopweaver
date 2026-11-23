@@ -1,0 +1,218 @@
+---
+title: Voice and shape
+---
+
+import { Callout } from "nextra/components";
+
+import { VoiceDoor } from "../../components/diagrams/VoiceDoor";
+import { VoiceShape } from "../../components/diagrams/VoiceShape";
+
+# Voice and shape
+
+One command prints everything this page describes, and it is the source of truth:
+
+```bash
+slopweaver slack voice-rules
+```
+
+It prints **two layers**, and they are enforced differently. The first is a **shape** — how a reply should
+read — and nothing refuses on any of it. The second is a **vocabulary** of exact rules, and a send refuses
+authored prose matching one of them before any network call. On **every** outbound surface: a rule binds
+the bot's own name as well as the owner's unless it says otherwise, and that default is where the leak was.
+
+The split is deliberate. The vocabulary is a vocabulary, and a composer given only a banned-word list writes
+off-voice prose that passes every gate. So the shape is briefed too, from the owner's own file:
+`profile.json`'s `slackMe.voice.shapeMemoryFile` points at it, which is why an edit there changes what every
+composing session reads.
+
+<Callout type="warning">
+  **The command's body wins over this page.** Its § "What the owner picked, example by example" carries the owner's own
+  reactions to twenty real outbound examples, and those picks are more specific than any general guidance, including
+  everything written below.
+</Callout>
+
+## The shape
+
+<VoiceShape />
+
+### The ceiling governs commentary, never the deliverable
+
+**50 words is a ceiling, not a target.** An everyday reply defaults to one short line, and a wall of prose
+past the ceiling is where the reader tunes out.
+
+The counterbalance matters more than the ceiling, though, because it is the half that gets dropped: terseness
+is not the same as cutting substance. Cutting too much is a measured failure, recurring seven times across the
+transcript corpus, and "make it more concise" has stripped out the very information that gave a message its
+value. The ceiling governs **commentary, recap, status and headlines**. It does not govern a plan, a spec, an
+artifact the owner asked for, or an answer whose substance IS the deliverable. On a load-bearing document,
+completeness wins.
+
+### Lead with what, cut the how
+
+The outcome people care about, not the pipeline that produced it: what was made, what it does, where it lives.
+Then stop. A status update is "X is done, Y is next", not the phases you went through.
+
+Progressive disclosure means the tight answer up front and the detail available if wanted. It does not mean
+pre-empting every question with a wall nobody reads: say what happened, and leave room to ask why.
+
+### One message to a channel, dripped replies in a thread
+
+A **new top-level post to a public channel is ONE message.** Public posts may become discussion threads, so
+keeping the ask in one top-level message gives the discussion one place to live and avoids splitting corrections
+across messages. A follow-up correcting the first one reads as clutter, so get it right in the one message
+instead.
+
+Keep it short: the tag plus the PR link, then one sentence saying what it is. The evidence and the arguable half belong in the PR body, where a
+reviewer already is.
+
+**Inside an existing thread, or a DM, the owner drips.** A message carrying several claims goes out as a series of
+short messages, each under the cap, the way a person actually types. A draft for a colleague reads as
+fragments of a thought sent over four to six messages, never a single structured essay.
+
+**In a persuasion thread, hold the ask.** When building a case for the team to adopt something, evidence goes
+now and the ask waits for the reply. The held-back messages are ammunition for when someone bites. That is
+the opposite instinct from a status report, where completeness up front is usually right.
+
+### "I don't know if X" is a proposal, not a question
+
+The owner's commonest way of raising work: hundreds of uses, in about a tenth of every dictation, for example "I don't know if
+it's worth looking through the old chats to see if we had a script". The grammar hedges and the speech act
+instructs. Do the thing, and report back if it turns out not to be worth it. Neither stall waiting for
+confirmation nor treat it as a settled order. Same family as "I feel like we should", "I'd probably want to"
+and "maybe worth".
+
+### Hedging is a floor, not just a ceiling
+
+The loudest measured trait, roughly one hedge every 55 words spoken, damping to about a fifth of that in
+writing. The reason: a hedge is a correctness guard, since a hedged claim cannot be wrong. Stripping it changes
+the claim rather than tightening it, and a claim-carrying message with **zero**
+hedges is as off-voice as a stacked one. One light hedge per claim.
+
+This is the one shape rule that is also an enforced rule, because it is the one the other three rule kinds
+cannot express: `at-least-one` fires when none of a set appears. See below.
+
+### The owner's actual voice
+
+Lowercase, terse, casual, contractions, leads with the outcome, no corporate hedging, light emoji, swears
+casually. "nice!", "pls", "cheers", "keep going down the backlog now", "yep, all green". Openers are `yo` or
+`hey`, never `heya`. Praise is one word, then the real point as its own message. Walk-backs open on "actually"
+or "wait" and never announce themselves. "shit" over "fuck" when swearing.
+
+## What the owner picked, example by example
+
+Twenty real outbound examples, each shown as it stood against three alternatives, and the owner reacted to every
+one. These picks are turned into rules, and they beat everything above where they disagree.
+
+- **The shape comes from the team, the sentences come from the owner.** On the PR examples the owner took the team's
+  converging shape (headings, an acceptance-criteria block, a Test evidence table that media goes inside) and
+  a different card's voice, the one that reads most like the owner talking. Never pick one and write the other's
+  prose.
+- **Risk and blast radius sit ABOVE "what does this PR do and why."** They are the more useful things to look at
+  and should be the most prominent, because risk is what a reader is already trying to infer off the diff. A
+  risk with no check behind it SAYS so (for example, that it has not been properly backtested and may be noisy)
+  or lands with telemetry and the monitor that alerts on it, or carries a Datadog query standing in for a
+  backtest. Never a risk line asserting "low" with nothing under it.
+- **Lead with the one number that sells it**, in plain sentences, no section headers. The voice picked
+  twice opens on the number ("N% of staging runs hit this one wait") and runs as prose.
+- **Tag the people a message is about.** A post that names a person or a team names them with a tag, never in
+  prose.
+- **Never assign work to people who did not ask for it.** Telling four people to go and do something can rub
+  people the wrong way. Owners are RECOMMENDATIONS and they go below the fold. The owner is tagged; they are not.
+- **A Linear ticket carries the full shape, not the terse one** — problem, change, why this approach,
+  acceptance criteria, in the owner's plain voice. The terse variant is too terse; the fuller one wins.
+- **Never make the owner do arithmetic.** "N staff in scope, M of whom have answered nothing" forces a
+  subtraction to find the number to chase, and leaves open whether there is any wiggle room. State the number to
+  chase, and say whether it is firm.
+- **Anything with groups in it is dot points**, nested where a group has sub-items, the base group everyone
+  inherits first. Three groups in one paragraph is hard to read.
+- **No riddles.** "Your groups are the base" makes the reader parse it in their head. Name the action: say what
+  needs to be done.
+- **When they said more than one thing, quote the line you are answering, then answer it.** The owner opens about
+  9% of their own messages this way and the bot never did, because it answers in context. The quote earns its
+  place by picking which point you answer, so a reply to a single-point message opens on the answer. Quoting
+  back is most useful when someone said multiple things and you want to make it clear which exact message you
+  are responding to. This is guidance everywhere and a
+  gate in one place: `gmail draft --reply-to` refuses a reply opening on a quote of the whole parent, where
+  it can read the parent's own text. What it cannot read, such as an HTML-only parent's history, passes, and
+  `src/outbound/voice/redundantOpeningQuote.ts`'s header lists each case.
+- **Where a thread already holds the fact, link it** and say what it probably means, rather than offering to
+  go and fetch it.
+- **A batch ask is two lines, then the list** — what they are, what is true of all of them, one line per
+  person with their own items tagged, the total at the end. Nobody should open ten PRs to find out what they
+  have in common.
+- **An ask goes to the channel that owns it, tagging the person — never a DM out of nowhere.** An access request
+  goes to the channel that handles access, tagging whoever grants it; a policy change to the channel that owns
+  policy; a finding to a public channel tagging its stakeholder. A DM only where the owner named that DM; a review ask on
+  the owner's pull request is DMed to its reviewer. Either way it carries "no rush" when there is none.
+- **A question does not sit at the bottom of a card.**
+- **An ambiguous attribution line is a defect, not a style point.** A line that pairs a
+  person's name with a deliverable leaves the reader unable to tell whether that person is writing it or waiting
+  on it. Say which.
+- **A recurring status card is colour-coded and shows progress visually** — on track, at risk or off track
+  against the project, the way a Linear project update reads at a glance, with colour-coded next steps under
+  it.
+- **An alerts digest leads on whether the service is on fire, and how much against previous days** — then the
+  errors still open, their blast radius, the customer-facing impact and the severity. The reason is scanning:
+  a reader should see at once that the other channels are mostly P3s while the platform channel holds a P2.
+
+## Per-surface shape
+
+| Surface                    | What it looks like                                                                                                         |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| a new post to a channel    | **one** top-level message, everything else collapsed                                                                       |
+| a reply inside a thread    | short replies, dripped — the one-message rule governs new posts, not thread replies                                        |
+| a one-person ask           | the channel that owns it, tagging them; a DM only where the owner named one or for a review ask; "no rush" when none       |
+| a batch ask                | two lines, then the list: what they are, what is true of all of them, one line per person, the total at the end            |
+| a pull-request description | the team's converging form; **risk and blast radius above** "what does this PR do"                                         |
+| a Linear ticket            | the full shape — problem, change, why this approach, acceptance criteria                                                   |
+| a recurring status card    | colour-coded, progress shown visually: on track / at risk / off track                                                      |
+| an alerts digest           | is the service on fire, and how much against previous days — then the open errors, blast radius, customer impact, severity |
+
+**Formatting that is not negotiable**, on any of them: no em-dashes in anything written as the owner (break into two
+sentences, or use a comma); a blank line between paragraphs or bullet groups; URLs clickable and never wrapped
+in backticks; a PR mention rendered as one hyperlink rather than a bare `#NNNN`; and no section-headered
+structure in a personal message, because that reads as AI to a human even when the em-dashes are scrubbed.
+
+Detail goes below an inline `Details` divider, in the PR diff, in an inline self-review comment, or in the
+commit body. Never as a wall in the top-line reply.
+
+## The vocabulary, and where it fires
+
+<VoiceDoor />
+
+The rules are exact by construction. `src/outbound/voice/exactRules.ts` can prove only a literal or a lexical
+match, so cadence, complexity and rhetorical pattern stay in the voice prompt and never become a rule here.
+
+| Kind           | It fires when                                          | Matching                        |
+| -------------- | ------------------------------------------------------ | ------------------------------- |
+| `literal`      | the text appears anywhere in authored prose            | case-**sensitive**, no boundary |
+| `word`         | the word appears with a lexical boundary either side   | case-insensitive                |
+| `phrase`       | the phrase appears with a lexical boundary either side | case-insensitive                |
+| `at-least-one` | **none** of a set appears — the hedge floor            | case-insensitive                |
+
+Every kind takes an optional `actors` field naming which lane it binds, `me` or `bot`. **Absent means BOTH**,
+and that default is load-bearing rather than a convenience: the measured leak was about one em-dash per hundred
+sent messages, nearly all of them agent-authored posts going out under the owner's own account, so a rule with no `actors`
+field must not read as "as-me only".
+
+**What the rules never see.** `authoredProseOf` cuts a fenced block, a line opening with `>`, a URL, a Slack
+link, inline code and a technical identifier out first, and an identifier leaves its surrounding punctuation
+behind so that removing it never joins two sentences into one a rule could then match. What is left is prose
+the owner would have typed, which is the only thing a voice rule has any business judging.
+
+**One deliberate exception** re-runs after `slopweaver hatch open voice-rules --reason "<why>"`. The rule stays in force otherwise,
+and a match refuses rather than rewrites: a refusal names the field, the line and the rule that fired, and
+hands the sentence back.
+
+## Why the rule list is not written down here
+
+The rule SHAPE is public and lives in the repository. The actual banned characters, words and phrases are
+operator configuration in `profile.json`, and a page transcribing them is stale the first time the owner adds one.
+So this page carries the four kinds, and the command carries the list:
+
+```bash
+slopweaver slack voice-rules          # the shape, then every rule currently in force
+```
+
+That is the same trade the [verb list](../build/verbs) makes: the surface documented and the surface
+installed cannot disagree, because only one of them is written down.

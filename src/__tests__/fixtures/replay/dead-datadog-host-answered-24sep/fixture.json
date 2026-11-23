@@ -1,0 +1,44 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1790216303.662629",
+    "threadTs": "1790208337.731879"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "the composed answer — the record names a path outside the home, or no longer on disk",
+    "the composed answer — the record names a path outside the home, or no longer on disk"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/ledgers/turn-completions.jsonl",
+    "home/briefs/CFIXTUREAA-1790216303.662629.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1790216303.662629.json",
+    "home/live/slack/turn-markers/CFIXTUREAA-1790216303.662629.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790216303.662629/record.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790216303.662629/verdict.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790216303.662629/draft-sha256-5c3662e05536327aba39d2104defe397f8544758438e406dafdb953396fe927b.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790216303.662629/draft-sha256-d177bf5a8be38bed1e83e01bcd14d9bff2bed1dfcb77da3320cc5f041b0bf8c6.json",
+    "home/live/slack/checkpoints/CFIXTUREAA-1790216303.662629/log.jsonl",
+    "home/live/slack/detectives/CFIXTUREAA-1790216303.662629/store-1790216564824/wave.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790216303.662629/answer-reviewed-sha256-5c3662e05536327aba39d2104defe397f8544758438e406dafdb953396fe927b.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790216303.662629/answer-reviewed-sha256-d177bf5a8be38bed1e83e01bcd14d9bff2bed1dfcb77da3320cc5f041b0bf8c6.json",
+    "home/live/slack/reviews/CFIXTUREAA-1790216303.662629/verdict-superseded-fixture-uuid-dv-2026-09-24T03-55-56-588Z.json"
+  ],
+  "frozenAtIso": "2026-09-24T05:06:04.789Z",
+  "incident": "The bot answered a squad-dev-platform thread about a temp PR's monitors with two citations on app.ap2.datadoghq.com, a host that serves no Datadog console (the console is ap2.datadoghq.com), and the answer was posted. Frozen through dispatched with the clock just before the send: the reviewed drafts are what the send would carry, and the fix is the Slack write transport refusing them.",
+  "regresses": [],
+  "replayNowIso": "2026-09-24T04:13:01.000Z",
+  "reviewRounds": 2,
+  "schemaVersion": 1,
+  "slug": "dead-datadog-host-answered-24sep",
+  "syntheticIdCount": 100,
+  "withheldEventKinds": [
+    "answered"
+  ],
+  "through": "dispatched"
+}

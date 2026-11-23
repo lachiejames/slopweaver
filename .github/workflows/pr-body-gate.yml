@@ -1,0 +1,175 @@
+name: PR body gate
+
+# The pull-request BODY gate, split out of `ci.yml` so that a description edit costs this job
+# and nothing else. The rule: CI triggers align with reality, so a unit test never reruns because a pull
+# request description was edited, and the same applies to every CI job.
+#
+# WHY A SEPARATE FILE RATHER THAN AN `if:` IN ci.yml. A trigger list is workflow-scoped and an outcome is
+# job-scoped, so one file holding jobs with different trigger needs can only express the difference by
+# SKIPPING a job — and a job skipped by `if` still emits a check run whose `skipped` conclusion counts as
+# PASSING, both to GitHub's branch protection and to `PASSING_CONCLUSIONS` in src/live/github/checks.ts. It
+# is also the LATEST run for that name, so a description edit would have turned a RED `build` green in the
+# rollup. Two files means neither workflow ever fires on an event its jobs do not need, so no check run is
+# created to be misread. MEASURED over 49 laps on 20 merged pull requests: 29 of them re-ran
+# byte-identical code, 13m32s per landing, which is what the split stops paying.
+#
+# `edited` is the action this file exists for: the gate reads the pull-request BODY and TITLE, so a body-only
+# fix has to be able to clear a red gate. `labeled` and `unlabeled` are here for the same reason: the gate reads
+# the labels too, so adding a missing kind label has to be able to clear it. `ready_for_review` is absent here for the same reason it is absent
+# from `ci.yml` — nothing in this job reads the draft flag.
+#
+# NOT a merge-queue required check, and no `merge_group:` trigger: a `merge_group` event carries no pull
+# request, so there is no body to judge and a required check that structurally cannot run would stall every
+# entry. `main`'s required contexts are `build` and `integration` only — read them, and what a queue entry
+# actually runs, with `slopweaver github required-contexts --repo <slug> --branch main --json`. MEASURED
+# over eight entries: `dev-gate` appears on none of them, which is what makes the paragraph above
+# a measurement rather than a belief, and `github required-contexts` REFUSES a write that would require it.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+# The least privilege this file's one job can run on, spelled rather than inherited. `dev-gate` checks out the
+# merge commit and reads the pull-request body, title and head sha out of the EVENT payload — it holds no
+# GitHub client and calls no API, so `contents: read` is the whole of what it needs. Without the block the
+# job runs on the repository's default token permissions, which is what CodeQL's
+# `actions/missing-workflow-permissions` alert 47 named against this file on its first push. Stated as scope:
+# `ci.yml` carries twelve open alerts of the same rule and this commit does not touch them, because narrowing
+# a token that another workflow's jobs share is a separate change with its own way of going wrong. Count them
+# with `slopweaver github alert list --repo lachiejames/slopweaver --json`.
+permissions:
+  contents: read
+  # `stack audit --check` below lists every OPEN pull request in this repository and reads each one's native
+  # stack membership, which `contents: read` alone does not reach. Nothing here writes.
+  pull-requests: read
+
+jobs:
+  dev-gate:
+    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
+    # The ceiling formula is `max(10, ceil(p95 * 3 / 5) * 5)` minutes over the job's last 30 green runs —
+    # it lives with the other two jobs in `ci.yml`'s file-level comment, which also carries the doored
+    # command that reproduces a measurement. p95 0.90 min when this was set; RE-MEASURED
+    # over 49 runs at 1m00s (p50 0m56s, max 1m13s), which the formula still floors to 10. The
+    # floor is doing the work here rather than the multiplier: 3x a one-minute job would not absorb a
+    # yarn-install cache miss or registry slowness that neither sample hit.
+    timeout-minutes: 10
+    steps:
+      # depth 2, not the default 1, and only here: on a `pull_request` this checks out GitHub's own merge
+      # commit, whose first parent is the base tip and whose second is the PR head. Two levels is exactly
+      # enough to have both parents' trees, which is what the patch-id step below diffs. Nothing else in this
+      # job needs history, so no other lane pays for it.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      # The value that lets a `gold` claim survive a rebase onto a base the branch never touched. Measured
+      # (scratch repo, `git patch-id --verbatim`): a base-moved rebase changes the head SHA, the tree object
+      # AND the raw diff text, and leaves this id alone — so a proof anchored to it stops costing a full CI
+      # lap for a base commit that could not have affected the evidence. `HEAD^1..HEAD` over the merge commit
+      # is the branch's contribution to its base, and equals what `slopweaver github push` prints locally from
+      # `git diff $(git merge-base <base> HEAD)...HEAD`; both forms were compared and agree.
+      #
+      # Left UNSET when it cannot be computed, never defaulted: an unmeasured anchor must fail the gate rather
+      # than pass it, or "the measurement broke" becomes the cheapest way to land a stale gold claim.
+      - name: Measure the head patch id
+        shell: bash
+        run: |
+          if ! git rev-parse --verify --quiet 'HEAD^1' >/dev/null || ! git rev-parse --verify --quiet 'HEAD^2' >/dev/null; then
+            echo "patch-id: HEAD is not a two-parent merge commit with both parents fetched — leaving \$PR_HEAD_PATCH_ID unset"
+            exit 0
+          fi
+          id="$(git diff 'HEAD^1' HEAD | git patch-id --verbatim | cut -d' ' -f1)"
+          if [ -z "$id" ]; then
+            echo "patch-id: the branch contributes an empty diff — leaving \$PR_HEAD_PATCH_ID unset"
+            exit 0
+          fi
+          echo "patch-id: $id"
+          echo "PR_HEAD_PATCH_ID=$id" >> "$GITHUB_ENV"
+      # The paths the branch changes, one per line, which decide whether a `gold` body owes a click-through of
+      # the shipped control (src/outbound/github/uiSurface.ts, formClickThrough.ts). The same `HEAD^1..HEAD`
+      # over the merge commit as the patch id above, under the same two-parent guard. `--no-renames` lists a
+      # moved file under its new path, and `core.quotePath=false` prints a non-ASCII path as itself rather than
+      # an octal-escaped string no criterion would match. A path with a `"`, `\` or control character is still
+      # C-quoted; changedPathsFromEnv (src/devGate/devGate.ts) takes its wrapping quotes off.
+      #
+      # The list goes to a FILE and only its path to $GITHUB_ENV: a tree-wide pull request changes thousands of
+      # paths, and as one environment variable the list overflows the kernel's argument limit, so every later
+      # step dies at spawn with "Argument list too long" before any gate runs.
+      #
+      # Left UNSET when it cannot be computed, never defaulted to empty: an empty list means "no surface
+      # changed" and would pass a gold body, so the gate refuses gold when this is absent in CI
+      # (UI_CLICK_THROUGH_UNJUDGED in src/prformat/prBodyGate.ts).
+      - name: Measure the changed paths
+        shell: bash
+        run: |
+          if ! git rev-parse --verify --quiet 'HEAD^1' >/dev/null || ! git rev-parse --verify --quiet 'HEAD^2' >/dev/null; then
+            echo "changed-paths: HEAD is not a two-parent merge commit with both parents fetched — leaving \$PR_CHANGED_PATHS_FILE unset"
+            exit 0
+          fi
+          file="$RUNNER_TEMP/pr-changed-paths.txt"
+          if ! git -c core.quotePath=false diff --name-only --no-renames 'HEAD^1' HEAD > "$file"; then
+            echo "changed-paths: git diff failed — leaving \$PR_CHANGED_PATHS_FILE unset"
+            exit 0
+          fi
+          echo "changed-paths: $(grep -c . "$file" || true) path(s)"
+          echo "PR_CHANGED_PATHS_FILE=$file" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - run: yarn install --immutable
+      - name: Set state home
+        # $RUNNER_TEMP is a step-context env var (the `runner.*` context is not available in job-level env).
+        run: echo "SLOPWEAVER_HOME=$RUNNER_TEMP/slopweaver-home" >> "$GITHUB_ENV"
+      - name: Init state home
+        run: yarn slopweaver init
+      - name: Dev gate
+        env:
+          # Passed as env vars (not shell-interpolated) so the body/title can't inject into the command. The
+          # dev gate runs the hygiene scan and the forbidden-identifier scan over BOTH (item #8) — a secret in
+          # either fails CI, and so does a real workspace id or a forbidden identifier wherever
+          # `IDENTIFIER_VERDICT` reads `refuse`.
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          # The head SHA the `gold` proof anchor is compared against. From the EVENT, never from the body, which
+          # is what makes the grade checkable by something other than the author: a gold claim must name the
+          # commit it was proved against, and every subsequent push moves this and reddens a stale claim.
+          # `pull_request.head.sha` (not `github.sha`) — the latter is the synthetic merge commit on this event.
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # The pull request's own `owner/repo`, whose owner the identifier scan over the title and body does not count
+          # (`identifierHitsBesideOwnRepository`, src/hygiene/ownRepository.ts). From the EVENT, so the
+          # slug is never committed.
+          PR_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+          # Whether this is the repository's OWN pull request, judged as C3 (src/prformat/prBodyGate.ts
+          # `prOwnership`), or a stranger's, judged by the security scans alone: a fork (head repository is not the
+          # base), a Renovate bot, or a GitHub App the event types `Bot` that the organisation record does not name.
+          # All from the EVENT, never the body. This job's throwaway home has no organisation, so `user.type` is what
+          # keeps a self-hosted Renovate's bumps green here.
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          # The labels the kind-label check compares with what the title derives (src/outbound/github/kindLabels.ts),
+          # as a JSON array of names.
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          # $PR_HEAD_PATCH_ID is exported into $GITHUB_ENV by the step above rather than named here, so that an
+          # unmeasurable patch id is genuinely ABSENT instead of an empty string the gate would have to
+          # special-case. Absent means the anchor's fallback half cannot run, which reddens a moved head.
+          # $PR_CHANGED_PATHS_FILE is exported the same way and for the same reason, by the changed-paths step.
+        run: yarn dev:gate
+      # The half of the chained-stack fix a session cannot route around by not running a verb. `stack audit`
+      # reports every open pull request in this repository whose base is another open pull request's head
+      # branch WITHOUT both of them sitting in the same native GitHub stack; `--check` makes that a red job.
+      #
+      # The rule: every stack is an actual GitHub native stack, and the class of problem gets a fix rather than
+      # another reminder. The doors (`github stack push`, `github push`, `github pr retarget`) refuse to CREATE the
+      # state; this refuses to let it STAND, whoever made it and however.
+      #
+      # Repo-wide rather than scoped to this pull request, on purpose: a chain is a RELATION between two pull
+      # requests, so the half that is wrong is routinely not the one being built. This repository has a sole
+      # author, so a violation anywhere in it is always this fleet's own to fix.
+      #
+      # `GITHUB_TOKEN` here is an Actions installation token with no user behind it, which is why the audit's
+      # own viewer read is non-fatal (`listOpenPrsVia`) — the whole scan still runs, only the "yours" label
+      # is unavailable, and this gate does not read it.
+      - name: Every open chain is a native GitHub stack
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: yarn slopweaver github stack audit --repo "$GITHUB_REPOSITORY" --check

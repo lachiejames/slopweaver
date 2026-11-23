@@ -1,0 +1,97 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "rangeStrategy": "pin",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 4,
+  "rebaseWhen": "conflicted",
+  "automerge": false,
+  "draftPR": true,
+  "postUpdateOptions": ["yarnDedupeHighest"],
+  "minimumReleaseAge": "7 days",
+  "lockFileMaintenance": {
+    "description": "A direct pin moving does not move the transitive resolution behind it. Measured 14 Sep 2026: bumping `@octokit/core` to 7.0.8 left `@octokit/rest`'s own `^7.0.6` descriptor resolved at 7.0.6, so two copies of the module stood in one tree and `@octokit/plugin-throttling`'s `declare module \"@octokit/core\"` augmentation landed on the copy nothing constructed — `onRateLimit`'s parameters went implicit-any and the typecheck failed with four errors that named neither package. `yarnDedupeHighest` above fixes that case at bump time; this fixes the half no bump touches.",
+    "enabled": true,
+    "schedule": ["before 5am on monday"]
+  },
+  "prHeader": "![CI](https://img.shields.io/badge/CI-passing-2ea44f?style=flat&logo=githubactions&logoColor=white) ![size](https://img.shields.io/badge/size-small-2ea44f?style=flat) ![proof](https://img.shields.io/badge/proof-bronze-cd7f32?style=flat)\n\n<table>\n<tr><td>👉 <strong>Next</strong></td><td>Read the change below, then land it on green CI.</td></tr>\n</table>\n\n<table>\n<tr><td><strong>Risk</strong></td><td><strong>Low.</strong> One dependency moves to a pinned version and nothing else does. A breaking release fails this repository's own checks before the merge queue can take it.</td></tr>\n<tr><td><strong>Blast radius</strong></td><td>Every module in this repository that imports the package named in the table below. The checks on this pull request are the tested surface.</td></tr>\n<tr><td><strong>Problem</strong></td><td>This repository pins every dependency to an exact version, so a pinned version only moves when something moves it. Left alone it ages out of its own security and bug fixes. Renovate opened this on the <a href=\"https://docs.renovatebot.com/configuration-options/#schedule\">schedule</a> <code>renovate.json</code> sets, no ask.</td></tr>\n<tr><td><strong>Solution</strong></td><td>Renovate proposes one pinned version bump, respecting the freshness floor in <code>renovate.json</code> and the seven-day <code>npmMinimalAgeGate</code> in <code>.yarnrc.yml</code>. The table below names what moved.</td></tr>\n<tr><td><strong>Proof</strong></td><td>Bronze. The whole gate runs against the new resolution on every push to this branch: lint, typecheck, both test lanes and the coverage floor. Nothing here is a claim a reader has to take on trust — read the checks.</td></tr>\n</table>\n\n---\n",
+  "prBodyColumns": ["Package", "Type", "Update"],
+  "prBodyDefinitions": {
+    "Package": "`{{{depName}}}`",
+    "Change": "{{{updateType}}}",
+    "Age": "",
+    "Confidence": ""
+  },
+  "prBodyNotes": ["{{#if displayTo}}`{{{depName}}}` moves from `{{{displayFrom}}}` to `{{{displayTo}}}`.{{/if}}"],
+  "packageRules": [
+    {
+      "description": "A freshly published bad major/minor release is never proposed. Patch bumps carry the lowest regression risk of the three and sit on the repository-wide 7-day floor instead, which is `.yarnrc.yml`'s `npmMinimalAgeGate` and not a second opinion about risk.",
+      "matchUpdateTypes": ["major", "minor"],
+      "minimumReleaseAge": "30 days"
+    },
+    {
+      "description": "sharp is pinned to a portal: protocol range (a local stub, see stubs/sharp) — never a registry package to update.",
+      "matchPackageNames": ["sharp"],
+      "enabled": false
+    },
+    {
+      "description": "engines.node is a floor chosen beside .nvmrc, never a version to track: the global pin strategy would rewrite `>=24.11` to one exact release above the .nvmrc pin, and Yarn refuses to install on the pinned Node the moment it lands.",
+      "matchDepTypes": ["engines"],
+      "enabled": false
+    },
+    {
+      "description": "A GitHub Action stays on its major tag. The exact-pin rule is yarn.config.cjs's, written for npm dependencies the lockfile resolves; an action tag pinned to v4.4.0 has no lockfile behind it and only ages.",
+      "matchManagers": ["github-actions"],
+      "rangeStrategy": "replace"
+    },
+    {
+      "description": "TypeScript's next major is not a version bump here. Every house gate reads the compiler through `typescript/ast` and `typescript/sync` behind the four seam files `typescript-import-seam` names, and `named-object-params` holds a whole Program through that server; the 6-to-7.1 move reshaped node types (a nameless BindingElement, a PropertyName where an Identifier was) across 57 files under `src/` and its decision stream had to be proven byte-identical before it landed. A major is that piece of work again, so it gets its own pull request rather than riding a dependency sweep. Reproduce the first half of it: `yarn add typescript@<next major> && yarn typecheck`.",
+      "matchPackageNames": ["typescript"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "turbo-stream's version is dictated by what React Router v7 ENCODES with, not by what is newest — `src/atlas/nxCloud/dataRoute.ts` decodes the client's own single-fetch payloads. MEASURED 14 Sep 2026: 3.2.1 is a ground-up rewrite with a different wire format whose decoder does not refuse a v2 payload, so the atlas would have recorded every Nx Cloud run family as empty. The witness already exists — the fixed-bytes case in `src/__tests__/unit/atlas/nxCloud/dataRoute.test.ts` fails `chunk.charCodeAt is not a function`. Reproduce: `yarn add turbo-stream@3 && yarn vitest run --config config/vitest/unit.ts src/__tests__/unit/atlas/nxCloud/dataRoute.test.ts`.",
+      "matchPackageNames": ["turbo-stream"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Bumping this client is an ATLAS REGENERATION, not a dependency bump, so it never rides an automated sweep. `src/atlas/datadog/generated/sdkLock.ts` pins the version, a SHA-256 over every compiled `apis/*.js` module and an operation census, and `tools/generateDatadogSurfaces.ts` REFUSES when any of them moves — by design, so that nobody regenerates 1,735 reviewed rows from whatever was installed that morning. Verified 14 Sep 2026 against 1.63.0: `v1: digest moved`. The bump belongs in a pull request that also re-reads the two pinned OpenAPI documents at the new release tag and re-grades the atlas with `slopweaver atlas doctor`.",
+      "matchPackageNames": ["@datadog/datadog-api-client"],
+      "enabled": false
+    },
+    {
+      "description": "These move as ONE or they do not move. Each `@googleapis/*` package carries its own `googleapis-common` range, and `googleapis-common` carries the `google-auth-library` whose `OAuth2Client` the `auth` option is typed against — `src/live/google/authClient.ts` imports that class from `googleapis-common` for exactly this reason. MEASURED 14 Sep 2026: `googleapis-common` alone at 9.0.4, while the four `@googleapis/*` packages sat at majors the freshness floor still held, installed a second `google-auth-library` and produced eight `private property 'redirectUri'` errors across the Gmail, Drive and Calendar doors. Grouped, one pull request either moves the whole set or moves none of it.",
+      "groupName": "googleapis",
+      "matchPackageNames": ["@googleapis/**", "googleapis-common"]
+    },
+    {
+      "description": "vitest and its coverage provider are one release train — `@vitest/coverage-v8` is pinned to the exact vitest version by peer dependency, so a split proposal is an install-time refusal rather than a version skew. `vite` is named here because vitest 5 is what makes it a non-optional peer at all, and it will become a direct devDependency the moment that major lands.",
+      "groupName": "vitest",
+      "matchPackageNames": ["vitest", "@vitest/**", "vite"]
+    },
+    {
+      "description": "vitest's next major is held. MEASURED 14 Sep 2026 on 5.0.0: the integration lane's Cloudflare file goes from 24 passing to 22 failing, every failure `[Polly] [adapter:fetch] Recording for the following request is not found and recordIfMissing is false`. The global fetch IS patched — logging `globalThis.fetch` at client construction prints Polly's own wrapper — so this is cassette MATCHING under the new runner rather than a broken intercept, and the 22 `it.each` cases fail while the two plain `it` cases in the same file pass. One file of the lane's 28 is affected and the mechanism was not resolved; the only other route, re-recording, means calling the real Cloudflare account and rewriting a reviewed cassette, so this gets its own pull request. Reproduce: `yarn add -D vitest@5 @vitest/coverage-v8@5 vite@8 && yarn vitest run --config config/vitest/integration.ts src/__tests__/integration/cloudflare.test.ts`.",
+      "matchPackageNames": ["vitest", "@vitest/**", "vite"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "`site/`'s zod is the version nextra parses against, not the newest one. nextra-theme-docs 4.6.1 destructures `children` OUT of the Layout's props and then parses the REST against a `z.strictObject` that still declares `children: reactNode` as a required key (`dist/layout.js`, `dist/schemas.js`) — so every docs page depends on a missing `z.custom()` key being accepted. MEASURED 22 Sep 2026: 4.1.12 accepts it and `yarn build` in `site/` exits 0; 4.4.3 (#893) refuses it with `Invalid input: expected nonoptional, received undefined → at children` and the export dies. Every page fails, not three — the export bails on the first, so which pages the log names changes run to run. The `site` check was red on main from that bump until this pin. The root's own zod is unaffected and keeps tracking. Reproduce: set the resolution to 4.4.3, then `yarn install && yarn build` in `site/`. Lift this when nextra stops parsing a key it has already removed.",
+      "matchFileNames": ["site/package.json"],
+      "matchPackageNames": ["zod"],
+      "enabled": false
+    },
+    {
+      "description": "The octokit packages augment each other's module declarations, so a split resolution is a type error rather than a version skew — see the lockFileMaintenance note above for the measurement. Grouped so one pull request moves the whole set and `yarnDedupeHighest` has a single tree to collapse.",
+      "groupName": "octokit",
+      "matchPackageNames": ["@octokit/**"]
+    },
+    {
+      "description": "`site/`'s `shiki` draws the console's code blocks in the `@shikijs/themes` pair `site/lib/codeThemes.ts` builds, and the root pins the same `@shikijs/themes` so the root unit lane, which cannot see `site/`'s dependencies, measures every token colour the console draws (`site/__tests__/unit/theme.test.ts` fails when the three pins differ). Grouped so one pull request moves them together.",
+      "groupName": "shiki",
+      "matchPackageNames": ["shiki", "@shikijs/**"]
+    }
+  ]
+}

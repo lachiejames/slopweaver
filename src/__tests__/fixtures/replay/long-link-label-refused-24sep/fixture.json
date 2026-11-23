@@ -1,0 +1,34 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1790222247.843029",
+    "threadTs": "1790210462.917129"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "live/slack/detectives/CFIXTUREAA-1790222247.843029/store-1790222424762/wave.json — written after the last kept event (2026-09-24T03:57:28.418Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/ledgers/turn-completions.jsonl",
+    "home/briefs/CFIXTUREAA-1790222247.843029.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1790222247.843029.json"
+  ],
+  "frozenAtIso": "2026-09-24T04:12:38.094Z",
+  "incident": "A tag opening with a long Slack link got no card: the task label clamped '• close <https://linear.app/…|HELP-2878>' mid link markup to an unclosed '<https://linear.app/acme/issue/HELP-…', which the wire guard reads as a raw URL in a plain TEXT run, so the capture-time checklist and the dispatch card were both refused by chat.postMessage. Frozen at the capture, before the checklist post.",
+  "regresses": [],
+  "replayNowIso": "2026-09-24T03:57:28.418Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "long-link-label-refused-24sep",
+  "syntheticIdCount": 96,
+  "withheldEventKinds": [
+    "checklist-posted",
+    "dispatched"
+  ],
+  "through": "captured"
+}

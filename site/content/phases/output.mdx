@@ -1,0 +1,131 @@
+---
+title: Output
+---
+
+import { Callout } from "nextra/components";
+import { AnswerGauntlet } from "../../components/diagrams/AnswerGauntlet";
+
+# 3 · Output
+
+An answer exists in a session's context. Four things stand between it and a Slack thread, and **not one of
+them repairs**. That is the whole design: a message that was quietly fixed on the way out reads perfectly
+and says less than it claims, and nobody ever finds out.
+
+<AnswerGauntlet />
+
+That is the order a session goes through them, not four things that each hold a veto. The first gate
+**produces** an artifact rather than blocking anything — under rule 2 the reviewer is a separate visible
+session, so it could not block a send even if it wanted to — and the door at the end is what refuses to
+send an answer whose verdict is missing, stale, self-issued or bad.
+
+## The reviewer is a different session, and that is forced
+
+It has been asked for in the same words four separate times: it is hard to tell when you are wrong but easy to
+tell when someone else is, so the self checker has to be a different agent.
+
+Rule 2 forbids this program spawning that agent — no invisible model runner, anywhere — so the reviewer
+**cannot be something the door calls**. It has to be a second visible session, and what reaches the door is
+the artifact that session composed. The door's job is not to judge the answer; it is to refuse to send one
+whose verdict is missing, stale, self-issued or bad, which is a set of checkable facts rather than a
+judgement.
+
+Three fields are what stop a verdict being decoration:
+
+| Field                               | What it makes impossible                                                                                 |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `answerDigest`                      | reusing a verdict for a previous draft — edit the answer and the binding breaks                          |
+| `authorSession` ≠ `reviewerSession` | grading your own homework **silently**; it becomes a field you have to state                             |
+| `claims`                            | "is this good?" — it becomes a list of things each of which is supported, unsupported, or not verifiable |
+
+<Callout type="info">
+  There is **no confidence percentage**, deliberately. A model's own calculated percentage of confidence is always
+  misleading. The bar is structural instead — every material claim classified, no unresolved high-impact claim — which a
+  reader can check by looking rather than having to trust.
+</Callout>
+
+The author/reviewer split **authenticates nothing**. The wire carries no session identity anything here
+could verify. What it buys is that a stated lie is auditable in a way a silent one is not.
+
+### A claim says what it rests on, so a later round does not re-derive it
+
+A claim settled by the answer's own bytes is carried forward as **settled** once the next round has checked
+those bytes did not move. A claim resting on live state is never carried that way — an unchanged answer is
+not an unchanged world — so it is carried as a **re-read** instead, with the command that settles it.
+
+Measured, **93%** of every re-review round re-covered ground the previous round had
+already settled. Measured again with the settled carry shipped, 1,501 of 1,913 claims rested on
+live state, and the median verdict settled seven high-impact live ones that the next round derived again
+from nothing.
+
+## Shape is enforced by the schema, never by review
+
+Every outbound form is **strict**: a key nobody declared is refused, not dropped.
+
+There are seven of those forms and each caps what a reader meets before expanding anything.
+[Outbound formats](/docs/trust/formats) carries one entry per form, its caps and a rendered example.
+
+The incident that decided it is worth the whole paragraph. A ported alert payload reached the digest form
+carrying `impact`, `rootCause` and `fixStep` — the field names of the system it came from — plus a
+citations array. The form was a plain object schema, so every one of them was dropped. It validated, it
+previewed clean, it exited 0, and it posted a card whose entire substance was missing. The only trace
+anywhere was an advisory warning that the card carried no citations, which was itself wrong: the composer
+had supplied one.
+
+Two defects produce that, and the schema closes both:
+
+- **Silence.** Whether an unknown key is an invention or a mistake is not decidable at parse time, so the
+  only safe reading is that a key nobody declared is a key somebody meant.
+- **An unhelpful refusal.** Naming the key and stopping there leaves a porter no wiser. The schema is the
+  only thing that knows where the content goes, so the message **names the nearest valid field** and lists
+  the rest — with a typo budget that scales by name length, so a genuinely unrelated field gets no
+  invented match rather than the least-bad of nine wrong ones.
+
+<Callout type="warning">
+  **An unattended run is refused too, never stripped.** "Strip where a model fills unattended, so a run does not die
+  over an invented field" sounds safe and is refuted by field use: the unattended run is precisely where nobody is
+  watching, so a dropped field is not a smaller failure there — it is a silent one.
+</Callout>
+
+## The voice rules run on every outbound surface
+
+Authored prose is matched against the owner's own private exact character, word and phrase rules before any network
+call — on every outbound surface, not only the as-me lane. A refusal names its own per-invocation override.
+
+That refusal also **leaves a row**. Refusing before the network call means refusing before the door records
+anything, so without one the attempt vanishes: measured, all 199,954 ledger rows were `pass`,
+`warn` or `hold` and nothing else, and "did that card ever try to go out, and what stopped it" cost a code
+read. The voice gate appends a `refused` row carrying the findings and the hatch they named — but no
+authored prose.
+
+```bash
+slopweaver dev door --refusals
+```
+
+Its coverage is **partial on purpose and the report says so on every run**: the other pre-door gates are
+still unrecorded, so an empty result is not evidence that nothing stopped a send.
+
+## Withholding, and the line it does not cross
+
+One gate exists for the bot's own answers. Before a composed reply is posted it is offered to an injected
+judgement — send, or withhold and say why. A withheld reply is filed in a durable queue, the ledger records
+the non-send with its reason, and **the thread gets a notice saying it was held** rather than going silent.
+
+```bash
+slopweaver queue list
+slopweaver queue release <id>   # the break-glass; posts with the withhold recorded as overridden
+```
+
+It is **not a tact or harm filter**, and that is a standing rule rather than a gap.
+A judgement here never withholds because the answer ranks, compares or names colleagues. Take a public
+question such as "who has been slowest to close out their assigned tickets": the onus is on the human asking
+a ranking question in public, and the bot's job is only to give the most accurate, citation-backed answer to
+the question asked.
+
+What a judgement may legitimately decide is the reply's **situation** — whether this asker may receive an
+answer at all — and the shipped one replies only to whoever is on the same responders list that decides who
+may address the bot in the first place. One list, one override, no owner carve-out.
+
+## Where to look next
+
+What the door does with the act once it has passed all four is [the one door](/docs/trust/door), and
+[voice and shape](/docs/trust/voice) is the rule the third gate enforces.

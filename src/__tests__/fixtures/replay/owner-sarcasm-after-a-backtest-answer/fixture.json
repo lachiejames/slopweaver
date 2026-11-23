@@ -1,0 +1,32 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788227827.821199",
+    "threadTs": "1788227494.225289"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "the composed answer — the record names a path outside the home, or no longer on disk",
+    "the composed answer — the record names a path outside the home, or no longer on disk"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1788227827.821199.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1788227827.821199.json",
+    "home/live/slack/turn-markers/CFIXTUREAA-1788227827.821199.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788227827.821199/record.json",
+    "home/live/slack/reviews/CFIXTUREAA-1788227827.821199/verdict.json"
+  ],
+  "frozenAtIso": "2026-09-01T03:04:11.700Z",
+  "incident": "The ws-882 worker answered a 7-day Datadog monitor backtest ask (answer posted at 1788231303) and the owner replied with sarcasm — 'thanks for nothing' — quoting the bot's own caveat back at it ('the monitors are not deployed ... these charts are a replay of the pr's queries and thresholds over real cost data'). This fixture holds the ORIGINAL turn's complete record set, including the answer that drew that reaction, so the delivered artefact can be re-read offline. The routing defect it anchors is in the SUBSEQUENT turn, not this one: the loop judged the owner's displeasure as a dispatchable ask and opened a second worker (ws 889) to fix the deliverable, when owner sarcasm quoting the bot's own words is a signal to STOP and surface to the supervisor. Frozen whole rather than --through, because the subject here IS the composed answer and its terminal 'answered' event, not a bad event a verb later mis-read.",
+  "regresses": [],
+  "replayNowIso": "2026-09-01T02:55:28.665Z",
+  "reviewRounds": 2,
+  "schemaVersion": 1,
+  "slug": "owner-sarcasm-after-a-backtest-answer",
+  "syntheticIdCount": 29,
+  "withheldEventKinds": []
+}

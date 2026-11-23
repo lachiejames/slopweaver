@@ -1,0 +1,1759 @@
+{
+  "by": "fixture-capture",
+  "bytes": 94149,
+  "document": {
+    "dispatchable": [
+      {
+        "action": "press",
+        "actionDetail": "every test passed and it is not queued — press 'Merge when ready'",
+        "baseRefName": "main",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "0f26c2f7ef45ff18d0734a063cb15abcc37d515e",
+        "headRefName": "synthetic-branch-001",
+        "labels": [],
+        "number": 956,
+        "openThreads": [],
+        "queue": { "kind": "not-queued" },
+        "ready": true,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 1, "status": "DIVERGED" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": { "local": { "kind": "not-requested" }, "mergeable": "MERGEABLE" },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": { "kind": "act", "verdict": "merge-now", "why": "every test passed and it is not queued" },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:59:47Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "main",
+          "chain": [956],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 1,
+          "size": 1,
+          "stacked": false
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "pass", "why": "it is not a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          { "id": "mergeable", "verdict": "pass", "why": "it merges cleanly into main" },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          { "id": "queue-available", "verdict": "pass", "why": "main has a merge queue" }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 001 about fixture documentation",
+        "updatedAtIso": "2026-09-20T00:59:47Z",
+        "url": "https://github.com/acme/slopweaver/pull/956"
+      },
+      {
+        "action": "conflicting",
+        "actionDetail": "GitHub reports it CONFLICTING against synthetic-branch-003; a local merge of the head into synthetic-branch-003 came out clean, so GitHub's conflict read may be stale or the base has moved",
+        "baseRefName": "synthetic-branch-003",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "running",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [
+          {
+            "name": "Analyze (javascript-typescript)",
+            "required": false,
+            "state": "running",
+            "url": "https://github.com/acme/slopweaver/actions/runs/35480135789/job/105996353120"
+          }
+        ],
+        "headOid": "8e6d37f39b5c0710ef80ab976443c12d82a65630",
+        "headRefName": "synthetic-branch-002",
+        "labels": [],
+        "number": 951,
+        "openThreads": [],
+        "queue": { "kind": "no-queue" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 0, "status": "AHEAD" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": {
+          "local": {
+            "kind": "measured",
+            "paths": [],
+            "why": "a local merge of the head into synthetic-branch-003 came out clean, so GitHub's conflict read may be stale or the base has moved"
+          },
+          "mergeable": "CONFLICTING"
+        },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "act",
+          "verdict": "rebase-and-fix",
+          "why": "a local merge of the head into synthetic-branch-003 came out clean, so GitHub's conflict read may be stale or the base has moved — it is level with synthetic-branch-003, so there is nothing to rebase onto"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:58:31Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "synthetic-branch-003",
+          "chain": [943, 951],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 2,
+          "size": 2,
+          "stacked": true
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "pass", "why": "it is not a draft" },
+          { "id": "ci-green", "verdict": "unknown", "why": "CI reads running — 2/3 passed, 0 failed, 1 pending" },
+          {
+            "id": "mergeable",
+            "verdict": "fail",
+            "why": "GitHub reports it CONFLICTING against synthetic-branch-003; a local merge of the head into synthetic-branch-003 came out clean, so GitHub's conflict read may be stale or the base has moved"
+          },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          {
+            "id": "queue-available",
+            "verdict": "fail",
+            "why": "its base is synthetic-branch-003, not main — the bottom of its stack lands first"
+          }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 002 about codebase navigation",
+        "updatedAtIso": "2026-09-20T00:58:31Z",
+        "url": "https://github.com/acme/slopweaver/pull/951"
+      }
+    ],
+    "kind": "read",
+    "presses": [],
+    "registrations": [],
+    "residue": [
+      "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`",
+      "only the Slack corpus can decide a `no`, and it reaches 2026-09-19T04:37:56.000Z — 20h behind this read. Anything asked inside that gap reads as `unknown`; `slopweaver refresh --source slack` closes it",
+      "a direct message or private channel the owner's own token cannot read is invisible to both Slack legs",
+      "Slack's search collapses matches that sit close together in one thread, so the live leg can only ever confirm an ask, never rule one out",
+      "the live Slack search leg was skipped (--no-slack-live), so nothing posted since the watermark was seen at all",
+      "the board join is a DECLARED `branch:` on a handover row, so a `none?` cell means no row NAMED this branch rather than that no row exists"
+    ],
+    "rows": [
+      {
+        "action": "press",
+        "actionDetail": "every test passed and it is not queued — press 'Merge when ready'",
+        "baseRefName": "main",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "0f26c2f7ef45ff18d0734a063cb15abcc37d515e",
+        "headRefName": "synthetic-branch-001",
+        "labels": [],
+        "number": 956,
+        "openThreads": [],
+        "queue": { "kind": "not-queued" },
+        "ready": true,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 1, "status": "DIVERGED" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": { "local": { "kind": "not-requested" }, "mergeable": "MERGEABLE" },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": { "kind": "act", "verdict": "merge-now", "why": "every test passed and it is not queued" },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:59:47Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "main",
+          "chain": [956],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 1,
+          "size": 1,
+          "stacked": false
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "pass", "why": "it is not a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          { "id": "mergeable", "verdict": "pass", "why": "it merges cleanly into main" },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          { "id": "queue-available", "verdict": "pass", "why": "main has a merge queue" }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 001 about fixture documentation",
+        "updatedAtIso": "2026-09-20T00:59:47Z",
+        "url": "https://github.com/acme/slopweaver/pull/956"
+      },
+      {
+        "action": "conflicting",
+        "actionDetail": "GitHub reports it CONFLICTING against synthetic-branch-003; a local merge of the head into synthetic-branch-003 came out clean, so GitHub's conflict read may be stale or the base has moved",
+        "baseRefName": "synthetic-branch-003",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "running",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [
+          {
+            "name": "Analyze (javascript-typescript)",
+            "required": false,
+            "state": "running",
+            "url": "https://github.com/acme/slopweaver/actions/runs/35480135789/job/105996353120"
+          }
+        ],
+        "headOid": "8e6d37f39b5c0710ef80ab976443c12d82a65630",
+        "headRefName": "synthetic-branch-002",
+        "labels": [],
+        "number": 951,
+        "openThreads": [],
+        "queue": { "kind": "no-queue" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 0, "status": "AHEAD" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": {
+          "local": {
+            "kind": "measured",
+            "paths": [],
+            "why": "a local merge of the head into synthetic-branch-003 came out clean, so GitHub's conflict read may be stale or the base has moved"
+          },
+          "mergeable": "CONFLICTING"
+        },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "act",
+          "verdict": "rebase-and-fix",
+          "why": "a local merge of the head into synthetic-branch-003 came out clean, so GitHub's conflict read may be stale or the base has moved — it is level with synthetic-branch-003, so there is nothing to rebase onto"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:58:31Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "synthetic-branch-003",
+          "chain": [943, 951],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 2,
+          "size": 2,
+          "stacked": true
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "pass", "why": "it is not a draft" },
+          { "id": "ci-green", "verdict": "unknown", "why": "CI reads running — 2/3 passed, 0 failed, 1 pending" },
+          {
+            "id": "mergeable",
+            "verdict": "fail",
+            "why": "GitHub reports it CONFLICTING against synthetic-branch-003; a local merge of the head into synthetic-branch-003 came out clean, so GitHub's conflict read may be stale or the base has moved"
+          },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          {
+            "id": "queue-available",
+            "verdict": "fail",
+            "why": "its base is synthetic-branch-003, not main — the bottom of its stack lands first"
+          }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 002 about codebase navigation",
+        "updatedAtIso": "2026-09-20T00:58:31Z",
+        "url": "https://github.com/acme/slopweaver/pull/951"
+      },
+      {
+        "action": "unknown",
+        "actionDetail": "ci-green could not be answered: CI reads running — 7/9 passed, 0 failed, 2 pending",
+        "baseRefName": "main",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "running",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [
+          {
+            "name": "Analyze (javascript-typescript)",
+            "required": false,
+            "state": "running",
+            "url": "https://github.com/acme/slopweaver/actions/runs/35479990136/job/105995952544"
+          },
+          {
+            "name": "lint",
+            "required": false,
+            "state": "running",
+            "url": "https://github.com/acme/slopweaver/actions/runs/35479992242/job/105995957353"
+          }
+        ],
+        "headOid": "0a02e1cdaee5abdec8553d1affc1e17e45306681",
+        "headRefName": "synthetic-branch-003",
+        "labels": [],
+        "number": 943,
+        "openThreads": [],
+        "queue": { "kind": "not-queued" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 14, "status": "DIVERGED" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": { "local": { "kind": "not-requested" }, "mergeable": "MERGEABLE" },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "unread",
+          "why": "a landing test could not be answered, so there is no honest act to send"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:55:04Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "main",
+          "chain": [943, 951],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 1,
+          "size": 2,
+          "stacked": false
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "pass", "why": "it is not a draft" },
+          { "id": "ci-green", "verdict": "unknown", "why": "CI reads running — 7/9 passed, 0 failed, 2 pending" },
+          { "id": "mergeable", "verdict": "pass", "why": "it merges cleanly into main" },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          { "id": "queue-available", "verdict": "pass", "why": "main has a merge queue" }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 003 about codebase structure",
+        "updatedAtIso": "2026-09-20T00:55:04Z",
+        "url": "https://github.com/acme/slopweaver/pull/943"
+      },
+      {
+        "action": "draft",
+        "actionDetail": "it is still a draft",
+        "baseRefName": "synthetic-branch-005",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "9959829d56ad9c63de146bb796ce90db28f7f211",
+        "headRefName": "synthetic-branch-004",
+        "labels": [],
+        "number": 954,
+        "openThreads": [],
+        "queue": { "kind": "no-queue" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 0, "status": "AHEAD" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": { "local": { "kind": "not-requested" }, "mergeable": "MERGEABLE" },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "outside-the-set",
+          "why": "it is still a draft — finishing one is real work, and none of the six words names it"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:43:11Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "synthetic-branch-005",
+          "chain": [942, 948, 953, 954],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 4,
+          "size": 4,
+          "stacked": true
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "fail", "why": "it is still a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          { "id": "mergeable", "verdict": "pass", "why": "it merges cleanly into synthetic-branch-005" },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          {
+            "id": "queue-available",
+            "verdict": "fail",
+            "why": "its base is synthetic-branch-005, not main — the bottom of its stack lands first"
+          }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 004 about interface demonstration",
+        "updatedAtIso": "2026-09-20T00:43:11Z",
+        "url": "https://github.com/acme/slopweaver/pull/954"
+      },
+      {
+        "action": "draft",
+        "actionDetail": "it is still a draft",
+        "baseRefName": "synthetic-branch-006",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "e5d712875602afcd177715a60b80d713bb1e5c3c",
+        "headRefName": "synthetic-branch-005",
+        "labels": [],
+        "number": 953,
+        "openThreads": [],
+        "queue": { "kind": "no-queue" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 0, "status": "AHEAD" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": { "local": { "kind": "not-requested" }, "mergeable": "MERGEABLE" },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "outside-the-set",
+          "why": "it is still a draft — finishing one is real work, and none of the six words names it"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:43:06Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "synthetic-branch-006",
+          "chain": [942, 948, 953, 954],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 3,
+          "size": 4,
+          "stacked": true
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "fail", "why": "it is still a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          {
+            "id": "mergeable",
+            "verdict": "pass",
+            "why": "it merges cleanly into synthetic-branch-006"
+          },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          {
+            "id": "queue-available",
+            "verdict": "fail",
+            "why": "its base is synthetic-branch-006, not main — the bottom of its stack lands first"
+          }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 005 about worker status",
+        "updatedAtIso": "2026-09-20T00:43:06Z",
+        "url": "https://github.com/acme/slopweaver/pull/953"
+      },
+      {
+        "action": "draft",
+        "actionDetail": "it is still a draft",
+        "baseRefName": "synthetic-branch-007",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "fe912c6107ea5635364e6e5807e8a21eb63fd78b",
+        "headRefName": "synthetic-branch-006",
+        "labels": [],
+        "number": 948,
+        "openThreads": [],
+        "queue": { "kind": "no-queue" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 0, "status": "AHEAD" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": { "local": { "kind": "not-requested" }, "mergeable": "MERGEABLE" },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "outside-the-set",
+          "why": "it is still a draft — finishing one is real work, and none of the six words names it"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:43:00Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "synthetic-branch-007",
+          "chain": [942, 948, 953, 954],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 2,
+          "size": 4,
+          "stacked": true
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "fail", "why": "it is still a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          {
+            "id": "mergeable",
+            "verdict": "pass",
+            "why": "it merges cleanly into synthetic-branch-007"
+          },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          {
+            "id": "queue-available",
+            "verdict": "fail",
+            "why": "its base is synthetic-branch-007, not main — the bottom of its stack lands first"
+          }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 006 about provider examples",
+        "updatedAtIso": "2026-09-20T00:43:00Z",
+        "url": "https://github.com/acme/slopweaver/pull/948"
+      },
+      {
+        "action": "conflicting",
+        "actionDetail": "GitHub reports it CONFLICTING against main in site/app/diagram.css, site/components/Shot.tsx",
+        "baseRefName": "main",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "7deec5d050c5be93a3dc56d8ab83338833f3a3cf",
+        "headRefName": "synthetic-branch-007",
+        "labels": [],
+        "number": 942,
+        "openThreads": [],
+        "queue": { "kind": "not-queued" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 5, "status": "DIVERGED" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": {
+          "local": { "kind": "measured", "paths": ["site/app/diagram.css", "site/components/Shot.tsx"], "why": "" },
+          "mergeable": "CONFLICTING"
+        },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "act",
+          "verdict": "needs-owner-judgment",
+          "why": "a local merge into main could not resolve site/app/diagram.css, site/components/Shot.tsx — whether resolving that changes what this pull request DOES is yours to judge"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-20T00:36:45Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "main",
+          "chain": [942, 948, 953, 954],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 1,
+          "size": 4,
+          "stacked": false
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "pass", "why": "it is not a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          {
+            "id": "mergeable",
+            "verdict": "fail",
+            "why": "GitHub reports it CONFLICTING against main in site/app/diagram.css, site/components/Shot.tsx"
+          },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          { "id": "queue-available", "verdict": "pass", "why": "main has a merge queue" }
+        ],
+        "threads": [
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-19T23:17:05Z",
+            "lastCommentLine": "Synthetic review comment 001.",
+            "lastCommentLogin": "acme-owner",
+            "line": 112,
+            "openedAtIso": "2026-09-19T23:17:05Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 001.",
+            "path": "scripts/docs-shots.sh"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-19T23:17:05Z",
+            "lastCommentLine": "Synthetic review comment 002.",
+            "lastCommentLogin": "acme-owner",
+            "line": 85,
+            "openedAtIso": "2026-09-19T23:17:05Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 002.",
+            "path": "scripts/docs-shots.sh"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-19T23:17:05Z",
+            "lastCommentLine": "Synthetic review comment 003.",
+            "lastCommentLogin": "acme-owner",
+            "line": 66,
+            "openedAtIso": "2026-09-19T23:17:05Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 003.",
+            "path": "scripts/docs-shots.sh"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-19T23:17:05Z",
+            "lastCommentLine": "Synthetic review comment 004.",
+            "lastCommentLogin": "acme-owner",
+            "line": 40,
+            "openedAtIso": "2026-09-19T23:17:05Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 004.",
+            "path": "site/components/Shot.tsx"
+          }
+        ],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 007 about generated screenshots",
+        "updatedAtIso": "2026-09-20T00:36:45Z",
+        "url": "https://github.com/acme/slopweaver/pull/942"
+      },
+      {
+        "action": "conflicting",
+        "actionDetail": "GitHub reports it CONFLICTING against main in docs/docs-site.md",
+        "baseRefName": "main",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "eec1d91e21dadaf441af66ddf4290a7a86efbbf3",
+        "headRefName": "synthetic-branch-008",
+        "labels": [],
+        "number": 939,
+        "openThreads": [],
+        "queue": { "kind": "not-queued" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 12, "status": "DIVERGED" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": {
+          "local": { "kind": "measured", "paths": ["docs/docs-site.md"], "why": "" },
+          "mergeable": "CONFLICTING"
+        },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "act",
+          "verdict": "needs-owner-judgment",
+          "why": "a local merge into main could not resolve docs/docs-site.md — whether resolving that changes what this pull request DOES is yours to judge"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "unknown",
+          "asks": [],
+          "bounded": false,
+          "mentioned": "unknown",
+          "mentions": [],
+          "why": "the Slack corpus ends 2026-09-19T04:37:56.000Z but this pull request was active at 2026-09-19T23:17:08Z. Slack's own search collapses proximate matches, so only the corpus can carry an absence — refresh it"
+        },
+        "stack": {
+          "baseRefName": "main",
+          "chain": [939],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 1,
+          "size": 1,
+          "stacked": false
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "pass", "why": "it is not a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          {
+            "id": "mergeable",
+            "verdict": "fail",
+            "why": "GitHub reports it CONFLICTING against main in docs/docs-site.md"
+          },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          { "id": "queue-available", "verdict": "pass", "why": "main has a merge queue" }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 008 about operations documentation",
+        "updatedAtIso": "2026-09-19T23:17:08Z",
+        "url": "https://github.com/acme/slopweaver/pull/939"
+      },
+      {
+        "action": "draft",
+        "actionDetail": "it is still a draft",
+        "baseRefName": "main",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "0147e83d08e8d1e6675c70727a5e4ed36c185637",
+        "headRefName": "synthetic-branch-009",
+        "labels": [],
+        "number": 716,
+        "openThreads": [],
+        "queue": { "kind": "not-queued" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 225, "status": "DIVERGED" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": { "local": { "kind": "not-requested" }, "mergeable": "MERGEABLE" },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "outside-the-set",
+          "why": "it is still a draft — finishing one is real work, and none of the six words names it"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": {
+          "asked": "no",
+          "asks": [],
+          "bounded": true,
+          "mentioned": "yes",
+          "mentions": [
+            {
+              "association": "thread",
+              "atIso": "2026-09-16T01:41:51.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 001 <!subteam^S0SYN000001>",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 001 @synthetic-member-1",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [{ "id": "S0SYN000001", "span": { "end": 21, "start": 0, "text": "<!subteam^S0SYN000001" } }],
+              "messageKey": "C0SYN000003:1789522911.077619",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789522911077619",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["S0SYN000001"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:37:23.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 002",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 002",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789450643.050029",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789450643050029",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "linked",
+              "atIso": "2026-09-15T05:36:31.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "",
+              "authorId": "U0SYN000004",
+              "authorRole": "app",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 003",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789450591.418459",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789450591418459",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:23:24.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 004",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 004",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789449804.571369",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789449804571369",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:13:50.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 005 <!subteam^S0SYN000001>",
+              "authorId": "U0SYN000005",
+              "authorRole": "owner",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 005 @synthetic-member-1",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [
+                { "id": "S0SYN000001", "span": { "end": 38, "start": 17, "text": "<!subteam^S0SYN000001" } }
+              ],
+              "messageKey": "C0SYN000003:1789449230.227779",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789449230227779",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["S0SYN000001"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:12:35.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 006",
+              "authorId": "U0SYN000005",
+              "authorRole": "owner",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 006",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789449155.511889",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789449155511889",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:08:47.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 007",
+              "authorId": "U0SYN000005",
+              "authorRole": "owner",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 007",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789448927.320949",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789448927320949",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:05:14.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 008",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 008",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789448714.404329",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789448714404329",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:05:03.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 009",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 009",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789448703.289869",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789448703289869",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:04:49.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 010 <@U0SYN000005>",
+              "authorId": "U0SYN000004",
+              "authorRole": "app",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 010 @synthetic-member-1",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [{ "id": "U0SYN000005", "span": { "end": 103, "start": 89, "text": "<@U0SYN000005>" } }],
+              "messageKey": "C0SYN000003:1789448689.598879",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789448689598879",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["U0SYN000005"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T05:04:46.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 011 <@U0SYN000004>",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 011 @synthetic-member-1",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [{ "id": "U0SYN000004", "span": { "end": 70, "start": 56, "text": "<@U0SYN000004>" } }],
+              "messageKey": "C0SYN000003:1789448686.537389",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789448686537389",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["U0SYN000004"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T04:54:27.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 012 <@U0SYN000004> <@U0SYN000002>",
+              "authorId": "U0SYN000005",
+              "authorRole": "owner",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 012 @synthetic-member-1 @synthetic-member-2",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [
+                { "id": "U0SYN000004", "span": { "end": 46, "start": 32, "text": "<@U0SYN000004>" } },
+                { "id": "U0SYN000002", "span": { "end": 119, "start": 105, "text": "<@U0SYN000002>" } }
+              ],
+              "messageKey": "C0SYN000003:1789448067.688349",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789448067688349",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["U0SYN000004", "U0SYN000002"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T04:51:04.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 013",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 013",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789447864.262739",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789447864262739",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T04:50:31.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 014",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 014",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789447831.356729",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789447831356729",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T04:50:23.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 015",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 015",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789447823.208949",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789447823208949",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T04:50:16.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 016 <@U0SYN000005>",
+              "authorId": "U0SYN000004",
+              "authorRole": "app",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 016 @synthetic-member-1",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [{ "id": "U0SYN000005", "span": { "end": 103, "start": 89, "text": "<@U0SYN000005>" } }],
+              "messageKey": "C0SYN000003:1789447816.213269",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789447816213269",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["U0SYN000005"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T04:50:14.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 017 <@U0SYN000004>",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 017 @synthetic-member-1",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [{ "id": "U0SYN000004", "span": { "end": 70, "start": 56, "text": "<@U0SYN000004>" } }],
+              "messageKey": "C0SYN000003:1789447814.655289",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789447814655289",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["U0SYN000004"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T04:34:51.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "",
+              "authorId": "U0SYN000004",
+              "authorRole": "app",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 018",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [],
+              "messageKey": "C0SYN000003:1789446891.239169",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789446891239169",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": [],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T03:42:16.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 019 <@U0SYN000004>",
+              "authorId": "U0SYN000005",
+              "authorRole": "owner",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 019 @synthetic-member-1",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [{ "id": "U0SYN000004", "span": { "end": 48, "start": 34, "text": "<@U0SYN000004>" } }],
+              "messageKey": "C0SYN000003:1789443736.519609",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789443736519609",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["U0SYN000004"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            },
+            {
+              "association": "thread",
+              "atIso": "2026-09-15T03:39:49.000Z",
+              "authoredPrCount": 0,
+              "authoredText": "Synthetic message 020 <@U0SYN000005>",
+              "authorId": "U0SYN000002",
+              "authorRole": "other-human",
+              "channel": "#bot-sandbox",
+              "conversation": "channel",
+              "counterpartId": "",
+              "excerpt": "Synthetic message 020 @synthetic-member-1",
+              "firstLinkAt": -1,
+              "isDirectMessage": false,
+              "leg": "corpus",
+              "linkSpans": [],
+              "mentions": [{ "id": "U0SYN000005", "span": { "end": 14, "start": 0, "text": "<@U0SYN000005>" } }],
+              "messageKey": "C0SYN000003:1789443589.072669",
+              "permalink": "https://acme.slack.com/archives/C0SYN000003/p1789443589072669",
+              "prKey": "acme/slopweaver#716",
+              "quotedPrKeys": [],
+              "tagged": ["U0SYN000005"],
+              "threadKey": "C0SYN000003:1789435301.387519",
+              "threadPrKeys": [],
+              "versionsDisagree": false
+            }
+          ],
+          "why": ""
+        },
+        "stack": {
+          "baseRefName": "main",
+          "chain": [716],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 1,
+          "size": 1,
+          "stacked": false
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "fail", "why": "it is still a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          { "id": "mergeable", "verdict": "pass", "why": "it merges cleanly into main" },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          { "id": "queue-available", "verdict": "pass", "why": "main has a merge queue" }
+        ],
+        "threads": [],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 009 about access messaging",
+        "updatedAtIso": "2026-09-15T05:17:24Z",
+        "url": "https://github.com/acme/slopweaver/pull/716"
+      },
+      {
+        "action": "draft",
+        "actionDetail": "it is still a draft",
+        "baseRefName": "main",
+        "blockedOn": [],
+        "boardRow": {
+          "kind": "none-declared",
+          "why": "no handover row declares this branch — the join is a DECLARED `branch:`, so a row that named none is invisible here and this is not proof no row exists"
+        },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "5331167373c5ff8fc03f2cadff1488ee36f56cd3",
+        "headRefName": "synthetic-branch-010",
+        "labels": [],
+        "number": 667,
+        "openThreads": [],
+        "queue": { "kind": "not-queued" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 278, "status": "DIVERGED" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": {
+          "local": {
+            "kind": "measured",
+            "paths": [
+              "src/__tests__/unit/devLint/devLint.test.ts",
+              "src/devLint/devLint.ts",
+              "src/devLint/refusal/registry.ts"
+            ],
+            "why": ""
+          },
+          "mergeable": "CONFLICTING"
+        },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "outside-the-set",
+          "why": "it is still a draft — finishing one is real work, and none of the six words names it"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": { "asked": "no", "asks": [], "bounded": true, "mentioned": "no", "mentions": [], "why": "" },
+        "stack": {
+          "baseRefName": "main",
+          "chain": [667],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 1,
+          "size": 1,
+          "stacked": false
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "fail", "why": "it is still a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "10/10 passed, 0 failed, 0 pending" },
+          {
+            "id": "mergeable",
+            "verdict": "fail",
+            "why": "GitHub reports it CONFLICTING against main in src/__tests__/unit/devLint/devLint.test.ts, src/devLint/devLint.ts, src/devLint/refusal/registry.ts"
+          },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          { "id": "queue-available", "verdict": "pass", "why": "main has a merge queue" }
+        ],
+        "threads": [
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-14T03:52:09Z",
+            "lastCommentLine": "Synthetic review comment 005.",
+            "lastCommentLogin": "acme-owner",
+            "line": 88,
+            "openedAtIso": "2026-09-14T03:52:09Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 005.",
+            "path": "src/devLint/legacyVocabulary.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-14T03:52:09Z",
+            "lastCommentLine": "Synthetic review comment 006.",
+            "lastCommentLogin": "acme-owner",
+            "line": 108,
+            "openedAtIso": "2026-09-14T03:52:09Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 006.",
+            "path": "src/devLint/legacyVocabulary.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-14T03:52:09Z",
+            "lastCommentLine": "Synthetic review comment 007.",
+            "lastCommentLogin": "acme-owner",
+            "line": 8,
+            "openedAtIso": "2026-09-14T03:52:09Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 007.",
+            "path": "src/cli/router.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-14T03:52:09Z",
+            "lastCommentLine": "Synthetic review comment 008.",
+            "lastCommentLogin": "acme-owner",
+            "line": 35,
+            "openedAtIso": "2026-09-14T03:52:09Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 008.",
+            "path": "src/cli/catalog.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-14T03:52:09Z",
+            "lastCommentLine": "Synthetic review comment 009.",
+            "lastCommentLogin": "acme-owner",
+            "line": 940,
+            "openedAtIso": "2026-09-14T03:52:09Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 009.",
+            "path": "src/handover/doc.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-14T03:52:09Z",
+            "lastCommentLine": "Synthetic review comment 010.",
+            "lastCommentLogin": "acme-owner",
+            "line": 12,
+            "openedAtIso": "2026-09-14T03:52:09Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 010.",
+            "path": "src/supervisor/session.ts"
+          }
+        ],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 010 about terminology cleanup",
+        "updatedAtIso": "2026-09-14T04:52:41Z",
+        "url": "https://github.com/acme/slopweaver/pull/667"
+      },
+      {
+        "action": "draft",
+        "actionDetail": "it is still a draft",
+        "baseRefName": "main",
+        "blockedOn": [],
+        "boardRow": { "kind": "row", "slug": "half-kept-ledger-successor", "status": "ready" },
+        "ci": "green",
+        "codeRabbit": "none",
+        "codeRabbitDetail": "CodeRabbit has not posted on this pull request",
+        "failingChecks": [],
+        "headOid": "630109dcafe3125cf1b83c65ef6e83d04048d4d3",
+        "headRefName": "synthetic-branch-011",
+        "labels": [],
+        "number": 589,
+        "openThreads": [],
+        "queue": { "kind": "not-queued" },
+        "ready": false,
+        "repoSlug": "acme/slopweaver",
+        "baseDistance": { "kind": "read", "value": { "aheadBy": 1, "behindBy": 344, "status": "DIVERGED" } },
+        "bump": { "kind": "unknown", "why": "nobody has been asked, so there is nothing to bump" },
+        "checksRead": { "kind": "read" },
+        "checksTruncated": false,
+        "conflict": {
+          "local": {
+            "kind": "measured",
+            "paths": [
+              "skills/knowledge/SKILL.md",
+              "src/__tests__/unit/knowledge/store.test.ts",
+              "src/cli/commands/knowledge/core.ts",
+              "src/cli/commands/knowledge/list.ts",
+              "src/cli/commands/knowledge/record.ts",
+              "src/cli/manifests/knowledge.ts"
+            ],
+            "why": ""
+          },
+          "mergeable": "CONFLICTING"
+        },
+        "conversations": {
+          "codeRabbit": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 },
+          "humans": { "answeredOpen": 0, "awaitingUs": 0, "open": 0, "reviewerLastWord": 0, "resolved": 0 }
+        },
+        "dispatch": {
+          "kind": "outside-the-set",
+          "why": "it is still a draft — finishing one is real work, and none of the six words names it"
+        },
+        "residue": [
+          "GitHub retires a code-owner review request once it is satisfied, so an INDIVIDUAL owner who has already approved leaves no `asCodeOwner` request behind and is not distinguishable here from any other approver; a satisfied TEAM is, through the review's `onBehalfOf`"
+        ],
+        "slack": { "asked": "no", "asks": [], "bounded": true, "mentioned": "no", "mentions": [], "why": "" },
+        "stack": {
+          "baseRefName": "main",
+          "chain": [589],
+          "defaultBranch": "main",
+          "grounded": true,
+          "position": 1,
+          "size": 1,
+          "stacked": false
+        },
+        "reviewsTruncated": false,
+        "standingChangesRequested": [],
+        "tests": [
+          { "id": "undrafted", "verdict": "fail", "why": "it is still a draft" },
+          { "id": "ci-green", "verdict": "pass", "why": "6/6 passed, 0 failed, 0 pending" },
+          {
+            "id": "mergeable",
+            "verdict": "fail",
+            "why": "GitHub reports it CONFLICTING against main in skills/knowledge/SKILL.md, src/__tests__/unit/knowledge/store.test.ts, src/cli/commands/knowledge/core.ts, src/cli/commands/knowledge/list.ts, src/cli/commands/knowledge/record.ts, src/cli/manifests/knowledge.ts"
+          },
+          { "id": "threads-clear", "verdict": "pass", "why": "no reviewer thread is waiting on us" },
+          { "id": "codeowners-satisfied", "verdict": "pass", "why": "GitHub holds no open code-owner request on it" },
+          { "id": "queue-available", "verdict": "pass", "why": "main has a merge queue" }
+        ],
+        "threads": [
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-12T12:28:45Z",
+            "lastCommentLine": "Synthetic review comment 011.",
+            "lastCommentLogin": "acme-owner",
+            "line": 223,
+            "openedAtIso": "2026-09-12T12:28:45Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 011.",
+            "path": "src/knowledge/row.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-12T12:28:45Z",
+            "lastCommentLine": "Synthetic review comment 012.",
+            "lastCommentLogin": "acme-owner",
+            "line": 64,
+            "openedAtIso": "2026-09-12T12:28:45Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 012.",
+            "path": "src/knowledge/row.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-12T12:28:45Z",
+            "lastCommentLine": "Synthetic review comment 013.",
+            "lastCommentLogin": "acme-owner",
+            "line": 85,
+            "openedAtIso": "2026-09-12T12:28:45Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 013.",
+            "path": "src/knowledge/declared.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-12T12:28:45Z",
+            "lastCommentLine": "Synthetic review comment 014.",
+            "lastCommentLogin": "acme-owner",
+            "line": 241,
+            "openedAtIso": "2026-09-12T12:28:45Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 014.",
+            "path": "src/cli/commands/knowledge/list.ts"
+          },
+          {
+            "commentCount": 1,
+            "disposition": "ours-open",
+            "isOutdated": false,
+            "lastCommentAtIso": "2026-09-12T12:28:45Z",
+            "lastCommentLine": "Synthetic review comment 015.",
+            "lastCommentLogin": "acme-owner",
+            "line": 42,
+            "openedAtIso": "2026-09-12T12:28:45Z",
+            "openedByLogin": "acme-owner",
+            "openerLine": "Synthetic review comment 015.",
+            "path": "src/cli/commands/knowledge/list.ts"
+          }
+        ],
+        "threadsTruncated": false,
+        "title": "Synthetic pull request 011 about knowledge records",
+        "updatedAtIso": "2026-09-12T12:28:45Z",
+        "url": "https://github.com/acme/slopweaver/pull/589"
+      }
+    ],
+    "tally": {
+      "byAction": [
+        { "action": "draft", "count": 6 },
+        { "action": "conflicting", "count": 3 },
+        { "action": "press", "count": 1 },
+        { "action": "unknown", "count": 1 }
+      ],
+      "byDispatch": [
+        { "count": 2, "verdict": "needs-owner-judgment" },
+        { "count": 1, "verdict": "merge-now" },
+        { "count": 1, "verdict": "rebase-and-fix" }
+      ],
+      "ready": 1,
+      "total": 11
+    }
+  },
+  "observedAtIso": "2026-09-20T00:59:47Z",
+  "producer": "github landing",
+  "readingId": "2026-09-20T02:30:35.119Z-github-landing",
+  "recordedAtIso": "2026-09-20T02:30:35.119Z"
+}

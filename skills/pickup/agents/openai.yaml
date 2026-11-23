@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slopweaver Pickup"
+  short_description: "Resume durable Slopweaver runs in Codex"
+  default_prompt: "Use $pickup to rebuild the current Slopweaver run from its durable journal."

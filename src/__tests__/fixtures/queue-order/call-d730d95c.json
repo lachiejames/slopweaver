@@ -1,0 +1,38 @@
+{
+  "about": "The card set of console call d730d95c (19 Oct 2026 22:18Z), in the order the registers hand it over, deliberately not the order he ruled. Read by site/__tests__/unit/queueOrderReplay.test.ts (the page, the voice, its triage pass) and src/__tests__/unit/handover/queueOrderReplay.test.ts (the board's reconcile).",
+  "priorities": ["onboarding-flow", "iso-certification"],
+  "rows": [
+    { "blockedBy": [], "slug": "colleague-reply", "tags": [] },
+    {
+      "blockedBy": [],
+      "slug": "vanta-clears-3",
+      "tags": [
+        ["workstream", "iso-certification"],
+        ["priority", "p1"],
+        ["controls-resolved", "3"]
+      ]
+    },
+    { "blockedBy": [], "slug": "stale-p1", "tags": [["priority", "p1"]] },
+    {
+      "blockedBy": [],
+      "slug": "vanta-no-count",
+      "tags": [
+        ["workstream", "iso-certification"],
+        ["priority", "p1"]
+      ]
+    },
+    { "blockedBy": [], "slug": "blocks-vanta", "tags": [] },
+    {
+      "blockedBy": ["blocks-vanta"],
+      "slug": "vanta-clears-8",
+      "tags": [
+        ["workstream", "iso-certification"],
+        ["priority", "p1"],
+        ["controls-resolved", "8"]
+      ]
+    },
+    { "blockedBy": [], "slug": "blocks-nag", "tags": [] },
+    { "blockedBy": ["blocks-nag"], "slug": "nag-proposal", "tags": [["workstream", "onboarding-flow"]] }
+  ],
+  "ruled": ["blocks-nag", "blocks-vanta", "nag-proposal", "vanta-clears-8", "vanta-clears-3", "vanta-no-count"]
+}

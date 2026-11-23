@@ -1,0 +1,69 @@
+---
+title: Security and egress
+---
+
+import { EgressBoundary } from "../../components/diagrams/EgressBoundary";
+
+# Security and egress
+
+Everything runs on this machine. **The exceptions are stated here rather than buried.** Three reach
+**OpenAI**, on a ChatGPT plan: the `slopweaver codex` verbs send prompts, repository reads and review diffs,
+opt-in per invocation, and `slack draft record` sends a new as-me draft's conversation and your voice brief
+for a Codex comparison draft, unless the draft was approved at record, carries media or is Codex's own; the [console voice](/docs/console/call-widget) (`slopweaver talk`) sends what you say and
+what it reads to answer you, opt-in per session; and `slopweaver chatgpt conversation` reads back one chat you
+name. The store itself is always local: a URL naming another host is refused, with no escape hatch.
+`slopweaver store backup` uploads nothing: it writes an encrypted copy into directories the install names, a
+folder on this machine or a pinned external drive, and refuses a cloud address (`s3://`, `gs://`, `drive://`) as
+not built. The code checks only that a destination is a path: a folder something else carries off this machine,
+a mounted network share or a Dropbox or iCloud folder, takes the copy with it, and nothing checks for one.
+
+<EgressBoundary />
+
+## What crosses the boundary, and nothing else does
+
+| Crossing           | What goes out                                      | How it is bounded                                                                               |
+| ------------------ | -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| a provider write   | the rendered form                                  | through the door, journalled, refusable                                                         |
+| a provider read    | the query                                          | a read-only grant, or a client limited to GET and allowlisted search POSTs, with stated residue |
+| a Codex verb       | prompts, repository reads, review diffs            | opt-in per invocation, to OpenAI                                                                |
+| a draft comparison | an as-me draft's conversation, your voice brief    | a new as-me `slack draft record` with no approval or media that Codex did not write, to OpenAI  |
+| the console voice  | speech, and the files, rows and screen it reads    | opt-in per session, to OpenAI                                                                   |
+| a ChatGPT read     | the id of the one chat you name, and a page cursor | opt-in per invocation, to OpenAI                                                                |
+| a Claude session   | your prompts, and what the session reads to answer | the visible session you run, to Anthropic, on your own plan                                     |
+| a plan gauge       | a one-token probe (`claude gauge`)                 | to Anthropic, on your own plan                                                                  |
+
+Each request also carries the credential its destination issued you — for a ChatGPT read, the session headers
+you imported (`authorization`, `cookie`, `chatgpt-account-id`, `oai-did`, `user-agent`).
+
+Every local read verb — `store read`, `store cite`, `atlas <platform> read`, `knowledge recall`, `velocity` — spends no
+token, writes no record and reaches no network.
+
+## Secrets and names: two lines
+
+This repository is generic to any checkout. Nothing committed names a person, organisation, product,
+provider workspace or team key of the installation it runs for, and a test or an example uses a synthetic
+stand-in. An installation's own names resolve from `$SLOPWEAVER_HOME`, never from git.
+
+The gate (`src/hygiene/scan.ts` and `forbidden-identifiers`, in CI) draws both lines:
+
+- every leak class runs and prints its location, and a forbidden-identifier hit prints in a per-kind count,
+  never the match
+- a **CREDENTIAL** class exits non-zero
+- an **IDENTIFIER** — a real raw workspace id, or a hit on the forbidden-identifier rules — exits non-zero wherever
+  `IDENTIFIER_VERDICT`, the one switch, reads `refuse`, and prints and passes at `report`
+- a test or an example uses the synthetic organisation, `acme`
+
+The denylist is uncommitted, lives under `$SLOPWEAVER_HOME`, runs on `pre-push` only, and holds literal
+secrets no pattern can express — never a name. **Never weaken the gate.**
+
+## Porting from private sources
+
+Re-implement the **design** in this repository's idiom. Never lift and shift: quoting a source system's
+monitor title verbatim is the smell of a copy-paste, and it is the thing to catch yourself doing.
+
+## Redaction, where it is mechanical
+
+A replay fixture is redacted **by allowlist** — a string survives only when its key is one a replay reads,
+every provider id becomes a stable synthetic, and every absolute home path becomes a placeholder. The
+freeze then runs the hygiene gate over what it just built and **writes nothing if a single hit survives**.
+That is the shape to copy when a new artefact has to leave a session: refuse rather than redact-and-hope.

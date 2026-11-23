@@ -1,0 +1,1235 @@
+{
+  "entries": [
+    {
+      "lastRead": {
+        "atIso": "2026-09-18T23:48:51.986Z",
+        "headSha": "e1143ab04ad0f599b61377207f1de9424884c8f7",
+        "rollup": "FAILURE"
+      },
+      "number": 882,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T01:49:11.933Z",
+        "headSha": "1e6a1706a2c34bfbd8095560a2edaac9b98cd9e7",
+        "rollup": "FAILURE"
+      },
+      "number": 883,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T02:21:40.393Z",
+        "headSha": "63f8d539ddb10cbc02dd110426a8101352bd6c01",
+        "rollup": "SUCCESS"
+      },
+      "number": 885,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T04:24:54.216Z",
+        "headSha": "2c1fb38619a1cbcc6ac2b9e454e6611a28ac856e",
+        "rollup": "SUCCESS"
+      },
+      "number": 868,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:05:19.069Z",
+        "headSha": "db4a128857cd80168fe775f1edda121f2a7f4827",
+        "rollup": "SUCCESS"
+      },
+      "number": 1006,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T04:28:54.608Z",
+        "headSha": "69ec2fd261c563dd4b13c649da09cb4d1e8c47fd",
+        "rollup": "FAILURE"
+      },
+      "number": 886,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T04:23:48.471Z",
+        "headSha": "acc3a85b7ad6abd3973e57d16b7b949877d8d9ef",
+        "rollup": "FAILURE"
+      },
+      "number": 887,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T04:32:24.185Z",
+        "headSha": "2228bc9610e4e1a2bf3acb5eed6665bdb5bf6859",
+        "rollup": "SUCCESS"
+      },
+      "number": 888,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:34:01.385Z",
+        "headSha": "459ea8f2ac5ee5fdd50b249e8650684c58d8d9fc",
+        "rollup": "FAILURE"
+      },
+      "number": 16672,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:54:13.944Z",
+        "headSha": "296d6b3ca34d71230e2e36d35c54c958f0dc776a",
+        "rollup": "FAILURE"
+      },
+      "number": 889,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T08:20:23.720Z",
+        "headSha": "4be3fa76b4973c9ebabe19bba8b145fe9dba55a4",
+        "rollup": "PENDING"
+      },
+      "number": 16676,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T05:39:21.821Z",
+        "headSha": "b2240893a41a8ee14de408a9474da050692201e4",
+        "rollup": "PENDING"
+      },
+      "number": 890,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:20:59.952Z",
+        "headSha": "f6048a499b4ec87d6de7bc1d84b50e1cdba14c91",
+        "rollup": "PENDING"
+      },
+      "number": 17519,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:57:11.596Z",
+        "headSha": "cc6cda57f301b0d48094ede02abe27455e4acb43",
+        "rollup": "SUCCESS"
+      },
+      "number": 17554,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:05:28.197Z",
+        "headSha": "effad6c557d7b76130d1b9e1a3f149df26df32cd",
+        "rollup": "SUCCESS"
+      },
+      "number": 17552,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:35:21.002Z",
+        "headSha": "d10510518fa19dede2b7cbaf93a64b9438649e2d",
+        "rollup": "SUCCESS"
+      },
+      "number": 17546,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:35:27.721Z",
+        "headSha": "6a15efca3adddfa0b7254f2828e28c7c4c100808",
+        "rollup": "FAILURE"
+      },
+      "number": 17543,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T06:36:52.828Z",
+        "headSha": "6122c06cb13601b6ea6c7f2d267dd970aee05d48",
+        "rollup": "FAILURE"
+      },
+      "number": 17542,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T08:49:20.112Z",
+        "headSha": "81f76c874e00acd0160833feb164c616a5f4b675",
+        "rollup": "FAILURE"
+      },
+      "number": 891,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T22:55:52.335Z",
+        "headSha": "caf53c1639fec438df0edf419338497616ba2fe3",
+        "rollup": "PENDING"
+      },
+      "number": 16339,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T09:42:09.241Z",
+        "headSha": "d59dbaaf4f80510fa395553020f963bd30b0b626",
+        "rollup": "FAILURE"
+      },
+      "number": 17480,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T10:05:31.240Z",
+        "headSha": "c278199ef82142f593babf4c708d7a3f31a380ea",
+        "rollup": "FAILURE"
+      },
+      "number": 892,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T10:13:29.514Z",
+        "headSha": "c0388c5946eb80f4af0755c927a43fbc79418a41",
+        "rollup": "PENDING"
+      },
+      "number": 895,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T09:59:59.756Z",
+        "headSha": "b882504e64109c06a6e17e3d3c5164932e46e8a7",
+        "rollup": "SUCCESS"
+      },
+      "number": 17559,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T10:17:10.904Z",
+        "headSha": "ef2e2453315fe3ea8d86f88c788b66e9082d4d25",
+        "rollup": "FAILURE"
+      },
+      "number": 896,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T10:25:25.857Z",
+        "headSha": "14a5c5e813f235a49854b89e517a06926a3fb1e2",
+        "rollup": "FAILURE"
+      },
+      "number": 16367,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T10:27:01.361Z",
+        "headSha": "475dfdac4c8a8f1a33562856e24fb0c28e8866ce",
+        "rollup": "FAILURE"
+      },
+      "number": 897,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T10:20:40.340Z",
+        "headSha": "a338a35e3cd5728bc9bafaf876a413fb95c5cd9b",
+        "rollup": "SUCCESS"
+      },
+      "number": 16360,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T10:24:55.144Z",
+        "headSha": "7c5c20e4911ae2e19ee642f8060eedf3b7fe2c22",
+        "rollup": "PENDING"
+      },
+      "number": 17560,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T16:43:19.071Z",
+        "headSha": "10d71c5a383e4e628b8f54b1da8dbb888d2b04d1",
+        "rollup": "SUCCESS"
+      },
+      "number": 17561,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T11:48:53.417Z",
+        "headSha": "4f7a48a7c5eb3bed15d612f5b6ae7012b5de9f68",
+        "rollup": "SUCCESS"
+      },
+      "number": 898,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T13:17:34.891Z",
+        "headSha": "4d9dca32067326959bc8e79eda5d942409f71aa8",
+        "rollup": "PENDING"
+      },
+      "number": 899,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T13:00:20.512Z",
+        "headSha": "1dd2d51bda1fb04b6700d13ff8f344852ecc27ea",
+        "rollup": "PENDING"
+      },
+      "number": 900,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T13:30:31.728Z",
+        "headSha": "9c222295e723d3abee8b15a296dd3726fdebd6a4",
+        "rollup": "FAILURE"
+      },
+      "number": 901,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T13:29:38.988Z",
+        "headSha": "55e3183471d2033dd7825e41515543e2660101cd",
+        "rollup": "SUCCESS"
+      },
+      "number": 902,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T14:22:00.766Z",
+        "headSha": "0ace903c1062c7d57a8bf263dbc03226fa0d352e",
+        "rollup": "FAILURE"
+      },
+      "number": 903,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T15:16:08.017Z",
+        "headSha": "68f1439e2a19885df1143a5a7b9d6cdf5952cbdb",
+        "rollup": "SUCCESS"
+      },
+      "number": 904,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T15:18:03.143Z",
+        "headSha": "232576b97494653bf150f55815d15613b54184ab",
+        "rollup": "PENDING"
+      },
+      "number": 905,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T16:43:05.813Z",
+        "headSha": "8b70c1cbf6cf8862fc8d598d452d486b090b6022",
+        "rollup": "SUCCESS"
+      },
+      "number": 906,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T16:11:09.204Z",
+        "headSha": "911b17890ac80214ad76482a25d53d8ca7a8ecc9",
+        "rollup": "FAILURE"
+      },
+      "number": 907,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T17:17:48.115Z",
+        "headSha": "97a50058726260fc49527a6aef36afda5cb36c58",
+        "rollup": "FAILURE"
+      },
+      "number": 908,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T15:56:30.345Z",
+        "headSha": "ef9be6dbb3d5dc970428bd10d05d64c5200d2e78",
+        "rollup": "PENDING"
+      },
+      "number": 909,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T17:13:06.307Z",
+        "headSha": "33ddae8dc8fc56ba8c14278a43c30e299adc9665",
+        "rollup": "FAILURE"
+      },
+      "number": 910,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T17:55:06.423Z",
+        "headSha": "d0641636430797ad86f280ba1580017cb294d3f9",
+        "rollup": "FAILURE"
+      },
+      "number": 912,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T17:55:09.865Z",
+        "headSha": "51b3d3de6919e4025afe65defee928a9f07fd016",
+        "rollup": "FAILURE"
+      },
+      "number": 913,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T16:51:15.414Z",
+        "headSha": "bece7b64d21f9073050b270e0dd25c66c2fa391d",
+        "rollup": "SUCCESS"
+      },
+      "number": 914,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T17:35:38.662Z",
+        "headSha": "c4fead23caf4e9d3f6aa79ed6cf01a4989f8c2d2",
+        "rollup": "FAILURE"
+      },
+      "number": 915,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T18:37:29.957Z",
+        "headSha": "172965fe98db5829eef39ed4e71c144cc246e5e7",
+        "rollup": "FAILURE"
+      },
+      "number": 916,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T18:45:20.613Z",
+        "headSha": "e25928b93ec3eefd9aa778e00e0e57729b04bc39",
+        "rollup": "FAILURE"
+      },
+      "number": 917,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T18:22:36.982Z",
+        "headSha": "108cc1a81c28b6c8a36597cad42fd3587e7415ff",
+        "rollup": "SUCCESS"
+      },
+      "number": 918,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T18:19:38.957Z",
+        "headSha": "7cdb78d19ffa066c70cd7a9c3071b636a48c05d3",
+        "rollup": "PENDING"
+      },
+      "number": 919,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T19:31:56.329Z",
+        "headSha": "6d01a50bf781f93038ff7074f4475ae8b29e9266",
+        "rollup": "FAILURE"
+      },
+      "number": 920,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T20:06:26.301Z",
+        "headSha": "45f8d911c5241a112f1e8054b83fadb66f35730b",
+        "rollup": "FAILURE"
+      },
+      "number": 921,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T20:17:06.440Z",
+        "headSha": "031d3159ef416b5fdfacb1071024190e87774fdb",
+        "rollup": "FAILURE"
+      },
+      "number": 922,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T19:46:00.553Z",
+        "headSha": "bf514002250adda50eaba97251c784c0e9d7b449",
+        "rollup": "FAILURE"
+      },
+      "number": 923,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T20:09:12.086Z",
+        "headSha": "7db4246910f13510e50f181c758410f568ebcff7",
+        "rollup": "FAILURE"
+      },
+      "number": 924,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T20:10:31.189Z",
+        "headSha": "e375a060edb28c878c72ed7e635d5fbb108b2763",
+        "rollup": "FAILURE"
+      },
+      "number": 925,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T20:33:32.282Z",
+        "headSha": "dba469c286a0d6f2a00b6d9485281abeeb8678c9",
+        "rollup": "SUCCESS"
+      },
+      "number": 926,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T20:39:30.396Z",
+        "headSha": "cfd376b9c7df3ba4213be619582b8686d1803639",
+        "rollup": "PENDING"
+      },
+      "number": 927,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T20:22:51.161Z",
+        "headSha": "68a98a13c37e0a6d9bd0e638ffa5af2fe0e6d665",
+        "rollup": "FAILURE"
+      },
+      "number": 928,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T21:20:26.712Z",
+        "headSha": "992d89e2a4cac81d184ce17870b2eb3129442d40",
+        "rollup": "FAILURE"
+      },
+      "number": 929,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T21:59:06.734Z",
+        "headSha": "6101fa5e6869edc6c3925f3acda3655d313af2ff",
+        "rollup": "FAILURE"
+      },
+      "number": 930,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T21:33:00.719Z",
+        "headSha": "49a61fc4f9e96d1ca6b72b3d2b3f7207f46743b7",
+        "rollup": "FAILURE"
+      },
+      "number": 931,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T22:03:26.863Z",
+        "headSha": "f9a87062e71edd6eb762a581a8dcc24eeb1b2e10",
+        "rollup": "FAILURE"
+      },
+      "number": 932,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T22:30:04.089Z",
+        "headSha": "6d4ab2eb1bbc91e5c122fbe9b18a1e949a6fd97f",
+        "rollup": "FAILURE"
+      },
+      "number": 933,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T23:02:23.776Z",
+        "headSha": "810faba08abfae5859558b6d913d9b11b96e6334",
+        "rollup": "FAILURE"
+      },
+      "number": 934,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T23:01:38.030Z",
+        "headSha": "5668563299bf586dd98735e7817af79c05dd196d",
+        "rollup": "SUCCESS"
+      },
+      "number": 935,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:42:35.172Z",
+        "headSha": "34855369f9d32fe359fe82e35c23858c29f1d03e",
+        "rollup": "SUCCESS"
+      },
+      "number": 17564,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T23:31:03.450Z",
+        "headSha": "6569fbf82632c1ba55807bc71f6145176dbb6f92",
+        "rollup": "FAILURE"
+      },
+      "number": 936,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:19:15.351Z",
+        "headSha": "82dda37662cd74ca37026501dd257c6ed98ede89",
+        "rollup": "FAILURE"
+      },
+      "number": 937,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T23:18:49.599Z",
+        "headSha": "e72f0bbc6c0f0ae76e0675bb577a35ec4020096a",
+        "rollup": "FAILURE"
+      },
+      "number": 938,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T04:25:24.162Z",
+        "headSha": "87a3de5c5b57378c483b218c7df36ac00f162cea",
+        "rollup": "FAILURE"
+      },
+      "number": 939,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T23:36:45.695Z",
+        "headSha": "a606899df643fb482c4b71ae43a826e35911402c",
+        "rollup": "SUCCESS"
+      },
+      "number": 940,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T23:20:07.175Z",
+        "headSha": "a9037d4a18621bf7eedb874b62a5b587c6cf98d2",
+        "rollup": "FAILURE"
+      },
+      "number": 941,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T02:45:15.386Z",
+        "headSha": "b5e1967539e7872ab069b2989c4a3f1e1a549fd5",
+        "rollup": "FAILURE"
+      },
+      "number": 942,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T23:20:21.865Z",
+        "headSha": "f0b1f07a54206446d0eda16126a205c543323726",
+        "rollup": "PENDING"
+      },
+      "number": 17565,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T01:07:32.784Z",
+        "headSha": "0a02e1cdaee5abdec8553d1affc1e17e45306681",
+        "rollup": "FAILURE"
+      },
+      "number": 943,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:42:07.014Z",
+        "headSha": "eb3d8ecc9b0c89dbb31c81534fe8e4cd94cb5765",
+        "rollup": "SUCCESS"
+      },
+      "number": 944,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:08:34.788Z",
+        "headSha": "5c2447320568297c6d616cd1962bf7c9f20110cc",
+        "rollup": "FAILURE"
+      },
+      "number": 945,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:06:29.448Z",
+        "headSha": "dda33dfa7a3f00668c62d1e2e5fb07484d9b6d4c",
+        "rollup": "SUCCESS"
+      },
+      "number": 17566,
+      "repo": "acme/acme-admin",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-19T23:45:06.878Z",
+        "headSha": "e801b18a0099d593780c7a451ea02ac4f803ce83",
+        "rollup": "SUCCESS"
+      },
+      "number": 946,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:42:17.305Z",
+        "headSha": "18f3c60e03f14dbe3a167a6c8c27122468dcfb7d",
+        "rollup": "SUCCESS"
+      },
+      "number": 947,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:09:34.534Z",
+        "headSha": "4227bf0dc90ed108cb3fa9d9033d9b2ffcb41e1c",
+        "rollup": "FAILURE"
+      },
+      "number": 948,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:08:25.936Z",
+        "headSha": "d52a54c0f957f820040e8465a5d78f83a583525b",
+        "rollup": "PENDING"
+      },
+      "number": 950,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T01:38:23.901Z",
+        "headSha": "655357b8dcb01419712efea9a6ce98b4b320eba0",
+        "rollup": "FAILURE"
+      },
+      "number": 951,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:32:41.404Z",
+        "headSha": "f424ae05945306b8b05e1d1cabac2ce547308254",
+        "rollup": "FAILURE"
+      },
+      "number": 953,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:55:41.365Z",
+        "headSha": "8ca2d52e489745b0c39bb72f0663fd49a62625a9",
+        "rollup": "FAILURE"
+      },
+      "number": 954,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:45:06.514Z",
+        "headSha": "df7882469acc52c6b0066a1b19db4c7e3b687a2f",
+        "rollup": "FAILURE"
+      },
+      "number": 955,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T00:37:26.212Z",
+        "headSha": "2df81208c096ee2ecb7436a5910d4e1b7720b996",
+        "rollup": "FAILURE"
+      },
+      "number": 911,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T01:04:02.963Z",
+        "headSha": "0f26c2f7ef45ff18d0734a063cb15abcc37d515e",
+        "rollup": "FAILURE"
+      },
+      "number": 956,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T01:37:51.244Z",
+        "headSha": "55057b8858c9974791ad71b5b85f6d58c0ceb59d",
+        "rollup": "FAILURE"
+      },
+      "number": 957,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T02:10:12.228Z",
+        "headSha": "09728ba5b7ed0af1ebe44b5332608a930bb128ec",
+        "rollup": "FAILURE"
+      },
+      "number": 958,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T01:18:50.994Z",
+        "headSha": "4931e0a2c9de292b633050ace1ed2c126a4c5437",
+        "rollup": "FAILURE"
+      },
+      "number": 959,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T01:31:46.905Z",
+        "headSha": "f870839763fcd42aee6694ba887abdadd54c8895",
+        "rollup": "FAILURE"
+      },
+      "number": 716,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T01:36:44.820Z",
+        "headSha": "60522dc3d0915f7d46b353fe00e9e315e1e83fa5",
+        "rollup": "SUCCESS"
+      },
+      "number": 960,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:29:13.906Z",
+        "headSha": "8e1ab4263ad7413631774eb45a534e9b744945cc",
+        "rollup": "SUCCESS"
+      },
+      "number": 961,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T02:02:55.793Z",
+        "headSha": "05bdad28bb2e110ffb4087f560bb53dc58863cf7",
+        "rollup": "FAILURE"
+      },
+      "number": 962,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T02:11:50.431Z",
+        "headSha": "423ca59f5dfea13e4309aedae6175b02192e7650",
+        "rollup": "FAILURE"
+      },
+      "number": 963,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T02:17:20.270Z",
+        "headSha": "e445ce4246f5d38e64c18010f0f8d5bcfc336b35",
+        "rollup": "FAILURE"
+      },
+      "number": 964,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:17:35.192Z",
+        "headSha": "1e97133a123adfa7be037ebd5d36fcbabba150d8",
+        "rollup": "FAILURE"
+      },
+      "number": 965,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:02:15.443Z",
+        "headSha": "1b3f8e52e94672b53c2ca0a9a88e074f6501f5d7",
+        "rollup": "SUCCESS"
+      },
+      "number": 966,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T02:15:53.555Z",
+        "headSha": "0a6c5496b2c80dfa91748c59d64cefe121146a59",
+        "rollup": "SUCCESS"
+      },
+      "number": 967,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:37:55.926Z",
+        "headSha": "715950c149cfb8675f7c7ec752da067d47c3c45f",
+        "rollup": "FAILURE"
+      },
+      "number": 968,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:01:41.426Z",
+        "headSha": "19913235f77d6967fb9e28fdb5eabfeb6615eb40",
+        "rollup": "FAILURE"
+      },
+      "number": 970,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:05:48.728Z",
+        "headSha": "7794a0cf15fad107e9bffe230202929ecbaa59bb",
+        "rollup": "FAILURE"
+      },
+      "number": 969,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:25:39.673Z",
+        "headSha": "a9c8e499ee92bce39ebea08dee55f8d2d2a4025b",
+        "rollup": "FAILURE"
+      },
+      "number": 971,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T04:41:39.128Z",
+        "headSha": "3a80037209b2f2c58c24b544854939dfbaac2a79",
+        "rollup": "FAILURE"
+      },
+      "number": 972,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T04:34:03.807Z",
+        "headSha": "3563624af1390fc2c4bbdef0a5fb69f8a2a09b60",
+        "rollup": "FAILURE"
+      },
+      "number": 973,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:08:11.876Z",
+        "headSha": "ff4b1b579031a5948783c879cc4893e1d7037747",
+        "rollup": "FAILURE"
+      },
+      "number": 974,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T03:32:29.843Z",
+        "headSha": "21079465ca1a01a64a9e77205cb8a29814feb5ce",
+        "rollup": "FAILURE"
+      },
+      "number": 975,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:20:21.235Z",
+        "headSha": "7ba9dfd98aa6f82df9476157130c85f8bafe696c",
+        "rollup": "FAILURE"
+      },
+      "number": 976,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:06:44.455Z",
+        "headSha": "f61935c32a80892946eb77fe9ba8bce9568bf8e1",
+        "rollup": "FAILURE"
+      },
+      "number": 977,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T04:31:54.831Z",
+        "headSha": "0a7d3a2a56b7f67ad56e32319b352ad99712ead7",
+        "rollup": "PENDING"
+      },
+      "number": 979,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T04:22:38.628Z",
+        "headSha": "f04788fceb66ff5ed023779013749ca79443ea47",
+        "rollup": "FAILURE"
+      },
+      "number": 650,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T04:39:06.269Z",
+        "headSha": "628b904b83f15faa78b2d91b9fc40c890552796e",
+        "rollup": "FAILURE"
+      },
+      "number": 981,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:00:22.438Z",
+        "headSha": "6aeb47f4355c0cd1911a9d719ce94f1fdaeb5fff",
+        "rollup": "FAILURE"
+      },
+      "number": 982,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:09:46.043Z",
+        "headSha": "16a8a3a1149bf9089eb634b1c93a7d2945ee9a8e",
+        "rollup": "PENDING"
+      },
+      "number": 983,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:28:24.624Z",
+        "headSha": "a10ad544b47d7630e2e613611db53ed66434be2f",
+        "rollup": "FAILURE"
+      },
+      "number": 984,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:13:01.161Z",
+        "headSha": "3920e78ffd800bdc158e9952bb75418640e1de9c",
+        "rollup": "FAILURE"
+      },
+      "number": 660,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:13:07.878Z",
+        "headSha": "227a16c9eb021a8b394c9d3784ccdeaa08726b74",
+        "rollup": "FAILURE"
+      },
+      "number": 661,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:28:46.107Z",
+        "headSha": "192fee229dbf523dc589d60502b96dff648acc81",
+        "rollup": "FAILURE"
+      },
+      "number": 985,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:32:45.959Z",
+        "headSha": "6292137e2fbdd2eaefe2328de0bc2c506f63803e",
+        "rollup": "PENDING"
+      },
+      "number": 986,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    },
+    {
+      "lastRead": {
+        "atIso": "2026-09-20T05:32:15.356Z",
+        "headSha": "3d87d4f03281d05f2a063f297ec86c6811983b1b",
+        "rollup": "FAILURE"
+      },
+      "number": 987,
+      "repo": "acme/slopweaver",
+      "watchers": []
+    }
+  ],
+  "observedAtIso": "2026-09-20T05:34:11.986Z"
+}

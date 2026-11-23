@@ -1,0 +1,11 @@
+{
+  "id": "mon-recipe-vulnfix-digest-acme-a83c092f95d0bace",
+  "postedBy": "workspace:12",
+  "postedIso": "2026-09-26T09:59:00.000Z",
+  "unblocks": "vulnfix-digest-acme-admin — MISSED: 2 slot(s) of `30 9 * * *` went by unrun; it last ran 2026-09-24T09:30:04Z",
+  "what": "Seat a repair for vulnfix-digest-acme-admin — it stopped firing and no seat has it",
+  "witness": "slopweaver monitor check --fire",
+  "context": "work",
+  "stopsWork": true,
+  "url": "http://localhost:3000/queue?open=hand%3Amon-recipe-vulnfix-digest-acme-a83c092f95d0bace&context=work"
+}

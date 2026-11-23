@@ -1,0 +1,2 @@
+ALTER TABLE "singleton_register" DROP CONSTRAINT "singleton_register_known_id";--> statement-breakpoint
+ALTER TABLE "singleton_register" ADD CONSTRAINT "singleton_register_known_id" CHECK (id in ('browser-profile', 'gmail-triage-rules', 'stale-seat-notices', 'identity-roster', 'claude-plan-probes'));

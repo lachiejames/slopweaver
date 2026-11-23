@@ -1,0 +1,760 @@
+{
+  "pageId": "3f400000-0000-810f-9cf9-cac7fa562042",
+  "recordedAt": "2026-10-09T01:10:25.143Z",
+  "listings": {
+    "3f400000-0000-810f-9cf9-cac7fa562042": [
+      {
+        "object": "block",
+        "id": "afe4a8bb-a3ab-4b5b-abeb-c2fb21675672",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Fixture page for the nested read.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Fixture page for the nested read.",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "25fd7c79-df12-4dc4-acd2-9b8fe5d178a4",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "heading_2",
+        "heading_2": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Toggle heading",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Toggle heading",
+              "href": null
+            }
+          ],
+          "is_toggleable": true,
+          "color": "default"
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "368d6820-65cb-40d7-9796-59dcfbbfa580",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "toggle",
+        "toggle": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "A plain toggle",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "A plain toggle",
+              "href": null
+            }
+          ],
+          "color": "default"
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "56c4bae2-3138-4f73-b4bc-03d76a42022d",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "column_list",
+        "column_list": {},
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "b9f011f7-f585-42b7-85a8-3bfa4cfa1e69",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "callout",
+        "callout": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Callout line.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Callout line.",
+              "href": null
+            }
+          ],
+          "icon": {
+            "type": "emoji",
+            "emoji": "💡"
+          },
+          "color": "default"
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "b9e136d0-8cd1-404e-992d-86e87301e2f3",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "quote",
+        "quote": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Quote line.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Quote line.",
+              "href": null
+            }
+          ],
+          "color": "default"
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "1ca0a3a7-c9c8-4c6b-99d1-933c1d5d7fea",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "table",
+        "table": {
+          "table_width": 2,
+          "has_column_header": true,
+          "has_row_header": false
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "c4735481-57dd-47b7-9a39-6306870f514e",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "synced_block",
+        "synced_block": {
+          "synced_from": {
+            "type": "block_id",
+            "block_id": "7597f82e-35cf-4810-a7af-1d8f6af0160c"
+          }
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "3f400000-0000-81f4-a636-fd87704d2894",
+        "parent": {
+          "type": "page_id",
+          "page_id": "3f400000-0000-810f-9cf9-cac7fa562042"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "child_page",
+        "child_page": {
+          "title": "Fixture child page"
+        },
+        "archived": false
+      }
+    ],
+    "25fd7c79-df12-4dc4-acd2-9b8fe5d178a4": [
+      {
+        "object": "block",
+        "id": "5ef2b45e-8a23-41ce-9e83-86ecaf22d67b",
+        "parent": {
+          "type": "block_id",
+          "block_id": "25fd7c79-df12-4dc4-acd2-9b8fe5d178a4"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Inside the toggle heading.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Inside the toggle heading.",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      }
+    ],
+    "368d6820-65cb-40d7-9796-59dcfbbfa580": [
+      {
+        "object": "block",
+        "id": "138e9c99-3fbb-4d1e-82eb-90970a4b35a5",
+        "parent": {
+          "type": "block_id",
+          "block_id": "368d6820-65cb-40d7-9796-59dcfbbfa580"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Inside the plain toggle.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Inside the plain toggle.",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "52dc9581-a922-442f-8380-224c2183573b",
+        "parent": {
+          "type": "block_id",
+          "block_id": "368d6820-65cb-40d7-9796-59dcfbbfa580"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "toggle",
+        "toggle": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "A toggle inside it",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "A toggle inside it",
+              "href": null
+            }
+          ],
+          "color": "default"
+        },
+        "archived": false
+      }
+    ],
+    "56c4bae2-3138-4f73-b4bc-03d76a42022d": [
+      {
+        "object": "block",
+        "id": "54d1bb2f-35c2-4340-8394-30688facea81",
+        "parent": {
+          "type": "block_id",
+          "block_id": "56c4bae2-3138-4f73-b4bc-03d76a42022d"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "column",
+        "column": {},
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "fb3fb4e4-7e58-4085-a5e0-e8ebd92e2dc1",
+        "parent": {
+          "type": "block_id",
+          "block_id": "56c4bae2-3138-4f73-b4bc-03d76a42022d"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": true,
+        "in_trash": false,
+        "type": "column",
+        "column": {},
+        "archived": false
+      }
+    ],
+    "b9f011f7-f585-42b7-85a8-3bfa4cfa1e69": [
+      {
+        "object": "block",
+        "id": "b01ddcaf-64eb-4039-8aa3-b3107a721e4e",
+        "parent": {
+          "type": "block_id",
+          "block_id": "b9f011f7-f585-42b7-85a8-3bfa4cfa1e69"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Callout child paragraph.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Callout child paragraph.",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      }
+    ],
+    "b9e136d0-8cd1-404e-992d-86e87301e2f3": [
+      {
+        "object": "block",
+        "id": "e8cb646a-3b1c-48e7-a7fb-319bf324638f",
+        "parent": {
+          "type": "block_id",
+          "block_id": "b9e136d0-8cd1-404e-992d-86e87301e2f3"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Quote child paragraph.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Quote child paragraph.",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      }
+    ],
+    "1ca0a3a7-c9c8-4c6b-99d1-933c1d5d7fea": [
+      {
+        "object": "block",
+        "id": "65e2435a-98d8-4f09-8592-04d057273f05",
+        "parent": {
+          "type": "block_id",
+          "block_id": "1ca0a3a7-c9c8-4c6b-99d1-933c1d5d7fea"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "table_row",
+        "table_row": {
+          "cells": [
+            [
+              {
+                "type": "text",
+                "text": {
+                  "content": "Head one",
+                  "link": null
+                },
+                "annotations": {
+                  "bold": false,
+                  "italic": false,
+                  "strikethrough": false,
+                  "underline": false,
+                  "code": false,
+                  "color": "default"
+                },
+                "plain_text": "Head one",
+                "href": null
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": {
+                  "content": "Head two",
+                  "link": null
+                },
+                "annotations": {
+                  "bold": false,
+                  "italic": false,
+                  "strikethrough": false,
+                  "underline": false,
+                  "code": false,
+                  "color": "default"
+                },
+                "plain_text": "Head two",
+                "href": null
+              }
+            ]
+          ]
+        },
+        "archived": false
+      },
+      {
+        "object": "block",
+        "id": "77bf3aba-a55c-4af7-b68e-08f3eec0f8e8",
+        "parent": {
+          "type": "block_id",
+          "block_id": "1ca0a3a7-c9c8-4c6b-99d1-933c1d5d7fea"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "table_row",
+        "table_row": {
+          "cells": [
+            [
+              {
+                "type": "text",
+                "text": {
+                  "content": "Cell a",
+                  "link": null
+                },
+                "annotations": {
+                  "bold": false,
+                  "italic": false,
+                  "strikethrough": false,
+                  "underline": false,
+                  "code": false,
+                  "color": "default"
+                },
+                "plain_text": "Cell a",
+                "href": null
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": {
+                  "content": "Cell b",
+                  "link": null
+                },
+                "annotations": {
+                  "bold": false,
+                  "italic": false,
+                  "strikethrough": false,
+                  "underline": false,
+                  "code": false,
+                  "color": "default"
+                },
+                "plain_text": "Cell b",
+                "href": null
+              }
+            ]
+          ]
+        },
+        "archived": false
+      }
+    ],
+    "c4735481-57dd-47b7-9a39-6306870f514e": [],
+    "7597f82e-35cf-4810-a7af-1d8f6af0160c": [
+      {
+        "object": "block",
+        "id": "13cd25e1-0b94-42ef-a795-d7bd8fbf5485",
+        "parent": {
+          "type": "block_id",
+          "block_id": "7597f82e-35cf-4810-a7af-1d8f6af0160c"
+        },
+        "created_time": "2026-10-09T01:02:00.000Z",
+        "last_edited_time": "2026-10-09T01:02:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "synced original line",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "synced original line",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      }
+    ],
+    "52dc9581-a922-442f-8380-224c2183573b": [
+      {
+        "object": "block",
+        "id": "2dc2009e-f60d-484f-8d40-d2cb7279fc79",
+        "parent": {
+          "type": "block_id",
+          "block_id": "52dc9581-a922-442f-8380-224c2183573b"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Two levels down.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Two levels down.",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      }
+    ],
+    "54d1bb2f-35c2-4340-8394-30688facea81": [
+      {
+        "object": "block",
+        "id": "a8a88114-fea5-45a5-aeba-ce468293ea9d",
+        "parent": {
+          "type": "block_id",
+          "block_id": "54d1bb2f-35c2-4340-8394-30688facea81"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Left column.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Left column.",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      }
+    ],
+    "fb3fb4e4-7e58-4085-a5e0-e8ebd92e2dc1": [
+      {
+        "object": "block",
+        "id": "fb90188b-305e-418c-a178-6ea6ea759b59",
+        "parent": {
+          "type": "block_id",
+          "block_id": "fb3fb4e4-7e58-4085-a5e0-e8ebd92e2dc1"
+        },
+        "created_time": "2026-10-09T01:09:00.000Z",
+        "last_edited_time": "2026-10-09T01:09:00.000Z",
+        "has_children": false,
+        "in_trash": false,
+        "type": "paragraph",
+        "paragraph": {
+          "rich_text": [
+            {
+              "type": "text",
+              "text": {
+                "content": "Right column.",
+                "link": null
+              },
+              "annotations": {
+                "bold": false,
+                "italic": false,
+                "strikethrough": false,
+                "underline": false,
+                "code": false,
+                "color": "default"
+              },
+              "plain_text": "Right column.",
+              "href": null
+            }
+          ],
+          "icon": null,
+          "color": "default"
+        },
+        "archived": false
+      }
+    ]
+  }
+}

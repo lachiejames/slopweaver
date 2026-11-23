@@ -1,0 +1,50 @@
+---
+title: The verb surface
+---
+
+import { VerbSurface } from "../../components/diagrams/VerbSurface";
+import { VerbCatalog } from "../../components/live/VerbCatalog";
+
+# The verb surface
+
+Everything this system can do is a `slopweaver <noun> <verb>`. Not a script, not a raw `gh`, not an MCP
+tool, not a hand-driven browser — **one door**, so every provider read and write passes one place that can
+refuse it, record it and be tested.
+
+<VerbSurface />
+
+## The whole list, read off this machine
+
+The table below is **not transcribed into this page**. It is `slopweaver catalog --json`, run on the machine
+serving the site, at the moment you loaded it — so a verb added this morning is in it, and a verb that was
+renamed cannot linger here as a confident lie.
+
+Two dispositions are carried through from the catalog itself, because they are what a reader most needs
+before running something they just found:
+
+- **writes** — the command performs an external write. It goes through the door's write categories and lands
+  in the ledger.
+- **opens work** — it can create a Linear issue, a pull request or a board row on your behalf.
+
+<VerbCatalog />
+
+## Reading it in the terminal instead
+
+```bash
+slopweaver catalog                 # the same surface, grouped by noun
+slopweaver catalog --json          # what this page renders
+slopweaver <noun> --help           # one noun's verbs
+slopweaver <noun> <verb> --help    # the flags, and what the verb refuses
+```
+
+## Why a verb rather than a script
+
+Four properties fall out of the choice, and each is the reason a shell line was not good enough:
+
+- **It can refuse.** A policy refusal has a shape — what caught it, legitimate exceptions, the escape hatch,
+  and an instruction to use judgement. A `curl` cannot refuse anything.
+- **It is typed and tested.** Every verb is TypeScript under `src/cli/commands/`, with a unit lane over its
+  pure core.
+- **It is recorded.** External writes land in the door ledger, so "what did the fleet do to the org" is a
+  query rather than an archaeology exercise.
+- **It is discoverable.** The page you are reading exists because the surface can describe itself.

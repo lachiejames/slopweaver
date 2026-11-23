@@ -1,0 +1,120 @@
+---
+title: Codebase atlas
+---
+
+import { CodebaseMap } from "../../components/diagrams/CodebaseMap";
+import { ModuleLayout } from "../../components/diagrams/ModuleLayout";
+import { CodebaseAtlas } from "../../components/live/CodebaseAtlas";
+import { CodebaseHealth } from "../../components/live/CodebaseHealth";
+import { MemoryHygiene, StoreShare } from "../../components/live/StoreState";
+
+# Codebase atlas
+
+Which code lives where **and what state it is in**, derived from this checkout rather than transcribed into a
+table somebody has to remember to update. The page this replaced listed nine trees by hand, and had no way of
+noticing the rest; every count here is derived, so nobody has to keep it true.
+
+Two halves, and the split is deliberate. **Where** code lives is the tree table further down. **What state**
+it is in is the section directly below, because that is the half you can act on — and it opens on a ranked
+list rather than on a wall of numbers, so the first thing on the page is work.
+
+## What to fix first
+
+Ranked by blast radius: how many files or sites a change would touch, not how easy it would be. Every row
+carries the command that recomputes it, so no number here has to be taken on trust.
+
+<CodebaseHealth />
+
+<CodebaseMap />
+
+## Every tree, read off this machine
+
+Each row is walked at the moment you load the page. The tree list, the module counts, the entry verbs, the
+area rule and the import edges are all derived; only the one-line description of what lives in a tree is
+written down, in `src/canon/codebaseAtlas.ts`, and a unit test fails when a blurb names a tree that is gone
+or a tree arrives with no blurb. That split is the whole design: a list rots, a sentence about a subsystem
+does not.
+
+<CodebaseAtlas />
+
+## How it is regenerated
+
+```bash
+slopweaver catalog trees          # the table
+slopweaver catalog trees --json   # the same reading, machine-shaped
+```
+
+There is nothing to run on a schedule and nothing to regenerate into a file. The verb walks every non-test
+`.ts` module under `src/`, reads each one's import specifiers, resolves them to a tree, and folds the result;
+the page above runs exactly that verb. A tree added this morning is in the table, and a renamed one cannot
+linger in it.
+
+Two things the verb deliberately does not do. It counts **one hop** rather than transitive reach, because
+nearly everything reaches `src/lib` and through it everything reaches everything within three hops, so a
+transitive answer would be one large blob. And it reads specifiers as text with comment lines stripped, so a
+path named in a comment never mints an edge no code creates.
+
+## The one edge that runs backwards
+
+`src/lib/sameDirectory.ts` imports `src/worktree/location.ts`, and `src/worktree/location.ts` imports
+`src/lib/result.ts` straight back. That is a cycle between the shared floor and a subsystem standing on it,
+and nothing in canon had written it down. The atlas found it the first time it ran, which is the argument for
+deriving the picture rather than describing it.
+
+## Pure core, effectful shell
+
+The pattern every module follows, and the one that makes the testing rules possible at all: **put the logic
+in a pure function, confine I/O to a thin edge.** A verb is usually three files — the argv parse, the pure
+core, and the printer — and it is the core that the unit lane tests with no mocks at all. The atlas itself is
+built that way: `src/canon/codebaseAtlas.ts` is a fold over stated inputs, and `src/cli/commands/catalog/`
+is the only part of it that touches the disk.
+
+<ModuleLayout />
+
+## `#lib/…`
+
+`package.json` declares a subpath import for `src/lib/`, so new code reaches it by `#lib/result.js` rather
+than by counting `../`. Most of the tree is still relative and converting it is a follow-up; this is prose
+rather than a gate for exactly that reason. The sharing row in the table above is that conversion's
+denominator, read live.
+
+## Two test signals, and why neither one is called coverage
+
+The health section reports **reached by a test** and **mirrored** separately, and refuses to blend them,
+because they are different claims and each is wrong on its own.
+
+**Reached by a test** resolves every import specifier in every file under `src/__tests__/` and asks which
+modules they land on. It is the signal the ranking uses. It over-counts: a module imported only to build a
+fixture is counted as reached.
+
+**Mirrored** asks whether `src/__tests__/unit/<path>.test.ts` exists for `src/<path>.ts`. It is the only
+signal that can see a `*.test.ts` placed next to its source, which the unit lane silently never collects —
+and it cries wolf as a ranking key. `src/devLint/coverageFloor.ts` records in its own header that its
+functions are deliberately tested through a sibling's test file, so the mirror calls it untested and is
+wrong. It is reported beside the import signal rather than used to propose work.
+
+Neither is line coverage. A repo that called either of them "coverage" would be quoting a number nobody
+measured.
+
+## What still sits under `~/.slopweaver`
+
+The store is the destination; the home is where records are written first. This says which kinds have made
+the trip.
+
+<StoreShare />
+
+## How long since the last memory hygiene pass
+
+<MemoryHygiene />
+
+## Regenerating the state half
+
+```bash
+slopweaver catalog health          # the ranked list and every table above it
+slopweaver catalog health --json   # the same reading, machine-shaped
+slopweaver store share --json      # the home-versus-store table
+slopweaver memory passes --json    # the hygiene ledger's own answer
+```
+
+Nothing here is generated into a file or run on a schedule. Each section runs its verb when the page opens,
+on the read-once lane — a whole-tree walk on a timer is a tile that is usually showing you the last answer.

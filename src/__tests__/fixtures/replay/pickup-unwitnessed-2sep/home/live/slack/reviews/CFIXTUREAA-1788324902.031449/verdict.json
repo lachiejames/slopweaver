@@ -1,0 +1,87 @@
+{
+  "answerDigest": "sha256:2410aa500b9e163bcac26fc382e472b3c2951aea6f51957403b1b752e240b1d1",
+  "authorSession": "[REDACTED]",
+  "claims": [
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    },
+    {
+      "evidence": "[REDACTED]",
+      "impact": "[REDACTED]",
+      "support": "[REDACTED]",
+      "text": "[REDACTED]"
+    }
+  ],
+  "outcome": "[REDACTED]",
+  "reviewerSession": "[REDACTED]",
+  "schemaVersion": 1
+}

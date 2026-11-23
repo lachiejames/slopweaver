@@ -1,0 +1,18 @@
+{
+  "author": {
+    "name": "Slopweaver"
+  },
+  "description": "Fork it, live in it, and it becomes yours: Codex and Claude Code agents on your own machine, kept in step with you through a Queue, briefings and every correction you make.",
+  "hooks": ["./hooks/hooks.json", "./hooks/codex-hooks.json"],
+  "interface": {
+    "capabilities": ["Interactive", "Write"],
+    "category": "Productivity",
+    "defaultPrompt": "Use Slopweaver to investigate this from the local world model and act through its typed doors.",
+    "developerName": "Slopweaver",
+    "displayName": "Slopweaver",
+    "longDescription": "Slopweaver gives Codex a supervisor that routes work to visible sessions, local handovers, a local corpus to cite, and typed doors to forty integrations; a Slack tag is one way in.",
+    "shortDescription": "Operate Slopweaver safely from Codex."
+  },
+  "name": "slopweaver",
+  "skills": "./skills/"
+}

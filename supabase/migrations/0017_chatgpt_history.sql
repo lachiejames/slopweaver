@@ -1,0 +1,12 @@
+-- Widening `content_source` with `chatgpt` and `container_kind` with `chat`.
+--
+-- The two enum-widening statements drizzle-kit generated here have been MOVED into the apply loop's
+-- post-migration phase (`enumValueStatements`, src/store/policies.ts), which runs each one outside the
+-- migrator's single transaction and idempotently. `migrate()` wraps every pending migration in one
+-- transaction, and Postgres refuses to let a later statement in that transaction use a label the same
+-- transaction introduced — the class the `drizzle-migrations` safety gate refuses outright, and whose own
+-- header names moving the statement into the apply loop as the way through.
+--
+-- The snapshot beside this file still records the widened vocabulary, so drizzle-kit will not emit these
+-- statements again, and the apply loop applies every declared label after every migration whether the type
+-- was created carrying it or gained it later. This file is intentionally a no-op.

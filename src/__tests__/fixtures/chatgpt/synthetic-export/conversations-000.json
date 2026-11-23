@@ -1,0 +1,270 @@
+[
+  {
+    "title": "Tomatoes for a Melbourne garden",
+    "create_time": 1790000000.25,
+    "update_time": 1790000400.5,
+    "current_node": "a-r2",
+    "conversation_id": "a0000100-0000-4000-8000-000000000107",
+    "id": "a0000100-0000-4000-8000-000000000107",
+    "default_model_slug": "gpt-5",
+    "is_archived": false,
+    "mapping": {
+      "a-root": { "id": "a-root", "message": null, "parent": null, "children": ["a-sys"] },
+      "a-sys": {
+        "id": "a-sys",
+        "message": {
+          "id": "a-sys",
+          "author": { "role": "system", "name": null, "metadata": {} },
+          "create_time": null,
+          "content": { "content_type": "text", "parts": [""] },
+          "status": "finished_successfully",
+          "metadata": { "is_visually_hidden_from_conversation": true },
+          "recipient": "all"
+        },
+        "parent": "a-root",
+        "children": ["a-u1"]
+      },
+      "a-u1": {
+        "id": "a-u1",
+        "message": {
+          "id": "a-u1",
+          "author": { "role": "user", "name": null, "metadata": {} },
+          "create_time": 1790000010.0,
+          "content": { "content_type": "text", "parts": ["Which tomato varieties grow well in a Melbourne backyard?"] },
+          "status": "finished_successfully",
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "a-sys",
+        "children": ["a-r1-old", "a-r1"]
+      },
+      "a-r1-old": {
+        "id": "a-r1-old",
+        "message": {
+          "id": "a-r1-old",
+          "author": { "role": "assistant", "name": null, "metadata": {} },
+          "create_time": 1790000020.0,
+          "content": { "content_type": "text", "parts": ["Try Grosse Lisse and Tommy Toe."] },
+          "status": "finished_successfully",
+          "metadata": { "model_slug": "gpt-5" },
+          "recipient": "all"
+        },
+        "parent": "a-u1",
+        "children": []
+      },
+      "a-r1": {
+        "id": "a-r1",
+        "message": {
+          "id": "a-r1",
+          "author": { "role": "assistant", "name": null, "metadata": {} },
+          "create_time": 1790000030.0,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Grosse Lisse, Tommy Toe and Black Russian all cope with Melbourne's swings. Plant after the Cup."
+            ]
+          },
+          "status": "finished_successfully",
+          "metadata": { "model_slug": "gpt-5" },
+          "recipient": "all"
+        },
+        "parent": "a-u1",
+        "children": ["a-u2"]
+      },
+      "a-u2": {
+        "id": "a-u2",
+        "message": {
+          "id": "a-u2",
+          "author": { "role": "user", "name": null, "metadata": {} },
+          "create_time": 1790000300.0,
+          "content": {
+            "content_type": "multimodal_text",
+            "parts": [
+              {
+                "content_type": "audio_transcription",
+                "text": "And how often should I water them in summer?",
+                "direction": "in"
+              },
+              {
+                "content_type": "audio_asset_pointer",
+                "asset_pointer": "sediment://file_synthetic_audio_in",
+                "size_bytes": 1024
+              }
+            ]
+          },
+          "status": "finished_successfully",
+          "metadata": { "voice_mode_message": true },
+          "recipient": "all"
+        },
+        "parent": "a-r1",
+        "children": ["a-r2"]
+      },
+      "a-r2": {
+        "id": "a-r2",
+        "message": {
+          "id": "a-r2",
+          "author": { "role": "assistant", "name": null, "metadata": {} },
+          "create_time": 1790000310.0,
+          "content": {
+            "content_type": "multimodal_text",
+            "parts": [
+              {
+                "content_type": "audio_transcription",
+                "text": "Deeply, every two to three days, more in a heatwave.",
+                "direction": "out"
+              },
+              {
+                "content_type": "audio_asset_pointer",
+                "asset_pointer": "sediment://file_synthetic_audio_out",
+                "size_bytes": 2048
+              }
+            ]
+          },
+          "status": "finished_successfully",
+          "metadata": { "model_slug": "gpt-5", "voice_mode_message": true },
+          "recipient": "all"
+        },
+        "parent": "a-u2",
+        "children": []
+      }
+    }
+  },
+  {
+    "title": "Parse a CSV in TypeScript",
+    "create_time": 1790100000.0,
+    "update_time": 1790100200.0,
+    "current_node": "b-r2",
+    "conversation_id": "a0000100-0000-4000-8000-000000000108",
+    "id": "a0000100-0000-4000-8000-000000000108",
+    "mapping": {
+      "b-root": { "id": "b-root", "message": null, "parent": null, "children": ["b-ctx"] },
+      "b-ctx": {
+        "id": "b-ctx",
+        "message": {
+          "id": "b-ctx",
+          "author": { "role": "user", "name": null, "metadata": {} },
+          "create_time": null,
+          "content": {
+            "content_type": "user_editable_context",
+            "user_profile": "Synthetic profile.",
+            "user_instructions": "Be brief."
+          },
+          "status": "finished_successfully",
+          "metadata": { "is_visually_hidden_from_conversation": true },
+          "recipient": "all"
+        },
+        "parent": "b-root",
+        "children": ["b-u1"]
+      },
+      "b-u1": {
+        "id": "b-u1",
+        "message": {
+          "id": "b-u1",
+          "author": { "role": "user", "name": null, "metadata": {} },
+          "create_time": 1790100010.0,
+          "content": {
+            "content_type": "multimodal_text",
+            "parts": [
+              {
+                "content_type": "image_asset_pointer",
+                "asset_pointer": "file-service://file-synthetic-image",
+                "width": 800,
+                "height": 600
+              },
+              "Here is a screenshot of the CSV. How do I parse it in TypeScript? See #42."
+            ]
+          },
+          "status": "finished_successfully",
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "b-ctx",
+        "children": ["b-call"]
+      },
+      "b-call": {
+        "id": "b-call",
+        "message": {
+          "id": "b-call",
+          "author": { "role": "assistant", "name": null, "metadata": {} },
+          "create_time": 1790100020.0,
+          "content": {
+            "content_type": "code",
+            "language": "unknown",
+            "text": "import pandas as pd\npd.read_csv('a.csv')"
+          },
+          "status": "finished_successfully",
+          "metadata": { "model_slug": "gpt-5" },
+          "recipient": "python"
+        },
+        "parent": "b-u1",
+        "children": ["b-tool"]
+      },
+      "b-tool": {
+        "id": "b-tool",
+        "message": {
+          "id": "b-tool",
+          "author": { "role": "tool", "name": "python", "metadata": {} },
+          "create_time": 1790100025.0,
+          "content": { "content_type": "execution_output", "text": "   a  b\n0  1  2" },
+          "status": "finished_successfully",
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "b-call",
+        "children": ["b-think"]
+      },
+      "b-think": {
+        "id": "b-think",
+        "message": {
+          "id": "b-think",
+          "author": { "role": "assistant", "name": null, "metadata": {} },
+          "create_time": 1790100030.0,
+          "content": {
+            "content_type": "thoughts",
+            "thoughts": [{ "summary": "Choosing a parser", "content": "Synthetic." }]
+          },
+          "status": "finished_successfully",
+          "metadata": { "model_slug": "gpt-5" },
+          "recipient": "all"
+        },
+        "parent": "b-tool",
+        "children": ["b-r1"]
+      },
+      "b-r1": {
+        "id": "b-r1",
+        "message": {
+          "id": "b-r1",
+          "author": { "role": "assistant", "name": null, "metadata": {} },
+          "create_time": 1790100040.0,
+          "content": {
+            "content_type": "code",
+            "language": "typescript",
+            "text": "const rows = text.split(\"\\n\").map((line) => line.split(\",\"));\n"
+          },
+          "status": "finished_successfully",
+          "metadata": { "model_slug": "gpt-5" },
+          "recipient": "all"
+        },
+        "parent": "b-think",
+        "children": ["b-r2"]
+      },
+      "b-r2": {
+        "id": "b-r2",
+        "message": {
+          "id": "b-r2",
+          "author": { "role": "assistant", "name": null, "metadata": {} },
+          "create_time": 1790100050.0,
+          "content": {
+            "content_type": "text",
+            "parts": ["That splits naively; reach for a real parser once a field can hold a comma."]
+          },
+          "status": "finished_successfully",
+          "metadata": { "model_slug": "gpt-5" },
+          "recipient": "all"
+        },
+        "parent": "b-r1",
+        "children": []
+      }
+    }
+  }
+]

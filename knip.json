@@ -1,0 +1,33 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "hooks/pretooluse.ts",
+    "src/**/*.entry.ts",
+    "eval/*.ts",
+    "src/cli/index.ts",
+    "src/admit/mainCheckoutCommitGuardCli.ts",
+    "src/admit/prePushWorkingTreeCli.ts",
+    "src/checkouts/refMoveInstallCli.ts",
+    "config/playwright/console.ts",
+    "config/playwright/capture.ts",
+    "src/__tests__/e2e/**/*.spec.ts",
+    "src/__tests__/e2e/capture/*.capture.ts",
+    "src/__tests__/e2e/fixtures/globalSetup.ts",
+    "src/__tests__/e2e/fixtures/noSkipReporter.ts"
+  ],
+  "ignoreBinaries": ["cmux", "codex", "du", "ffmpeg", "ffprobe", "mkfifo", "ssh-keygen", "tclsh", "top", "vhs"],
+  "ignoreDependencies": [
+    "@vitest/coverage-custom",
+    "esbuild",
+    "oxlint",
+    "oxlint-tsgolint",
+    "playwright-core",
+    "react",
+    "xero-node"
+  ],
+  "ignoreExportsUsedInFile": false,
+  "project": ["src/**/*.ts", "hooks/**/*.ts", "eval/**/*.ts"],
+  "rules": {
+    "duplicates": "off"
+  }
+}

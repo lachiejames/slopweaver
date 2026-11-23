@@ -1,0 +1,64 @@
+<div class="eyebrow">
+  supervisor ws:598 (handoff-9012, opus, pinned 23:57) · last refreshed 2026-09-01 19:07:42 AEST · ready for review
+  2026-09-01 19:12:03 AEST · refreshed every sweep
+</div>
+<h1>Fleet Briefing</h1>
+<h2>react now</h2>
+<div class="need">
+  <div class="q">
+    1. the progress card in Slack: should a background ticker rewrite it every 90 seconds, inside the collapsible plan
+    row you already chose (option D)?
+  </div>
+  <div class="age" data-premise-kind="composed" data-premise-iso="2026-09-11T21:18:59Z">premise 2 hours old</div>
+  <dl class="f">
+    <dt>what</dt>
+    <dd>
+      Today the card freezes for 10 to 17 minutes at a time because nothing updates it on a clock. D adds a small
+      background process that reads what the worker is doing and rewrites the card every 90 seconds, no model involved,
+      so it cannot change the answer. The card would show one collapsed line ("Investigating: how many criticals are
+      left, 6m") and, expanded, the steps done so far with their findings.
+      <div>
+        measured on today's three turns: each card got 6 or 7 edits over 22 to 50 minutes, with freezes of 8, 12 and 17
+        minutes; you complained when tag 3's card was 12 minutes stale on a 45-minute turn. three causes. (1) nothing
+        forces a cadence: the skill says "update at natural checkpoints", which is a narrative rule, not a clock. (2)
+        the dispatcher's sweep goes blind the moment an ask records failed, so for 36 minutes it reported nothing
+        working while the worker was visibly alive; that was exactly your window. (3) the card has nowhere to put "what
+        I have so far": two steps plus one 120-character line that is overwritten each time, no trail, no collapsed
+        region. one surprise: the collapsing plan row you picked on 7 Aug (the "plan won" one) is rendered by code that
+        only its own unit test calls; it has never reached Slack. the options, each with what you would see:
+        <strong>A</strong> a ticker the harness runs (the model is never asked): a background process reads the worker's
+        own transcript, which records every tool call with its full command, and rewrites the card every 90 seconds
+        ("now: reading GitHub PR 15895, 2m in, 41 tool calls, last finding: 4 open criticals"); zero model tokens,
+        cannot change the answer. telling the model to update on a clock is rejected: it is what we have, it costs about
+        6 minutes per turn, and it fails exactly when the worker is stuck. <strong>B</strong> a third session per tag
+        whose only job is to narrate the worker: the best prose of any option, but 40 to 60 thousand tokens a turn, a
+        third sidebar row per tag, and it is the only option that can put a confident falsehood on the card.
+        <strong>C</strong> render from the hook event stream: measured dead, the stream carries the tool name and
+        nothing else, so the best it can say is "now: Bash". <strong>D</strong> A's ticker writing into the plan row you
+        already picked: one collapsed line above the fold ("Investigating: how many criticals are left, round 2 of
+        review, 6m"), and expanded, the ticked steps, each with its finding, and a "now:" line; the trail lives inside
+        the collapsed row, so this is the one option that improves rule 7 instead of straining it. two label fixes ride
+        along with any option: the card claims "the supervisor session" wrote it when a worker did, and the title shows
+        your raw Slack id.
+      </div>
+    </dd>
+    <dt>why you</dt>
+    <dd>
+      You said this Slack experience is very important to get right, and one option spends model tokens on your plan.
+    </dd>
+    <dt>options</dt>
+    <dd>
+      A: the ticker alone on today's card (answers "is it alive", not "what has it found"). B: a third session per tag
+      that narrates the worker (best prose, costs tokens, can be wrong). C: something else, say what. D: the ticker
+      inside the collapsible plan row, proven on one self-addressed tag with a recording.
+    </dd>
+    <dt>lean</dt>
+    <dd>D.</dd>
+    <dt>if silent</dt>
+    <dd>D gets built.</dd>
+  </dl>
+</div>
+<h2>what we are actually working</h2>
+<p class="align">2 of 3 live sessions are on the board's top 5, 1 is lower down.</p>
+<h2>done since you last looked</h2>
+<div class="need"><div class="q">landed one.</div></div>

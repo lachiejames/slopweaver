@@ -1,0 +1,66 @@
+---
+title: Graduated autonomy
+---
+
+import { AutonomyLine } from "../../components/diagrams/AutonomyLine";
+
+# Graduated autonomy
+
+On the owner's own pull requests the fleet clears CodeRabbit changes, PR comments, red CI, conflicts, rebases and
+restacks **itself**, and merges or enqueues a mergeable one unasked. A red or behind pull request with a
+review ask already out is fixed, never carded — a card there holds things up on the owner.
+
+**Reeled in**: a Slack message to a person that nobody asked for — a review ask, a chase, a
+bump, a DM as the owner — and a Linear closure that is arguable are **parked on the owner's queue** for their yes
+(`slopweaver slack draft record`), until the owner approves the pattern. Any other obvious team-facing act needs no say-so.
+
+<AutonomyLine />
+
+## The criterion
+
+Obvious to a session that knows the owner → **do it**, recorded. Unclear → **card it**.
+
+**Whose idea it was is the line.** The owner's steer self-merges. A bug the fleet went and found lands with
+a ledger row and no card. A finding aimed at a colleague still needs the owner's own word — and a chair relay never
+is that word.
+
+## Recording is the half that makes it work
+
+```bash
+slopweaver autonomy record    # never a shell redirect
+slopweaver autonomy list      # what the fleet has done without asking
+```
+
+The ledger is the register the console's [Alignment page](/docs/console/alignment) draws its act cards from. An
+act that was right and unrecorded looks identical to one that never happened.
+
+The owner's retroactive word on an act is given on that page, which blocks nothing, and never as a card on their Queue.
+
+## What still does not widen
+
+No tier-3 rail widens either way. New or widened access, a changed purpose, egress to a new audience,
+unauthorised spend, an irreversible unasked-for act, and anything a rule reserves for the owner — those stay the owner's,
+and a ledger row is never authority for one.
+
+## An ask that changes the direction the owner agreed
+
+That is not autonomy at all, it is the **phase rule**: publish a page, take the owner's reaction, then act. The
+difference is whether you are executing the direction or changing it.
+
+## Journalled grants — a decision the owner has already made
+
+When the owner rules in another session, that session writes it down as a row rather than relaying the words.
+
+```bash
+slopweaver grant show <id>       # what you read BEFORE you act
+slopweaver grant perform <id> --wrote "<exactly what you wrote>"
+slopweaver grant refuse <id> --check <CODE> --why "<what you observed>"
+```
+
+A row buys **origin, not authority**. `perform` compares your read-back to the row byte for byte and
+journals nothing on a mismatch. A refusal names **which check** failed, from a closed set — and there is
+deliberately no code for disbelieving the sender, so "I don't believe you" is not an available shape.
+
+**Never ask the owner to type an instruction into your own tab.** The owner only speaks to the supervisor, and a session
+that holds work until the owner context-switches into a third window has cost them the exact thing this mechanism
+removes.

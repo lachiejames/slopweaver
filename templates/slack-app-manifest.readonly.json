@@ -1,0 +1,30 @@
+{
+  "display_information": {
+    "background_color": "#1a1a1a",
+    "description": "Read-only local corpus ingest for a workspace's Slack history.",
+    "long_description": "TIER \u2014 MINIMAL (the safer alternative). ENABLES: reading Slack history into your local corpus, and nothing else. RISK: the lowest on offer \u2014 read-only scopes on your own user token, no bot user and no write scopes, so this app can never post as you, never post at all, and can never be tagged. FIELDS TO POPULATE before pasting: {{APP_NAME}} \u2014 set them to what you want this app and its bot called in Slack. FIRST INSTALL ONLY. A Slack manifest is applied whole: pasting this over an app that already exists renames it and its bot, and revokes every scope this file does not list. To change a live app, export its own manifest from api.slack.com/apps and edit that instead.",
+    "name": "{{APP_NAME}}"
+  },
+  "oauth_config": {
+    "scopes": {
+      "user": [
+        "bookmarks:read",
+        "channels:history",
+        "channels:read",
+        "files:read",
+        "groups:history",
+        "groups:read",
+        "pins:read",
+        "team:read",
+        "usergroups:read",
+        "users:read",
+        "users:read.email"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

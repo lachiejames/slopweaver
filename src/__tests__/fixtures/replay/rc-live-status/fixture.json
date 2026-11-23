@@ -1,0 +1,33 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "DFIXTUREAA",
+    "messageTs": "1787993553.285869",
+    "threadTs": "1787993553.285869"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/turn-markers/DFIXTUREAA-1787993553.285869.json — written after the last kept event (2026-08-29T08:53:36.398Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1787993553.285869/record.json — written after the last kept event (2026-08-29T08:53:36.398Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/DFIXTUREAA-1787993553.285869.json",
+    "home/live/slack/dispatches/DFIXTUREAA-1787993553.285869.json",
+    "home/live/slack/reviews/DFIXTUREAA-1787993553.285869/verdict.json"
+  ],
+  "frozenAtIso": "2026-08-29T19:14:13.522Z",
+  "incident": "the checklist's live in-flight status showed the literal string /rc for ~5 minutes because a narrow-terminal slash-command hint row was mistaken for informative text (UI_CHROME_LINE didn't know its shape), which also made stalledDetail unreachable behind the always-truthy screen scrape",
+  "regresses": [],
+  "replayNowIso": "2026-08-29T08:53:36.398Z",
+  "reviewRounds": 2,
+  "schemaVersion": 1,
+  "slug": "rc-live-status",
+  "syntheticIdCount": 26,
+  "withheldEventKinds": [
+    "answered"
+  ],
+  "through": "dispatched"
+}

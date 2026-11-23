@@ -1,0 +1,37 @@
+# 7 · The verb surface
+
+Part of [Architecture](../architecture.md).
+
+One CLI is the door for every read and every write. Grouped by what each group governs — run
+`slopweaver catalog list` for the live surface, which moves every release.
+
+```mermaid
+flowchart LR
+  cli["ONE CLI IS THE DOOR<br/>Every Slack, GitHub, Linear, Notion, Vanta, Google,<br/>Fathom and browser read AND write goes through a verb here —<br/>not curl, not raw gh, not an MCP tool. The ownership<br/>check, the send reservation, the pacing and the audit<br/>trail all live here, and a raw call looks identical<br/>until it does not.<br/>slopweaver catalog list prints the live surface<br/>src/cli"]
+
+  subgraph evidence["What a turn leans on as evidence"]
+    direction TB
+    build["BUILD THE WORLD MODEL<br/>slopweaver refresh run · slopweaver compact run<br/>slopweaver derive run · slopweaver distil brief<br/>slopweaver store load · slopweaver seed run"]
+    query["QUERY IT<br/>slopweaver store read · slopweaver store collect<br/>slopweaver store cite · slopweaver store query · slopweaver identity resolve<br/>slopweaver store detect · slopweaver atlas probe<br/>slopweaver route plan"]
+    maps["MAP THE LIVE SYSTEMS, ONCE<br/>slopweaver atlas vanta sync · slopweaver cloudflare sync<br/>slopweaver onepassword sync · slopweaver datadog probe<br/>slopweaver atlas slack · slopweaver store import-atlas"]
+    read["READ CURRENT STATE, LIVE<br/>slopweaver github read · slopweaver linear read<br/>slopweaver notion read · slopweaver slack read-thread<br/>slopweaver gmail read · slopweaver calendar read<br/>slopweaver drive read · slopweaver fathom share<br/>slopweaver browser read"]
+  end
+
+  act["ACT ON IT — every one through the door<br/>slopweaver slack post · slopweaver slack reply<br/>slopweaver linear issue · slopweaver github pr<br/>slopweaver notion page · slopweaver proposal publish<br/>slopweaver gmail draft · slopweaver calendar book<br/>slopweaver browser act"]
+  bot["RUN THE BOT<br/>slopweaver listen run · slopweaver turn brief<br/>slopweaver turn dispatch · slopweaver turn answer<br/>slopweaver queue release · slopweaver responders add"]
+  orch["ORCHESTRATE THE FLEET<br/>slopweaver handover start · slopweaver handover resume<br/>slopweaver cmux spawn · slopweaver session watch<br/>slopweaver events tail · slopweaver fleet status"]
+  make["BUILD SLOPWEAVER ITSELF<br/>slopweaver codex plan · slopweaver codex review<br/>slopweaver dev lint · slopweaver dev gate<br/>slopweaver checkout sync · slopweaver memory check"]
+  ops["SEE THE TRUTH CHEAPLY — no model tokens<br/>slopweaver doctor run · slopweaver audit run<br/>slopweaver connect check · slopweaver secrets set|status<br/>slopweaver onboard run"]
+  voice["THE CONSOLE AND ITS VOICE — the voice is opt-in, its session OpenAI's<br/>slopweaver desktop install · slopweaver queue list<br/>slopweaver hand post · slopweaver page publish<br/>slopweaver talk offer · slopweaver talk relay<br/>src/talk"]
+
+  cli --> evidence
+  cli --> bot
+  cli --> act
+  cli --> orch
+  cli --> make
+  cli --> ops
+  cli --> voice
+
+  evidence -.->|"evidence a turn leans on"| bot
+  act -.->|"how a turn replies"| bot
+```

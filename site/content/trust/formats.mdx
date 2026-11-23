@@ -1,0 +1,318 @@
+---
+title: Outbound formats
+---
+
+import { Callout } from "nextra/components";
+import { FormRefusal } from "../../components/diagrams/FormRefusal";
+
+# Outbound formats
+
+Everything the bot sends leaves through a **typed form**. Six of them, one per surface, and each one
+caps what a reader meets before expanding anything. The cap is the schema's, so a message that would
+exceed it is **refused** rather than trimmed — a trimmed message reads perfectly and says less than it
+claims.
+
+Every example below is the repository's own renderer run over a form the repository's own schema parsed.
+None of them is typed by hand.
+
+## One thing all six share
+
+<FormRefusal />
+
+Each form is declared with `strictForm` (`src/outbound/strictForm.ts`), which is `z.strictObject` plus one
+custom error. Two separate failures produced it, and it closes both: a plain object drops an unknown key
+in **silence**, and Zod's own message names the key and stops there. Someone porting a payload needs to
+know where that content goes, and the schema is the only thing that knows. The posted card that decided
+that, and the rule it reversed, are in [the output phase](/docs/phases/output).
+
+The nearest-field suggestion is honest about having nothing to say. The edit budget scales with the key's
+own length, so `citations` reaches `citationUrl` while `impact` reaches nothing among a digest's fields —
+which is the true answer, because it is a field from a different schema and inventing a nearest match
+would send a porter to the wrong place.
+
+<Callout type="info">
+  **Each surface folds by a different mechanism.** A pull request folds at its first `<details>`; a Slack card
+  folds because it sits in the legacy `attachments[]` wrapper; a Linear ticket folds at a `+++` collapsible; the
+  briefing page folds per section; a react-now card folds inside its own `what` cell. The one thing that is **not**
+  a fold rule is Slack block count — a three-block attachment has been measured drawing "Show more".
+</Callout>
+
+## 1 · The Slack answer
+
+The bot's reply to a thread. One form, `kind: "answer"`, describing only what `turn answer` can send; a
+post under the owner's own name goes through `slack post --as me` and its own forms (`drip`, `one-card`,
+`one-list`), none of which carries **chrome of any kind**: no caption, no provenance, no footer, no
+evidence. Under the owner's own name, anything the owner would not have typed is a defect, and the fix is that the field
+does not exist.
+
+| What it bounds                       | Cap                    | Where it is measured                      |
+| ------------------------------------ | ---------------------- | ----------------------------------------- |
+| the lead, which is the whole preview | 180 visible characters | `src/outbound/assistant/contentLimits.ts` |
+| one paragraph                        | 650                    | same                                      |
+| all detail prose, tables excluded    | 1,800                  | same                                      |
+| sub-blocks in the body               | 12                     | same                                      |
+| bullet items in one list             | 8                      | same                                      |
+| a table                              | 10 rows x 4 columns    | same                                      |
+| images, and documents, per answer    | 2 each                 | same                                      |
+| the whole above-the-fold region      | 1,080                  | `src/outbound/artifact/schema.ts`         |
+
+Those last two rows are the pair most often collapsed into one. **180 is the lead alone.** The
+above-the-fold region is the lead plus every index line, and it is deliberately below what the per-item
+caps would allow on their own, so a card cannot fill ten scannable lines to their limits and turn them
+into a wall.
+
+The numbers are measurements, not round figures. 650 admits a well-formatted message (a longest run of ~559 characters) and refuses a wall of text
+(a single 1,091-character run).
+
+```text filename="slopweaver turn answer — the preview, as a reader meets it"
+:slopweaver:  *slopweaver*
+────────────────────
+🔗 [why did the staging pool exhaust last night](https://example.slack.com/archives/C…/p…)
+
+41% of staging runs hit one connection wait, and the pool was sized for 20.
+────────────────────
+Details
+──── detail ──── (blocks 5+ are behind the Details label)
+Every wait queues behind the same advisory lock, so a bigger pool moves the wall rather than removing it.
+
+• peak in-flight checkouts 34, against a pool of 20
+• every wait over 2s is that one lock
+[b]What I read[/b]
+• [staging connection-wait metric, last night's window](https://example.datadoghq.com/metric)
+[b]What I could not see[/b] — nothing: every surface the question touches was reachable
+claude-opus-5 · verbs: atlas datadog · skills: slopweaver:store
+```
+
+Two fields there are not decoration. **What I could not see** is a required field with two halves — real
+blind spots, named, or an explicit reason the list is empty — so an answer cannot be silent about its own
+reach. And the provenance footer carries the model, the verbs and the skills, but deliberately **no
+session link and no cost**: both were raised and ruled out, and a field that does not exist cannot be
+filled in wrongly.
+
+Citations are the one number worth stating carefully. Twelve is a **floor**, not a ceiling: the real
+budget is the larger of twelve and the answer's own count of checkable items, because an answer naming
+sixteen compliance controls owes a citation for each of them in its own row.
+
+## 2 · The pull-request description
+
+The one form that is a contract for another codebase: Slopweaver owns the schema and a separate system
+fills it and calls the verb. So every refusal has to be actionable by a machine caller, and every object
+is strict — a misspelled field fails at the door rather than rendering a pull request with an empty cell,
+and a field the form no longer publishes (a grade, a gold anchor, an origin, a reviewer table) is refused by
+name, saying where its job went.
+
+The shape is C3: three derived badges, an explainer, two proof slots, the checks, and one fold.
+
+| What it bounds                       | Cap            | Where it is measured               |
+| ------------------------------------ | -------------- | ---------------------------------- |
+| the explainer                        | 70 words       | `src/outbound/github/formRules.ts` |
+| a proof line or reason, a check      | 25 words       | same                               |
+| a risk item's worst case             | 20 words       | same                               |
+| a badge hover (risk, problem, proof) | 200 characters | `src/outbound/github/tooltips.ts`  |
+
+Counted against the **rendered HTML**, not the text you typed — the counter strips tags, so the same
+content counts differently before and after rendering. The schema imports the gate's own counter rather
+than reimplementing it, which is the whole value of the form: a body it produces cannot fail CI.
+
+None of the three badges is authored. **Risk** is the top-ranked item's level, amber when nobody checked it;
+**problem** is the day it was seen on a real run, or not seen yet; **proof** is one of five values computed from
+the two proof slots, and never red. Everything above the one fold, the `Re-run` details, is the explainer, a
+screenshot under the one line it proves (or a one-line reason there is none), one sentence per check, and what was
+not checked and why.
+
+```markdown filename="slopweaver github stack push --file-example (input)"
+---
+title: "fix(export): keep the last row of a sheet"
+target:
+  base: main
+  head: a-branch
+  owner: acme
+  repo: widgets
+draft: true
+problem-seen:
+  by: unrecorded
+  on: YYYY-MM-DD
+  what: an exported report was one row short
+visual-proof: screen-change
+risk:
+  - priority: 2
+    worst: an export refuses a sheet it used to read
+    check: The round-trip test covers a sheet ending on a blank line
+---
+
+## Explainer
+
+Widget export dropped the last row when a sheet ended on a blank line, so **every** exported report lost a row.
+
+## Proof of the problem
+
+reason: The failing export was reported, and the test below reproduces it.
+
+## Proof of the solution
+
+On this branch, `widgets export` keeps the last row.
+![the exported report with its last row present](https://github.com/user-attachments/assets/…){width=800}
+run by: agent
+
+## Re-run
+```
+
+`slopweaver github stack push --dry-run` prints the exact bytes GitHub would receive, and CI accepts an owned pull
+request's description only when it is that exact render. See [proof and landing](../fleet/proof).
+
+## 3 · The Linear ticket
+
+The full shape, never the terse one: Problem, Solution, why this approach, acceptance criteria. The voice
+evaluation picked the fuller card every time.
+
+| What it bounds                         | Cap      | Where it is measured            |
+| -------------------------------------- | -------- | ------------------------------- |
+| `## Problem`, plus its proof paragraph | 50 words | `src/outbound/linear/schema.ts` |
+| `## Solution`                          | 50 words | same                            |
+| acceptance items                       | 10       | same                            |
+
+Ten acceptance items, not five: measured over 1,678 real acceptance sections, the median is 5 but the
+largest single bucket is 6-10, and a cap of five would have rejected 42% of them including the reference ticket.
+
+Two markdown shapes are **unrepresentable** rather than warned about. A `##` heading inside a section can
+only escape the section holding it. And a `+++` line inside the content is, by Linear's own grammar,
+indistinguishable from the closing delimiter of a collapsible: it closes the block early and reattaches
+everything after it to the previous section. A validator that only warns returns zero findings on a body
+mangled that way.
+
+````markdown filename="renderIssueBody — what Linear receives"
+## Problem
+
+Staging runs queue behind one advisory lock, and the pool was sized for 20 while peak in-flight checkouts hit 34.
+
+## Solution
+
+Take the lock per-migration rather than per-run, so a waiting run never holds a connection it is not using.
+
+## Acceptance criteria
+
+- [ ] peak in-flight checkouts stay under the pool size across a full staging day
+- [ ] the connection-wait metric has no run over 2s for a week
+
++++ Prompt for AI agents
+
+The lock is taken in runMigrations, before the pool checkout rather than after it.
+
+```sql
+select pg_advisory_lock(hashtext('migrations'));
+```
+
++++
+````
+
+Everything a human reads is above; the depth goes in `Prompt for AI agents`, which renders collapsed and
+is never scanned for voice. That is what keeps a quoted error message containing an em dash correct input.
+
+## 4 · The react-now card
+
+One card, one decision. The labels are the form: **what**, **why you**, **options**, **lean**, **if
+silent** — and a card that cannot fill all five is a card that is not ready to be asked.
+
+| What it bounds                 | Cap                   | Where it is measured   |
+| ------------------------------ | --------------------- | ---------------------- |
+| the question                   | 30 words              | `src/briefing/caps.ts` |
+| `what`                         | 60 words, 4 sentences | same                   |
+| `why you`                      | 1 sentence            | same                   |
+| one option                     | 25 words              | same                   |
+| options                        | 4                     | same                   |
+| the whole card, above the fold | 200 words             | same                   |
+| cards in the block             | 50                    | same                   |
+
+Two of those are a rule rather than a measurement, and it matters which. Four options is the rule: options
+A to D, one sentence each. Fifty cards is a rule too, folding the separate ranked
+list into this block: react-now **may** run to about fifty cards when steers are owed, and that is the
+design working rather than a wall. The other numbers were measured against a page judged by eye, where
+62 of 207 text blocks carried more than four sentences and the worst carried thirteen in one paragraph.
+
+```html filename="renderCard — one card on the briefing page"
+<div class="need">
+  <div class="q">1. Raise the staging pool, or take the migration lock per-migration?</div>
+  <div class="bg"><a href="…/pull/<number>">#N staging pool exhaustion</a></div>
+  <div class="age" data-premise-kind="pull-request" data-premise-iso="YYYY-MM-DDThh:mm:00Z">premise 2 hours old</div>
+  <dl class="f">
+    <dt>what</dt>
+    <dd>Peak in-flight checkouts hit 34 against a pool of 20, and every wait over 2s is the same advisory lock.</dd>
+    <dt>why you</dt>
+    <dd>Both fixes are cheap, and the pool size is a number you have opinions about.</dd>
+    <dt>options</dt>
+    <dd>
+      <ul class="opts">
+        <li><span class="ol">A:</span> Take the lock per-migration; the pool stays at 20.</li>
+        <li><span class="ol">B:</span> Raise the pool to 40 and leave the lock alone.</li>
+      </ul>
+    </dd>
+    <dt>lean</dt>
+    <dd>A — a bigger pool moves the wall rather than removing it.</dd>
+    <dt>if silent</dt>
+    <dd>A lands behind CI tomorrow and the pool stays where it is.</dd>
+  </dl>
+</div>
+```
+
+`premise 2 hours old` is a required field, not a nicety. A card served 23 hours stale told the owner
+nothing about that, who then had to date it by opening the page it was about. The instant travels as an
+attribute beside the words, because a reader that can only see prose cannot re-check the claim.
+
+## 5 · The fleet briefing page
+
+The page the cards sit on. `briefing render` runs `briefing check` over its own output, so the writer and
+the reader cannot disagree — a schema that admitted what the check refuses would produce a verb that
+cannot succeed.
+
+| What it bounds                                | Cap   | Where it is measured   |
+| --------------------------------------------- | ----- | ---------------------- |
+| unfolded blocks outside the react-now block   | 5     | `src/briefing/caps.ts` |
+| words above the fold outside that block       | 1,000 | same                   |
+| sentences in one above-the-fold paragraph     | 4     | same                   |
+| history sections                              | 4     | same                   |
+| other artifacts wanting the owner's attention | 3     | same                   |
+
+Every section below the line lives inside a collapsed fold, so the honest cap on unfolded blocks is near
+zero; five leaves room for the newest landings. The page it was measured against carried 130, of which
+129 sat in one section that had been accumulating every sweep since the run began.
+
+A section brings its own budget rather than eating another's. That is why the react-now block is counted
+by **cards** and the rest of the page by **words** — a page total that counted the cards would have
+refused the design at the eighth one.
+
+## 6 · The page
+
+A run's deliverable, published as a local file with its own address:
+
+```bash
+slopweaver page review-prepare <slug> --page <the authored fragment>.html --inputs <what it answers to>
+slopweaver page publish <slug> --page <the authored fragment>.html --review <the Codex pass or fallback receipt>
+```
+
+There is no cap on what a page holds — this is the one form whose whole point is depth. What it enforces
+instead is **review, identity and byte-fidelity**. A page with no cited review is refused: each cited pass
+must have read this page's exact bytes against the inputs it answers to, and what it attacked and found is
+folded into the page.
+
+- You author a **fragment** — a `<title>`, a `<style>` and the content. No doctype, no `<html>`, no
+  `<head>`, no `<body>`. The verb supplies those: exactly 368 bytes, measured off a page read back from a
+  live seat where 49,144 of 49,512 bytes were the session's own.
+- Your fragment reaches disk **byte for byte**. Nothing trims, re-indents or re-encodes it, because a
+  later correction diffs against bytes nobody touched.
+- The slug is the identity in three places at once — the directory, the freeze-store key, and the
+  `page:<slug>` a ruling is recorded against. Anything outside the character set is refused rather than
+  rewritten, since a quietly rewritten slug puts a page's history where its next publish cannot find it.
+
+A page is a **file**, so it is a deliverable for the owner in a DM and never for a room. A bot answer landing in
+a channel may not name a path under this tree at all — everyone else in the thread would get an address
+that resolves to nothing. The answer form attaches the file instead.
+
+## Where the numbers live
+
+No gate reads this page. Every cap above names the file it was measured in, and that file carries the
+measurement and usually the message it was judged by — so a figure that looks wrong has exactly one place
+to go and check.
+
+```bash
+slopweaver slack voice-rules      # the words that go in these shapes
+```

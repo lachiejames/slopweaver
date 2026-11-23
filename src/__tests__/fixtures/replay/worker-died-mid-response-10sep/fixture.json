@@ -1,0 +1,41 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1789046247.801199",
+    "threadTs": "1788927159.102999"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/turn-markers/CFIXTUREAA-1789046247.801199.json — written after the last kept event (2026-09-10T14:06:00.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789046247.801199/record.json — written after the last kept event (2026-09-10T14:06:00.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789046247.801199/verdict.json — written after the last kept event (2026-09-10T14:06:00.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789046247.801199/answer-reviewed-sha256-163ca788d6962582f129c2b502bcf133e4379689e822c3115ff20bd2b67a85a4.json — written after the last kept event (2026-09-10T14:06:00.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789046247.801199/answer-reviewed-sha256-878b6ee7f832f7265d0ff5b669b9672aae43694667c6190041617de280ade971.json — written after the last kept event (2026-09-10T14:06:00.000Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1789046247.801199/verdict-superseded-fixture-uuid-cc-2026-09-10T14-56-41-260Z.json — written after the last kept event (2026-09-10T14:06:00.000Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1789046247.801199.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1789046247.801199.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789046247.801199/answer-reviewed-sha256-2e281c14b2b9944b0325d72ca51e4892fd976a27fa1aa6aba5d56569969a23e2.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789046247.801199/answer-reviewed-sha256-c73ef2b79c4214d0dc564aea9d73741f122711bbfa2b021e9954d3854cd9e481.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789046247.801199/verdict-superseded-fixture-uuid-ca-2026-09-10T13-50-07-477Z.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789046247.801199/verdict-superseded-fixture-uuid-cb-2026-09-10T13-34-39-172Z.json"
+  ],
+  "frozenAtIso": "2026-09-15T02:16:16.849Z",
+  "incident": "The worker session answering this public tag died at 14:06Z with 'API Error: Connection lost mid-response', 49 minutes and 61 tool calls in, one line after writing that reviewer round 2 had found a real error in its cross-service claim and that the live probe gave a much better answer. Zero public output; the thread froze on a card reading '61 tool calls so far'. Cut at the instant of death: the record set here is two completed review rounds and NO draft answer — the draft lived at a worker-chosen scratchpad path that no longer exists, so the marker pointed at nothing. Rounds 3 and 4, and the answer a later session finally posted at 15:32Z, are the recovery and are deliberately withheld.",
+  "regresses": [
+    "stalled-session-still-reported-as-in-flight"
+  ],
+  "replayNowIso": "2026-09-10T14:06:00.000Z",
+  "reviewRounds": 2,
+  "schemaVersion": 1,
+  "slug": "worker-died-mid-response-10sep",
+  "syntheticIdCount": 55,
+  "withheldEventKinds": [
+    "answered"
+  ]
+}

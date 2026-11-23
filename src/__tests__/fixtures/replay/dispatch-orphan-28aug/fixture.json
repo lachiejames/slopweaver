@@ -1,0 +1,34 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1787878821.099679",
+    "threadTs": "1787878821.099679"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/reviews/CFIXTUREAA-1787878821.099679/record.json — written after the last kept event (2026-08-28T01:01:33.471Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1787878821.099679.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1787878821.099679.json"
+  ],
+  "frozenAtIso": "2026-08-28T10:00:46.898Z",
+  "incident": "28 Aug 2026 01:02Z, ask CFIXTUREAA/1787878821.099679. The pickup line reached workspace:399 and the witness did not see it, so the dispatch was recorded dispatch-failed: the live worker became invisible to the sweep (0 ready / 0 working / 0 phantom over a running session), the card was finalised abandoned, and a warning reaction went up in a teammate's thread for ~40 minutes while that worker was still composing. Frozen through 'dispatched' — the state at the moment before the defect fired. Fixed in #53 (fede05d2).",
+  "regresses": [
+    "stalled-session-still-reported-as-in-flight"
+  ],
+  "replayNowIso": "2026-08-28T01:01:33.471Z",
+  "reviewRounds": 5,
+  "schemaVersion": 1,
+  "slug": "dispatch-orphan-28aug",
+  "syntheticIdCount": 4,
+  "withheldEventKinds": [
+    "dispatch-failed",
+    "failed"
+  ],
+  "through": "dispatched"
+}

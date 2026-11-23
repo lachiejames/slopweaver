@@ -1,0 +1,76 @@
+---
+title: The supervisor sweep
+---
+
+import { SupervisorSweep } from "../../components/diagrams/SupervisorSweep";
+
+# The supervisor sweep
+
+One pinned chat is the owner's single intake, and the owner only talks to it. The sweep is what keeps that chat honest
+between the times the owner types: a fixed tick that re-reads the fleet, closes what finished, surfaces what needs
+the owner, and fills the capacity it just measured.
+
+<SupervisorSweep />
+
+## Arm it by reference, never by retyping it
+
+```bash
+slopweaver supervisor sweep-prompt --shift "<this tick's shift state>"
+```
+
+The output goes verbatim into `ScheduleWakeup`, and the rendered prompt **names the contract file by path**.
+So the next tick re-enters by reading the standing half rather than by carrying a copy of it.
+
+Two refusals hold that line, and both are measured:
+
+- a shift state that names a **standing step** — `session watch`, `handover reconcile`, `fill-to-cap` — is
+  refused, naming the step. That is the contract being retyped into the prompt.
+- a rendered prompt over **700 words** is refused. The largest measured per-shift half was 547 words.
+
+**A cadence that lives in one session's memory dies with that session's hiccups.** A running supervisor once
+armed the wake-up by hand each tick. It worked for hours, then one wake-up silently never fired, and nothing
+noticed — because the wake-up was the only thing that would have. It was caught by hand, hours later.
+
+## The order, and why it is an order
+
+| Phase                 | What it does                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hear**              | the supervisor event stream first — an alert means the bot is off the air. Then who moved, without a screen read                      |
+| **Close**             | `session close-done`, **before any screen read**, so the expensive reads are never spent on finished work                             |
+| **Read**              | stuck chats by name, session depth, standing sessions, due asks, the landing table, machine capacity, plan gauges, the reconciliation |
+| **Publish**           | re-render the briefing from its form **every tick, even a quiet one** — the header is the staleness signal                            |
+| **Fill**              | **last**, to the capacity step eight just measured, from the board, the due asks and the owner's kept outcomes                        |
+| **Record and re-arm** | draft the tick, record it, and arm the same wake-up again before the tick ends                                                        |
+
+The ordering is not stylistic. Closing before reading is the mechanism behind finished chats
+being left open and needing six requests to close in one day — no supervisor remembers it, the tick runs it. Filling last is so the
+spawn decision happens **after** the reading that can hold it, never before.
+
+## What the last step refuses
+
+`tick-record` is deliberately the end, and it refuses rather than warns:
+
+- a tick that left **capacity free** while one of the outcomes the owner kept on Workstreams sat unattended, with no
+  reason given — until the owner keeps one, there is none to answer for;
+- a tick that **read a machine hold** and seated no investigation, with no reason given;
+- a chair running **off Fable** — and that refusal sends `/model fable` to the chair's own workspace
+  first, so this tick still refuses and the next passes on its own.
+
+Each is a hole a tick can leave without noticing. A recorded `hold-rationale` clears the first two; what it
+cannot clear is a tick that simply did not look.
+
+## Standing traps, every one of them measured
+
+- **The rendered board times out on this board.** Use `slopweaver handover reconcile --json` for the read.
+- **A message typed into a running session lands QUEUED**, arriving only when the turn ends — see
+  [reaching a seat](/docs/fleet/seats).
+- **A chat reply is not a record.** An answer composed in a supervisor's own chat was never carded, and the
+  owner had to re-ask it of the next supervisor 80 minutes later. The turn the owner typed is addressable, so anchor the row
+  the same tick.
+- **The merge guard is base-relative** — pass the base explicitly, or a wrong-tree verdict succeeds quietly.
+
+## What the sweep does not do
+
+It does not spin anything up on a clock. There is no cron, no launch agent and no headless model; an
+automation runs because **this tick decided it should** — [automations](/docs/fleet/automations). And it
+never becomes a second register: what is in flight is [the one board](/docs/fleet/board), always.

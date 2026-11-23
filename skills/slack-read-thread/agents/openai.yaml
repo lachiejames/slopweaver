@@ -1,0 +1,4 @@
+interface:
+  display_name: "Read Slack Thread"
+  short_description: "Read and explain a Slack thread"
+  default_prompt: "Read this Slack thread through Slopweaver and explain it."

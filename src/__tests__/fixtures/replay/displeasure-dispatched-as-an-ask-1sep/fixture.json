@@ -1,0 +1,31 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788231440.612829",
+    "threadTs": "1788227494.225289"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1788231440.612829.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1788231440.612829.json"
+  ],
+  "frozenAtIso": "2026-09-01T04:27:49.811Z",
+  "incident": "the owner quoted the bot's own last answer back with 'thanks for nothing'; the loop judged it respond/fresh-visible-session and spent a whole new Opus worker guessing at a diagnosis he was holding",
+  "regresses": [],
+  "replayNowIso": "2026-09-01T02:57:28.863Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "displeasure-dispatched-as-an-ask-1sep",
+  "syntheticIdCount": 26,
+  "withheldEventKinds": [
+    "dispatched",
+    "dispatch-failed"
+  ],
+  "through": "checklist-posted"
+}

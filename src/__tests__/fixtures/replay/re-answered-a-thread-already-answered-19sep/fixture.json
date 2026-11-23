@@ -1,0 +1,42 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "DFIXTUREAA",
+    "messageTs": "1789829999.819679",
+    "threadTs": "1789829999.819679"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "live/slack/turn-markers/DFIXTUREAA-1789829999.819679.json — written after the last kept event (2026-09-21T01:14:50.984Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1789829999.819679/record.json — written after the last kept event (2026-09-21T01:14:50.984Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1789829999.819679/verdict.json — written after the last kept event (2026-09-21T01:14:50.984Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1789829999.819679/answer-reviewed-sha256-0286eaf6905896f0a03bd6a68752989b50498b5f35920d87188f9246ac1de42f.json — written after the last kept event (2026-09-21T01:14:50.984Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1789829999.819679/answer-reviewed-sha256-48b09bbdce188e0d4e418459d08098f8cf09020cdb20153eb15030ecbe56e4e2.json — written after the last kept event (2026-09-21T01:14:50.984Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1789829999.819679/answer-reviewed-sha256-6ba12723b802b67b6e76f976c9d297e4e9c38e934889beed500365748cce339b.json — written after the last kept event (2026-09-21T01:14:50.984Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1789829999.819679/verdict-superseded-fixture-uuid-dp-2026-09-21T01-58-10-539Z.json — written after the last kept event (2026-09-21T01:14:50.984Z), outside this freeze's window",
+    "live/slack/reviews/DFIXTUREAA-1789829999.819679/verdict-superseded-fixture-uuid-dq-2026-09-21T01-42-33-849Z.json — written after the last kept event (2026-09-21T01:14:50.984Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/DFIXTUREAA-1789829999.819679.json",
+    "home/live/slack/dispatches/DFIXTUREAA-1789829999.819679.json",
+    "home/live/slack/checkpoints/DFIXTUREAA-1789829999.819679/log.jsonl"
+  ],
+  "frozenAtIso": "2026-09-21T02:51:25.284Z",
+  "incident": "a recovery pass captured an ask whose own thread already carried two real bot answers (19 Sep 15:02Z and 15:15Z), because both were posted outside the turn-answer path so they carry no v2 askIdentity metadata and wrote no answered lifecycle row; the pickup posted a THIRD reply at 01:14Z 21 Sep",
+  "regresses": [],
+  "replayNowIso": "2026-09-21T01:14:50.984Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "re-answered-a-thread-already-answered-19sep",
+  "syntheticIdCount": 95,
+  "withheldEventKinds": [
+    "checklist-posted",
+    "dispatched",
+    "failed"
+  ],
+  "through": "captured"
+}

@@ -1,0 +1,14 @@
+{
+  "base": "70f1f5470dfaf3f83d49ae99fec5b261569071e5",
+  "digest": "8f6e46bd79c791502040c14a69a352583cc9c3f68d4e16c6f761369b5ac65320",
+  "loosenings": [
+    {
+      "entry": "desktop-e2e",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": null,
+      "to": 231,
+      "cause": "growth"
+    }
+  ],
+  "reason": "desktop-e2e is a new CI job, seeded at its first measured lap: 231s on #3453 (run 42372896552, the ratchet's own reading)"
+}

@@ -1,0 +1,168 @@
+{
+  "base": "4135262d2a994ea4f3251687004282df04cc4a2d",
+  "digest": "5bd9c83a70a4aa90cc55ffe990e515ca4a04f9478ce6ab0d90ea39d24fd7f036",
+  "loosenings": [
+    {
+      "entry": "desktop",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 22,
+      "to": 34,
+      "cause": "growth"
+    },
+    {
+      "entry": "desktop-e2e",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 186,
+      "to": 191,
+      "cause": "growth"
+    },
+    {
+      "entry": "integration",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 58,
+      "to": 106,
+      "cause": "growth"
+    },
+    {
+      "entry": "lint",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 250,
+      "to": 293,
+      "cause": "growth"
+    },
+    {
+      "entry": "subprocess",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 199,
+      "to": 259,
+      "cause": "growth"
+    },
+    {
+      "entry": "unit",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 118,
+      "to": 146,
+      "cause": "growth"
+    },
+    {
+      "entry": "unit-1",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 215,
+      "to": 223,
+      "cause": "growth"
+    },
+    {
+      "entry": "unit-2",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 206,
+      "to": 215,
+      "cause": "growth"
+    },
+    {
+      "entry": "unit-3",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 184,
+      "to": 236,
+      "cause": "growth"
+    },
+    {
+      "entry": "unit-4",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 220,
+      "to": 239,
+      "cause": "growth"
+    },
+    {
+      "entry": "unit-5",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 193,
+      "to": 233,
+      "cause": "growth"
+    },
+    {
+      "entry": "unit-6",
+      "file": ".baselines/ci-job-seconds.json",
+      "from": 196,
+      "to": 214,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:desktop",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 22,
+      "to": 34,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:desktop-e2e",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": null,
+      "to": 191,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:integration",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 58,
+      "to": 106,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:lint",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 282,
+      "to": 293,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:subprocess",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 199,
+      "to": 259,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:unit",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 118,
+      "to": 146,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:unit-1",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 215,
+      "to": 223,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:unit-2",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 206,
+      "to": 215,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:unit-3",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 221,
+      "to": 236,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:unit-4",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 220,
+      "to": 239,
+      "cause": "growth"
+    },
+    {
+      "entry": "baseline:unit-6",
+      "file": ".baselines/ci-job-seconds-approved.json",
+      "from": 196,
+      "to": 214,
+      "cause": "growth"
+    }
+  ],
+  "reason": "owner-approved TypeScript 7.1 CI lap 42734360854"
+}

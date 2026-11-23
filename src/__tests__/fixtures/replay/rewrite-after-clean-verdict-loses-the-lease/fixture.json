@@ -1,0 +1,42 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788416854.480579",
+    "threadTs": "1788412947.233649"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/turn-markers/CFIXTUREAA-1788416854.480579.json — it records a \"failed\" event, which is one --through deliberately cut off",
+    "live/slack/reviews/CFIXTUREAA-1788416854.480579/record.json — written after the last kept event (2026-09-03T06:30:32.895Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788416854.480579/verdict.json — written after the last kept event (2026-09-03T06:30:32.895Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788416854.480579/verdict-superseded-fixture-uuid-ba-2026-09-03T06-56-39-935Z.json — written after the last kept event (2026-09-03T06:30:32.895Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788416854.480579/verdict-superseded-fixture-uuid-bb-2026-09-03T08-13-40-961Z.json — written after the last kept event (2026-09-03T06:30:32.895Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788416854.480579/verdict-superseded-fixture-uuid-bc-2026-09-03T07-16-29-252Z.json — written after the last kept event (2026-09-03T06:30:32.895Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788416854.480579/verdict-superseded-fixture-uuid-bd-2026-09-03T07-36-53-850Z.json — written after the last kept event (2026-09-03T06:30:32.895Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788416854.480579/verdict-superseded-fixture-uuid-be-2026-09-03T07-56-59-568Z.json — written after the last kept event (2026-09-03T06:30:32.895Z), outside this freeze's window",
+    "live/slack/reviews/CFIXTUREAA-1788416854.480579/verdict-superseded-fixture-uuid-bf-2026-09-03T08-48-15-590Z.json — written after the last kept event (2026-09-03T06:30:32.895Z), outside this freeze's window"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1788416854.480579.json",
+    "home/live/slack/dispatches/CFIXTUREAA-1788416854.480579.json"
+  ],
+  "frozenAtIso": "2026-09-15T14:37:02.949Z",
+  "incident": "A worker rewrote its answer after a CLEAN verdict, twice, to fix low-impact reviewer notes. Each rewrite changed the digest, so the verdict that had just arrived became unusable and another round had to be opened at a measured ~20 minutes each. Rounds 3 and 4 were both SENDABLE and neither was sent; round 5 returned broken on the core deliverable at 08:26:31Z and the two-hour lease expired at 08:30:25Z, so a fully investigated answer was never posted. 89.9 of those 120 minutes were review. Frozen through 'dispatched': the state a correct implementation has to behave differently over is a dispatched turn holding a live lease and no review yet, not the 'failed' row the defect wrote.",
+  "regresses": [
+    "bot-answer-review-rounds-uncapped"
+  ],
+  "replayNowIso": "2026-09-03T06:30:32.895Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "rewrite-after-clean-verdict-loses-the-lease",
+  "syntheticIdCount": 32,
+  "withheldEventKinds": [
+    "failed",
+    "answered"
+  ],
+  "through": "dispatched"
+}

@@ -1,0 +1,35 @@
+{
+  "base": "3ca99d672e186ca0593b6299a317dbb4234d1fcf",
+  "digest": "8d928440d6959192b7ebb9a22eed7868df3f846fda70316636a86b7a7a560452",
+  "loosenings": [
+    {
+      "entry": "*",
+      "file": ".baselines/owner-pronouns-baseline.json",
+      "from": null,
+      "to": null,
+      "cause": "growth"
+    },
+    {
+      "entry": "files:site/lib/prNeedsOwner.ts#owner-pronoun",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "growth"
+    },
+    {
+      "entry": "files:src/__tests__/unit/talk/cardNotOwnerStore.test.ts#owner-pronoun",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "growth"
+    },
+    {
+      "entry": "files:src/talk/cardNotOwnerStore.ts#owner-pronoun",
+      "file": ".baselines/transient-references-baseline.json",
+      "from": null,
+      "to": 1,
+      "cause": "growth"
+    }
+  ],
+  "reason": "the transient-references sweep's closing batch: the retired owner-pronouns gate's baseline is deleted, its words now counted by transient-references' owner-pronoun class; and three transient-references entries move with a file rename (cardNotHisStore to cardNotOwnerStore, its test, prNeedsHim to prNeedsOwner), each the same one legacy pronoun literal that keeps an old stored record readable, so the count is unchanged and only the path moved"
+}

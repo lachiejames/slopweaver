@@ -1,0 +1,42 @@
+{
+  "subjects": [
+    {
+      "label": "gate:named-object-params",
+      "peakHeapMib": 3836,
+      "phases": [
+        {
+          "label": "createProgram",
+          "liveMib": 2318
+        },
+        {
+          "label": "rule scan",
+          "liveMib": 3836
+        }
+      ],
+      "recordedAt": "2026-09-20",
+      "topModules": [
+        {
+          "module": "node_modules/typescript",
+          "share": 0.5549
+        },
+        {
+          "module": "open",
+          "share": 0.1068
+        },
+        {
+          "module": "stat",
+          "share": 0.0993
+        },
+        {
+          "module": "(garbage collector)",
+          "share": 0.0854
+        },
+        {
+          "module": "read",
+          "share": 0.0688
+        }
+      ],
+      "wallMs": 39347
+    }
+  ]
+}

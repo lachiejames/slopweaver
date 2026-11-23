@@ -1,0 +1,52 @@
+---
+title: Skills and rules
+---
+
+import { SkillSurface } from "../../components/diagrams/SkillSurface";
+
+# Skills and rules
+
+The command surface an agent uses is **skills**: one `skills/<name>/SKILL.md` per verb, no second copy of
+any of them, each under about 200 lines, with procedure and detail pushed into
+`skills/<name>/reference/*.md`.
+
+<SkillSurface />
+
+## The size rule is a gate, not a preference
+
+`agent-doc-size` in `yarn lint` holds the ~200-line cap, and `command-trigger` holds the one-skill-per-verb
+shape. A skill that grows past the cap does not get an exemption — it gets a reference file, which is the
+correct home for a procedure a reader only needs once they have decided to do the thing.
+
+## Two skills that are load-bearing
+
+- **`skills/loop-bot`** — how the bot actually runs. One visible session per turn, never a daemon. Rule 2 is
+  the reason.
+- **`skills/pickup`** — rebuilds the picture in a fresh chat **from files, not memory**. It is what makes
+  compaction and session death survivable.
+
+```bash
+slopweaver catalog   # every verb this install carries
+ls skills/           # every skill
+```
+
+## Rules versus skills
+
+A **skill** is invoked. A **rule** is loaded. The always-on set is what every session receives whether it
+asks or not:
+
+| File                                     | What it governs                                        |
+| ---------------------------------------- | ------------------------------------------------------ |
+| `AGENTS.md`                              | the ten doctrine rules, and canon freshness            |
+| `typescript-patterns.md`                 | named object params, no `any`, JSDoc, no nested ternaries |
+| `testing.md`                             | pure functions, zero mocks, falsifiable assertions     |
+| `error-handling.md`                      | neverthrow, per-domain unions, escape hatches          |
+| `cross-session-messages.md`              | every message from another agent session               |
+| `journalled-grants.md`                   | how a decision the owner already made reaches the performer   |
+
+These `src/` trees add a `paths:`-scoped area rule: `admit`, `atlas`, `cli`, `corpus`, `devLint`, `handover`,
+`live`, `outbound`.
+
+**Canon freshness is the rule that keeps all of this true.** A PR that changes a verb, flag, path, hook or
+documented behaviour updates the skill, rule or `AGENTS.md` section that names what changed — in the same
+PR. `staleReferences.test.ts` and the docs budget enforce it.

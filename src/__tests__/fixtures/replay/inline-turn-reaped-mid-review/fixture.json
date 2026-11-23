@@ -1,0 +1,31 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1789521183.332199",
+    "threadTs": "1789455687.064329"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "the composed answer — the record names a path outside the home, or no longer on disk"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/briefs/CFIXTUREAA-1789521183.332199.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789521183.332199/record.json",
+    "home/live/slack/reviews/CFIXTUREAA-1789521183.332199/answer-reviewed-sha256-5ff0b89933723bc710ae47bd126115bc54e28bebb18f752486a064bba768d8d8.json"
+  ],
+  "frozenAtIso": "2026-09-18T00:00:26.595Z",
+  "incident": "An inline bot turn was finalised as never-dispatched while its independent reviewer was mid-verdict. Ask CFIXTUREAA/1789521183.332199, 16 Sep 2026: captured 01:13:03.877Z, carded 01:13:12.738Z, and then no 'dispatched' row was EVER written — the loop session composed the answer itself and opened the review straight off the brief and decision files (turn review --brief <file> --decision <file> --answer <file>), which never asks whether a dispatch was recorded. So activeDispatch stayed undefined, every sweep lap printed 'UNROUTED — ROUTE IT NOW' at a turn a session was actively working, and at 01:46:28.759Z the sweep wrote dispatch-failed and finalised the card as abandoned. Round 1 of its review was open at that moment (reviewer workspace:200, spawned 01:26:36.637Z, verdict not written until ~01:49Z, outcome broken). The answer posted at 02:01:07.174Z, fifteen minutes after the card said nobody was coming. RECONSTRUCTED: reviews/<ask>/record.json is round 1's, rebuilt before this freeze ran from the archived round-1 verdict's own filename and body — a review re-open overwrites record.json, so the only file that says a reviewer is open does not survive its round and could not be frozen from the live home.",
+  "regresses": [],
+  "replayNowIso": "2026-09-16T01:46:28.759Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "inline-turn-reaped-mid-review",
+  "syntheticIdCount": 59,
+  "withheldEventKinds": [],
+  "through": "checklist-posted"
+}

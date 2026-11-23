@@ -1,0 +1,18 @@
+{
+  "build": 3,
+  "compile": 79,
+  "desktop": 34,
+  "desktop-e2e": 191,
+  "integration": 106,
+  "lint": 293,
+  "site": 69,
+  "subprocess": 259,
+  "typecheck": 79,
+  "unit": 146,
+  "unit-1": 223,
+  "unit-2": 215,
+  "unit-3": 236,
+  "unit-4": 239,
+  "unit-5": 233,
+  "unit-6": 214
+}

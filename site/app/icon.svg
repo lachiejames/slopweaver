@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Slopweaver">
+  <rect width="200" height="200" fill="#0a0a0a" />
+  <g fill="none" stroke="#eaeaea" stroke-width="23">
+    <path d="M148.5 43H81A38 38 0 0 0 43 81v39.5" />
+    <path d="M51.5 157H119a38 38 0 0 0 38-38V79.5" />
+  </g>
+  <rect x="88.5" y="88.5" width="23" height="23" rx="1" fill="#22d3ee" />
+</svg>

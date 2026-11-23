@@ -1,0 +1,27 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "CFIXTUREAA",
+    "messageTs": "1788145953.649839",
+    "threadTs": "1788138032.262199"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl"
+  ],
+  "frozenAtIso": "2026-08-31T10:47:06.848Z",
+  "incident": "A burst-queued follow-up was promoted, given the full capture-time UX (:eyes: reaction + progress card, checklist-posted 04:36:19Z) by turn answer running inside the PREVIOUS ask's one-shot fresh-visible-session child workspace, and the burst-dequeued handoff line was printed to that child's stdout as it ended. The continuous-drain loop session never saw it, so the ask was never dispatched. turn dispatch --sweep returns early for any ask with no activeDispatch (dispatchSweep.ts), so nothing terminalised the card: it sat mid-checklist at 'Work out how to answer' in a public channel for ~6 hours, and the message queued behind it (1788148044.130839) is stranded permanently because only a terminal event drains a burst queue.",
+  "regresses": [
+    "stalled-session-still-reported-as-in-flight"
+  ],
+  "replayNowIso": "2026-08-31T04:36:19.928Z",
+  "reviewRounds": 0,
+  "schemaVersion": 1,
+  "slug": "card-posted-never-dispatched",
+  "syntheticIdCount": 2,
+  "withheldEventKinds": []
+}

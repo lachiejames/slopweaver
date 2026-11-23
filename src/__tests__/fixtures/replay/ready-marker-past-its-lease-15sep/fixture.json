@@ -1,0 +1,40 @@
+{
+  "ask": {
+    "askedBy": "UFIXTUREAB",
+    "channel": "DFIXTUREAA",
+    "messageTs": "1789422881.103369",
+    "threadTs": "1789422881.103369"
+  },
+  "excluded": [
+    "reviews/*/packet.md — free prose composed for a human reviewer; no replay assertion reads it",
+    "profile.json — the owner's own persona and chrome; a replay needs neither, and an asker-tag duty is decided from the ask's own userId",
+    "thread-files/* — attachments, deliberately unredacted where they live and never committable",
+    "live/slack/detectives/*/*/*.md — detective briefs and reports, prose quoting what each detective read; the wave's wave.json is carried instead",
+    "the composed answer — the record names a path outside the home, or no longer on disk",
+    "the composed answer — the record names a path outside the home, or no longer on disk"
+  ],
+  "files": [
+    "home/live/slack/asks.jsonl",
+    "home/ledgers/turn-completions.jsonl",
+    "home/briefs/DFIXTUREAA-1789422881.103369.json",
+    "home/live/slack/dispatches/DFIXTUREAA-1789422881.103369.json",
+    "home/live/slack/turn-markers/DFIXTUREAA-1789422881.103369.json",
+    "home/live/slack/reviews/DFIXTUREAA-1789422881.103369/record.json",
+    "home/live/slack/reviews/DFIXTUREAA-1789422881.103369/verdict.json",
+    "home/live/slack/reviews/DFIXTUREAA-1789422881.103369/answer-reviewed-sha256-67df628c19d4e952bfd02ad59ff2d0b1dd0596fb6ef648b494087016410a6abe.json",
+    "home/live/slack/reviews/DFIXTUREAA-1789422881.103369/answer-reviewed-sha256-c457efeb6725e94f33a97b4ea9a02472c204a0f5ca181f55f2b0127b80a6648c.json",
+    "home/live/slack/reviews/DFIXTUREAA-1789422881.103369/answer-reviewed-sha256-dd2a347199b1de57cc7870675ba8d892b9182c43d88b6a86bde66585d7d3aa6d.json",
+    "home/live/slack/reviews/DFIXTUREAA-1789422881.103369/verdict-superseded-fixture-uuid-cg-2026-09-15T00-03-56-319Z.json",
+    "home/live/slack/reviews/DFIXTUREAA-1789422881.103369/verdict-superseded-fixture-uuid-ch-2026-09-14T23-09-13-411Z.json"
+  ],
+  "frozenAtIso": "2026-09-23T11:45:05.414Z",
+  "incident": "a paused turn's ready marker outranked its expired lease: the sweep printed 0 lease-expired 100 minutes past it with no worker or reviewer alive, so the ask held its dispatch forever and session respawn loop refused on it",
+  "regresses": [],
+  "replayNowIso": "2026-09-15T03:37:00.000Z",
+  "reviewRounds": 3,
+  "schemaVersion": 1,
+  "slug": "ready-marker-past-its-lease-15sep",
+  "syntheticIdCount": 60,
+  "withheldEventKinds": [],
+  "through": "dispatched"
+}
