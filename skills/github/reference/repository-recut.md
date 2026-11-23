@@ -7,7 +7,26 @@ Two verbs prepare for that switch:
 - `github repoint-plan` lists every local place that names the repository.
 
 Neither verb creates, renames or pushes to a repository. The switch is a separate step, and it runs only on
-the owner's yes.
+the owner's yes. Its writes are `github repo` writes, each previewed and sent on `--approve <digest>`.
+
+## Pushing the root
+
+```bash
+github repo --repo <owner/name> --push-fresh-cut <record-id>   # preview, then again with --approve <digest>
+```
+
+This is the only path for the root, and it runs after `--create` and Actions off, before `--apply-manifest`.
+It pushes the cut record's root to `refs/heads/main` from the cut's own repository, and pushes nothing else.
+It refuses unless:
+
+- `github push-root` binds the repository to exactly that root;
+- the root is a parentless commit over the tree the cut recorded;
+- the repository reads private and not archived;
+- the repository holds no ref at all.
+
+Success is a read-back of the remote's refs: `main` at the root, and no other ref. It does not ask whether
+`fresh-cut verify` refused, because the repository is private. `--set-public` asks: a repository `push-root`
+binds goes public only when the latest `fresh-cut verify` of its cut reads clear.
 
 ## Recording the root
 
@@ -29,8 +48,9 @@ joins the old history into the fresh one, which a plain ancestry check would let
 
 - **It covers every push path.** The guard runs in `pushAndVerify`, which `github push`, every stack verb and
   a worktree salvage share. It also runs in `stack submit`'s preflight, before the dry-run stop, and in the
-  `old-history-push` pre-push hook (`src/admit/pushRootGuardCli.ts`), which covers a raw `git push`. A hook
-  can be skipped, so it is a tripwire, not a boundary.
+  `old-history-push` pre-push hook (`src/admit/pushRootGuardCli.ts`), which a push made outside the verbs
+  meets. A hook can be skipped, so it is a tripwire, not a boundary. The root itself goes up through
+  `--push-fresh-cut`, which meets the same criterion by construction.
 - **It matches on push URLs.** A target is matched by every push URL of the remote
   (`git remote get-url --push --all`), case-insensitively.
 - **Some pushes always pass.** A branch deletion passes. With no binding recorded, git is not read at all.

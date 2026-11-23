@@ -11,6 +11,7 @@ export const GITHUB_REPO_USAGE =
   "usage: slopweaver github repo --repo <owner/name> --description <text> [--dry-run] [--json] [--home <dir>]\n" +
   "       slopweaver github repo --repo <owner/name> --rename-to <name>|--transfer-to <owner>|--archive\n" +
   "                              |--create [--public]|--set-public|--apply-manifest <path>|--enable-actions\n" +
+  "                              |--push-fresh-cut <record-id>\n" +
   "                              [--approve <digest>] [--json] [--home <dir>]\n" +
   "  One write per invocation, each through the door and confirmed by a read-back\n" +
   '  --description <text>  replace the description; pass "" to clear it\n' +
@@ -21,7 +22,12 @@ export const GITHUB_REPO_USAGE =
   "  --create           create the repository at --repo, PRIVATE unless --public is also given; the owner is the\n" +
   "                     token's own account or an organisation, and the address must not exist yet\n" +
   "  --public           with --create only: create it public instead\n" +
-  "  --set-public       make a private repository public; the preview names what GitHub changes with it\n" +
+  "  --set-public       make a private repository public; the preview names what GitHub changes with it. A\n" +
+  "                     repository `github push-root` binds is refused unless its cut's latest fresh-cut verify\n" +
+  "                     reads clear\n" +
+  "  --push-fresh-cut <record-id>  push a fresh cut's one root commit as main of a private repository holding no\n" +
+  "                     ref yet; refused unless `github push-root` binds the repository to that root, which\n" +
+  "                     must be a parentless commit over the cut's tree\n" +
   "  --apply-manifest <path>  apply a settings apply artifact naming this repository: description, topics,\n" +
   "                     features, merge settings, labels (create only), Dependabot alerts, and once the\n" +
   "                     repository is public, protection on main, secret scanning and private vulnerability\n" +

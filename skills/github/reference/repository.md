@@ -49,15 +49,16 @@ an account the token's owner controls lands within seconds; one waiting on anoth
 and the verb reports **accepted but unconfirmed** (`WRITE_UNCONFIRMED`, exit 1). That is not a failure to retry:
 read the destination later, and never send the transfer again.
 
-## Create, publish, apply settings, turn Actions on — the same preview and digest
+## Create, push a fresh cut, publish, apply settings, turn Actions on — the same preview and digest
 
-Four more writes share the contract above (preview by default, `--approve` the `ghrepo-` digest of a fresh
+Five more writes share the contract above (preview by default, `--approve` the `ghrepo-` digest of a fresh
 read, a door `hold` on any drift, a read-back as the outcome). A session previews them; the approved run is the
 owner's yes, never a seat's own.
 
 | Write              | Digest binds                                                                | Confirmed when the read-back shows                            |
 | ------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `--create`         | owner id and kind, the address answering 404, `{ name, private }`           | the id the create answered, at that address, privacy as asked |
+| `--push-fresh-cut` | the cut's record, root, tree and directory, the repository's state, no refs | `refs/heads/main` at the root, and no other ref               |
 | `--set-public`     | the repository's id, visibility, privacy and archive state                  | the same id, `visibility: public`                             |
 | `--apply-manifest` | the artifact, every live field a step changes, visibility, the steps        | each step's own read-back, in order                           |
 | `--enable-actions` | the switch, mode, allowed actions, token, fork approval, runners, the steps | every policy property, Actions on, zero runners               |
@@ -65,8 +66,12 @@ owner's yes, never a seat's own.
 - **`--create`** is PRIVATE unless `--public` is also given. The owner is the token's own account (its
   endpoint) or an organisation (the organisation's); any other personal account is refused. An address that
   already holds a repository is refused, and a create GitHub refuses is reported once, never retried.
+- **`--push-fresh-cut <record-id>`** pushes a fresh cut's root as `main` of a private repository holding no
+  ref: [repository-recut.md](repository-recut.md) § Pushing the root.
 - **`--set-public`** prints what an approval also accepts: the history becomes readable, private forks detach,
-  Actions history and logs become public, push rulesets are disabled, and activity is published.
+  Actions history and logs become public, push rulesets are disabled, and activity is published. On a
+  repository the push-root register binds, it refuses unless the latest `fresh-cut verify` of that root reads
+  clear.
 - **`--apply-manifest <path>`** applies a settings APPLY artifact, never the evidence manifest the settings
   review writes: a strict schema (`src/cli/commands/github/repoManifestSchema.ts`) refuses an unknown field, an
   unresolved owner call and a placeholder in a text field, and the artifact must name the `--repo` typed. It is
@@ -80,7 +85,7 @@ owner's yes, never a seat's own.
   is not taken as private. Each
   step is sent once and confirmed by its own read before the next; a stop names what landed and rolls nothing
   back. Visibility, Actions, webhooks, keys, secrets and Pages are not in the artifact at all.
-- **The switch order** for a new public repository: `--create` (private), push, `--apply-manifest`,
+- **The switch order** for a new public repository: `--create` (private), `--push-fresh-cut`, `--apply-manifest`,
   `--set-public`, `--apply-manifest` again, `--enable-actions`, then read each back.
 - **`--enable-actions`** establishes the stated policy: GitHub-hosted runners only, GitHub-owned actions only
   (no verified publisher, no pattern), every outside contributor's fork pull request waits for approval, the

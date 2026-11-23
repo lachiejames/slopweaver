@@ -54,6 +54,14 @@ function depsFor({
     makeManifestApi: () => {
       throw new Error("a description or administration run must never build the settings client");
     },
+    freshCutGit: {
+      readGit: () => {
+        throw new Error("a description or administration run must never read Git");
+      },
+      writeGit: () => {
+        throw new Error("a description or administration run must never push");
+      },
+    },
     out: (line) => out.push(line),
     readText: () => {
       throw new Error("a description or administration run must never read an apply artifact");
@@ -193,7 +201,7 @@ describe("runGithubRepo", () => {
 
     expect(code).toBe(2);
     expect(diagnostic[0]).toBe(
-      "one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest or --enable-actions is " +
+      "one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest, --enable-actions or --push-fresh-cut is " +
         'required (pass --description "" to clear it)',
     );
     expect(administrationSent).toEqual([]);

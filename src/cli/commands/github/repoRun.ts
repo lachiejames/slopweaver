@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 
 import { type DoorLedgerPort, doorLedgerPort } from "../../../admit/doorLedgerPort.js";
+import { readGit, writeGit } from "../../../admit/gitTransport.js";
 import { githubToken, slopweaverHome } from "../../../config.js";
 import { logger } from "../../../lib/logger.js";
 import { err, ok, type Result } from "../../../lib/result.js";
@@ -41,6 +42,7 @@ import { planRepoCreate } from "./repoCreateRun.js";
 import { runRepoDescription } from "./repoDescriptionRun.js";
 import { loadRepoApplyManifest, planRepoManifestWrite } from "./repoManifestRun.js";
 import type { RepoSettingsApplyManifest } from "./repoManifestSchema.js";
+import { type FreshCutPushGit, planRepoPushFreshCut } from "./repoPushFreshCutRun.js";
 import type { GithubRepoTransferWait } from "./repoReadBack.js";
 import { GITHUB_REPO_USAGE } from "./repoUsage.js";
 import { planRepoSetPublic } from "./repoVisibilityRun.js";
@@ -66,6 +68,8 @@ export interface GithubRepoDeps {
   readonly makeLifecycleApi: (args: { home: string; token: string }) => GithubRepoLifecycleApi;
   readonly makeActionsPolicyApi: (args: { home: string; token: string }) => GithubRepoActionsPolicyApi;
   readonly makeManifestApi: (args: { home: string; token: string }) => GithubRepoManifestApi;
+  /** The Git edges `--push-fresh-cut` reads the cut and the remote through, and pushes through. */
+  readonly freshCutGit: FreshCutPushGit;
   /** Read an apply artifact's text; a failure is one line per problem. */
   readonly readText: (args: { path: string }) => Result<string>;
   readonly transferWait: GithubRepoTransferWait;
@@ -199,7 +203,16 @@ async function runApproved({
     const request = { owner, private: !args.public, repo };
     planned = await planRepoCreate({ api: deps.makeLifecycleApi({ home, token }), request });
   } else if (args.write === "set-public") {
-    planned = await planRepoSetPublic({ api: deps.makeLifecycleApi({ home, token }), owner, repo });
+    planned = await planRepoSetPublic({ api: deps.makeLifecycleApi({ home, token }), home, owner, repo });
+  } else if (args.write === "push-fresh-cut") {
+    planned = await planRepoPushFreshCut({
+      api: deps.makeLifecycleApi({ home, token }),
+      git: deps.freshCutGit,
+      home,
+      owner,
+      recordId: args.freshCutRecordId!,
+      repo,
+    });
   } else if (args.write === "apply-manifest") {
     const api = deps.makeManifestApi({ home, token });
     planned = await planRepoManifestWrite({ api, manifest: manifest!, manifestPath: args.manifestPath!, owner, repo });
@@ -220,6 +233,7 @@ async function runApproved({
 export function productionGithubRepoDeps(): GithubRepoDeps {
   return {
     doorLedger: doorLedgerPort(),
+    freshCutGit: { readGit, writeGit },
     home: slopweaverHome,
     makeActionsPolicyApi: ({ home, token }) =>
       makeGithubRepoActionsPolicyApi({ privacy: githubWritePrivacy({ home }), token }),

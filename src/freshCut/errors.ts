@@ -60,6 +60,18 @@ export interface RecordUnreadableError {
   readonly message: string;
 }
 
+/** A verification report could not be read, does not parse, or is not a report of the cut it sits beside. */
+export interface VerificationUnreadableError {
+  readonly code: "VERIFICATION_UNREADABLE";
+  readonly message: string;
+}
+
+/** Two verifications of cuts carrying one root share the latest instant and disagree, so neither is the latest. */
+export interface VerificationConflictError {
+  readonly code: "VERIFICATION_CONFLICT";
+  readonly message: string;
+}
+
 /** A cut record or a verification report could not be written. */
 export interface RecordWriteFailedError {
   readonly code: "RECORD_WRITE_FAILED";
@@ -107,6 +119,8 @@ export type FreshCutError =
   | CutMismatchError
   | IdentityUnavailableError
   | RecordUnreadableError
+  | VerificationUnreadableError
+  | VerificationConflictError
   | RecordWriteFailedError
   | ScanInputUnavailableError
   | ReviewedResidueUnreadableError
@@ -174,6 +188,20 @@ export const FreshCutErrors = {
   scanInputUnavailable: ({ why }: { why: string }): ScanInputUnavailableError => ({
     code: "SCAN_INPUT_UNAVAILABLE",
     message: why,
+  }),
+  verificationConflict: ({
+    at,
+    recordIds,
+  }: {
+    at: string;
+    recordIds: readonly string[];
+  }): VerificationConflictError => ({
+    code: "VERIFICATION_CONFLICT",
+    message: `cuts ${recordIds.join(", ")} carry the same root and were verified at the same instant ${at} with different results, so neither is the latest; verify again`,
+  }),
+  verificationUnreadable: ({ path, why }: { path: string; why: string }): VerificationUnreadableError => ({
+    code: "VERIFICATION_UNREADABLE",
+    message: `the verification report ${path} could not be read: ${why}`,
   }),
   sourceUnreadable: ({ step, cause }: { step: string; cause: string }): SourceUnreadableError => ({
     code: "SOURCE_UNREADABLE",

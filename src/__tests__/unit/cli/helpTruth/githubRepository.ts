@@ -206,6 +206,7 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--description": ["--repo", "owner/name", "--description", "new text"],
     "--enable-actions": ["--repo", "owner/name", "--enable-actions"],
     "--public": ["--repo", "owner/name", "--create", "--public"],
+    "--push-fresh-cut": ["--repo", "owner/name", "--push-fresh-cut", "0b6f1c2e-3d4a-4b5c-8d6e-7f8091a2b3c4"],
     "--set-public": ["--repo", "owner/name", "--set-public"],
     "--rename-to": ["--repo", "owner/name", "--rename-to", "renamed"],
     "--transfer-to": ["--repo", "owner/name", "--transfer-to", "fixture-owner"],
