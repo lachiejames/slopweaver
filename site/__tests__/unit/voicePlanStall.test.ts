@@ -1,6 +1,7 @@
 /*
  * A recorded call replayed through the orb's fold: a plan call's hand-off to Codex that never comes back, and the
- * owner's words nothing answers. Both must read "working" with a nudge on offer, never "listening" with none.
+ * owner's words nothing answers. Both must read "working" with a nudge on offer, never "listening" with none — bar a
+ * turn whose request is out to the model, which reads slow and never offers to throw that request away.
  */
 import { describe, expect, it } from "vitest";
 
@@ -114,26 +115,107 @@ describe("a Codex turn that goes quiet", () => {
     [12_000, handoff({ id: "item_d3" })],
   ];
 
-  it("reads as the turn's step while it runs, the hand-offs merged into it", () => {
+  it("reads as waiting for the model from its start, the hand-offs merged into it", () => {
     const activity = play({ script: RUNNING });
     const status = quietAt({ activity, nowMs: 20_000 });
-    expect(status.phase).toBe("working");
-    expect(status.detail).toBe("working · 9s");
+    expect([status.phase, status.headline, status.detail]).toEqual([
+      "working",
+      "waiting",
+      "waiting for the model · 9s",
+    ]);
   });
 
-  it("goes stale STALL_MS after its own last progress, offering to stop it", () => {
+  // MEASURED: the orb read "working · 140s", then ZZZ offering to nudge Codex, while the model took 233s to 346s to reply.
+  it("reads a long wait on the model as slow from STALL_MS, never stalled, and offers no nudge to throw the request away", () => {
+    const activity = play({ script: [...RUNNING, [40_000, { kind: "heard" }]] });
+    const under = quietAt({ activity, nowMs: 10_600 + STALL_MS - 1 });
+    const slow = quietAt({ activity, nowMs: 10_600 + 326_000 });
+    expect([under.phase, under.headline, under.detail]).toEqual(["working", "waiting", "waiting for the model · 34s"]);
+    expect([slow.phase, slow.headline, slow.detail, slow.nudge]).toEqual([
+      "working",
+      "model slow",
+      "waiting for the model · no reply for 326s",
+      undefined,
+    ]);
+    expect(nudgeOfferOf({ activity, nowMs: 10_600 + 326_000 })).toBe(undefined);
+  });
+
+  it("goes stale STALL_MS after its own last progress on a step of its own, offering to stop it", () => {
+    const reasoning: ActivityInput = {
+      kind: "codex-turn",
+      phase: "progress",
+      step: { kind: "reasoning" },
+      turnId: "turn-1",
+    };
     const activity = play({
       script: [
         ...RUNNING,
+        [15_000, reasoning],
         [20_000, progress({ turnId: "turn-1" })],
         [30_000, handoff({ id: "item_d4" })],
         [40_000, { kind: "heard" }],
       ],
     });
-    expect(quietAt({ activity, nowMs: 20_000 + STALL_MS - 1 }).headline).toBe("working");
+    expect(quietAt({ activity, nowMs: 20_000 + STALL_MS - 1 }).headline).toBe("reasoning");
     const stale = quietAt({ activity, nowMs: 20_000 + STALL_MS });
-    expect(stale.headline).toBe("no update");
-    expect(stale.nudge).toBe("interrupt");
+    expect([stale.phase, stale.headline, stale.nudge]).toEqual(["stalled", "no update", "interrupt"]);
+  });
+
+  // The row said "running read_card" for the whole wait after the tool finished: a finished tool is never still named.
+  it("stops naming a tool once its item completes, and counts the wait after it from 0s", () => {
+    const tool: ActivityInput = {
+      kind: "codex-turn",
+      phase: "progress",
+      step: { kind: "tool", name: "read_card" },
+      turnId: "turn-1",
+    };
+    const done: ActivityInput = {
+      kind: "codex-turn",
+      phase: "progress",
+      step: { kind: "awaiting", reason: "model" },
+      turnId: "turn-1",
+    };
+    const activity = play({ script: [...RUNNING, [15_000, tool], [35_000, done]] });
+    expect(quietAt({ activity, nowMs: 35_000 }).detail).toBe("waiting for the model · 0s");
+  });
+
+  it("keeps saying it is writing through a delta, and keeps a wait's start through a re-send inside it", () => {
+    const writing: ActivityInput = {
+      kind: "codex-turn",
+      phase: "progress",
+      step: { kind: "writing" },
+      turnId: "turn-1",
+    };
+    const retry: ActivityInput = {
+      kind: "codex-turn",
+      phase: "progress",
+      step: { kind: "awaiting", reason: "retry" },
+      turnId: "turn-1",
+    };
+    const written = play({ script: [...RUNNING, [15_000, writing], [16_000, progress({ turnId: "turn-1" })]] });
+    const resent = play({ script: [...RUNNING, [310_600, retry]] });
+    expect([
+      quietAt({ activity: written, nowMs: 17_000 }).detail,
+      quietAt({ activity: resent, nowMs: 320_600 }).detail,
+    ]).toEqual(["writing · 2s", "the model's reply dropped; Codex is re-sending · no reply for 310s"]);
+  });
+
+  // Codex review r1: awaiting the model after a re-send kept the re-send's clock, though an item had ended in between.
+  it("counts a wait on the model after a re-send from that wait's own start, never the re-send's", () => {
+    const retry: ActivityInput = {
+      kind: "codex-turn",
+      phase: "progress",
+      step: { kind: "awaiting", reason: "retry" },
+      turnId: "turn-1",
+    };
+    const back: ActivityInput = {
+      kind: "codex-turn",
+      phase: "progress",
+      step: { kind: "awaiting", reason: "model" },
+      turnId: "turn-1",
+    };
+    const activity = play({ script: [...RUNNING, [100_000, retry], [320_000, back]] });
+    expect(quietAt({ activity, nowMs: 330_000 }).detail).toBe("waiting for the model · 10s");
   });
 
   it("is never stale while the page runs a tool for it, and offers no nudge then", () => {

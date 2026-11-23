@@ -5,7 +5,8 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { turnProgressOf } from "../../lib/talkPlanTurns";
+import type { CallTurnItems } from "../../lib/talkPlanModelWait";
+import { itemEventsOf } from "../../lib/talkPlanTurns";
 import {
   type ActivityInput,
   COMPACTION_STALL_MS,
@@ -39,38 +40,40 @@ const COMPACTING: Script = [
   [STARTED_AT, { kind: "codex-turn", phase: "progress", step: { kind: "compacting" }, turnId: "t-1" }],
 ];
 
-describe("turnProgressOf over a context compaction", () => {
+describe("itemEventsOf over a context compaction", () => {
   const params = { threadId: "thread-1", turnId: "t-1" };
   const forwarded = ({
     method,
     running,
     sentMs,
+    turns,
   }: {
     method: string;
     running: ReadonlySet<string>;
     sentMs: Map<string, number>;
+    turns: CallTurnItems;
   }) =>
-    turnProgressOf({
+    itemEventsOf({
       method,
       nowMs: 1_000,
       params: { ...params, item: { id: "c-1", type: "contextCompaction" } },
       running,
       sentMs,
       threadId: "thread-1",
+      turns,
     });
 
   // A compaction shorter than the progress throttle still ends on the page, else the orb says compacting on.
   it("forwards its start and its end inside the throttle, and nothing for a turn not running", () => {
-    const running = new Set(["t-1"]);
-    const sentMs = new Map([["t-1", 900]]);
+    const shared = { running: new Set(["t-1"]), sentMs: new Map([["t-1", 900]]), turns: new Map() };
     expect([
-      forwarded({ method: "item/started", running, sentMs }),
-      forwarded({ method: "item/completed", running, sentMs }),
-      forwarded({ method: "item/started", running: new Set(), sentMs: new Map() }),
+      forwarded({ ...shared, method: "item/started" }),
+      forwarded({ ...shared, method: "item/completed" }),
+      forwarded({ method: "item/started", running: new Set(), sentMs: new Map(), turns: new Map() }),
     ]).toEqual([
-      { kind: "codex-turn", phase: "progress", step: { kind: "compacting" }, turnId: "t-1" },
-      { kind: "codex-turn", phase: "progress", step: { kind: "working" }, turnId: "t-1" },
-      undefined,
+      [{ kind: "codex-turn", phase: "progress", step: { kind: "compacting" }, turnId: "t-1" }],
+      [{ kind: "codex-turn", phase: "progress", step: { kind: "awaiting", reason: "model" }, turnId: "t-1" }],
+      [],
     ]);
   });
 });
@@ -91,13 +94,17 @@ describe("a Codex turn compacting the voice's thread", () => {
     ]);
   });
 
-  // Progress naming no step keeps the last, so without the end's own step the orb would say compacting on.
-  it("hands back ordinary work when the compaction ends, which stalls at STALL_MS again", () => {
+  // Progress naming no step keeps the last, so without the end's own step the orb would say compacting on. After a
+  // compaction the turn's request is out to the model, counted from the compaction's end and never from the turn's start.
+  it("waits on the model from 0s when the compaction ends, slow but never stalled from STALL_MS", () => {
     const endedAt = STARTED_AT + 100_000;
     const activity = play({
       script: [
         ...COMPACTING,
-        [endedAt, { kind: "codex-turn", phase: "progress", step: { kind: "working" }, turnId: "t-1" }],
+        [
+          endedAt,
+          { kind: "codex-turn", phase: "progress", step: { kind: "awaiting", reason: "model" }, turnId: "t-1" },
+        ],
       ],
     });
     expect([
@@ -105,9 +112,9 @@ describe("a Codex turn compacting the voice's thread", () => {
       shownAt({ activity, nowMs: endedAt + STALL_MS - 1 }),
       shownAt({ activity, nowMs: endedAt + STALL_MS }),
     ]).toEqual([
-      ["working", "working", "working · 100s", undefined],
-      ["working", "working", "working · 134s", undefined],
-      ["stalled", "no update", "working · no update for 135s", "interrupt"],
+      ["working", "waiting", "waiting for the model · 0s", undefined],
+      ["working", "waiting", "waiting for the model · 34s", undefined],
+      ["working", "model slow", "waiting for the model · no reply for 35s", undefined],
     ]);
   });
 });

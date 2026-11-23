@@ -4,31 +4,37 @@
  * its 300-line cap; the class passes in the state these read, so nothing here holds any.
  */
 import { PLAN_CALL_LIMITS, type PlanTurnEvent } from "./planCallContract";
+import type { PlanCodexNoticeEvent, PlanModelWaitEvent } from "./talkPlanCodexEvents";
+import { type CallTurnItems, itemMoveOf } from "./talkPlanModelWait";
 import type { RpcOutcome } from "./talkPlanProtocol";
-import { turnActivityOf } from "./talkPlanProtocolTurns";
+import { codexNoticeOf } from "./talkPlanProtocolTurns";
 import type { CallClock } from "./talkPlanStart";
 
 /** One waiter on the next Codex turn's start, told its id — or `undefined` when the call ends. */
 export type TurnWaiter = (turnId: string | undefined) => void;
 
 /**
- * The progress one item notification inside a running Codex turn of the call's own thread is forwarded as: every item
- * that starts, and a context compaction's completion (its step back to plain work, `turnActivityOf`), and otherwise
+ * What one item notification inside a running Codex turn of the call's own thread is forwarded as
+ * (`itemMoveOf`, `./talkPlanModelWait.ts`): first the `model-wait` line a long wait it closed is owed, then the turn's
+ * progress — always when it names a step (an item starting, or one completing, which leaves the turn on its newest
+ * item still in flight or awaiting the model, so a finished tool or compaction is never still named), and otherwise
  * at most once per {@link PLAN_CALL_LIMITS.progressEveryMs}, the instant recorded in `sentMs` when it is.
  *
  * @param method the notification's method
  * @param params the notification's params
  * @param threadId the call's own thread, whose notifications alone count
  * @param running the call's Codex turns running now, outside which an item is no progress
+ * @param turns every running turn's items in flight and open wait, updated here
  * @param sentMs when each turn's progress was last forwarded, updated here
  * @param nowMs the call's time now
- * @returns the event to forward, or `undefined` when none is due
+ * @returns the events to forward, none for another thread's item, a turn not running, or progress not yet due
  */
-export function turnProgressOf({
+export function itemEventsOf({
   method,
   params,
   threadId,
   running,
+  turns,
   sentMs,
   nowMs,
 }: {
@@ -36,20 +42,62 @@ export function turnProgressOf({
   params: unknown;
   threadId: string | undefined;
   running: ReadonlySet<string>;
+  turns: CallTurnItems;
   sentMs: Map<string, number>;
   nowMs: number;
-}): PlanTurnEvent | undefined {
-  const activity = turnActivityOf({ method, params });
-  if (activity === undefined || activity.threadId !== threadId || !running.has(activity.turnId)) {
-    return undefined;
+}): readonly (PlanTurnEvent | PlanModelWaitEvent)[] {
+  const move = itemMoveOf({ method, nowMs, params, running, threadId, turns });
+  if (move === undefined) {
+    return [];
   }
-  const { step, turnId } = activity;
+  const { step, turnId, wait } = move;
+  const events: (PlanTurnEvent | PlanModelWaitEvent)[] = wait === undefined ? [] : [wait];
   const sent = sentMs.get(turnId);
   if (step === null && sent !== undefined && nowMs - sent < PLAN_CALL_LIMITS.progressEveryMs) {
-    return undefined;
+    return events;
   }
   sentMs.set(turnId, nowMs);
-  return { kind: "codex-turn", phase: "progress", step, turnId };
+  return [...events, { kind: "codex-turn", phase: "progress", step, turnId }];
+}
+
+/**
+ * What one app-server `error` or `warning` notification of the call's own thread is forwarded as
+ * (`codexNoticeOf`, `./talkPlanProtocolTurns.ts`): a `codex-notice` for the call file, and, for a re-send inside a
+ * turn still running, that turn's step put to awaiting the re-send, so the orb says the reply dropped rather than
+ * counting on as if nothing had happened. Never the call's `error`, which would draw the orb's error face over a
+ * turn Codex is still working: a failure that ends the turn arrives on `turn/completed`, which is what reads it.
+ *
+ * @param method the notification's method
+ * @param params the notification's params
+ * @param threadId the call's own thread, whose notices alone count
+ * @param running the call's Codex turns running now, outside which a re-send moves no step
+ * @returns the events to forward, none for another thread's notice or one the console cannot read
+ */
+export function codexNoticeEventsOf({
+  method,
+  params,
+  threadId,
+  running,
+}: {
+  method: string;
+  params: unknown;
+  threadId: string | undefined;
+  running: ReadonlySet<string>;
+}): readonly (PlanTurnEvent | PlanCodexNoticeEvent)[] {
+  const notice = codexNoticeOf({ method, params });
+  if (notice === undefined || notice.threadId !== threadId) {
+    return [];
+  }
+  const { message } = notice;
+  if (notice.kind === "warning") {
+    return [{ kind: "codex-notice", level: "warning", message, turnId: null }];
+  }
+  const { turnId } = notice;
+  const recorded: PlanCodexNoticeEvent = { kind: "codex-notice", level: notice.kind, message, turnId };
+  if (notice.kind === "failure" || !running.has(turnId)) {
+    return [recorded];
+  }
+  return [recorded, { kind: "codex-turn", phase: "progress", step: { kind: "awaiting", reason: "retry" }, turnId }];
 }
 
 /**

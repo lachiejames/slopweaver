@@ -15,12 +15,18 @@
  * turn starting, an item inside it, its token usage — are progress.
  */
 import type { PlanHeldAnswerEvent, PlanTurnEvent } from "./planCallContract";
+import { AWAITING_MODEL } from "./responsesStep";
 import type { CodexStep } from "./talkPlanProtocolItems";
 
 /** One Codex turn the delegated thread is running. */
 export interface CodexTurn {
   readonly id: string;
   readonly sinceMs: number;
+  /**
+   * When its current step began, which the row's seconds count from: a wait on the model after a 20s tool starts at
+   * 0s, never at the turn's age. A re-send inside a wait is the same wait, so it keeps the wait's start.
+   */
+  readonly stepSinceMs: number;
   /** The last notice of THIS turn's own work — never a hand-off, never a transcript. */
   readonly lastProgressMs: number;
   readonly step: CodexStep;
@@ -139,16 +145,37 @@ export function foldPlanWork({
     const endedTurns = [...plan.endedTurns, input.turnId];
     return { ...plan, endedTurns, handoff: undefined, lastCompletedMs, lastEndedMs: nowMs, turns };
   }
-  let turn: CodexTurn = { id: input.turnId, lastProgressMs: nowMs, sinceMs: nowMs, step: { kind: "working" } };
+  // A turn starts with its request out to the model: nothing runs in it until an item starts.
+  let turn: CodexTurn = {
+    id: input.turnId,
+    lastProgressMs: nowMs,
+    sinceMs: nowMs,
+    step: AWAITING_MODEL,
+    stepSinceMs: nowMs,
+  };
   const known = plan.turns.get(input.turnId);
   if (known !== undefined) {
     turn = { ...known, lastProgressMs: nowMs };
   }
+  // A delta or usage (`step: null`) keeps the step and its start, so a message half written keeps saying it is writing.
   if (input.phase === "progress" && input.step !== null) {
-    turn = { ...turn, step: input.step };
+    turn = {
+      ...turn,
+      step: input.step,
+      stepSinceMs: sameWait({ from: turn.step, to: input.step }) ? turn.stepSinceMs : nowMs,
+    };
   }
   turns.set(input.turnId, turn);
   return { ...plan, handoff: undefined, turns };
+}
+
+/**
+ * Whether a step change continues the same wait on the model, so its clock keeps counting: a re-send inside a wait, or
+ * the same wait told again. An item ending after a re-send is a fresh wait, counted from that end — the server sends
+ * awaiting the model only once the turn's last item in flight ends (`itemMoveOf`, `./talkPlanModelWait.ts`).
+ */
+function sameWait({ from, to }: { from: CodexStep; to: CodexStep }): boolean {
+  return from.kind === "awaiting" && to.kind === "awaiting" && (to.reason === "retry" || from.reason === to.reason);
 }
 
 /**
@@ -202,10 +229,11 @@ export function planEntries({ plan, toolsPending }: { plan: PlanWork; toolsPendi
   const entries: PlanEntry[] = [];
   for (const turn of plan.turns.values()) {
     entries.push({
-      canStall: !toolsPending,
+      // A turn awaiting the model has a request known to be out, so its quiet is a slow reply, never a stall.
+      canStall: !toolsPending && turn.step.kind !== "awaiting",
       key: `${CODEX_TURN_KEY}${turn.id}`,
       lastMs: turn.lastProgressMs,
-      sinceMs: turn.sinceMs,
+      sinceMs: turn.stepSinceMs,
       step: turn.step,
     });
   }

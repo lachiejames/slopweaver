@@ -5,21 +5,41 @@
 
 import { type Bag, isBag } from "./bag";
 
-/** The steps a turn names. */
+/**
+ * Why a Codex turn is awaiting: its request is out to the model and no item has started (`model`), or Codex said the
+ * model's reply dropped and it is sending the request again (`retry`, app-server's `error` with `willRetry: true`).
+ */
+export type AwaitingReason = "model" | "retry";
+
+/**
+ * The steps a turn names. `awaiting` is a Codex turn with a request out to the model and nothing running: after the
+ * turn starts and after each of its items completes, until the next item starts. MEASURED on one call: three such
+ * waits ran 346s, 326s and 233s with no tool running, while the row said "working" or a tool that had already finished.
+ */
 export type WorkStep =
   | { readonly kind: "working" }
+  | { readonly kind: "awaiting"; readonly reason: AwaitingReason }
   | { readonly kind: "reasoning" }
   | { readonly kind: "writing" }
   | { readonly kind: "compacting" }
   | { readonly kind: "tool"; readonly name: string };
 
+/** A Codex turn's step while its request is out to the model: from its start, and from each item's completion. */
+export const AWAITING_MODEL: WorkStep = { kind: "awaiting", reason: "model" };
+
 /** What the orb says while the voice's Codex thread compacts its own context: silent work, not a stall. */
 export const COMPACTING_WORDS = "compacting the conversation";
+
+/** What the orb says while a Codex turn's request is out to the model. */
+export const AWAITING_MODEL_WORDS = "waiting for the model";
+
+/** What the orb says once Codex has said the model's reply dropped and it is sending the request again. */
+export const AWAITING_RETRY_WORDS = "the model's reply dropped; Codex is re-sending";
 
 /**
  * A step, in the words the orb says.
  *
- * @returns the step as a short phrase — "reasoning", "running action_items", "compacting the conversation"
+ * @returns the step as a short phrase — "reasoning", "running action_items", "waiting for the model"
  */
 export function stepWords({ step }: { step: WorkStep }): string {
   if (step.kind === "tool") {
@@ -27,6 +47,9 @@ export function stepWords({ step }: { step: WorkStep }): string {
   }
   if (step.kind === "compacting") {
     return COMPACTING_WORDS;
+  }
+  if (step.kind === "awaiting") {
+    return step.reason === "retry" ? AWAITING_RETRY_WORDS : AWAITING_MODEL_WORDS;
   }
   return step.kind;
 }

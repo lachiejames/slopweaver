@@ -3,6 +3,7 @@
  * (`./talkPlanProtocol.ts`): a turn's token usage, the step a turn is on, and a dynamic tool call and its answer. Pure.
  */
 import { isBag, str, sub } from "./bag";
+import type { WorkStep } from "./responsesStep";
 
 /**
  * One turn's token counts, or a thread's running total, as the app-server's `TokenUsageBreakdown` reports them
@@ -114,13 +115,8 @@ export function threadTokenUsageOf({ params }: { params: unknown }): ThreadToken
   return { contextWindow, last, threadId, total, turnId };
 }
 
-/** What a Codex turn is doing, in the words the orb uses for any step of work. */
-export type CodexStep =
-  | { readonly kind: "working" }
-  | { readonly kind: "reasoning" }
-  | { readonly kind: "writing" }
-  | { readonly kind: "compacting" }
-  | { readonly kind: "tool"; readonly name: string };
+/** What a Codex turn is doing: the orb's one step vocabulary, so the wire, the fold and the face cannot drift apart. */
+export type CodexStep = WorkStep;
 
 /** A dynamic tool call the delegated Codex thread made, as the console reads it. */
 export interface PlanToolCall {

@@ -13,6 +13,7 @@ import {
 } from "../../lib/planCallContract";
 import type { ActivityInput } from "../../lib/voiceActivity";
 import type { PlanPost } from "./planCallClient";
+import { codexWaitLine } from "./planWiringCodexLines";
 import type { HeldPlanCall } from "./planWiringHeld";
 import {
   ACK_LINE,
@@ -142,6 +143,12 @@ export function planCallEventHandler({
       if (line !== undefined) {
         journal({ line });
       }
+      return;
+    }
+    if (event.kind === "model-wait" || event.kind === "codex-notice") {
+      // The call file's alone: a re-send's step reaches the orb as its own `codex-turn` progress, and none of these is
+      // the call's error.
+      journal({ line: codexWaitLine({ event }) });
       return;
     }
     if (event.kind === "written") {
