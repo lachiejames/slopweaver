@@ -70,6 +70,8 @@ describe("ACT_VERBS", () => {
       "plans-adopt",
       "plans-connect-codex",
       "plans-connect-cancel",
+      "private-term-yes",
+      "private-term-no",
     ]);
   });
 
@@ -124,6 +126,8 @@ describe("ACT_VERBS", () => {
       "from:count",
       "allowance:id",
       "id:id",
+      "proposal:id",
+      "proposal:id",
     ]);
   });
 

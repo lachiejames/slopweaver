@@ -12,7 +12,8 @@ import { booleanFlagsOf, type FlagSpec, parseFlags, repeatedFlagValues, stringFl
 export const VERB_ARG_OFFSET = 4;
 
 /** The `private-terms` verbs. */
-export type PrivateTermsVerb = "add" | "confirm" | "list" | "narrow" | "remove" | "review-prepare" | "review-record";
+export type PrivateTermsVerb =
+  "add" | "answer" | "confirm" | "list" | "narrow" | "remove" | "review-prepare" | "review-record";
 
 /** Flags each verb accepts. */
 const SPECS: Readonly<Record<PrivateTermsVerb, FlagSpec>> = {
@@ -32,6 +33,7 @@ const SPECS: Readonly<Record<PrivateTermsVerb, FlagSpec>> = {
       "source",
     ],
   },
+  answer: { boolean: ["json"], string: ["as", "by-session", "home", "via"] },
   confirm: { boolean: ["json"], string: ["home"] },
   list: { boolean: ["json"], string: ["home"] },
   narrow: {
@@ -43,6 +45,16 @@ const SPECS: Readonly<Record<PrivateTermsVerb, FlagSpec>> = {
   "review-prepare": { boolean: ["json"], string: ["hold", "home"] },
   "review-record": { boolean: ["json"], string: ["home", "review"] },
 };
+
+/**
+ * One verb's flag spec, for a parser kept beside this file (`./answerArgs.ts`).
+ *
+ * @param verb the verb name
+ * @returns the flags it accepts
+ */
+export function privateTermsSpec({ verb }: { verb: PrivateTermsVerb }): FlagSpec {
+  return SPECS[verb];
+}
 
 /** One verb's `--`-prefixed flag names, sorted. */
 function flagNamesOf({ spec }: { spec: FlagSpec }): readonly string[] {
@@ -56,6 +68,7 @@ export const PRIVATE_TERMS_FLAG_NAMES: Readonly<Record<string, readonly string[]
 
 /** What each verb's positional tail is called in its usage line. */
 const POSITIONALS: Readonly<Partial<Record<PrivateTermsVerb, string>>> = {
+  answer: "<proposal-id>",
   confirm: "<proposal-id>",
   narrow: "<term-id>",
   remove: "<term-id>",
@@ -79,7 +92,7 @@ export function privateTermsUsage({ verb }: { verb: PrivateTermsVerb }): string 
 }
 
 /** The tail every verb shares. */
-interface CommonOptions {
+export interface PrivateTermsCommonOptions {
   readonly home: string | undefined;
   readonly json: boolean;
 }
@@ -95,7 +108,7 @@ export interface PrivateTermProbes {
 }
 
 /** What `private-terms add` was asked to propose. */
-export interface PrivateTermsAddOptions extends CommonOptions {
+export interface PrivateTermsAddOptions extends PrivateTermsCommonOptions {
   readonly className: string;
   readonly caseInsensitive: boolean;
   readonly pattern: PatternInput;
@@ -106,7 +119,7 @@ export interface PrivateTermsAddOptions extends CommonOptions {
 }
 
 /** What `private-terms narrow` was asked to propose. */
-export interface PrivateTermsNarrowOptions extends CommonOptions {
+export interface PrivateTermsNarrowOptions extends PrivateTermsCommonOptions {
   readonly termId: string;
   readonly caseInsensitive: boolean | undefined;
   readonly pattern: PatternInput | undefined;
@@ -116,23 +129,38 @@ export interface PrivateTermsNarrowOptions extends CommonOptions {
 }
 
 /** What a verb naming one row or one proposal was asked to do. */
-export interface PrivateTermsTargetOptions extends CommonOptions {
+export interface PrivateTermsTargetOptions extends PrivateTermsCommonOptions {
   readonly target: string;
 }
 
 /** What a review verb was asked to do. */
-export interface PrivateTermsReviewOptions extends CommonOptions {
+export interface PrivateTermsReviewOptions extends PrivateTermsCommonOptions {
   readonly id: string;
 }
 
-/** The home and json flags, read once. */
-function commonOf({ values }: { values: Readonly<Record<string, string | boolean>> }): CommonOptions {
+/**
+ * The home and json flags, read once.
+ *
+ * @param values the parsed flag values
+ * @returns the shared tail
+ */
+export function commonOf({
+  values,
+}: {
+  values: Readonly<Record<string, string | boolean>>;
+}): PrivateTermsCommonOptions {
   const home = values["home"];
   return { home: typeof home === "string" ? home : undefined, json: values["json"] === true };
 }
 
-/** A string flag's trimmed value, or undefined when it was not given or is blank. */
-function textOf({
+/**
+ * A string flag's trimmed value.
+ *
+ * @param values the parsed flag values
+ * @param name the flag, without its dashes
+ * @returns the value, or undefined when it was not given or is blank
+ */
+export function textOf({
   values,
   name,
 }: {
@@ -191,8 +219,14 @@ function patternOf({
   return undefined;
 }
 
-/** The one positional a verb names its target by. */
-function targetOf({ positionals, what }: { positionals: readonly string[]; what: string }): Result<string> {
+/**
+ * The one positional a verb names its target by.
+ *
+ * @param positionals the verb's positional arguments
+ * @param what what the target is called in a refusal
+ * @returns the trimmed target, or why there is not exactly one
+ */
+export function targetOf({ positionals, what }: { positionals: readonly string[]; what: string }): Result<string> {
   const [first, ...extra] = positionals;
   if (first === undefined || first.trim().length === 0) {
     return err([`a ${what} is required; \`slopweaver private-terms list\` names them`]);
@@ -330,7 +364,7 @@ export function parsePrivateTermsTargetArgs({
  * @param rest the argv after the noun and verb
  * @returns the options, or every reason it could not be one
  */
-export function parsePrivateTermsListArgs({ rest }: { rest: readonly string[] }): Result<CommonOptions> {
+export function parsePrivateTermsListArgs({ rest }: { rest: readonly string[] }): Result<PrivateTermsCommonOptions> {
   const parsed = parseFlags({ args: rest, spec: SPECS.list });
   if (parsed.isErr()) {
     return err(parsed.error);

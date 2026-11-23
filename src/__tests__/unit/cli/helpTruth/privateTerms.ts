@@ -3,6 +3,7 @@
  * whose header says what each table proves. Every term here is synthetic.
  */
 
+import { parsePrivateTermsAnswerArgs } from "../../../../cli/commands/privateTerms/answerArgs.js";
 import {
   PRIVATE_TERMS_FLAG_NAMES,
   parsePrivateTermsAddArgs,
@@ -32,6 +33,7 @@ const ADD_BASE = [
 
 const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "private-terms add": PRIVATE_TERMS_FLAG_NAMES["add"]!,
+  "private-terms answer": PRIVATE_TERMS_FLAG_NAMES["answer"]!,
   "private-terms confirm": PRIVATE_TERMS_FLAG_NAMES["confirm"]!,
   "private-terms list": PRIVATE_TERMS_FLAG_NAMES["list"]!,
   "private-terms narrow": PRIVATE_TERMS_FLAG_NAMES["narrow"]!,
@@ -53,6 +55,13 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--pattern": ["--pattern", "quillfeather"],
     "--pattern-file": ["--pattern-file", "/tmp/term.txt"],
     "--source": ["--source", "relay:acme-row"],
+  },
+  "private-terms answer": {
+    "--as": ["--as", "no"],
+    "--by-session": ["--by-session", "work-console"],
+    "--home": ["--home", "/tmp"],
+    "--json": ["--json"],
+    "--via": ["--via", "console"],
   },
   "private-terms confirm": {
     "--home": ["--home", "/tmp"],
@@ -101,6 +110,16 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
           : [...ADD_BASE],
         fragment,
       }),
+    }),
+  "private-terms answer": ({ fragment }) =>
+    parsePrivateTermsAnswerArgs({
+      rest: [
+        "pp-0123456789ab",
+        ...dedupeFlags({
+          base: ["--as", "yes", "--via", "console", "--by-session", "work-console"],
+          fragment,
+        }),
+      ],
     }),
   "private-terms confirm": ({ fragment }) =>
     parsePrivateTermsTargetArgs({ rest: ["pp-0123456789ab", ...fragment], verb: "confirm" }),

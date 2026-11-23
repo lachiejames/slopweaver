@@ -10,6 +10,7 @@ import { NOUN_GROUPS } from "../../../../cli/nounGroups.js";
 
 const VERBS: readonly PrivateTermsVerb[] = [
   "add",
+  "answer",
   "confirm",
   "list",
   "narrow",
@@ -19,7 +20,7 @@ const VERBS: readonly PrivateTermsVerb[] = [
 ];
 
 describe("privateTermsManifest", () => {
-  it("declares exactly the seven verbs", () => {
+  it("declares exactly the eight verbs", () => {
     expect(Object.keys(privateTermsManifest).toSorted()).toStrictEqual([...VERBS]);
   });
 

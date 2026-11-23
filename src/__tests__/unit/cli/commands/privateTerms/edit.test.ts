@@ -328,7 +328,7 @@ describe("private-terms list", () => {
     expect(listed.out).toStrictEqual([
       "line-2  person  case-insensitive  refuses on a match (no meaning), names nowhere it is fine",
       "1 row(s)",
-      "waiting: proposal pp-00000000000a to add pt-00000000000c",
+      "waiting: proposal pp-00000000000a to add pt-00000000000c, owner unanswered",
     ]);
   });
 

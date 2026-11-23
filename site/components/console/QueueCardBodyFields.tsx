@@ -71,23 +71,24 @@ function How({ option }: { option: CardOption }): ReactElement {
  * (`../../lib/findingActCard.ts`), each capped at 50 words by the form that wrote them (`src/prformat/checkCore.ts`
  * `MAX_WORDS`), so the fold's bound is the form's and nothing here rewrites them.
  *
- * The mail an inbox-triage card asks about sits directly under the problem, folded per message the way a Slack
- * preview folds there, showing the message someone already sent, so the problem and
- * the thing it is about are read together before any option.
+ * What the card is about sits directly under the problem, so the problem and the thing it is about are read together
+ * before any option. For an inbox-triage card that is its mail, folded per message the way a Slack preview folds
+ * there. For a card asking the owner to confirm private words, it is those words, each with its own Yes and No.
  *
  * @param card the briefing card
  * @param known the pull-request URLs the row publishes
- * @param mail the mail the card is about (`./CardMail.tsx`), drawn under the problem as the `MailField` it brings
+ * @param underProblem the card's subject as `<dt>`/`<dd>` rows it brings: the mail (`./CardMail.tsx`) or the private
+ *   words (`./PrivateTermProposals.tsx`)
  * @returns the rows, as `<dt>`/`<dd>` pairs for the card's own list
  */
 export function ProblemAndStakes({
   card,
   known,
-  mail,
+  underProblem,
 }: {
   card: BriefingCard;
   known: readonly string[];
-  mail: ReactNode;
+  underProblem: ReactNode;
 }): ReactElement {
   return (
     <>
@@ -99,7 +100,7 @@ export function ProblemAndStakes({
           </dd>
         </>
       )}
-      {mail}
+      {underProblem}
       {card.stakes !== undefined && <StakesRows stakes={card.stakes} known={known} />}
     </>
   );

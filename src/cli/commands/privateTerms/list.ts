@@ -2,6 +2,7 @@
  * `slopweaver private-terms list` — every row of THE HANDS-FREE LIST by id, class, case and whether it carries a
  * meaning, then every proposal waiting. Never a pattern, a source or a meaning. The edit verbs are `./edit.ts`.
  */
+import { readPrivateTermAnswer } from "../../../hygiene/privateTermAnswers.js";
 import { parsePrivateTerms } from "../../../hygiene/privateTerms.js";
 import { readCurrentPrivateTerms, waitingPrivateTermsProposals } from "../../../hygiene/privateTermsStore.js";
 import { defineCommand } from "../../defineCommand.js";
@@ -20,11 +21,25 @@ interface ListedRow {
   readonly termId: string;
 }
 
-/** One proposal waiting, by id. */
+/** One proposal waiting, by id, with the owner's answer to it from the Queue card when they have given one. */
 interface ListedProposal {
   readonly action: string;
   readonly proposalId: string;
   readonly termId: string;
+  /** `yes` or `no` as recorded, `unanswered`, or `unreadable` for an answer file that does not read. */
+  readonly answer: "yes" | "no" | "unanswered" | "unreadable";
+}
+
+/** The answer a listing names for one proposal. */
+function answerOf({ home, proposalId }: { home: string; proposalId: string }): ListedProposal["answer"] {
+  const read = readPrivateTermAnswer({ home, proposalId });
+  if (read.kind === "answered") {
+    return read.answer.answer;
+  }
+  if (read.kind === "none") {
+    return "unanswered";
+  }
+  return "unreadable";
 }
 
 /** The rows and waiting proposals under one home, or the one line saying why there are none to list. */
@@ -53,6 +68,7 @@ function listing({
   }));
   const waiting = waitingPrivateTermsProposals({ home }).map(({ action, proposalId, termId }) => ({
     action,
+    answer: answerOf({ home, proposalId }),
     proposalId,
     termId,
   }));
@@ -107,7 +123,7 @@ export function runPrivateTermsList({
   }
   deps.out({ line: `${String(rows.length)} row(s)` });
   for (const one of waiting) {
-    deps.out({ line: `waiting: proposal ${one.proposalId} to ${one.action} ${one.termId}` });
+    deps.out({ line: `waiting: proposal ${one.proposalId} to ${one.action} ${one.termId}, owner ${one.answer}` });
   }
   return EXIT_OK;
 }
