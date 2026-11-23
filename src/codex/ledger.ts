@@ -15,7 +15,7 @@
  */
 
 import { isRecord } from "#lib/parsers.js";
-import { carriedReviewReason } from "./diffCarry.js";
+import { carriedReviewReason, type LandingBaseDiff } from "./diffCarry.js";
 import { sameTree, shortDigest, type TreeFingerprint } from "./fingerprint.js";
 import { cappedPlanNextStep } from "./ledgerCapClauses.js";
 import { concluded, newestFaultClause } from "./ledgerNewestClauses.js";
@@ -176,20 +176,29 @@ export function verdictOf({ record }: { record: CodexArtifactRecord }): string {
  * provenance to lift from, and a base ref missing from `diffsNow` (capture failed, or was never taken)
  * leaves the row stale, never current.
  *
+ * A review taken against a PINNED base commit cannot match that way after a rebase, because re-diffing against
+ * the old commit folds in everything main gained since; a landing reader therefore also supplies
+ * `landingBaseDiff`, the diff the pull request presents against its current base, and a match there lifts the
+ * row too (`./diffCarry.ts` carries the argument and the measurement).
+ *
  * @param record the pass record
  * @param now the current tree fingerprint, or `undefined` when it could not be captured
  * @param diffsNow base ref → sha256 of the diff the tree being judged produces against it; omitted means none
  *   was taken, so nothing is lifted
+ * @param landingBaseDiff the diff the pull request head presents against its current base; omitted outside a
+ *   landing read
  * @returns whether the pass's verdict still describes the current tree
  */
 export function freshnessOf({
   record,
   now,
   diffsNow,
+  landingBaseDiff,
 }: {
   record: CodexArtifactRecord;
   now: TreeFingerprint | undefined;
   diffsNow?: ReadonlyMap<string, string> | undefined;
+  landingBaseDiff?: LandingBaseDiff | undefined;
 }): PassFreshness {
   const tree = record.tree;
   if (tree === undefined) {
@@ -199,7 +208,7 @@ export function freshnessOf({
   if (byTree.kind !== "stale") {
     return byTree;
   }
-  const reason = carriedReviewReason({ diffsNow, record, staleReason: byTree.reason });
+  const reason = carriedReviewReason({ diffsNow, landingBaseDiff, record, staleReason: byTree.reason });
   return reason === undefined ? byTree : { kind: "current", reason };
 }
 
@@ -320,6 +329,8 @@ function driftReason({ tree, now }: { tree: CodexPassTree; now: TreeFingerprint 
  *   and a row the floor counts must be a row `codex supersede` can retire
  * @param diffsNow base ref → sha256 of the diff the tree being judged produces against it, for the refs
  *   `reviewBaseRefs` (`./diffCarry.ts`) names; omitted means none was taken. See {@link freshnessOf}
+ * @param landingBaseDiff the diff the pull request head presents against its current base, which only a
+ *   landing reader has; omitted means none was taken. See {@link freshnessOf}
  * @returns the matching entries, newest first
  */
 export function ledgerForBranch({
@@ -330,6 +341,7 @@ export function ledgerForBranch({
   supersessions,
   fallbackEntries = [],
   diffsNow,
+  landingBaseDiff,
 }: {
   records: readonly CodexArtifactRecord[];
   repoRoot: string;
@@ -338,13 +350,14 @@ export function ledgerForBranch({
   supersessions?: ReadonlyMap<string, Supersession>;
   fallbackEntries?: readonly LedgerEntry[];
   diffsNow?: ReadonlyMap<string, string>;
+  landingBaseDiff?: LandingBaseDiff | undefined;
 }): BranchLedger {
   const mine = records.filter((record) => record.repoRoot === repoRoot);
   const entries = [
     ...mine
       .filter((record) => record.tree?.branch === branch)
       .map((record) => ({
-        ...toEntry({ diffsNow, now, record }),
+        ...toEntry({ diffsNow, landingBaseDiff, now, record }),
         superseded: wordingRetirement({ row: supersessions?.get(record.artifactId) }),
       })),
     // A fallback receipt is folded with `superseded: undefined` — its folder holds no register — and is
@@ -485,10 +498,12 @@ function toEntry({
   record,
   now,
   diffsNow,
+  landingBaseDiff,
 }: {
   record: CodexArtifactRecord;
   now: TreeFingerprint | undefined;
   diffsNow: ReadonlyMap<string, string> | undefined;
+  landingBaseDiff: LandingBaseDiff | undefined;
 }): LedgerEntry {
   return {
     artifactId: record.artifactId,
@@ -496,7 +511,7 @@ function toEntry({
     createdAtIso: record.createdAtIso,
     diffSha256: record.scope.mode === "review" ? record.scope.diffSha256 : undefined,
     reviewSummary: reviewSummaryOf({ record }),
-    freshness: freshnessOf({ diffsNow, now, record }),
+    freshness: freshnessOf({ diffsNow, landingBaseDiff, now, record }),
     mode: record.scope.mode,
     // Filled in by `ledgerForBranch`, which is the only caller that knows the register. A row is never
     // retired by default: absence here means the pass counts, which is the safe direction.

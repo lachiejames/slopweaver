@@ -15,7 +15,7 @@ import type { IngestError } from "#lib/ingestError.js";
 import type { Result } from "#lib/result.js";
 import { safeFs } from "#lib/safeBoundary.js";
 import { diffSha256, gitCommitDiffCommand, gitCommitMergeBaseCommand } from "./diff.js";
-import { reviewBaseRefs } from "./diffCarry.js";
+import { type LandingBaseDiff, reviewBaseRefs } from "./diffCarry.js";
 import { captureReviewDiff } from "./gitDiff.js";
 import { runGitChecked } from "./gitRun.js";
 import type { CodexArtifactRecord } from "./types.js";
@@ -107,6 +107,46 @@ export function commitDiffSha256({
     },
     operation: "codex.commitDiffSha256",
   });
+}
+
+/**
+ * Everything a landing reader hands the ledger for the carried-diff rule, for ONE checkout: the diff per base
+ * ref its review passes on the branch name, and the diff the pull request presents against its current base
+ * (`LandingBaseDiff` in `./diffCarry.ts`, which carries why both exist).
+ *
+ * Read by the landing floor (`./landingGateRun.ts`), the one reader that carries a review on a pull request's base
+ * commit. The ratchet-bump witness (`./baselineBumpWitnessRun.ts`) deliberately does not: carrying a witness this
+ * way would relax which stale witness counts, a gate change of its own. A checkout holding no review record on
+ * the branch costs no git call: it merely holds the head, and nothing there could be carried. Every git failure is an
+ * omitted digest, never a guessed one, so it leaves a stale review stale.
+ *
+ * @param baseSha the pull request's base commit (GitHub's `baseRefOid`); `undefined` takes no landing-base diff
+ * @param branch the pull request's head branch
+ * @param commit the pull request head being judged, as a full object name
+ * @param records every pass record that could be read
+ * @param repoRoot the checkout to read from, which must hold `commit`
+ * @returns the per-base-ref digests, and the landing-base diff when one was taken
+ */
+export function pullRequestCarryEvidence({
+  baseSha,
+  branch,
+  commit,
+  records,
+  repoRoot,
+}: {
+  baseSha: string | undefined;
+  branch: string;
+  commit: string;
+  records: readonly CodexArtifactRecord[];
+  repoRoot: string;
+}): { readonly diffsNow: ReadonlyMap<string, string>; readonly landingBaseDiff: LandingBaseDiff | undefined } {
+  const baseRefs = reviewBaseRefs({ branch, records, repoRoot });
+  const diffsNow = commitDiffsNow({ baseRefs, commit, cwd: repoRoot });
+  if (baseRefs.length === 0 || baseSha === undefined) {
+    return { diffsNow, landingBaseDiff: undefined };
+  }
+  const digest = commitDiffSha256({ base: baseSha, commit, cwd: repoRoot });
+  return { diffsNow, landingBaseDiff: digest.isOk() ? { baseSha, sha256: digest.value } : undefined };
 }
 
 /**

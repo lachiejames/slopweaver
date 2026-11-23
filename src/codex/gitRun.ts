@@ -54,8 +54,17 @@ const MAX_GIT_BUFFER = 64 * 1024 * 1024;
  *  - `diff.context`        — how many context lines surround each hunk
  *  - `diff.noprefix` / `diff.mnemonicPrefix` — whether headers read `a/`…`b/` or `i/`…`w/` or nothing
  *  - `core.abbrev`         — the length of the shas in each `index` line
+ *
+ * And one global option that pins which OBJECTS a name reads, rather than how they render:
+ *
+ *  - `--no-replace-objects` — git otherwise honours a local `refs/replace/<sha>` even for a full object name,
+ *    so a checkout can make a commit read as a DIFFERENT commit. Found by a Codex review of the carried-diff
+ *    rule (`./diffCarry.ts`): a replacement pointing a pull request's changed head at a commit holding the old
+ *    patch hashed to the reviewed digest and lifted a stale review. Every digest here — a captured review
+ *    diff, a recomputed one, a tree fingerprint — is now about the objects the names really denote.
  */
 const CANONICAL_CONFIG: readonly string[] = [
+  "--no-replace-objects",
   "-c",
   "core.quotepath=false",
   "-c",

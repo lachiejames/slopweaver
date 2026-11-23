@@ -238,3 +238,104 @@ describe("freshnessOf and a review whose diff did not move", () => {
     );
   });
 });
+
+/**
+ * A review taken against a PINNED base commit re-diffs, after a rebase, against that old commit and folds in
+ * everything main gained since, so its own base ref never matches. The diff the pull request presents against
+ * its current base is what carries it (`src/codex/diffCarry.ts`).
+ */
+describe("freshnessOf and the pull request's current base", () => {
+  const now = treeFingerprint({ dirtyPatch: "", headSha: HEAD, treeSha: `${HEAD.slice(2)}ab` });
+  const beforeRebase = treeOn({ branch: "feature", headSha: OTHER_HEAD, patch: "" });
+  const REVIEWED = "d".repeat(64);
+  const NEW_BASE = "1234567890ab".padEnd(40, "c");
+  const STALE = "the committed tree changed after the pass read it (HEAD now 06e12d9aa1b2)";
+  /** The record's own base ref re-diffs to something else — main's intervening commits folded in. */
+  const pinnedMiss = new Map([["origin/main", "e".repeat(64)]]);
+
+  it("is current, naming the base, when the landing-base diff is byte-identical and the own-base one is not", () => {
+    const record = anyPassRecord({ pass: "r1", tree: beforeRebase });
+
+    const freshness = freshnessOf({
+      diffsNow: pinnedMiss,
+      landingBaseDiff: { baseSha: NEW_BASE, sha256: REVIEWED },
+      now,
+      record,
+    });
+
+    expect(freshness).toEqual({
+      kind: "current",
+      reason: `${STALE}, but the diff it judged is byte-identical against the pull request's current base 1234567890ab`,
+    });
+  });
+
+  it("stays stale when the landing-base diff moved too — a changed patch is never carried", () => {
+    const record = anyPassRecord({ pass: "r1", tree: beforeRebase });
+
+    const freshness = freshnessOf({
+      diffsNow: pinnedMiss,
+      landingBaseDiff: { baseSha: NEW_BASE, sha256: "f".repeat(64) },
+      now,
+      record,
+    });
+
+    expect(staleReason({ freshness })).toBe(STALE);
+  });
+
+  it("stays stale with no landing-base diff, exactly as before", () => {
+    const record = anyPassRecord({ pass: "r1", tree: beforeRebase });
+
+    expect(staleReason({ freshness: freshnessOf({ diffsNow: pinnedMiss, now, record }) })).toBe(STALE);
+  });
+
+  it("never lifts a plan through the landing-base diff", () => {
+    const record = anyPassRecord({ pass: "p2", tree: beforeRebase });
+
+    const freshness = freshnessOf({ landingBaseDiff: { baseSha: NEW_BASE, sha256: REVIEWED }, now, record });
+
+    expect(staleReason({ freshness })).toBe(STALE);
+  });
+
+  it("keeps the own-base reason when both diffs match", () => {
+    const record = anyPassRecord({ pass: "r1", tree: beforeRebase });
+
+    const freshness = freshnessOf({
+      diffsNow: new Map([["origin/main", REVIEWED]]),
+      landingBaseDiff: { baseSha: NEW_BASE, sha256: REVIEWED },
+      now,
+      record,
+    });
+
+    expect(freshness).toEqual({
+      kind: "current",
+      reason: `${STALE}, but the diff it judged against origin/main is byte-identical`,
+    });
+  });
+
+  it("never lifts a recorded digest that is not one, even when the landing-base value equals it", () => {
+    const review = anyPassRecord({ pass: "r1", tree: beforeRebase });
+    const scope = review.scope.mode === "review" ? review.scope : undefined;
+    const record: CodexArtifactRecord = { ...review, scope: { ...scope!, diffSha256: "not-a-digest" } };
+
+    const freshness = freshnessOf({ landingBaseDiff: { baseSha: NEW_BASE, sha256: "not-a-digest" }, now, record });
+
+    expect(staleReason({ freshness })).toBe(STALE);
+  });
+
+  it("lets a pinned review satisfy the floor through ledgerForBranch", () => {
+    const plan = anyPassRecord({ artifactId: "plan", pass: "p2", tree: beforeRebase });
+    const clean = anyPassRecord({ artifactId: "clean", pass: "r1", tree: beforeRebase });
+    const build = ({ landing }: { landing?: { baseSha: string; sha256: string } }) =>
+      ledgerForBranch({
+        branch: "feature",
+        diffsNow: pinnedMiss,
+        now,
+        records: [plan, clean],
+        repoRoot: REPO,
+        ...(landing === undefined ? {} : { landingBaseDiff: landing }),
+      }).entries;
+
+    expect(loopFailures({ entries: build({ landing: { baseSha: NEW_BASE, sha256: REVIEWED } }) })).toEqual([]);
+    expect(loopFailures({ entries: build({}) })).toHaveLength(1);
+  });
+});

@@ -40,8 +40,7 @@ import { stateHomePaths } from "../stateHome.js";
 import { readCodexAccountsLive } from "./accountLive.js";
 import { partitionCandidateRoots } from "./branchEvidenceRoots.js";
 import { candidateRepoRoots } from "./candidateRepoRoots.js";
-import { reviewBaseRefs } from "./diffCarry.js";
-import { commitDiffsNow } from "./diffsNow.js";
+import { pullRequestCarryEvidence } from "./diffsNow.js";
 import type { FallbackReceiptScan } from "./fallbackDocuments.js";
 import { fallbackLedgerEntries } from "./fallbackPlan.js";
 import { type FallbackRegisterPort, fallbackRegisterPort } from "./fallbackPort.js";
@@ -393,11 +392,14 @@ async function readPullRequestFloor({
       ledger: ledgerForBranch({
         branch: head.branch,
         // Only a checkout holding review records on this branch names a base ref, so the many worktrees that
-        // qualify merely by holding the commit cost no git call here.
-        diffsNow: commitDiffsNow({
-          baseRefs: reviewBaseRefs({ branch: head.branch, records: scan.records, repoRoot }),
+        // qualify merely by holding the commit cost no git call here. The pull request's own base is what
+        // carries a review pinned to an older base commit across an unchanged rebase (`./diffCarry.ts`).
+        ...pullRequestCarryEvidence({
+          baseSha: head.baseSha,
+          branch: head.branch,
           commit: head.headSha,
-          cwd: repoRoot,
+          records: scan.records,
+          repoRoot,
         }),
         fallbackEntries: fallbackLedgerEntries({ branch: head.branch, now, repoRoot, scan: receipts }),
         now,
