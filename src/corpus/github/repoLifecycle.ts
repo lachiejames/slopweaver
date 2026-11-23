@@ -41,11 +41,24 @@ export interface GithubAccount {
 }
 
 /**
+ * Whether a redirect's body is GitHub's moved stub: a `message` and a `url`, and no repository `id`.
+ *
+ * @param body the response body Octokit parsed
+ * @returns true only for the stub shape
+ */
+function isMovedStub({ body }: { body: unknown }): boolean {
+  if (typeof body !== "object" || body === null || "id" in body) {
+    return false;
+  }
+  return "message" in body && body.message === "Moved Permanently" && "url" in body && typeof body.url === "string";
+}
+
+/**
  * Read a repository's lifecycle state. Repeatable, so transient retries are allowed.
  *
  * @param ctx the shared write-lane client and rate-limit scope
  * @param input the repository address; a moved address is an error, never the repository it moved to
- * @returns the live state, or the provider's failure (a 404 when nothing stands at the address)
+ * @returns the live state, or the provider's failure (a 404 when nothing stands at the address, a 3xx when it moved)
  */
 export function getRepoLifecycleVia({
   ctx,
@@ -58,6 +71,21 @@ export function getRepoLifecycleVia({
   return safeProviderCall({
     execute: async () => {
       const res = await ctx.client.rest.repos.get({ owner, repo });
+      // Octokit answers an unfollowed redirect as a success whose body is GitHub's "Moved Permanently" stub.
+      // Measured on a renamed repository's old name: status 301, body keys `documentation_url,message,url` (a
+      // `repos.get` on the write lane's own client). Only that stub carries the status forward; any other 3xx
+      // body is an unknown answer, typed with no status, so nothing downstream can read it as a moved address.
+      const status: number = res.status;
+      if (status >= 300 && status < 400) {
+        if (!isMovedStub({ body: res.data })) {
+          throw new Error(
+            `GitHub answered ${String(status)} for ${owner}/${repo} with a body that is not a moved stub`,
+          );
+        }
+        throw Object.assign(new Error(`GitHub answered ${String(status)} for ${owner}/${repo}: the address moved`), {
+          status,
+        });
+      }
       const { visibility } = res.data;
       // The SDK types `visibility` optional; a body without it must never read as public or private by default.
       if (typeof visibility !== "string") {

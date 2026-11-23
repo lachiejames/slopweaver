@@ -92,6 +92,26 @@ describe("getRepoLifecycleVia", () => {
     expect(error.kind).toBe("http");
     expect(error.status).toBe(404);
   });
+
+  it("answers a renamed repository's 301 stub as an http failure carrying 301, never a missing visibility", async () => {
+    const moved = { documentation_url: "https://docs.github.com/fixture", message: "Moved Permanently", url: "x" };
+    const ctx = recordingCtx({ data: moved, sent: [], status: 301 });
+
+    const error = unwrapErr(await getRepoLifecycleVia({ ctx, input: { owner: "acme", repo: "widget" } }));
+
+    expect(error.kind).toBe("http");
+    expect(error.status).toBe(301);
+    expect(error.message).toBe("GitHub answered 301 for acme/widget: the address moved");
+  });
+
+  it("answers a 301 whose body is a repository, not the moved stub, with no status a create could read as free", async () => {
+    const ctx = recordingCtx({ data: REPO_PAYLOAD, sent: [], status: 301 });
+
+    const error = unwrapErr(await getRepoLifecycleVia({ ctx, input: { owner: "acme", repo: "widget" } }));
+
+    expect(error.status).toBeUndefined();
+    expect(error.message).toBe("GitHub answered 301 for acme/widget with a body that is not a moved stub");
+  });
 });
 
 describe("getAuthenticatedAccountVia", () => {

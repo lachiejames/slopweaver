@@ -2,7 +2,8 @@
  * `github repo --create`: create a repository, PRIVATE unless `--public` says otherwise, on the preview's digest.
  *
  * There is no immutable id before a repository exists, so the digest binds what proves the write is the one
- * previewed: the owning account's id and type, the address answering 404, and the exact request body. The apply
+ * previewed: the owning account's id and type, the status the address answered (404, or the 301 a renamed
+ * repository's old name answers), and the exact request body. The apply
  * run resolves the owner and reads the address again, so an approval given while the address was free cannot
  * create over a repository that appeared since. Success is a read-back of the address showing the id GitHub's
  * create answered with, and the privacy asked for. The race between that fresh 404 and the create is GitHub's to
@@ -21,6 +22,15 @@ import {
 
 /** The HTTP status GitHub answers for an address that holds no repository. */
 const HTTP_NOT_FOUND = 404;
+
+/**
+ * The HTTP status GitHub answers for a renamed repository's old address: it holds no repository, only a redirect
+ * that a new repository created at that name replaces.
+ */
+const HTTP_MOVED_PERMANENTLY = 301;
+
+/** The statuses that witness an address is free to create at. */
+const FREE_ADDRESS_STATUSES: ReadonlySet<number> = new Set([HTTP_NOT_FOUND, HTTP_MOVED_PERMANENTLY]);
 
 /** The resolved create: where, and whether it is private. */
 export interface RepoCreateRequest {
@@ -78,20 +88,26 @@ function organizationOf({
   return ok({ id: account.id, kind: "organization", login: account.login });
 }
 
-/** Require nothing at the address: a 404 is the only witness that it is free. */
+/**
+ * Require no repository at the address: a 404, or the 301 a renamed repository leaves behind, is the only
+ * witness that it is free. The answering status is returned so the digest binds which one was seen.
+ *
+ * @returns the status that witnessed the address free
+ */
 async function requireAbsent({
   api,
   request,
 }: {
   api: GithubRepoLifecycleApi;
   request: RepoCreateRequest;
-}): Promise<GithubVerbResult<void>> {
+}): Promise<GithubVerbResult<number>> {
   const read = await api.read({ owner: request.owner, repo: request.repo });
   if (read.isOk()) {
     return err(GithubVerbErrors.repoAddressTaken({ fullName: read.value.fullName, id: read.value.id }));
   }
-  if (read.error.kind === "http" && read.error.status === HTTP_NOT_FOUND) {
-    return ok(undefined);
+  const { kind, status } = read.error;
+  if (kind === "http" && status !== undefined && FREE_ADDRESS_STATUSES.has(status)) {
+    return ok(status);
   }
   return err(refused({ error: read.error, operation: `read ${request.owner}/${request.repo}` }));
 }
@@ -167,7 +183,7 @@ export async function planRepoCreate({
     view: {
       action: "create",
       owner: { id: identity.value.id, kind: identity.value.kind, login: identity.value.login },
-      precondition: { repository: "absent", status: HTTP_NOT_FOUND },
+      precondition: { repository: "absent", status: absent.value },
       request: { name: request.repo, private: request.private },
       target,
     },
