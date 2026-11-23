@@ -34,6 +34,7 @@ import { MAX_OPTIONS } from "../briefing/caps.js";
 import { hatchFor } from "../hatch/lookup.js";
 import { hatchRefusal } from "../hatch/render.js";
 
+import { askOptionsCommandProblems } from "./askOptionCommand.js";
 import {
   type AskOption,
   type AskStakes,
@@ -153,7 +154,8 @@ export function askShapeVerdict({
     return { kind: "refused", lines: partialRefusal({ command, missing }) };
   }
   const shape: RecordableShape = { lean, options, problem, stakes: stakes.stakes };
-  const capped = askShapeProblems({ shape });
+  // The command rule binds a shape being written, so it sits here and not inside `askShapeProblems` (`./askOptionCommand.ts`).
+  const capped = [...askShapeProblems({ shape }), ...askOptionsCommandProblems({ options })];
   if (capped.length > 0) {
     return {
       kind: "refused",

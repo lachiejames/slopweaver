@@ -153,4 +153,22 @@ describe("askCard over a SHAPED ask", () => {
     const card = askCard({ row: { ...shaped, lean: undefined, options: [], problem: undefined } });
     expect(card.question).toBe("Which half do you want first?");
   });
+
+  // The owner was shown "sign plan-3 in again" with no command and said never to show a hand step without one.
+  it("carries an option's own command to your terminal, and only on that option", () => {
+    const options = [
+      {
+        command: "slopweaver claude signin --plan plan-3",
+        letter: "A",
+        option: "sign plan-3 in again",
+        tradeoff: "one browser sign-in by you",
+      },
+      { letter: "B", option: "leave plan-3 off", tradeoff: "the other plans reach their caps sooner" },
+    ];
+    const card = askCard({ row: { ...shaped, options } });
+    expect(card.options.map((option) => option.how)).toEqual([
+      { command: "slopweaver claude signin --plan plan-3", kind: "elsewhere", where: "your terminal" },
+      { command: undefined, kind: "elsewhere", where: "the supervisor chat" },
+    ]);
+  });
 });

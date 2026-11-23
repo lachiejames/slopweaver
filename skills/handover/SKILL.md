@@ -21,7 +21,7 @@ another chat", you were asking for an orchestration doc.
 
 ```bash
 slopweaver handover register --ask "<what the owner said>" --anchor <where the owner said it> \
-  --problem "<one line>" --options "<a :: its cost>\n<b :: its cost>" --lean "<what the owner would pick>" --risk "<…>" --blast-radius "<…>" --still-real "<how you confirmed it>"
+  --problem "<one line>" --options "<a :: its cost>\n<b :: its cost [:: the owner's command]>" --lean "<what the owner would pick>" --risk "<…>" --blast-radius "<…>" --still-real "<how you confirmed it>"
 slopweaver handover settle <slug> --as filed|answered|declined --witness <value> [--card done|recut|kept]
 slopweaver handover close <slug> --summary "<what shipped>"
 slopweaver handover artifact <slug> --url <where the answer was published>

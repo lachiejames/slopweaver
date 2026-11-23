@@ -23,6 +23,7 @@ import {
   type StepCard,
   type StepChecklistLine,
   type StepDecision,
+  type StepOption,
   type StepRow,
 } from "./queueCard";
 import { opensOwnHandStep } from "./queueLink";
@@ -225,7 +226,12 @@ export interface BuiltStepCard {
  * @returns the card's decision block
  */
 function stepDecision({ decision }: { decision: HandDecisionRecord }): StepDecision {
-  const options = decision.options.map((one) => ({ letter: one.letter, sentence: one.option, tradeoff: one.tradeoff }));
+  const options = decision.options.map((one): StepOption => ({
+    ...(one.command === undefined ? {} : { command: one.command }),
+    letter: one.letter,
+    sentence: one.option,
+    tradeoff: one.tradeoff,
+  }));
   const { risk, blastRadius, stillReal } = decision;
   let stakes: StepDecision["stakes"];
   if (risk !== undefined && blastRadius !== undefined && stillReal !== undefined) {

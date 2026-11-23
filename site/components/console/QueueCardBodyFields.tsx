@@ -13,6 +13,7 @@ import {
 import { stillRealLead } from "../../lib/stillRealLead";
 import type { HisWordsWhere } from "../live/readHisWords";
 import { CitationChip } from "./CitationChip";
+import { CopyBlock } from "./CopyBlock";
 import { InlineText } from "./InlineText";
 
 /**
@@ -52,14 +53,22 @@ function How({ option }: { option: CardOption }): ReactElement {
   if (how.kind === "silence") {
     return <span className={HOW}>nothing to press: this is what happens if you do nothing</span>;
   }
-  if (how.command === undefined) {
-    return <span className={HOW}>in {how.where}</span>;
+  // A command is drawn as its own copy block under the option (`optionCommand`), never inline here.
+  return <span className={HOW}>in {how.where}</span>;
+}
+
+/**
+ * The command an option is taken by, when it has one — an ask option the owner takes at a terminal, an offered draft's
+ * send line, or a step card's option carrying the owner's command.
+ *
+ * @param option the option
+ * @returns the exact line to copy, or `undefined` when it is taken without one
+ */
+function optionCommand({ option }: { option: CardOption | StepOption }): string | undefined {
+  if (!("how" in option)) {
+    return option.command;
   }
-  return (
-    <span className={HOW}>
-      <code>{how.command}</code> in {how.where}
-    </span>
-  );
+  return option.how.kind === "elsewhere" ? option.how.command : undefined;
 }
 
 /**
@@ -217,9 +226,29 @@ export function Options({
             )}
             {"how" in option && <How option={option} />}
           </span>
+          <OptionCommand command={optionCommand({ option })} />
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * An option's command as a copy block on its own line under the option, so the owner pastes it rather than retyping
+ * it: the owner is never shown a hand step without the command to copy.
+ *
+ * @param command the exact line, or `undefined` when the option has none
+ * @returns the block, or nothing
+ */
+function OptionCommand({ command }: { command: string | undefined }): ReactElement | null {
+  if (command === undefined) {
+    return null;
+  }
+  return (
+    // The option row's second column, so the block sits under the sentence and its separators stay the sentence's own.
+    <div className="col-start-2 min-w-0">
+      <CopyBlock text={command} />
+    </div>
   );
 }
 

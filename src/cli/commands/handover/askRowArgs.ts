@@ -296,7 +296,9 @@ export const REGISTER_USAGE =
   "\n" +
   "  --problem <line>  one line: what is actually wrong or undecided\n" +
   "  --options <lines> 2 to 4 LINES, each `<what the owner could do> :: <what that costs>`. One flag holding\n" +
-  "                    newline-separated lines, because an option's own text contains commas\n" +
+  "                    newline-separated lines, because an option's own text contains commas. An option the\n" +
+  "                    owner takes at a terminal (a sign-in, a secret, an approval) adds a third part, the\n" +
+  "                    exact command: `<option> :: <cost> :: <command>` — refused without it\n" +
   "  --lean <line>     one line: what the owner would most likely pick with infinite time and attention. This is\n" +
   "                    the SESSION's recommendation in the owner's voice, never a claim that the owner said it\n" +
   "  --risk <line>     one line: what goes wrong if the owner picks badly, or says nothing\n" +

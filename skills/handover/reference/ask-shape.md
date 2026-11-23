@@ -25,7 +25,7 @@ The card LEADS with the `--example` scene, the owner's free reaction field ahead
 | Field            | What it holds                                                                                             |
 | ---------------- | --------------------------------------------------------------------------------------------------------- |
 | `--problem`      | One line: what is actually wrong or undecided. Not the history, not what you tried.                       |
-| `--options`      | Two to four LINES, each `<what the owner could do> :: <what that costs>`.                                 |
+| `--options`      | Two to four LINES, each `<what the owner could do> :: <what that costs> [:: <command>]`.                  |
 | `--lean`         | One line: what the owner would most likely pick with infinite time and attention.                         |
 | `--risk`         | One line: what goes wrong if the owner picks badly, or says nothing.                                      |
 | `--blast-radius` | One line: who and what the decision reaches.                                                              |
@@ -42,6 +42,12 @@ by a silent slice.
 and a separator that also appears in the payload is not a separator. `--options` is ONE flag holding
 lines, because an option and its trade-off are one pair and two repeatable flags could fall out of step —
 the reasoning is on `parseAskOptions` in `src/handover/askShape.ts`.
+
+**An option the owner takes at a terminal carries its command, or is refused.** An option reading as a sign-in,
+or naming a command on the owner-hands register (`src/hand/runnableLiteral.ts`), takes a third part — `sign
+plan-3 in again :: one browser sign-in :: slopweaver claude signin --plan plan-3` — drawn as a copy block under
+its letter. The command is one line only the owner can run, a fleet-runnable segment refused. The criterion reads
+the option's sentence, never its trade-off; reword a false positive (`src/handover/askOptionCommand.ts`).
 
 **Letters are assigned by POSITION.** A caller who types `A`/`B` can type them twice or out of order, and
 neither is checkable prose. So a line or `--action` destination label opening with its own label (`C · …`, `C.`,
