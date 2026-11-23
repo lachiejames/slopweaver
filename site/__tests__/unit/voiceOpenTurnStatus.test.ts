@@ -40,6 +40,12 @@ function segment({ final, id = "t1" }: { final: boolean; id?: string }): Activit
   return { event: { final, id, kind: "segment" }, kind: "owner" };
 }
 
+/** A Codex turn that started at 100ms and went quiet on a step of its own, so it goes stale STALL_MS later. */
+const REASONING: Script = [
+  [100, { kind: "codex-turn", phase: "started", turnId: "c1" }],
+  [100, { kind: "codex-turn", phase: "progress", step: { kind: "reasoning" }, turnId: "c1" }],
+];
+
 const PARTIAL_MS = 5_892;
 const COMPLETED_MS = 19_424;
 const ZZZ_MS = COMPLETED_MS + UNANSWERED_MS;
@@ -99,10 +105,7 @@ describe("the orb while a turn of the owner's is open", () => {
   });
 
   it("reads listening over a Codex turn gone quiet while the owner's turn is open, keeping the row as its detail", () => {
-    const words: Script = [
-      [0, { kind: "heard" }],
-      [100, { kind: "codex-turn", phase: "started", turnId: "c1" }],
-    ];
+    const words: Script = [[0, { kind: "heard" }], ...REASONING];
     const atMs = 100 + STALL_MS;
     const open = quietAt({ activity: play({ script: [[0, segment({ final: false })], ...words] }), nowMs: atMs });
     const closed = quietAt({ activity: play({ script: words }), nowMs: atMs });
@@ -111,7 +114,7 @@ describe("the orb while a turn of the owner's is open", () => {
   });
 
   it("reads listening over a quiet Codex turn when the owner's turn's segment came with no transcribed words", () => {
-    const work: Script = [[100, { kind: "codex-turn", phase: "started", turnId: "c1" }]];
+    const work = REASONING;
     const atMs = 100 + STALL_MS;
     const open = quietAt({ activity: play({ script: [[0, segment({ final: false })], ...work] }), nowMs: atMs });
     const closed = quietAt({ activity: play({ script: work }), nowMs: atMs });
@@ -124,12 +127,27 @@ describe("the orb while a turn of the owner's is open", () => {
       [1_000, { kind: "heard" }],
       [1_000, { event: { kind: "typed" }, kind: "owner" }],
       [1_100, { kind: "codex-turn", phase: "started", turnId: "c1" }],
+      [1_100, { kind: "codex-turn", phase: "progress", step: { kind: "reasoning" }, turnId: "c1" }],
     ];
     const typedOnly = script.slice(1);
     expect([
       quietAt({ activity: play({ script }), nowMs: 1_100 + STALL_MS }).phase,
       quietAt({ activity: play({ script: typedOnly }), nowMs: 1_100 + STALL_MS }).phase,
     ]).toEqual(["listening", "stalled"]);
+  });
+
+  it("reads listening over a Codex turn slow on the model while the owner's turn is open, keeping its wait as the detail", () => {
+    const work: Script = [[100, { kind: "codex-turn", phase: "started", turnId: "c1" }]];
+    const atMs = 100 + STALL_MS;
+    const open = quietAt({ activity: play({ script: [[0, segment({ final: false })], ...work] }), nowMs: atMs });
+    const closed = quietAt({ activity: play({ script: work }), nowMs: atMs });
+    expect([open.phase, open.headline, open.detail, open.nudge]).toEqual([
+      "listening",
+      "listening",
+      "waiting for the model · no reply for 35s",
+      undefined,
+    ]);
+    expect([closed.phase, closed.headline, closed.nudge]).toEqual(["working", "model slow", undefined]);
   });
 
   it("never lets an older turn whose final was lost hold a later turn's quiet, refreshed just before it", () => {

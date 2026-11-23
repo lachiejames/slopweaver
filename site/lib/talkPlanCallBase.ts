@@ -21,6 +21,7 @@ import { ackRefusal, ownWriteRefusal, type PlanFloor } from "./talkPlanFloor";
 import { HandOffSpeech } from "./talkPlanHandOffSpeech";
 import { HeldAnswers } from "./talkPlanHeldAnswers";
 import { ListNotice } from "./talkPlanListNotice";
+import type { CallTurnItems } from "./talkPlanModelWait";
 import type { ScriptedLineOutcome, sayScriptedLine } from "./talkPlanNotices";
 import { OnceLines } from "./talkPlanOnceLines";
 import { OwedTurnStarts } from "./talkPlanOwedTurn";
@@ -77,6 +78,8 @@ export abstract class PlanCallBase {
   protected readonly completedItems = new Set<string>();
   /** When each running turn's progress last reached the page, so a stream of deltas is throttled. */
   protected readonly progressSentMs = new Map<string, number>();
+  /** Each running turn's items in flight and its open wait on the model (`./talkPlanModelWait.ts`). */
+  protected readonly turnItems: CallTurnItems = new Map();
   protected lastTurnEndedMs: number | undefined;
   /** When each running Codex turn's `turn/started` was read, so a resume can tell words none heard (`./talkPlanResumeOverTurn.ts`). */
   protected readonly turnStartedMs = new Map<string, number>();

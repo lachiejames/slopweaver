@@ -4,6 +4,7 @@
  * it — its own module so the page's code reaches this contract without importing the class that drives the child.
  */
 import type { AnnounceCue } from "./announceCue";
+import type { PlanCodexNoticeEvent, PlanModelWaitEvent } from "./talkPlanCodexEvents";
 import type { CodexStep, TokenUsageBreakdown } from "./talkPlanProtocolItems";
 
 /** Every deadline a call keeps, named so a test can shorten none of them by accident. */
@@ -320,6 +321,8 @@ export type PlanCallEvent =
   | PlanAnnounceEvent
   | PlanUsageEvent
   | PlanTurnEvent
+  | PlanModelWaitEvent
+  | PlanCodexNoticeEvent
   | PlanWrittenEvent
   | PlanTypedInEvent
   | PlanReopenReminderEvent;

@@ -38,8 +38,10 @@
  * - **The card's bar says the state in words, with its age** — "reasoning · 18s", "checking" over
  *   "running action_items · 7s", "still waiting · 14s". A turn with no event of its own for 35 seconds says
  *   "no update"; a Codex turn compacting the thread's context, silent until it ends, says "compacting" and is given
- *   180 seconds (`COMPACTION_STALL_MS`); silence after the owner's last words with nothing from the voice says
- *   "still waiting".
+ *   180 seconds (`COMPACTION_STALL_MS`); a Codex turn whose request is out to the model, at its start or once its
+ *   last item in flight ends, says "waiting for the model" and, from 35 seconds, "model slow · no reply for Ns" — never "no update"
+ *   and never a nudge, since stopping it throws the request and the owner's words away; silence after the owner's last
+ *   words with nothing from the voice says "still waiting".
  * - **A stall offers one press under it**, so a missing nudge button never hides a stall:
  *   "nudge it to answer" when the voice has gone quiet, and "stop Codex and ask it to answer" when the Codex
  *   turn it handed to has. Either has the voice answer the owner's last words; the second also stops that turn. Once per

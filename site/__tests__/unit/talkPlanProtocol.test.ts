@@ -41,24 +41,25 @@ describe("toolStepName", () => {
   it("gives the Codex step and the pending-tool row the same name, object or string arguments alike", () => {
     const params = { callId: "c1", threadId: "thread-1", tool: "verb", turnId: "u1" };
     const rowsFor: (args: unknown) => readonly string[] = (args) => {
-      const step = turnActivityOf({
+      const notice = turnActivityOf({
         method: "item/started",
         params: {
-          item: { arguments: args, tool: "verb", type: "dynamicToolCall" },
+          item: { arguments: args, id: "i-1", tool: "verb", type: "dynamicToolCall" },
           threadId: "thread-1",
           turnId: "u1",
         },
-      })!.step;
+      });
       const call = planToolCallOf({ params: { ...params, arguments: args } })!;
       const pending = pendingToolName({ rawArguments: call.arguments, tool: call.tool });
-      return [JSON.stringify(step), pending];
+      return [JSON.stringify(notice), pending];
     };
+    const started = '{"itemId":"i-1","phase":"started","step":{"kind":"tool","name":';
     expect([
       rowsFor({ request: { noun: "github", verb: "checks" } }),
       rowsFor('{"request":{"noun":"github","verb":"checks"}}'),
     ]).toEqual([
-      ['{"kind":"tool","name":"slopweaver github checks"}', "slopweaver github checks"],
-      ['{"kind":"tool","name":"verb"}', "verb"],
+      [`${started}"slopweaver github checks"},"threadId":"thread-1","turnId":"u1"}`, "slopweaver github checks"],
+      [`${started}"verb"},"threadId":"thread-1","turnId":"u1"}`, "verb"],
     ]);
   });
 });
@@ -161,61 +162,75 @@ describe("codexTurnOf", () => {
 describe("turnActivityOf", () => {
   const params = { threadId: "thread-1", turnId: "t-1" };
 
+  const startOf = (item: unknown) => turnActivityOf({ method: "item/started", params: { ...params, item } });
+  /** The notice an item with no id starting is read as, naming `step`. */
+  const started = (step: unknown) => ({ ...params, itemId: undefined, phase: "started", step });
+
   it("names the step a starting item is, from its type", () => {
-    const stepOf = (item: unknown) => turnActivityOf({ method: "item/started", params: { ...params, item } })!.step;
     expect([
-      stepOf({ type: "reasoning" }),
-      stepOf({ type: "agentMessage" }),
-      stepOf({ tool: "relay_steer", type: "dynamicToolCall" }),
-      stepOf({ tool: "search_docs", type: "mcpToolCall" }),
-      stepOf({ type: "webSearch" }),
-      stepOf({ type: "commandExecution" }),
-      stepOf({ id: "c-1", type: "contextCompaction" }),
-      stepOf({ type: "userMessage" }),
-      stepOf("not an item"),
+      startOf({ type: "reasoning" }),
+      startOf({ type: "agentMessage" }),
+      startOf({ tool: "relay_steer", type: "dynamicToolCall" }),
+      startOf({ tool: "search_docs", type: "mcpToolCall" }),
+      startOf({ type: "webSearch" }),
+      startOf({ type: "commandExecution" }),
+      startOf({ type: "contextCompaction" }),
+      startOf("not an item"),
     ]).toEqual([
-      { kind: "reasoning" },
-      { kind: "writing" },
-      { kind: "tool", name: "relay_steer" },
-      { kind: "tool", name: "search_docs" },
-      { kind: "tool", name: "web search" },
-      { kind: "tool", name: "a command" },
-      { kind: "compacting" },
-      { kind: "working" },
-      { kind: "working" },
+      started({ kind: "reasoning" }),
+      started({ kind: "writing" }),
+      started({ kind: "tool", name: "relay_steer" }),
+      started({ kind: "tool", name: "search_docs" }),
+      started({ kind: "tool", name: "web search" }),
+      started({ kind: "tool", name: "a command" }),
+      started({ kind: "compacting" }),
+      started({ kind: "working" }),
     ]);
   });
 
-  // Progress naming no step keeps the last one, so a compaction's end names plain work or the orb says compacting on.
-  it("reads a compaction's completion as plain work again, and any other completion as no new step", () => {
-    const completed = (item: unknown) => turnActivityOf({ method: "item/completed", params: { ...params, item } });
+  // Items overlap, so a completion names WHICH item ended; what the turn is on after it is the call's to say.
+  it("reads an item's start and completion with that item's id, and an empty id as none", () => {
+    const item = { id: "d-1", tool: "read_card", type: "dynamicToolCall" };
     expect([
-      completed({ id: "c-1", type: "contextCompaction" }),
-      completed({ id: "r-1", type: "reasoning" }),
+      startOf(item),
+      turnActivityOf({ method: "item/completed", params: { ...params, item } }),
+      turnActivityOf({ method: "item/completed", params: { ...params, item: { ...item, id: "" } } }),
       turnActivityOf({ method: "thread/compacted", params }),
-    ]).toEqual([{ ...params, step: { kind: "working" } }, { ...params, step: null }, undefined]);
+    ]).toEqual([
+      { ...params, itemId: "d-1", phase: "started", step: { kind: "tool", name: "read_card" } },
+      { ...params, itemId: "d-1", phase: "completed" },
+      { ...params, itemId: undefined, phase: "completed" },
+      undefined,
+    ]);
+  });
+
+  // The owner's words, a steer included, are no step of the model's: neither their start nor their end moves the wait.
+  it("reads the owner's own message item, starting or completing, as progress", () => {
+    const item = { id: "u-1", type: "userMessage" };
+    expect([startOf(item), turnActivityOf({ method: "item/completed", params: { ...params, item } })]).toEqual([
+      { ...params, phase: "progress" },
+      { ...params, phase: "progress" },
+    ]);
   });
 
   // A bare "ran a verb" says nothing when there are a thousand verbs, so the row names which one.
   it("names the verb a verb call runs from object arguments, and plain verb from a string or none", () => {
-    const stepOf: (item: unknown) => NonNullable<ReturnType<typeof turnActivityOf>>["step"] = (item) =>
-      turnActivityOf({ method: "item/started", params: { ...params, item } })!.step;
     expect([
-      stepOf({ arguments: { request: { noun: "cmux", verb: "list" } }, tool: "verb", type: "dynamicToolCall" }),
-      stepOf({ arguments: '{"request":{"noun":"github","verb":"checks"}}', tool: "verb", type: "dynamicToolCall" }),
-      stepOf({ arguments: { request: { noun: "cmux" } }, tool: "verb", type: "dynamicToolCall" }),
-      stepOf({ arguments: "{not json", tool: "verb", type: "dynamicToolCall" }),
+      startOf({ arguments: { request: { noun: "cmux", verb: "list" } }, tool: "verb", type: "dynamicToolCall" }),
+      startOf({ arguments: '{"request":{"noun":"github","verb":"checks"}}', tool: "verb", type: "dynamicToolCall" }),
+      startOf({ arguments: { request: { noun: "cmux" } }, tool: "verb", type: "dynamicToolCall" }),
+      startOf({ arguments: "{not json", tool: "verb", type: "dynamicToolCall" }),
     ]).toEqual([
-      { kind: "tool", name: "slopweaver cmux list" },
-      { kind: "tool", name: "verb" },
-      { kind: "tool", name: "verb" },
-      { kind: "tool", name: "verb" },
+      started({ kind: "tool", name: "slopweaver cmux list" }),
+      started({ kind: "tool", name: "verb" }),
+      started({ kind: "tool", name: "verb" }),
+      started({ kind: "tool", name: "verb" }),
     ]);
   });
 
-  it("reads a delta or a completion as progress with no new step", () => {
-    expect(turnActivityOf({ method: "item/agentMessage/delta", params })).toEqual({ ...params, step: null });
-    expect(turnActivityOf({ method: "item/completed", params })).toEqual({ ...params, step: null });
+  // A message half written keeps saying it is writing: a delta is no model boundary.
+  it("reads a delta as progress", () => {
+    expect(turnActivityOf({ method: "item/agentMessage/delta", params })).toEqual({ ...params, phase: "progress" });
   });
 
   it("ignores a notification that is not an item's, or names no turn", () => {
