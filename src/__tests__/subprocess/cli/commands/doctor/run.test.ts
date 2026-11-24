@@ -523,6 +523,7 @@ describe("doctorReport / doctorJsonReport self-review reservations", () => {
     reserveSelfReviewRound({
       home,
       intent: { formHash: "f", headSha: "abc123", locus: "o/r#7", reservedIso: "2026-01-01T00:00:00.000Z" },
+      pullRequestId: "PR7",
     });
     const nowMs = Date.parse("2026-01-01T00:20:00.000Z");
     const stale = doctorReport({
@@ -541,6 +542,7 @@ describe("doctorReport / doctorJsonReport self-review reservations", () => {
     reserveSelfReviewRound({
       home,
       intent: { formHash: "f", headSha: "abc123", locus: "o/r#7", reservedIso: "2026-01-01T00:00:00.000Z" },
+      pullRequestId: "PR7",
     });
     const nowMs = Date.parse("2026-01-01T00:05:00.000Z");
     const fresh = doctorReport({
@@ -558,6 +560,7 @@ describe("doctorReport / doctorJsonReport self-review reservations", () => {
     reserveSelfReviewRound({
       home,
       intent: { formHash: "f", headSha: "abc123", locus: "o/r#7", reservedIso: "2026-01-01T00:00:00.000Z" },
+      pullRequestId: "PR7",
     });
     const nowMs = Date.parse("2026-01-01T00:20:00.000Z");
     const report = doctorJsonReport({

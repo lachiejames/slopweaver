@@ -120,6 +120,41 @@ export function absenceReadFailedLine({ locus, message }: { locus: string; messa
 }
 
 /**
+ * The line printed when the recorded number names a DIFFERENT pull request on the repository now at this
+ * address, or none at all — a repository renamed away left its address to a successor, whose numbers restart.
+ *
+ * Neither is proof the branch pair is free: a 404 can mean access rather than absence, and the successor may
+ * hold its own pull request on these branches. So the line says what is read next, never that it released.
+ *
+ * @param locus the branch locus
+ * @param number the recorded pull-request number
+ * @param found whether GitHub answered with another pull request or with not-found, or the record carries no
+ *   node id to compare, so no read of the number could tell which pull request it meant
+ * @returns one operator-facing line
+ */
+export function foreignRecordedNumberLine({
+  found,
+  locus,
+  number,
+}: {
+  found: "another-pull-request" | "not-found" | "unbound";
+  locus: string;
+  number: number;
+}): string {
+  if (found === "unbound") {
+    return (
+      `the reservation for ${locus} records #${String(number)} without its node id, so which pull request it meant ` +
+      "cannot be told: the branch pair is read instead."
+    );
+  }
+  const what =
+    found === "not-found"
+      ? `GitHub has no #${String(number)} on the repository now at this address`
+      : `#${String(number)} on the repository now at this address is a different pull request from the one recorded`;
+  return `the reservation for ${locus} names a pull request that is not this repository's: ${what}, so the branch pair is read instead.`;
+}
+
+/**
  * The line printed when a pull request occupying the locus is no longer open, so a fresh create is allowed.
  *
  * One spelling for both settling paths — the recorded number's own read and the branch-pair listing reach the

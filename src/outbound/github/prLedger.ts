@@ -38,6 +38,11 @@
  * would hash differently, so the guard would not recognise it as the same intent and would happily open a
  * second pull request for the same branch. The locus is stable across exactly the edits a retry makes.
  *
+ * A locus is an ADDRESS, and a repository renamed away leaves its address to a successor whose numbers restart,
+ * so a record's number alone never identifies a pull request: its `nodeId` does. A recorded number with no node
+ * id, or one reading back as a different node id or a 404, names nothing provable on the repository now there, and
+ * `../../cli/commands/github/reservation.ts` settles it by the branch pair without adopting what it finds.
+ *
  * The consequence is honest rather than hidden: after a lost response this lane LISTS candidates by head and
  * base rather than addressing a pre-chosen remote id the way Linear can, and what that listing settles is the
  * RESERVATION, not permission to send blind. Exactly one candidate recovers the number onto the record

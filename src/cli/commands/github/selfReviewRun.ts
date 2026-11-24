@@ -1,7 +1,6 @@
 /** The governed submit, resolve, readback and local-confirmation path for one self-review round. */
 import { DEFAULT_GATES } from "../../../admit/door.js";
 import type { DoorLedgerPort } from "../../../admit/doorLedgerPort.js";
-import { type NotPerformed, notPerformedLines } from "../../../admit/doorRefusal.js";
 import { throughDoor } from "../../../admit/effects.js";
 import type { GithubWriteApi, WrittenPr } from "../../../corpus/github/write.js";
 import { err, ok, type Result } from "../../../lib/result.js";
@@ -16,24 +15,12 @@ import {
   selfReviewLockHeld,
   selfReviewLocus,
 } from "../../../outbound/github/selfReviewLedger.js";
+import { ownedThreadIds, type SelfReviewRoundRead } from "../../../outbound/github/selfReviewRound.js";
 import { githubSelfReviewDoorRequest, reviewThreadIdsFor, selfReviewDiffAnchorRefusals } from "./selfReviewCore.js";
+import { type GithubSelfReviewOutcome, reservationTakenOutcome, withSetAside } from "./selfReviewOutcome.js";
 
 /** The three provider operations the review lifecycle consumes. */
 export type GithubSelfReviewApi = Pick<GithubWriteApi, "diffFiles" | "reviewThreads" | "submitReviewRound">;
-
-/** The externally observable result of one requested self-review round. */
-export type GithubSelfReviewOutcome =
-  | {
-      readonly kind: "posted";
-      readonly comments: number;
-      readonly resolvedThreads: number;
-      readonly number: number;
-      readonly url: string;
-    }
-  | { readonly kind: "refused"; readonly reason: string }
-  /** The door refused the round, or its decision could not be recorded: the caller renders the door's own refusal. */
-  | { readonly kind: "not-performed"; readonly through: NotPerformed }
-  | { readonly kind: "unconfirmed"; readonly reason: string; readonly locus: string };
 
 /** Confirm the submitted comments map to owned threads, then commit the local ownership record. */
 async function confirmSubmittedRound({
@@ -71,7 +58,14 @@ async function confirmSubmittedRound({
   }
   const confirmed = confirmSelfReviewRound({
     home,
-    record: { confirmedIso: nowIso, formHash, headSha: pr.head.sha, locus, threadIds: mapping.value },
+    record: {
+      confirmedIso: nowIso,
+      formHash,
+      headSha: pr.head.sha,
+      locus,
+      pullRequestId: pr.nodeId,
+      threadIds: mapping.value,
+    },
   });
   return confirmed.kind === "confirmed"
     ? {
@@ -116,21 +110,6 @@ async function selfReviewDiffRefusal({
   return bad.length === 0
     ? undefined
     : `these comment anchors are not part of the live diff at the reviewed head SHA: ${bad.join(", ")}`;
-}
-
-/** Render why a second caller is refused while an outcome for this locus is still unresolved. */
-function reservationTakenOutcome({
-  locus,
-  pending,
-}: {
-  locus: string;
-  pending: { readonly headSha: string; readonly reservedIso: string } | null;
-}): GithubSelfReviewOutcome {
-  const detail =
-    pending === null
-      ? "the reservation lock is held but records no round"
-      : `a round for head ${pending.headSha} was reserved at ${pending.reservedIso}`;
-  return { kind: "unconfirmed", locus, reason: `${detail}; inspect GitHub before any retry` };
 }
 
 /** Submit the composite mutation and hand a successful send to exact readback confirmation. */
@@ -201,13 +180,18 @@ async function performSelfReviewRound({
   const reservation = reserveSelfReviewRound({
     home,
     intent: { formHash, headSha: pr.head.sha, locus, reservedIso: nowIso },
+    pullRequestId: pr.nodeId,
   });
   if (reservation.kind === "taken") {
-    return reservationTakenOutcome({ locus, pending: reservation.pending });
+    return withSetAside({
+      outcome: reservationTakenOutcome({ locus, pending: reservation.pending }),
+      read: reservation.previous,
+    });
   }
   if (reservation.kind === "unreadable") {
     return { kind: "refused", reason: reservation.reason };
   }
+  const read = reservation.previous;
   // Below this point the reservation this call just took is ours to release. It stays held once the composite
   // mutation is actually attempted — a failure from there is genuinely ambiguous (GitHub's own top-level
   // mutation fields execute serially and independently, so a failed review post does not undo an already
@@ -215,9 +199,9 @@ async function performSelfReviewRound({
   const refusal = await selfReviewDiffRefusal({ api, form, pr });
   if (refusal !== undefined) {
     releaseSelfReviewReservation({ home, locus });
-    return { kind: "refused", reason: refusal };
+    return withSetAside({ outcome: { kind: "refused", reason: refusal }, read });
   }
-  return submitAndConfirmRound({
+  const outcome = await submitAndConfirmRound({
     api,
     form,
     formHash,
@@ -225,37 +209,42 @@ async function performSelfReviewRound({
     locus,
     nowIso,
     pr,
-    previousThreadIds: reservation.previous === null ? [] : reservation.previous.threadIds,
+    previousThreadIds: ownedThreadIds({ read }),
   });
+  return withSetAside({ outcome, read });
 }
 
 /**
- * What is checked before the door is asked: how many threads the last round left to retire, or the refusal that
- * ends the call.
+ * What is checked before the door is asked: what the ledger holds for this pull request, whose owned round
+ * says how many threads are left to retire, or the refusal that ends the call.
  *
  * A round record that cannot be trusted refuses before the door: posting anyway leaves the walkthrough it
  * should have retired standing beside the new one. A hold, corrupt or not, answers here too, not inside the
  * door, so a round that can never be sent writes no door row. The reservation inside the door still decides.
  */
-function preDoorPreviousThreads({
+function preDoorPreviousRound({
   home,
   locus,
+  pullRequestId,
 }: {
   home: string;
   locus: string;
-}): Result<number, GithubSelfReviewOutcome> {
-  const previous = readSelfReviewRound({ home, locus });
+  pullRequestId: string;
+}): Result<SelfReviewRoundRead, GithubSelfReviewOutcome> {
+  const previous = readSelfReviewRound({ home, locus, pullRequestId });
   if (previous.isErr()) {
     return err({ kind: "refused", reason: previous.error.join("; ") });
   }
   const held = readSelfReviewReservation({ home, locus });
   if (held.isErr()) {
-    return err({ kind: "refused", reason: held.error.join("; ") });
+    return err(withSetAside({ outcome: { kind: "refused", reason: held.error.join("; ") }, read: previous.value }));
   }
   if (held.value !== null || selfReviewLockHeld({ home, locus })) {
-    return err(reservationTakenOutcome({ locus, pending: held.value }));
+    return err(
+      withSetAside({ outcome: reservationTakenOutcome({ locus, pending: held.value }), read: previous.value }),
+    );
   }
-  return ok(previous.value === null ? 0 : previous.value.threadIds.length);
+  return ok(previous.value);
 }
 
 /**
@@ -292,9 +281,9 @@ export async function sendSelfReviewRound({
   const repo = pr.baseRepoFullName.slice(separator + 1);
   const locus = selfReviewLocus({ number: pr.number, owner, repo });
   const formHash = selfReviewFormHash({ form });
-  const previousThreads = preDoorPreviousThreads({ home, locus });
-  if (previousThreads.isErr()) {
-    return previousThreads.error;
+  const previousRound = preDoorPreviousRound({ home, locus, pullRequestId: pr.nodeId });
+  if (previousRound.isErr()) {
+    return previousRound.error;
   }
   const routed = await throughDoor({
     gates: DEFAULT_GATES,
@@ -306,42 +295,12 @@ export async function sendSelfReviewRound({
       headSha: pr.head.sha,
       home,
       number: pr.number,
-      previousThreads: previousThreads.value,
+      previousThreads: ownedThreadIds({ read: previousRound.value }).length,
       repo: pr.baseRepoFullName,
     }),
   });
   if (routed.performed) {
     return routed.result;
   }
-  return { kind: "not-performed", through: routed };
-}
-
-/**
- * Render human-readable outcome lines shared by every PR-raising and PR-updating command.
- *
- * @param outcome the confirmed, refused, not-performed or ambiguous lifecycle result
- * @param command the invocation that carried the round, as the owner would type it, which a door refusal names
- * @returns concise lines suitable for the command result channel
- */
-export function selfReviewOutcomeLines({
-  outcome,
-  command,
-}: {
-  outcome: GithubSelfReviewOutcome;
-  command: string;
-}): readonly string[] {
-  if (outcome.kind === "not-performed") {
-    return notPerformedLines({ command, through: outcome.through });
-  }
-  if (outcome.kind === "posted") {
-    return [
-      `self-review: posted ${String(outcome.comments)} inline comment(s) on #${String(outcome.number)} and resolved ` +
-        `${String(outcome.resolvedThreads)} previous thread(s)`,
-      outcome.url,
-    ];
-  }
-  if (outcome.kind === "unconfirmed") {
-    return [`self-review UNCONFIRMED at ${outcome.locus}: ${outcome.reason}`];
-  }
-  return [`self-review refused: ${outcome.reason}`];
+  return withSetAside({ outcome: { kind: "not-performed", through: routed }, read: previousRound.value });
 }

@@ -136,9 +136,9 @@ reads: two indexes to read beside this list, neither of them the whole of it on 
    The ledger under `$SLOPWEAVER_HOME/ledgers/github-prs` has two jobs: at-most-once on CREATE, and the stored form as a cache. Unlike
    Linear, GitHub assigns the id only AFTER creation, so that duplicate guard keys on the branch locus (base
    repository + base ref + head ref, with a fork's head qualified as `owner:ref` so it cannot share a key with
-   a same-named branch) rather than on a caller-chosen id. `update` never changes code — only the title and
-   the description — and it re-reads the pull request immediately before writing, so the unavoidable
-   read-then-PATCH window stays one round trip.
+   a same-named branch) rather than on a caller-chosen id; a renamed repository leaves that address to a successor,
+   so a record carries the node id too (`src/outbound/github/prLedger.ts`). `update` never changes code — only the
+   title and the description — and re-reads the pull request just before writing: a one-round-trip window.
 8. **Media you attach to a pull request** — `github attach upload` sends a local image or video to
    **GitHub's own user-attachments host**, and it is the one write in this product that does not use a token.
    Three things about it are worth stating rather than leaving to be found:
