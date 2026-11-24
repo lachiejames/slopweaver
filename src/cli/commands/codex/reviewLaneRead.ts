@@ -153,7 +153,7 @@ export function refusedAsReservedWitness({ propertyId }: { propertyId: string })
   }
   logger.error({
     msg:
-      "codex review-fallback prepare: refused: property ids starting baseline-bump- are reserved for a Codex r3 " +
+      "codex review-fallback prepare: refused: property ids starting baseline-bump- are reserved for an r3 Codex " +
       `witness, and a Claude fallback can never witness a baseline bump; ${NO_HATCH}`,
   });
   return true;

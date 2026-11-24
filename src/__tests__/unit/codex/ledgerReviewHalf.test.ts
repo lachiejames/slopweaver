@@ -12,7 +12,7 @@ import { ledgerRow } from "./ledgerEntryFixture.js";
 
 const DIGEST = "c".repeat(64);
 
-/** A current Codex r3 witness row for a synthetic bump digest, over diff `w`. */
+/** A current `r3` Codex witness row for a synthetic bump digest, over diff `w`. */
 const witness = (over: Partial<LedgerEntry> = {}): LedgerEntry =>
   ledgerRow({
     artifactId: "witness-1",

@@ -242,7 +242,13 @@ async function refusedAsThirdPass({
   });
 }
 
-/** The `prepare` half: refuse unless capped, capture, write. */
+/**
+ * The `prepare` half: refuse unless capped, capture, write.
+ *
+ * The refusal path never reads the cap, and the cap path never reads a pass record: which ground a request stands
+ * on is the caller's explicit choice, never inferred, so a refused pass cannot quietly become a cap. A blank
+ * `--after-refusal` is a mistake, never the cap path: a flag naming a ground must name one.
+ */
 async function prepare({
   parsed,
   home,
@@ -265,10 +271,7 @@ async function prepare({
   if (refusedAsReservedWitness({ propertyId: args.value.property.id })) {
     return EXIT_USAGE;
   }
-  // The refusal path never reads the cap, and the cap path never reads a pass record: which ground a request
-  // stands on is the caller's explicit choice, never inferred, so a refused pass cannot quietly become a cap.
   const afterRefusal = stringFlag({ name: "after-refusal", parsed });
-  // Given but blank is a mistake, never the cap path: a flag naming a ground must name one.
   if (parsed.values["after-refusal"] !== undefined && afterRefusal === undefined) {
     logger.error({ msg: "codex review-fallback prepare: --after-refusal needs the refused pass's artifact id" });
     return EXIT_USAGE;

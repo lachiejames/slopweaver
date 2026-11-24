@@ -73,7 +73,7 @@ export function witnessClaimPrefix({ digest }: { digest: string }): string {
  * whether a row COUNTS or WITNESSES, never which lane the review was taken in, so none of them is read.
  *
  * @param entry the ledger row
- * @returns the witness lane for a Codex r3 review under a full witness id whose statement opens with that
+ * @returns the witness lane for an `r3` Codex review under a full witness id whose statement opens with that
  *   digest's witness prefix; the general lane for everything else
  */
 export function reviewLaneOfEntry({ entry }: { entry: LedgerEntry }): ReviewLane {

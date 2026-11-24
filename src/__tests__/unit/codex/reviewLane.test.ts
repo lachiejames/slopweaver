@@ -1,7 +1,7 @@
 /**
  * Review-lane admission and the row classifier, over synthetic bump records only: the one invocation admitted to
  * the witness lane is r3, one property, the full-digest id of a record that exists and that record's exact claim;
- * every other invocation carrying a reserved id is refused; a row is witness lane only when it is a Codex r3 review
+ * every other invocation carrying a reserved id is refused; a row is witness lane only when it is an `r3` Codex review
  * under a full witness id whose statement opens with that digest's witness prefix.
  */
 import { describe, expect, it } from "vitest";
@@ -106,7 +106,7 @@ describe("reviewLaneAdmission", () => {
 describe("reviewLaneOfEntry", () => {
   const witnessRow = ledgerRow({ pass: "r3", propertyId: WITNESS.id, propertyStatement: WITNESS.statement });
 
-  it("reads a Codex r3 review under a full witness id and its claim as the witness lane", () => {
+  it("reads an r3 Codex review under a full witness id and its claim as the witness lane", () => {
     expect(reviewLaneOfEntry({ entry: witnessRow })).toBe("baseline-bump-witness");
   });
 

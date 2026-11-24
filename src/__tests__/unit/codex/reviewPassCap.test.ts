@@ -23,7 +23,7 @@ const PLAN = row({
 
 const DIGEST = "e".repeat(64);
 
-/** A Codex r3 witness row for a synthetic bump digest; a case overrides the diff and the fields it is about. */
+/** An `r3` Codex witness row for a synthetic bump digest; a case overrides the diff and the fields it is about. */
 const witness = (over: Partial<LedgerEntry> = {}): LedgerEntry =>
   row({
     artifactId: "witness-1",
