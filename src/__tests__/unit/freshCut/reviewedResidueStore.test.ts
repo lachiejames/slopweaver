@@ -29,6 +29,21 @@ const ENTRY: ReviewedResidueEntry = {
   schemaVersion: 1,
 };
 
+/** An anchored entry on a synthetic pointer: two made-up UUIDs. */
+const ANCHORED: ReviewedResidueEntry = {
+  className: "money",
+  entryId: "2d9a7a6e-8c0c-4f5a-9d3f-4b6c8e0a2c3d",
+  lineNumberAtReview: 9,
+  lineSha256: "c".repeat(64),
+  ownerAnchor: "transcript:11111111-0000-4333-8444-555555555555#66666666-0000-4888-9999-aaaaaaaaaaaa",
+  path: "src/b.ts",
+  reviewedAtIso: "2026-11-20T01:02:03.000Z",
+  reviewedBySessionId: "session-1",
+  reviewedRecordId: "3f2a1b0c-9d8e-4f7a-8b6c-5d4e3f2a1b0c",
+  reviewedTreeSha: "a".repeat(40),
+  schemaVersion: 2,
+};
+
 let home: string;
 
 beforeEach(() => {
@@ -63,14 +78,40 @@ describe("readReviewedResidue", () => {
     });
   });
 
-  it("refuses the whole list when one line is of another class", () => {
+  it("refuses the whole list when one line is a reader's judgement of another class", () => {
     unwrap(appendReviewedResidue({ entry: ENTRY, home }));
     writeRaw({
       text: `${JSON.stringify({ ...ENTRY, className: "topic", entryId: "1c8f6f5d-7b9b-4e4f-8c2e-3a5b7d9f1b2c" })}\n`,
     });
     const error = unwrapErr(readReviewedResidue({ home }));
     expect(error.code).toBe("REVIEWED_RESIDUE_UNREADABLE");
-    expect(error.message).toContain("line 2 is not an owner-address entry");
+    expect(error.message).toContain("line 2 is not a reviewed-residue entry");
+  });
+
+  it("reads back both entry shapes, in file order", () => {
+    unwrap(appendReviewedResidue({ entry: ENTRY, home }));
+    unwrap(appendReviewedResidue({ entry: ANCHORED, home }));
+    expect(unwrap(readReviewedResidue({ home })).entries).toEqual([ENTRY, ANCHORED]);
+  });
+
+  it("refuses the whole list when an anchored line carries no anchor, or an unknown shape", () => {
+    const { ownerAnchor: _dropped, ...unanchored } = ANCHORED;
+    unwrap(appendReviewedResidue({ entry: ENTRY, home }));
+    writeRaw({ text: `${JSON.stringify(unanchored)}\n` });
+    const missing = unwrapErr(readReviewedResidue({ home })).message;
+    rmSync(reviewedResiduePath({ home }));
+    writeRaw({ text: `${JSON.stringify({ ...ANCHORED, schemaVersion: 3 })}\n` });
+    const unknown = unwrapErr(readReviewedResidue({ home })).message;
+    expect([
+      missing.includes("line 2 is not a reviewed-residue entry"),
+      unknown.includes("line 1 is not a reviewed-residue entry"),
+    ]).toEqual([true, true]);
+  });
+
+  it("refuses an entry id repeated across the two shapes", () => {
+    unwrap(appendReviewedResidue({ entry: ENTRY, home }));
+    unwrap(appendReviewedResidue({ entry: { ...ANCHORED, entryId: ENTRY.entryId }, home }));
+    expect(unwrapErr(readReviewedResidue({ home })).message).toContain("line 2 repeats an entry id");
   });
 
   it("refuses the whole list when a line is not JSON", () => {
@@ -107,6 +148,11 @@ describe("appendReviewedResidue", () => {
 
   it("refuses an entry of another class rather than writing it", () => {
     const bad = { ...ENTRY, className: "topic" } as unknown as ReviewedResidueEntry;
+    expect(unwrapErr(appendReviewedResidue({ entry: bad, home })).code).toBe("REVIEWED_RESIDUE_WRITE_FAILED");
+  });
+
+  it("refuses an anchored entry whose anchor is not a canonical pointer rather than writing it", () => {
+    const bad = { ...ANCHORED, ownerAnchor: "the owner said so" } as ReviewedResidueEntry;
     expect(unwrapErr(appendReviewedResidue({ entry: bad, home })).code).toBe("REVIEWED_RESIDUE_WRITE_FAILED");
   });
 });

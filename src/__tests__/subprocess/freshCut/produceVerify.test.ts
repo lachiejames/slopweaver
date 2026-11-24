@@ -29,6 +29,9 @@ const IDENTITY = { address: ADDRESS, login: LOGIN };
 const RECORD_ID = "0b7e7f8e-1f4a-4c2b-9d3e-5a6b7c8d9e0f";
 const NOW = new Date("2026-11-20T01:02:03.000Z");
 
+/** A transcripts root nothing is written under: these cuts carry no anchored entry for a verify to resolve. */
+const noTranscripts = (): string => join(tmpdir(), "no-transcripts-here");
+
 /** The hostile caller environment every test runs under, restored afterwards. */
 const HOSTILE_ENV = ["GIT_CONFIG_GLOBAL", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL", "GIT_AUTHOR_NAME"] as const;
 
@@ -206,7 +209,7 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     writePrivateTerms({ home, rows: ["person\ti\tquillfeather\tsynthetic"] });
     const record = produce({ name: "cut", repo, root, tip });
 
-    const verification = unwrap(verifyFreshCut({ home, now: NOW, record, source: repo }));
+    const verification = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
     expect([verification.status, verification.filesScanned, verification.findings]).toEqual(["clear", 3, []]);
   });
 
@@ -220,7 +223,7 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     writePrivateTerms({ home, rows: [`owner-address\ti\t${escaped}\tsynthetic`] });
     const record = produce({ name: "cut", repo, root, tip });
 
-    const verification = unwrap(verifyFreshCut({ home, now: NOW, record, source: repo }));
+    const verification = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
     expect([verification.status, verification.findings]).toEqual([
       "refused",
       [{ className: "owner-address", kind: "private-term", line: 1, path: "AUTHORS" }],
@@ -240,7 +243,7 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     });
     const record = produce({ name: "cut", repo, root, tip });
 
-    const verification = unwrap(verifyFreshCut({ home, now: NOW, record, source: repo }));
+    const verification = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
     expect([verification.status, verification.exemptions, verification.findings]).toEqual([
       "refused",
       { "code-owner": 0, "documentation-address": 1, "own-address": 1, "owner-reference": 0 },
@@ -254,7 +257,15 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     const record = produce({ name: "cut", repo, root, tip });
 
     expect(
-      unwrapErr(verifyFreshCut({ home, now: NOW, record: { ...record, treeSha: "0".repeat(40) }, source: repo })).code,
+      unwrapErr(
+        verifyFreshCut({
+          home,
+          now: NOW,
+          projectsDir: noTranscripts(),
+          record: { ...record, treeSha: "0".repeat(40) },
+          source: repo,
+        }),
+      ).code,
     ).toBe("CUT_MISMATCH");
   });
 
@@ -267,7 +278,9 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
       cwd: record.destination,
     });
 
-    expect(unwrapErr(verifyFreshCut({ home, now: NOW, record, source: repo })).code).toBe("CUT_MISMATCH");
+    expect(unwrapErr(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo })).code).toBe(
+      "CUT_MISMATCH",
+    );
   });
 
   it("refuses a cut holding a pseudoref that for-each-ref never lists", () => {
@@ -276,7 +289,7 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     const record = produce({ name: "cut", repo, root, tip });
     writeFileSync(join(record.destination, ".git", "ORIG_HEAD"), `${record.rootSha}\n`);
 
-    const refused = unwrapErr(verifyFreshCut({ home, now: NOW, record, source: repo }));
+    const refused = unwrapErr(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
     expect([refused.code, refused.message]).toEqual(["CUT_MISMATCH", expect.stringContaining("ORIG_HEAD")]);
   });
 
@@ -284,6 +297,8 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     const { home, repo, root, tip } = fixture();
     const record = produce({ name: "cut", repo, root, tip });
 
-    expect(unwrapErr(verifyFreshCut({ home, now: NOW, record, source: repo })).code).toBe("SCAN_INPUT_UNAVAILABLE");
+    expect(unwrapErr(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo })).code).toBe(
+      "SCAN_INPUT_UNAVAILABLE",
+    );
   });
 });

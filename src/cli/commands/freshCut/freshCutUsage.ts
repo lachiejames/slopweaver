@@ -28,9 +28,14 @@ export const FRESH_CUT_VERIFY_USAGE =
 export const FRESH_CUT_ACCEPT_USAGE =
   "usage: slopweaver fresh-cut accept --record <record-id> --path <file> --line <n> --class owner-address\n" +
   "         --as placeholder|not-an-address [--source <checkout>] [--home <dir>] [--json]\n" +
-  "  Record that THIS visible session read one owner-address finding of the cut, at the path and line the verify\n" +
-  "  report names, and judged it a placeholder or no address at all. Appends one entry to\n" +
+  "       slopweaver fresh-cut accept --record <record-id> --path <file> --line <n> --class <other class>\n" +
+  "         --anchor transcript:<session>#<turn> [--source <checkout>] [--home <dir>] [--json]\n" +
+  "  Accept one finding of the cut, at the path and line the verify report names. An owner-address finding is\n" +
+  "  accepted when THIS visible session read it and judged it a placeholder or no address at all. Any other class\n" +
+  "  is accepted only on --anchor, the owner's own turn ruling on it, which is resolved in the local transcripts\n" +
+  "  first; that entry counts in this one record and tree only. Appends one entry to\n" +
   "  <home>/fresh-cuts/reviewed-residue.jsonl\n" +
   "  keyed by the path, the class and the SHA-256 of the line, so a later change to that line refuses again.\n" +
-  "  Refused for any class but owner-address, for a line the verify does not flag, for one already accepted, and\n" +
-  "  when no single visible session is named. Prints the entry id, never the path, line or text.";
+  "  Refused for --anchor on owner-address, --as or no anchor on any other class, an anchor naming no owner turn,\n" +
+  "  a line the verify does not flag, one already accepted, and when no single visible session is named. Prints\n" +
+  "  the entry id and class, never the path, line, text or anchor.";

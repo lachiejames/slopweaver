@@ -128,8 +128,9 @@ src/freshCut/           # `slopweaver fresh-cut produce` — one parentless comm
                         #   written into a NEW local repository with no remote — and `fresh-cut verify`:
                         #   re-derive the tree, then the hygiene gate and every private term over every
                         #   file, findings to the home only;
-                        #   `fresh-cut accept` appends one read owner-address line to the state-home
-                        #   reviewed-residue list that verify subtracts, counts and binds by its sha256
+                        #   `fresh-cut accept` appends one accepted line (a read owner-address line, or
+                        #   another class on an owner anchor) to the state-home reviewed-residue list
+                        #   that verify subtracts, counts and binds by its sha256
 src/gcloud/             # the state of Google Application Default Credentials, so a seat waits on the owner's
                         #   sign-in
 src/gcpAudit/           # one GCP audit-log pull: every container, its retention and routing, entries to disk

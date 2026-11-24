@@ -2,13 +2,20 @@
  * `fresh-cut`'s pure halves: each verb's flag grammar, and the lines a run prints. The shell (`./run.ts`) reads
  * the clock, the network and git; nothing here does.
  */
+import {
+  isOwnerAnchoredClass,
+  type OwnerAnchoredClass,
+  REVIEWED_RESIDUE_CLASS,
+} from "../../../freshCut/anchoredAcceptance.js";
 import { freshCutRecordSchema } from "../../../freshCut/core.js";
 import {
-  REVIEWED_RESIDUE_CLASS,
+  isCanonicalTurnPointer,
+  ownerAddressResidueEntrySchema,
   REVIEWED_RESIDUE_JUDGEMENTS,
-  type ReviewedResidueJudgement,
-  reviewedResidueEntrySchema,
+  type ReviewedResidueDecision,
+  type ReviewedResidueEntry,
 } from "../../../freshCut/reviewedResidue.js";
+import { PRIVATE_TERM_CLASSES, type PrivateTermClass } from "../../../hygiene/privateTerms.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { flagValue, parseFlagTail, requiredFlagValue } from "../../optionParsers.js";
 
@@ -19,7 +26,7 @@ import { flagValue, parseFlagTail, requiredFlagValue } from "../../optionParsers
 export const FRESH_CUT_FLAG_NAMES = {
   produce: ["--commit", "--out", "--source", "--home", "--json"],
   verify: ["--record", "--source", "--home", "--json"],
-  accept: ["--record", "--path", "--line", "--class", "--as", "--source", "--home", "--json"],
+  accept: ["--record", "--path", "--line", "--class", "--as", "--anchor", "--source", "--home", "--json"],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 /** What `fresh-cut produce` was asked to do. */
@@ -44,14 +51,14 @@ export interface AcceptOptions {
   readonly recordId: string;
   readonly path: string;
   readonly line: number;
-  readonly judgement: ReviewedResidueJudgement;
+  readonly decision: ReviewedResidueDecision;
   readonly source: string | null;
   readonly home: string | undefined;
   readonly json: boolean;
 }
 
-/** The five flags `fresh-cut accept` requires, by flag name. */
-type AcceptRequiredFlag = "as" | "class" | "line" | "path" | "record";
+/** The four flags every `fresh-cut accept` requires, by flag name; `--as` or `--anchor` follows from the class. */
+type AcceptRequiredFlag = "class" | "line" | "path" | "record";
 
 /**
  * Read every required accept flag, collecting each missing one rather than stopping at the first.
@@ -80,32 +87,138 @@ function requiredAcceptValues({
     parsed,
   });
   const className = requiredFlagValue({
-    missing: `--class is required, and only ${REVIEWED_RESIDUE_CLASS} is accepted`,
+    missing: `--class is required: one of ${PRIVATE_TERM_CLASSES.join(", ")}`,
     name: "class",
     parsed,
   });
-  const judgement = requiredFlagValue({
-    missing: `--as is required: one of ${REVIEWED_RESIDUE_JUDGEMENTS.join(", ")}`,
-    name: "as",
-    parsed,
-  });
-  if (record.isErr() || path.isErr() || line.isErr() || className.isErr() || judgement.isErr()) {
-    return err([record, path, line, className, judgement].flatMap((value) => (value.isErr() ? value.error : [])));
+  if (record.isErr() || path.isErr() || line.isErr() || className.isErr()) {
+    return err([record, path, line, className].flatMap((value) => (value.isErr() ? value.error : [])));
   }
-  return ok({ as: judgement.value, class: className.value, line: line.value, path: path.value, record: record.value });
+  return ok({ class: className.value, line: line.value, path: path.value, record: record.value });
 }
 
 /**
- * Check the required values' shapes: a UUID record, a positive line, the one accepted class and a known judgement.
+ * Pure: whether a raw `--class` value is a private-term class.
+ *
+ * @param value the raw value
+ * @returns true for a member of the class list
+ */
+function isPrivateTermClass(value: string): value is PrivateTermClass {
+  return (PRIVATE_TERM_CLASSES as readonly string[]).includes(value);
+}
+
+/**
+ * Pure: the decision one class's track requires. An owner-address finding takes `--as` and refuses `--anchor`; every
+ * other class takes a canonical `--anchor` to the owner's own turn and refuses `--as`, since no reader's judgement
+ * can accept a word only the owner rules on.
+ *
+ * @param className the checked class
+ * @param as the raw `--as`, or null when unset
+ * @param anchor the raw `--anchor`, or null when unset
+ * @returns the decision, or every refusal
+ */
+function checkedAcceptDecision({
+  className,
+  as,
+  anchor,
+}: {
+  className: PrivateTermClass;
+  as: string | null;
+  anchor: string | null;
+}): Result<ReviewedResidueDecision> {
+  if (!isOwnerAnchoredClass(className)) {
+    return checkedJudgedDecision({ anchor, as, className });
+  }
+  return checkedAnchoredDecision({ anchor, as, className });
+}
+
+/**
+ * Pure: the owner-address track's decision — a judgement from `--as`, and no `--anchor`.
+ *
+ * @param className the owner-address class
+ * @param as the raw `--as`, or null when unset
+ * @param anchor the raw `--anchor`, or null when unset
+ * @returns the decision, or every refusal
+ */
+function checkedJudgedDecision({
+  className,
+  as,
+  anchor,
+}: {
+  className: typeof REVIEWED_RESIDUE_CLASS;
+  as: string | null;
+  anchor: string | null;
+}): Result<ReviewedResidueDecision> {
+  const errors: string[] = [];
+  if (anchor !== null) {
+    errors.push(`--anchor is refused for ${REVIEWED_RESIDUE_CLASS}: a reading session judges that class with --as`);
+  }
+  const judged = ownerAddressResidueEntrySchema.shape.judgement.safeParse(as);
+  if (!judged.success) {
+    errors.push(
+      as === null
+        ? `--as is required for ${REVIEWED_RESIDUE_CLASS}: one of ${REVIEWED_RESIDUE_JUDGEMENTS.join(", ")}`
+        : `--as must be one of ${REVIEWED_RESIDUE_JUDGEMENTS.join(", ")}`,
+    );
+  }
+  if (errors.length > 0 || !judged.success) {
+    return err(errors);
+  }
+  return ok({ className, judgement: judged.data });
+}
+
+/**
+ * Pure: an anchored class's decision — a canonical `--anchor`, and no `--as`.
+ *
+ * @param className the anchored class
+ * @param as the raw `--as`, or null when unset
+ * @param anchor the raw `--anchor`, or null when unset
+ * @returns the decision, or every refusal
+ */
+function checkedAnchoredDecision({
+  className,
+  as,
+  anchor,
+}: {
+  className: OwnerAnchoredClass;
+  as: string | null;
+  anchor: string | null;
+}): Result<ReviewedResidueDecision> {
+  const errors: string[] = [];
+  if (as !== null) {
+    errors.push(`--as is refused for ${className}: only the owner's anchor accepts that class`);
+  }
+  if (anchor === null) {
+    errors.push(
+      `--anchor is required for ${className}: transcript:<session>#<turn>, the owner's own turn ruling on it`,
+    );
+  } else if (!isCanonicalTurnPointer({ value: anchor })) {
+    errors.push("--anchor must be a transcript:<session>#<turn> pointer, both halves lower-case UUIDs");
+  }
+  if (errors.length > 0 || anchor === null) {
+    return err(errors);
+  }
+  return ok({ className, ownerAnchor: anchor });
+}
+
+/**
+ * Check the required values' shapes and the class's track: a UUID record, a positive line, a known class, and
+ * either `--as` (owner-address) or `--anchor` (any other class).
  *
  * @param values each required flag's raw value
- * @returns the judgement, or every shape refusal
+ * @param as the raw `--as`, or null when unset
+ * @param anchor the raw `--anchor`, or null when unset
+ * @returns the decision, or every shape refusal
  */
-function checkedAcceptJudgement({
+function checkedAccept({
   values,
+  as,
+  anchor,
 }: {
   values: Readonly<Record<AcceptRequiredFlag, string>>;
-}): Result<ReviewedResidueJudgement> {
+  as: string | null;
+  anchor: string | null;
+}): Result<ReviewedResidueDecision> {
   const errors: string[] = [];
   if (!freshCutRecordSchema.shape.recordId.safeParse(values.record).success) {
     errors.push("--record must be the UUID `fresh-cut produce` printed");
@@ -113,24 +226,21 @@ function checkedAcceptJudgement({
   if (!/^[1-9][0-9]*$/.test(values.line)) {
     errors.push("--line must be a positive whole number");
   }
-  if (values.class !== REVIEWED_RESIDUE_CLASS) {
-    errors.push(
-      `--class ${values.class} is refused: only ${REVIEWED_RESIDUE_CLASS} findings may be accepted; every other class waits on the owner`,
-    );
-  }
-  const judged = reviewedResidueEntrySchema.shape.judgement.safeParse(values.as);
-  if (!judged.success) {
-    errors.push(`--as must be one of ${REVIEWED_RESIDUE_JUDGEMENTS.join(", ")}`);
-  }
-  if (errors.length > 0 || !judged.success) {
+  if (!isPrivateTermClass(values.class)) {
+    errors.push(`--class ${values.class} is refused: it must be one of ${PRIVATE_TERM_CLASSES.join(", ")}`);
     return err(errors);
   }
-  return ok(judged.data);
+  const decision = checkedAcceptDecision({ anchor, as, className: values.class });
+  if (decision.isErr() || errors.length > 0) {
+    return err([...errors, ...(decision.isErr() ? decision.error : [])]);
+  }
+  return ok(decision.value);
 }
 
 /**
- * Parse `fresh-cut accept`'s flags. `--class` must be `owner-address`: the list holds no other class, so a topic,
- * health, money or organisation finding is refused here, before anything is read.
+ * Parse `fresh-cut accept`'s flags. An `owner-address` finding is accepted on a reader's `--as`; every other class
+ * only on `--anchor`, the owner's own turn, so a topic, health, money or organisation finding with no anchor is
+ * refused here, before anything is read.
  *
  * @param rest the argv after the verb
  * @returns the options, or every refusal
@@ -138,7 +248,7 @@ function checkedAcceptJudgement({
 export function parseAcceptOptions({ rest }: { rest: readonly string[] }): Result<AcceptOptions> {
   const parsed = parseFlagTail({
     rest,
-    spec: { boolean: ["json"], value: ["record", "path", "line", "class", "as", "source", "home"] },
+    spec: { boolean: ["json"], value: ["record", "path", "line", "class", "as", "anchor", "source", "home"] },
   });
   if (parsed.isErr()) {
     return err(parsed.error);
@@ -147,15 +257,19 @@ export function parseAcceptOptions({ rest }: { rest: readonly string[] }): Resul
   if (values.isErr()) {
     return err(values.error);
   }
-  const judgement = checkedAcceptJudgement({ values: values.value });
-  if (judgement.isErr()) {
-    return err(judgement.error);
+  const decision = checkedAccept({
+    anchor: flagValue({ name: "anchor", parsed: parsed.value }),
+    as: flagValue({ name: "as", parsed: parsed.value }),
+    values: values.value,
+  });
+  if (decision.isErr()) {
+    return err(decision.error);
   }
   return ok({
+    decision: decision.value,
     // Unset is undefined, exactly what resolveHome reads as this install's state home.
     home: parsed.value.values["home"],
     json: parsed.value.flags.has("json"),
-    judgement: judgement.value,
     line: Number(values.value.line),
     path: values.value.path,
     recordId: values.value.record,
@@ -164,25 +278,18 @@ export function parseAcceptOptions({ rest }: { rest: readonly string[] }): Resul
 }
 
 /**
- * Pure: the lines `fresh-cut accept` prints. The entry's id, class and judgement and the list's path only — never
- * the file's path or line, which the terminal transcript would keep.
+ * Pure: the lines `fresh-cut accept` prints. The entry's id, its class, and the reader's judgement or that it rests
+ * on an owner anchor, then the list's path — never the file's path or line, which the terminal transcript would keep,
+ * and never the anchor, which the owner-only list already holds.
  *
- * @param entryId the appended entry's id
- * @param judgement the reader's judgement
+ * @param entry the appended entry
  * @param listPath the reviewed-residue file the entry was appended to
  * @returns the lines, without trailing newlines
  */
-export function acceptLines({
-  entryId,
-  judgement,
-  listPath,
-}: {
-  entryId: string;
-  judgement: ReviewedResidueJudgement;
-  listPath: string;
-}): readonly string[] {
+export function acceptLines({ entry, listPath }: { entry: ReviewedResidueEntry; listPath: string }): readonly string[] {
+  const basis = entry.schemaVersion === 1 ? entry.judgement : "accepted on an owner anchor";
   return [
-    `fresh-cut accept: entry ${entryId} — ${REVIEWED_RESIDUE_CLASS}, ${judgement}`,
+    `fresh-cut accept: entry ${entry.entryId} — ${entry.className}, ${basis}`,
     `fresh-cut accept: appended to ${listPath}`,
   ];
 }

@@ -37,8 +37,8 @@ export const freshCutManifest: Readonly<Record<string, VerbManifestEntry>> = {
       example:
         "slopweaver fresh-cut accept --record 0b7e… --path src/a.test.ts --line 12 --class owner-address --as placeholder",
       summary:
-        "Record that this visible session read one owner-address finding of a cut and judged it a placeholder or no address, " +
-        "keyed by path, class and line hash; verify then counts it as reviewed, accepted",
+        "Accept one finding of a cut: an owner-address line this session read and judged, or another class on the owner's " +
+        "anchor in that one record, keyed by path, class and line hash; verify then counts it as reviewed, accepted",
       usage: FRESH_CUT_ACCEPT_USAGE,
     },
   }),

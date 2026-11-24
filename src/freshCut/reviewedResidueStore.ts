@@ -3,8 +3,8 @@
  * state home and never in git. One line is one entry ({@link reviewedResidueEntrySchema}); nothing here rewrites or
  * removes a line, so a wrong acceptance is corrected by a reviewer by hand and stays visible in the file's history.
  *
- * The read is fail-closed: one malformed line, one entry of a class other than owner-address, or one duplicated entry
- * id refuses the WHOLE list, because a verify that silently skipped a bad line would subtract less than it says and a
+ * The read is fail-closed: one malformed line, one line matching neither entry shape (an owner-address judgement, or
+ * another class on an owner anchor), or one duplicated entry id refuses the WHOLE list, because a verify that silently skipped a bad line would subtract less than it says and a
  * verify that guessed would subtract more.
  */
 import { createHash } from "node:crypto";
@@ -37,7 +37,7 @@ export function reviewedResiduePath({ home }: { home: string }): string {
 
 /**
  * Pure: what one list line is. A blank line is judged by the caller, which alone knows whether it was the final
- * one; anything not UTF-8, not JSON, not an owner-address entry, or repeating an entry id is a problem.
+ * one; anything not UTF-8, not JSON, not an entry of either shape, or repeating an entry id is a problem.
  *
  * @param line the line's decoded text, its newline excluded
  * @param lineNumber the 1-based line number a problem names
@@ -74,7 +74,7 @@ function judgeResidueLine({
   }
   const parsed = reviewedResidueEntrySchema.safeParse(json);
   if (!parsed.success) {
-    return { kind: "problem", problem: `line ${String(lineNumber)} is not an owner-address entry` };
+    return { kind: "problem", problem: `line ${String(lineNumber)} is not a reviewed-residue entry` };
   }
   if (seen.has(parsed.data.entryId)) {
     return { kind: "problem", problem: `line ${String(lineNumber)} repeats an entry id` };

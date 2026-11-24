@@ -1,12 +1,18 @@
 /**
- * The reviewed-residue list's pure half: one entry per private-term finding a visible session READ and judged not to
- * be a private detail, keyed by the file's path, the row class and the SHA-256 of the exact line it sits on.
- * `fresh-cut verify` subtracts exactly those findings and counts them as "reviewed, accepted"; every other finding
- * still refuses, and a line whose bytes changed no longer matches its entry, so it refuses again.
+ * The reviewed-residue list's pure half: one entry per private-term finding that was accepted, keyed by the file's
+ * path, the row class and the SHA-256 of the exact line it sits on. `fresh-cut verify` subtracts exactly those
+ * findings and counts them as "reviewed, accepted"; every other finding still refuses, and a line whose bytes changed
+ * no longer matches its entry, so it refuses again.
  *
- * Owner-address only, enforced at both ends: `fresh-cut accept` takes no other class, and the schema below refuses
- * any other, so a hand-written topic, health, money or organisation entry makes the whole list unreadable rather
- * than hiding a finding the owner has not ruled on. An entry carries no term value, no matched text and no prose.
+ * Two entry shapes, told apart by `schemaVersion` (`./anchoredAcceptance.ts` holds the split):
+ *
+ * - **Version 1, `owner-address` only.** A visible session READ the line and judged it a placeholder or no address.
+ *   It matches the same path, class and line in any cut, exactly as it always has.
+ * - **Version 2, every other class.** The owner ruled on the word, and the entry carries the pointer to the owner's
+ *   own turn. It matches only in the ONE record and tree it was accepted in, so a ruling on one cut never forgives
+ *   the same line of another.
+ *
+ * An entry carries no term value, no matched text and no prose; the strict schemas refuse any field beyond these.
  *
  * The freeze audit re-reads this list WHOLE, every entry against its line, never a sample or only the entries the
  * latest verify used; a verify report records the SHA-256 of the exact list bytes it subtracted so that audit can
@@ -14,37 +20,93 @@
  */
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import type { PrivateTermClass } from "../hygiene/privateTerms.js";
 import { err, ok, type Result } from "../lib/result.js";
+import { formatTurnPointer, parseTurnPointer } from "../transcripts/pointer.js";
+import {
+  type AcceptedOnAnchor,
+  emptyAcceptedOnAnchor,
+  isOwnerAnchoredClass,
+  type OwnerAnchoredClass,
+  ownerAnchoredClassSchema,
+  REVIEWED_RESIDUE_CLASS,
+} from "./anchoredAcceptance.js";
 import { type CutFile, type FreshCutFinding, PATH_LIST_LOCUS } from "./core.js";
 
-/** The judgements a reader may give an accepted line. Closed: no free-text reason, which could carry a value. */
+/** The judgements a reader may give an accepted owner-address line. Closed: no free-text reason, which could carry a value. */
 export const REVIEWED_RESIDUE_JUDGEMENTS = ["placeholder", "not-an-address"] as const;
 
 /** One judgement from {@link REVIEWED_RESIDUE_JUDGEMENTS}. */
-export type ReviewedResidueJudgement = (typeof REVIEWED_RESIDUE_JUDGEMENTS)[number];
+type ReviewedResidueJudgement = (typeof REVIEWED_RESIDUE_JUDGEMENTS)[number];
 
-/** The one row class a finding may be accepted under. */
-export const REVIEWED_RESIDUE_CLASS = "owner-address";
+/** An object id, SHA-1 or SHA-256. */
+const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 
-/** One accepted finding, as the list stores it. The match key is `path`, `className` and `lineSha256`. */
-export const reviewedResidueEntrySchema = z
+/**
+ * Pure: whether a string is a turn pointer written exactly as `formatTurnPointer` writes one, so no padded or
+ * otherwise reshaped form of a pointer is ever stored.
+ *
+ * @param value the candidate pointer
+ * @returns true when it parses and re-renders to itself
+ */
+export function isCanonicalTurnPointer({ value }: { value: string }): boolean {
+  const pointer = parseTurnPointer({ text: value });
+  return pointer !== undefined && formatTurnPointer({ pointer }) === value;
+}
+
+/** The fields both entry shapes share, and the match key's three. */
+const sharedEntryFields = {
+  entryId: z.uuid(),
+  lineNumberAtReview: z.number().int().positive(),
+  lineSha256: z.string().regex(/^[0-9a-f]{64}$/),
+  path: z.string().min(1),
+  reviewedAtIso: z.iso.datetime(),
+  reviewedBySessionId: z.string().min(1),
+  reviewedRecordId: z.uuid(),
+  reviewedTreeSha: z.string().regex(OBJECT_ID),
+};
+
+/** One owner-address finding a reading session accepted. Unchanged since the list began, so every old line reads. */
+export const ownerAddressResidueEntrySchema = z
   .object({
+    ...sharedEntryFields,
     className: z.literal(REVIEWED_RESIDUE_CLASS),
-    entryId: z.uuid(),
     judgement: z.enum(REVIEWED_RESIDUE_JUDGEMENTS),
-    lineNumberAtReview: z.number().int().positive(),
-    lineSha256: z.string().regex(/^[0-9a-f]{64}$/),
-    path: z.string().min(1),
-    reviewedAtIso: z.iso.datetime(),
-    reviewedBySessionId: z.string().min(1),
-    reviewedRecordId: z.uuid(),
-    reviewedTreeSha: z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/),
     schemaVersion: z.literal(1),
   })
   .strict();
 
+/** One finding of another class, accepted on the owner's own turn, for one record and tree only. */
+const ownerAnchoredResidueEntrySchema = z
+  .object({
+    ...sharedEntryFields,
+    className: ownerAnchoredClassSchema,
+    ownerAnchor: z.string().refine((value) => isCanonicalTurnPointer({ value }), {
+      message: "the owner anchor must be a canonical transcript:<session>#<turn> pointer",
+    }),
+    schemaVersion: z.literal(2),
+  })
+  .strict();
+
+/** One accepted finding, as the list stores it. The match key is `path`, `className` and `lineSha256`. */
+export const reviewedResidueEntrySchema = z.discriminatedUnion("schemaVersion", [
+  ownerAddressResidueEntrySchema,
+  ownerAnchoredResidueEntrySchema,
+]);
+
+/** One owner-address entry. */
+export type OwnerAddressResidueEntry = z.infer<typeof ownerAddressResidueEntrySchema>;
+
+/** One owner-anchored entry. */
+export type OwnerAnchoredResidueEntry = z.infer<typeof ownerAnchoredResidueEntrySchema>;
+
 /** One accepted finding. */
 export type ReviewedResidueEntry = z.infer<typeof reviewedResidueEntrySchema>;
+
+/** What an acceptance records about the line: a reader's judgement on an owner-address line, or the owner's anchor. */
+export type ReviewedResidueDecision =
+  | { readonly className: typeof REVIEWED_RESIDUE_CLASS; readonly judgement: ReviewedResidueJudgement }
+  | { readonly className: OwnerAnchoredClass; readonly ownerAnchor: string };
 
 /** The 1-based line a caller named lies past the file's last line. */
 export interface LineOutOfRangeError {
@@ -120,6 +182,143 @@ function isPathListLocus({ path }: { path: string }): boolean {
   return path === PATH_LIST_LOCUS || path.startsWith(`${PATH_LIST_LOCUS} line `);
 }
 
+/**
+ * Pure: whether an entry may take a finding out of THIS verification. An owner-address entry may in any cut; an
+ * anchored one only in the record and tree it was accepted in.
+ *
+ * @param entry the entry
+ * @param recordId the verification's record
+ * @param treeSha the verification's tree
+ * @returns true when the entry applies here
+ */
+function entryApplies({
+  entry,
+  recordId,
+  treeSha,
+}: {
+  entry: ReviewedResidueEntry;
+  recordId: string;
+  treeSha: string;
+}): boolean {
+  if (entry.schemaVersion === 1) {
+    return true;
+  }
+  return entry.reviewedRecordId === recordId && entry.reviewedTreeSha === treeSha;
+}
+
+/**
+ * Pure: how many entries of each key may take a finding out of THIS verification.
+ *
+ * @param entries the whole list
+ * @param recordId the verification's record
+ * @param treeSha the verification's tree
+ * @returns each key's count of applicable entries
+ */
+function availableEntries({
+  entries,
+  recordId,
+  treeSha,
+}: {
+  entries: readonly ReviewedResidueEntry[];
+  recordId: string;
+  treeSha: string;
+}): Map<string, number> {
+  const available = new Map<string, number>();
+  for (const entry of entries.filter((candidate) => entryApplies({ entry: candidate, recordId, treeSha }))) {
+    const key = residueKey(entry);
+    const prior = available.get(key);
+    available.set(key, prior === undefined ? 1 : prior + 1);
+  }
+  return available;
+}
+
+/**
+ * Pure: the key an entry must carry to take this private-term finding out, or undefined for one no entry ever can —
+ * one off a real file's own path, the path list's locus, or a line the file does not hold.
+ *
+ * @param finding one private-term finding; a hygiene finding never reaches here
+ * @param bytesByPath every file of the cut, by path
+ * @returns the key, or undefined when the finding is never subtractable
+ */
+function subtractableKey({
+  finding,
+  bytesByPath,
+}: {
+  finding: Extract<FreshCutFinding, { kind: "private-term" }>;
+  bytesByPath: ReadonlyMap<string, CutFile["bytes"]>;
+}): string | undefined {
+  const bytes = bytesByPath.get(finding.path);
+  if (bytes === undefined || isPathListLocus({ path: finding.path })) {
+    return undefined;
+  }
+  const digest = reviewedLineSha256({ bytes, line: finding.line });
+  if (digest.isErr()) {
+    return undefined;
+  }
+  return residueKey({ className: finding.className, lineSha256: digest.value, path: finding.path });
+}
+
+/** What the list took out of one verification's findings. */
+export interface ReviewedResidueSubtraction {
+  /** The findings left, in report order. */
+  readonly findings: readonly FreshCutFinding[];
+  /** Every finding taken out, of either entry shape. */
+  readonly reviewedAccepted: number;
+  /** The anchored share of {@link reviewedAccepted}, by class. */
+  readonly acceptedOnAnchor: AcceptedOnAnchor;
+}
+
+/**
+ * Pure: the findings left once every accepted one is taken out, and how many were. Only a private-term finding at a
+ * real file's own path, of a class an entry names, can be taken out: a hygiene finding, the path list and a withheld
+ * path (`(file paths) line N`) never are. Each entry takes out at most ONE finding, so two identical accepted lines
+ * need two entries, and order is kept. An anchored entry counts only in its own record and tree.
+ *
+ * @param entries the accepted findings, the whole list
+ * @param files every file of the cut, with its bytes
+ * @param findings the verify's findings, in report order
+ * @param recordId the record being verified
+ * @param treeSha that record's tree
+ * @returns the findings left, the count taken out and its anchored share by class
+ */
+export function subtractReviewedResidue({
+  entries,
+  files,
+  findings,
+  recordId,
+  treeSha,
+}: {
+  entries: readonly ReviewedResidueEntry[];
+  files: readonly CutFile[];
+  findings: readonly FreshCutFinding[];
+  recordId: string;
+  treeSha: string;
+}): ReviewedResidueSubtraction {
+  const available = availableEntries({ entries, recordId, treeSha });
+  const bytesByPath = new Map(files.map((file) => [file.path, file.bytes]));
+  const left: FreshCutFinding[] = [];
+  const acceptedOnAnchor: Record<OwnerAnchoredClass, number> = { ...emptyAcceptedOnAnchor() };
+  let reviewedAccepted = 0;
+  for (const finding of findings) {
+    if (finding.kind !== "private-term") {
+      left.push(finding);
+      continue;
+    }
+    const key = subtractableKey({ bytesByPath, finding });
+    const remaining = key === undefined ? undefined : available.get(key);
+    if (key === undefined || remaining === undefined || remaining === 0) {
+      left.push(finding);
+      continue;
+    }
+    available.set(key, remaining - 1);
+    reviewedAccepted += 1;
+    if (isOwnerAnchoredClass(finding.className)) {
+      acceptedOnAnchor[finding.className] += 1;
+    }
+  }
+  return { acceptedOnAnchor, findings: left, reviewedAccepted };
+}
+
 /** Why a named line cannot be accepted. The message names no path and no text, only what was missing. */
 export interface CandidateRefusal {
   readonly code: "NO_SUCH_FINDING" | "NOT_A_FILE";
@@ -127,16 +326,19 @@ export interface CandidateRefusal {
 }
 
 /**
- * Pure: the digest an acceptance of one named line records, or why there is nothing to accept. The line must hold an
- * owner-address finding the list does not already take out, so accepting the same line twice, or a line the scan
- * did not flag, or a hygiene or other-class finding, is refused; a file's own path is required, so the path list and
- * a withheld path never are.
+ * Pure: the digest an acceptance of one named line records, or why there is nothing to accept. The line must hold a
+ * private-term finding of the named class that the list does not already take out of THIS record's verification, so
+ * accepting the same line twice, a line the scan did not flag, a hygiene finding or a finding of another class is
+ * refused; a file's own path is required, so the path list and a withheld path never are.
  *
  * @param entries the list as it stands
  * @param files every file of the cut, with its bytes
  * @param findings the scan's findings, before the list is applied
  * @param path the file's tree-relative path
  * @param line the 1-based line
+ * @param className the class being accepted
+ * @param recordId the record the acceptance is for
+ * @param treeSha that record's tree
  * @returns the line's digest, or why nothing can be accepted there
  */
 export function acceptanceCandidate({
@@ -145,12 +347,18 @@ export function acceptanceCandidate({
   findings,
   path,
   line,
+  className,
+  recordId,
+  treeSha,
 }: {
   entries: readonly ReviewedResidueEntry[];
   files: readonly CutFile[];
   findings: readonly FreshCutFinding[];
   path: string;
   line: number;
+  className: PrivateTermClass;
+  recordId: string;
+  treeSha: string;
 }): Result<string, CandidateRefusal> {
   if (isPathListLocus({ path })) {
     return err({ code: "NOT_A_FILE", message: "that path is the path list's locus, which nothing is accepted from" });
@@ -159,79 +367,22 @@ export function acceptanceCandidate({
   if (file === undefined) {
     return err({ code: "NOT_A_FILE", message: "that path is not a file of this cut" });
   }
-  const left = subtractReviewedResidue({ entries, files, findings }).findings;
+  const left = subtractReviewedResidue({ entries, files, findings, recordId, treeSha }).findings;
   const open = left.some(
     (finding) =>
       finding.kind === "private-term" &&
-      finding.className === REVIEWED_RESIDUE_CLASS &&
+      finding.className === className &&
       finding.path === path &&
       finding.line === line,
   );
   if (!open) {
     return err({
       code: "NO_SUCH_FINDING",
-      message: "that line holds no owner-address finding the list does not already accept",
+      message: `that line holds no ${className} finding the list does not already accept`,
     });
   }
   return reviewedLineSha256({ bytes: file.bytes, line }).mapErr((): CandidateRefusal => ({
     code: "NO_SUCH_FINDING",
     message: "that line is past the file's last line",
   }));
-}
-
-/**
- * Pure: the findings left once every accepted one is taken out, and how many were. Only a private-term finding of
- * the accepted class, at a real file's own path, can be taken out: a hygiene finding, the path list and a withheld
- * path (`(file paths) line N`) never are. Each entry takes out at most ONE finding, so two identical accepted lines
- * need two entries, and order is kept.
- *
- * @param entries the accepted findings, the whole list
- * @param files every file of the cut, with its bytes
- * @param findings the verify's findings, in report order
- * @returns the findings left and the count taken out
- */
-export function subtractReviewedResidue({
-  entries,
-  files,
-  findings,
-}: {
-  entries: readonly ReviewedResidueEntry[];
-  files: readonly CutFile[];
-  findings: readonly FreshCutFinding[];
-}): { readonly findings: readonly FreshCutFinding[]; readonly reviewedAccepted: number } {
-  const available = new Map<string, number>();
-  for (const entry of entries) {
-    const key = residueKey(entry);
-    const prior = available.get(key);
-    available.set(key, prior === undefined ? 1 : prior + 1);
-  }
-  const bytesByPath = new Map(files.map((file) => [file.path, file.bytes]));
-  const left: FreshCutFinding[] = [];
-  let reviewedAccepted = 0;
-  for (const finding of findings) {
-    const bytes = bytesByPath.get(finding.path);
-    const subtractable =
-      finding.kind === "private-term" &&
-      finding.className === REVIEWED_RESIDUE_CLASS &&
-      bytes !== undefined &&
-      !isPathListLocus({ path: finding.path });
-    if (!subtractable) {
-      left.push(finding);
-      continue;
-    }
-    const digest = reviewedLineSha256({ bytes, line: finding.line });
-    if (digest.isErr()) {
-      left.push(finding);
-      continue;
-    }
-    const key = residueKey({ className: finding.className, lineSha256: digest.value, path: finding.path });
-    const remaining = available.get(key);
-    if (remaining === undefined || remaining === 0) {
-      left.push(finding);
-      continue;
-    }
-    available.set(key, remaining - 1);
-    reviewedAccepted += 1;
-  }
-  return { findings: left, reviewedAccepted };
 }
