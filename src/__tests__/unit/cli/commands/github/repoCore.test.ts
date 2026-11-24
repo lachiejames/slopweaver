@@ -15,7 +15,7 @@ describe("parseGithubRepoArgs", () => {
     });
     expect(unwrapErr(parseGithubRepoArgs({ rest: ["--repo", "broken"] }))).toEqual(["--repo owner/name is required"]);
     expect(unwrapErr(parseGithubRepoArgs({ rest: ["--repo", "o/r"] }))).toEqual([
-      "one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest or --enable-actions is " +
+      "one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest, --enable-actions or --push-fresh-cut is " +
         'required (pass --description "" to clear it)',
     ]);
   });
@@ -76,12 +76,29 @@ describe("parseGithubRepoArgs", () => {
     ]);
   });
 
+  it("parses a fresh-cut push carrying its record id", () => {
+    const recordId = "0b6f1c2e-3d4a-4b5c-8d6e-7f8091a2b3c4";
+    expect(unwrap(parseGithubRepoArgs({ rest: ["--repo", "o/r", "--push-fresh-cut", recordId] }))).toEqual({
+      args: {
+        approve: undefined,
+        freshCutRecordId: recordId,
+        home: undefined,
+        json: false,
+        owner: "o",
+        public: false,
+        repo: "r",
+        write: "push-fresh-cut",
+      },
+      kind: "approved",
+    });
+  });
+
   it("refuses --public off a create, two lifecycle writes at once, and --dry-run on one", () => {
     expect(unwrapErr(parseGithubRepoArgs({ rest: ["--repo", "o/r", "--set-public", "--public"] }))).toEqual([
       "--public only qualifies --create; --set-public makes an existing repository public",
     ]);
     expect(unwrapErr(parseGithubRepoArgs({ rest: ["--repo", "o/r", "--create", "--enable-actions"] }))).toEqual([
-      "name one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest or --enable-actions; " +
+      "name one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest, --enable-actions or --push-fresh-cut; " +
         "each is its own write",
     ]);
     expect(unwrapErr(parseGithubRepoArgs({ rest: ["--repo", "o/r", "--create", "--dry-run"] }))).toEqual([
@@ -138,11 +155,11 @@ describe("parseGithubRepoArgs", () => {
     expect(
       unwrapErr(parseGithubRepoArgs({ rest: ["--repo", "o/r", "--rename-to", "s", "--transfer-to", "p"] })),
     ).toEqual([
-      "name one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest or --enable-actions; " +
+      "name one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest, --enable-actions or --push-fresh-cut; " +
         "each is its own write",
     ]);
     expect(unwrapErr(parseGithubRepoArgs({ rest: ["--repo", "o/r", "--description", "x", "--archive"] }))).toEqual([
-      "name one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest or --enable-actions; " +
+      "name one of --description, --rename-to, --transfer-to, --archive, --create, --set-public, --apply-manifest, --enable-actions or --push-fresh-cut; " +
         "each is its own write",
     ]);
   });

@@ -190,8 +190,19 @@ export function parseGithubRepoArgs({ rest }: { rest: readonly string[] }): Resu
   const isPublic = values["public"] === true;
   const manifestValue = values["apply-manifest"];
   const manifestPath = typeof manifestValue === "string" ? manifestValue : undefined;
+  const recordValue = values["push-fresh-cut"];
+  const freshCutRecordId = typeof recordValue === "string" ? recordValue : undefined;
   return ok({
-    args: { ...common, approve, manifestPath, owner: repo.owner, public: isPublic, repo: repo.repo, write },
+    args: {
+      ...common,
+      approve,
+      freshCutRecordId,
+      manifestPath,
+      owner: repo.owner,
+      public: isPublic,
+      repo: repo.repo,
+      write,
+    },
     kind: "approved",
   });
 }

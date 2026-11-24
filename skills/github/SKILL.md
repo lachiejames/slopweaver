@@ -66,7 +66,7 @@ Each takes `--dry-run` first, then the same command without it. The
 
 `github repo --repo <owner/name> --description <text> --dry-run`, then without `--dry-run`, sets the description
 (`""` clears it); `set` means the read-back matched. `--rename-to <name>`, `--transfer-to <owner>`, `--archive`,
-`--create [--public]` (private by default), `--set-public`, `--apply-manifest <path>` and `--enable-actions` each
+`--create [--public]` (private by default), `--push-fresh-cut <record-id>`, `--set-public`, `--apply-manifest <path>` and `--enable-actions` each
 PREVIEW by default and send only with `--approve <ghrepo-digest>` from that preview, confirmed by a read-back — never a
 browser or `gh repo create`: [repository.md](reference/repository.md). Before a private repository goes public, `github exposure inventory --repo <owner/name>` counts every surface the switch publishes, read-only and counts only, and names each surface it could not count; `github exposure sweep` scans that text, findings to the state home only: [exposure.md](reference/exposure.md). Before a history re-cut, `github push-root record` binds the repository to its fresh root so every push of an old-history commit is refused, and `github repoint-plan` dry-runs every local place the switch repoints: [repository-recut.md](reference/repository-recut.md).
 `github tag create` and `github branch delete --keep-as-tag <t> --expect-tip <sha>` are the ref verbs, dry-run first, never a UI click or `git push --delete`:

@@ -12,6 +12,7 @@ import { err, ok } from "../../../lib/result.js";
 import type { GithubRepoLifecycleApi, RepoLifecycleState } from "../../../outbound/github/repoLifecycle.js";
 import { GithubVerbErrors, type GithubVerbResult } from "./errors.js";
 import { type ApprovedRepoWrite, type ApprovedWriteOutcome, upstreamRefusedOf } from "./repoApprovedWrite.js";
+import { refusePublicUnlessCutClear } from "./repoCutStanding.js";
 
 /**
  * What GitHub documents making a private repository public does beyond the code itself, as an approval accepts it.
@@ -59,31 +60,50 @@ async function publishAndConfirm({
 /**
  * Read the repository and build the previewed visibility change.
  *
+ * A repository the push-root register binds is a re-cut one, and it is refused here unless the latest fresh-cut
+ * verify of its cut reads clear (`./repoCutStanding.ts`); the check runs again on the approving run's fresh read,
+ * and once more at the send, after the door admitted it.
+ *
  * @param api the lifecycle client
  * @param owner the owner login typed
  * @param repo the repository name typed
- * @returns the write the shared shell previews or sends, or the read's failure
+ * @param home the state home holding the push-root register and the fresh-cut records
+ * @returns the write the shared shell previews or sends, or the fact that refuses it
  */
 export async function planRepoSetPublic({
   api,
   owner,
   repo,
+  home,
 }: {
   api: GithubRepoLifecycleApi;
   owner: string;
   repo: string;
+  home: string;
 }): Promise<GithubVerbResult<ApprovedRepoWrite>> {
   const read = await api.read({ owner, repo });
   if (read.isErr()) {
     return err(upstreamRefusedOf({ error: read.error, operation: `read ${owner}/${repo}` }));
   }
   const current = read.value;
+  const repositories = [`${owner}/${repo}`, current.fullName];
+  const cut = refusePublicUnlessCutClear({ home, repositories });
+  if (cut.isErr()) {
+    return err(cut.error);
+  }
   return ok({
     alreadyDone: isPublic({ state: current }),
     change: `make ${current.fullName} (id ${String(current.id)}, ${current.visibility}) public`,
     consequences: SET_PUBLIC_CONSEQUENCES,
     kind: "set-public",
-    perform: () => publishAndConfirm({ api, current }),
+    // Asked again at the send, so a verification written while the door admitted the write is still seen.
+    perform: async () => {
+      const atSend = refusePublicUnlessCutClear({ home, repositories });
+      if (atSend.isErr()) {
+        return err(atSend.error);
+      }
+      return publishAndConfirm({ api, current });
+    },
     previewCommand: `slopweaver github repo --repo ${owner}/${repo} --set-public`,
     view: {
       action: "set-public",

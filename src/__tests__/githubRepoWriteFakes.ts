@@ -6,6 +6,7 @@
 import { err, errAsync, ok, okAsync } from "neverthrow";
 
 import type { DoorLedgerPort } from "../admit/doorLedgerPort.js";
+import type { FreshCutPushGit } from "../cli/commands/github/repoPushFreshCutRun.js";
 import type { GithubRepoDeps } from "../cli/commands/github/repoRun.js";
 import type { IngestError } from "../lib/ingestError.js";
 import type { ResultAsync } from "../lib/result.js";
@@ -146,6 +147,16 @@ export function lifecycleFake({ world }: { world: LifecycleWorld }): GithubRepoL
   };
 }
 
+/** Git edges that refuse to run, so a write other than a fresh-cut push reaching Git fails loudly. */
+const GIT_REFUSED: FreshCutPushGit = {
+  readGit: () => {
+    throw new Error("only a fresh-cut push may read Git");
+  },
+  writeGit: () => {
+    throw new Error("only a fresh-cut push may push");
+  },
+};
+
 /**
  * `github repo` deps for a create, visibility, settings or Actions run: the worlds' fakes, and every other client
  * refusing to be built, so a run reaching the wrong client fails loudly.
@@ -166,6 +177,7 @@ export function approvedRepoDeps({
   actions,
   manifest,
   files,
+  freshCutGit = GIT_REFUSED,
   out,
   diagnostic,
 }: {
@@ -176,11 +188,14 @@ export function approvedRepoDeps({
   manifest?: ManifestWorld;
   /** The apply artifacts a run may read, by path; any other path reads as missing. */
   files?: Readonly<Record<string, string>>;
+  /** The Git edges a fresh-cut push reads and pushes through, when the case needs them. */
+  freshCutGit?: FreshCutPushGit;
   out: string[];
   diagnostic: string[];
 }): GithubRepoDeps {
   return {
     doorLedger: door,
+    freshCutGit,
     home: () => home,
     makeActionsPolicyApi: () => actionsPolicyFake({ world: actions! }),
     makeAdministrationApi: () => {

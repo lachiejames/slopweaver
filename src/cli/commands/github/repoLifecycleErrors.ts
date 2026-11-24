@@ -119,6 +119,30 @@ export const githubRepoLifecycleErrorFactories = {
       "a repository there",
     subject: owner,
   }),
+  repoCutStandingUnreadable: ({ subject, why }: { subject: string; why: string }): GithubFactRefusedError => ({
+    code: "FACT_REFUSED",
+    message: `what ${subject}'s re-cut records say could not be read, so nothing is sent: ${why}`,
+    subject,
+  }),
+  repoPublicCutUnverified: ({ repository, why }: { repository: string; why: string }): GithubFactRefusedError => ({
+    code: "FACT_REFUSED",
+    message:
+      `${repository} stays private: ${why}. A re-cut repository goes public only once the latest fresh-cut ` +
+      "verify of its cut reads clear",
+    subject: repository,
+  }),
+  repoPushFreshCutRefused: ({ subject, why }: { subject: string; why: string }): GithubFactRefusedError => ({
+    code: "FACT_REFUSED",
+    message: `the fresh cut's root is not pushed to ${subject}: ${why}`,
+    subject,
+  }),
+  repoPushFreshCutUnconfirmed: ({ subject, refs }: { subject: string; refs: string }): GithubWriteUnconfirmedError => ({
+    code: "WRITE_UNCONFIRMED",
+    message:
+      `git accepted pushing the fresh cut's root to ${subject}, but its refs read back as ${refs}, not main at the ` +
+      "root alone; read the repository before anything else, and do not push again",
+    subject,
+  }),
   repoVisibilityUnconfirmed: ({
     fullName,
     cause,
