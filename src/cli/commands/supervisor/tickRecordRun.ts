@@ -51,8 +51,8 @@ import { planRegisterPort } from "../../../plans/port.js";
 import type { ApprovedDraftRead } from "../../../supervisor/approvedDraftGate.js";
 import {
   productionClaudeCodeVersionDeps,
+  readChairAutoCompactions,
   readChairClaudeCodeVersions,
-  readChairContextFill,
   readClaudeCodeVersions,
   readLiveChairCanon,
   readLiveChairCanonSince,
@@ -390,7 +390,7 @@ export function productionSupervisorTickRecordDeps(): SupervisorTickRecordDeps {
       perSession: readChairClaudeCodeVersions({ claudeHome: claudeHomeDir(), read: chair }),
     }),
     readChairCanon: readLiveChairCanon,
-    readChairContext: ({ chair }) => readChairContextFill({ claudeHome: claudeHomeDir(), read: chair }),
+    readChairAutoCompactions: ({ chair }) => readChairAutoCompactions({ claudeHome: claudeHomeDir(), read: chair }),
     readCodexChairCanon: ({ bootedIso }) => readLiveChairCanonSince({ bootedIso, cwd: process.cwd() }),
     readChairPlans: liveChairBootPlanRead({ port }),
     readPlanRegister: ({ home }) => port.read({ home }),

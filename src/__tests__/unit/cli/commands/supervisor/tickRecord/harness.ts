@@ -88,14 +88,11 @@ const CADENCE_READS = {
   readCodexChairCanon: () => {
     throw new Error("a not-read tick must never read a Codex chair's canon");
   },
-  // Every chair session a tenth into a 300k window, so a case that never names context fill prints none.
-  readChairContext: ({ chair }) =>
+  // Every chair session one auto-compaction in, below the trial, so a case that never names it hands off on none.
+  readChairAutoCompactions: ({ chair }) =>
     new Map(
       chair.kind === "resolved"
-        ? chair.sessions.map(({ sessionId }) => [
-            sessionId,
-            { depthTokens: 30_000, kind: "measured", windowTokens: 300_000 } as const,
-          ])
+        ? chair.sessions.map(({ sessionId }) => [sessionId, { autoCompactions: 1, kind: "below-trial" } as const])
         : [],
     ),
   readPlanRegister: () => Promise.resolve(ok(CLAUDE_FLEET)),

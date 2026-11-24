@@ -12,9 +12,9 @@ import {
 } from "../../../../../../cli/commands/supervisor/tickRecordRun.js";
 import { EXIT_OK } from "../../../../../../cli/exitCodes.js";
 import {
+  CODEX_CHAIR_AUTO_COMPACTIONS_UNMEASURED,
   CODEX_CHAIR_BUDGET_UNMEASURED,
   CODEX_CHAIR_CLI_UNMEASURED,
-  CODEX_CHAIR_CONTEXT_UNMEASURED,
 } from "../../../../../../supervisor/codexChairCadence.js";
 import { UNRESOLVED_CHAIR_RECORD } from "../../../../../../supervisor/recordedChairHost.js";
 import { allUnavailable, capture, RECONCILE } from "./harness.js";
@@ -25,7 +25,7 @@ const THREAD = "019a1a98-9b15-7482-8000-000000000001";
 const UNMEASURED = [
   `supervisor tick-record: chair cadence: Codex thread ${THREAD}: ${CODEX_CHAIR_BUDGET_UNMEASURED}`,
   `supervisor tick-record: chair cadence: Codex thread ${THREAD}: ${CODEX_CHAIR_CLI_UNMEASURED}`,
-  `supervisor tick-record: chair cadence: Codex thread ${THREAD}: ${CODEX_CHAIR_CONTEXT_UNMEASURED}`,
+  `supervisor tick-record: chair cadence: Codex thread ${THREAD}: ${CODEX_CHAIR_AUTO_COMPACTIONS_UNMEASURED}`,
 ];
 
 /** A draft whose gauge routes a Fable spawn to plan-three. */

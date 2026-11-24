@@ -238,6 +238,7 @@ function nextChair({ chair, nowMs, plans }: { chair: string; nowMs: number; plan
     nowIso: new Date(nowMs).toISOString(),
     sessions: [
       {
+        autoCompactions: { autoCompactions: 0, kind: "below-trial" },
         canon: { bootedIso: new Date(nowMs - HOUR_MS).toISOString(), changed: [], kind: "measured" },
         claudeCode: CURRENT,
         pid: 1,

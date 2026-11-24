@@ -1,25 +1,18 @@
 /**
- * The cadence's version reads over injected seams and a throwaway `~/.claude` — plain functions, no mock.
+ * The cadence's version and auto-compaction reads over injected seams and a throwaway `~/.claude` — plain
+ * functions, no mock.
+ *
+ * deleted-with-code: readChairContextFill
  */
-import {
-  chmodSync,
-  lutimesSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  statSync,
-  symlinkSync,
-  utimesSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   listInstalledExecutables,
+  readChairAutoCompactions,
   readChairClaudeCodeVersions,
-  readChairContextFill,
   readClaudeCodeVersions,
 } from "../../../supervisor/chairCadenceRead.js";
 
@@ -114,197 +107,140 @@ describe("readChairClaudeCodeVersions", () => {
   });
 });
 
-describe("readChairContextFill", () => {
+describe("readChairAutoCompactions", () => {
   let claudeHome = "";
-  /** A boot long before any run of this test writes its settings file. */
-  const PAST_BOOT_MS = Date.UTC(2021, 0, 1);
+  const verdict = { atIso: "", kind: "on-fable", model: "claude-fable-5-2" } as const;
   const chair = {
     kind: "resolved",
     sessions: [
-      { pid: 1, sessionId: "s1", verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } },
-      { pid: 2, sessionId: "s2", verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } },
+      { pid: 1, sessionId: "s1", verdict },
+      { pid: 2, sessionId: "s2", verdict },
     ],
     workspaceCwd: "/wt/chair",
     workspaceId: "WS",
   } as const;
 
+  /**
+   * One boundary record in the shape Claude Code writes, with synthetic values.
+   *
+   * @param trigger the record's `compactMetadata.trigger`
+   * @returns the JSONL line, newline-terminated
+   */
+  const boundary = ({ trigger }: { trigger: string }): string =>
+    `${JSON.stringify({
+      compactMetadata: { durationMs: 1000, postTokens: 100, preTokens: 1000, trigger },
+      subtype: "compact_boundary",
+      type: "system",
+      uuid: `b-${trigger}`,
+    })}\n`;
+  const USER = `${JSON.stringify({ message: { content: "hi", role: "user" }, type: "user" })}\n`;
+
+  /**
+   * Write one session's transcript into a project directory.
+   *
+   * @param dir the project directory under `projects`
+   * @param sessionId the transcript's session id
+   * @param text the whole file
+   */
+  const transcript = ({ dir, sessionId, text }: { dir: string; sessionId: string; text: string }): void => {
+    mkdirSync(join(claudeHome, "projects", dir), { recursive: true });
+    writeFileSync(join(claudeHome, "projects", dir, `${sessionId}.jsonl`), text);
+  };
+
   beforeEach(() => {
-    claudeHome = mkdtempSync(join(tmpdir(), "context-"));
-    mkdirSync(join(claudeHome, "projects", "chair"), { recursive: true });
-    const turn = {
-      message: {
-        id: "msg_1",
-        model: "claude-fable-5-1",
-        usage: {
-          cache_creation_input_tokens: 10_000,
-          cache_read_input_tokens: 150_000,
-          input_tokens: 2_000,
-          output_tokens: 500,
-        },
-      },
-      type: "assistant",
-    };
-    // A transcript whose ONLY line is the turn: read from byte 0, it must not be dropped as a fragment.
-    writeFileSync(join(claudeHome, "projects", "chair", "s1.jsonl"), `${JSON.stringify(turn)}\n`);
-    mkdirSync(join(claudeHome, "sessions"));
+    claudeHome = mkdtempSync(join(tmpdir(), "compactions-"));
+    mkdirSync(join(claudeHome, "projects"));
   });
 
   afterEach(() => {
     rmSync(claudeHome, { force: true, recursive: true });
   });
 
-  const settingsPath = (): string => join(claudeHome, "settings.json");
+  it("counts only automatic boundaries, and says which session had no transcript", () => {
+    transcript({
+      dir: "chair",
+      sessionId: "s1",
+      text: [USER, boundary({ trigger: "auto" }), boundary({ trigger: "manual" }), boundary({ trigger: "auto" })].join(
+        "",
+      ),
+    });
 
-  /**
-   * Write both sessions' registry files.
-   *
-   * @param bootMs the boot instant each records, epoch milliseconds
-   */
-  const writeRegistry = ({ bootMs }: { bootMs: number }): void => {
-    for (const { pid, sessionId } of chair.sessions) {
-      writeFileSync(
-        join(claudeHome, "sessions", `${String(pid)}.json`),
-        JSON.stringify({ cwd: "/wt/chair", pid, sessionId, startedAt: bootMs }),
-      );
-    }
-  };
-
-  /**
-   * Write the settings file, then the registry dating both sessions' boot a second after it last changed — the
-   * file's own ctime is the real clock, so a boot fixed in advance could not be ordered against it.
-   */
-  const settingsThenBoot = (): void => {
-    writeFileSync(settingsPath(), JSON.stringify({ autoCompactWindow: 300_000 }));
-    const { ctimeMs, mtimeMs } = statSync(settingsPath());
-    writeRegistry({ bootMs: Math.max(ctimeMs, mtimeMs) + 1000 });
-  };
-
-  const CHANGED_SINCE_BOOT =
-    "Claude Code's settings changed after this session booted, so the window it runs may not be the one the file now names";
-
-  it("reads each session's newest depth against the settings' window, and says which had no transcript", () => {
-    settingsThenBoot();
-
-    expect([...readChairContextFill({ claudeHome, read: chair })]).toStrictEqual([
-      ["s1", { depthTokens: 162_000, kind: "measured", windowTokens: 300_000 }],
-      ["s2", { kind: "unmeasured", why: "no transcript file exists for this session id yet" }],
+    expect([...readChairAutoCompactions({ claudeHome, read: chair })]).toStrictEqual([
+      ["s1", { autoCompactions: 2, kind: "below-trial" }],
+      [
+        "s2",
+        {
+          kind: "unmeasured",
+          why: "no transcript named s2.jsonl exists under any project directory — the session may never have run here, or it may have aged out of retention",
+        },
+      ],
     ]);
   });
 
-  it("reads a session UNMEASURED when its settings changed after it booted — a running chair keeps its boot window", () => {
-    writeRegistry({ bootMs: PAST_BOOT_MS });
-    writeFileSync(settingsPath(), JSON.stringify({ autoCompactWindow: 100_000 }));
+  it("reaches the trial on a fifth automatic boundary", () => {
+    transcript({ dir: "chair", sessionId: "s1", text: boundary({ trigger: "auto" }).repeat(6) });
 
-    expect([...readChairContextFill({ claudeHome, read: chair })]).toStrictEqual([
-      ["s1", { kind: "unmeasured", why: CHANGED_SINCE_BOOT }],
-      ["s2", { kind: "unmeasured", why: CHANGED_SINCE_BOOT }],
-    ]);
-  });
-
-  it("is not fooled by an mtime put back before the boot — the change still moved ctime", () => {
-    writeRegistry({ bootMs: PAST_BOOT_MS });
-    writeFileSync(settingsPath(), JSON.stringify({ autoCompactWindow: 100_000 }));
-    const backdated = new Date(PAST_BOOT_MS - 60_000);
-    utimesSync(settingsPath(), backdated, backdated);
-
-    expect(readChairContextFill({ claudeHome, read: chair }).get("s1")).toStrictEqual({
-      kind: "unmeasured",
-      why: CHANGED_SINCE_BOOT,
+    expect(readChairAutoCompactions({ claudeHome, read: chair }).get("s1")).toStrictEqual({
+      autoCompactionsAtLeast: 5,
+      kind: "trial-reached",
     });
   });
 
-  it("reads a symlinked settings file re-pointed after boot UNMEASURED, though its new target is older", () => {
-    const older = join(claudeHome, "settings.small.json");
-    writeFileSync(older, JSON.stringify({ autoCompactWindow: 100_000 }));
-    const { ctimeMs, mtimeMs } = statSync(older);
-    const bootMs = Math.max(ctimeMs, mtimeMs) + 1000;
-    writeRegistry({ bootMs });
-    symlinkSync(older, settingsPath());
-    // Only the LINK moved after the boot: the target's own times still predate it.
-    const relinked = new Date(bootMs + 60_000);
-    lutimesSync(settingsPath(), relinked, relinked);
+  it("walks a session two processes resume once, as one entry", () => {
+    transcript({ dir: "chair", sessionId: "s1", text: boundary({ trigger: "auto" }).repeat(3) });
+    const resumed = {
+      ...chair,
+      sessions: [
+        { pid: 1, sessionId: "s1", verdict },
+        { pid: 2, sessionId: "s1", verdict },
+      ],
+    };
 
-    expect(readChairContextFill({ claudeHome, read: chair }).get("s1")).toStrictEqual({
+    expect([...readChairAutoCompactions({ claudeHome, read: resumed })]).toStrictEqual([
+      ["s1", { autoCompactions: 3, kind: "below-trial" }],
+    ]);
+  });
+
+  it("reads a session UNMEASURED when two project directories each hold its transcript", () => {
+    transcript({ dir: "chair", sessionId: "s1", text: boundary({ trigger: "auto" }) });
+    transcript({ dir: "other", sessionId: "s1", text: boundary({ trigger: "auto" }) });
+    const one = { ...chair, sessions: [{ pid: 1, sessionId: "s1", verdict }] };
+
+    const reading = readChairAutoCompactions({ claudeHome, read: one }).get("s1")!;
+
+    expect(reading.kind).toBe("unmeasured");
+    expect((reading as { why: string }).why).toContain("2 transcripts are named s1.jsonl");
+  });
+
+  it("reads a session UNMEASURED when its transcript path is not a file", () => {
+    const path = join(claudeHome, "projects", "chair", "s1.jsonl");
+    mkdirSync(path, { recursive: true });
+    const one = { ...chair, sessions: [{ pid: 1, sessionId: "s1", verdict }] };
+
+    expect(readChairAutoCompactions({ claudeHome, read: one }).get("s1")).toStrictEqual({
       kind: "unmeasured",
-      why: CHANGED_SINCE_BOOT,
+      why: `${path} could not be read (Error: not a regular file)`,
     });
   });
 
-  it("never reads a settings path that is not a regular file — a FIFO there would block the tick", () => {
-    // A directory takes the same not-a-regular-file branch a FIFO does, with no process spawned to make one.
-    mkdirSync(settingsPath());
-    writeRegistry({ bootMs: PAST_BOOT_MS });
-    const why = "Claude Code's settings file is not a regular file, so it is not read";
+  it("reads a count below the trial UNMEASURED when its transcript could not be read whole", () => {
+    // Bytes that are not UTF-8 make the walk report a problem: a count off a partial read cannot vouch for itself.
+    mkdirSync(join(claudeHome, "projects", "chair"), { recursive: true });
+    writeFileSync(
+      join(claudeHome, "projects", "chair", "s1.jsonl"),
+      Buffer.concat([Buffer.from(boundary({ trigger: "auto" })), Buffer.from([0xff, 0xfe, 0x0a])]),
+    );
+    const one = { ...chair, sessions: [{ pid: 1, sessionId: "s1", verdict }] };
 
-    expect([...readChairContextFill({ claudeHome, read: chair })]).toStrictEqual([
-      ["s1", { kind: "unmeasured", why }],
-      ["s2", { kind: "unmeasured", why }],
-    ]);
-  });
+    const reading = readChairAutoCompactions({ claudeHome, read: one }).get("s1")!;
 
-  it("never reads a settings file on another filesystem than the registry — main never reads that mount", () => {
-    // The two sides swapped: the settings file stays put and the registry moves to devfs, another filesystem on the
-    // Linux runner and on macOS alike (whose APFS volumes report one device id), holding no `*.json` to scan.
-    writeFileSync(settingsPath(), JSON.stringify({ autoCompactWindow: 300_000 }));
-    rmSync(join(claudeHome, "sessions"), { recursive: true });
-    symlinkSync("/dev", join(claudeHome, "sessions"));
-    expect(statSync(join(claudeHome, "sessions")).dev).not.toBe(statSync(settingsPath()).dev);
-    const why = "Claude Code's settings file is on another filesystem than its session registry, so it is not read";
-
-    expect([...readChairContextFill({ claudeHome, read: chair })]).toStrictEqual([
-      ["s1", { kind: "unmeasured", why }],
-      ["s2", { kind: "unmeasured", why }],
-    ]);
-  });
-
-  it.each([
-    { name: "the fresh process first", pids: [1, 2] },
-    { name: "the stale process first", pids: [2, 1] },
-  ])("keeps one process's measurement of a session two processes resume, $name", ({ pids }) => {
-    writeFileSync(settingsPath(), JSON.stringify({ autoCompactWindow: 300_000 }));
-    const { ctimeMs, mtimeMs } = statSync(settingsPath());
-    // Process 1 booted after the settings last changed; process 2 before, so only process 1's window is known.
-    const boots = new Map([
-      [1, Math.max(ctimeMs, mtimeMs) + 1000],
-      [2, PAST_BOOT_MS],
-    ]);
-    for (const [pid, startedAt] of boots) {
-      writeFileSync(
-        join(claudeHome, "sessions", `${String(pid)}.json`),
-        JSON.stringify({ cwd: "/wt/chair", pid, sessionId: "s1", startedAt }),
-      );
-    }
-    const verdict = { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } as const;
-    const resumed = { ...chair, sessions: pids.map((pid) => ({ pid, sessionId: "s1", verdict })) };
-
-    expect([...readChairContextFill({ claudeHome, read: resumed })]).toStrictEqual([
-      ["s1", { depthTokens: 162_000, kind: "measured", windowTokens: 300_000 }],
-    ]);
-  });
-
-  it("reads a session UNMEASURED when the registry holds no file for its pid, so its boot is unknown", () => {
-    settingsThenBoot();
-    rmSync(join(claudeHome, "sessions", "1.json"));
-
-    expect(readChairContextFill({ claudeHome, read: chair }).get("s1")).toStrictEqual({
-      kind: "unmeasured",
-      why: "the Claude session registry holds no file for its pid, so its boot is unknown",
-    });
-  });
-
-  it("reads every session UNMEASURED when the settings file is absent", () => {
-    const settings = join(claudeHome, "settings.json");
-    const why = `Claude Code's settings file could not be read (Error: ENOENT: no such file or directory, open '${settings}')`;
-
-    expect([...readChairContextFill({ claudeHome, read: chair })]).toStrictEqual([
-      ["s1", { kind: "unmeasured", why }],
-      ["s2", { kind: "unmeasured", why }],
-    ]);
+    expect(reading.kind).toBe("unmeasured");
+    expect((reading as { why: string }).why).toContain("its transcript could not be read whole — invalid UTF-8");
   });
 
   it("reads nothing for a chair that could not be read", () => {
     expect(
-      readChairContextFill({ claudeHome, read: { cause: "no-chair", kind: "unresolved", why: "no pin" } }).size,
+      readChairAutoCompactions({ claudeHome, read: { cause: "no-chair", kind: "unresolved", why: "no pin" } }).size,
     ).toBe(0);
   });
 });

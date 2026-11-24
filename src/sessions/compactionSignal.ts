@@ -30,10 +30,11 @@
  *
  * Nothing here blocks anything, so there is no `EscapeHatch` row and no four-line refusal — `escape-hatch`
  * governs a gate saying no to something that would otherwise have worked. And it is deliberately not a
- * monitor: `../monitor/registry.ts` requires every card to name an action only the OWNER can take, and
- * moving the window is a `~/.claude/settings.json` key change the owner has already blessed a session making. The
- * number that change answers to is the drift one: 53% of the targeted tool calls after a boundary re-read
- * something the session had already read (seven days, `docs/hooks/session-guards.md` § The auto-compact window).
+ * monitor: `../monitor/registry.ts` requires every card to name an action only the OWNER can take, and a
+ * regression asks for a change to the RECOMMENDED window — a canon change, since the window itself is each user's
+ * own setting, which Slopweaver reads and never writes. The number that change answers to is the drift one: the
+ * share of targeted tool calls after a boundary that re-read something the session had already read
+ * (`docs/hooks/session-guards.md` § The auto-compact window).
  *
  * Pure: two reports in, a verdict out.
  */

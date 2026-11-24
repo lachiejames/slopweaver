@@ -32,6 +32,12 @@ export function reasonLine({ reason }: { reason: ChairCadenceReason }): string {
   if (reason.kind === "canon-stale") {
     return canonStaleLine({ reason });
   }
+  if (reason.kind === "auto-compacted") {
+    return (
+      `session ${reason.sessionId} has been auto-compacted at least ${String(reason.autoCompactionsAtLeast)} times — ` +
+      `the ${String(reason.trialCount)}-auto-compaction trial seats a successor now`
+    );
+  }
   return `this chair runs Claude Code ${reason.running}; a fresh boot runs ${reason.boots}`;
 }
 

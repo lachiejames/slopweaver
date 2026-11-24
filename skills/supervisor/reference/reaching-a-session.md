@@ -167,7 +167,7 @@ booted on. `cmux processes --workspace <ws>` still shows the tree when you want 
 
 ## Reporting TO the chair: resolve before each send, and an unanswered report is unconfirmed
 
-The chair hands over at its 500k warn or its plan-and-version cadence (SKILL.md § 6a), so the chair a reporter correctly resolved can stop
+The chair hands over at its fifth auto-compaction or its plan-and-version cadence (SKILL.md § 6a), so the chair a reporter correctly resolved can stop
 reading inside one report. MEASURED over 17 successive chairs: 19 messages landed
 on a chair after its successor took the pin and got no reply, 4 of them real reports, and `SendMessage`
 returned success for every one. Two rules for the SENDER, and one mechanism for the chair:

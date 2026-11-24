@@ -26,7 +26,7 @@ only when it is inert by default, fails open and is bounded by the harness's own
 - [One mirror per plugin root](./hooks/mirrors-and-failure-policy.md)
   - [The three that fail closed, and why the rest do not](./hooks/mirrors-and-failure-policy.md#the-three-that-fail-closed-and-why-the-rest-do-not)
 - [The session depth advisory](./hooks/session-guards.md)
-  - [The auto-compact window is a user setting, not a hook](./hooks/session-guards.md#the-auto-compact-window-is-a-user-setting-not-a-hook)
+  - [The auto-compact window is each user's own setting, and Slopweaver never writes it](./hooks/session-guards.md#the-auto-compact-window-is-each-users-own-setting-and-slopweaver-never-writes-it)
   - [The cmux-send-into-the-supervisor guard](./hooks/session-guards.md#the-cmux-send-into-the-supervisor-guard)
   - [The home-git guard](./hooks/session-guards.md#the-home-git-guard)
   - [The call-state guard](./hooks/session-guards.md#the-call-state-guard)
