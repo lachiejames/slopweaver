@@ -61,7 +61,10 @@
 #
 # The wait is bounded by --lock-timeout-seconds, 1200 when not given: one whole root compile at its 1140 s timeout plus
 # its 10 s worst reap after TERM, with room over. A lap holds the lease far longer than that, so a seat's compile
-# started during a lap ends lock-timed-out (75) rather than run beside it. The wait says once, on stderr, who holds the
+# started during a lap ends lock-timed-out (75) rather than run beside it. The bound counts from the first round that
+# cannot take the lease and has to go round again, never from the owner's start, so the bound cannot run out on an
+# owner's first round, and an owner reports a wait of 0 when it never waited. A holder that arrives after an
+# absent or in-flux read can still be unread when the bound runs out. The wait says once, on stderr, who holds the
 # lease, and TERM, INT and HUP cancel it with their usual outcomes. Residue, stated: the wait is a poll, not a queue,
 # so two owners waiting on one holder are served in no particular order; the lease is per OS user, not per machine;
 # `ps lstart` resolves to the second, so a pid handed out again within one second of its holder's death reads live;
@@ -376,9 +379,12 @@ read_occupant() {
 }
 
 # Take the lease, inherit an ancestor's, or end the owner: cancelled, lock-timed-out, or owner-error. Every round is
-# one install attempt; a stale holder cleared, or a path in motion, goes round again at once.
+# one install attempt; a stale holder cleared, or a path in motion, goes round again at once. The wait clock starts
+# on the first round that has to go round again, never before: SECONDS counts whole wall-clock seconds, so a clock
+# started ahead of this owner's own setup (two `node -e` starts and its `ps` reads) would count a second boundary
+# crossed during that setup as a second waited, and under a one-second bound give up before reading who holds it.
 acquire_lease() {
-  local started=$SECONDS announced="" token placed holder
+  local waiting_since="" waited=0 announced="" token placed holder
   lease_directory
   ps_row "$$"
   own_start=$ps_start
@@ -393,7 +399,7 @@ acquire_lease() {
       outcome=$cancel
       finish
     fi
-    if [ $((SECONDS - started)) -ge "$lock_wait_s" ]; then
+    if [ -n "$waiting_since" ] && [ $((SECONDS - waiting_since)) -ge "$lock_wait_s" ]; then
       echo "tsc-owner: the machine's TypeScript compile lease at $lease was still held by pid $occupant_pid after ${lock_wait_s}s, so nothing ran" >&2
       outcome=lock-timed-out
       finish
@@ -411,7 +417,8 @@ acquire_lease() {
       lease_candidate=""
       [ -e "$lease/$token" ] || owner_error "the compile lease at $lease was installed without this owner's record in it"
       lease_token=$token
-      echo "TSC_OWNER_LOCK mode=acquired waitedSeconds=$((SECONDS - started)) holderPid=$$" >&2
+      [ -z "$waiting_since" ] || waited=$((SECONDS - waiting_since))
+      echo "TSC_OWNER_LOCK mode=acquired waitedSeconds=$waited holderPid=$$" >&2
       return
       ;;
     occupied) ;;
@@ -420,6 +427,7 @@ acquire_lease() {
     read_occupant
     case "$occupant_kind" in
     absent | in-flux)
+      [ -n "$waiting_since" ] || waiting_since=$SECONDS
       sleep 0.05
       continue
       ;;
@@ -432,15 +440,19 @@ acquire_lease() {
         rm -f -- "$lease/$occupant_token" 2>/dev/null
       fi
       rmdir -- "$lease" 2>/dev/null
+      # The clock starts here too, so a stream of stale records cannot keep this loop going past its bound.
+      [ -n "$waiting_since" ] || waiting_since=$SECONDS
       continue
     fi
     if is_ancestor "$occupant_pid"; then
       rm -rf -- "$lease_candidate"
       lease_candidate=""
       inherited_record="$lease/$occupant_token"
-      echo "TSC_OWNER_LOCK mode=inherited waitedSeconds=$((SECONDS - started)) holderPid=$occupant_pid" >&2
+      [ -z "$waiting_since" ] || waited=$((SECONDS - waiting_since))
+      echo "TSC_OWNER_LOCK mode=inherited waitedSeconds=$waited holderPid=$occupant_pid" >&2
       return
     fi
+    [ -n "$waiting_since" ] || waiting_since=$SECONDS
     if [ -z "$announced" ]; then
       announced=1
       holder=$(ps_field args= "$occupant_pid" | cut -c1-200)

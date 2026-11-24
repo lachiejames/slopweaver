@@ -8,9 +8,18 @@
  * other's records, so the record shape is the contract under test.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir, userInfo } from "node:os";
-import { basename, join } from "node:path";
+import { basename, delimiter, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -79,13 +88,30 @@ function record({ pid, start }: { pid: number; start: string }): string {
   return JSON.stringify({ acquiredAtIso: "2026-11-20T03:00:00.000Z", pid, start });
 }
 
-/** A live process that is no ancestor of any owner a case starts, and its real start stamp. */
+/**
+ * A live process that is no ancestor of any owner a case starts, and its real start stamp. It sleeps ten times the
+ * lane's 60 s case budget, so it outlives any case that holds it; `afterEach` kills it.
+ */
 function liveStranger(): { readonly pid: number; readonly start: string } {
-  const child = spawn("sleep", ["60"], { detached: true, stdio: "ignore" });
+  const child = spawn("sleep", ["600"], { detached: true, stdio: "ignore" });
   child.unref();
   const pid = child.pid!;
   strays.push(pid);
   return { pid, start: processStartOf({ pid }).start! };
+}
+
+/**
+ * An environment overlay putting a `node` first on PATH that sleeps 1.1 s before it runs the real one. The owner's
+ * setup starts `node -e` twice before its first look at the lease, so under this shim that setup crosses a second
+ * boundary on every run, as it does by chance under a loaded machine.
+ */
+function slowNodeEnv(): { readonly PATH: string; readonly TSC_OWNER_TEST_REAL_NODE: string } {
+  const bin = mkdtempSync(join(tmpdir(), "sw-slow-node-"));
+  dirs.push(bin);
+  const shim = join(bin, "node");
+  writeFileSync(shim, '#!/bin/sh\nsleep 1.1\nexec "$TSC_OWNER_TEST_REAL_NODE" "$@"\n');
+  chmodSync(shim, 0o755);
+  return { PATH: `${bin}${delimiter}${process.env["PATH"]!}`, TSC_OWNER_TEST_REAL_NODE: process.execPath };
 }
 
 /** The owner's argv for a case: a short compile bound, a lease wait, and the command. */
@@ -279,6 +305,47 @@ describe("tsc-owner's compile lease", () => {
     expect(existsSync(marker)).toBe(false);
     expect(readdirSync(box.lease)).toEqual([token]);
     expect(readdirSync(box.locks)).toEqual([basename(box.lease)]);
+  });
+
+  it("counts no wait for its own setup: a slow start still reads 0 waited and reads the holder before giving up", () => {
+    const slow = slowNodeEnv();
+
+    const fresh = sandbox();
+    const acquired = runOwner({ args: ownerArgs({ command: ["true"] }), env: { ...fresh.env, ...slow } });
+    expect(acquired.status).toBe(0);
+    const acquiredLocks = records({ kind: "LOCK", stderr: acquired.stderr });
+    expect(acquiredLocks.length).toBe(1);
+    expect(acquiredLocks[0]!["mode"]).toBe("acquired");
+    expect(acquiredLocks[0]!["waitedSeconds"]).toBe("0");
+
+    const ancestral = sandbox();
+    const ancestorToken = seat({
+      body: record({ pid: process.pid, start: processStartOf({ pid: process.pid }).start! }),
+      lease: ancestral.lease,
+      locks: ancestral.locks,
+    });
+    const inherited = runOwner({ args: ownerArgs({ command: ["true"] }), env: { ...ancestral.env, ...slow } });
+    expect(inherited.status).toBe(0);
+    expect(records({ kind: "LOCK", stderr: inherited.stderr })).toEqual([
+      { holderPid: String(process.pid), mode: "inherited", waitedSeconds: "0" },
+    ]);
+    expect(readdirSync(ancestral.lease)).toEqual([ancestorToken]);
+
+    const held = sandbox();
+    const holder = liveStranger();
+    const heldToken = seat({ body: record(holder), lease: held.lease, locks: held.locks });
+    const marker = join(held.dir, "ran");
+    const refused = runOwner({
+      args: ownerArgs({ command: ["touch", marker], lockWait: 1 }),
+      env: { ...held.env, ...slow },
+    });
+    expect(refused.status).toBe(75);
+    expect(records({ kind: "START", stderr: refused.stderr })).toEqual([]);
+    expect(records({ kind: "LOCK", stderr: refused.stderr })).toEqual([]);
+    expect(waitingLines({ stderr: refused.stderr }).length).toBe(1);
+    expect(waitingLines({ stderr: refused.stderr })[0]).toContain(`held by pid ${String(holder.pid)}`);
+    expect(existsSync(marker)).toBe(false);
+    expect(readdirSync(held.lease)).toEqual([heldToken]);
   });
 
   it("is cancelled by TERM while it waits (143), leaving the holder's lease and no candidate of its own", async () => {
