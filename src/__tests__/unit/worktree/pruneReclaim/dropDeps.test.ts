@@ -12,13 +12,28 @@ import { unwrap } from "../../../../lib/result.js";
 import { withDepsLock } from "../../../../worktree/depsLock.js";
 import { depDirsIn, dropDeps } from "../../../../worktree/pruneDeps.js";
 import { type GitRunner, realGit } from "../../../../worktree/pruneGit.js";
+import { deleteGently } from "../../../../worktree/prunePacing.js";
 import { gitInTemp, REAL_GIT_SUITE } from "../../../tempGitRepo.js";
+import { QUIET_FSEVENTSD } from "../reclaimTrashFixtures.js";
 import { COMMIT, dir, seedRepo, useReclaimDir, verdictFor } from "./harness.js";
 
 useReclaimDir();
 
 /** A load gate that never shuts, for every drop not about the gate. */
 const NEVER_PAUSED = (): null => null;
+
+/**
+ * The real gentle delete, with both of its machine reads fixed: a quiet fseventsd, so no quantum holds for the
+ * daemon a saturated unit shard keeps hot, and a non-darwin OS, so `rm` runs at normal priority rather than under
+ * `taskpolicy -b`'s background QoS. The real `rm` still runs, so every filesystem assertion below still holds;
+ * `lowPriorityArgv`'s own cases in `prunePacing.test.ts` pin both wrappers.
+ *
+ * @param dir the moved directory to delete
+ * @param timeoutMs the drop's own budget, passed through unchanged
+ * @returns whether the directory is gone
+ */
+const GENTLE_AT_NORMAL_PRIORITY = ({ dir: moved, timeoutMs }: { dir: string; timeoutMs: number }): boolean =>
+  deleteGently({ dir: moved, gauge: QUIET_FSEVENTSD, os: "linux", timeoutMs });
 
 /** The trash a drop moves into, beside the trees on the same volume. */
 const trashOf = (): string => join(dir, "trash");
@@ -48,7 +63,12 @@ describe("dropDeps", REAL_GIT_SUITE, () => {
     const stamp = new Date("2026-09-01T00:00:00.000Z");
     utimesSync(tree, stamp, stamp);
 
-    const outcome = dropDeps({ paused: NEVER_PAUSED, trashDir: trashOf(), verdict: verdictFor({ path: tree }) });
+    const outcome = dropDeps({
+      deleteDir: GENTLE_AT_NORMAL_PRIORITY,
+      paused: NEVER_PAUSED,
+      trashDir: trashOf(),
+      verdict: verdictFor({ path: tree }),
+    });
 
     expect(outcome.dropped.toSorted()).toEqual(["node_modules", "packages/a/node_modules"]);
     expect(outcome.declined).toBe(null);
@@ -81,6 +101,7 @@ describe("dropDeps", REAL_GIT_SUITE, () => {
     const pool = join(dir, "pool");
 
     const outcome = dropDeps({
+      deleteDir: GENTLE_AT_NORMAL_PRIORITY,
       paused: NEVER_PAUSED,
       recyclePool: pool,
       trashDir: trashOf(),
@@ -109,7 +130,12 @@ describe("dropDeps", REAL_GIT_SUITE, () => {
     }
     const shut = (): string => "the 1-minute load is 119.8, at or above the 22 hold";
 
-    const outcome = dropDeps({ paused: shut, trashDir: trashOf(), verdict: verdictFor({ path: tree }) });
+    const outcome = dropDeps({
+      deleteDir: GENTLE_AT_NORMAL_PRIORITY,
+      paused: shut,
+      trashDir: trashOf(),
+      verdict: verdictFor({ path: tree }),
+    });
 
     expect(outcome.dropped.toSorted()).toEqual(["node_modules", "packages/a/node_modules"]);
     expect(existsSync(join(tree, "node_modules"))).toBe(false);
