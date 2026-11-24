@@ -129,7 +129,7 @@
     "test:unit": "vitest run --config config/vitest/unit.ts --coverage",
     "test:unit:merge": "tsx src/testLanes/unitMerge.entry.ts",
     "typecheck": "bash scripts/tsc-owner.sh --timeout-seconds 1140 --grace-seconds 5 --rss-ceiling-mib 10240 -- node_modules/.bin/tsc --noEmit -p tsconfig.json",
-    "validate": "yarn lint && yarn typecheck && yarn test:unit && yarn test:subprocess && yarn coverage:ratchet",
+    "validate": "yarn lint && yarn typecheck && tsx src/testLanes/unitSequence.entry.ts && yarn test:subprocess && yarn coverage:ratchet",
     "validate:local": "yarn lint:local",
     "validate:pr": "yarn validate:local && yarn slopweaver codex status --check"
   },

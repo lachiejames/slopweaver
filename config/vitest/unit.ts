@@ -1,4 +1,6 @@
+import { availableParallelism } from "node:os";
 import { defineConfig } from "vitest/config";
+import { unitLaneMaxWorkers } from "../../src/testLanes/unitWorkers.js";
 import { baseVitestConfig } from "./base.js";
 
 /**
@@ -93,6 +95,11 @@ export default defineConfig({
     // file when one is suspected. Re-measure one directory either way with
     // `yarn vitest run --config config/vitest/unit.ts --coverage=false --isolate src/__tests__/unit/handover/`.
     isolate: false,
+    // CAPPED at the lap's width off CI, because `isolate: false` is what makes a fork grow with every file it runs
+    // and Vitest recycles no `forks` worker on memory. Uncapped, a whole-tree run took 9 forks on a 16 GiB machine
+    // and swapped it; the count and its measurements are in `src/testLanes/unitWorkers.ts`. A caller's own
+    // `--maxWorkers` still wins.
+    maxWorkers: unitLaneMaxWorkers({ ci: process.env["CI"] === "true", cpus: availableParallelism() }),
     // FORKS — Vitest's default, and it is RECORDED here rather than left implicit because flipping it to
     // `threads` is the obvious cut at this lane and it was MEASURED WORSE.
     //

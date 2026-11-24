@@ -192,6 +192,9 @@ export const HOME_ATLAS_SEAMS = {
   // `node_modules/.bin/vitest` — `list --filesOnly` and `--merge-reports --coverage` — over the shard reports
   // in `.vitest-reports/`, writing `coverage/` and a scratch JSON report. Nothing leaves the machine.
   "src/testLanes/unitMerge.ts": "local-state",
+  // `yarn validate`'s unit step: one `rmSync` of the checkout's own `.vitest-reports/`, then one `spawnSync` per
+  // CI unit shard of `yarn test:unit` in this checkout, each bounded by a timeout. Nothing leaves the machine.
+  "src/testLanes/unitSequence.ts": "local-state",
   // `readLandedMigrations`: one `git ls-tree` and one `git show` per migration file, both of `origin/main` as
   // this checkout last fetched it, to hash what has LANDED before `store push` applies anything. Read-only
   // against the local object store; it never fetches, so it reaches no remote and no provider.
