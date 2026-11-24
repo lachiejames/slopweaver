@@ -100,6 +100,16 @@ content removal by hand.
    picks up exactly where it stopped, since the snapshots are its only state. Whenever the live copy holds
    anything it then runs the chatgpt refresh into the store, in process. Exit 3 when nothing is held or new, 4
    while another run holds the lock. `--max-conversations` bounds one run.
+   - **The listing is carried.** A completed listing is held beside the snapshots (`listing-carry.json`), so the
+     next run lists only what moved since it began (the chats of a stopped backfill that were never read are
+     still in the carry) instead of paying for the whole listing again. It is trusted for three days, then the whole
+     account is listed again, which is also what notices a chat deleted on chatgpt.com and a chat only a Project
+     names (a carried walk skips the Projects lane; the one whole walk found every Project chat in the main list
+     too); `--relist` forces that. A chat ChatGPT answers `404` for is deleted: the run names it, drops it from
+     the carry and reads on, where any other refusal still stops the run.
+     A listing page answered with a 5xx is retried three times after 30, 60 and 120 seconds; a `429` or any other
+     refusal is never retried. A stopped listing prints the lane it stopped in, with the offset (active, archived) or the page (projects), and a stopped walk
+     leaves the last carry in place.
    - **The daily row.** Once the live copy holds a chat, `automation register-resyncs` points the daily
      `resync-corpus-chatgpt` row at `live-sync` instead of `sync`. A run that held every listed chat and
      refreshed records `corpus/chatgpt/live/as-of.json` at the instant its listing began. The row is current as

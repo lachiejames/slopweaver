@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { type ChatgptError, ChatgptErrors } from "../../../../../cli/commands/chatgpt/errors.js";
 import {
   conversationsPagePath,
+  type ListingPage,
   listChatgptInventory,
   projectConversationsPagePath,
   projectsPagePath,
@@ -332,5 +333,153 @@ describe("listChatgptInventory", () => {
     const refused = unwrapErr(await listChatgptInventory({ deps: web.deps, maxPages: 1 }));
     expect(refused.code).toBe("LISTING_BOUND_EXCEEDED");
     expect(web.asked).toEqual([active0]);
+  });
+
+  it("with a known-through instant stops each offset lane after the page that reaches an older chat, and skips projects", async () => {
+    const web = fakeWeb({
+      bodies: {
+        [active0]: { items: [item({ n: 3 }), item({ n: 2 })], limit: 28, offset: 0, total: 9 },
+        [archived0]: { items: [item({ n: 4, over: { is_archived: true } })], limit: 28, offset: 0, total: 1 },
+      },
+    });
+    const inventory = unwrap(
+      await listChatgptInventory({ deps: web.deps, knownThroughIso: "2026-11-12T12:00:00.000Z", maxPages: 10 }),
+    );
+    expect(web.asked).toEqual([active0, archived0]);
+    expect(inventory.conversations.map((one) => one.id)).toEqual([cid({ n: 3 }), cid({ n: 2 }), cid({ n: 4 })]);
+    expect(inventory.projects).toEqual([]);
+    expect(inventory.requests).toBe(2);
+  });
+
+  it("with a known-through instant still pages on while every chat on the page is newer than it", async () => {
+    const web = fakeWeb({
+      bodies: {
+        [active0]: { items: [item({ n: 5 }), item({ n: 4 })], limit: 28, offset: 0, total: 3 },
+        [active1]: { items: [item({ n: 3 })], limit: 28, offset: 2, total: 3 },
+        [archived0]: { items: [], limit: 28, offset: 0, total: 0 },
+      },
+    });
+    unwrap(await listChatgptInventory({ deps: web.deps, knownThroughIso: "2026-11-01T00:00:00.000Z", maxPages: 10 }));
+    expect(web.asked).toEqual([active0, active1, archived0]);
+  });
+});
+
+/** A GET answering one scripted result per call to the same path, then refusing, and recording each wait. */
+function scriptedWeb({ script }: { script: readonly Result<string, ChatgptError>[] }): {
+  waits: number[];
+  asked: string[];
+  deps: Parameters<typeof listChatgptInventory>[0]["deps"];
+} {
+  const waits: number[] = [];
+  const asked: string[] = [];
+  let next = 0;
+  return {
+    asked,
+    deps: {
+      backoff: ({ attempt }) => {
+        waits.push(attempt);
+        return Promise.resolve();
+      },
+      fetchText: ({ path }): Promise<Result<string, ChatgptError>> => {
+        asked.push(path);
+        const answer = script[next];
+        next += 1;
+        if (answer === undefined) {
+          return Promise.resolve(err(ChatgptErrors.httpRefused({ path, status: 404 })));
+        }
+        return Promise.resolve(answer);
+      },
+      pacer: { beforeRequest: () => Promise.resolve() },
+    },
+    waits,
+  };
+}
+
+describe("listChatgptInventory retries", () => {
+  const active0 = conversationsPagePath({ archived: false, offset: 0 });
+  const archived0 = conversationsPagePath({ archived: true, offset: 0 });
+  const empty = ok(JSON.stringify({ items: [], limit: 28, offset: 0, total: 0 }));
+
+  it("retries a page after a 5xx, waiting before each retry, and counts every request", async () => {
+    const gateway = err(ChatgptErrors.httpRefused({ path: active0, status: 504 }));
+    const web = scriptedWeb({ script: [gateway, gateway, empty, empty] });
+    const inventory = unwrap(
+      await listChatgptInventory({ deps: web.deps, knownThroughIso: "2026-11-01T00:00:00.000Z", maxPages: 10 }),
+    );
+    expect(web.asked).toEqual([active0, active0, active0, archived0]);
+    expect(web.waits).toEqual([0, 1]);
+    expect(inventory.requests).toBe(4);
+  });
+
+  it("gives up after three retries and returns the 5xx", async () => {
+    const gateway = err(ChatgptErrors.httpRefused({ path: active0, status: 504 }));
+    const web = scriptedWeb({ script: [gateway, gateway, gateway, gateway, empty] });
+    const refused = unwrapErr(await listChatgptInventory({ deps: web.deps, maxPages: 10 }));
+    expect(refused.message).toBe(`GET ${active0} answered HTTP 504`);
+    expect(web.asked.length).toBe(4);
+    expect(web.waits).toEqual([0, 1, 2]);
+  });
+
+  it("never retries a rate limit or a 4xx", async () => {
+    const limited = err(ChatgptErrors.httpRefused({ path: active0, status: 429 }));
+    const web = scriptedWeb({ script: [limited, empty] });
+    const refused = unwrapErr(await listChatgptInventory({ deps: web.deps, maxPages: 10 }));
+    expect(refused.code).toBe("HTTP_REFUSED");
+    expect(web.asked).toEqual([active0]);
+    expect(web.waits).toEqual([]);
+  });
+
+  it("never retries a Cloudflare challenge, even one served with a 5xx", async () => {
+    const challenge = err(ChatgptErrors.httpRefused({ challenged: true, path: active0, status: 503 }));
+    const web = scriptedWeb({ script: [challenge, empty] });
+    const refused = unwrapErr(await listChatgptInventory({ deps: web.deps, maxPages: 10 }));
+    expect(refused.message).toBe(
+      `GET ${active0} answered HTTP 503 — a Cloudflare challenge; the read stopped and is never retried in the same run`,
+    );
+    expect(web.asked).toEqual([active0]);
+    expect(web.waits).toEqual([]);
+  });
+});
+
+describe("where a listing stopped", () => {
+  it("names each offset page it asks for, so a stop can say where it stopped", async () => {
+    const pages: ListingPage[] = [];
+    const web = scriptedWeb({
+      script: [
+        ok(JSON.stringify({ items: [item({ n: 1 })], limit: 28, offset: 0, total: 2 })),
+        err(ChatgptErrors.httpRefused({ path: "/p", status: 429 })),
+      ],
+    });
+    const refused = unwrapErr(
+      await listChatgptInventory({ deps: { ...web.deps, onPage: (page) => pages.push(page) }, maxPages: 10 }),
+    );
+    expect(refused.code).toBe("HTTP_REFUSED");
+    expect(pages).toEqual([
+      { kind: "offset", lane: "active", offset: 0 },
+      { kind: "offset", lane: "active", offset: 1 },
+    ]);
+  });
+
+  it("names the cursor page a whole walk stopped on in the projects lane, never the last offset page", async () => {
+    const pages: ListingPage[] = [];
+    const emptyLane = ok(JSON.stringify({ items: [], limit: 28, offset: 0, total: 0 }));
+    const web = scriptedWeb({
+      script: [
+        emptyLane,
+        emptyLane,
+        ok(JSON.stringify({ cursor: "next", items: [projectItem({ id: PROJECT })] })),
+        err(ChatgptErrors.httpRefused({ path: "/p", status: 429 })),
+      ],
+    });
+    const refused = unwrapErr(
+      await listChatgptInventory({ deps: { ...web.deps, onPage: (page) => pages.push(page) }, maxPages: 10 }),
+    );
+    expect(refused.code).toBe("HTTP_REFUSED");
+    expect(pages).toEqual([
+      { kind: "offset", lane: "active", offset: 0 },
+      { kind: "offset", lane: "archived", offset: 0 },
+      { kind: "cursor", lane: "projects", page: 1 },
+      { kind: "cursor", lane: "projects", page: 2 },
+    ]);
   });
 });

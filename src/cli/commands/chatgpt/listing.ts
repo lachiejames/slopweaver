@@ -103,7 +103,22 @@ export interface ChatgptListingDeps {
   /** One GET of a path under chatgpt.com, answered as the body's text. */
   readonly fetchText: (args: { path: string }) => Promise<Result<string, ChatgptError>>;
   readonly pacer: ChatgptPacer;
+  /**
+   * Waits before the retry of a listing page ChatGPT answered with a 5xx; `attempt` counts from 0. Absent, a 5xx
+   * stops the walk like any other refusal. Never taken for a 429 or a 4xx: a rate limit is not slept through.
+   */
+  readonly backoff?: ((args: { attempt: number }) => Promise<void>) | undefined;
+  /** Told just before each page of every lane is asked for, so a stop can say where it stopped. */
+  readonly onPage?: ((page: ListingPage) => void) | undefined;
 }
+
+/**
+ * One page a walk is about to ask for. An offset lane (active, archived) is placed by its offset; a cursor lane (the
+ * project sidebar, one project's chats) by its page number from 1, since a cursor is opaque and means nothing to a reader.
+ */
+export type ListingPage =
+  | { readonly kind: "offset"; readonly lane: string; readonly offset: number }
+  | { readonly kind: "cursor"; readonly lane: string; readonly page: number };
 
 /** The whole account, as one walk listed it. */
 export interface ChatgptInventory {
@@ -112,11 +127,22 @@ export interface ChatgptInventory {
   readonly projects: readonly ListedChatgptProject[];
   /** Listings that named a conversation an earlier page or lane already gave — counted, never stored twice. */
   readonly repeats: number;
-  /** GETs the walk made. */
+  /** GETs the walk made, retries included. */
   readonly requests: number;
 }
 
-/** One paced GET. */
+/** How many times one listing page is retried after a 5xx, each after {@link ChatgptListingDeps.backoff}. */
+const LISTING_5XX_RETRIES = 3;
+
+/**
+ * Whether the backend answered with a server error, the one refusal a listing page is retried for. A Cloudflare
+ * challenge can carry a 5xx status too, and is never retried.
+ */
+function isServerError({ error }: { error: ChatgptError }): boolean {
+  return error.code === "HTTP_REFUSED" && error.status >= 500 && !error.challenged;
+}
+
+/** One paced GET, retried after a 5xx up to {@link LISTING_5XX_RETRIES} times when the deps give a backoff. */
 async function pacedGet({
   deps,
   path,
@@ -126,24 +152,67 @@ async function pacedGet({
   path: string;
   counter: { requests: number };
 }): Promise<Result<string, ChatgptError>> {
-  await deps.pacer.beforeRequest();
-  counter.requests += 1;
-  return deps.fetchText({ path });
+  for (let attempt = 0; ; attempt += 1) {
+    await deps.pacer.beforeRequest();
+    counter.requests += 1;
+    const body = await deps.fetchText({ path });
+    if (body.isOk() || !isServerError({ error: body.error }) || deps.backoff === undefined) {
+      return body;
+    }
+    if (attempt >= LISTING_5XX_RETRIES) {
+      return body;
+    }
+    await deps.backoff({ attempt });
+  }
 }
 
-/** The active or archived lane, offset page by offset page. */
+/** The name an offset lane goes by in a refusal and in a stop line. */
+function offsetLaneName({ archived }: { archived: boolean }): string {
+  return archived ? "archived" : "active";
+}
+
+/**
+ * Whether an offset lane has nothing more to give: every chat it holds is listed, or, with `knownThroughIso`, this
+ * page reached a chat that last moved before it, so nothing further down the newest-update-first lane is newer.
+ */
+function offsetLaneDone({
+  items,
+  knownThroughIso,
+  offset,
+  total,
+}: {
+  items: readonly ListedChatgptConversation[];
+  knownThroughIso: string | undefined;
+  offset: number;
+  total: number;
+}): boolean {
+  if (offset >= total) {
+    return true;
+  }
+  if (knownThroughIso === undefined) {
+    return false;
+  }
+  return items.some((one) => Date.parse(one.updatedIso) < Date.parse(knownThroughIso));
+}
+
+/**
+ * The active or archived lane, offset page by offset page. With `knownThroughIso` the walk stops after the first page
+ * whose oldest chat last moved before it: the lane is newest-update-first, so nothing further down is newer.
+ */
 async function walkOffsetLane({
   deps,
   archived,
   maxPages,
   counter,
+  knownThroughIso,
 }: {
   deps: ChatgptListingDeps;
   archived: boolean;
   maxPages: number;
   counter: { requests: number };
+  knownThroughIso: string | undefined;
 }): Promise<Result<readonly ListedChatgptConversation[], ChatgptError>> {
-  const lane = archived ? "archived" : "active";
+  const lane = offsetLaneName({ archived });
   const listed: ListedChatgptConversation[] = [];
   let offset = 0;
   for (let page = 0; ; page += 1) {
@@ -151,6 +220,7 @@ async function walkOffsetLane({
       return err(ChatgptErrors.listingBoundExceeded({ lane, maxPages }));
     }
     const path = conversationsPagePath({ archived, offset });
+    deps.onPage?.({ kind: "offset", lane, offset });
     const body = await pacedGet({ counter, deps, path });
     if (body.isErr()) {
       return err(body.error);
@@ -162,7 +232,7 @@ async function walkOffsetLane({
     const { items, total } = parsed.value;
     listed.push(...items);
     offset += items.length;
-    if (offset >= total) {
+    if (offsetLaneDone({ items, knownThroughIso, offset, total })) {
       return ok(listed);
     }
     if (items.length === 0) {
@@ -199,6 +269,7 @@ async function walkCursorLane<T>({
       return err(ChatgptErrors.listingBoundExceeded({ lane, maxPages }));
     }
     asked.add(path);
+    deps.onPage?.({ kind: "cursor", lane, page: page + 1 });
     const body = await pacedGet({ counter, deps, path });
     if (body.isErr()) {
       return err(body.error);
@@ -226,23 +297,31 @@ async function walkCursorLane<T>({
  *
  * @param deps the GET and the pacer
  * @param maxPages the most pages any one lane may take before the walk refuses
+ * @param knownThroughIso when given, the walk lists only what moved since this instant: each offset lane stops after
+ *   the page that reaches an older chat, and the projects lane (a cross-check of the active lane) is skipped, so the
+ *   result is the NEWER part of the account for the caller to lay over a carried list. Absent, the whole account.
  * @returns every distinct conversation and project, or the first failure
  */
 export async function listChatgptInventory({
   deps,
   maxPages,
+  knownThroughIso,
 }: {
   deps: ChatgptListingDeps;
   maxPages: number;
+  knownThroughIso?: string | undefined;
 }): Promise<Result<ChatgptInventory, ChatgptError>> {
   const counter = { requests: 0 };
   const lanes: ListedChatgptConversation[] = [];
   for (const archived of [false, true]) {
-    const lane = await walkOffsetLane({ archived, counter, deps, maxPages });
+    const lane = await walkOffsetLane({ archived, counter, deps, knownThroughIso, maxPages });
     if (lane.isErr()) {
       return err(lane.error);
     }
     lanes.push(...lane.value);
+  }
+  if (knownThroughIso !== undefined) {
+    return ok({ ...dedupe({ lanes }), projects: [], requests: counter.requests });
   }
   const projects = await walkCursorLane<ListedChatgptProject>({
     counter,
@@ -271,6 +350,14 @@ export async function listChatgptInventory({
     }
     lanes.push(...listed.value);
   }
+  return ok({ ...dedupe({ lanes }), projects: distinctProjects, requests: counter.requests });
+}
+
+/** Each conversation once, in the order first listed, and how many repeats were dropped. */
+function dedupe({ lanes }: { lanes: readonly ListedChatgptConversation[] }): {
+  conversations: readonly ListedChatgptConversation[];
+  repeats: number;
+} {
   const byId = new Map<string, ListedChatgptConversation>();
   let repeats = 0;
   for (const conversation of lanes) {
@@ -280,5 +367,5 @@ export async function listChatgptInventory({
     }
     byId.set(conversation.id, conversation);
   }
-  return ok({ conversations: [...byId.values()], projects: distinctProjects, repeats, requests: counter.requests });
+  return { conversations: [...byId.values()], repeats };
 }
