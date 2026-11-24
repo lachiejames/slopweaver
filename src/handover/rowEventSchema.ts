@@ -28,8 +28,10 @@
 
 import { z } from "zod";
 
-import { askActionSchema } from "./askActionWire.js";
+import { actionOptions } from "./askActionOptions.js";
+import { askActionFrom, askActionSchema } from "./askActionWire.js";
 import { askExampleProblems } from "./askExamples.js";
+import { askOptionsCommandProblems } from "./askOptionCommand.js";
 import {
   type AskOption,
   type AskStakes,
@@ -80,7 +82,7 @@ const stakesSchema = z.object({ blastRadius: words, risk: words, stillReal: word
 const ASK_SHAPE_FIELDS = {
   lean: words.optional(),
   options: z
-    .array(z.object({ option: words, tradeoff: words }).loose())
+    .array(z.object({ command: words.optional(), option: words, tradeoff: words }).loose())
     .readonly()
     .optional(),
   problem: words.optional(),
@@ -192,9 +194,17 @@ function shapeIssuesOf({ value }: { value: unknown }): readonly string[] {
   if (read.completeness !== "whole" || read.problem === undefined || read.lean === undefined) {
     return [];
   }
-  return askShapeProblems({
-    shape: { lean: read.lean, options: read.options, problem: read.problem, stakes: read.stakes },
-  });
+  // Judge the options the READER will draw: a line carrying a readable action has its options derived from it on
+  // the way in (`./questionLineDecode.ts`), the stored list ignored — judging the stored list would let a derived
+  // option the verb refuses (its caps, or an owner step with no command) reach the Queue through a hand-written line.
+  const bag: Readonly<Record<string, unknown>> = typeof value === "object" && value !== null ? { ...value } : {};
+  const action = askActionFrom({ value: bag["action"] });
+  const options = action.kind === "action" ? actionOptions({ action: action.action }) : read.options;
+  // A write schema, so the command rule binds here as it does at the verb (`./askOptionCommand.ts`).
+  return [
+    ...askShapeProblems({ shape: { lean: read.lean, options, problem: read.problem, stakes: read.stakes } }),
+    ...askOptionsCommandProblems({ options }),
+  ];
 }
 
 /**
@@ -299,7 +309,7 @@ export const ROW_EVENT_SCHEMAS: { readonly [K in RunEvent["kind"]]: z.ZodType } 
           action: askActionSchema,
           lean: words,
           options: z
-            .array(z.object({ option: words, tradeoff: words }).loose())
+            .array(z.object({ command: words.optional(), option: words, tradeoff: words }).loose())
             .min(1)
             .readonly(),
           problem: words,
@@ -317,7 +327,7 @@ export const ROW_EVENT_SCHEMAS: { readonly [K in RunEvent["kind"]]: z.ZodType } 
         .extend({
           lean: words,
           options: z
-            .array(z.object({ option: words, tradeoff: words }).loose())
+            .array(z.object({ command: words.optional(), option: words, tradeoff: words }).loose())
             .min(1)
             .readonly(),
           problem: words,

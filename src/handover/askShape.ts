@@ -95,6 +95,11 @@ export interface AskOption {
   readonly option: string;
   /** One line naming what that decision costs — never "none", which is the absence of a trade-off stated as one. */
   readonly tradeoff: string;
+  /**
+   * The exact line the owner pastes into a terminal to take this option, when it is a step only their hands take —
+   * absent on every other option. `./askOptionCommand.ts` refuses an owner step without one.
+   */
+  readonly command?: string;
 }
 
 /** What deciding the ask puts at stake, and the check that it is still worth deciding — each one line. */
@@ -351,7 +356,8 @@ export function missingShapeFields({
 }
 
 /**
- * Parse the `--options` flag: one option per line, `<sentence> :: <trade-off>`.
+ * Parse the `--options` flag: one option per line, `<sentence> :: <trade-off> [:: <command>]` — the third part the
+ * command the owner pastes into a terminal, when the option is a step only their hands take (`./askOptionCommand.ts`).
  *
  * ## Why one flag holding lines, rather than a repeated flag or a comma list
  *
@@ -399,10 +405,19 @@ export function parseAskOptions({ text }: { text: string }): {
       );
       continue;
     }
+    const rest = line.slice(at + TRADEOFF_SEPARATOR.length);
+    const commandAt = rest.indexOf(TRADEOFF_SEPARATOR);
+    const letter = letterAt({ index: options.length });
+    if (commandAt < 0) {
+      options.push({ letter, option, tradeoff: rest.trim() });
+      continue;
+    }
+    // Everything after the second separator is the command, so a shell line carrying `::` keeps it.
     options.push({
-      letter: letterAt({ index: options.length }),
+      command: rest.slice(commandAt + TRADEOFF_SEPARATOR.length).trim(),
+      letter,
       option,
-      tradeoff: line.slice(at + TRADEOFF_SEPARATOR.length).trim(),
+      tradeoff: rest.slice(0, commandAt).trim(),
     });
   }
   return { options, problems };
@@ -437,7 +452,10 @@ export function askOptionsFrom({ value }: { value: unknown }): readonly AskOptio
     if (typeof option !== "string" || typeof tradeoff !== "string") {
       continue;
     }
+    // A command that is not a string is dropped and the option kept: the forgiving direction this decoder reads in.
+    const command = bag["command"];
     out.push({
+      ...(typeof command === "string" ? { command } : {}),
       letter: letterAt({ index: out.length }),
       option,
       tradeoff,
@@ -476,7 +494,9 @@ export function askStakesFrom({ value }: { value: unknown }): AskStakes | undefi
  */
 export function askOptionsBlock({ options }: { options: readonly AskOption[] }): string {
   const rows = options.map(
-    (option) => `  - option: ${quoted({ text: option.option })}\n    tradeoff: ${quoted({ text: option.tradeoff })}`,
+    (option) =>
+      `  - option: ${quoted({ text: option.option })}\n    tradeoff: ${quoted({ text: option.tradeoff })}` +
+      (option.command === undefined ? "" : `\n    command: ${quoted({ text: option.command })}`),
   );
   return `options:\n${rows.join("\n")}`;
 }

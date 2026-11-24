@@ -7,7 +7,12 @@ import { isBag, str, sub } from "../../lib/bag";
 /** A decision carried on a hand step, exactly as the register publishes it (`src/hand/decisionContext.ts`). */
 export interface HandStepDecision {
   readonly problem: string;
-  readonly options: readonly { readonly letter: string; readonly option: string; readonly tradeoff: string }[];
+  readonly options: readonly {
+    readonly letter: string;
+    readonly option: string;
+    readonly tradeoff: string;
+    readonly command?: string;
+  }[];
   readonly lean: string;
   readonly stakes: { readonly risk: string; readonly blastRadius: string; readonly stillReal: string };
 }
@@ -53,7 +58,8 @@ export function readHandDecision({
     if (letter === undefined || option === undefined || tradeoff === undefined) {
       return undefined;
     }
-    options.push({ letter, option, tradeoff });
+    const command = str({ bag: one, key: "command" });
+    options.push({ ...(command === undefined ? {} : { command }), letter, option, tradeoff });
   }
   return { decision: { lean, options, problem, stakes: { blastRadius, risk, stillReal } } };
 }

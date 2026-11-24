@@ -269,8 +269,13 @@ function askOptions({ row }: { row: AskRecord }): readonly CardOption[] {
     }));
     return [...sends, { ...leave, letter: letterAfter({ count: sends.length }) }];
   }
+  // An option that is the owner's own terminal step carries its command, drawn as a copy block under its letter: the
+  // owner is never shown a hand step without the command to paste. Every other option is answered in the chat.
   return row.options.map((one): CardOption => ({
-    how: { command: undefined, kind: "elsewhere", where: "the supervisor chat" },
+    how:
+      one.command === undefined
+        ? { command: undefined, kind: "elsewhere", where: "the supervisor chat" }
+        : { command: one.command, kind: "elsewhere", where: "your terminal" },
     letter: one.letter,
     sentence: one.option,
     tradeoff: one.tradeoff,

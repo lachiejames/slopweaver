@@ -358,6 +358,8 @@ export interface BoardRowOption {
   readonly option: string;
   /** What taking it costs — one line, never "none". */
   readonly tradeoff: string;
+  /** The line the owner pastes into a terminal to take it, when it is their hands' step — absent otherwise. */
+  readonly command?: string;
 }
 
 /** The board, and what its sweep could not finish. */
@@ -398,7 +400,9 @@ function rowOptions({ row }: { row: Bag }): readonly BoardRowOption[] {
     if (letter === undefined || option === undefined || tradeoff === undefined) {
       continue;
     }
-    out.push({ letter, option, tradeoff });
+    // A command that will not read is dropped and the option kept — the card still draws the choice.
+    const command = str({ bag: one, key: "command" });
+    out.push({ ...(command === undefined ? {} : { command }), letter, option, tradeoff });
   }
   return out;
 }

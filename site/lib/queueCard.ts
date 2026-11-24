@@ -292,6 +292,8 @@ export interface StepOption {
   readonly letter: string;
   readonly sentence: string;
   readonly tradeoff: string;
+  /** The line the owner pastes into a terminal to take it, drawn as a copy block — absent on any other option. */
+  readonly command?: string;
 }
 
 /**
@@ -653,4 +655,6 @@ export interface AskRecordOption {
   readonly letter: string;
   readonly option: string;
   readonly tradeoff: string;
+  /** The line the owner pastes into a terminal to take it, when it is their hands' step — absent otherwise. */
+  readonly command?: string;
 }

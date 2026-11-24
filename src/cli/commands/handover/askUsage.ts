@@ -15,7 +15,9 @@ export const ASK_USAGE =
   "are what the owner reads, never a paragraph.\n" +
   "  --still-real is the check, not a date: the card ages it off the instant this verb records it.\n" +
   "  --options is ONE flag holding two to four LINES, each `<what they could do> :: <what that costs>`. " +
-  "A line with no `::` states no trade-off and is refused by name.\n" +
+  "A line with no `::` states no trade-off and is refused by name. An option the owner takes at a terminal (a " +
+  "sign-in, a secret, an approval) adds a third part, the exact command — `<option> :: <cost> :: <command>` — and " +
+  "is refused without it: the card draws it as a copy block under its letter.\n" +
   "  --question is the ask in full, kept for the thread and the journal. The card leads on the shape.\n" +
   "  An ask row already SETTLED is refused before anything is recorded: the board, reconcile and the Queue " +
   "skip a settled row, so its question would be on no surface. A new question goes on a new row " +
