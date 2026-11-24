@@ -22,10 +22,12 @@ describe("TALK_TOOLS", () => {
     expect(copy.description).toBe(
       "Put ONE draft of the OWNER's words on their running list: the list beside the conversation that keeps the " +
         "newest 10 items across calls, typed conversations and restarts, where the owner reads it and copies it with " +
-        "one click. It works the same whether the owner is speaking or typing. Call it for every piece of wording " +
-        "you draft to stand as the owner's own words — a message, a reply, a review comment, a script or talk line, " +
-        "talking points — whether the owner will paste it, say it or only react to it, when the owner asks for one " +
-        "and when you propose one ('here's what I'd say'), and in your answer only if the owner asks to hear it. " +
+        "one click. It works the same whether the owner is speaking or typing. Call it only on the owner's plain " +
+        "instruction to note or draft wording as their own — a message, a reply, a review comment, a script or talk " +
+        "line, talking points — whether they will paste it, say it or only react to it. Never offer to draft one: a " +
+        "yes to your own offer, hedged or not, is no instruction, and wording nobody asked for is never drafted, here " +
+        "or in your answer. A point the owner makes about a briefing or page they are reading is a reaction to that " +
+        "page for relay_steer, never a list item. Put a draft in your answer only if the owner asks to hear it. " +
         "Not for your own explanation, summary or advice to the owner: speak that as normal. Never when the owner " +
         "asks you or the fleet to send, post or reply with it: that is a relay. Never say it was sent. Write text " +
         "exactly as the owner will use it; a message for Slack goes in Slack mrkdwn: *bold*, _italic_, `code`, " +
@@ -59,13 +61,11 @@ describe("TALK_TOOLS", () => {
     expect(copy.description).toContain("the copy joins them with one newline, at most 8192 characters together");
   });
 
-  // A proposed reply read out whole comes through as a wall of text, so it goes to the list instead. An instruction
-  // to write it "instead of in your answer" met the quoted-draft bullet's read-back, so both are pinned.
-  it("sends every composed message to the list, asked for or proposed, and gives the owner one line and a question", () => {
+  // A reply read out whole comes through as a wall of text, so a draft the owner asked for goes to the list instead.
+  // An instruction to write it "instead of in your answer" met the quoted-draft bullet's read-back, so both are pinned.
+  it("sends every message the owner asked for to the list, and gives the owner one line and a question", () => {
     const copy = TALK_TOOLS.find((tool) => tool.name === "offer_copy")!;
-    expect(copy.description).toContain(
-      "when the owner asks for one and when you propose one ('here's what I'd say'), and in your answer only if the owner asks to hear it.",
-    );
+    expect(copy.description).toContain("Put a draft in your answer only if the owner asks to hear it.");
     const backend = COPY_OFFER_BACKEND_LINES.join("\n");
     expect(backend).toContain("never into your answer or a commentary message");
     expect(backend).toContain(
@@ -84,17 +84,49 @@ describe("TALK_TOOLS", () => {
     expect(voice).toContain(
       "Whether anything is on the running list is said only when the text\nhanded to you says so; never on your own, and never as the way a turn ends.",
     );
-    expect(voice).toContain("If it hands you such a draft unasked, not saying it is on the list, never read it");
+    expect(voice).toContain("Wording handed you unasked is left out, never read.");
     expect(voice).toContain("and a yes to a held draft, are a relay, never the list.");
     expect(voice).toContain("Read one out,\nevenly as a quote, when the owner asks to hear it, bar a card edit.");
+  });
+
+  // A yes to the voice's own offer to draft is not the owner asking, and a point about a page being read is a reaction
+  // to that page. So every surface lists only on a plain ask, bans the offer, refuses a yes to it as the ask, and
+  // relays a point about a page being read.
+  it("lists only on the owner's plain ask, never on a yes to an offer to draft, and relays a point about a page", () => {
+    const copy = TALK_TOOLS.find((tool) => tool.name === "offer_copy")!;
+    expect(copy.description).toContain(
+      "Call it only on the owner's plain instruction to note or draft wording as their own",
+    );
+    expect(copy.description).toContain(
+      "Never offer to draft one: a yes to your own offer, hedged or not, is no instruction, and wording nobody asked for is never drafted, here or in your answer.",
+    );
+    expect(copy.description).toContain(
+      "A point the owner makes about a briefing or page they are reading is a reaction to that page for relay_steer, never a list item.",
+    );
+    const backend = COPY_OFFER_BACKEND_LINES.join("\n").replace(/\n {2}/gu, " ");
+    expect(backend).toContain(
+      "is drafted only on their plain ask ('give me something to paste', 'how would I open', 'note that')",
+    );
+    expect(backend).toContain("Never offer to draft; a yes to your offer is no ask.");
+    expect(backend).toContain("A point about a page they are reading is a reaction: relay_steer it.");
+    const voice = COPY_OFFER_VOICE_LINES.join(" ");
+    expect(voice).toContain("Never offer to draft one; a yes to your offer is no ask.");
+    expect(voice).toContain("A point the owner makes about a page they are reading is a reaction: relay it.");
+    // The old licences: a proposed draft listed, and the voice asking the thinking model to list an unasked one.
+    const surface = [copy.description, backend, voice].join(" ");
+    expect(surface).not.toContain("when you propose one");
+    expect(surface).not.toContain("proposed by you");
+    expect(surface).not.toContain("ask the thinking model to put it on the list");
+    expect(voice).toContain("the thinking model lists one the owner asked for.");
+    expect(voice).not.toContain("the thinking model puts it on the running list");
   });
 
   // A lunch-and-learn opening was read out whole when the owner wanted it in the copy tray to react to.
   it("lists a script or review comment the owner will say or only react to, and speaks the model's own explanation", () => {
     const copy = TALK_TOOLS.find((tool) => tool.name === "offer_copy")!;
     expect(copy.description).toContain(
-      "Call it for every piece of wording you draft to stand as the owner's own words — a message, a reply, a review " +
-        "comment, a script or talk line, talking points — whether the owner will paste it, say it or only react to it,",
+      "as their own — a message, a reply, a review comment, a script or talk line, talking points — whether they will " +
+        "paste it, say it or only react to it.",
     );
     expect(copy.description).toContain(
       "Not for your own explanation, summary or advice to the owner: speak that as normal.",
@@ -105,8 +137,8 @@ describe("TALK_TOOLS", () => {
     );
     const backend = COPY_OFFER_BACKEND_LINES.join("\n");
     expect(backend).toContain(
-      "- Any wording you draft to stand as the owner's own words — a message, a reply, a review comment, a script or\n" +
-        "  talk line, talking points — whether the owner will paste, say or only react to it,",
+      "- Wording as the owner's own (a message, reply, review comment, script, talk line, talking points), whether they\n" +
+        "  will paste, say or only react to it,",
     );
     expect(backend).toContain("Your own explanation, summary or advice\n  is not a draft: answer it as normal.");
     // Quoted in the voice's prompt, the line became how ~10 turns ended with no offer made. The console says it after a

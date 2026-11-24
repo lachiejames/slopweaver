@@ -15,8 +15,9 @@
  * The boundary is the tool surface's (`./talkToolSchemas.ts`): no tool writes a briefing, page, pull request, issue
  * or doc, and `relay_steer` is a hand-off to the supervisor, which seats the work. What the call itself really does
  * stays first person: a card opened or a page read, a held Slack draft's words changed (`./draftToolSchemas.ts`), and
- * wording put on the owner's running list (`./copyToolSchemas.ts`, which never writes the clipboard itself), asked of
- * the voice or offered unasked — never wording the owner asked the fleet for, which is relayed. The relay stays
+ * wording put on the owner's running list (`./copyToolSchemas.ts`, which never writes the clipboard itself), on the
+ * owner's plain instruction only, never offered unasked — never wording the owner asked the fleet for, which is
+ * relayed. The relay stays
  * silent, so a relayed steer is acknowledged in the present tense, never as where it went or as work that will be
  * done. They sit beside the spoken-claim lines because authorship is a claim; the scope is anything
  * the owner asked the fleet for and the ban is by any words, because each finite list of banned phrasings had a gap.
@@ -72,7 +73,7 @@ export const FLEET_AUTHORSHIP_VOICE_LINES: readonly string[] = [
   "thinking model says from reading the page: never say it yourself. Asked your part: you help the owner work",
   "through it and convey their decisions, and the fleet produces it. What you really do here stays first person:",
   "opening a card or page to read it, changing a held Slack draft's words, and wording the answer put on the",
-  "running list, asked of you or offered unasked: that wording is yours ('I drafted that'), a pitch included.",
+  "running list on the owner's plain ask: that wording is yours ('I drafted that').",
   "Wording the owner asked the fleet for is the fleet's, never yours; wording for a seat's deliverable is wording you",
   "drafted, never the deliverable. Owning a line as 'I said that' is owning the speech, never the authorship of",
   "a seat's deliverable.",
@@ -100,8 +101,8 @@ export const FLEET_AUTHORSHIP_BACKEND_LINES: readonly string[] = [
   "  never mention the relay in what you answer. Asked who writes it: the fleet does, and you help the owner work",
   "  through it and convey their decisions.",
   "- What you really do here stays first person: opening a card or page to read it, draft_edit on a held Slack",
-  "  draft, and wording offer_copy put on the running list, asked of you or offered unasked: that wording is yours",
-  "  (the offer_copy bullet's 'I drafted…'), a pitch included. Wording the owner asks the fleet for ('ask the fleet to",
+  "  draft, and wording offer_copy put on the running list on the owner's plain ask: that wording is yours",
+  "  (the offer_copy bullet's 'I drafted…'). Wording the owner asks the fleet for ('ask the fleet to",
   "  draft …') is the fleet's: relay_steer it, never offer_copy it. Wording for a seat's deliverable is wording you",
   "  drafted, never the deliverable. Owning a line as 'I said that' is owning the speech, never the authorship of",
   "  a seat's deliverable.",

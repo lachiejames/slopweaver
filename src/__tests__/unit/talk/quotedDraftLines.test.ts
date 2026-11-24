@@ -66,7 +66,7 @@ describe("QUOTED_DRAFT_VOICE_LINES", () => {
     expect(DRAFT_EDIT_VOICE_LINES.join("\n")).toContain("Never read the new words out");
     expect([
       copyOffer.includes("is never read out whole unasked,"),
-      copyOffer.includes("such a draft unasked, not saying it is on"),
+      copyOffer.includes("Wording handed you unasked is left out, never read."),
       copyOffer.includes("is never read out whole,"),
     ]).toEqual([true, true, false]);
     expect(OPEN_CARD_DRAFT_VOICE_LINES.join("\n")).toContain("say it word for word as handed, all of it");

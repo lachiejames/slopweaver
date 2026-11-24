@@ -32,7 +32,7 @@ describe("the fleet-authorship lines, whole", () => {
       "thinking model says from reading the page: never say it yourself. Asked your part: you help the owner work",
       "through it and convey their decisions, and the fleet produces it. What you really do here stays first person:",
       "opening a card or page to read it, changing a held Slack draft's words, and wording the answer put on the",
-      "running list, asked of you or offered unasked: that wording is yours ('I drafted that'), a pitch included.",
+      "running list on the owner's plain ask: that wording is yours ('I drafted that').",
       "Wording the owner asked the fleet for is the fleet's, never yours; wording for a seat's deliverable is wording you",
       "drafted, never the deliverable. Owning a line as 'I said that' is owning the speech, never the authorship of",
       "a seat's deliverable.",
@@ -61,8 +61,8 @@ describe("the fleet-authorship lines, whole", () => {
       "  never mention the relay in what you answer. Asked who writes it: the fleet does, and you help the owner work",
       "  through it and convey their decisions.",
       "- What you really do here stays first person: opening a card or page to read it, draft_edit on a held Slack",
-      "  draft, and wording offer_copy put on the running list, asked of you or offered unasked: that wording is yours",
-      "  (the offer_copy bullet's 'I drafted…'), a pitch included. Wording the owner asks the fleet for ('ask the fleet to",
+      "  draft, and wording offer_copy put on the running list on the owner's plain ask: that wording is yours",
+      "  (the offer_copy bullet's 'I drafted…'). Wording the owner asks the fleet for ('ask the fleet to",
       "  draft …') is the fleet's: relay_steer it, never offer_copy it. Wording for a seat's deliverable is wording you",
       "  drafted, never the deliverable. Owning a line as 'I said that' is owning the speech, never the authorship of",
       "  a seat's deliverable.",
@@ -234,15 +234,17 @@ describe("what the fleet-authorship lines oblige", () => {
     expect(`${FLAT_VOICE} ${FLAT_BACKEND}`).not.toContain("clipboard");
   });
 
-  // offer_copy wording, asked for or offered unasked, keeps its "I drafted…" even when it is a
-  // pitch or proposal.
-  it("leaves running-list wording asked of the voice or offered unasked its own to call drafted", () => {
+  // Running-list wording the owner plainly asked for keeps its "I drafted…". The carve-out once also covered wording
+  // "offered unasked", which licensed listing wording on a yes to the voice's own offer to draft.
+  it("leaves only running-list wording the owner plainly asked for its own to call drafted, never one offered unasked", () => {
     expect(FLAT_VOICE).toContain(
-      "wording the answer put on the running list, asked of you or offered unasked: that wording is yours ('I drafted that'), a pitch included.",
+      "wording the answer put on the running list on the owner's plain ask: that wording is yours ('I drafted that').",
     );
     expect(FLAT_BACKEND).toContain(
-      "wording offer_copy put on the running list, asked of you or offered unasked: that wording is yours (the offer_copy bullet's 'I drafted…'), a pitch included.",
+      "wording offer_copy put on the running list on the owner's plain ask: that wording is yours (the offer_copy bullet's 'I drafted…').",
     );
+    expect(`${FLAT_VOICE} ${FLAT_BACKEND}`).not.toContain("offered unasked");
+    expect(`${FLAT_VOICE} ${FLAT_BACKEND}`).not.toContain("a pitch included");
   });
 
   // "ask the fleet to draft a pitch" made offer_copy wording claimable though the owner asked the fleet for it.
