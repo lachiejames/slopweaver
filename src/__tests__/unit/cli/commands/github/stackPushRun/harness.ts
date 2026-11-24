@@ -5,6 +5,7 @@
  * makes. It moved here when `stackPushRun.test.ts` was split by behaviour.
  */
 import { rmSync } from "node:fs";
+import { okAsync } from "neverthrow";
 import { afterEach } from "vitest";
 
 import { clearDescriptionReview } from "../../../../../../cli/commands/github/descriptionReviewCheck.js";
@@ -58,6 +59,11 @@ interface HarnessInput {
   headAfterFacts?: string;
   /** What `rev-parse HEAD` answers after the amend — the checked commit amended, unless the branch raced. */
   amendedHead?: string;
+  /**
+   * What the read of the pushed branch's own open pull request answers — none open unless the test says otherwise.
+   * A read of any OTHER head (a registration's stack parent) still reaches `api`.
+   */
+  openPullRequest?: GithubWriteApi["findOpenPrByHead"];
   api: GithubWriteApi;
 }
 
@@ -68,6 +74,8 @@ interface HarnessObserved {
   writes: (readonly string[])[];
   reads: string[];
   lines: string[];
+  /** Every read of the pushed branch's own open pull request, as `owner/repo:head`. */
+  openPrReads: string[];
   pins: string[];
 }
 
@@ -160,6 +168,33 @@ function readGitFor({
   };
 }
 
+/**
+ * `api`, except that a read of `branch`'s own open pull request answers through `openPullRequest` and is recorded
+ * onto `openPrReads`, so a test can witness that a run made none.
+ */
+function apiFor({
+  api,
+  branch,
+  openPrReads,
+  openPullRequest,
+}: {
+  api: GithubWriteApi;
+  branch: string;
+  openPrReads: string[];
+  openPullRequest: GithubWriteApi["findOpenPrByHead"];
+}): GithubWriteApi {
+  return {
+    ...api,
+    findOpenPrByHead: (input) => {
+      if (input.head !== branch) {
+        return api.findOpenPrByHead(input);
+      }
+      openPrReads.push(`${input.owner}/${input.repo}:${input.head}`);
+      return openPullRequest(input);
+    },
+  };
+}
+
 /** The deps object over the harness's fakes, in the old in-file harness's key order. */
 function depsFor({
   api,
@@ -238,8 +273,11 @@ export function harness({
   headTree = HEAD_TREE,
   headAfterFacts = LOCAL_SHA,
   amendedHead = AMENDED_SHA,
-  api,
+  openPullRequest = () => okAsync(undefined),
+  api: given,
 }: HarnessInput): HarnessObserved {
+  const openPrReads: string[] = [];
+  const api = apiFor({ api: given, branch, openPrReads, openPullRequest });
   const writes: (readonly string[])[] = [];
   const reads: string[] = [];
   const lines: string[] = [];
@@ -255,5 +293,5 @@ export function harness({
   const door = memoryDoorLedger();
   const gateDeps = { measureAlreadyLanded, measureBaseFreshness };
   const deps = depsFor({ api, door, gates: gateDeps, lines, pins, readGit, writeOk, writes });
-  return { deps, door, lines, pins, reads, writes };
+  return { deps, door, lines, openPrReads, pins, reads, writes };
 }

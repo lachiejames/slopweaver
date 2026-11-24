@@ -25,9 +25,9 @@ Everything plain `create` took, this verb takes:
   the lock's stale threshold (15 minutes) outlasts the 540s default, so a healthy holder legitimately can.
 - `--acknowledge <a,b>` / `--acknowledge-all --reason "…"` — the creation gates below.
 
-And every gate plain `create` ran still runs, in this order, all of them before the first API call: base
-freshness, already-landed, then the fleet-finding ruling — see
-[pull-requests.md](pull-requests.md). The write-access preflight (`canPush`) follows, then the door.
+Every gate plain `create` ran still runs, in order, before the first API call: base freshness, already-landed,
+the fleet-finding ruling ([pull-requests.md](pull-requests.md)). Then the token, ONE read of the branch's open pull
+request (both description reviews name it), the door, the push, and the write-access preflight (`canPush`).
 
 One behavioural difference worth knowing: **`stack push` amends and pushes the branch itself**, so there is
 no separate `github push` beforehand. `github push` is for a branch whose pull request already exists.

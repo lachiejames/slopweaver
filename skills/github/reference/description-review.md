@@ -47,6 +47,14 @@ review comment is read whole (`src/outbound/github/descriptionReviewComments.ts`
 them again immediately before its mutation. A comment that arrives or is edited in between moves the digest and the
 write is refused, naming "the pull request's existing comments changed".
 
+**`stack push` reads the branch's open pull request once, before either of its reviews**, and both describe what it
+found (`src/cli/commands/github/stackPushPullRequest.ts`). None open reviews as `--new`, as before. One open onto the
+form's base reviews as `--number <n>` in both checks, so that re-run owes the review `pr update` asks for, not a
+second one. A read that fails, or an open pull request onto another base, refuses before anything is amended or
+pushed; it never falls back to `--new`. A create reviewed against an open pull request never opens another one:
+where the reservation holds no record of it (never recorded here, or closed since the review), the create refuses
+and releases the reservation.
+
 **Residues, stated.** The read is one GraphQL page of 100 nodes per connection; a pull request past that is refused
 rather than reviewed in part. A review's own summary body is not read, only its inline comments. A comment landing
 between the write's re-read and its mutation is not seen. `stack push` posts its round after the create without a

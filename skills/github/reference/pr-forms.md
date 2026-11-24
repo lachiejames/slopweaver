@@ -21,7 +21,8 @@ so the only possible partial outcome is the recoverable one.
 
 **create** (the half of `stack push` that opens the pull request) — `parse → validate (retired fields refused by
 name) → render + gate → [--dry-run stops here] → token → write preflight → door → reserve → create → read back →
-confirm → kind labels → report`.
+confirm → kind labels → report`. Ahead of it, `stack push` runs `local gates → token → read the branch's open
+pull request → description review → door → amend → push`, and the create's own review names that same pull request.
 
 **update** — `parse → token → address → identity → authorship → recover the form (or take the whole one) →
 merge → render + gate → re-append any third-party block → replacement preview → [--dry-run stops here] →

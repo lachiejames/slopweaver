@@ -16,6 +16,7 @@ import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
 import type { PrOutcome } from "./core.js";
 import { applyKindLabels } from "./kindLabelApply.js";
 import { performCreate } from "./performCreate.js";
+import type { DescriptionPullRequest } from "./prDescriptionReviewCore.js";
 import type { GithubPushDeps } from "./pushRun.js";
 import { missingWalkthroughLine } from "./selfReviewCore.js";
 import { sendAndReportSelfReview } from "./selfReviewFlow.js";
@@ -49,6 +50,7 @@ async function preflightThenCreate({
   locus,
   out,
   plan,
+  pullRequest,
 }: {
   api: GithubWriteApi;
   comments: readonly DescriptionReviewComment[];
@@ -57,6 +59,7 @@ async function preflightThenCreate({
   locus: string;
   out: (input: { line: string }) => void;
   plan: GatedStackPushPlan;
+  pullRequest: DescriptionPullRequest;
 }): Promise<PrOutcome> {
   const blocked = await stackPushWriteBlocked({ api, target: plan.form.target });
   if (blocked !== undefined) {
@@ -71,6 +74,7 @@ async function preflightThenCreate({
     home,
     installationIdentifiers,
     locus,
+    pullRequest,
   });
 }
 
@@ -100,8 +104,11 @@ async function performStackPush({
   git,
   deps,
   out,
+  pullRequest,
 }: {
   plan: GatedStackPushPlan;
+  /** The pull request the early description review bound; the create's review binds the same one. */
+  pullRequest: DescriptionPullRequest;
   /** What the carry gate decided BEFORE the door — see `./stackCarryRun.ts` for why that order is the contract. */
   carry: StackCarryGate;
   /** The walkthrough this push posts after the create, exactly as GitHub receives it; the review binds it. */
@@ -135,7 +142,7 @@ async function performStackPush({
   // base that has not been pushed yet replays onto the old commit.
   const carried = runStackCarry({ gate: carry, git, home, out, remote });
   const api = freshApi();
-  const created = await preflightThenCreate({ api, comments, deps, home, locus, out, plan });
+  const created = await preflightThenCreate({ api, comments, deps, home, locus, out, plan, pullRequest });
   if (created.kind !== "created") {
     return { carried, create: created, headSha: pushed.value, registration: undefined };
   }
@@ -236,6 +243,18 @@ async function postStackSelfReview({
   return sendAndReportSelfReview({ api, command: "slopweaver github stack push", deps, form, home, pr: current.value });
 }
 
+/** The part of the verb's deps the locked write itself reads. */
+function lockedWriteDeps({ deps }: { deps: GithubStackPushDeps }): Parameters<typeof performStackPush>[0]["deps"] {
+  return {
+    autonomy: deps.autonomy,
+    cwd: deps.cwd,
+    descriptionReview: deps.descriptionReview,
+    doorLedger: deps.doorLedger,
+    now: deps.now,
+    sleep: deps.sleep,
+  };
+}
+
 /**
  * Run the already-locked stack write, report it, then attach the optional walkthrough.
  *
@@ -249,6 +268,7 @@ export async function sendStackPush({
   home,
   locus,
   plan,
+  pullRequest,
   selfReview,
 }: {
   carry: StackCarryGate;
@@ -259,6 +279,7 @@ export async function sendStackPush({
   home: string;
   locus: string;
   plan: GatedStackPushPlan;
+  pullRequest: DescriptionPullRequest;
   selfReview: SelfReviewForm | undefined;
 }): Promise<number> {
   const routed = await throughDoor({
@@ -269,20 +290,14 @@ export async function sendStackPush({
       performStackPush({
         carry,
         comments: renderSelfReviewComments({ form: selfReview }),
-        deps: {
-          autonomy: deps.autonomy,
-          cwd: deps.cwd,
-          descriptionReview: deps.descriptionReview,
-          doorLedger: deps.doorLedger,
-          now: deps.now,
-          sleep: deps.sleep,
-        },
+        deps: lockedWriteDeps({ deps }),
         freshApi,
         git: deps.git,
         home,
         locus,
         out: deps.out,
         plan,
+        pullRequest,
         remote: args.remote,
       }),
     request: githubStackPushDoorRequest({ home, plan }),
