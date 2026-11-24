@@ -180,7 +180,9 @@ drop's `rmSync`. So an apply brakes five ways (`src/worktree/prunePacing.ts`):
   removal, on top of that same gate, held an hourly run to about 15 to 17 trees against a backlog of 213
   (`grep -o "^removed [0-9]* worktree(s)" auto-prune.log | sort | uniq -c`). A `close-done` sweep cannot wait
   inside its reading budget, so it removes at most ONE closed seat's tree, under the same load gate, and leaves
-  the rest to the hourly prune.
+  the rest to the hourly prune. A dependency drop is the one step with a pause after it, the last drop of a pass
+  included: it holds, for a bounded time, while fseventsd is at or above its release bar. A mirror free and a
+  trash batch have none.
 - **No count stops a removal pass; the deadline, the load and fseventsd do.** MEASURED: a cap of four
   trees per routine run, against a pool of 262 removable trees, was a drain of at least 65 hourly runs. A cap per routine run (`TREES_PER_RUN`) still bounds the maintenance passes, the
   kept trees' dependency drops and the mirror roots. Every delete STARTED counts, a failed one too, because each

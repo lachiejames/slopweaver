@@ -22,8 +22,9 @@
  *   pass waits and reads again until the machine is out of the warning zone or the removal deadline arrives
  *   ({@link removalGateDecision}). That gate is also the drain between trees: no fixed sleep follows a removal.
  * - **A gate before every MAINTENANCE step** — a dependency drop, a mirror free, a trash batch — that stops the
- *   step and leaves the rest to the next run, and a pause after each one that holds, up to {@link DRAIN_HOLD_MAX_MS},
- *   until fseventsd falls under its lower bar.
+ *   step and leaves the rest to the next run. A dependency drop that counts against the cap is also followed by a
+ *   pause that holds, up to {@link DRAIN_HOLD_MAX_MS}, until fseventsd falls under its lower bar. A mirror free and
+ *   a trash batch have no such pause.
  * - **A per-run cap on the maintenance passes**, so one apply never does more than a few of those however big its
  *   budget is. Worktree REMOVALS carry no count: their deadline bounds them ({@link removalGateDecision} says why).
  *
@@ -61,7 +62,7 @@ const TREES_PER_RUN = 4;
 /** How often a held gate or pause re-reads the machine. */
 const DRAIN_POLL_MS = 15_000;
 
-/** The longest a pause between trees holds for fseventsd before the gate decides instead. */
+/** The longest the pause after a drop holds for fseventsd before the gate decides instead. */
 const DRAIN_HOLD_MAX_MS = 180_000;
 /**
  * The argv that runs `argv` at background priority on this platform. darwin's `taskpolicy -b` is the
@@ -217,7 +218,7 @@ export function deleteGently({
 }
 
 /**
- * Whether a pause between trees keeps holding: fseventsd has not yet fallen under its lower bar, and the hold has
+ * Whether the pause after a drop keeps holding: fseventsd has not yet fallen under its lower bar, and the hold has
  * time left. Not running, or unreadable, ends the hold at once — the gate that follows judges those.
  *
  * @param fseventsd one read of fseventsd's CPU
@@ -411,7 +412,7 @@ export function removalDeadlineStop({ reason }: { reason: string }): string {
 export interface Pacer {
   /** Why the pass must stop before its next tree, given how many it has acted on, or null to carry on. */
   readonly stopReason: (input: { done: number }) => string | null;
-  /** Wait between two trees. */
+  /** Wait after a dependency drop, the last of a pass included. */
   readonly settle: () => Promise<void>;
 }
 
@@ -426,7 +427,7 @@ export interface RemovalPacer extends Pacer {
 
 /**
  * The machine's pacer: the live load against `machine capacity`'s hold, fseventsd against its bar, this run's
- * cap, and a real pause that holds on while fseventsd drains the last tree's events.
+ * cap, and a real pause that holds on while fseventsd drains the events of the drop before it.
  *
  * @param diskPressureNow whether free disk is under the prune floor, asked afresh before every tree
  * @returns the pacer every apply pass shares

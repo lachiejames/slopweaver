@@ -391,16 +391,18 @@ export interface DepsPass {
  * it is worth more per minute than a drop from a tree the plan keeps anyway. The deadline is checked between
  * trees, never during one, for the reason `pruneApplyRotation`'s `applyInRotation` states. A run whose removals spend
  * the whole budget therefore drops nothing, and {@link depsClause} says how many it still owes. The pacer is
- * asked before every tree too, and waited on after every tree it ran a drop on, so a pass stops at its cap or
- * when the load reaches the hold, and never starts two drops back to back (`./prunePacing.ts`). The cap counts
- * every drop ATTEMPTED, a failed or timed-out one included, since each of those deleted at least part of a tree —
- * but never one that deleted nothing at all ({@link deletedNothing}).
+ * asked before every tree too, and waited on after every drop that counts against the cap, so a pass stops at its
+ * cap or when the load reaches the hold, and never starts two drops back to back (`./prunePacing.ts`). The last drop
+ * of a pass is waited on like the rest: the mirror and trash deletes follow it, and their gates start at fseventsd's
+ * upper bar, while the wait holds for the lower one. The cap counts every drop ATTEMPTED, a failed or timed-out one
+ * included, since each of those deleted at least part of a tree — but never one that deleted nothing at all
+ * ({@link deletedNothing}).
  *
  * @param plans every repository's classified verdicts, in sweep order
  * @param deadlineMs the epoch instant this pass may not start another tree after
  * @param print where each tree's result line goes
  * @param stillCold the re-check each tree must pass right before it is touched, reading live state fresh
- * @param pace the brakes between trees: why to stop before the next one, and the wait after a drop
+ * @param pace the pass's brakes: why to stop before the next tree, and the wait after each drop, the last included
  * @param paused why the bulk delete inside one drop must stop now, or null — the apply's own disk-pressure-aware gate
  * @param drop how one tree is stripped, so a test can hand in a fake
  * @returns how many trees lost a directory, and the trees the budget did not reach
@@ -444,7 +446,7 @@ export async function dropDepsInRotation({
     stripped += outcome.dropped.length > 0 ? 1 : 0;
     print({ line: renderDepsOutcome({ outcome }) });
     index += 1;
-    if (acted && index < order.length) {
+    if (acted) {
       await pace.settle();
     }
   }
