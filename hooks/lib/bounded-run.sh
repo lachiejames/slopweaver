@@ -82,6 +82,10 @@ signal_pids() {
   done
 }
 
+# The inner bound's TERM→KILL gap, in seconds. Assigned while sourcing, so no environment can widen it; a test
+# that needs the early release to beat a gap no load can cross reassigns it after the `source`.
+HOOK_BOUNDED_ESCALATION_SECONDS=2
+
 # How often a watchdog asks whether the pids it sent TERM are gone. `/bin/sleep` takes a fraction and bash
 # 3.2's `read -t` does not, so each poll is one small fork — paid only on a call already being ended.
 HOOK_TREE_POLL_SECONDS=0.1
@@ -175,7 +179,7 @@ run_hook_bounded() {
     local_tree="$(hook_tree_pids "$child")"
     # Word-splitting the captured list is the point — it is a list of pids, one per line.
     # shellcheck disable=SC2086
-    escalate_hook_pids 2 $local_tree
+    escalate_hook_pids "$HOOK_BOUNDED_ESCALATION_SECONDS" $local_tree
   ) >/dev/null 2>&1 &
   local watchdog=$!
 
