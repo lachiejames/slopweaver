@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { toolCachesUnder } from "../../../../../cli/commands/github/lapShell.js";
-import { publishedPort, storeUrls } from "../../../../../cli/commands/github/lapStore.js";
+import { publishedPort, storeRemovalArgs, storeUrls } from "../../../../../cli/commands/github/lapStore.js";
 
 describe("toolCachesUnder", () => {
   it("points a lane at each download cache present under the real home, and at nothing absent", () => {
@@ -21,6 +21,12 @@ describe("publishedPort", () => {
 
   it("answers undefined when no line names a port", () => {
     expect(publishedPort({ output: "" })).toBe(undefined);
+  });
+});
+
+describe("storeRemovalArgs", () => {
+  it("force-removes the store together with its anonymous volume", () => {
+    expect(storeRemovalArgs({ id: "lap-store-id" })).toEqual(["rm", "-f", "-v", "lap-store-id"]);
   });
 });
 
