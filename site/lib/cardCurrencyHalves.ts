@@ -6,6 +6,7 @@ import {
   type CurrencyCard,
   type CurrencyCardRow,
   type CurrencyDone,
+  type CurrencyFact,
   type CurrencyReading,
   isNotConfirmedWhy,
   type SaidFold,
@@ -183,28 +184,11 @@ export function factsHalf({
     };
   }
   const fact = row?.fact;
+  const done = row?.done;
   if (fact !== undefined) {
-    // A read that failed is named as one wherever the producer put it: on the fact itself, or — for an ask whose
-    // Slack thread would not read — on the row's done-check beside it.
-    const readFailed =
-      fact.kind === "not-confirmed" && (fact.unread !== undefined || row?.done?.kind === "could-not-check");
-    const failedWords = readFailed ? FACTS_READ_FAILED : NOT_RECONFIRMED;
-    // Only a reason this build's producers write is printed here: anything else a reading carries — an older
-    // producer's free text, which could name a session or a path — goes to the staleness mark (`unreadOf`) instead.
-    if (fact.kind === "not-confirmed" && isNotConfirmedWhy({ why: fact.why })) {
-      return { failedWords, line: `Facts: not confirmed, because ${fact.why}.`, passed: false };
-    }
-    if (fact.kind === "not-confirmed") {
-      return { failedWords, line: "Facts: not confirmed.", passed: false };
-    }
-    return {
-      iso: fact.atIso,
-      line: `Facts: last confirmed ${ageOf({ iso: fact.atIso })}, by ${fact.by}.`,
-      passed: true,
-    };
+    return producedFactHalf({ ageOf, done, fact });
   }
   // An older, ask-only reading: the card's own confirmation, and the done-check's read beside it.
-  const done = row?.done;
   if (done?.kind === "declared-not-run") {
     return {
       failedWords: "facts check not run",
@@ -231,6 +215,42 @@ export function factsHalf({
     return { failedWords: FACTS_READ_FAILED, line, passed: false };
   }
   return { iso, line, passed: true };
+}
+
+/**
+ * The facts half from the fact a reading's row carries. A read that failed is named as one wherever the producer put
+ * it: on the fact itself, or — for an ask whose Slack thread would not read — on the row's done-check beside it. A
+ * still-real check can confirm an ask whose thread then would not read: the line keeps what confirmed it, and the half
+ * does not pass over the failed read, as an older reading's does not.
+ *
+ * @param fact what the producer says confirmed the card's facts, or why nothing did
+ * @param done the row's done-check, when it carries one
+ * @returns the half
+ */
+function producedFactHalf({
+  fact,
+  done,
+  ageOf,
+}: {
+  fact: CurrencyFact;
+  done: CurrencyDone | undefined;
+  ageOf: AgeOf;
+}): Half {
+  const doneUnread = done?.kind === "could-not-check";
+  if (fact.kind === "confirmed") {
+    const line = `Facts: last confirmed ${ageOf({ iso: fact.atIso })}, by ${fact.by}.`;
+    if (doneUnread) {
+      return { failedWords: FACTS_READ_FAILED, line, passed: false };
+    }
+    return { iso: fact.atIso, line, passed: true };
+  }
+  const failedWords = fact.unread !== undefined || doneUnread ? FACTS_READ_FAILED : NOT_RECONFIRMED;
+  // Only a reason this build's producers write is printed here: anything else a reading carries — an older
+  // producer's free text, which could name a session or a path — goes to the staleness mark (`unreadOf`) instead.
+  if (isNotConfirmedWhy({ why: fact.why })) {
+    return { failedWords, line: `Facts: not confirmed, because ${fact.why}.`, passed: false };
+  }
+  return { failedWords, line: "Facts: not confirmed.", passed: false };
 }
 
 /**

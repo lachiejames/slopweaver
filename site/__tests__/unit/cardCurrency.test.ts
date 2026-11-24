@@ -295,6 +295,39 @@ describe("cardCurrencyOf", () => {
     expect(mark.words).toBe("facts read failed · you said things since");
   });
 
+  it("never passes facts a still-real check confirmed when its Slack thread would not read, and keeps what confirmed them", () => {
+    const stillReal = { atIso: CONFIRMED, by: "its still-real check", kind: "confirmed" as const };
+    const unreadThread = { kind: "could-not-check" as const, why: "ECONNRESET" };
+    const quiet = markOf({ card: floored(ask), reading: v3Of({ done: unreadThread, fact: stillReal }) });
+    const spoken = markOf({
+      card: floored(ask),
+      reading: v3Of({ done: unreadThread, fact: stillReal, since: { gaps: [], standing: [], words: [said.words[0]] } }),
+    });
+
+    expect(quiet.kind).toBe("steers-only");
+    expect(quiet.fresh).toBe(false);
+    expect(quiet.words).toBe(`your steers checked age(${CHECKED}) · not its facts`);
+    expect(quiet.lines[0]).toBe(`Facts: last confirmed age(${CONFIRMED}), by its still-real check.`);
+    expect(quiet.unread).toEqual([{ subject: "whether you have replied in its Slack thread", why: "ECONNRESET" }]);
+    expect(spoken.kind).toBe("unchecked");
+    expect(spoken.words).toBe("facts read failed · you said things since");
+    expect(spoken.lines[0]).toBe(quiet.lines[0]);
+    expect(spoken.unread).toEqual(quiet.unread);
+  });
+
+  it("passes facts a still-real check confirmed when its Slack thread read and found no reply", () => {
+    const mark = markOf({
+      card: floored(ask),
+      reading: v3Of({
+        done: { kind: "not-yet", readAtIso: READ },
+        fact: { atIso: CONFIRMED, by: "its still-real check", kind: "confirmed" },
+      }),
+    });
+
+    expect(mark.kind).toBe("fresh");
+    expect(mark.words).toBe(`fresh · checked age(${CONFIRMED})`);
+  });
+
   it("says a fact's read failed, and keeps its reason for the staleness mark", () => {
     const mark = markOf({
       card: floored({ ...ask, verifiedIso: undefined }),
