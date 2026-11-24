@@ -94,6 +94,8 @@ export interface DueAskRow {
   readonly onMissed: RecipeOnMissed;
   /** The cadence slot a run now would cover, or `null` when the row is not due. */
   readonly slotIso: string | null;
+  /** The firing the verdict handed to its successor unrun; absent when it handed none on, so `--json` is unchanged. */
+  readonly deferredSlotIso?: string;
   /** Slots still owed after that one — non-zero only for a per-slot kind that backfills. */
   readonly slotsOwedAfterThis: number;
   /** The live claim holding this row, or `undefined` when nothing is. */
@@ -249,6 +251,7 @@ export function dueAskRow({
     actionable: rowIsActionable({ band: tolerance.band, claim, claimsReadable, due: verdict.due, shape }),
     cadence: definition.cadence,
     claim,
+    ...(verdict.deferredSlotIso === null ? {} : { deferredSlotIso: verdict.deferredSlotIso }),
     due: verdict.due,
     effect: definition.effect,
     firingsSinceWatermark: verdict.firingsSinceWatermark,

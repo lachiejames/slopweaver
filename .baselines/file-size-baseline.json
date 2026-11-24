@@ -279,10 +279,6 @@
       "path": "src/__tests__/unit/live/automation/standingRows.test.ts"
     },
     {
-      "codeLines": 538,
-      "path": "src/__tests__/unit/live/automation/supervisorStops.test.ts"
-    },
-    {
       "codeLines": 605,
       "path": "src/__tests__/unit/live/github/mergeQueue.test.ts"
     },

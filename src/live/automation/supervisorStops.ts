@@ -344,7 +344,11 @@ export function explainSilentRows({ home, rows }: { home: string; rows: readonly
     if (read.isOk()) {
       stop = read.value.get(row.recipeId)!;
     }
-    const went = `${String(row.missedSlots)} scheduled time(s) went by with no run`;
+    // A slot handed to its successor already names its own cause; the record says only why no tick took it.
+    let went = `${String(row.missedSlots)} scheduled time(s) went by with no run`;
+    if (row.deferredSlotIso !== undefined) {
+      went = row.detail;
+    }
     return {
       ...row,
       detail: `${went}; ${supervisorStopWords({ lastRunAtIso: row.lastRunAtIso, stop })}`,

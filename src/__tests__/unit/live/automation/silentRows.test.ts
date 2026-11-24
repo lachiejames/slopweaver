@@ -18,6 +18,7 @@ function digest({ over = {} }: { over?: Partial<SilenceCandidate> } = {}): Silen
     cadence: "30 9 * * *",
     currentSlotHold: null,
     currentSlotOutcome: null,
+    deferredSlotIso: null,
     firingsSinceWatermark: 1,
     lastExitCode: 0,
     lastRunAtIso: "2026-09-16T03:46:41.000Z",
@@ -32,6 +33,7 @@ function resync({ over = {} }: { over?: Partial<SilenceCandidate> } = {}): Silen
     cadence: "0 */4 * * *",
     currentSlotHold: null,
     currentSlotOutcome: null,
+    deferredSlotIso: null,
     firingsSinceWatermark: 1,
     lastExitCode: 0,
     lastRunAtIso: "2026-09-18T04:00:00.000Z",
@@ -52,6 +54,37 @@ describe("silentRows", () => {
     expect(rows[0]!.recipeId).toBe("vulnfix-digest-acme-admin");
     expect(rows[0]!.missedSlots).toBe(1);
     expect(rows[0]!.reason).toBe("MISSED");
+  });
+
+  it("reports a daily row whose one owed slot was HANDED TO ITS SUCCESSOR, naming that slot", () => {
+    const rows = silentRows({
+      candidates: [digest({ over: { deferredSlotIso: "2026-09-17T09:30:00.000Z" } })],
+      nowIso: NOW,
+    });
+
+    expect(rows).toStrictEqual([
+      {
+        cadence: "30 9 * * *",
+        currentSlotHold: null,
+        deferredSlotIso: "2026-09-17T09:30:00.000Z",
+        detail:
+          "1 slot(s) of `30 9 * * *` went by unrun; slot 2026-09-17T09:30:00.000Z was handed to its successor " +
+          "because no tick took it in time",
+        lastRunAtIso: "2026-09-16T03:46:41.000Z",
+        missedSlots: 1,
+        reason: "MISSED",
+        recipeId: "vulnfix-digest-acme-admin",
+      },
+    ]);
+  });
+
+  it("stays quiet about a FOUR-HOURLY row whose one handed-on slot is still below its threshold of two", () => {
+    const rows = silentRows({
+      candidates: [resync({ over: { deferredSlotIso: "2026-09-18T04:00:00.000Z" } })],
+      nowIso: NOW,
+    });
+
+    expect(rows).toEqual([]);
   });
 
   it("stays quiet about a FOUR-HOURLY row that has missed one slot, and reports it on the second", () => {

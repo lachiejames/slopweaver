@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { FiringView } from "../../../automations/card.js";
 import { healthOf, nowDoingOf, standingHoldOf, waitingOnOf } from "../../../automations/health.js";
 import type { RecipeDefinition, RecipeHold } from "../../../live/automation/definition.js";
-import type { RecipeDueVerdict } from "../../../live/automation/definitionDue.js";
 import type { SilentRow } from "../../../live/automation/silentRows.js";
 import type { RecipeSlotVerdict } from "../../../live/automation/slotAttempt.js";
 import { auditedAgainst, HIS_ANCHOR } from "../../auditedOwnerHold.js";
+import { verdict } from "./dueVerdictFixture.js";
 
 const definition = (over: Partial<RecipeDefinition> = {}): RecipeDefinition => ({
   cadence: "0 */4 * * *",
@@ -18,18 +18,6 @@ const definition = (over: Partial<RecipeDefinition> = {}): RecipeDefinition => (
   params: { argv: ["recipe", "resync", "--source", "slack"] },
   recipeId: "resync-corpus-slack",
   schemaVersion: 1,
-  ...over,
-});
-
-const verdict = (over: Partial<RecipeDueVerdict> = {}): RecipeDueVerdict => ({
-  due: false,
-  firingsSinceWatermark: 0,
-  lastRunAtIso: "2026-10-03T00:00:00.000Z",
-  line: "",
-  recipeId: "resync-corpus-slack",
-  slotIso: null,
-  slotsOwedAfterThis: 0,
-  watermarkIso: "2026-10-03T00:00:00.000Z",
   ...over,
 });
 
@@ -241,6 +229,20 @@ describe("healthOf", () => {
       health: "not-measured",
       why: "2 slot ledger file(s) did not decode",
     });
+  });
+
+  it("never claims the latest scheduled time succeeded when a slot was handed on below the silence threshold", () => {
+    const handedOn = verdict({ deferredSlotIso: "2026-10-03T04:00:00.000Z", firingsSinceWatermark: 1 });
+
+    expect([healthOf({ ...inputs, verdict: handedOn }), healthOf(inputs)]).toEqual([
+      {
+        health: "healthy",
+        why:
+          "its last run succeeded at 2026-10-03T00:20:00.000Z; slot 2026-10-03T04:00:00.000Z went by unrun and was " +
+          "handed to its successor",
+      },
+      { health: "healthy", why: "the run for its latest scheduled time succeeded at 2026-10-03T00:20:00.000Z" },
+    ]);
   });
 
   it("reads a disabled row with no newer reading as off", () => {

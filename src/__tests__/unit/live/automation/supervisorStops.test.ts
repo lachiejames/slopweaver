@@ -15,136 +15,8 @@ import {
 } from "../../../../live/automation/supervisorStops.js";
 import { supervisorTickStatsOf } from "../../../../supervisor/tickSchema.js";
 import { supervisorTickLedgerPath, supervisorTickLine } from "../../../../supervisor/tickStore.js";
-import {
-  SUPERVISOR_TICK_SCHEMA_VERSION,
-  type SupervisorJudgement,
-  type SupervisorTickAction,
-  type SupervisorTickRow,
-  TICK_SOURCE_KINDS,
-} from "../../../../supervisor/tickTypes.js";
-
-const SLACK = { id: "resync-corpus-slack", kind: "recipe", label: "Slack history sync" } as const;
-const LAST_RUN = "2026-10-09T03:23:24.000Z";
-
-/** A due reading naming each row as waiting to run, held by `heldBy`. */
-function dueReading({
-  observedAtIso,
-  ids,
-  heldBy = null,
-}: {
-  observedAtIso: string;
-  ids: readonly string[];
-  heldBy?: string | null;
-}): Record<string, unknown> {
-  return {
-    facts: { rows: ids.map((id) => ({ heldBy, id, label: id, lateMinutes: 30, runs: "spawn" })) },
-    observedAtIso,
-    status: "read",
-    witness: { command: "slopweaver automation due --json", exitCode: 0 },
-  };
-}
-
-/**
- * One valid tick row, every source unavailable but the due reading given.
- *
- * @param recipeDue the due reading, or none for an unavailable one
- * @returns the row
- */
-function tick({
-  tickId,
-  finalisedIso,
-  recipeDue,
-  actions = [],
-  judgements = [],
-}: {
-  tickId: string;
-  finalisedIso: string;
-  recipeDue?: Record<string, unknown>;
-  actions?: SupervisorTickAction[];
-  judgements?: SupervisorJudgement[];
-}): SupervisorTickRow {
-  const startedIso = new Date(Date.parse(finalisedIso) - 60_000).toISOString();
-  const sources: Record<string, unknown> = {};
-  for (const kind of TICK_SOURCE_KINDS) {
-    sources[kind] = {
-      diagnostic: "not read by this fixture",
-      observedAtIso: startedIso,
-      status: "unavailable",
-      witness: { command: `slopweaver ${kind}`, exitCode: null },
-    };
-  }
-  if (recipeDue !== undefined) {
-    sources["recipeDue"] = recipeDue;
-  }
-  const parts = {
-    actions,
-    judgements,
-    ownerTurns: {
-      coverage: { earliestIso: undefined, linksKnown: 1, reachesSince: true, unreadable: [], walked: ["a1"] },
-      sinceIso: null,
-      status: "read" as const,
-      turns: [],
-    },
-    sources,
-  };
-  return {
-    ...parts,
-    finalisedIso,
-    handoff: "handoff-9300",
-    schemaVersion: SUPERVISOR_TICK_SCHEMA_VERSION,
-    startedIso,
-    stats: supervisorTickStatsOf(parts),
-    tickId,
-    workspace: "workspace:1",
-  } as unknown as SupervisorTickRow;
-}
-
-/** A hold-rationale judgement on a subject. */
-function hold({
-  claim,
-  recordedIso,
-  subject = SLACK,
-  relatedSubjects,
-}: {
-  claim: string;
-  recordedIso: string;
-  subject?: SupervisorJudgement["subject"];
-  relatedSubjects?: SupervisorJudgement["relatedSubjects"];
-}): SupervisorJudgement {
-  return {
-    claim,
-    judgementId: "j1",
-    kind: "hold-rationale",
-    recordedIso,
-    relatedSubjects,
-    subject,
-    whyNotDerived: "operational-context",
-    witness: { kind: "command", ref: "slopweaver automation due" },
-  };
-}
-
-/** An action on the Slack row. */
-function action({
-  kind,
-  recordedIso,
-  detail,
-  outcome = "completed",
-}: {
-  kind: SupervisorTickAction["kind"];
-  recordedIso: string;
-  detail?: string;
-  outcome?: SupervisorTickAction["outcome"];
-}): SupervisorTickAction {
-  return {
-    actionId: "a1",
-    detail,
-    kind,
-    outcome,
-    recordedIso,
-    subject: SLACK,
-    witness: { kind: "command", ref: "slopweaver automation seat" },
-  };
-}
+import type { SupervisorTickRow } from "../../../../supervisor/tickTypes.js";
+import { action, dueReading, hold, LAST_RUN, SLACK, tick } from "./supervisorStopsFixture.js";
 
 const windows = [{ recipeId: SLACK.id, sinceIso: LAST_RUN }];
 
@@ -352,7 +224,7 @@ describe("foldRecipeSupervisorStops", () => {
             outcome: "failed",
             recordedIso: "2026-10-09T05:00:40.000Z",
           }),
-          action({ kind: "recipe-run", outcome: "failed", recordedIso: "2026-10-09T05:00:50.000Z" }),
+          action({ actionId: "a2", kind: "recipe-run", outcome: "failed", recordedIso: "2026-10-09T05:00:50.000Z" }),
         ],
         finalisedIso: "2026-10-09T05:01:00.000Z",
         recipeDue: due,
@@ -469,6 +341,34 @@ describe("explainSilentRows", () => {
         failing,
       ],
     });
+  });
+
+  it("keeps a handed-on MISSED row's own slot sentence and adds what the record says after it", () => {
+    const row = tick({
+      finalisedIso: "2026-10-09T05:19:00.000Z",
+      recipeDue: dueReading({ ids: [SLACK.id], observedAtIso: "2026-10-09T05:19:00.000Z" }),
+      tickId: "t1",
+    });
+    const home = homeWith({ lines: [supervisorTickLine({ row })] });
+    const handedOn: SilentRow = {
+      ...missed,
+      deferredSlotIso: "2026-10-09T08:00:00.000Z",
+      detail:
+        "1 slot(s) of `0 */4 * * *` went by unrun; slot 2026-10-09T08:00:00.000Z was handed to its successor " +
+        "because no tick took it in time",
+      missedSlots: 1,
+    };
+
+    expect(explainSilentRows({ home, rows: [handedOn] }).rows).toStrictEqual([
+      {
+        ...handedOn,
+        detail:
+          "1 slot(s) of `0 */4 * * *` went by unrun; slot 2026-10-09T08:00:00.000Z was handed to its successor " +
+          `because no tick took it in time; it last ran ${LAST_RUN}; the supervisor saw it waiting to run on 1 ` +
+          "check(s) since 2026-10-09T05:19:00.000Z and neither ran it nor said why",
+        supervisorStop: { firstSeenDueIso: "2026-10-09T05:19:00.000Z", kind: "passed-over", passes: 1 },
+      },
+    ]);
   });
 
   it("walks a ledger whose oldest row predates the dispatch and staleness readings, to the newest pass", () => {

@@ -32,7 +32,8 @@ it anywhere the owner reads.
 **The threshold is the row's OWN cadence** (`src/live/automation/silentRows.ts`): reported after ONE missed slot
 when it fires at most daily, TWO when it fires more often. The daily case is not a new number at all — it is
 exactly `definitionTolerance.ts`'s existing `overdue` band, since `firingsSinceWatermark` counts the firing
-currently due as well. The sub-daily case asks for one more, because the owner reads one briefing a day and a
+currently due as well. A firing the due verdict HANDED TO ITS SUCCESSOR (`deferredSlotIso`, past its period's
+midpoint with no tick) is not due but given up, so it counts as missed at once. The sub-daily case asks for one more, because the owner reads one briefing a day and a
 four-hourly row that missed a single tick has usually recovered several times over before the page reaches
 the owner.
 

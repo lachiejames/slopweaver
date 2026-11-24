@@ -13,7 +13,8 @@ put off, after only what blocks the owner's priorities and the owner's prioritie
   is watched only when `judgeRecipeDue` gives it no `offReason`, so a **disabled** row and one under an
   **uncleared hold** are never read as stopped: the owner retired them.
 - **When it fires.** `silentRows`' own threshold and reasons, with no second number: a row at or above daily
-  fires after one whole missed slot, a sub-daily row after two, and an unschedulable cadence at once. The card
+  fires after one whole missed slot (a slot handed to its successor unrun counts), a sub-daily row after two,
+  and an unschedulable cadence at once. The card
   carries the reason — `UNSCHEDULABLE`, `DEFERRED`, `NEVER RUN`, `FAILING` or `MISSED` — and its detail.
 - **One step for the whole stopped set**, keyed by which rows are in it. Measured, the first real
   `monitor check` read 46 stopped rows: one card each would have been the flood. A row newly stopping, or one

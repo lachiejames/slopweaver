@@ -84,6 +84,7 @@ describe("definitionFieldsOf", () => {
   it("switches a row off under an owner hold even while it is enabled", () => {
     const definition = row({ hold: HOLD });
     const verdict: RecipeDueVerdict = {
+      deferredSlotIso: null,
       due: false,
       firingsSinceWatermark: 0,
       lastRunAtIso: null,

@@ -26,6 +26,7 @@ const ATLAS_ROW: RecipeDefinition = {
 
 /** That row, due now. */
 const ATLAS_DUE: RecipeDueVerdict = {
+  deferredSlotIso: null,
   due: true,
   firingsSinceWatermark: 1,
   lastRunAtIso: "2026-09-08T11:30:00.000Z",

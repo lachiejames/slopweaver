@@ -117,7 +117,13 @@ describe("automation due --brief", () => {
       nowIso: NOW_ISO,
       rejected: [],
       verdicts: [
-        verdict({ due: false, firingsSinceWatermark: 1, recipeId: "deferred" }),
+        verdict({
+          deferredSlotIso: "2026-09-08T12:00:00.000Z",
+          due: false,
+          firingsSinceWatermark: 1,
+          recipeId: "deferred",
+          slotIso: null,
+        }),
         verdict({ due: false, firingsSinceWatermark: 0, recipeId: "current", slotIso: null }),
       ],
     });
