@@ -195,9 +195,9 @@ describe("runGithubStackPush — which pull request the description reviews desc
       ...observed.deps,
       git: {
         ...observed.deps.git,
-        writeGit: ({ args }) => {
-          calls.push(`git ${args[0]!}`);
-          return observed.deps.git.writeGit({ args });
+        writeGit: (input) => {
+          calls.push(`git ${input.args[0]!}`);
+          return observed.deps.git.writeGit(input);
         },
       },
     };
