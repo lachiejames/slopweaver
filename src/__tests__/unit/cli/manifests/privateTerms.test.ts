@@ -15,12 +15,13 @@ const VERBS: readonly PrivateTermsVerb[] = [
   "list",
   "narrow",
   "remove",
+  "retire",
   "review-prepare",
   "review-record",
 ];
 
 describe("privateTermsManifest", () => {
-  it("declares exactly the eight verbs", () => {
+  it("declares exactly the nine verbs", () => {
     expect(Object.keys(privateTermsManifest).toSorted()).toStrictEqual([...VERBS]);
   });
 

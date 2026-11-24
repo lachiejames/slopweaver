@@ -87,6 +87,9 @@ write held. Residues, stated:
 - **A confirm races a writer that ignores the lock.** `private-terms confirm` compares the file's raw bytes once,
   under the advisory lock, then renames its staged file over the target; every writer in this repository takes
   that lock, and a process that does not can change the bytes in between. POSIX gives a rename no compare step.
+  A confirm racing `private-terms retire` is not this residue: both take the lock and re-read the proposal under it,
+  and a stale lock is cleared only while it still holds the bytes judged dead, so neither can delete the other's
+  live lock (`src/hygiene/privateTermsLock.ts`, which names the three-way residue left).
 - **A send that fails after the spend costs the receipt.** The receipt is spent before the wire, so a provider
   failure leaves the retry held for a fresh review: the fail-closed direction.
 - **Gmail's draft and its send are two holds.** The send judges the draft Gmail holds, a different request from

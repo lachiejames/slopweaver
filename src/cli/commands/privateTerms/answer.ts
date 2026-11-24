@@ -5,14 +5,16 @@
  * changes only on `confirm`, which the fleet runs on a yes and which refuses a proposal answered no
  * (`../../../hygiene/privateTermAnswers.ts`). It prints the proposal id and the answer, never a word.
  */
-import { answerPrivateTermsProposal, processPidAlive } from "../../../hygiene/privateTermsStore.js";
+import { processPidAlive } from "../../../hygiene/privateTermsLock.js";
+import { answerPrivateTermsProposal } from "../../../hygiene/privateTermsStore.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { resolveHome } from "../../optionParsers.js";
 import { parsePrivateTermsAnswerArgs } from "./answerArgs.js";
 import { privateTermsUsage, VERB_ARG_OFFSET } from "./core.js";
-import { asksHelp, failUsage, type PrivateTermsEditDeps, productionPrivateTermsEditDeps } from "./edit.js";
+import { type PrivateTermsEditDeps, productionPrivateTermsEditDeps } from "./edit.js";
 import { printEdgesUnderArgvHomes } from "./printGuard.js";
+import { asksHelp, failUsage } from "./runSupport.js";
 
 /**
  * Run `private-terms answer`: keep the owner's answer to one proposal that is still waiting.

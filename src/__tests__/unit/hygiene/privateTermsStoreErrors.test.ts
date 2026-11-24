@@ -33,9 +33,9 @@ describe("PrivateTermsStoreErrors", () => {
     );
   });
 
-  it("says there is no proposal to confirm, and why", () => {
+  it("says there is no waiting proposal, and why", () => {
     const error = PrivateTermsStoreErrors.proposalUnusable({ why: "none is kept under that id" });
     expect(error.code).toBe("PROPOSAL_UNUSABLE");
-    expect(error.message).toBe("no proposal to confirm: none is kept under that id");
+    expect(error.message).toBe("no waiting proposal: none is kept under that id");
   });
 });

@@ -10,7 +10,7 @@ interface StoreIoFailedError {
   readonly message: string;
 }
 
-/** The proposal named is not one waiting to be confirmed: a bad id, none kept, or not this store's shape. */
+/** The proposal named is not one waiting: a bad id, none kept, or not this store's shape. */
 interface ProposalUnusableError {
   readonly code: "PROPOSAL_UNUSABLE";
   readonly message: string;
@@ -47,6 +47,6 @@ export const PrivateTermsStoreErrors = {
   }),
   proposalUnusable: ({ why }: { why: string }): ProposalUnusableError => ({
     code: "PROPOSAL_UNUSABLE",
-    message: `no proposal to confirm: ${why}`,
+    message: `no waiting proposal: ${why}`,
   }),
 } as const;

@@ -1,7 +1,7 @@
 ---
 name: private-terms
-description: Keep the owner's private words hands-free — record a word the owner says or types into $SLOPWEAVER_HOME/hygiene/private-terms.tsv with the owner's meaning and where it is fine, read the edit back before it counts, and clear a write a meant word held with a fresh review in context. Use when the owner names a word, person, place or topic as private, says where one is fine, asks what is on the list, or when an outbound write printed "held before sending" with a hold id. Phrases like "make that a private word", "that name is fine in our Slack", "drop that private term", "what private words do we have", "this write is held for review".
-argument-hint: "list | add --class <c> --case <c> --pattern-file <path> --meaning <words> --allowed-where <words> --source <ref> [--matches <text>] [--misses <text>] | narrow <term-id> | remove <term-id> | answer <proposal-id> --as yes|no --via console|word --by-session <who> | confirm <proposal-id> | review-prepare --hold <id> | review-record --review <id>"
+description: Keep the owner's private words hands-free — record a word the owner says or types into $SLOPWEAVER_HOME/hygiene/private-terms.tsv with the owner's meaning and where it is fine, read the edit back before it counts, retire a waiting proposal the owner did not take or a later edit left stale, and clear a write a meant word held with a fresh review in context. Use when the owner names a word, person, place or topic as private, says where one is fine, asks what is on the list, when `list` shows a proposal stale or waiting that should not land, or when an outbound write printed "held before sending" with a hold id. Phrases like "make that a private word", "that name is fine in our Slack", "drop that private term", "what private words do we have", "drop that stale proposal", "this write is held for review".
+argument-hint: "list | add --class <c> --case <c> --pattern-file <path> --meaning <words> --allowed-where <words> --source <ref> [--matches <text>] [--misses <text>] | narrow <term-id> | remove <term-id> | answer <proposal-id> --as yes|no --via console|word --by-session <who> | confirm <proposal-id> | retire <proposal-id> | review-prepare --hold <id> | review-record --review <id>"
 ---
 
 **The owner never edits the list by hand, and an edit counts only once it is read back to the owner.** Each
@@ -40,7 +40,18 @@ scratchpad and is deleted after the proposal.
 
 `narrow <term-id>` changes only the cells it names (`--meaning`, `--allowed-where`, `--case`, a new pattern).
 A four-cell row is named `line-<n>` until the first edit gives every row an id. `list` prints every row and
-every waiting proposal.
+every waiting proposal, each marked `current` or `stale` (a confirm would refuse it now).
+
+## Retiring a proposal that should not land
+
+```bash
+slopweaver private-terms retire <proposal-id>      # removes it unapplied; the terms file is never written
+```
+
+`remove` PROPOSES taking a term row out; `retire` drops a waiting proposal, and any answer recorded beside it,
+without applying it, under the lock `confirm` takes. One that can never land, `stale` or `owner no`, carries its
+retire step in `list`, and a stale one in confirm's refusal too. Retiring a `current` one the owner has not
+answered no discards an edit still open to the owner, so that waits for the owner's no.
 
 ## Clearing a held write
 

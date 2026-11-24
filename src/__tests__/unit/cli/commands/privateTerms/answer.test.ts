@@ -15,6 +15,7 @@ import {
   runPrivateTermsConfirm,
 } from "../../../../../cli/commands/privateTerms/edit.js";
 import { runPrivateTermsList } from "../../../../../cli/commands/privateTerms/list.js";
+import { runPrivateTermsRetire } from "../../../../../cli/commands/privateTerms/retire.js";
 import { privateTermAnswerPath } from "../../../../../hygiene/privateTermAnswers.js";
 import { err, ok } from "../../../../../lib/result.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
@@ -116,7 +117,7 @@ describe("private-terms answer", () => {
     expect(runPrivateTermsList({ argv: argvOf({ rest: ["--home", home], verb: "list" }), deps: listed.deps })).toBe(0);
     expect(listed.out).toStrictEqual([
       "0 row(s)",
-      "waiting: proposal pp-00000000000a to add pt-00000000000a, owner yes",
+      "waiting: proposal pp-00000000000a to add pt-00000000000a, owner yes (current)",
     ]);
   });
 
@@ -140,7 +141,7 @@ describe("private-terms answer", () => {
     const argv = argvOf({ rest: ["pp-00000000000a", "--home", home], verb: "confirm" });
     expect(runPrivateTermsConfirm({ argv, deps: confirmed.deps })).toBe(2);
     expect(confirmed.diagnostics).toStrictEqual([
-      "no proposal to confirm: the owner answered no to pp-00000000000a on console at 2026-11-23T00:00:00.000Z",
+      "no waiting proposal: the owner answered no to pp-00000000000a on console at 2026-11-23T00:00:00.000Z",
     ]);
     expect(readFileSync(stateHomePaths({ home }).privateTerms, "utf8")).not.toContain(WORD);
   });
@@ -153,11 +154,11 @@ describe("private-terms answer", () => {
     const argv = argvOf({ rest: ["pp-00000000000a", "--home", home], verb: "confirm" });
     expect(runPrivateTermsConfirm({ argv, deps: confirmed.deps })).toBe(2);
     expect(confirmed.diagnostics).toStrictEqual([
-      `no proposal to confirm: the owner's answer to pp-00000000000a at ${path} does not read; record it again with private-terms answer`,
+      `no waiting proposal: the owner's answer to pp-00000000000a at ${path} does not read; record it again with private-terms answer`,
     ]);
     const listed = depsOf();
     expect(runPrivateTermsList({ argv: argvOf({ rest: ["--home", home], verb: "list" }), deps: listed.deps })).toBe(0);
-    expect(listed.out[1]).toBe("waiting: proposal pp-00000000000a to add pt-00000000000a, owner unreadable");
+    expect(listed.out[1]).toBe("waiting: proposal pp-00000000000a to add pt-00000000000a, owner unreadable (current)");
   });
 
   it("makes confirm refuse over a dangling answer link, which is an answer that does not read, not no answer", () => {
@@ -168,8 +169,23 @@ describe("private-terms answer", () => {
     const argv = argvOf({ rest: ["pp-00000000000a", "--home", home], verb: "confirm" });
     expect(runPrivateTermsConfirm({ argv, deps: confirmed.deps })).toBe(2);
     expect(confirmed.diagnostics).toStrictEqual([
-      `no proposal to confirm: the owner's answer to pp-00000000000a at ${path} does not read; record it again with private-terms answer`,
+      `no waiting proposal: the owner's answer to pp-00000000000a at ${path} does not read; record it again with private-terms answer`,
     ]);
+    expect(readFileSync(stateHomePaths({ home }).privateTerms, "utf8")).not.toContain(WORD);
+  });
+
+  it("names the retire step for a proposal answered no, and retire removes it with its answer", () => {
+    const home = homeWithProposal();
+    expect(answer({ as: "no", home }).code).toBe(0);
+    const listed = depsOf();
+    expect(runPrivateTermsList({ argv: argvOf({ rest: ["--home", home], verb: "list" }), deps: listed.deps })).toBe(0);
+    expect(listed.out[1]).toBe(
+      `waiting: proposal pp-00000000000a to add pt-00000000000a, owner no (current); retire it: slopweaver private-terms retire pp-00000000000a --home ${home}`,
+    );
+    const retired = depsOf();
+    const argv = argvOf({ rest: ["pp-00000000000a", "--home", home], verb: "retire" });
+    expect(runPrivateTermsRetire({ argv, deps: retired.deps })).toBe(0);
+    expect(existsSync(privateTermAnswerPath({ home, proposalId: "pp-00000000000a" }))).toBe(false);
     expect(readFileSync(stateHomePaths({ home }).privateTerms, "utf8")).not.toContain(WORD);
   });
 
@@ -188,7 +204,7 @@ describe("private-terms answer", () => {
     const rest = ["pp-0000000000ff", "--as", "yes", "--via", "console", "--by-session", "work-console", "--home", home];
     expect(runPrivateTermsAnswer({ argv: argvOf({ rest, verb: "answer" }), deps: run.deps })).toBe(2);
     expect(run.diagnostics).toStrictEqual([
-      "no proposal to confirm: pp-0000000000ff is not waiting: it was confirmed already, or never made under this home",
+      "no waiting proposal: pp-0000000000ff is not waiting: it was confirmed or retired already, or never made under this home",
     ]);
     expect(existsSync(privateTermAnswerPath({ home, proposalId: "pp-0000000000ff" }))).toBe(false);
   });
