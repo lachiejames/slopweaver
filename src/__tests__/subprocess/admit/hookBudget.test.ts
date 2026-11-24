@@ -177,35 +177,45 @@ async function runStubbornGrandchild({
 }
 
 /**
- * Drive `bounded-run.sh` over a hook whose whole tree dies on its `TERM` — the common shape, `bash` and
- * `node` both — so the release is timed against the escalation it should no longer wait out.
+ * A TERM→KILL gap no load can cross, so a release that waited out the escalation is told apart from one
+ * that did not by tens of seconds rather than by the one second a saturated lane's process boot and
+ * teardown can spend on their own.
+ */
+const EARLY_RELEASE_ESCALATION_SECONDS = 30;
+
+/**
+ * Drive one of `bounded-run.sh`'s two bounds over a hook whose whole tree dies on its `TERM` — the common
+ * shape, `bash` and `node` both — so the release is timed against the escalation it should no longer wait
+ * out. The library assigns each escalation while it is sourced, so the driver reassigns it to
+ * {@link EARLY_RELEASE_ESCALATION_SECONDS} AFTER the `source`, in the shell that then runs the shipped function.
  *
- * @param budgetSeconds the bound the run is given
+ * @param bound which shipped function runs the hook: the inner `run_hook_bounded` or the envelope's own
+ * @param limitSeconds the budget the inner bound is given, or the timeout the envelope is declared
  * @returns the driver's exit status, what it said on stderr, and how long the call was held
  */
 async function runObedientHook({
-  budgetSeconds,
+  bound,
+  limitSeconds,
 }: {
-  budgetSeconds: number;
+  bound: "bounded" | "enveloped";
+  limitSeconds: number;
 }): Promise<{ status: number | null; stderr: string; elapsedMs: number }> {
-  const dir = tempDir();
-  const driver = join(dir, "drive.sh");
+  const call = {
+    bounded: { run: "run_hook_bounded", variable: "HOOK_BOUNDED_ESCALATION_SECONDS" },
+    enveloped: { run: "run_hook_enveloped", variable: "HOOK_ENVELOPE_ESCALATION_SECONDS" },
+  }[bound];
+  const driver = join(tempDir(), "drive.sh");
   writeFileSync(
     driver,
-    `#!/usr/bin/env bash\nset -uo pipefail\n` +
-      `source "${join(repoRoot, "hooks/lib/bounded-run.sh")}"\n` +
-      `run_hook_bounded "$(hook_budget_seconds)" 0 obedient-fixture sleep 120\n`,
+    `#!/usr/bin/env bash\nset -uo pipefail\nsource "${join(repoRoot, "hooks/lib/bounded-run.sh")}"\n` +
+      `${call.variable}=${String(EARLY_RELEASE_ESCALATION_SECONDS)}\n${call.run} ${String(limitSeconds)} 0 obedient-fixture sleep 120\n`,
     "utf8",
   );
   chmodSync(driver, 0o755);
 
   const startedMs = Date.now();
   const child = spawn(driver, {
-    env: {
-      HOME: process.env["HOME"]!,
-      PATH: process.env["PATH"]!,
-      SLOPWEAVER_HOOK_BUDGET_SECONDS: String(budgetSeconds),
-    },
+    env: { HOME: process.env["HOME"]!, PATH: process.env["PATH"]! },
     stdio: ["pipe", "pipe", "pipe"],
   });
   child.stdin.end();
@@ -214,12 +224,8 @@ async function runObedientHook({
   child.stderr.on("data", (chunk: string) => {
     stderr += chunk;
   });
-  const status = await new Promise<number | null>((settle) => {
-    child.on("close", (code) => {
-      settle(code);
-    });
-  });
-  return { elapsedMs: Date.now() - startedMs, status, stderr };
+  await once(child, "close");
+  return { elapsedMs: Date.now() - startedMs, status: child.exitCode, stderr };
 }
 
 describe("the budget the tool-call shims hold themselves to", { timeout: CASE_TIMEOUT_MS }, () => {
@@ -361,14 +367,14 @@ describe("the budget the tool-call shims hold themselves to", { timeout: CASE_TI
   // on it is released inside the escalation rather than at its end (the ladder in
   // `hooks/lib/bounded-run.sh` has why). Together the two prove the early release is conditional.
   it("releases a hook whose tree dies on TERM without waiting out the escalation", async () => {
-    const run = await runObedientHook({ budgetSeconds: BUDGET_SECONDS });
+    const run = await runObedientHook({ bound: "bounded", limitSeconds: BUDGET_SECONDS });
 
     expect(run.status).toBe(0);
     expect(run.stderr).toBe(
       `obedient-fixture: killed after ${String(BUDGET_SECONDS)}s without a verdict, so the tool call is no longer held — this hook reached no decision\n`,
     );
     expect(run.elapsedMs).toBeGreaterThanOrEqual(BUDGET_SECONDS * 1000);
-    expect(run.elapsedMs).toBeLessThan((BUDGET_SECONDS + 2) * 1000);
+    expect(run.elapsedMs).toBeLessThan((BUDGET_SECONDS + EARLY_RELEASE_ESCALATION_SECONDS) * 1000);
   });
 });
 
@@ -488,19 +494,23 @@ describe("the envelope every registered hook runs through", { timeout: CASE_TIME
   // The race the harness kept winning: the old watchdog slept the whole escalation second after a TERM that
   // had already ended every pid, so the release landed a second later than it had to and lost about three
   // calls in four to the harness (`hooks/lib/bounded-run.sh`'s ladder has the census). A target
-  // that dies on its TERM is released before the KILL second, never at it.
+  // that dies on its TERM is released before the KILL, never at it. The envelope runs directly with its
+  // escalation widened, because against the shipped one second a loaded lane's boot and teardown alone, counted
+  // from the spawn, crossed the KILL with no regression at all; the cases around this one still run `hook.sh`.
   it("releases the moment a target dies on its TERM, rather than waiting out the escalation", async () => {
-    const run = await runEnveloped({ body: "#!/usr/bin/env bash\nsleep 120\n" });
+    // The same TERM second as the shipped ladder: declared, less the runway and the widened escalation.
+    const declared = ENVELOPE_TERM_SECONDS + EARLY_RELEASE_ESCALATION_SECONDS + 2;
+    const run = await runObedientHook({ bound: "enveloped", limitSeconds: declared });
 
+    expect(run.status).toBe(0);
     // Exact, so a bash "Terminated" report of the watchdog's own reaped timer reddens it: any hook stderr
     // reaches a seat as a hook-error banner.
     expect(run.stderr).toBe(
-      `envelope-fixture: killed after ${String(ENVELOPE_TERM_SECONDS)}s without finishing, so the tool call is ` +
-        `no longer held — this hook reached no decision, and hooks.json declares ` +
-        `${String(ENVELOPE_DECLARED_SECONDS)}s for this entry\n`,
+      `obedient-fixture: killed after ${String(ENVELOPE_TERM_SECONDS)}s without finishing, so the tool call is ` +
+        `no longer held — this hook reached no decision, and hooks.json declares ${String(declared)}s for this entry\n`,
     );
     expect(run.elapsedMs).toBeGreaterThanOrEqual(ENVELOPE_TERM_SECONDS * 1000);
-    expect(run.elapsedMs).toBeLessThan(ENVELOPE_KILL_SECONDS * 1000);
+    expect(run.elapsedMs).toBeLessThan((ENVELOPE_TERM_SECONDS + EARLY_RELEASE_ESCALATION_SECONDS) * 1000);
   });
 
   it("escalates to KILL, so a descendant that ignores TERM stops holding the hook's stdout", async () => {
