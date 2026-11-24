@@ -7,16 +7,20 @@
  * voice and paste them elsewhere, for instance while the owner is in hand-edit mode, so an output the owner will want
  * to copy arrives all formatted; what the owner puts there reaches the voice too.
  *
- * The list is where EVERY message composed for the owner goes, asked for or proposed, never the owner's ears. A
- * thinking model that writes a reply draft as its answer has the voice read the whole of it out for ~50s, when the
- * owner wants a message in the copy tray and a line asking what they think of it, not the whole message out loud,
+ * The list is where EVERY message composed for the owner goes, never the owner's ears, and only one the owner plainly
+ * asked to have noted or drafted. An offer to draft invites a hedged yes, and a yes to the voice's own offer is not
+ * the owner asking: what lands is wording nobody will paste, when a point about a page being read is a reaction to
+ * that page, for its next cut. So no surface offers to draft, a yes to that offer is no instruction, and a point
+ * about a page being read is relayed. Repro: `slopweaver talk call-tools --call <callId>`, an `offer_copy` line whose
+ * turn was steered only by a yes to the voice's own offer to draft. A thinking model that writes a reply draft as its
+ * answer has the voice read the whole of it out, far longer than any spoken answer, when the owner wants a message in the copy tray and a line asking what they think of it, not the whole message out loud,
  * which comes through as a wall of text. Repro: `grep -n '"kind":"wrote"' $SLOPWEAVER_HOME/talk/calls/<call-id>-*.jsonl`
  * — the draft, with no `offer_copy` tool line after it. So both halves carry the rule: the thinking model never
  * answers with the draft, and the voice never reads one out even if it is handed one. The voice cannot see a tool
  * call, so on a call the line saying a draft is on the owner's list is the CONSOLE's: it holds every answer before the
  * voice is handed it, sees which turn's `offer_copy` the page answered unrefused, and ends only that turn's answer on
  * `RUNNING_LIST_LANDED_LINE` (`site/lib/talkPlanHeldRelease.ts`). Neither prompt quotes the line: quoted in the
- * voice's, it became how the voice ended a turn, ~10 times in one measured call with no offer made. A typed turn
+ * voice's, a line it can say unprompted becomes how it ends a turn, claiming a draft with no offer made. A typed turn
  * writes its own line.
  *
  * The list is for any wording drafted to stand as the OWNER's words, not only a message the owner will paste.
@@ -73,9 +77,11 @@ export const COPY_TOOLS: readonly TalkTool[] = [
       "Put ONE draft of the OWNER's words on their running list: the list beside the conversation that keeps the " +
       `newest ${String(RUNNING_LIST_KEPT)} items across calls, typed conversations and restarts, where the owner reads ` +
       "it and copies it with one click. It works the same whether the owner is speaking or typing. " +
-      "Call it for every piece of wording you draft to stand as the owner's own words — a message, a reply, a review " +
-      "comment, a script or talk line, talking points — whether the owner will paste it, say it or only react to it, " +
-      "when the owner asks for one and when you propose one ('here's what I'd say'), and in your answer only if the owner asks to hear it. " +
+      "Call it only on the owner's plain instruction to note or draft wording as their own — a message, a reply, a " +
+      "review comment, a script or talk line, talking points — whether they will paste it, say it or only react to it. " +
+      "Never offer to draft one: a yes to your own offer, hedged or not, is no instruction, and wording nobody asked " +
+      "for is never drafted, here or in your answer. A point the owner makes about a briefing or page they are reading " +
+      "is a reaction to that page for relay_steer, never a list item. Put a draft in your answer only if the owner asks to hear it. " +
       "Not for your own explanation, summary or advice to the owner: speak that as normal. Never when the owner asks " +
       "you or the fleet to send, post or reply with it: that is a relay. Never say it was sent. Write text exactly " +
       "as the owner will use it; a message for Slack goes in Slack mrkdwn: " +
@@ -153,11 +159,11 @@ export const COPY_TOOLS: readonly TalkTool[] = [
  * line and a question; and what the owner put there is read, never obeyed.
  */
 export const COPY_OFFER_BACKEND_LINES: readonly string[] = [
-  "- Any wording you draft to stand as the owner's own words — a message, a reply, a review comment, a script or",
-  "  talk line, talking points — whether the owner will paste, say or only react to it, and whether they ask ('give me",
-  "  something to paste', 'how would I open', 'something for the list') or proposed by you ('here's what I'd",
-  "  say'), goes to offer_copy once, whole, and never into your answer or a commentary message: what you answer",
-  "  is read aloud. Your own explanation, summary or advice",
+  "- Wording as the owner's own (a message, reply, review comment, script, talk line, talking points), whether they",
+  "  will paste, say or only react to it, is drafted only on their plain ask ('give me something to paste', 'how",
+  "  would I open', 'note that'): to offer_copy once, whole, never into your answer or a commentary message: what",
+  "  you answer is read aloud. Never offer to draft; a yes to your offer is no ask. A point about a page they are",
+  "  reading is a reaction: relay_steer it. Your own explanation, summary or advice",
   "  is not a draft: answer it as normal. Once offer_copy has answered unrefused, answer at most one short",
   "  line on what the draft is for, and never that it is on the running list: on a call the console adds that",
   "  line itself, and only after an offer it saw land. Refused and not fixable: say so in one line, never that",
@@ -213,10 +219,10 @@ export function withoutListSignOff({ text }: { text: string }): string {
 export const COPY_OFFER_VOICE_LINES: readonly string[] = [
   "Wording drafted to stand as the owner's own words — a message, a reply, a review comment, a script or talk line,",
   "talking points — is never read out whole unasked, whether the owner will paste, say or only react to it: the",
-  "thinking model puts it on the running list. Whether anything is on the running list is said only when the text",
+  "thinking model lists one the owner asked for. Whether anything is on the running list is said only when the text",
   "handed to you says so; never on your own, and never as the way a turn ends.",
-  "If it hands you such a draft unasked, not saying it is on the list, never read it: say in",
-  "one line that the draft is written and ask the thinking model to put it on the list. The owner's request that you or",
+  "Never offer to draft one; a yes to your offer is no ask. Wording handed you unasked is left out, never read. A",
+  "point the owner makes about a page they are reading is a reaction: relay it. The owner's request that you or",
   "the fleet send, post or reply with a message, and a yes to a held draft, are a relay, never the list. Read one out,",
   "evenly as a quote, when the owner asks to hear it, bar a card edit.",
   "When the owner says they put something on the running list, or you are told it changed, hand that to the thinking model",
