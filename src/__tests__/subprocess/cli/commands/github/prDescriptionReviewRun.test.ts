@@ -32,7 +32,6 @@ import {
   readPreparationAtRoot,
 } from "../../../../../outbound/github/descriptionReviewStore.js";
 import {
-  DESCRIPTION_REVIEW_PACKET_README,
   DESCRIPTION_REVIEW_PROPERTY,
   DESCRIPTION_REVIEW_PROPERTY_ID,
   DESCRIPTION_RULE_FILES,
@@ -143,6 +142,7 @@ describe("github pr review-prepare and review-record", () => {
       attachUploadStanding: () => attachUpload,
       cwd: repo,
       env: { CLAUDE_CODE_SESSION_ID: session },
+      installedRulesRoot: rules,
       newId: () => {
         ids += 1;
         return `id-${String(ids)}`;
@@ -154,7 +154,6 @@ describe("github pr review-prepare and review-record", () => {
         return Promise.resolve(ok(onThePr));
       },
       readPass: ({ artifactId }) => ok(passes.get(artifactId)),
-      rulesRoot: rules,
       scanFallback: () => {
         const scan: FallbackReceiptScan = {
           foreign: 0,
@@ -285,9 +284,9 @@ describe("github pr review-prepare and review-record", () => {
       existingComments: [],
       headRef: "feature",
       images: [],
+      installedRulesRoot: rules,
       repoDir: repo,
       repository: "acme/widgets",
-      rulesRoot: rules,
       title: TITLE,
       ...over,
     };
@@ -407,9 +406,10 @@ describe("github pr review-prepare and review-record", () => {
     const readme = ({ prepared }: { prepared: { preparation: DescriptionReviewPreparation; repoRoot: string } }) =>
       gitInTemp({ args: ["show", `${prepared.preparation.baseSha}:README.md`], cwd: prepared.repoRoot });
     // gitInTemp trims its stdout, so each expected README is trimmed the same way.
+    // Another repository's rules come from the installed tree, and its README says so.
     expect([readme({ prepared: permitted }), readme({ prepared: refused })]).toEqual([
-      DESCRIPTION_REVIEW_PACKET_README.trim(),
-      descriptionReviewPacketReadme({ attachUploadPermitted: false }).trim(),
+      descriptionReviewPacketReadme({ attachUploadPermitted: true, rulesOrigin: { kind: "installed" } }).trim(),
+      descriptionReviewPacketReadme({ attachUploadPermitted: false, rulesOrigin: { kind: "installed" } }).trim(),
     ]);
   });
 

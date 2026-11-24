@@ -131,9 +131,10 @@ export interface DescriptionReviewReceipt {
 }
 
 /**
- * The written rules a description is judged against, as paths inside this build's own tree. The rules section
- * of the outbound area rule is carried as its whole file: a heading-bounded extract would silently drop a rule
- * the day the section is reorganised.
+ * The written rules a description is judged against, as paths inside a tree: the reviewed head's for this source
+ * repository, the installed CLI's for any other (`./descriptionReviewRules.ts`). The rules section of the outbound
+ * area rule is carried as its whole file: a heading-bounded extract would silently drop a rule the day the section
+ * is reorganised.
  */
 export const DESCRIPTION_RULE_FILES: readonly string[] = [
   "skills/github/reference/pull-requests.md",
@@ -187,7 +188,7 @@ export const DESCRIPTION_REVIEW_PACKET_README = [
   "",
   "- `change/diff.patch` and `change/delta.txt`: the change set the pull request makes, as a patch and as the",
   "  exact tree delta its digest hashes. Binary files appear in the delta by blob id.",
-  "- `rules/`: the written rules for pull-request descriptions, exactly as this build carries them.",
+  "- `rules/`: the written rules for pull-request descriptions; the section on where they came from names their tree.",
   "- `evidence/pull-request-comments.json`: every comment already on the pull request, conversation and inline",
   "  (`[]` for a pull request not yet opened). A claim a reviewer's comment there refutes is a check 1 failure.",
   "- `evidence/01-fleet-finding.json`, present when the branch belongs to a problem the fleet found itself: that",
@@ -240,17 +241,41 @@ export const ATTACH_UPLOAD_CLOSED_SECTION: readonly string[] = [
 ];
 
 /**
- * The packet README for one install: {@link DESCRIPTION_REVIEW_PACKET_README} exactly when attach upload is
- * permitted, plus {@link ATTACH_UPLOAD_CLOSED_SECTION} otherwise. The section names no ruling, row or anchor: the
- * reviewer needs the fact, not the install's register. It is not in `rulesSha256`, and needs no place there: it sits
- * in the packet's base commit, which a review is bound to.
+ * The packet README for one install: {@link DESCRIPTION_REVIEW_PACKET_README}, then {@link rulesProvenanceSection},
+ * then {@link ATTACH_UPLOAD_CLOSED_SECTION} when attach upload is not permitted. The closed section names no ruling,
+ * row or anchor: the reviewer needs the fact, not the install's register. Neither section is in `rulesSha256`, and
+ * neither needs a place there: both sit in the packet's base commit, which a review is bound to.
  *
  * @param attachUploadPermitted whether `github attach upload` is permitted on the install preparing the packet
+ * @param rulesOrigin the tree `rules/` was read from, which the README names
  * @returns the README's text
  */
-export function descriptionReviewPacketReadme({ attachUploadPermitted }: { attachUploadPermitted: boolean }): string {
-  if (attachUploadPermitted) {
-    return DESCRIPTION_REVIEW_PACKET_README;
-  }
-  return [DESCRIPTION_REVIEW_PACKET_README, ...ATTACH_UPLOAD_CLOSED_SECTION].join("\n");
+export function descriptionReviewPacketReadme({
+  attachUploadPermitted,
+  rulesOrigin,
+}: {
+  attachUploadPermitted: boolean;
+  rulesOrigin: DescriptionRulesOrigin;
+}): string {
+  const closed = attachUploadPermitted ? [] : ATTACH_UPLOAD_CLOSED_SECTION;
+  return [DESCRIPTION_REVIEW_PACKET_README, ...rulesProvenanceSection({ rulesOrigin }), ...closed].join("\n");
+}
+
+/** Where a packet's `rules/` were read from: the reviewed head's commit, or the installed CLI's tree. */
+export type DescriptionRulesOrigin =
+  { readonly kind: "head"; readonly headRef: string; readonly headSha: string } | { readonly kind: "installed" };
+
+/**
+ * The README section naming the tree `rules/` was read from, so a reviewer can tell a rule the change set edits is
+ * judged as edited. The ref is JSON-quoted because a valid ref can carry a backtick; no local path is named.
+ *
+ * @returns the section's lines, ending on a blank one
+ * @internal exported so a unit test can pin the wording
+ */
+export function rulesProvenanceSection({ rulesOrigin }: { rulesOrigin: DescriptionRulesOrigin }): readonly string[] {
+  const source =
+    rulesOrigin.kind === "head"
+      ? `the head under review, ref ${JSON.stringify(rulesOrigin.headRef)} at commit ${rulesOrigin.headSha}, so a rule the change set edits is judged as edited.`
+      : "the installed tree of the CLI that prepared this packet, because the repository under review does not carry them.";
+  return ["## Where `rules/` came from", "", `\`rules/\` was read from ${source}`, ""];
 }

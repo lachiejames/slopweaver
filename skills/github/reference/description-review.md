@@ -90,8 +90,12 @@ a code property; a description breaks many small rules at once, and one pull req
 each pass named only its first hit. So fix every numbered item before preparing again.
 
 The written rules are `pull-requests.md`, `composing-a-body.md`, `pr-badges.md`, `self-review.md` and
-`attachments.md` in this directory, plus `.claude/rules/area-outbound.md`, read from the installed build and hashed
-as `rulesSha256`. `pr-badges.md` is there because the badges are derived: the README tells the reviewer to read each
+`attachments.md` in this directory, plus `.claude/rules/area-outbound.md`, hashed as `rulesSha256`. On this source
+repository they are read at the head under review, by the commit the change digest resolved, so a pull request
+that edits a rule is judged against the edited text; any other repository reads the installed build's copies. A
+rule absent at that head (deleted or renamed) refuses as `RULE_ABSENT_AT_HEAD`, never falling back to the installed
+copy, and the packet README names which tree `rules/` came from
+(`src/outbound/github/descriptionReviewRules.ts`). `pr-badges.md` is there because the badges are derived: the README tells the reviewer to read each
 derived phrase by the meaning that file gives it and judge the typed field behind it. `unrecorded` is honest,
 never an attribution failure, and whether more proof should have been gathered is the landing grade's question,
 never a description violation.

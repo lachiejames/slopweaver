@@ -67,6 +67,7 @@ function contentsWith({
       title,
     }),
     rules: RULES,
+    rulesOrigin: { kind: "installed" },
     title,
   };
 }
@@ -130,6 +131,17 @@ describe("prepareDescriptionPacket", () => {
     const readme = gitInTemp({ args: ["show", `${preparation.baseSha}:README.md`], cwd: repoRoot });
     expect(readme).toContain(`${DESCRIPTION_REVIEW_EVERY_VIOLATION}.`);
     expect(readme).toContain("never stop at the first violation");
+  });
+
+  it("binds the README line naming the head the rules were read at into the base commit", () => {
+    const headSha = "a".repeat(40);
+    const contents = {
+      ...contentsWith({ images: [] }),
+      rulesOrigin: { headRef: "feature", headSha, kind: "head" } as const,
+    };
+    const { preparation, repoRoot } = unwrap(prepare({ contents, preparationId: "p-head-rules" }));
+    const readme = gitInTemp({ args: ["show", `${preparation.baseSha}:README.md`], cwd: repoRoot });
+    expect(readme).toContain(`\`rules/\` was read from the head under review, ref "feature" at commit ${headSha}`);
   });
 
   it("binds the closed-upload README into the base commit, so a review of one packet never reads as the other's", () => {

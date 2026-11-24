@@ -16,7 +16,6 @@ import { basename, dirname, join } from "node:path";
 
 import { errorMessage } from "#lib/errorMessage.js";
 import { isRecord } from "#lib/parsers.js";
-import { installedTreeRoot } from "#lib/pluginRoot.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { safeJsonParse, safeJsonStringify } from "#lib/safeJson.js";
 import { createFileExclusive, ensureDirectory } from "#lib/writeAtomic.js";
@@ -28,7 +27,6 @@ import type { SupervisorSession } from "../../supervisor/session.js";
 import { manifestSha256Of, type PacketCommitFacts, textSha256 } from "./descriptionReview.js";
 import { type DescriptionReviewError, DescriptionReviewErrors } from "./descriptionReviewErrors.js";
 import {
-  DESCRIPTION_RULE_FILES,
   type DescriptionReviewManifest,
   type DescriptionReviewPreparation,
   type DescriptionReviewReceipt,
@@ -75,37 +73,6 @@ function receiptsDirectory({ home }: { home: string }): string {
  */
 function receiptPath({ home, manifestSha256 }: { home: string; manifestSha256: string }): string {
   return join(receiptsDirectory({ home }), `${manifestSha256}.json`);
-}
-
-/**
- * The tree the written rules are read from in production: this build's own, wherever it is installed.
- *
- * @returns the absolute root of the running build
- */
-export function installedRulesRoot(): string {
-  return installedTreeRoot({ importMetaUrl: import.meta.url });
-}
-
-/**
- * Read every written rule a description is judged against, by its path inside a tree.
- *
- * @param rulesRoot the tree to read them from — {@link installedRulesRoot} in production
- * @returns each rule's path and exact contents, in {@link DESCRIPTION_RULE_FILES} order, or the first unreadable one
- */
-export function readDescriptionRules({
-  rulesRoot,
-}: {
-  rulesRoot: string;
-}): Result<readonly { readonly path: string; readonly contents: string }[], DescriptionReviewError> {
-  const files: { path: string; contents: string }[] = [];
-  for (const path of DESCRIPTION_RULE_FILES) {
-    try {
-      files.push({ contents: readFileSync(join(rulesRoot, path), "utf8"), path });
-    } catch (error: unknown) {
-      return err(DescriptionReviewErrors.rulesUnreadable({ detail: errorMessage({ error }), path }));
-    }
-  }
-  return ok(files);
 }
 
 /** Whether a value is a recorded session or the explicit null this domain writes for none. */

@@ -37,7 +37,7 @@ import {
 } from "../../../outbound/github/descriptionReviewComments.js";
 import type { DescriptionReviewError } from "../../../outbound/github/descriptionReviewErrors.js";
 import { requireCleanDescriptionReview } from "../../../outbound/github/descriptionReviewGate.js";
-import { installedRulesRoot } from "../../../outbound/github/descriptionReviewStore.js";
+import { installedRulesRoot } from "../../../outbound/github/descriptionReviewRules.js";
 import type {
   DescriptionReviewComment,
   ExistingPullRequestComment,
@@ -313,9 +313,9 @@ function checkReviewed({
       existingComments,
       headRef: write.headRef,
       images: images.map(({ image }) => image),
+      installedRulesRoot: installedRulesRoot(),
       repoDir: write.repoDir,
       repository: `${form.target.owner}/${form.target.repo}`,
-      rulesRoot: installedRulesRoot(),
       title: form.title,
     },
     home,

@@ -221,9 +221,9 @@ async function preparePacket({
       existingComments: existingComments.value,
       headRef: args.headRef,
       images: images.map((one) => one.image),
+      installedRulesRoot: deps.installedRulesRoot,
       repoDir,
       repository: args.repository,
-      rulesRoot: deps.rulesRoot,
       title: args.title,
     },
   });
@@ -259,13 +259,13 @@ function commitPacket({
   reading,
   repoDir,
 }: {
-  contents: Omit<PacketContents, "change" | "manifest" | "rules">;
+  contents: Omit<PacketContents, "change" | "manifest" | "rules" | "rulesOrigin">;
   deps: GithubPrDescriptionReviewDeps;
   home: string;
   reading: DescriptionManifestReading;
   repoDir: string;
 }): Result<PreparedPacket, DescriptionReviewError> {
-  const { change, manifest, rules } = reading;
+  const { change, manifest, rules, rulesOrigin } = reading;
   const patch = changePatch({ headSha: change.headSha, mergeBaseSha: change.mergeBaseSha, repoDir });
   if (patch.isErr()) {
     return err(patch.error);
@@ -276,6 +276,7 @@ function commitPacket({
       change: { deltaLines: treeDeltaLines({ entries: change.entries }), patch: patch.value },
       manifest,
       rules,
+      rulesOrigin,
     },
     createdAtIso: deps.nowIso(),
     home,
