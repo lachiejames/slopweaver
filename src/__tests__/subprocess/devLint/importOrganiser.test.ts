@@ -114,6 +114,20 @@ function preCommitHook(): z.infer<typeof lefthookSchema>["pre-commit"] {
   return lefthookSchema.parse(parseYaml(readFileSync(join(repoRoot, "lefthook.yml"), "utf8")))["pre-commit"];
 }
 
+const biomeSchema = z.object({ files: z.object({ includes: z.array(z.string()) }) });
+
+/**
+ * `biome.jsonc`'s `files.includes`, every pattern in order. The file's comments are whole `//` lines, dropped before
+ * the JSON parse; a comment anywhere else fails the parse rather than passing a partial read.
+ */
+function biomeIncludes(): readonly string[] {
+  const text = readFileSync(join(repoRoot, "biome.jsonc"), "utf8")
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("//"))
+    .join("\n");
+  return biomeSchema.parse(JSON.parse(text)).files.includes;
+}
+
 /**
  * The pre-commit commands that receive staged files, in priority order, by name. Lefthook runs them in that
  * order only when the hook is `piped`, which the hook test asserts beside this.
@@ -207,6 +221,42 @@ describe("the import organiser", () => {
     const { dir, file } = plantProject();
     expect(runPreCommit({ dir })).toEqual([0, 0]);
     expect(readFileSync(file, "utf8")).toBe(ORGANISED);
+  });
+
+  it("each step's staged set is its CI gate's scope: Biome's include list, and Prettier's own selection", () => {
+    const { commands } = preCommitHook();
+    const biomeGlob = commands["biome-imports"]!.glob!;
+    expect(biomeGlob).toBe("*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}");
+    expect(biomeIncludes().filter((pattern) => !pattern.startsWith("!"))).toEqual([`**/${biomeGlob}`]);
+    expect(commands["prettier"]!.glob).toBeUndefined();
+    expect(commands["prettier"]!.run).toContain("-- {staged_files}");
+  });
+
+  // Lefthook is not in this loop — the line is substituted directly — so this proves the half the missing glob
+  // hands to Prettier: its own selection formats an mdx page and exits 0 over every path it declines.
+  it("the Prettier step formats a staged mdx page and a dash-named file, and passes over an ignored or unknown-type path, an image included", () => {
+    const { dir } = plantProject();
+    copyFileSync(join(repoRoot, ".prettierignore"), join(dir, ".prettierignore"));
+    mkdirSync(join(dir, "site"));
+    mkdirSync(join(dir, "dist"));
+    writeFileSync(join(dir, "site", "page.mdx"), "| a | bb |\n|---|---|\n| ccc | d |\n");
+    writeFileSync(join(dir, "dist", "built.ts"), "const   unformatted=1\n");
+    writeFileSync(join(dir, "records.jsonl"), '{"a":1}\n');
+    copyFileSync(join(repoRoot, "desktop", "assets", "logo.png"), join(dir, "logo.png"));
+    const prettier = preCommitFileCommands().find((command) => command.name === "prettier")!;
+    const run = ({ staged }: { staged: string }): number | null =>
+      sh({
+        cwd: dir,
+        env: childEnv({}),
+        line: prettier.run.replace("node_modules/.bin/", "").replace("{staged_files}", staged),
+      }).status;
+    expect(run({ staged: "dist/built.ts records.jsonl logo.png" })).toBe(0);
+    expect(readFileSync(join(dir, "dist", "built.ts"), "utf8")).toBe("const   unformatted=1\n");
+    writeFileSync(join(dir, "-dash.ts"), "const   dashed=1\n");
+    expect(run({ staged: "-dash.ts site/page.mdx dist/built.ts records.jsonl logo.png" })).toBe(0);
+    expect(readFileSync(join(dir, "site", "page.mdx"), "utf8")).toBe("| a   | bb  |\n| --- | --- |\n| ccc | d   |\n");
+    expect(readFileSync(join(dir, "-dash.ts"), "utf8")).toBe("const dashed = 1;\n");
+    expect(readFileSync(join(dir, "dist", "built.ts"), "utf8")).toBe("const   unformatted=1\n");
   });
 
   it("is a fixed point: a second pass of either path changes nothing", () => {
