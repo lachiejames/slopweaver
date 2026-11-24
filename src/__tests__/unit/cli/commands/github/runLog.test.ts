@@ -24,6 +24,7 @@ const DOCUMENT: JobLogDocument = {
         annotations: [],
         annotationsDropped: 0,
         closed: true,
+        from: undefined,
         linesTruncated: 0,
         regionLines: 3,
         tail: ["dev lint: FAIL"],
@@ -57,11 +58,11 @@ function depsFor({
   out: string[];
   diagnostic: string[];
   read?: GithubRunLogDeps["read"];
-  reads?: { runId: number; job: string | undefined; lines: number }[];
+  reads?: { runId: number; job: string | undefined; lines: number; from?: string | undefined }[];
 }): GithubRunLogDeps {
   return {
     read: (args) => {
-      reads.push({ job: args.job, lines: args.lines, runId: args.runId });
+      reads.push({ from: args.from, job: args.job, lines: args.lines, runId: args.runId });
       return read(args);
     },
     resolveRepo: () => ok({ owner: "o", repo: "r" }),
@@ -84,11 +85,46 @@ describe("parseGithubRunLogArgs", () => {
   it("reads every flag it accepts", () => {
     const args = unwrap(
       parseGithubRunLogArgs({
-        rest: ["42", "--repo", "o/r", "--job", "lint", "--lines", "5", "--json", "--home", "/tmp/h"],
+        rest: [
+          "42",
+          "--repo",
+          "o/r",
+          "--job",
+          "lint",
+          "--lines",
+          "5",
+          "--from",
+          "dev lint: x",
+          "--json",
+          "--home",
+          "/tmp/h",
+        ],
       }),
     );
 
-    expect(args).toEqual({ home: "/tmp/h", job: "lint", json: true, lines: 5, repo: "o/r", runId: 42 });
+    expect(args).toStrictEqual({
+      from: "dev lint: x",
+      home: "/tmp/h",
+      job: "lint",
+      json: true,
+      lines: 5,
+      repo: "o/r",
+      runId: 42,
+    });
+  });
+
+  it("keeps --from exactly as typed, because an indent is part of the log line it matches", () => {
+    expect(unwrap(parseGithubRunLogArgs({ rest: ["42", "--from", "  ✗ max-function-lines"] })).from).toBe(
+      "  ✗ max-function-lines",
+    );
+  });
+
+  it("leaves --from unset when it is not given, so the read keeps a tail", () => {
+    expect(unwrap(parseGithubRunLogArgs({ rest: ["42"] })).from).toBeUndefined();
+  });
+
+  it("refuses a whitespace-only --from rather than matching every line", () => {
+    expect(codesOf({ rest: ["42", "--from", "   "] })).toEqual(["BLANK_FLAG_VALUE"]);
   });
 
   it("refuses a missing run id", () => {
@@ -131,7 +167,7 @@ describe("parseGithubRunLogArgs", () => {
 
 describe("GITHUB_RUN_LOG_USAGE", () => {
   it("names every flag the parser accepts, so help and behaviour cannot disagree", () => {
-    for (const flag of ["--repo", "--job", "--lines", "--json", "--home"]) {
+    for (const flag of ["--repo", "--job", "--lines", "--from", "--json", "--home"]) {
       expect(GITHUB_RUN_LOG_USAGE).toContain(flag);
     }
   });
@@ -155,6 +191,18 @@ describe("runGithubRunLog", () => {
     expect(code).toBe(EXIT_OK);
     expect(reads).toEqual([{ job: "lint", lines: 5, runId: 42 }]);
     expect(out[0]).toContain('job lint (7) failure at step 8 "Lint"');
+  });
+
+  it("forwards --from to the read unchanged, so the window opens where the caller asked", async () => {
+    const reads: { runId: number; job: string | undefined; lines: number; from?: string | undefined }[] = [];
+
+    const code = await runGithubRunLog({
+      deps: depsFor({ diagnostic: [], out: [], reads }),
+      rest: ["42", "--job", "lint", "--from", "dev lint: max-function-lines"],
+    });
+
+    expect(code).toBe(EXIT_OK);
+    expect(reads).toStrictEqual([{ from: "dev lint: max-function-lines", job: "lint", lines: 40, runId: 42 }]);
   });
 
   it("emits one JSON document under --json instead of the text report", async () => {

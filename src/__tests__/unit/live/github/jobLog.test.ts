@@ -165,6 +165,100 @@ describe("JobLogAccumulator", () => {
   });
 });
 
+/** Feed a whole fixture through an accumulator keeping a `--from` window, exactly as the streaming read does. */
+function summariseFrom({ lines, tailLines, from }: { lines: readonly string[]; tailLines: number; from: string }) {
+  const accumulator = new JobLogAccumulator({ from, tailLines });
+  for (const line of lines) {
+    accumulator.push({ line: stripLogTimestamp({ line }) });
+  }
+  return accumulator.summary();
+}
+
+/**
+ * A red lint step whose failed gate raised no annotation: its finding sits under its own section header, and
+ * the step ends in a wall of summary ticks — the shape of a red lint step, cut down.
+ */
+const UNANNOTATED_LINT_LOG: readonly string[] = [
+  "##[group]Run yarn lint",
+  "dev lint: max-function-lines",
+  "max-function-lines: src/a.ts:12 run() is 71 lines (limit 60)",
+  "dev lint: no-python",
+  "no-python: clean",
+  "dev lint:",
+  "  ✗ max-function-lines (1.2s)",
+  "  ✓ no-python (0.4s)",
+  "dev lint: FAIL",
+  "##[error]Process completed with exit code 1.",
+];
+
+describe("JobLogAccumulator --from window", () => {
+  it("opens at the first line containing the text and keeps the lines after it, with no tail", () => {
+    const summary = summariseFrom({ from: "dev lint: max-function-lines", lines: UNANNOTATED_LINT_LOG, tailLines: 2 });
+
+    expect(summary.from).toStrictEqual({
+      firstLine: 2,
+      lines: ["dev lint: max-function-lines", "max-function-lines: src/a.ts:12 run() is 71 lines (limit 60)"],
+      logLines: 10,
+      text: "dev lint: max-function-lines",
+    });
+    expect(summary.tail).toEqual([]);
+  });
+
+  it("keeps the FIRST match, never a later line that also contains the text", () => {
+    const summary = summariseFrom({ from: "max-function-lines", lines: UNANNOTATED_LINT_LOG, tailLines: 1 });
+
+    expect(summary.from!.firstLine).toBe(2);
+    expect(summary.from!.lines).toEqual(["dev lint: max-function-lines"]);
+  });
+
+  it("records a match on the very first line as line 1", () => {
+    expect(summariseFrom({ from: "##[group]Run", lines: UNANNOTATED_LINT_LOG, tailLines: 1 }).from!.firstLine).toBe(1);
+  });
+
+  it("names no line when nothing matches, after reading the whole log", () => {
+    const summary = summariseFrom({ from: "dev lint: oxlint", lines: UNANNOTATED_LINT_LOG, tailLines: 5 });
+
+    expect(summary.from).toStrictEqual({ firstLine: undefined, lines: [], logLines: 10, text: "dev lint: oxlint" });
+  });
+
+  it("finds the match under --lines 0 and keeps no line of it", () => {
+    const summary = summariseFrom({ from: "dev lint: no-python", lines: UNANNOTATED_LINT_LOG, tailLines: 0 });
+
+    expect(summary.from!.firstLine).toBe(4);
+    expect(summary.from!.lines).toEqual([]);
+  });
+
+  it("matches case-sensitively, as the usage promises", () => {
+    expect(
+      summariseFrom({ from: "DEV LINT", lines: UNANNOTATED_LINT_LOG, tailLines: 5 }).from!.firstLine,
+    ).toBeUndefined();
+  });
+
+  it("keeps reading the stream once the window is full, so later annotations and failing files still count", () => {
+    const summary = summariseFrom({
+      from: "dev lint: max-function-lines",
+      lines: [
+        ...UNANNOTATED_LINT_LOG.slice(0, 3),
+        "##[error]src/b.ts:1:1: an annotation after the window filled",
+        "FAIL src/b.test.ts > one",
+        ...UNANNOTATED_LINT_LOG.slice(3),
+      ],
+      tailLines: 1,
+    });
+
+    expect(summary.from!.lines).toEqual(["dev lint: max-function-lines"]);
+    expect(summary.from!.logLines).toBe(12);
+    expect(summary.annotations).toEqual([
+      { level: "error", text: "src/b.ts:1:1: an annotation after the window filled" },
+    ]);
+    expect(summary.testFilePaths).toEqual(["src/b.test.ts"]);
+  });
+
+  it("carries no window at all on a tail read", () => {
+    expect(summarise({ lines: UNANNOTATED_LINT_LOG, tailLines: 2 }).from).toBeUndefined();
+  });
+});
+
 describe("splitStreamChunk", () => {
   it("returns whole lines and holds the unterminated remainder as the carry", () => {
     expect(splitStreamChunk({ carry: "", chunk: "one\ntwo\nthr" })).toEqual({

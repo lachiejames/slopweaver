@@ -12,7 +12,7 @@ import { type GithubRunLogUsageIssue, GithubRunLogUsageIssues } from "./runLogEr
 import { GITHUB_RUN_LOG_USAGE, MAX_TAIL_LINES } from "./runLogUsage.js";
 
 /** The string-valued flags, named once so the spec and the help-truth list cannot disagree. */
-const RUN_LOG_STRING_FLAGS: readonly string[] = ["repo", "job", "lines", "home"];
+const RUN_LOG_STRING_FLAGS: readonly string[] = ["repo", "job", "lines", "from", "home"];
 
 /** The boolean flags, named once for the same reason. */
 const RUN_LOG_BOOLEAN_FLAGS: readonly string[] = ["json"];
@@ -38,6 +38,8 @@ export interface GithubRunLogArgs {
   readonly repo: string | undefined;
   readonly job: string | undefined;
   readonly lines: number;
+  /** The substring a forward window opens at, kept exactly as typed — leading spaces can be log content. */
+  readonly from: string | undefined;
   readonly json: boolean;
   readonly home: string | undefined;
 }
@@ -97,6 +99,20 @@ function optionalText({
 }
 
 /**
+ * `--from`'s value, kept UNTRIMMED: it is matched against log lines, where an indent is part of the text.
+ * A blank one is still refused, for the same reason as any other blank flag.
+ */
+function fromText({ value }: { value: string | boolean | undefined }): Result<string | undefined, UsageIssues> {
+  if (value === undefined) {
+    return ok(undefined);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return ok(value);
+  }
+  return err([GithubRunLogUsageIssues.blankFlagValue({ flag: "from" })]);
+}
+
+/**
  * Parse one `github run-log` invocation before any credential, git remote or network is touched.
  *
  * @param rest the argv tail after `github run-log`
@@ -113,13 +129,15 @@ export function parseGithubRunLogArgs({ rest }: { rest: readonly string[] }): Re
   const job = optionalText({ flag: "job", value: values["job"] });
   const repo = optionalText({ flag: "repo", value: values["repo"] });
   const home = optionalText({ flag: "home", value: values["home"] });
+  const from = fromText({ value: values["from"] });
   // Every problem is collected before any is returned, so one invocation reports all of them rather than
   // sending a caller round the loop once per flag. The re-tests below are what narrow the types.
-  const problems = [runId, lines, job, repo, home].flatMap((one) => (one.isErr() ? one.error : []));
-  if (runId.isErr() || lines.isErr() || job.isErr() || repo.isErr() || home.isErr()) {
+  const problems = [runId, lines, job, repo, home, from].flatMap((one) => (one.isErr() ? one.error : []));
+  if (runId.isErr() || lines.isErr() || job.isErr() || repo.isErr() || home.isErr() || from.isErr()) {
     return err(problems);
   }
   return ok({
+    from: from.value,
     home: home.value,
     job: job.value,
     json: values["json"] === true,

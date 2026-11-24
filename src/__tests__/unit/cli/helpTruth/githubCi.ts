@@ -60,6 +60,7 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
   },
   // The run id is a POSITIONAL, so every probe carries one: a fragment holding only a flag names no run.
   "github run-log": {
+    "--from": ["42", "--from", "dev lint: max-function-lines"],
     "--home": ["42", "--home", "/tmp"],
     "--job": ["42", "--job", "lint"],
     "--json": ["42", "--json"],

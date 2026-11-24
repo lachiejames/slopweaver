@@ -11,6 +11,7 @@
  */
 
 import { safeJsonStringify } from "../../lib/safeJson.js";
+import type { JobLogFromWindow } from "./jobLog.js";
 import type { JobLogDocument, JobLogEntry } from "./jobLogRead.js";
 
 /** The header line naming the run this report is about. */
@@ -64,9 +65,33 @@ function tailSection({ entry, tailLines }: { entry: JobLogEntry; tailLines: numb
   ];
 }
 
-/** One job's whole block. */
+/**
+ * The `--from` window, with where in the whole log it sits — or the one line saying nothing matched.
+ *
+ * `--lines 0` still searched the whole log, so it names the match without printing a range that would read
+ * `lines 12..11`.
+ */
+function fromSection({ span }: { span: JobLogFromWindow }): readonly string[] {
+  const text = JSON.stringify(span.text);
+  if (span.firstLine === undefined) {
+    return [`  no line in this job's log contains ${text}`];
+  }
+  const first = String(span.firstLine);
+  if (span.lines.length === 0) {
+    return [`  first line containing ${text} is ${first}; no log lines were kept — --lines was zero`];
+  }
+  const last = String(span.firstLine + span.lines.length - 1);
+  return [
+    `  lines ${first}..${last} of ${String(span.logLines)}, from the first line containing ${text}:`,
+    ...span.lines.map((line) => `    ${line}`),
+  ];
+}
+
+/** One job's whole block: a `--from` window when the read asked for one, otherwise the tail. */
 function jobBlock({ entry, tailLines }: { entry: JobLogEntry; tailLines: number }): readonly string[] {
-  const lines = [jobHeading({ entry }), ...annotationLines({ entry }), ...tailSection({ entry, tailLines })];
+  const span = entry.log.from;
+  const body = span === undefined ? tailSection({ entry, tailLines }) : fromSection({ span });
+  const lines = [jobHeading({ entry }), ...annotationLines({ entry }), ...body];
   if (entry.htmlUrl !== undefined) {
     lines.push(`  whole log: ${entry.htmlUrl}`);
   }

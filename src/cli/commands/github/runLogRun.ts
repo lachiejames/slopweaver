@@ -22,6 +22,7 @@ export interface GithubRunLogDeps {
     runId: number;
     job: string | undefined;
     lines: number;
+    from: string | undefined;
     home: string | undefined;
   }) => Promise<Result<JobLogDocument, GithubJobLogError>>;
   readonly writeOut: (line: string) => void;
@@ -63,6 +64,7 @@ export async function runGithubRunLog({
     return EXIT_ERROR;
   }
   const read = await deps.read({
+    from: parsed.value.from,
     home: parsed.value.home,
     job: parsed.value.job,
     lines: parsed.value.lines,
@@ -86,10 +88,11 @@ export async function runGithubRunLog({
  */
 export function productionGithubRunLogDeps(): GithubRunLogDeps {
   return {
-    read: async ({ repo, runId, job, lines, home }) => {
+    read: async ({ repo, runId, job, lines, from, home }) => {
       const token = githubToken(home === undefined ? {} : { home });
       const seams = productionRunLogSeams({ token });
       return readJobLogs({
+        ...(from === undefined ? {} : { from }),
         fetchJobs: seams.fetchJobs,
         fetchRun: seams.fetchRun,
         job,

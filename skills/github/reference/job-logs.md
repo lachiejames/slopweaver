@@ -42,6 +42,23 @@ Reproduce the shape:
 slopweaver github run-log 35502228255 --repo lachiejames/slopweaver --job lint --json | jq '.jobs[].log'
 ```
 
+## A finding above the window: `run-log --from`
+
+A gate that fails WITHOUT an annotation prints its finding under its own `dev lint: <gate>` header, and a red
+`lint` step's log can exceed the 2,000-line ceiling, leaving that finding above the window and only the gate's
+`✗ <gate>` tick in it. `dev lint` repeats up to 20 lines of each failed gate's output just above its verdict,
+so the tail usually carries the finding. When it does not, or the job is not `lint`, open the section itself:
+
+```bash
+slopweaver github run-log <run-id> --repo <owner/name> --job lint --from "dev lint: max-function-lines"
+```
+
+`--from <text>` keeps, INSTEAD of the tail, the first line of each job's WHOLE log containing `<text>` (plain,
+case-sensitive substring) and the lines after it, at most `--lines` of them; the report says which line it
+opened at and how long the log is. Annotations still come first, and the stream is still read to its end. A
+loose query matches the first mention anywhere, so name the section header, not the bare gate. `--from` is
+`run-log`'s alone; `checks --log` keeps the tail.
+
 ## Three properties that are the contract, not details
 
 - **The step boundary is the runner's own `##[error]Process completed with exit code N.` marker**, never the

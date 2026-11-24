@@ -8,7 +8,7 @@ import {
   readJobLogs,
   type StreamJobLog,
 } from "../../../../live/github/jobLogRead.js";
-import { renderJobLogText } from "../../../../live/github/jobLogReport.js";
+import { renderJobLogJson, renderJobLogText } from "../../../../live/github/jobLogReport.js";
 
 /** One streamed body, as the production seam hands one over: chunks, not a string. */
 function chunksOf({ parts }: { parts: readonly string[] }): AsyncIterable<string> {
@@ -297,5 +297,111 @@ describe("renderJobLogText", () => {
     );
 
     expect(renderJobLogText({ document })).toContain("no ##[error] or ##[warning] annotations in this job's log");
+  });
+});
+
+/** One `run-log --from` read over the fake seams. */
+async function readFrom({
+  from,
+  tailLines,
+  logs = { 7: LINT_LOG },
+}: {
+  from: string;
+  tailLines: number;
+  logs?: Record<number, readonly string[]>;
+}) {
+  return unwrap(
+    await readJobLogs({
+      ...seamsFor({ logs }),
+      from,
+      job: undefined,
+      jobIds: undefined,
+      nowIso: () => "2026-09-20T10:00:00.000Z",
+      owner: "o",
+      repo: "r",
+      runId: 42,
+      tailLines,
+    }),
+  );
+}
+
+describe("readJobLogs --from", () => {
+  it("keeps each job's window from its first match in place of the tail", async () => {
+    const document = await readFrom({ from: "escape-hatch", tailLines: 2 });
+
+    expect(document.jobs[0]!.log.from).toStrictEqual({
+      firstLine: 3,
+      lines: ["  ✓ escape-hatch (2.3s)", "dev lint: FAIL"],
+      logLines: 6,
+      text: "escape-hatch",
+    });
+    expect(document.jobs[0]!.log.tail).toEqual([]);
+  });
+
+  it("matches a line the stream delivered split across two chunks", async () => {
+    const summary = await accumulateJobLog({
+      chunks: chunksOf({ parts: ["a\ndev li", "nt: x\nb\n"] }),
+      from: "dev lint: x",
+      tailLines: 5,
+    });
+
+    expect(summary.from!.firstLine).toBe(2);
+    expect(summary.from!.lines).toEqual(["dev lint: x", "b"]);
+  });
+
+  it("states the forward bound as residue, and names --from on a tail read", async () => {
+    const forward = await readFrom({ from: "escape-hatch", tailLines: 2 });
+    const tail = unwrap(
+      await readJobLogs({
+        ...seamsFor(),
+        job: undefined,
+        jobIds: undefined,
+        nowIso: () => "2026-09-20T10:00:00.000Z",
+        owner: "o",
+        repo: "r",
+        runId: 42,
+        tailLines: 2,
+      }),
+    );
+
+    expect(forward.residue[0]).toContain(
+      'at most 2 lines from the first line of its whole log containing "escape-hatch"',
+    );
+    expect(tail.residue[0]).toContain("read a section from its first line with --from <text>");
+  });
+
+  it("drops the unclosed-step note, which describes a tail and not a forward window", async () => {
+    const document = await readFrom({ from: "went", logs: { 7: ["something went wrong\n"] }, tailLines: 2 });
+
+    expect(document.residue.length).toBe(1);
+  });
+});
+
+describe("renderJobLogText --from", () => {
+  it("prints the annotations, then the window with where it sits in the whole log", async () => {
+    const text = renderJobLogText({ document: await readFrom({ from: "escape-hatch", tailLines: 2 }) });
+
+    expect(text).toContain('lines 3..4 of 6, from the first line containing "escape-hatch":');
+    expect(text.indexOf("bad assertion")).toBeLessThan(text.indexOf("lines 3..4 of 6"));
+    expect(text).not.toContain("last 2 of");
+  });
+
+  it("says plainly when no line matched", async () => {
+    const text = renderJobLogText({ document: await readFrom({ from: "dev lint: oxlint", tailLines: 2 }) });
+
+    expect(text).toContain(`no line in this job's log contains "dev lint: oxlint"`);
+  });
+
+  it("names the match without a backwards range under --lines 0", async () => {
+    const text = renderJobLogText({ document: await readFrom({ from: "escape-hatch", tailLines: 0 }) });
+
+    expect(text).toContain('first line containing "escape-hatch" is 3; no log lines were kept — --lines was zero');
+  });
+
+  it("carries the window into the JSON document", async () => {
+    const json = renderJobLogJson({ document: await readFrom({ from: "escape-hatch", tailLines: 1 }) });
+
+    expect(json).toContain('"firstLine": 3');
+    expect(json).toContain('"logLines": 6');
   });
 });

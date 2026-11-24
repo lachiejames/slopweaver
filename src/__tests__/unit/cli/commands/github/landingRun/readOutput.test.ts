@@ -228,6 +228,7 @@ const RED_UNIT_LOG: JobLogDocument = {
         annotations: [],
         annotationsDropped: 0,
         closed: true,
+        from: undefined,
         linesTruncated: 0,
         regionLines: 40,
         tail: [],
