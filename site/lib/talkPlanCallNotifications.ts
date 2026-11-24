@@ -8,11 +8,12 @@ import { CANDID_ANSWER } from "./coverageHold";
 import { contextRolloverDue, contextRolloverUrgent, PLAN_CALL_LIMITS } from "./planCallContract";
 import { PlanCallWire } from "./talkPlanCallWire";
 import type { PlanFloor } from "./talkPlanFloor";
+import { turnItemMoveOf } from "./talkPlanModelWait";
 import { fateOf, paramString, type RpcOutcome } from "./talkPlanProtocol";
 import { threadTokenUsageOf } from "./talkPlanProtocolItems";
 import { agentMessageOf, codexTurnOf, startedTurnIdOf } from "./talkPlanProtocolTurns";
 import { offerProvenance, type SteerState } from "./talkPlanSteer";
-import { turnProgressOf, turnStarted } from "./talkPlanTurns";
+import { codexNoticeEventsOf, itemEventsOf, turnStarted } from "./talkPlanTurns";
 import { processTriagePresented } from "./triagePresented";
 
 /** A plan call's notifications, rollover and floor, above its wire. */
@@ -77,6 +78,10 @@ export abstract class PlanCallNotifications extends PlanCallWire {
     } else if (method.startsWith("item/")) {
       this.turnActivity({ method, params });
       this.completedMessage({ method, params });
+    } else if (method === "error" || method === "warning") {
+      const turns = { running: this.runningTurns, threadId: this.threadId };
+      const events = this.ended ? [] : codexNoticeEventsOf({ ...turns, method, params });
+      for (const event of events) this.emit({ event, telemetry: true });
     } else if (method === "thread/realtime/closed") {
       const reason = paramString({ key: "reason", params });
       this.stop({
@@ -282,6 +287,9 @@ export abstract class PlanCallNotifications extends PlanCallWire {
       if (!this.turnStartedMs.has(turnId)) this.turnStartedMs.set(turnId, this.clock.nowMs());
       this.emit({ event: { kind: "codex-turn", phase: "started", turnId }, telemetry: true });
       if (status === "inProgress") {
+        // Its request is out to the model until an item starts; a replayed start keeps the wait it opened.
+        const startedMs = this.clock.nowMs();
+        turnItemMoveOf({ input: { kind: "turn-started", turnId }, nowMs: startedMs, turns: this.turnItems });
         this.handOff.turnStarted({ turnId });
         // An offer no turn took is owed to this one, which no page post may carry.
         if (this.offer.owed) void offerProvenance(this.steerState());
@@ -306,6 +314,9 @@ export abstract class PlanCallNotifications extends PlanCallWire {
     this.coverage.turnEnded({ turnId });
     this.turnStartedMs.delete(turnId);
     this.progressSentMs.delete(turnId);
+    const nowMs = this.clock.nowMs();
+    const { wait } = turnItemMoveOf({ input: { kind: "turn-ended", turnId }, nowMs, turns: this.turnItems });
+    if (wait !== undefined) this.emit({ event: wait, telemetry: true });
     this.handOff.turnEnded({ turnId });
     if (this.runningTurns.size === 0) {
       this.handOff.turnsDone();
@@ -330,16 +341,26 @@ export abstract class PlanCallNotifications extends PlanCallWire {
   }
 
   /**
-   * One item notification inside a running Codex turn of this call's own thread, forwarded as progress when one is due
-   * (`turnProgressOf`, `./talkPlanTurns.ts`).
+   * One item notification inside a running Codex turn of this call's own thread, forwarded as the wait it closed and
+   * the turn's progress when one is due (`itemEventsOf`, `./talkPlanTurns.ts`).
    *
    * @param method the notification's method
    * @param params the notification's params
    */
   private turnActivity({ method, params }: { method: string; params: unknown }): void {
-    const turns = { running: this.runningTurns, sentMs: this.progressSentMs, threadId: this.threadId };
-    const event = this.ended ? undefined : turnProgressOf({ ...turns, method, nowMs: this.clock.nowMs(), params });
-    if (event !== undefined) this.emit({ event, telemetry: true });
+    if (this.ended) {
+      return;
+    }
+    const events = itemEventsOf({
+      method,
+      nowMs: this.clock.nowMs(),
+      params,
+      running: this.runningTurns,
+      sentMs: this.progressSentMs,
+      threadId: this.threadId,
+      turns: this.turnItems,
+    });
+    for (const event of events) this.emit({ event, telemetry: true });
   }
 
   /**

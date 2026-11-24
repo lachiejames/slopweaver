@@ -64,17 +64,33 @@ export function codexTurnOf({ params }: { params: unknown }): CodexTurnNotice | 
   return { failure, status, threadId, turnId };
 }
 
-/** One notification of a running Codex turn's own work: an item starting, moving or ending inside it. */
-export interface TurnActivityNotice {
-  readonly threadId: string;
-  readonly turnId: string;
-  /**
-   * The step an item STARTING names, or plain `working` once a `contextCompaction` item completes, so a turn that
-   * carries on after compacting never keeps saying it is compacting; `null` for any other item's delta or completion,
-   * which is progress and no new step.
-   */
-  readonly step: CodexStep | null;
-}
+/**
+ * One notification of a running Codex turn's own work: an item `started`, naming its step; an item `completed`, after
+ * which the turn is on whatever else is in flight or back out to the model (`itemMoveOf`, `./talkPlanModelWait.ts`);
+ * or `progress` inside one — a delta, or an item the owner's own words make, which is no step of the model's. A
+ * boundary carries its item's id, `undefined` when the item names none.
+ */
+export type TurnActivityNotice =
+  | {
+      readonly phase: "started";
+      readonly threadId: string;
+      readonly turnId: string;
+      readonly itemId: string | undefined;
+      readonly step: CodexStep;
+    }
+  | {
+      readonly phase: "completed";
+      readonly threadId: string;
+      readonly turnId: string;
+      readonly itemId: string | undefined;
+    }
+  | { readonly phase: "progress"; readonly threadId: string; readonly turnId: string };
+
+/**
+ * The item a turn's input makes — the owner's words, a steer of them included — which marks no model boundary: its
+ * start names no step and its end starts no wait.
+ */
+const USER_MESSAGE = "userMessage";
 
 /** The app-server's item type for the thread compacting its own context, silent until it completes. */
 const CONTEXT_COMPACTION = "contextCompaction";
@@ -92,7 +108,9 @@ function isCommentaryMessage({ item }: { item: unknown }): boolean {
 
 /**
  * The console's reading of an `item/*` notification (`item/started`, `item/completed`, every `item/…/delta`), each
- * carrying `threadId` and `turnId` in 0.157.1. Only `item/started` names a step, from its item's type.
+ * carrying `threadId` and `turnId` in 0.157.1. `item/started` names a step from its item's type, `item/completed`
+ * names the item that ended, and a delta is progress that names none — so a message half written keeps saying it is
+ * writing.
  *
  * @param method the notification's method
  * @param params the notification's params
@@ -113,13 +131,62 @@ export function turnActivityOf({
   if (threadId === undefined || turnId === undefined) {
     return undefined;
   }
-  if (method === "item/completed" && isBag(params["item"]) && params["item"]["type"] === CONTEXT_COMPACTION) {
-    return { step: { kind: "working" }, threadId, turnId };
+  const boundary = method === "item/started" || method === "item/completed";
+  const item = params["item"];
+  if (!boundary || (isBag(item) && item["type"] === USER_MESSAGE)) {
+    return { phase: "progress", threadId, turnId };
   }
-  if (method !== "item/started") {
-    return { step: null, threadId, turnId };
+  let itemId: string | undefined;
+  if (isBag(item) && typeof item["id"] === "string" && item["id"] !== "") {
+    itemId = item["id"];
   }
-  return { step: itemStepOf({ item: params["item"] }), threadId, turnId };
+  if (method === "item/completed") {
+    return { itemId, phase: "completed", threadId, turnId };
+  }
+  return { itemId, phase: "started", step: itemStepOf({ item }), threadId, turnId };
+}
+
+/**
+ * What app-server said of a Codex turn beside its items: the model's reply dropped and Codex is re-sending (`retry`),
+ * it dropped for good (`failure`, the turn's own failure following on `turn/completed`), or a `warning` aimed at the thread.
+ */
+export type CodexNotice =
+  | { readonly kind: "retry" | "failure"; readonly threadId: string; readonly turnId: string; readonly message: string }
+  | { readonly kind: "warning"; readonly threadId: string; readonly message: string };
+
+/**
+ * The console's reading of app-server's `error` (`{ error: { message }, willRetry, threadId, turnId }`) and `warning`
+ * (`{ threadId: string | null, message }`) notifications, 0.163.0. MEASURED: the console dropped both, so a 326s
+ * wait that fits Codex's 300s stream idle timeout and a re-send could not be told from the call file. A warning with
+ * no thread is no turn's, and is not read.
+ *
+ * @param method the notification's method
+ * @param params the notification's params
+ * @returns the notice, or `undefined` when it is neither or a field the console reads is missing or malformed
+ */
+export function codexNoticeOf({ method, params }: { method: string; params: unknown }): CodexNotice | undefined {
+  if (!isBag(params)) {
+    return undefined;
+  }
+  const threadId = str({ bag: params, key: "threadId" });
+  if (threadId === undefined) {
+    return undefined;
+  }
+  if (method === "warning") {
+    const message = str({ bag: params, key: "message" });
+    return message === undefined ? undefined : { kind: "warning", message, threadId };
+  }
+  const error = sub({ bag: params, key: "error" });
+  const turnId = turnIdOf({ value: params["turnId"] });
+  const willRetry = params["willRetry"];
+  if (method !== "error" || error === undefined || turnId === undefined || typeof willRetry !== "boolean") {
+    return undefined;
+  }
+  const message = str({ bag: error, key: "message" });
+  if (message === undefined) {
+    return undefined;
+  }
+  return { kind: willRetry ? "retry" : "failure", message, threadId, turnId };
 }
 
 /**

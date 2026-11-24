@@ -14,6 +14,7 @@ import {
   TYPED_MESSAGE_ID_MAX_CHARS,
   TYPED_TEXT_MAX_CHARS,
 } from "./planCallContract";
+import type { PlanCodexNoticeEvent, PlanModelWaitEvent } from "./talkPlanCodexEvents";
 import { type CodexStep, contextWindowOf, tokenUsageBreakdownOf } from "./talkPlanProtocolItems";
 
 /** One line of a plan call's event stream, as the page reads it. */
@@ -120,6 +121,9 @@ function planCallEventOf({ event }: { event: Bag }): PlanCallEvent | undefined {
   if (kind === "codex-turn") {
     return codexTurnEventOf({ event });
   }
+  if (kind === "model-wait" || kind === "codex-notice") {
+    return codexWaitEventOf({ event });
+  }
   if (kind === "written") {
     return writtenEventOf({ event });
   }
@@ -207,7 +211,32 @@ function codexTurnEventOf({ event }: { event: Bag }): PlanTurnEvent | undefined 
   return { failure, kind: "codex-turn", phase, status, turnId };
 }
 
-/** A streamed step: `null` for progress naming none, else one of the five kinds; `undefined` when malformed. */
+/**
+ * A streamed wait on the model (`model-wait`) or app-server notice (`codex-notice`), whole or not at all
+ * (`./talkPlanCodexEvents.ts`): a wait carries a turn and a whole non-negative duration, a notice a level, a message,
+ * and a turn or an explicit `null`.
+ */
+function codexWaitEventOf({ event }: { event: Bag }): PlanModelWaitEvent | PlanCodexNoticeEvent | undefined {
+  const rawTurn = event["turnId"];
+  const turnId = str({ bag: event, key: "turnId" });
+  const validTurn = turnId !== undefined && turnId !== "" && turnId.length <= TURN_ID_MAX_CHARS;
+  if (event["kind"] === "model-wait") {
+    const waitMs = event["waitMs"];
+    const whole = typeof waitMs === "number" && Number.isSafeInteger(waitMs) && waitMs >= 0;
+    return validTurn && whole ? { kind: "model-wait", turnId, waitMs } : undefined;
+  }
+  const level = event["level"];
+  const message = str({ bag: event, key: "message" });
+  if ((level !== "retry" && level !== "failure" && level !== "warning") || message === undefined) {
+    return undefined;
+  }
+  if (rawTurn === null) {
+    return { kind: "codex-notice", level, message, turnId: null };
+  }
+  return validTurn ? { kind: "codex-notice", level, message, turnId } : undefined;
+}
+
+/** A streamed step: `null` for progress naming none, else one of the six kinds; `undefined` when malformed. */
 function codexStepOf({ value }: { value: unknown }): CodexStep | null | undefined {
   if (value === null) {
     return null;
@@ -218,6 +247,10 @@ function codexStepOf({ value }: { value: unknown }): CodexStep | null | undefine
   const kind = value["kind"];
   if (kind === "working" || kind === "reasoning" || kind === "writing" || kind === "compacting") {
     return { kind };
+  }
+  const reason = value["reason"];
+  if (kind === "awaiting" && (reason === "model" || reason === "retry")) {
+    return { kind, reason };
   }
   const name = value["name"];
   if (kind === "tool" && typeof name === "string") {

@@ -4,7 +4,7 @@
  */
 
 import { plainReasonOf } from "./plainReason";
-import { COMPACTING_WORDS } from "./responsesStep";
+import { AWAITING_MODEL_WORDS, AWAITING_RETRY_WORDS, COMPACTING_WORDS } from "./responsesStep";
 import {
   activityRows,
   type NudgeOffer,
@@ -13,7 +13,7 @@ import {
   type VoicePhase,
   type VoiceStatus,
 } from "./voiceActivityRows";
-import { END_SKEW_MS, UNANSWERED_FORGET_MS, UNANSWERED_MS, type VoiceActivity } from "./voiceActivityState";
+import { END_SKEW_MS, STALL_MS, UNANSWERED_FORGET_MS, UNANSWERED_MS, type VoiceActivity } from "./voiceActivityState";
 import { OWED_WORDS, voiceOwesTurn } from "./voiceOwed";
 import { ownerCurrentOpenAtOf } from "./voiceOwnerTurns";
 import { TALKING_STATUS, talkingOf } from "./voiceTalking";
@@ -91,6 +91,21 @@ export function voiceStatusOf({
       return { detail: quiet, headline: muted ? "muted" : "listening", nudge, phase: "listening", seconds: undefined };
     }
     return { detail: quiet, headline: "no update", nudge, phase: "stalled", seconds: stale.seconds };
+  }
+  if (focus !== undefined && focus.step?.kind === "awaiting" && focus.seconds * 1000 >= STALL_MS) {
+    // A request known to be out to the model is slow, not stalled: the working face, its own seconds, and no nudge,
+    // since stopping the turn throws that request and the owner's words in it away.
+    const slow = `${focus.words} · no reply for ${String(focus.seconds)}s`;
+    if (ownerTurnOpen({ activity, heard, nowMs })) {
+      return {
+        detail: slow,
+        headline: muted ? "muted" : "listening",
+        nudge: undefined,
+        phase: "listening",
+        seconds: undefined,
+      };
+    }
+    return status({ detail: slow, headline: SLOW_MODEL_HEADLINE, phase: "working", seconds: focus.seconds });
   }
   if (focus !== undefined) {
     return status({
@@ -206,10 +221,20 @@ function withWhy({ shown, why }: { shown: VoiceStatus; why: string | undefined }
   return { ...shown, why };
 }
 
+/**
+ * The headline once a Codex turn has waited {@link STALL_MS} on the model. MEASURED: one call's orb read "working ·
+ * 140s", then "no update" over the stalled face offering to nudge Codex, while the model's first reply took 233s to
+ * 346s with no tool running.
+ */
+export const SLOW_MODEL_HEADLINE = "model slow";
+
 /** The headline for a turn in flight: its step, shortened. */
 function focusHeadline({ words }: { words: string }): string {
   if (words.startsWith("running")) {
     return "checking";
+  }
+  if (words === AWAITING_MODEL_WORDS || words === AWAITING_RETRY_WORDS) {
+    return "waiting";
   }
   if (words === "writing") {
     return "answering";
