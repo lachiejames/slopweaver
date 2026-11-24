@@ -97,7 +97,8 @@ sandbox sets its own temp directory. A lap takes the same lease after its lap lo
 (`TSC_OWNER_LOCK mode=inherited`). MEASURED: Claude Code reaped three seats' jobs for low memory while one seat's
 owner ran at its 10,240 MiB ceiling during a lap, the 16 GB machine reading 11.7 GB used and swap 2.9 of 4
 (`slopweaver machine capacity --full`). A waiter says once who holds the lease and gives up after `--lock-timeout-seconds` (1,200 s when not given: one
-root compile at its 1,140 s bound and its reap) as `lock-timed-out`, exit 75, having run nothing; a lap waits the
+root compile at its 1,140 s bound and its reap), counted from the first round that cannot take the lease rather than
+from the owner's start, as `lock-timed-out`, exit 75, having run nothing; a lap waits the
 same 1,200 s for a seat's compile, then refuses `COMPILE_LEASE_HELD`. A seat's compile started during a lap
 therefore ends 75 rather than run beside it. In CI each job is its own machine, so the lease is never waited on.
 Not covered: `named-object-params`' whole-repo Program (about 7.1 GB) runs under `yarn lint`, not the owner. The
