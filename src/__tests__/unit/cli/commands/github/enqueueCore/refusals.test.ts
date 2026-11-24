@@ -35,7 +35,7 @@ describe("enqueueRefusals", () => {
     expect(refusals[0]).toContain("slopweaver github ready");
   });
 
-  it("refuses a base branch with no merge queue, and names the verb that lands it instead", () => {
+  it("refuses a base branch with no merge queue, and names the whole command that lands it instead", () => {
     const refusals = enqueueRefusals({
       target: ORDINARY,
       requiredContexts: ["build"],
@@ -43,8 +43,10 @@ describe("enqueueRefusals", () => {
       queue: undefined,
       repo: "acme/widget",
     });
-    expect(refusals.length).toBe(1);
-    expect(refusals[0]).toContain("has no merge queue on main");
-    expect(refusals[0]).toContain("slopweaver github merge --admin");
+    expect(refusals).toEqual([
+      "acme/widget has no merge queue on main, so there is no 'Merge when ready' to press. Land it with " +
+        "`slopweaver github merge --repo acme/widget --base origin/main --head feature --description - --admin " +
+        "--number 9 < body.md` instead, or enable a merge queue on that branch.",
+    ]);
   });
 });

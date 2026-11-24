@@ -17,9 +17,12 @@ describe("enqueueRefusals on an ungated queue", () => {
       repo: "acme/widget",
       requiredContexts: [],
     });
-    expect(refusals).toHaveLength(1);
-    expect(refusals[0]).toContain("requires NO status-check contexts");
-    expect(refusals[0]).toContain("merge this pull request on arrival without testing the merged result");
+    expect(refusals).toEqual([
+      "acme/widget's queue on main requires NO status-check contexts, so it would merge this pull request on " +
+        "arrival without testing the merged result. Tick 'Require status checks to pass before merging' on main " +
+        "and name the contexts the queue must wait for, or land it with `slopweaver github merge --repo " +
+        "acme/widget --base origin/main --head feature --description - --admin --number 9 < body.md` instead.",
+    ]);
   });
 
   it("raises nothing when the queue requires even one context", () => {

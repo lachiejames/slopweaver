@@ -51,6 +51,7 @@
 import type { GithubHoldEventKind, GithubHoldStreamEvent } from "../../events/event.js";
 import { isRecord } from "../../lib/parsers.js";
 import type { Measured } from "../../measurement/status.js";
+import { adminMergeCommand } from "./adminMergeCommand.js";
 
 /**
  * How long a hold may stand before it is warned about, in minutes.
@@ -506,9 +507,10 @@ export function baseMovedRemedy({ lane }: { lane: BaseMovedLane | undefined }): 
   const held = `${hold.repo}#${String(hold.pr)}`;
   const age = `${String(holdAgeMinutes({ hold, nowIso }))}m${holdIsStale({ hold, nowIso }) ? " STALE" : ""}`;
   if (sessionId !== undefined && hold.holder === sessionId) {
+    const land = adminMergeCommand({ base: "<base>", head: "<branch>", number: hold.pr, repo: hold.repo });
     return [
       `remedy: you own the merge hold on ${hold.repo} (${held}, placed ${age} ago) — this is the lap that lands: ` +
-        `rebase onto the current base, run the full gate ONCE, push, and \`merge --admin --number ${String(hold.pr)}\` releases it`,
+        `rebase onto the current base, run the full gate ONCE, push, and \`${land}\` releases it`,
     ];
   }
   return [

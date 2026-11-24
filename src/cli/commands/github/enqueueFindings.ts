@@ -16,6 +16,7 @@ import { type CodexLoopInspection } from "../../../codex/landingGate.js";
 import type { GithubChecksSnapshot } from "../../../live/github/checks.js";
 import type { MergeQueuePrState, MergeQueueState } from "../../../live/github/mergeQueue.js";
 import { requiredContextGate, requiredContextRefusal } from "../../../live/github/requiredContexts.js";
+import { adminMergeCommand } from "../../../outbound/github/adminMergeCommand.js";
 import { ciFinding } from "./ciFindings.js";
 import { codexLoopFindingFor } from "./enqueueCodexLoop.js";
 import { reviewFinding } from "./enqueueReviewFinding.js";
@@ -149,6 +150,7 @@ export function enqueueRefusals({
   requiredContexts: readonly string[];
 }): readonly string[] {
   const refusals: string[] = [];
+  const adminMerge = adminMergeCommand({ base: target.branch, head: pr.headRefName, number: pr.number, repo });
   if (pr.state !== "OPEN") {
     refusals.push(
       `#${String(pr.number)} is ${pr.state}, not open — nothing to queue. If it merged already, pull ${pr.baseRefName}.`,
@@ -163,7 +165,7 @@ export function enqueueRefusals({
   if (queue === undefined) {
     refusals.push(
       `${repo} has no merge queue on ${target.branch}, so there is no 'Merge when ready' to press. Land it ` +
-        "with `slopweaver github merge --admin --number <n>` instead, or enable a merge queue on that branch.",
+        `with \`${adminMerge}\` instead, or enable a merge queue on that branch.`,
     );
   }
   if (queue !== undefined && requiredContexts.length === 0) {
@@ -171,7 +173,7 @@ export function enqueueRefusals({
       `${repo}'s queue on ${target.branch} requires NO status-check contexts, so it would merge this pull ` +
         "request on arrival without testing the merged result. Tick 'Require status checks to pass before " +
         `merging' on ${target.branch} and name the contexts the queue must wait for, or land it with ` +
-        "`slopweaver github merge --admin --number <n>` instead.",
+        `\`${adminMerge}\` instead.`,
     );
   }
   return refusals;

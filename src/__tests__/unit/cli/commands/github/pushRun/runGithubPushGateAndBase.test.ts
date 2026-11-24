@@ -98,7 +98,8 @@ describe("runGithubPush", () => {
     expect(code).toBe(EXIT_ERROR);
     expect(test.lines).toContain(
       "remedy: you own the merge hold on owner/repo (owner/repo#32, placed 10m ago) — this is the lap that lands: " +
-        "rebase onto the current base, run the full gate ONCE, push, and `merge --admin --number 32` releases it",
+        "rebase onto the current base, run the full gate ONCE, push, and `slopweaver github merge --repo owner/repo " +
+        "--base origin/<base> --head <branch> --description - --admin --number 32 < body.md` releases it",
     );
   });
 
