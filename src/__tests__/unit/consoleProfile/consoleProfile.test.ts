@@ -137,8 +137,9 @@ describe("the walk plan", () => {
       "/pull-requests → /workstreams",
       "/workstreams → /automations",
       "/automations → /fleet",
-      "/fleet → /docs",
-      "/fleet → /queue",
+      "/fleet → /store",
+      "/store → /docs",
+      "/store → /queue",
     ]);
   });
 

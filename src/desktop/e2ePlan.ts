@@ -168,6 +168,12 @@ export const VOICE_ORB_BUTTON = 'aside[aria-label="voice"] > div:last-child > bu
 /** The docs' own path, which their sidebar link names and the viewer's frame shows. */
 export const DOCS_PATH = "/docs";
 
+/**
+ * Console pages the walk never loads. The Store page draws the private store's own rows, and a walk may capture any
+ * page it loads, so no walk step may put that data on screen.
+ */
+export const WALK_SKIPPED_PATHS: ReadonlySet<string> = new Set(["/store"]);
+
 /** The console's in-app viewer, where the shell opens a docs link (`site/app/(console)/view/page.tsx`). */
 export const VIEWER_PATH = "/view";
 
@@ -191,7 +197,8 @@ export function sidebarLink({ path }: { path: string }): string {
  * @returns the steps
  */
 export function e2eSteps(): readonly E2eStep[] {
-  const pages = CONSOLE_ROUTES.filter((route) => route.path !== DOCS_PATH).map((route): E2eStep => ({
+  const walked = CONSOLE_ROUTES.filter((route) => route.path !== DOCS_PATH && !WALK_SKIPPED_PATHS.has(route.path));
+  const pages = walked.map((route): E2eStep => ({
     id: route.path.slice(1),
     kind: "page",
     path: route.path,

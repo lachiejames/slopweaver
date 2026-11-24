@@ -8,6 +8,7 @@ import { DEFAULT_VERB, lazy, type VerbManifestEntry } from "../manifest.js";
 import { storeAuthoredManifest } from "./storeAuthored.js";
 import { backfillVerbs } from "./storeBackfillMeta.js";
 import * as backupFamily from "./storeBackup.js";
+import { rowMeta, rowsMeta, tablesMeta } from "./storeBrowseMeta.js";
 import { aroundMeta, detectMeta, groupsMeta, hitsMeta, openMeta, peekMeta, probeMeta } from "./storeDetectiveMeta.js";
 import { measurementVerbs } from "./storeMeasurementMeta.js";
 import { projectionVerbs } from "./storeProjectionMeta.js";
@@ -272,6 +273,13 @@ export const storeManifest: Readonly<Record<string, VerbManifestEntry>> = {
     meta: detectMeta,
   }),
   query: lazy({ load: () => import("../commands/store/run.js").then((m) => m.storeQueryCommand), meta: queryMeta }),
+  // The table browser the console's Store page reads through. See `src/store/browse/read.ts`.
+  tables: lazy({
+    load: () => import("../commands/store/browseRun.js").then((m) => m.storeTablesCommand),
+    meta: tablesMeta,
+  }),
+  rows: lazy({ load: () => import("../commands/store/browseRun.js").then((m) => m.storeRowsCommand), meta: rowsMeta }),
+  row: lazy({ load: () => import("../commands/store/browseRun.js").then((m) => m.storeRowCommand), meta: rowMeta }),
   // The lifecycle, in the order a database moves through it. See `src/store/lifecycle.ts`.
   push: lazy({
     load: () => import("../commands/store/lifecycleRun.js").then((m) => m.storePushCommand),

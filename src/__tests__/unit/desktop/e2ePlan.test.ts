@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { CONSOLE_ROUTES } from "../../../consoleProfile/plan.js";
 import {
   e2eRunId,
   e2eSteps,
@@ -11,6 +12,7 @@ import {
   sidebarLink,
   speaksE2e,
   speaksE2eMenuBar,
+  WALK_SKIPPED_PATHS,
 } from "../../../desktop/e2ePlan.js";
 
 describe("queueCardState", () => {
@@ -71,6 +73,12 @@ describe("e2eSteps", () => {
       "automations:sidebar",
       "fleet:sidebar",
     ]);
+  });
+
+  it("never loads the Store page, which draws the private store's rows, though it is a sidebar route", () => {
+    expect(CONSOLE_ROUTES.some((route) => route.path === "/store" && route.inSidebar)).toBe(true);
+    expect(WALK_SKIPPED_PATHS.has("/store")).toBe(true);
+    expect(e2eSteps().filter((step) => step.kind === "page" && step.path === "/store")).toEqual([]);
   });
 
   it("takes the docs as their own step, since the shell opens them in its viewer rather than as a page", () => {

@@ -124,6 +124,7 @@ describe("the address shapes", () => {
     ["http://localhost:3000/talk", false],
     ["http://localhost:3000/fleet", true],
     ["http://localhost:3000/fleet/session/x", false],
+    ["http://localhost:3000/store", true],
     ["http://localhost:3000/now", false],
   ])("reads %j as a console list: %j", (url, list) => {
     expect(isConsoleListUrl({ url })).toBe(list);

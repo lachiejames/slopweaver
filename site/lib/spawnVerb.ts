@@ -1,16 +1,16 @@
 /**
  * The one way the console runs a `slopweaver` verb: an argv ARRAY, no shell, a hard timeout, stderr kept.
  *
- * All three routes — the live read (`app/api/live/[verb]`), the sync take (`app/api/sync/[verb]`) and the
- * act (`app/api/act/[verb]`) — launch a child exactly this way, so a second copy could not quietly drop
- * the timeout kill, the resolution failure's sentence or the stderr tail.
+ * All four allowlist routes — the live read (`app/api/live/[verb]`), the sync take (`app/api/sync/[verb]`), the
+ * act (`app/api/act/[verb]`) and the Store page's read (`app/api/store/[verb]`) — launch a child exactly this way, so
+ * a second copy could not quietly drop the timeout kill, the resolution failure's sentence or the stderr tail.
  *
  * **The binary is the SERVING checkout's, never the inherited `PATH`'s** (`slopweaverBin.ts`, and the
  * `console-verb-binary` gate that keeps it that way). A bare name resolved off `PATH` decided invisibly
  * which checkout's CLI answered every tile, and a figure whose producing tree a reader cannot name is the
  * confident-but-wrong row this whole surface exists to make impossible. What the caller does with the output is its
  * own business: the live route parses and stamps stdout, the sync route discards it because the page
- * re-reads the ledger the verb just appended to, and the act route reads a refusal's stdout off the
+ * re-reads the ledger the verb just appended to, and the act and Store routes read a refusal's stdout off the
  * non-zero arm because a verb that said no in JSON said WHY there.
  *
  * **Every child runs with the launcher-quiet marker** (`launcherQuiet.ts`). The launcher's advisories and the

@@ -36,6 +36,7 @@ export const CONSOLE_PAGES: readonly string[] = [
   "/pull-requests/[owner]/[repo]/[number]",
   "/queue",
   "/queue/mail/[slug]/[digest]",
+  "/store",
   "/workstreams",
 ];
 

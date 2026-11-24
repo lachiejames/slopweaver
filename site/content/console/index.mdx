@@ -9,7 +9,7 @@ The work console, opening on its [Queue](/queue), is the bot's own surface, and 
 <details>
 <summary>What this page shows</summary>
 
-It is a sidebar of your six pages — the Queue, whose count waits on your word, then Alignment, with your steers folded in, then Pull requests, whose count waits on your word too, then Workstreams, Automations and Fleet, each but the Queue and Pull requests with a plain count of its own — with Settings, which holds your plans and carries a dot while none is connected, and Docs at its foot, and the voice's controls and record in the call widget rather than a page; an entry with no number says why when you hover it. Every
+It is a sidebar of your seven pages — the Queue, whose count waits on your word, then Alignment, with your steers folded in, then Pull requests, whose count waits on your word too, then Workstreams, Automations and Fleet, each but the Queue and Pull requests with a plain count of its own, then Store, a read-only view of the store database with no count — with Settings, which holds your plans and carries a dot while none is connected, and Docs at its foot, and the voice's controls and record in the call widget rather than a page; an entry with no number says why when you hover it. Every
 reading on them is a `slopweaver` verb run on this machine, and one page — the [queue](/queue) — has rows that open a panel that
 draws the platform the thing lives on and carries the acts a verb already takes. These docs sit beside it at
 `/docs`, one page here per console page saying how it is derived.
@@ -147,6 +147,7 @@ The sidebar carries the pages you open; Steers, the call widget and Settings ope
 | [Automations](/automations)              | what each automation and sync is doing, and what it found                                                         | [automations](/docs/console/automations)     |
 | The call widget                          | the voice's conversation, lookups, relays and plan settings, in its trays                                         | [call widget](/docs/console/call-widget)     |
 | [Fleet](/fleet)                          | what the fleet did, which agents are running now, and what is next                                                | [fleet](/docs/console/fleet)                 |
+| [Store](/store)                          | what the store database holds, table by table, read-only                                                          | [store](/docs/console/store)                 |
 | [Settings](/queue#settings/integrations) | what is connected and what needs attention, your plans and their Connect, the theme, the orb's presence, the call | [settings](/docs/console/settings)           |
 
 </details>
@@ -160,9 +161,14 @@ so the console has one door that writes: `site/lib/actVerbs.ts`, a closed list w
 declared — an id a register printed, or your words. Among them: `hand done`, `hand snooze` and
 `autonomy steer`. An unknown slug is a 404; a value that is not the slot's shape is refused with the reason.
 
-**Nothing on it launches a model.** `turn`, `codex review` and `cmux spawn` are not on any of the three lists
-(`liveVerbs.ts`, `syncVerbs.ts`, `actVerbs.ts`), so no URL and no press reaches one — operating-doctrine
-rule 2, expressed as a data structure rather than a review note.
+**Nothing on it launches a model.** `turn`, `codex review` and `cmux spawn` are not on any of the closed lists
+(`liveVerbs.ts`, `syncVerbs.ts`, `actVerbs.ts`, `talkTools.ts`, `storeReadVerbs.ts`), so no URL and no press reaches
+one — operating-doctrine rule 2, expressed as a data structure rather than a review note.
+
+**The Store page reads with values it chose, through a list of its own.** `site/lib/storeReadVerbs.ts` holds three
+reads, `store tables`, `store rows` and `store row`, and a request may fill only their data flags: a table or column
+as the catalog token a document printed, a filter value hex-encoded, a row locator, a page number. No value is ever a
+verb, a flag or a path, and nothing on that list writes ([store](/docs/console/store)).
 
 **A press is a same-origin press, and that is all it proves.** The act route refuses a request with no
 `Origin`, an `Origin` that is not this loopback server, a `Sec-Fetch-Site` other than `same-origin`, or a body

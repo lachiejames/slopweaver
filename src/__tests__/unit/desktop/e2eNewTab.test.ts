@@ -13,10 +13,18 @@ import {
 } from "../../../desktop/e2eNewTab.js";
 
 /** What the menu must show, as the break names it. */
-const WANTED = "Alignment, Pull requests, Workstreams, Automations, Fleet, Docs";
+const WANTED = "Alignment, Pull requests, Workstreams, Automations, Fleet, Store, Docs";
 
 /** The menu `desktop/src/newTabShell.ts` builds today, as its items' labels. */
-const MENU = ["◇  Alignment", "⇄  Pull requests", "▰  Workstreams", "↻  Automations", "◎  Fleet", "¶  Docs"];
+const MENU = [
+  "◇  Alignment",
+  "⇄  Pull requests",
+  "▰  Workstreams",
+  "↻  Automations",
+  "◎  Fleet",
+  "▦  Store",
+  "¶  Docs",
+];
 
 const QUEUE_TAB = { icon: "☰", id: "t1", selected: true };
 
@@ -56,38 +64,38 @@ describe("newTabMenuBreaks", () => {
   });
 
   it("names a menu that offers the Queue, a page short, or an item with no glyph", () => {
-    expect(newTabMenuBreaks({ labels: ["☰  Queue", ...MENU.slice(0, 5), "Docs"] })).toEqual([
-      `the menu offered Queue, Alignment, Pull requests, Workstreams, Automations, Fleet, undefined, not ${WANTED}`,
+    expect(newTabMenuBreaks({ labels: ["☰  Queue", ...MENU.slice(0, 6), "Docs"] })).toEqual([
+      `the menu offered Queue, Alignment, Pull requests, Workstreams, Automations, Fleet, Store, undefined, not ${WANTED}`,
       "the menu offered the Queue, which has only its pinned tab",
       "menu item(s) with no glyph ahead of the name: Docs",
     ]);
     expect(newTabMenuBreaks({ labels: MENU.slice(1) })).toEqual([
-      `the menu offered Pull requests, Workstreams, Automations, Fleet, Docs, not ${WANTED}`,
+      `the menu offered Pull requests, Workstreams, Automations, Fleet, Store, Docs, not ${WANTED}`,
     ]);
   });
 
   it("names an item the popup hid or greyed, which the effectful half marks as not offered", () => {
     const hidden = [`${MENU[0]!} (not offered)`, ...MENU.slice(1)];
     expect(newTabMenuBreaks({ labels: hidden })).toEqual([
-      `the menu offered Alignment (not offered), Pull requests, Workstreams, Automations, Fleet, Docs, not ${WANTED}`,
+      `the menu offered Alignment (not offered), Pull requests, Workstreams, Automations, Fleet, Store, Docs, not ${WANTED}`,
     ]);
   });
 
   it("names an item wearing a glyph that is not its sidebar page's", () => {
     const relabelled = MENU.map((label) => `X  ${menuName({ label })!}`);
     expect(newTabMenuBreaks({ labels: relabelled })).toEqual([
-      "menu item(s) wearing another page's glyph: X  Alignment (not ◇), X  Pull requests (not ⇄), X  Workstreams (not ▰), X  Automations (not ↻), X  Fleet (not ◎), X  Docs (not ¶)",
+      "menu item(s) wearing another page's glyph: X  Alignment (not ◇), X  Pull requests (not ⇄), X  Workstreams (not ▰), X  Automations (not ↻), X  Fleet (not ◎), X  Store (not ▦), X  Docs (not ¶)",
     ]);
   });
 
   it("names a menu of the right length whose items are the wrong pages or out of order", () => {
     const swapped = [MENU[1]!, MENU[0]!, ...MENU.slice(2)];
     expect(newTabMenuBreaks({ labels: swapped })).toEqual([
-      `the menu offered Pull requests, Alignment, Workstreams, Automations, Fleet, Docs, not ${WANTED}`,
+      `the menu offered Pull requests, Alignment, Workstreams, Automations, Fleet, Store, Docs, not ${WANTED}`,
     ]);
-    const renamed = [...MENU.slice(0, 5), "¶  Help"];
+    const renamed = [...MENU.slice(0, 6), "¶  Help"];
     expect(newTabMenuBreaks({ labels: renamed })).toEqual([
-      `the menu offered Alignment, Pull requests, Workstreams, Automations, Fleet, Help, not ${WANTED}`,
+      `the menu offered Alignment, Pull requests, Workstreams, Automations, Fleet, Store, Help, not ${WANTED}`,
     ]);
   });
 });

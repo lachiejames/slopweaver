@@ -4,7 +4,7 @@ Part of [The console, the board, and the session ledger](../console.md).
 
 The site's root IS the console (a polished SaaS work console with the docs embedded, the
 live UI most prominent). `site/app/(console)/` is a root layout of its own — a sidebar topped by the
-Acme/Slopweaver context switcher, each context carrying its own mark (Acme's a synthetic drawing), then the six pages the owner opens and Settings and Docs at its foot,
+Acme/Slopweaver context switcher, each context carrying its own mark (Acme's a synthetic drawing), then the seven pages the owner opens (Store, a read-only view of the store database, the last of them) and Settings and Docs at its foot,
 and nothing explanatory (the instance's name does not earn the top-left corner) —
 and the docs sit under `/docs` through Nextra's `contentDirBasePath`, a `content/console/<page>.mdx` per page
 saying how it is derived, reached from `/docs` rather than from the page. [docs-site.md](../docs-site.md) is the site itself,

@@ -24,6 +24,7 @@ export const TAB_PAGES = [
   { glyph: "▰", label: "Workstreams", path: "/workstreams" },
   { glyph: "↻", label: "Automations", path: "/automations" },
   { glyph: "◎", label: "Fleet", path: "/fleet" },
+  { glyph: "▦", label: "Store", path: "/store" },
   { glyph: "¶", label: "Docs", path: "/docs" },
 ] as const satisfies readonly TabPage[];
 
