@@ -2,12 +2,18 @@
  * An issue's labels, read and added through a real Octokit whose transport is a plain fake `fetch` recording
  * each request: the repository's defined labels are paged 100 at a time and stop after five pages, reporting
  * truncation only when the fifth page came back full; an issue's labels keep named entries and drop empty or
- * nameless ones; and the additive write sends the caller's list once and is never retried.
+ * nameless ones; the gate's single-attempt read never retries; and the additive write sends the caller's list once
+ * and is never retried.
  */
 import { Octokit } from "@octokit/rest";
 import { describe, expect, it } from "vitest";
 
-import { addIssueLabelsVia, issueLabelsVia, repoLabelsVia } from "../../../../corpus/github/labels.js";
+import {
+  addIssueLabelsVia,
+  issueLabelsOnceVia,
+  issueLabelsVia,
+  repoLabelsVia,
+} from "../../../../corpus/github/labels.js";
 import type { WriteCtx } from "../../../../corpus/github/writeCtx.js";
 import { unwrap, unwrapErr } from "../../../../lib/result.js";
 
@@ -155,6 +161,43 @@ describe("issueLabelsVia", () => {
     expect(sent).toEqual([
       { body: undefined, method: "GET", url: "https://api.github.com/repos/acme/widgets/issues/42" },
     ]);
+  });
+});
+
+describe("issueLabelsOnceVia", () => {
+  const ISSUE_URL = "https://api.github.com/repos/acme/widgets/issues/42";
+
+  it("GETs the issue once and answers its named labels", async () => {
+    const sent: SentRequest[] = [];
+    const ctx = recordingCtx({
+      responses: [
+        { data: { html_url: "https://github.com/acme/widgets/pull/42", labels: [{ name: "bug fix" }] }, status: 200 },
+      ],
+      scopeId: "issue-labels-once",
+      sent,
+    });
+
+    expect(unwrap(await issueLabelsOnceVia({ ctx, input: { ...REPO, number: 42 } }))).toEqual({
+      htmlUrl: "https://github.com/acme/widgets/pull/42",
+      labels: ["bug fix"],
+    });
+    expect(sent).toEqual([{ body: undefined, method: "GET", url: ISSUE_URL }]);
+  });
+
+  it("fails after exactly one request when GitHub answers 500, never retrying the read", async () => {
+    const sent: SentRequest[] = [];
+    const ctx = recordingCtx({
+      responses: [{ data: { message: "Server Error" }, status: 500 }],
+      scopeId: "issue-labels-once-500",
+      sent,
+    });
+
+    const error = unwrapErr(await issueLabelsOnceVia({ ctx, input: { ...REPO, number: 42 } }));
+
+    expect(error.kind).toBe("http");
+    expect(error.status).toBe(500);
+    expect(error.operation).toBe("github.issues.get");
+    expect(sent).toEqual([{ body: undefined, method: "GET", url: ISSUE_URL }]);
   });
 });
 

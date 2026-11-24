@@ -1,3 +1,5 @@
+// The event label list `labelsFromEnv` parsed is retired with it; the live read is tested in prLabels.test.ts.
+// deleted-with-code: labelsFromEnv
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -8,7 +10,6 @@ import {
   evidenceHandoffResult,
   type GateCheckResult,
   gateLogLines,
-  labelsFromEnv,
   prFormatResult,
   prFormatUnderOrganisation,
   runDevGate,
@@ -94,7 +95,7 @@ describe("prFormatResult", () => {
     expect(result.summary).toContain(".github/pull_request_template.md");
   });
 
-  it("fails a missing kind label the event names", () => {
+  it("fails an owned pull request whose labels lack the kind label its title derives", () => {
     const result = prFormatResult({
       body: conformingBody,
       labels: [],
@@ -214,24 +215,6 @@ describe("prFormatResult", () => {
       ok: false,
       summary: "PR body contains a denylisted term at line 2 — remove it (the matched text is redacted from this log).",
     });
-  });
-});
-
-describe("labelsFromEnv", () => {
-  it("reads an unset variable as no label check", () => {
-    expect(labelsFromEnv({ value: undefined })).toBe(undefined);
-  });
-
-  it("reads the event's JSON array of names", () => {
-    expect(labelsFromEnv({ value: '["bug fix","security"]' })).toEqual(["bug fix", "security"]);
-  });
-
-  it("reads an empty array as a pull request with no labels", () => {
-    expect(labelsFromEnv({ value: "[]" })).toEqual([]);
-  });
-
-  it("throws on a value that is not an array of names, blaming the workflow", () => {
-    expect(() => labelsFromEnv({ value: '{"name":"bug fix"}' })).toThrow("$PR_LABELS is not a JSON array");
   });
 });
 

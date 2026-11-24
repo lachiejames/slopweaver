@@ -15,7 +15,7 @@ name: PR body gate
 #
 # `edited` is the action this file exists for: the gate reads the pull-request BODY and TITLE, so a body-only
 # fix has to be able to clear a red gate. `labeled` and `unlabeled` are here for the same reason: the gate reads
-# the labels too, so adding a missing kind label has to be able to clear it. `ready_for_review` is absent here for the same reason it is absent
+# the labels too, so adding a missing kind label has to be able to clear it, and removing one has to redden it. `ready_for_review` is absent here for the same reason it is absent
 # from `ci.yml` — nothing in this job reads the draft flag.
 #
 # NOT a merge-queue required check, and no `merge_group:` trigger: a `merge_group` event carries no pull
@@ -29,8 +29,9 @@ on:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled]
 
 # The least privilege this file's one job can run on, spelled rather than inherited. `dev-gate` checks out the
-# merge commit and reads the pull-request body, title and head sha out of the EVENT payload — it holds no
-# GitHub client and calls no API, so `contents: read` is the whole of what it needs. Without the block the
+# merge commit and reads the pull-request body, title and head sha out of the EVENT payload, and its two API
+# reads — the pull request's current labels and the open pull requests below — are reads, so `contents: read`
+# and `pull-requests: read` are the whole of what it needs, and nothing in it writes. Without the block the
 # job runs on the repository's default token permissions, which is what CodeQL's
 # `actions/missing-workflow-permissions` alert 47 named against this file on its first push. Stated as scope:
 # `ci.yml` carries twelve open alerts of the same rule and this commit does not touch them, because narrowing
@@ -39,7 +40,8 @@ on:
 permissions:
   contents: read
   # `stack audit --check` below lists every OPEN pull request in this repository and reads each one's native
-  # stack membership, which `contents: read` alone does not reach. Nothing here writes.
+  # stack membership, and the Dev gate step reads this pull request's labels; `contents: read` alone reaches
+  # neither. Nothing here writes.
   pull-requests: read
 
 jobs:
@@ -146,9 +148,15 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
           PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
-          # The labels the kind-label check compares with what the title derives (src/outbound/github/kindLabels.ts),
-          # as a JSON array of names.
-          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          # The kind-label check compares the pull request's labels with what the title derives
+          # (src/outbound/github/kindLabels.ts), and reads them LIVE (src/devGate/prLabels.ts) rather than from
+          # this event: `github stack push` adds the kind label just after it creates the pull request, so the
+          # `opened` payload never carries it, while this step runs after the install, once the label is on.
+          # PR_NUMBER names which pull request to read. The token is this job's own read-only one, the same the
+          # stack-audit step below is given; the read takes it once as its auth and never prints or writes it.
+          # A failed read is the gate's own named red, never a fall back to the event's labels.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # $PR_HEAD_PATCH_ID is exported into $GITHUB_ENV by the step above rather than named here, so that an
           # unmeasurable patch id is genuinely ABSENT instead of an empty string the gate would have to
           # special-case. Absent means the anchor's fallback half cannot run, which reddens a moved head.
