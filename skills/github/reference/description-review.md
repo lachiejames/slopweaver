@@ -111,7 +111,8 @@ packet's base commit holds it, and a review is bound to that commit.
 
 `review-record` resolves the id (a Codex pass first, then a Claude fallback receipt), proves the review judged
 this packet — its base and head commits, a diff that reproduces from them, the exact property — and stores ONE
-receipt under the digest of the manifest: repository, base branch, title, body and both comment-set digests, every image's
+receipt under the digest of the manifest: repository, base branch, title, body and both comment-set digests (the inline comments the write posts, and every comment already on the pull
+request, so an update of an open pull request owes a fresh pass even when its body was cleared before it opened), every image's
 `{ url, sha256, proves, receiptId }`, `rulesSha256`, and `changeDigest`.
 
 `changeDigest` is the sha256 of the ordered tree delta between the merge base and the head
@@ -138,7 +139,7 @@ naming both commits (`src/cli/commands/github/performWrite.ts`, `patchAndConfirm
 ## Counting — its own lane
 
 **One review per distinct packet.** A second `review-record`, or a second `review-prepare`, over a packet that
-already has a receipt is refused, CLEAN or BROKEN; a new pass is owed only when the title, body, comments, images,
+already has a receipt is refused, CLEAN or BROKEN; a new pass is owed only when the title, body, comments (its own or the pull request's existing ones), images,
 rules or change set changes. The packet is its own repository, so these passes never touch the PR branch's
 `codex-review-pass-cap` count or the code review floor `codex status --check` reads: the code's two Codex passes
 are unaffected, and neither lane spends the other's budget.

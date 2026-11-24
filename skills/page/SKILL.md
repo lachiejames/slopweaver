@@ -32,7 +32,7 @@ under, and where the review record is; `--json` gives the same facts as one obje
 
 **Inside a run, the page becomes the run's artifact** — the session holding a run gets an `artifact` event and a
 third line saying so — and **a published page is not a delivered one.** `handover settle` and `finish` refuse until
-the page reached the owner's Queue: end on `handover ask <slug> --question "<the decision> — <console address>"` with the whole
+the page reached the owner's Queue: end on `handover ask <slug> --question "<the decision> — page:<slug>"` with the whole
 shape ([running a run](../handover/reference/running-a-run.md)). A publish writes only [the store](../../docs/store/published-pages.md),
 nothing on disk; one the store refuses exits non-zero with no address. Re-run the same publish.
 
