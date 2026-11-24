@@ -160,7 +160,7 @@ export async function performCreate({
   if (outgoing.kind === "refused") {
     return outgoing;
   }
-  const { body, form } = outgoing;
+  const { form } = outgoing;
   const reservation = await resolvedReservation({
     api,
     form,
@@ -177,6 +177,29 @@ export async function performCreate({
     releasePrRecord({ home, locus });
     return { kind: "refused", reason: elsewhere };
   }
+  return createAndConfirm({ api, deps, home, locus, outgoing });
+}
+
+/**
+ * The create itself, once the locus is reserved: POST, warn when the head moved past the review, then confirm.
+ *
+ * @param outgoing the reviewed bytes and the commit the review bound
+ * @returns the create outcome
+ */
+async function createAndConfirm({
+  api,
+  deps,
+  home,
+  locus,
+  outgoing,
+}: {
+  api: GithubWriteApi;
+  deps: GithubPrDeps;
+  home: string;
+  locus: string;
+  outgoing: Extract<Outgoing, { kind: "send" }> & { boundHead: string | undefined };
+}): Promise<PrOutcome> {
+  const { body, form } = outgoing;
   const created = await api.createPr({
     base: form.target.base,
     body,

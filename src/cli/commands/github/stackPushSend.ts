@@ -243,6 +243,18 @@ async function postStackSelfReview({
   return sendAndReportSelfReview({ api, command: "slopweaver github stack push", deps, form, home, pr: current.value });
 }
 
+/** The part of the verb's deps the locked write itself reads. */
+function lockedWriteDeps({ deps }: { deps: GithubStackPushDeps }): Parameters<typeof performStackPush>[0]["deps"] {
+  return {
+    autonomy: deps.autonomy,
+    cwd: deps.cwd,
+    descriptionReview: deps.descriptionReview,
+    doorLedger: deps.doorLedger,
+    now: deps.now,
+    sleep: deps.sleep,
+  };
+}
+
 /**
  * Run the already-locked stack write, report it, then attach the optional walkthrough.
  *
@@ -278,14 +290,7 @@ export async function sendStackPush({
       performStackPush({
         carry,
         comments: renderSelfReviewComments({ form: selfReview }),
-        deps: {
-          autonomy: deps.autonomy,
-          cwd: deps.cwd,
-          descriptionReview: deps.descriptionReview,
-          doorLedger: deps.doorLedger,
-          now: deps.now,
-          sleep: deps.sleep,
-        },
+        deps: lockedWriteDeps({ deps }),
         freshApi,
         git: deps.git,
         home,
