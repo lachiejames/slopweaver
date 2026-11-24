@@ -27,6 +27,7 @@ describe("isReproducibleOutput", () => {
     "node_modules/",
     "packages/app/node_modules/",
     "dist/",
+    ".vitest-reports/",
     "apps/web/.next/",
     "apps/web/.next-e2e/",
     "tsconfig.tsbuildinfo",
