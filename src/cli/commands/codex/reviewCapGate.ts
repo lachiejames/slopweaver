@@ -8,6 +8,10 @@
  * and Claude fallback receipts together, through `./branchLedgerRead.ts`, the fold `codex status` and the
  * landing floor read.
  *
+ * The caller names the review's LANE, and the count is that lane's alone (`../../../codex/reviewLane.ts`):
+ * `codex review` learns it from `./reviewLaneRead.ts` before asking here, and a fallback review is always
+ * general. A witness is announced and refused in its own words, never as a general pass.
+ *
  * ## A fold it cannot read refuses, as the landing floor does
  *
  * Unlike the duplicate gate (`../../../codex/passAdmission.ts`), which lets a pass run on an unreadable record,
@@ -24,7 +28,8 @@
  */
 
 import type { FallbackRegisterPort } from "../../../codex/fallbackPort.js";
-import { REVIEW_PASS_CAP, reviewCapDecision } from "../../../codex/reviewPassCap.js";
+import type { ReviewLane } from "../../../codex/reviewLane.js";
+import { LANE_PASS_CAP, reviewCapDecision } from "../../../codex/reviewPassCap.js";
 import type { SupersessionPort } from "../../../codex/supersessionPort.js";
 import { hatchFor } from "../../../hatch/lookup.js";
 import { hatchRefusalLines } from "../../../hatch/render.js";
@@ -43,9 +48,16 @@ export interface ReviewCapVerdict {
 /** The leading digits of a sha256, enough for a reader to tell two diffs apart. */
 const SHORT = 12;
 
+/** What one pass in each lane is called, so a witness is never announced as a general pass. */
+const PASS_NOUN: Readonly<Record<ReviewLane, string>> = {
+  "baseline-bump-witness": "baseline-bump witness pass",
+  general: "review pass",
+};
+
 /**
- * Whether a review of this diff would be a third pass on its branch.
+ * Whether a review of this diff would be a third pass in its lane on its branch.
  *
+ * @param lane the lane admission put the review in (`./reviewLaneRead.ts`); a fallback review is always general
  * @param branch the branch the diff's tree was captured on — `null` on a detached HEAD and `undefined` when the
  *   checkout moved mid-capture; either way the review lands on no branch's count, so nothing is refused
  * @param diff the frozen diff about to be reviewed, and the checkout it came from
@@ -62,6 +74,7 @@ export async function reviewCapVerdict({
   env,
   fallbackPort,
   home,
+  lane,
   supersessions,
   verb,
 }: {
@@ -70,6 +83,7 @@ export async function reviewCapVerdict({
   env: Readonly<Record<string, string | undefined>>;
   fallbackPort: FallbackRegisterPort;
   home: string;
+  lane: ReviewLane;
   supersessions: SupersessionPort;
   verb: string;
 }): Promise<ReviewCapVerdict> {
@@ -81,14 +95,14 @@ export async function reviewCapVerdict({
   if (ledger.isErr()) {
     return unreadableFoldVerdict({ branch, hatchOpen, reason: ledger.error.message, verb });
   }
-  const decision = reviewCapDecision({ candidateDiffSha256: diff.sha256, entries: ledger.value });
+  const decision = reviewCapDecision({ candidateDiffSha256: diff.sha256, entries: ledger.value, lane });
   if (decision.kind === "allowed") {
     return {
-      lines: [`${verb}: review pass ${String(decision.pass)} of ${String(REVIEW_PASS_CAP)} on ${branch}`],
+      lines: [`${verb}: ${PASS_NOUN[lane]} ${String(decision.pass)} of ${String(LANE_PASS_CAP[lane])} on ${branch}`],
       refused: false,
     };
   }
-  return thirdPassVerdict({ branch, diffSha256: diff.sha256, hatchOpen, reviewed: decision.reviewed, verb });
+  return thirdPassVerdict({ branch, diffSha256: diff.sha256, hatchOpen, lane, reviewed: decision.reviewed, verb });
 }
 
 /**
@@ -129,28 +143,31 @@ function unreadableFoldVerdict({
 }
 
 /**
- * The verdict on a review that would be a third pass: refused, unless the hatch runs it anyway.
+ * The verdict on a review that would be a third pass in its lane: refused, unless the hatch runs it anyway.
  *
- * @param reviewed the two diffs the branch's passes already reviewed, oldest first
+ * @internal exported so its test can pin the witness lane's refusal, which no fallback receipt can reach.
+ * @param reviewed the two diffs the lane's passes already reviewed, oldest first
  * @returns the verdict and its lines
  */
-function thirdPassVerdict({
+export function thirdPassVerdict({
   branch,
   diffSha256,
   hatchOpen,
+  lane,
   reviewed,
   verb,
 }: {
   branch: string;
   diffSha256: string;
   hatchOpen: boolean;
+  lane: ReviewLane;
   reviewed: readonly string[];
   verb: string;
 }): ReviewCapVerdict {
   if (hatchOpen) {
     return {
       lines: [
-        `${verb}: a THIRD review pass on ${branch}, run by ${ALLOW_CODEX_REVIEW_PASS_CAP_ENV}=1 — say why in the pull request`,
+        `${verb}: a THIRD ${PASS_NOUN[lane]} on ${branch}, run by ${ALLOW_CODEX_REVIEW_PASS_CAP_ENV}=1 — say why in the pull request`,
       ],
       refused: false,
     };
@@ -159,14 +176,23 @@ function thirdPassVerdict({
   return {
     lines: hatchRefusalLines({
       detail:
-        `${branch} has had its two review passes (diffs ${diffs}) and this diff (${diffSha256.slice(0, SHORT)}…) ` +
-        "would be a third — land it with every finding still standing acknowledged as codex-loop-incomplete " +
-        "with a --reason (`codex status --check` prints each one)",
+        `${branch} has had its two ${PASS_NOUN[lane]}es (diffs ${diffs}) and this diff (${diffSha256.slice(0, SHORT)}…) ` +
+        THIRD_PASS_WAY_ON[lane],
       hatch: hatchFor({ id: "codex-review-pass-cap" }),
     }),
     refused: true,
   };
 }
+
+/** What a capped lane's refusal tells the session to do next. */
+const THIRD_PASS_WAY_ON: Readonly<Record<ReviewLane, string>> = {
+  "baseline-bump-witness":
+    "would be a third witness pass — baseline-bump-unwitnessed has no landing acknowledgement, so the bump waits " +
+    "for the owner's explicit steer",
+  general:
+    "would be a third — land it with every finding still standing acknowledged as codex-loop-incomplete " +
+    "with a --reason (`codex status --check` prints each one)",
+};
 
 /**
  * {@link reviewCapVerdict}, printed — the one call each review verb makes before it spends.

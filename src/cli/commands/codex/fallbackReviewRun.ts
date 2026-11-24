@@ -43,6 +43,7 @@ import { requestGround } from "./fallbackReviewGround.js";
 import { recordFallbackReview } from "./fallbackReviewRecord.js";
 import { repoDirOf } from "./repoScope.js";
 import { refusedByReviewCap } from "./reviewCapGate.js";
+import { refusedAsReservedWitness } from "./reviewLaneRead.js";
 
 /** How many argv entries precede the verb's own tail (`node`, `slopweaver`, `codex`, `review-fallback`). */
 const VERB_ARG_OFFSET = 4;
@@ -212,8 +213,9 @@ function captureScope({
 }
 
 /**
- * Asked before the request is written: a Claude review spends one of the branch's two passes exactly as a Codex
- * one does, so a third is refused here as `codex review` refuses it.
+ * Asked before the request is written: a Claude review spends one of the branch's two general passes exactly as a
+ * Codex one does, so a third is refused here as `codex review` refuses it. A fallback is never a witness, so its
+ * lane is always general.
  *
  * @returns true when the cap refused the review and no request may be written
  */
@@ -234,6 +236,7 @@ async function refusedAsThirdPass({
     env: process.env,
     fallbackPort: port,
     home,
+    lane: "general",
     supersessions: supersessionPort(),
     verb: "codex review-fallback prepare",
   });
@@ -257,6 +260,9 @@ async function prepare({
   if (args.isErr()) {
     logger.error({ msg: args.error.message });
     logger.error({ msg: CODEX_REVIEW_FALLBACK_USAGE });
+    return EXIT_USAGE;
+  }
+  if (refusedAsReservedWitness({ propertyId: args.value.property.id })) {
     return EXIT_USAGE;
   }
   // The refusal path never reads the cap, and the cap path never reads a pass record: which ground a request

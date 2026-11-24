@@ -54,6 +54,11 @@ export interface LedgerEntry {
   /** The property id for a review pass; `undefined` for a planning pass, which reviews no single claim. */
   readonly propertyId: string | undefined;
   /**
+   * The claim a Codex review judged, copied from its pass record so the review lane can be read off the row
+   * (`./reviewLane.ts`). Absent on a plan row and on a fallback receipt, both of which classify general.
+   */
+  readonly propertyStatement?: string | undefined;
+  /**
    * Which ARM this pass belongs to, taken from the record's own `scope.mode`.
    *
    * Not derived from {@link pass}'s `p`/`r` prefix, which is what {@link loopFailures} used to read. The two
@@ -493,6 +498,18 @@ function reviewSummaryOf({ record }: { record: CodexArtifactRecord }): string | 
   return typeof summary === "string" ? summary : undefined;
 }
 
+/**
+ * A review record's property statement, read through `unknown` for the same reason as {@link reviewSummaryOf}.
+ *
+ * @param record the pass record, as read from disk
+ * @returns the statement of a review record, else `undefined`
+ */
+function propertyStatementOf({ record }: { record: CodexArtifactRecord }): string | undefined {
+  const property: unknown = record.scope.mode === "review" ? record.scope.property : undefined;
+  const statement: unknown = isRecord(property) ? property["statement"] : undefined;
+  return typeof statement === "string" ? statement : undefined;
+}
+
 /** One record as a ledger row. */
 function toEntry({
   record,
@@ -520,6 +537,7 @@ function toEntry({
     outcomeContext: safeOutcomeContext({ record }),
     pass: record.scope.pass,
     propertyId: record.scope.mode === "review" ? record.scope.property.id : undefined,
+    propertyStatement: propertyStatementOf({ record }),
     verdict: verdictOf({ record }),
   };
 }

@@ -154,6 +154,10 @@ land it.
 `SLOPWEAVER_ALLOW_CODEX_REVIEW_PASS_CAP=1` opens that refusal for one run of `codex review` or `codex review-fallback
 prepare`: only on the owner's explicit steer for a third pass on one change, or for a ledger checked by hand as
 corrupt, misattributed or short of two passes.
+A baseline-bump witness is not a third pass: it counts in its own two-diff lane, admitted only as the exact
+witness command with no hatch, and it never serves the pairing floor
+([rebaseline and lanes](../toolchain/rebaseline-and-lanes.md)). Before the lane existed, a branch past its two
+passes could not take the witness its own landing required.
 MEASURED while building this: an `--acknowledge <subject>` that required no reason left no acknowledgement of any
 kind in the ledger, so every waiver before the obligation is unattributable. The obligation applies to this subject
 alone.

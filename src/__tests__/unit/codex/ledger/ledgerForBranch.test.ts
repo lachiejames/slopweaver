@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { treeFingerprint } from "../../../../codex/fingerprint.js";
 import { ledgerForBranch } from "../../../../codex/ledger.js";
 import type { CodexArtifactRecord } from "../../../../codex/types.js";
-import { HEAD, planRecord, REPO, treeOn } from "./fixtures.js";
+import { anyPassRecord, HEAD, planRecord, REPO, treeOn } from "./fixtures.js";
 
 describe("ledgerForBranch", () => {
   const now = treeFingerprint({ dirtyPatch: "", headSha: HEAD, treeSha: `${HEAD.slice(2)}ab` });
@@ -155,5 +155,14 @@ describe("ledgerForBranch", () => {
     expect(entries.length).toBe(1);
     expect(entries[0]!.outcomeContext).toBe("outcome context unavailable — this record could not be formatted");
     expect(entries[0]!.verdict).toBe("BLOCKED");
+  });
+
+  it("carries a review's property statement onto its entry, and none onto a plan's", () => {
+    const records = [anyPassRecord({ pass: "r3", tree: onBranch }), planRecord({ pass: "p1", tree: onBranch })];
+
+    const { entries } = ledgerForBranch({ repoRoot: REPO, branch: "feature", now, records });
+
+    expect(entries.find((entry) => entry.mode === "review")!.propertyStatement).toBe("a falsifiable claim");
+    expect(entries.find((entry) => entry.mode === "plan")!.propertyStatement).toBeUndefined();
   });
 });

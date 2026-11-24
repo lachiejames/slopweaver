@@ -21,28 +21,58 @@
  * `assessCodexLoop`) reads {@link reviewedDiffs} to decide when a BROKEN finding becomes a leftover; review
  * admission (`../cli/commands/codex/reviewCapGate.ts`) reads {@link reviewCapDecision} to refuse a third.
  *
+ * ## Two lanes, each with its own count
+ *
+ * Every rule above is per LANE (`./reviewLane.ts`). The general lane is every review there has always been, and
+ * its two passes stay the owner's absolute number. The baseline-bump witness lane holds only the exact
+ * adversarial review a ratchet bump's landing requires, admitted one property at a time; its rows spend no general
+ * pass and never serve the pairing floor, and it has its own {@link WITNESS_REVIEW_PASS_CAP}. So a branch that
+ * spent its two general passes can still take its witness, and the witness can never buy a third general review.
+ *
  * Pure: the caller folds the ledger, so every rule here is a plain-value test.
  */
 
 import type { LedgerEntry } from "./ledger.js";
+import { type ReviewLane, reviewLaneOfEntry } from "./reviewLane.js";
 
-/** At most this many review passes on one branch. The owner's number, never a session's to raise. */
+/** At most this many general review passes on one branch. The owner's number, never a session's to raise. */
 export const REVIEW_PASS_CAP = 2;
+
+/**
+ * At most this many baseline-bump witness passes on one branch: the owner's number again, so a second witness
+ * runs only when the diff changed under the first (a fix, a material rebase), and an identical diff is the same
+ * pass.
+ */
+const WITNESS_REVIEW_PASS_CAP = 2;
+
+/** The cap each lane is held to. */
+export const LANE_PASS_CAP: Readonly<Record<ReviewLane, number>> = {
+  "baseline-bump-witness": WITNESS_REVIEW_PASS_CAP,
+  general: REVIEW_PASS_CAP,
+};
 
 /** The verdicts that make a reviewed diff a PASS: anything else concluded nothing. */
 const PASS_VERDICTS: ReadonlySet<string> = new Set(["CLEAN", "BROKEN"]);
 
 /**
- * Every distinct diff a review reached a verdict on, oldest first.
+ * Every distinct diff a review in one lane reached a verdict on, oldest first.
  *
  * @param entries the ledger for the branch, newest first — Codex rows and fallback receipts in one list
- * @returns one sha256 per review pass, in the order the passes were first taken
+ * @param lane the lane whose passes are counted; rows in the other lane are not read
+ * @returns one sha256 per review pass in that lane, in the order the passes were first taken
  */
-export function reviewedDiffs({ entries }: { entries: readonly LedgerEntry[] }): readonly string[] {
+export function reviewedDiffs({
+  entries,
+  lane,
+}: {
+  entries: readonly LedgerEntry[];
+  lane: ReviewLane;
+}): readonly string[] {
   const seen: string[] = [];
   for (const entry of entries.toReversed()) {
     const digest = entry.diffSha256;
-    if (entry.mode === "review" && digest !== undefined && PASS_VERDICTS.has(entry.verdict) && !seen.includes(digest)) {
+    const counts = entry.mode === "review" && PASS_VERDICTS.has(entry.verdict) && reviewLaneOfEntry({ entry }) === lane;
+    if (counts && digest !== undefined && !seen.includes(digest)) {
       seen.push(digest);
     }
   }
@@ -51,31 +81,34 @@ export function reviewedDiffs({ entries }: { entries: readonly LedgerEntry[] }):
 
 /** Whether a review over one more diff may run. */
 export type ReviewCapDecision =
-  /** The diff is already one of the branch's passes, or a pass slot is still open; `pass` is its 1-based number. */
+  /** The diff is already one of the lane's passes, or a slot is still open; `pass` is its 1-based number. */
   | { readonly kind: "allowed"; readonly pass: number }
-  /** Both passes are spent on other diffs: this would be a third. */
+  /** Both of the lane's passes are spent on other diffs: this would be a third. */
   | { readonly kind: "capped"; readonly reviewed: readonly string[] };
 
 /**
- * Decide whether a review of `candidateDiffSha256` may run on this branch.
+ * Decide whether a review of `candidateDiffSha256` may run in one lane on this branch.
  *
  * @param entries the ledger for the branch, newest first
  * @param candidateDiffSha256 the sha256 of the diff about to be reviewed
- * @returns allowed with the pass number it would be, or capped with the two diffs already reviewed
+ * @param lane the lane admission put the review in
+ * @returns allowed with the pass number it would be, or capped with the two diffs already reviewed in that lane
  */
 export function reviewCapDecision({
   entries,
   candidateDiffSha256,
+  lane,
 }: {
   entries: readonly LedgerEntry[];
   candidateDiffSha256: string;
+  lane: ReviewLane;
 }): ReviewCapDecision {
-  const reviewed = reviewedDiffs({ entries });
+  const reviewed = reviewedDiffs({ entries, lane });
   const known = reviewed.indexOf(candidateDiffSha256);
   if (known >= 0) {
     return { kind: "allowed", pass: known + 1 };
   }
-  if (reviewed.length < REVIEW_PASS_CAP) {
+  if (reviewed.length < LANE_PASS_CAP[lane]) {
     return { kind: "allowed", pass: reviewed.length + 1 };
   }
   return { kind: "capped", reviewed };

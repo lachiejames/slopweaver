@@ -102,7 +102,7 @@ that for you: a grammatically single sentence can still hide 25 checks. That hon
 2. **You implement**, in a worktree, off the current base branch. Never on `main`.
 3. **Review pass ONE** — one fan-out over the diff, one property per call; `r1`/`r2`/`r3` are profiles, and
    every property over one diff is one pass. Fix every `BROKEN`.
-4. **Review pass TWO, the last** — over the fixed diff. `codex review` and `review-fallback prepare` refuse a third diff before any spend (`codex-review-pass-cap`); a rebase keeps the diff, so it is the same pass.
+4. **Review pass TWO, the last** — over the fixed diff. `codex review` and `review-fallback prepare` refuse a third diff before any spend (`codex-review-pass-cap`); a rebase keeps the diff, so it is the same pass. A baseline-bump witness counts in its own two-diff lane, never as a third pass ([rebaseline and lanes](../../docs/toolchain/rebaseline-and-lanes.md)).
 5. Land the tree the second pass read: a fix after it leaves no current review, so it rides `--acknowledge codex-loop-incomplete --reason` or a follow-up. `codex status --check` prints each `BROKEN` still standing past pass two; each stays a `codex-loop-incomplete` finding on both landing verbs, landed only with `--acknowledge codex-loop-incomplete --reason "<why>"`, the reason in the door ledger. No PR description carries a leftover. Open a **draft** PR. Where the WORDING cannot be satisfied, `codex supersede` retires that one pass: [superseding-a-wording.md](reference/superseding-a-wording.md).
 6. Run `yarn validate:pr` before you call it done — the LOCAL lane plus `codex status --check`, which refuses
    unless the branch carries a conclusive **STALE `READY` plan** and a **CURRENT, conclusive review**, judged

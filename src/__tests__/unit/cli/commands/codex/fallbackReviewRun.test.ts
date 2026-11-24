@@ -38,3 +38,25 @@ describe("codex review-fallback prepare --after-refusal", () => {
     expect(readdirSync(home)).toEqual([]);
   });
 });
+
+describe("codex review-fallback prepare under a reserved witness id", () => {
+  it("refuses a baseline-bump- id as a usage error before the cap or the fleet is read, writing nothing", async () => {
+    home = mkdtempSync(join(tmpdir(), "sw-fbrun-"));
+    const argv = ["node", "slopweaver", "codex", "review-fallback", "prepare", "--pass", "r3"];
+    const exit = await runCodexReviewFallback([
+      ...argv,
+      "--property-id",
+      `baseline-bump-${"c".repeat(64)}`,
+      "--property",
+      `Ratchet bump ${"c".repeat(64)}: each loosening listed is JUSTIFIED`,
+      "--base",
+      "HEAD",
+      "--max-diff-bytes",
+      "1000",
+      "--home",
+      home,
+    ]);
+    expect(exit).toBe(EXIT_USAGE);
+    expect(readdirSync(home)).toEqual([]);
+  });
+});
