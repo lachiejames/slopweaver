@@ -148,7 +148,7 @@ async function roundReviewRefusal({
   home,
   pr,
 }: {
-  deps: Pick<GithubPrDeps, "cwd" | "descriptionReview">;
+  deps: Pick<GithubPrDeps, "cwd" | "descriptionReview" | "err">;
   form: SelfReviewForm;
   home: string;
   pr: WrittenPr;
@@ -178,6 +178,9 @@ async function roundReviewRefusal({
     repoDir: deps.cwd(),
   });
   if (verdict.kind === "clear") {
+    if (verdict.notice !== undefined) {
+      deps.err({ line: verdict.notice });
+    }
     return undefined;
   }
   return [

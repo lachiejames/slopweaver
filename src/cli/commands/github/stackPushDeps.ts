@@ -134,14 +134,16 @@ const UNREACHABLE_ROSTER: GithubPrDeps["identityRoster"] = {
 /**
  * Adapt this verb's own deps to `performCreate`'s full `GithubPrDeps` shape.
  *
- * `performCreate` only ever calls `now`, `out`, `cwd` and `descriptionReview` internally (confirmed by reading
- * it: the clock stamps the description and times the reservation, and the review is checked against the
- * checkout) — the rest are inert stubs that satisfy the type without being reachable, because a stack push never
- * reads a second form, never resolves a second token, and has no separate diagnostic channel.
+ * `performCreate` only ever calls `now`, `out`, `err`, `cwd` and `descriptionReview` internally (confirmed by
+ * reading it: the clock stamps the description and times the reservation, the review is checked against the
+ * checkout, and `err` carries the carried-review notice and the moved-head warning) — the rest are inert stubs
+ * that satisfy the type without being reachable, because a stack push never reads a second form and never
+ * resolves a second token. A stack push has no separate diagnostic channel, so `err` prints where `out` does:
+ * a no-op there once swallowed both lines.
  *
  * @param deps this verb's own clock, which stamps the description, sleeper, autonomy ledger, checkout and review
  *   check, carried to fill the shape
- * @param out where `performCreate` prints its own progress
+ * @param out where `performCreate` prints its own progress and its diagnostics
  * @returns a full `GithubPrDeps` whose unreachable edges throw rather than returning a plausible value
  */
 export function toGithubPrDeps({
@@ -164,7 +166,7 @@ export function toGithubPrDeps({
     descriptionReview: deps.descriptionReview,
     doorLedger: deps.doorLedger,
     env: () => undefined,
-    err: () => undefined,
+    err: out,
     installationIdentifiers: () => {
       throw new Error("unreachable: stack push reads the installation's identifiers once and passes them in");
     },

@@ -30,6 +30,7 @@ import {
   packetCommitFacts,
   preparationsDirectory,
   readPreparationAtRoot,
+  receiptsDirectory,
 } from "../../../../../outbound/github/descriptionReviewStore.js";
 import {
   DESCRIPTION_REVIEW_PROPERTY,
@@ -300,7 +301,7 @@ describe("github pr review-prepare and review-record", () => {
     const recorded = await record({ reviewId: "pass-1", session: "writer" });
     expect(diagnostics).toStrictEqual([]);
     expect(recorded).toBe(0);
-    const receipt = unwrap(requireCleanDescriptionReview({ description: described(), home }));
+    const { receipt } = unwrap(requireCleanDescriptionReview({ description: described(), home }));
     expect(receipt.verdict).toBe("CLEAN");
     expect(receipt.reviewer).toBe("codex");
     expect(receipt.reviewId).toBe("pass-1");
@@ -328,7 +329,63 @@ describe("github pr review-prepare and review-record", () => {
     commitAll({ message: "count again", repo });
     const failure = unwrapErr(requireCleanDescriptionReview({ description: described(), home }));
     expect(failure.code).toBe("REVIEW_MISSING");
-    expect(failure.message).toContain("the change set's content changed");
+    expect(failure.message).toContain("the change set's content changed, src/count.ts changed and is not Markdown");
+  });
+
+  /** Review a description over a branch that also adds a guide, then trim one sentence from the guide. */
+  async function reviewThenTrimGuide({ body }: { body: string }): Promise<void> {
+    mkdirSync(join(repo, "docs"));
+    writeFileSync(join(repo, "docs", "guide.md"), "# Guide\n\nCounts once. Retries three times.\n");
+    commitAll({ message: "guide", repo });
+    writeFileSync(bodyFile, body);
+    const prepared = await prepare();
+    codexPass({ ...prepared, artifactId: "pass-1", verdict: "CLEAN" });
+    expect(await record({ reviewId: "pass-1", session: "writer" })).toBe(0);
+    writeFileSync(join(repo, "docs", "guide.md"), "# Guide\n\nCounts once.\n");
+    commitAll({ message: "trim the guide", repo });
+  }
+
+  it("carries the CLEAN review over a sentence trimmed from Markdown the unchanged description never names", async () => {
+    await reviewThenTrimGuide({ body: BODY });
+    const carried = unwrap(requireCleanDescriptionReview({ description: described(), home }));
+    expect([carried.kind, carried.receipt.reviewId]).toStrictEqual(["carried", "pass-1"]);
+    expect(carried).toMatchObject({
+      notice:
+        "description review: the description is unchanged, so CLEAN receipt id-2 still covers it over a change set " +
+        "that moved only in docs/guide.md. Blind spot: a claim about prose in a changed Markdown file the " +
+        "description never names can ride this earlier review unread.",
+    });
+  });
+
+  it("asks for a fresh review when the unchanged description names the trimmed file", async () => {
+    const naming = `${BODY}The guide.md page says it counts once.\n`;
+    await reviewThenTrimGuide({ body: naming });
+    const failure = unwrapErr(requireCleanDescriptionReview({ description: described({ body: naming }), home }));
+    expect(failure.message).toContain(
+      "the change set's content changed, docs/guide.md changed and the description names it. Run",
+    );
+  });
+
+  it("asks for a fresh review when the description itself moves alongside the trim", async () => {
+    await reviewThenTrimGuide({ body: BODY });
+    const failure = unwrapErr(requireCleanDescriptionReview({ description: described({ body: `${BODY}x\n` }), home }));
+    expect(failure.message).toContain("the body changed, the change set's content changed. Run");
+  });
+
+  it("carries nothing past a stored receipt that does not read, rather than skipping it for an older CLEAN one", async () => {
+    await reviewThenTrimGuide({ body: BODY });
+    writeFileSync(join(receiptsDirectory({ home }), `${"7".repeat(64)}.json`), "{");
+    const failure = unwrapErr(requireCleanDescriptionReview({ description: described(), home }));
+    expect(failure.code).toBe("REVIEW_MISSING");
+    expect(failure.message).toContain("a stored description review does not read, so none is carried (");
+  });
+
+  it("fails closed when the reviewed change set can no longer be read back", async () => {
+    await reviewThenTrimGuide({ body: BODY });
+    rmSync(preparationsDirectory({ home }), { force: true, recursive: true });
+    const failure = unwrapErr(requireCleanDescriptionReview({ description: described(), home }));
+    expect(failure.code).toBe("REVIEW_MISSING");
+    expect(failure.message).toContain("the change set id-2 reviewed cannot be read back (description review packet:");
   });
 
   it("keeps the write open across a pure rebase onto a base that moved elsewhere", async () => {
@@ -340,7 +397,8 @@ describe("github pr review-prepare and review-record", () => {
     commitAll({ message: "base moves", repo });
     gitInTemp({ args: ["checkout", "--quiet", "feature"], cwd: repo });
     gitInTemp({ args: [...IDENTITY, "rebase", "--quiet", "main"], cwd: repo });
-    expect(unwrap(requireCleanDescriptionReview({ description: described(), home })).reviewId).toBe("pass-1");
+    const rebased = unwrap(requireCleanDescriptionReview({ description: described(), home }));
+    expect([rebased.kind, rebased.receipt.reviewId]).toStrictEqual(["exact", "pass-1"]);
   });
 
   it("takes one review per packet: a second record and a second prepare are both refused", async () => {
@@ -379,7 +437,7 @@ describe("github pr review-prepare and review-record", () => {
     const recorded = await record({ reviewId: "fallback-1", session: "reviewer" });
     expect(diagnostics).toStrictEqual([]);
     expect(recorded).toBe(0);
-    const receipt = unwrap(requireCleanDescriptionReview({ description: described(), home }));
+    const { receipt } = unwrap(requireCleanDescriptionReview({ description: described(), home }));
     expect(receipt.reviewer).toBe("claude-fallback");
     expect(receipt.recordedBy).toStrictEqual({ host: "claude-code", id: "reviewer" });
   });
@@ -427,7 +485,8 @@ describe("github pr review-prepare and review-record", () => {
     codexPass({ ...prepared, artifactId: "pass-1", verdict: "CLEAN" });
     expect(await record({ reviewId: "pass-1", session: "writer" })).toBe(0);
     expect(
-      unwrap(requireCleanDescriptionReview({ description: described({ comments: [WALKTHROUGH] }), home })).reviewId,
+      unwrap(requireCleanDescriptionReview({ description: described({ comments: [WALKTHROUGH] }), home })).receipt
+        .reviewId,
     ).toBe("pass-1");
     const reworded = { ...WALKTHROUGH, body: "💡 The counter reads each widget once." };
     const failure = unwrapErr(
@@ -443,7 +502,7 @@ describe("github pr review-prepare and review-record", () => {
     codexPass({ ...prepared, artifactId: "pass-1", verdict: "CLEAN" });
     expect(await record({ reviewId: "pass-1", session: "writer" })).toBe(0);
     const reviewed = described({ existingComments: [ON_THE_PR] });
-    expect(unwrap(requireCleanDescriptionReview({ description: reviewed, home })).reviewId).toBe("pass-1");
+    expect(unwrap(requireCleanDescriptionReview({ description: reviewed, home })).receipt.reviewId).toBe("pass-1");
     const arrived = { ...ON_THE_PR, body: "It does not, the board id is the key.", id: "IC_2" };
     const failure = unwrapErr(
       requireCleanDescriptionReview({ description: described({ existingComments: [ON_THE_PR, arrived] }), home }),

@@ -7,8 +7,9 @@
  * A {@link DescriptionReviewManifest} names everything a published description depends on: the exact title and
  * body bytes, every image with the line it proves, the written rules it was judged against, and the change set it
  * describes. The change set is bound by `changeDigest` (`./descriptionChangeDigest.ts`), never by a head commit, so
- * a rebase that leaves every changed file's content alone keeps the review, while any content change needs a new
- * one. The manifest's own digest is the key a receipt is stored under, which is what makes "one pass per distinct
+ * a rebase that leaves every changed file's content alone keeps the review, while a content change needs a new one
+ * unless the description is byte-identical and the change is one `./descriptionReviewMateriality.ts` carries. The
+ * manifest's own digest is the key a receipt is stored under, which is what makes "one pass per distinct
  * description" a file that either exists or does not.
  *
  * ## Why it is its own lane

@@ -62,7 +62,7 @@ export function preparationsDirectory({ home }: { home: string }): string {
  *
  * @returns `$home/pr-description-reviews/receipts`
  */
-function receiptsDirectory({ home }: { home: string }): string {
+export function receiptsDirectory({ home }: { home: string }): string {
   return join(stateHomePaths({ home }).prDescriptionReviews, "receipts");
 }
 

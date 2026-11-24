@@ -9,6 +9,10 @@
  * get wrong: the receipt is found by the digest of the exact bytes, or it is not there. There is no hatch. A
  * review of these bytes that came back BROKEN refuses exactly like a missing one, because acknowledging a broken
  * review would publish the very thing the review found.
+ *
+ * The one exception to "the exact bytes" is the change set: a description byte-identical to one reviewed CLEAN is not
+ * reviewed again over a change set that moved only in unnamed Markdown outside the judged trees
+ * (`./descriptionReviewCarry.ts`, `./descriptionReviewMateriality.ts`), and the write prints that it rode one.
  */
 import { err, ok, type Result } from "#lib/result.js";
 
@@ -16,10 +20,13 @@ import { type ChangeDigestReading, computeChangeDigest } from "./descriptionChan
 import {
   buildDescriptionManifest,
   decideDescriptionWrite,
+  manifestDifferences,
   manifestSha256Of,
+  nearestReceipt,
   rulesSha256Of,
 } from "./descriptionReview.js";
-import type { DescriptionReviewError } from "./descriptionReviewErrors.js";
+import { carriedFromStore } from "./descriptionReviewCarry.js";
+import { type DescriptionReviewError, DescriptionReviewErrors } from "./descriptionReviewErrors.js";
 import { descriptionRulesSourceFor, readDescriptionRules } from "./descriptionReviewRules.js";
 import { listReadableReceipts, readReceipt } from "./descriptionReviewStore.js";
 import type {
@@ -123,13 +130,24 @@ export function descriptionManifestFor({
 }
 
 /**
+ * The CLEAN review that opens a write: one over these exact bytes, or an earlier review of the same description
+ * carried over a change set that moved only immaterially (`./descriptionReviewMateriality.ts`), with the one line
+ * the write prints saying so.
+ */
+export type DescriptionReviewAdmission =
+  | { readonly kind: "exact"; readonly receipt: DescriptionReviewReceipt }
+  | { readonly kind: "carried"; readonly receipt: DescriptionReviewReceipt; readonly notice: string };
+
+/**
  * Refuse a description write that no CLEAN description review covers.
  *
- * Call it immediately before the provider mutation, with the exact title and body bytes the mutation sends.
+ * Call it immediately before the provider mutation, with the exact title and body bytes the mutation sends. A
+ * receipt over these exact bytes decides first, so a BROKEN one refuses whatever an earlier review said; only on a
+ * miss is an earlier CLEAN review of the same description considered for carrying.
  *
  * @param home the state home holding the receipts
  * @param description what is about to be written, and where its change set lives
- * @returns the CLEAN receipt that opens the write, or why the write may not go out
+ * @returns the CLEAN review that opens the write, or why the write may not go out
  */
 export function requireCleanDescriptionReview({
   home,
@@ -137,16 +155,37 @@ export function requireCleanDescriptionReview({
 }: {
   home: string;
   description: DescriptionUnderReview;
-}): Result<DescriptionReviewReceipt, DescriptionReviewError> {
+}): Result<DescriptionReviewAdmission, DescriptionReviewError> {
   const reading = descriptionManifestFor({ description });
   if (reading.isErr()) {
     return err(reading.error);
   }
-  const { manifest, manifestSha256 } = reading.value;
+  const { manifest, manifestSha256, change } = reading.value;
   const receipt = readReceipt({ home, manifestSha256 });
   if (receipt.isErr()) {
     return err(receipt.error);
   }
-  const receipts = receipt.value === undefined ? listReadableReceipts({ home }) : [];
-  return decideDescriptionWrite({ receipt: receipt.value, receipts, want: manifest });
+  if (receipt.value !== undefined) {
+    return decideDescriptionWrite({ receipt: receipt.value, receipts: [], want: manifest }).map((exact) => ({
+      kind: "exact" as const,
+      receipt: exact,
+    }));
+  }
+  const carried = carriedFromStore({
+    claims: {
+      body: description.body,
+      commentBodies: description.comments.map((comment) => comment.body),
+      imageProofs: description.images.map((image) => image.proves),
+      title: description.title,
+    },
+    currentEntries: change.entries,
+    home,
+    want: manifest,
+  });
+  if (carried.kind === "carried") {
+    return ok({ kind: "carried", notice: carried.notice, receipt: carried.receipt });
+  }
+  const nearest = nearestReceipt({ receipts: listReadableReceipts({ home }), want: manifest });
+  const differences = nearest === undefined ? [] : manifestDifferences({ have: nearest.manifest, want: manifest });
+  return err(DescriptionReviewErrors.missing({ differences: [...differences, ...carried.reasons], manifestSha256 }));
 }
