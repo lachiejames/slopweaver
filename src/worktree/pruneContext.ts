@@ -21,7 +21,12 @@ import { join } from "node:path";
 
 import type { GitRunner } from "./pruneGit.js";
 
-/** Directories whose whole content a build, an install or a test run writes again. */
+/**
+ * Directories whose whole content a build, an install or a test run writes again.
+ *
+ * `.vitest-reports` holds the unit lane's blob reporter output (`UNIT_BLOB_DIRECTORY`), which the lane clears and
+ * rewrites on every run.
+ */
 const REPRODUCIBLE_DIRS: ReadonlySet<string> = new Set([
   ".cache",
   ".generated",
@@ -29,6 +34,7 @@ const REPRODUCIBLE_DIRS: ReadonlySet<string> = new Set([
   ".nx",
   ".tanstack",
   ".turbo",
+  ".vitest-reports",
   ".yarn",
   "build",
   "coverage",
