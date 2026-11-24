@@ -8,7 +8,6 @@
 import type { Result } from "#lib/result.js";
 import type { DoorLedgerPort } from "../../../admit/doorLedgerPort.js";
 import { prAboveFoldCells, prBelowFoldCells } from "../../../outbound/github/aboveFold.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import type { PrBody } from "../../../outbound/github/types.js";
 import type { ProfileReadError } from "../../../profileStore.js";
 import { type AboveFoldVerdict, aboveFoldVerdictFor, printedAboveFoldRefusals } from "../../aboveFoldDoor.js";
@@ -68,16 +67,12 @@ export async function aboveFoldVerdictOrReported({
   ledger: DoorLedgerPort;
   refuseFindings: boolean;
 }): Promise<AboveFoldVerdict | undefined> {
-  // A refusal quotes the cell it judged, so a line carrying a credential shape prints withheld.
-  const withheldOut = ({ line }: { line: string }): void => {
-    out({ line: withholdingCredentialLines({ lines: [line] }).join("") });
-  };
   const verdict = aboveFoldVerdict({ env, form, home });
   if (verdict.isErr()) {
-    withheldOut({ line: `refused: ${verdict.error.message}` });
+    out({ line: `refused: ${verdict.error.message}` });
     return undefined;
   }
-  if (refuseFindings && (await printedAboveFoldRefusals({ home, ledger, out: withheldOut, verdict: verdict.value }))) {
+  if (refuseFindings && (await printedAboveFoldRefusals({ home, ledger, out, verdict: verdict.value }))) {
     return undefined;
   }
   return verdict.value;

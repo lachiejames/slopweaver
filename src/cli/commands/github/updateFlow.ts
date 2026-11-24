@@ -42,7 +42,6 @@ import type { InstallationIdentifiers } from "../../../hygiene/installationIdent
 import { err, ok, type Result } from "../../../lib/result.js";
 import { parseAuthoringFile } from "../../../outbound/github/authoringFile.js";
 import type { DescriptionReviewComment } from "../../../outbound/github/descriptionReviewTypes.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import { renderSelfReviewComments, type SelfReviewForm } from "../../../outbound/github/selfReview.js";
 import type { PrForm, PrFormDraft } from "../../../outbound/github/types.js";
 import { printedAboveFoldRefusals } from "../../aboveFoldDoor.js";
@@ -285,7 +284,7 @@ export async function runUpdate({
     selfReviewRequested: selfReview !== undefined,
   });
   if ("reason" in admitted) {
-    deps.out({ line: withholdingCredentialLines({ lines: [`refused: ${admitted.reason}`] }).join("") });
+    deps.out({ line: `refused: ${admitted.reason}` });
     return EXIT_ERROR;
   }
   if (input === undefined) {

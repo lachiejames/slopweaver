@@ -393,6 +393,28 @@ export function withholdingCredentialLines({ lines }: { lines: readonly string[]
 }
 
 /**
+ * A writer that forwards every line as given, bar one carrying a credential shape, which it forwards as
+ * {@link WITHHELD_CREDENTIAL_LINE} instead. The description door's production `out` and `err` are built through
+ * this, so a refusal reaching a log is withheld at the writer, by construction, rather than at each exit an audit
+ * found: two reviews of the per-exit fix each found an exit the audit before had missed.
+ *
+ * A line is scanned whole, newlines included, so a credential the scan only recognises across lines (a private-key
+ * block) is caught as one text, and the whole line is withheld.
+ *
+ * @param write the real sink the filtered line is forwarded to
+ * @returns a sink of the same shape whose every forwarded line the secret scan's credential classes do not match
+ */
+export function withholdingCredentialWriter({
+  write,
+}: {
+  write: (args: { line: string }) => void;
+}): (args: { line: string }) => void {
+  return ({ line }) => {
+    write({ line: carriesCredentialShape({ text: line }) ? WITHHELD_CREDENTIAL_LINE : line });
+  };
+}
+
+/**
  * Every content rule a layout-2 body breaks. Empty means its words conform.
  *
  * A rule that quotes the author's text keeps its code and path but prints {@link WITHHELD_MESSAGE} when the body or

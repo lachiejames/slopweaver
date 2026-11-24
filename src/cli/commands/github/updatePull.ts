@@ -8,7 +8,6 @@
 import type { WrittenPr } from "../../../corpus/github/write.js";
 import { renderAuthoringFile } from "../../../outbound/github/authoringFile.js";
 import { renderContent } from "../../../outbound/github/authoringInline.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import { convertToC3 } from "../../../outbound/github/legacy/convertToC3.js";
 import { parseReadingOrderBody } from "../../../outbound/github/legacy/parse.js";
 import { bodyHash, readPrRecord } from "../../../outbound/github/prLedger.js";
@@ -130,7 +129,7 @@ export async function runPull({
   const api = deps.makeApi({ home, token });
   const admitted = await resolveAndAuthorise({ address: args.address!, api, deps, home, selfReviewRequested: false });
   if ("reason" in admitted) {
-    deps.out({ line: withholdingCredentialLines({ lines: [`refused: ${admitted.reason}`] }).join("") });
+    deps.out({ line: `refused: ${admitted.reason}` });
     return EXIT_ERROR;
   }
   const live = admitted.live;
@@ -151,8 +150,7 @@ export async function runPull({
       reason: recovered.reason,
       repo: live.baseRepoFullName,
     });
-    // A recovery refusal can quote the live body's runs, so a credential shape is withheld from the log.
-    deps.out({ line: withholdingCredentialLines({ lines: [`refused: ${refusal}`] }).join("") });
+    deps.out({ line: `refused: ${refusal}` });
     return EXIT_ERROR;
   }
   const file = renderAuthoringFile({ form: recovered.form, pulledBodyHash: bodyHash({ body: live.body }) });

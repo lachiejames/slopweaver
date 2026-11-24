@@ -13,6 +13,7 @@ import { githubToken } from "../../../config.js";
 import { type GithubWriteApi, makeGithubWriteApi } from "../../../corpus/github/write.js";
 import { logger } from "../../../lib/logger.js";
 import type { Result } from "../../../lib/result.js";
+import { withholdingCredentialWriter } from "../../../outbound/github/descriptionWords.js";
 import {
   type InstallationIdentifiersReader,
   readInstallationIdentifiers,
@@ -25,7 +26,7 @@ import type { AlreadyLanded, BaseFreshness } from "./baseFreshnessCore.js";
 import { measureAvailableBaseFreshness, productionBaseFreshnessRunDeps } from "./baseFreshnessRun.js";
 import { type DescriptionReviewCheck, productionDescriptionReviewCheck } from "./descriptionReviewCheck.js";
 import type { GithubVerbResult } from "./errors.js";
-import { productionGithubPushDeps } from "./pushRun.js";
+import { type GithubPushDeps, productionGithubPushDeps } from "./pushRun.js";
 
 /** The injectable edges. A test supplies plain functions; nothing here is a mock. */
 export interface GithubPrDeps {
@@ -102,6 +103,38 @@ export function productionGithubPrDeps(): GithubPrDeps {
   return DEFAULT_DEPS;
 }
 
+/**
+ * The same edges with both writers withholding a credential-shaped line: the description door's refusals quote
+ * what they judged (a title, a recovered run, a scan finding, a reviewer's line), so `runGithubPr` filters every
+ * line it prints here, once, rather than at each exit an audit found. Two reviews of the per-exit fix each found an
+ * exit the audit before had missed.
+ *
+ * Installed AFTER the read-and-report subverbs dispatch, never on {@link DEFAULT_DEPS}: `request-review --json` and
+ * `retarget --json` print one JSON document through `out`, which a withheld line would turn into prose.
+ *
+ * @param deps the edges the description operation was given, every other one carried by identity
+ * @returns the edges whose `out` and `err` the secret scan's credential classes never match a forwarded line on
+ */
+export function withholdingGithubPrDescriptionWriters({ deps }: { deps: GithubPrDeps }): GithubPrDeps {
+  return {
+    ...deps,
+    err: withholdingCredentialWriter({ write: deps.err }),
+    out: withholdingCredentialWriter({ write: deps.out }),
+  };
+}
+
+/**
+ * The same Git edges with their writer withholding a credential-shaped line: a Git warning reprints Git's captured
+ * stderr, which can quote a remote URL or a ref. Used at the stack push boundary, and inside the two measurement
+ * closures below, whose Git edges are private to the closure so no boundary adapter can reach their writer.
+ *
+ * @param git the Git edges, every other one carried by identity
+ * @returns the edges whose `out` the secret scan's credential classes never match a forwarded line on
+ */
+export function withholdingGitWriter({ git }: { git: GithubPushDeps }): GithubPushDeps {
+  return { ...git, out: withholdingCredentialWriter({ write: git.out }) };
+}
+
 /** The real filesystem, clock, client factory and output sink — also `run.ts`'s own default `deps`. */
 export const DEFAULT_DEPS: GithubPrDeps = {
   autonomy: autonomyLedgerPort(),
@@ -113,17 +146,19 @@ export const DEFAULT_DEPS: GithubPrDeps = {
   identityRoster: identityRosterPort(),
   installationIdentifiers: readInstallationIdentifiers,
   makeApi: ({ home, token }) => makeGithubWriteApi({ privacy: githubWritePrivacy({ home }), token }),
+  // Each measurement builds its own Git edges, out of reach of `github stack push`'s boundary adapter, and warns
+  // through them with Git's captured stderr, so their writer withholds a credential-shaped line here.
   measureAlreadyLanded: ({ cwd, remote, target }) =>
     measureAvailableAlreadyLanded({
       cwd,
-      deps: productionAlreadyLandedRunDeps({ git: productionGithubPushDeps() }),
+      deps: productionAlreadyLandedRunDeps({ git: withholdingGitWriter({ git: productionGithubPushDeps() }) }),
       remote,
       target,
     }),
   measureBaseFreshness: ({ cwd, remote, target }) =>
     measureAvailableBaseFreshness({
       cwd,
-      deps: productionBaseFreshnessRunDeps({ git: productionGithubPushDeps() }),
+      deps: productionBaseFreshnessRunDeps({ git: withholdingGitWriter({ git: productionGithubPushDeps() }) }),
       remote,
       target,
     }),

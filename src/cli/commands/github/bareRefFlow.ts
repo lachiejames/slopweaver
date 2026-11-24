@@ -18,7 +18,6 @@ import {
   bareRefIssuesOfPrForm,
   linkifyPrForm,
 } from "../../../outbound/github/bareRefLinks.js";
-import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import type { PrFormDraft } from "../../../outbound/github/types.js";
 import type { BareRefContext } from "../../../outbound/linkify/bareRefs.js";
 import { bareRefVerdictFor } from "../../bareRefDoor.js";
@@ -116,10 +115,8 @@ export function linkifiedPrFormOrReported({
 }): PrFormDraft | undefined {
   const bareRefs = linkifiedPrForm({ deps, form, home, knownNumber });
   if ("refusals" in bareRefs) {
-    for (const line of withholdingCredentialLines({
-      lines: bareRefs.refusals.map((refusal) => `refused: ${refusal}`),
-    })) {
-      deps.out({ line });
+    for (const refusal of bareRefs.refusals) {
+      deps.out({ line: `refused: ${refusal}` });
     }
     return undefined;
   }
