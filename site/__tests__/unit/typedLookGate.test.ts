@@ -49,6 +49,20 @@ describe("isTypedLookAsk", () => {
   it("does not read a corrected figure as an ask, as speech does", () => {
     expect(isTypedLookAsk({ text: "no, it says seven hundred dollars" })).toBe(false);
   });
+
+  // With or without the apostrophe, as every other contraction on the negation line.
+  it("lets can't, cannot and couldn't veto an ask that would otherwise take a look", () => {
+    expect(
+      [
+        "I found it, look at my screen",
+        "I can't find it, look at my screen",
+        "I cannot find it, look at my screen",
+        "I couldn't find it, look at my screen",
+        "I cant find it, look at my screen",
+        "I couldnt find it, look at my screen",
+      ].map((text) => isTypedLookAsk({ text })),
+    ).toEqual([true, false, false, false, false, false]);
+  });
 });
 
 describe("typedLookOnSend", () => {

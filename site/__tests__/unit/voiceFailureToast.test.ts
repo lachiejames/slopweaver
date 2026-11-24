@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import { NOTICE_WIRE_DETAIL_MAX, voiceFailureNoticeWireOf } from "../../lib/desktopShell";
+import { TYPED_LOOK_NOT_ASKED_DETAIL } from "../../lib/typedLookGate";
 import {
   dismissToast,
   expireToasts,
@@ -197,6 +198,22 @@ describe("voiceFailureNoticeOf", () => {
       voiceFailureNoticeOf({ outcome: { ...relay, kind: "tool" } }),
       voiceFailureNoticeOf({ outcome: { ...sibling, kind: "tool" } })!.summary,
     ]).toEqual([undefined, "The voice couldn't look at your screen"]);
+  });
+
+  it("raises nothing for a typed look refused as not asked, while every other refused look, and that detail elsewhere, still toasts", () => {
+    const notAsked = {
+      detail: TYPED_LOOK_NOT_ASKED_DETAIL,
+      kind: "tool",
+      partialFailures: [],
+      refused: true,
+      tool: "read_screen",
+    } as const;
+    expect([
+      voiceFailureNoticeOf({ outcome: notAsked }),
+      voiceFailureNoticeOf({ outcome: { ...notAsked, detail: "no screen shared" } })!.summary,
+      voiceFailureNoticeOf({ outcome: { ...notAsked, tool: "read_card" } })!.summary,
+      voiceFailureNoticeOf({ outcome: { ...notAsked, refused: false } }),
+    ]).toEqual([undefined, "The voice couldn't look at your screen", "The voice couldn't read the card", undefined]);
   });
 });
 

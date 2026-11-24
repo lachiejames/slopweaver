@@ -66,11 +66,18 @@ const TYPED_LOOK_ASK = new RegExp(`${CLAUSE_OPENER}(?:${TYPED_ASK_VERBS.join("|"
  * A negation anywhere in the message vetoes the ask: "Don't, please, look at my screen" opens a clause with the ask and
  * still refuses it. A real ask with a "don't" elsewhere gets words, and the owner can ask again.
  */
-const NEGATION = /\b(?:don'?t|dont|do not|never|not|no need|stop|without|won'?t|shouldn'?t)\b/;
+const NEGATION = /\b(?:don'?t|dont|do not|never|not|no need|stop|without|won'?t|shouldn'?t|can'?t|cannot|couldn'?t)\b/;
 
 /** What the model is told when a typed turn's look is refused. */
 const NOT_ASKED =
   "No look was taken: the owner did not ask for one in this message. Ask what the owner is looking at, or for its link.";
+
+/**
+ * The detail a typed turn's not-asked refusal carries on the voice's failure record (`screenLooks.ts`). The toast
+ * classifier (`voiceFailureToast.ts`) keeps exactly this one quiet: the gate working as designed is not a failure the
+ * owner should see, while every other refused look still toasts.
+ */
+export const TYPED_LOOK_NOT_ASKED_DETAIL = "not asked for in this message";
 
 /**
  * Whether one typed message asks for a look at the owner's screen.
