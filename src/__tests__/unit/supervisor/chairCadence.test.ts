@@ -218,9 +218,7 @@ describe("judgeChairCadence", () => {
       nowIso: NOW,
       sessions: [
         {
-          canon: FRESH,
-          claudeCode: { kind: "measured", version: "2.1.280" },
-          pid: 1,
+          ...session({ plan: "plan-one", version: "2.1.280" }),
           plan: { kind: "unresolved", why: "its environment was not read: `ps` could not read it" },
           sessionId: "s1",
         },
@@ -597,6 +595,8 @@ describe("chairCadenceSessions", () => {
     workspaceCwd: "/wt/chair",
     workspaceId: "WS",
   };
+  /** No session's transcript, boot or auto-compactions read. */
+  const nothingRead = { autoCompactions: new Map(), canon: new Map(), versions: new Map() };
 
   it("keeps every chair session, joined by id, reading UNMEASURED where the boot read or the transcript said nothing", () => {
     // Boot rows arrive in the other order, and name no s2: the join is by process and session id, and s2 stays in the chair.
@@ -609,6 +609,7 @@ describe("chairCadenceSessions", () => {
 
     expect(
       chairCadenceSessions({
+        autoCompactions: new Map([["s1", { autoCompactions: 2, kind: "below-trial" } as const]]),
         canon: new Map([["s1", FRESH]]),
         chair,
         plans,
@@ -616,6 +617,7 @@ describe("chairCadenceSessions", () => {
       }),
     ).toStrictEqual([
       {
+        autoCompactions: { autoCompactions: 2, kind: "below-trial" },
         canon: FRESH,
         claudeCode: { kind: "measured", version: "2.1.280" },
         pid: 1,
@@ -623,6 +625,7 @@ describe("chairCadenceSessions", () => {
         sessionId: "s1",
       },
       {
+        autoCompactions: { kind: "unmeasured", why: "its transcript was not read" },
         canon: { kind: "unmeasured", why: "its boot was not read" },
         claudeCode: { kind: "unmeasured", why: "its transcript was not read" },
         pid: 2,
@@ -652,8 +655,7 @@ describe("chairCadenceSessions", () => {
         workspaceId: "WS",
       },
       plans,
-      versions: new Map(),
-      canon: new Map(),
+      ...nothingRead,
     });
 
     expect(rows.map(({ pid, plan }) => ({ pid, plan }))).toStrictEqual([
@@ -680,7 +682,7 @@ describe("chairCadenceSessions", () => {
       }),
       newestInstalled: CURRENT,
       nowIso: NOW,
-      sessions: chairCadenceSessions({ canon: new Map(), chair, plans, versions: new Map() }),
+      sessions: chairCadenceSessions({ ...nothingRead, chair, plans }),
     });
 
     expect(plans.active).toBeUndefined();
@@ -702,14 +704,12 @@ describe("chairCadenceSessions", () => {
           },
         ],
       }),
-      versions: new Map(),
-      canon: new Map(),
+      ...nothingRead,
     });
     const unread = chairCadenceSessions({
       chair,
       plans: chairPlanVerdict({ sessions: [], unread: "the plan register could not be read: bad row" }),
-      versions: new Map(),
-      canon: new Map(),
+      ...nothingRead,
     });
 
     expect(matched[0]!.plan).toStrictEqual({
@@ -727,8 +727,7 @@ describe("chairCadenceSessions", () => {
       chairCadenceSessions({
         chair: { cause: "no-chair", kind: "unresolved", why: "no pin" },
         plans: chairPlanVerdict({ sessions: [], unread: "no pin" }),
-        versions: new Map(),
-        canon: new Map(),
+        ...nothingRead,
       }),
     ).toStrictEqual([]);
   });

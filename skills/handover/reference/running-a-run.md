@@ -69,8 +69,8 @@ supervisor with `SendMessage`, addressed to the ROLE as it stands at send time.*
 each send: `slopweaver cmux list --json` shows exactly one `pinned: true` workspace titled
 `/slopweaver:supervisor`, and the `ListAgents` row matching its `currentDirectory` is the address — never a name
 a brief quoted (a correlation that picks a convention, never an authentication:
-`.claude/rules/cross-session-messages.md`). Chairs rotate on context depth, handing off ON the 500k warn
-([supervisor](../../supervisor/SKILL.md) § 6a), so a correctly resolved chair can retire inside one report.
+`.claude/rules/cross-session-messages.md`). Chairs rotate on their own cadence, handing off at the fifth
+auto-compaction among other reasons ([supervisor](../../supervisor/SKILL.md) § 6a), so a correctly resolved chair can retire inside one report.
 **`SendMessage` returning success is not delivery.** Measured: two sends to a retired name both
 returned `"success": true` and never arrived. Measured again: a loop session reported twice to the chair
 that was live when it resolved, a successor was born twelve minutes later, and it believed for four hours it

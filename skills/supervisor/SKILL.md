@@ -137,13 +137,13 @@ workstreams into one chat. **Never pitch this as saving money** — frame it as 
 300–400k tokens can be faster and better than one pushed toward its limit.** Fear of losing context is what
 over-extends a session; spawning is the fix for it.
 
-### 6a. A gauge for the others; four clocks for yourself
+### 6a. A gauge for the others; measured reasons for yourself
 
 `slopweaver session depth` folds each live session's newest turn into a depth and a verdict. Run it every tick, put
 candidates in the briefing's collapsed FOLD, and **never respawn a session whose value IS its accumulated context.**
-On YOURSELF, depth alone: **hand off ON the 500k warn, never before** — a 300–400k step-down costs 3.3x per action
-([ledger](reference/ledger-and-gauges.md)). Not depth: `tick close` prints **HAND OFF** as its prompt, not the sweep, at
-75% of your plan's week (unless the Fable route is past 75% too), a Fable gap, a stale Claude Code, or 36h of changed canon ([plan-routing](reference/plan-routing.md)).
+On YOURSELF, never depth: you compact at the shared 300K window and keep going. `tick close` prints **HAND OFF** as its
+prompt, not the sweep, at your FIFTH auto-compaction (a measured TRIAL, [ledger](reference/ledger-and-gauges.md)), 75% of
+your plan's week (unless the Fable route is past 75% too), a Fable gap, a stale Claude Code, or 36h of changed canon ([plan-routing](reference/plan-routing.md)).
 
 ## 7. The sweep cycle — arm it at boot, re-arm it every tick
 

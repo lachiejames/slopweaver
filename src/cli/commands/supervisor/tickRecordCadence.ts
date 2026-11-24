@@ -9,6 +9,7 @@ import type { GaugeChair } from "../../../claude/seatBoot.js";
 import type { Result } from "../../../lib/result.js";
 import type { PlanRegisterError } from "../../../plans/errors.js";
 import type { PlanRegisterSnapshot } from "../../../plans/types.js";
+import type { ChairAutoCompactionReading } from "../../../supervisor/chairAutoCompaction.js";
 import {
   type ChairCadenceGauge,
   type ChairCadenceVerdict,
@@ -19,11 +20,6 @@ import { chairCadenceLines } from "../../../supervisor/chairCadenceLines.js";
 import { chairCadenceRouteOf } from "../../../supervisor/chairCadenceRoute.js";
 import { cadenceThresholdsOf } from "../../../supervisor/chairCadenceThresholds.js";
 import type { ChairCanonReading } from "../../../supervisor/chairCanon.js";
-import {
-  type ChairContextJudgement,
-  type ChairContextReading,
-  judgeChairContext,
-} from "../../../supervisor/chairContext.js";
 import type { ChairRead } from "../../../supervisor/chairGate.js";
 import type { ClosePromptCadence } from "../../../supervisor/chairHandOffPrompt.js";
 import {
@@ -138,18 +134,20 @@ export interface TickCadenceReads {
   readonly readClaudeCode: (options: { chair: ChairRead }) => ChairClaudeCodeReading;
   /** Each chair session's boot and the canon commits main has landed since. */
   readonly readChairCanon: ChairCanonRead;
-  /** Each chair session's context fill against the auto-compact window — a reminder, never a hand-off reason. */
-  readonly readChairContext: ChairContextRead;
+  /** How many times each chair session has been auto-compacted — the five-auto-compaction trial's evidence. */
+  readonly readChairAutoCompactions: ChairAutoCompactionRead;
   /** A Codex chair's canon commits since the instant its record took the chair — no rollout, no Claude registry. */
   readonly readCodexChairCanon: (options: { bootedIso: string }) => ChairCanonReading;
 }
 
 /**
- * Read each chair session's context fill, by session id.
+ * Read each chair session's automatic compactions, by session id.
  *
  * @internal — a field type of {@link TickCadenceReads}.
  */
-export type ChairContextRead = (options: { chair: ChairRead }) => ReadonlyMap<string, ChairContextReading>;
+export type ChairAutoCompactionRead = (options: {
+  chair: ChairRead;
+}) => ReadonlyMap<string, ChairAutoCompactionReading>;
 
 /**
  * The cadence as one tick judged it: what the close prompt acts on when the chair could be read — a hand-off with
@@ -200,29 +198,6 @@ async function judgedCadence({
 }
 
 /**
- * Describe a thrown value without anything that can throw again: no coercion, and every read inside one guard, so a
- * hostile getter or Proxy cannot cost the tick a hand-off it already decided.
- *
- * @param error whatever the context read threw
- * @returns the thrown Error's own message when it is a string, else a fixed description
- */
-function describeThrown({ error }: { error: unknown }): string {
-  // Even `instanceof` runs a Proxy's trap, so the whole read sits inside the guard.
-  try {
-    if (!(error instanceof Error)) {
-      return "a non-Error value was thrown";
-    }
-    const { message } = error;
-    if (typeof message === "string") {
-      return message;
-    }
-    return "an Error whose message is not a string";
-  } catch {
-    return "a thrown value that could not be read";
-  }
-}
-
-/**
  * A Codex chair's verdict for this tick, judged on its canon alone: it never calls `readClaudeCode`, `readChairPlans`
  * or `readChairCanon`, which read a Claude tab's transcript, boot credential and registry (Codex 4c plan, property 1).
  *
@@ -260,7 +235,7 @@ function codexTickVerdict({
  * @param home the Slopweaver home whose plan register names the successor's host
  * @param spawnHome the `--home` the tick named, carried onto the successor's spawn; absent for the ambient one
  * @param row the tick row, for its captured gauge and its instant
- * @param reads the chair's boot plans, Claude Code versions, loaded canon and the plan register
+ * @param reads the chair's boot plans, Claude Code versions, loaded canon, auto-compactions and the plan register
  * @returns what the close prompt acts on and its lines, unprefixed; `not-judged` when the gate read no chair
  */
 export async function judgeTickCadence({
@@ -293,34 +268,21 @@ export async function judgeTickCadence({
   const versions = reads.readClaudeCode({ chair: evidence.chair });
   const canon = reads.readChairCanon({ chair: evidence.chair });
   const plans = await reads.readChairPlans({ chair: evidence.chair });
+  const autoCompactions = reads.readChairAutoCompactions({ chair: evidence.chair });
   const verdict = judgeChairCadence({
     boots: versions.boots,
     gauge: cadenceGaugeOf({ gauge: row.sources.gauge }),
     newestInstalled: versions.newestInstalled,
     nowIso: row.finalisedIso,
-    sessions: chairCadenceSessions({ canon, chair: evidence.chair, plans, versions: versions.perSession }),
+    sessions: chairCadenceSessions({
+      autoCompactions,
+      canon,
+      chair: evidence.chair,
+      plans,
+      versions: versions.perSession,
+    }),
   });
-  const judged = await judgedCadence({ home, reads, spawnHome, verdict });
-  // A failed context read must never cost the tick a hand-off it already decided, so it degrades to a note.
-  // The judgement sits inside the guard too: whatever the read returned is only ever touched in here, and the
-  // fallback judges a Map built from this tick's own session ids.
-  const sessionIds = evidence.chair.sessions.map(({ sessionId }) => sessionId);
-  let context: ChairContextJudgement;
-  try {
-    context = judgeChairContext({ readings: reads.readChairContext({ chair: evidence.chair }), sessionIds });
-  } catch (error: unknown) {
-    const why = `the context read failed (${describeThrown({ error })})`;
-    const unread = new Map(sessionIds.map((sessionId) => [sessionId, { kind: "unmeasured", why } as const]));
-    context = judgeChairContext({ readings: unread, sessionIds });
-  }
-  // The reminder rides the LINES only: `close` is untouched, so a staying chair still re-arms the sweep (soft only).
-  // A staying chair's lines are all notes, so its reminder leads them; a hand-off's block keeps the top.
-  const reminders = context.reminders.map((line) => `chair cadence: ${line}`);
-  const notes = context.notes.map((line) => `chair cadence: ${line}`);
-  if (verdict.kind === "stay") {
-    return { ...judged, lines: [...reminders, ...judged.lines, ...notes] };
-  }
-  return { ...judged, lines: [...judged.lines, ...reminders, ...notes] };
+  return judgedCadence({ home, reads, spawnHome, verdict });
 }
 
 /**
@@ -329,7 +291,7 @@ export async function judgeTickCadence({
  * @param evidence what the chair gate read on its way past
  * @param home the Slopweaver home whose plan register names the successor's host
  * @param spawnHome the `--home` the tick named, carried onto the successor's spawn; absent for the ambient one
- * @param reads the chair's boot plans, Claude Code versions, loaded canon and the plan register
+ * @param reads the chair's boot plans, Claude Code versions, loaded canon, auto-compactions and the plan register
  * @param row the tick row, for its captured gauge
  * @returns the lines to print, each already prefixed
  */

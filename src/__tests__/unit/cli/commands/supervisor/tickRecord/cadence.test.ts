@@ -9,6 +9,7 @@ import {
   type SupervisorTickRecordDeps,
 } from "../../../../../../cli/commands/supervisor/tickRecordRun.js";
 import { EXIT_OK } from "../../../../../../cli/exitCodes.js";
+import type { ChairAutoCompactionReading } from "../../../../../../supervisor/chairAutoCompaction.js";
 import type { CanonCommit } from "../../../../../../supervisor/chairCanon.js";
 import { FILL_LANES } from "../../../../plans/laneFixtures.js";
 import { allUnavailable, capture, DRAFT, NOT_READ, RECONCILE } from "./harness.js";
@@ -221,13 +222,21 @@ describe("the chair's hand-off cadence, as the recorder prints it", () => {
     expect(run.appended.length).toBe(1);
   });
 
-  it("reminds a staying chair at half its auto-compact window, and still records the tick — soft only", async () => {
+  /**
+   * The tick-record deps for a chair on plan-three, current and freshly booted, with its auto-compactions as given.
+   *
+   * @param reading the chair session's auto-compaction reading
+   * @returns the deps and the capture they write into
+   */
+  function compactedChair({ reading }: { reading: ChairAutoCompactionReading }): {
+    run: ReturnType<typeof capture>;
+    deps: SupervisorTickRecordDeps;
+  } {
     const run = capture({ files: { "d.json": GAUGED, "r.json": RECONCILE } });
     const deps: SupervisorTickRecordDeps = {
       ...run.deps,
+      readChairAutoCompactions: () => new Map([["a0000032", reading]]),
       readChairCanon: FRESH_BOOT,
-      readChairContext: () =>
-        new Map([["a0000032", { depthTokens: 162_000, kind: "measured", windowTokens: 300_000 } as const]]),
       readChairPlans: bootedOn({ alias: "plan-three" }),
       readClaudeCode: () => ({
         boots: { kind: "measured", version: "2.1.283" },
@@ -235,6 +244,11 @@ describe("the chair's hand-off cadence, as the recorder prints it", () => {
         perSession: new Map([["a0000032", { kind: "measured", version: "2.1.283" } as const]]),
       }),
     };
+    return { deps, run };
+  }
+
+  it("keeps a chair four auto-compactions in, printing nothing", async () => {
+    const { run, deps } = compactedChair({ reading: { autoCompactions: 4, kind: "below-trial" } });
 
     const code = await runSupervisorTickRecord({
       deps,
@@ -244,82 +258,11 @@ describe("the chair's hand-off cadence, as the recorder prints it", () => {
 
     expect(code).toBe(EXIT_OK);
     expect(run.appended.length).toBe(1);
-    expect(run.diagnostics).toStrictEqual([
-      "supervisor tick-record: chair cadence: REMINDER — session a0000032 carries 162k of its 300k auto-compact window (54%), around half full: hand off at the next natural break. Nothing is blocked and the sweep re-arms as normal.",
-    ]);
+    expect(run.diagnostics).toStrictEqual([]);
   });
 
-  // Each hostile shape a read can fail with, and the description that must survive it.
-  const hostileMessage = new Error("x");
-  Object.defineProperty(hostileMessage, "message", {
-    get: () => {
-      throw new Error("message getter failed");
-    },
-  });
-  // A type-valid map whose lookup throws: the read RETURNS, and fails only once the judgement reads it.
-  const failingMap = new Map<string, never>();
-  Object.defineProperty(failingMap, "get", {
-    value: () => {
-      throw new Error("lazy context read failed");
-    },
-  });
-  const throwing =
-    ({ thrown }: { thrown: unknown }) =>
-    (): never => {
-      throw thrown;
-    };
-  const hostileReads = [
-    {
-      described: "context unavailable",
-      name: "throws a plain Error",
-      read: throwing({ thrown: new Error("context unavailable") }),
-    },
-    {
-      described: "a non-Error value was thrown",
-      name: "throws a value whose string coercion throws",
-      read: throwing({
-        thrown: {
-          [Symbol.toPrimitive]: () => {
-            throw new Error("cannot stringify");
-          },
-        },
-      }),
-    },
-    {
-      described: "a thrown value that could not be read",
-      name: "throws an Error whose message getter throws",
-      read: throwing({ thrown: hostileMessage }),
-    },
-    {
-      described: "a thrown value that could not be read",
-      name: "throws a Proxy whose prototype trap throws",
-      read: throwing({
-        thrown: new Proxy(
-          {},
-          {
-            getPrototypeOf: () => {
-              throw new Error("trap failed");
-            },
-          },
-        ),
-      }),
-    },
-    { described: "lazy context read failed", name: "returns a map whose lookup throws", read: () => failingMap },
-  ] as const;
-
-  it.each(hostileReads)("keeps a decided hand-off when the context read $name", async ({ described, read }) => {
-    const run = capture({ files: { "d.json": GAUGED, "r.json": RECONCILE } });
-    const deps: SupervisorTickRecordDeps = {
-      ...run.deps,
-      readChairCanon: FRESH_BOOT,
-      readChairContext: read,
-      readChairPlans: bootedOn({ alias: "plan-three" }),
-      readClaudeCode: () => ({
-        boots: { kind: "measured", version: "2.1.283" },
-        newestInstalled: { kind: "measured", version: "2.1.283" },
-        perSession: new Map([["a0000032", { kind: "measured", version: "2.1.280" } as const]]),
-      }),
-    };
+  it("hands off a chair at its fifth auto-compaction — the trial's reason, through the real tick", async () => {
+    const { run, deps } = compactedChair({ reading: { autoCompactionsAtLeast: 5, kind: "trial-reached" } });
 
     const code = await runSupervisorTickRecord({
       deps,
@@ -331,10 +274,27 @@ describe("the chair's hand-off cadence, as the recorder prints it", () => {
     expect(run.appended.length).toBe(1);
     expect(run.diagnostics).toStrictEqual([
       "supervisor tick-record: HAND OFF THIS TICK — the chair's own measurements say seat a successor now:",
-      "supervisor tick-record:   - this chair runs Claude Code 2.1.280; a fresh boot runs 2.1.283",
+      "supervisor tick-record:   - session a0000032 has been auto-compacted at least 5 times — the 5-auto-compaction trial seats a successor now",
       "supervisor tick-record:   route currently picks plan-three for a Fable spawn; the successor boots the current Claude Code on whatever plan routing picks.",
       "supervisor tick-record:   Record this tick, write the handoff, then `slopweaver cmux spawn <handoff slug> --driver claude --model fable` and let the successor take the pin and re-arm the sweep — do NOT re-arm from this chair.",
-      `supervisor tick-record: chair cadence: session a0000032: its context fill is UNMEASURED — the context read failed (${described})`,
+    ]);
+  });
+
+  it("names an unreadable auto-compaction count UNMEASURED and keeps the chair", async () => {
+    const { run, deps } = compactedChair({
+      reading: { kind: "unmeasured", why: "line 9 is too long to read, and could be an automatic compaction" },
+    });
+
+    const code = await runSupervisorTickRecord({
+      deps,
+      evidence: READ_CHAIR,
+      rest: ["--draft", "d.json", "--reconcile", "r.json"],
+    });
+
+    expect(code).toBe(EXIT_OK);
+    expect(run.appended.length).toBe(1);
+    expect(run.diagnostics).toStrictEqual([
+      "supervisor tick-record: chair cadence: session a0000032: its auto-compactions are UNMEASURED — line 9 is too long to read, and could be an automatic compaction",
     ]);
   });
 
@@ -504,8 +464,8 @@ describe("cadenceLines", () => {
       evidence: NOT_READ,
       home: "/tmp/home",
       reads: {
+        readChairAutoCompactions: () => refuse({ what: "an auto-compaction count" }),
         readChairCanon: () => refuse({ what: "a boot and canon" }),
-        readChairContext: () => refuse({ what: "a context fill" }),
         readChairPlans: () => refuse({ what: "a boot credential" }),
         readClaudeCode: () => refuse({ what: "Claude Code" }),
         readClaudeSide: () => refuse({ what: "the Claude side" }),

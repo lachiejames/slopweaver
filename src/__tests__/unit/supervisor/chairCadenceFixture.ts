@@ -4,6 +4,7 @@
  * hold one family of the table's rows, so every family judges against the very same chair.
  */
 import { DEFAULT_THRESHOLD_FIELDS } from "../../../plans/thresholds.js";
+import type { ChairAutoCompactionReading } from "../../../supervisor/chairAutoCompaction.js";
 import type {
   ChairCadenceGauge,
   ChairCadenceReason,
@@ -58,18 +59,22 @@ export const CURRENT = { kind: "measured", version: "2.1.283" } as const;
  * @param plan the alias of the plan the session booted on
  * @param version the Claude Code version the session runs
  * @param canon what the session's loaded canon reads as, fresh unless a case says otherwise
+ * @param autoCompactions how many times the session was auto-compacted, one (below the trial) unless a case says
  * @returns the session
  */
 export function session({
   plan,
   version,
   canon = FRESH,
+  autoCompactions = { autoCompactions: 1, kind: "below-trial" },
 }: {
   plan: string;
   version: string;
   canon?: ChairCanonReading;
+  autoCompactions?: ChairAutoCompactionReading;
 }): ChairCadenceSession {
   return {
+    autoCompactions,
     canon,
     claudeCode: { kind: "measured", version },
     pid: 38858,

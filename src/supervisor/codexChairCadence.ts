@@ -7,10 +7,12 @@
  * stale verdict and never brings one early.
  *
  * The Claude chair's other reasons are Claude constructs and are NOT translated: the plan-window and Fable-spread
- * reasons read a Claude plan off its boot credential, and `claude-code-behind` compares Claude Code versions. A Codex
- * chair's plan budget would need its thread bound to one captured Codex ceiling and that ceiling's alert threshold
- * captured with the tick, and its CLI freshness a reader comparing the running CLI with a fresh seat's; neither exists,
- * so each is named UNMEASURED on every verdict rather than read as clean.
+ * reasons read a Claude plan off its boot credential, `claude-code-behind` compares Claude Code versions, and
+ * `auto-compacted` counts a Claude transcript's automatic boundaries. A Codex chair's plan budget would need its
+ * thread bound to one captured Codex ceiling and that ceiling's alert threshold captured with the tick, its CLI
+ * freshness a reader comparing the running CLI with a fresh seat's, and its auto-compactions a rollout record that
+ * says what triggered a compaction — a rollout's `{"type":"compacted"}` item does not (`../context/profileDelivery.ts`).
+ * None exists, so each is named UNMEASURED on every verdict rather than read as clean.
  */
 import type { ChairCadenceRoute, ChairCadenceVerdict } from "./chairCadence.js";
 import { type ChairCanonReading, judgeChairCanon } from "./chairCanon.js";
@@ -23,9 +25,9 @@ export const CODEX_CHAIR_BUDGET_UNMEASURED =
 export const CODEX_CHAIR_CLI_UNMEASURED =
   "its Codex CLI freshness is UNMEASURED — no reader compares the running thread's CLI with a fresh seat's";
 
-/** Why a Codex chair gets no context-fill reminder: that reminder reads a Claude transcript (`./chairContext.ts`). */
-export const CODEX_CHAIR_CONTEXT_UNMEASURED =
-  "its context fill is UNMEASURED — the half-full reminder reads a Claude transcript, never a Codex rollout";
+/** Why a Codex chair's auto-compactions are not judged: its rollout does not say what triggered a compaction. */
+export const CODEX_CHAIR_AUTO_COMPACTIONS_UNMEASURED =
+  "its auto-compactions are UNMEASURED — a Codex rollout's compaction record does not say whether it was automatic";
 
 /**
  * Judge a Codex chair's cadence: hand off on stale canon, and name what a Codex chair cannot yet be judged on.
@@ -52,7 +54,7 @@ export function judgeCodexChairCadence({
     ...(judged.note === undefined ? [] : [judged.note]),
     `Codex thread ${threadId}: ${CODEX_CHAIR_BUDGET_UNMEASURED}`,
     `Codex thread ${threadId}: ${CODEX_CHAIR_CLI_UNMEASURED}`,
-    `Codex thread ${threadId}: ${CODEX_CHAIR_CONTEXT_UNMEASURED}`,
+    `Codex thread ${threadId}: ${CODEX_CHAIR_AUTO_COMPACTIONS_UNMEASURED}`,
   ];
   if (judged.reason === undefined) {
     return { kind: "stay", notes };

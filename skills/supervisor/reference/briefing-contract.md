@@ -121,11 +121,11 @@ the owner asking which page it was.
 
 ### Successor handoff
 
-**The handoff has two triggers, both printed to you, neither refusing anything.** Past 500k every Bash call
-carries the depth warning ([ledger-and-gauges.md](ledger-and-gauges.md)); and `tick close` prints **HAND OFF
-THIS TICK** — then the hand-off, with the successor's slug, as its prompt in place of the sweep — when your plan
-nears its week, your Fable week drifts past the plan routing picks, or you run an older Claude Code than a fresh
-seat boots ([plan-routing.md](plan-routing.md) § The chair's hand-off cadence).
+**The handoff has one trigger, printed to you, refusing nothing.** `tick close` prints **HAND OFF THIS TICK** —
+then the hand-off, with the successor's slug, as its prompt in place of the sweep — at your fifth auto-compaction
+(a trial, [ledger-and-gauges.md](ledger-and-gauges.md) § Do not hand off early), when your plan nears its week,
+your Fable week drifts past the plan routing picks, or you run an older Claude Code than a fresh seat boots
+([plan-routing.md](plan-routing.md) § The chair's hand-off cadence). Depth is never one: you compact at 300K.
 Either way the successor is opened while you can still open one, rather than when a sweep feels long.
 
 **The doc you write for your successor OPENS with the invocation, and it is not optional prose.** The

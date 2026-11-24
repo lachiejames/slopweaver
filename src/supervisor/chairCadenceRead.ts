@@ -1,25 +1,15 @@
 /**
  * The effectful edge of the chair's hand-off cadence: which Claude Code each chair session runs (its transcript),
  * which one a fresh boot runs (`claude --version`, through whatever wrapper PATH puts first — exactly what
- * `cmux spawn` would launch), the newest one installed (Claude Code's own versions directory), and when each chair
- * session booted against what `origin/main` has changed in its canon since (`./chairCanon.ts`).
+ * `cmux spawn` would launch), the newest one installed (Claude Code's own versions directory), when each chair
+ * session booted against what `origin/main` has changed in its canon since (`./chairCanon.ts`), and how many times
+ * each chair session has been auto-compacted (`./chairAutoCompaction.ts`).
  *
  * Every read degrades to UNMEASURED rather than throwing: a tick must record whatever this could not see. The
  * judgement is `./chairCadence.ts`.
  */
 import { execFileSync } from "node:child_process";
-import {
-  accessSync,
-  closeSync,
-  constants,
-  fstatSync,
-  lstatSync,
-  openSync,
-  readdirSync,
-  readFileSync,
-  type Stats,
-  statSync,
-} from "node:fs";
+import { accessSync, constants, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -31,11 +21,11 @@ import {
   readClaudeCodeVersion,
 } from "../claude/claudeCodeVersion.js";
 
-import { readContextDepth } from "../sessions/depthStore.js";
 import { readTail, scanSessions, transcriptPathFor } from "../sessions/liveSessionStore.js";
 import { DEPTH_TAIL_BYTES } from "../sessions/tokenDepth.js";
+import { findOnlyTranscript, transcriptLines } from "../transcripts/source.js";
+import { type ChairAutoCompactionReading, countChairAutoCompactions } from "./chairAutoCompaction.js";
 import { type ChairCanonReading, canonLogArgs, readChairCanonFor, readChairCanonSince } from "./chairCanon.js";
-import { type ChairContextReading, parseAutoCompactWindow, windowAtBoot } from "./chairContext.js";
 import type { ChairRead } from "./chairGate.js";
 import { claudeHomeDir } from "./chairRead.js";
 import { type SupervisorCoreError, SupervisorCoreErrors } from "./errors.js";
@@ -272,150 +262,66 @@ export function readChairClaudeCodeVersions({
 }
 
 /**
- * Claude Code's `autoCompactWindow`, off its user settings file, with the instant that file last changed.
+ * One chair session's automatic compactions, streamed off its one transcript and stopped at the trial count.
  *
- * @param claudeHome the resolved `~/.claude`
- * @returns the window in tokens and the file's modification instant, or why none could be read
- */
-function readAutoCompactWindow({
-  claudeHome,
-}: {
-  claudeHome: string;
-}): { readonly windowTokens: number; readonly changedAtMs: number } | { readonly why: string } {
-  const path = join(claudeHome, "settings.json");
-  try {
-    // Opened NON-BLOCKING and judged through the same descriptor it is read from: a FIFO would otherwise block the
-    // tick forever, where main never opened this file at all, and no swap can land between check and read.
-    const fd = openSync(path, constants.O_RDONLY | constants.O_NONBLOCK);
-    let target: Stats;
-    let text: string;
-    try {
-      target = fstatSync(fd);
-      if (!target.isFile()) {
-        return { why: "Claude Code's settings file is not a regular file, so it is not read" };
-      }
-      // O_NONBLOCK does not bound a REGULAR file's read: one on a mount whose reads hang would hang the tick, where
-      // main never opened this file. So it is read only on the filesystem main's own registry scan already reads,
-      // `<claudeHome>/sessions` — a mount that hangs there hangs main first.
-      if (target.dev !== statSync(join(claudeHome, "sessions")).dev) {
-        return {
-          why: "Claude Code's settings file is on another filesystem than its session registry, so it is not read",
-        };
-      }
-      text = readFileSync(fd, "utf8");
-      // Re-stated AFTER the read: a write landing between the first stat and the read moves these times.
-      target = fstatSync(fd);
-    } finally {
-      closeSync(fd);
-    }
-    const parsed = parseAutoCompactWindow({ text });
-    if ("why" in parsed) {
-      return parsed;
-    }
-    // The LATEST of mtime and ctime: `utimes` can put mtime back to any instant, but it, a write and an atomic
-    // rename all move ctime to now, which nothing short of the system clock can backdate. Both the file and, where
-    // it is a symlink (a dotfile manager's usual shape), the link itself: re-pointing a link moves only the link's
-    // own times.
-    const link = lstatSync(path);
-    const changedAtMs = Math.max(target.ctimeMs, target.mtimeMs, link.ctimeMs, link.mtimeMs);
-    return { changedAtMs, windowTokens: parsed.windowTokens };
-  } catch (error: unknown) {
-    return { why: `Claude Code's settings file could not be read (${String(error)})` };
-  }
-}
-
-/**
- * The window one chair session runs: the settings file's, only when the registry dates the session's boot at or
- * after the file last changed (`./chairContext.ts`'s `windowAtBoot`).
+ * The count is of the transcript as it stood when the walk opened: a boundary the chair appends mid-walk is the next
+ * tick's, a hand-off one tick late rather than a count the snapshot understates.
  *
- * @param window the settings read, made once for the chair
- * @param scan the Claude session registry, scanned once for the chair
- * @param session the chair session, by id and pid
- * @returns the window in tokens, or why this session's window is unknown
+ * @param projectsDir `~/.claude/projects`
+ * @param sessionId the chair session
+ * @returns the count, the trial reached, or why its transcript cannot say
  */
-function sessionWindow({
-  window,
-  scan,
-  session,
-}: {
-  window: ReturnType<typeof readAutoCompactWindow>;
-  scan: ReturnType<typeof scanSessions>;
-  session: { sessionId: string; pid: number };
-}): { readonly windowTokens: number } | { readonly why: string } {
-  if ("why" in window) {
-    return window;
-  }
-  if (scan.unreadable !== undefined) {
-    return { why: `the Claude session registry could not be read (${scan.unreadable})` };
-  }
-  const record = scan.records.find((entry) => entry.pid === session.pid && entry.sessionId === session.sessionId);
-  if (record === undefined) {
-    return { why: "the Claude session registry holds no file for its pid, so its boot is unknown" };
-  }
-  return windowAtBoot({
-    bootedAtMs: record.startedAtMs,
-    settingsChangedAtMs: window.changedAtMs,
-    windowTokens: window.windowTokens,
-  });
-}
-
-/**
- * One chair process's context fill: its session's newest turn depth against the window that process runs.
- *
- * @param claudeHome the resolved `~/.claude`, which holds the transcripts
- * @param sessionId the session the process resumes
- * @param windowOf the window that process runs, or why it is unknown
- * @returns the measured fill, or why it could not be measured
- */
-function sessionReading({
-  claudeHome,
+function sessionAutoCompactions({
+  projectsDir,
   sessionId,
-  windowOf,
 }: {
-  claudeHome: string;
+  projectsDir: string;
   sessionId: string;
-  windowOf: ReturnType<typeof sessionWindow>;
-}): ChairContextReading {
-  if ("why" in windowOf) {
-    return { kind: "unmeasured", why: windowOf.why };
+}): ChairAutoCompactionReading {
+  const path = findOnlyTranscript({ projectsDir, sessionId });
+  if (path.isErr()) {
+    return { kind: "unmeasured", why: path.error.message };
   }
-  // `session depth`'s own read, so the chair's figure and that verb's row can never disagree.
-  const depth = readContextDepth({ projectsDir: join(claudeHome, "projects"), sessionId });
-  if (!depth.known) {
-    return { kind: "unmeasured", why: depth.why };
+  const stream = transcriptLines({ path: path.value });
+  if (stream.isErr()) {
+    return { kind: "unmeasured", why: stream.error.message };
   }
-  return { depthTokens: depth.value.depthTokens, kind: "measured", windowTokens: windowOf.windowTokens };
+  const counted = countChairAutoCompactions({ lines: stream.value.lines });
+  // Five verified boundaries prove the trial whatever the unread tail holds; a count below it is only as good
+  // as the whole walk, so a partial one cannot vouch for it.
+  const [problem] = stream.value.problems;
+  if (counted.kind === "below-trial" && problem !== undefined) {
+    return { kind: "unmeasured", why: `its transcript could not be read whole — ${problem}` };
+  }
+  return counted;
 }
 
 /**
- * Each chair session's context fill: its transcript's newest turn depth against Claude Code's `autoCompactWindow`
- * user setting, read once for the chair (`./chairContext.ts` judges it).
+ * How many times each chair session has been auto-compacted, read once per session id (`./chairCadence.ts`
+ * judges it against the five-auto-compaction trial).
+ *
+ * Two live processes resuming one session id share one transcript, so it is walked once and counted once.
  *
  * @param read the chair read the gate already made
- * @param claudeHome the resolved `~/.claude`, which holds both the settings file and the transcripts
+ * @param claudeHome the resolved `~/.claude`, which holds the transcripts
  * @returns one reading per session id; empty when the chair could not be read
  */
-export function readChairContextFill({
+export function readChairAutoCompactions({
   read,
   claudeHome,
 }: {
   read: ChairRead;
   claudeHome: string;
-}): ReadonlyMap<string, ChairContextReading> {
-  const readings = new Map<string, ChairContextReading>();
+}): ReadonlyMap<string, ChairAutoCompactionReading> {
+  const readings = new Map<string, ChairAutoCompactionReading>();
   if (read.kind === "unresolved") {
     return readings;
   }
-  const window = readAutoCompactWindow({ claudeHome });
-  const scan = scanSessions({ sessionsDir: join(claudeHome, "sessions") });
-  for (const session of read.sessions) {
-    // Two live processes resuming one session id share one transcript, and either one's measurement is the
-    // session's: a sibling that booted before a settings change must never erase it.
-    if (readings.get(session.sessionId)?.kind === "measured") {
-      continue;
+  const projectsDir = join(claudeHome, "projects");
+  for (const { sessionId } of read.sessions) {
+    if (!readings.has(sessionId)) {
+      readings.set(sessionId, sessionAutoCompactions({ projectsDir, sessionId }));
     }
-    const windowOf = sessionWindow({ scan, session, window });
-    readings.set(session.sessionId, sessionReading({ claudeHome, sessionId: session.sessionId, windowOf }));
   }
   return readings;
 }

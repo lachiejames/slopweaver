@@ -303,8 +303,8 @@ describe("the draft a tick-draft writes is one tick-record takes", () => {
         readChairCanon: () => {
           throw new Error("a not-read tick must never read the chair's boot or canon");
         },
-        readChairContext: () => {
-          throw new Error("a not-read tick must never read the chair's context fill");
+        readChairAutoCompactions: () => {
+          throw new Error("a not-read tick must never read the chair's auto-compactions");
         },
         readCodexChairCanon: () => {
           throw new Error("a not-read tick must never read a Codex chair's canon");

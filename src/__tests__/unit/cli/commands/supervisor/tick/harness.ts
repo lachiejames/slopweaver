@@ -36,8 +36,7 @@ export function chairOn({ alias }: { alias: string }): SupervisorTickDeps["caden
   return {
     readChairCanon: () =>
       new Map([["a0000049", { bootedIso: "2026-09-27T00:00:00.000Z", changed: [], kind: "measured" } as const]]),
-    readChairContext: () =>
-      new Map([["a0000049", { depthTokens: 30_000, kind: "measured", windowTokens: 300_000 } as const]]),
+    readChairAutoCompactions: () => new Map([["a0000049", { autoCompactions: 1, kind: "below-trial" } as const]]),
     readChairPlans: () =>
       Promise.resolve(
         chairPlanVerdict({ sessions: [{ pid: 75277, plan: { alias, kind: "token" }, sessionId: "a0000049" }] }),

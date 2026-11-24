@@ -85,6 +85,30 @@ describe("closePromptOf", () => {
     expect(last.prompt).not.toContain(SWEEP);
   });
 
+  it("replaces the sweep prompt with the hand-off on the chair's fifth auto-compaction", () => {
+    const last = closePromptOf({
+      cadence: {
+        kind: "hand-off",
+        target: { kind: "claude" },
+        verdict: {
+          kind: "hand-off",
+          notes: [],
+          reasons: [{ autoCompactionsAtLeast: 5, kind: "auto-compacted", sessionId: "a0000032", trialCount: 5 }],
+          route: { alias: "plan-one", kind: "picks" },
+        },
+      },
+      handoff: "handoff-9294",
+      sweepPrompt: SWEEP,
+    });
+
+    expect(last.handOff).toBe(true);
+    expect(last.prompt!.split("\n").slice(0, 2)).toStrictEqual([
+      "HAND OFF NOW — do NOT re-arm the sweep from this chair. Its own measurements say seat a successor now:",
+      "  - session a0000032 has been auto-compacted at least 5 times — the 5-auto-compaction trial seats a successor now",
+    ]);
+    expect(last.prompt).not.toContain(SWEEP);
+  });
+
   it("keeps the sweep prompt under the reason when no host can take the successor", () => {
     const last = closePromptOf({
       cadence: {

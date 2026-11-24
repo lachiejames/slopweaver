@@ -353,8 +353,8 @@ export function productionSupervisorTickDeps(): SupervisorTickDeps {
     appendTick: ({ row, home }) =>
       appendSupervisorTick({ home, row }).mapErr((error) => supervisorCoreErrorLines({ error })),
     cadenceReads: {
+      readChairAutoCompactions: record.readChairAutoCompactions,
       readChairCanon: record.readChairCanon,
-      readChairContext: record.readChairContext,
       readChairPlans: record.readChairPlans,
       readClaudeCode: record.readClaudeCode,
       readClaudeSide: record.readClaudeSide,

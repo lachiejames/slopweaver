@@ -12,7 +12,7 @@
  * `/login` by hand. Its transcript recorded `"version":"2.1.280"` while seats booted that day ran 2.1.281 to
  * 2.1.283. Nothing in the tick asked either question.
  *
- * ## The five reasons, each a measurement and never a clock
+ * ## The six reasons, each a measurement and never a clock
  *
  * - **`plan-window-near`** — the chair's plan is at or past the install's alert bar (`alertAtPercent`, default 75) of
  *   its plan-wide or its Fable week. That is the gauge's own REACT NOW line, below `spendCapFor`'s routing cap, so
@@ -45,13 +45,15 @@
  *   changed the skill, rule or `AGENTS.md` text it loaded at boot since, so a chair never runs
  *   stale for days. Both halves, so it is never a bare clock: `./chairCanon.ts`
  *   reads and judges it.
+ * - **`auto-compacted`** — the chair's own session has been auto-compacted five times, the owner's TRIAL count
+ *   (`./chairAutoCompaction.ts`). Every model compacts at one shared window, so the chair hands off on how many
+ *   lossy summaries it has been through, never on a token depth; judged once per session id, since two processes
+ *   resuming one session share its transcript.
  *
- * Context fill is deliberately NOT a sixth reason: the owner's ruling for it is soft only, so `./chairContext.ts` judges it
- * beside this verdict and prints a reminder that changes neither the verdict nor the close prompt.
- *
- * The first four are Claude constructs: a Claude plan read off its boot credential, and Claude Code versions. Only
- * `canon-stale` is provider-neutral, so a Codex chair is judged on it alone, from the instant its record took the
- * chair, with its budget and CLI freshness named UNMEASURED (`./codexChairCadence.ts`).
+ * The first four and `auto-compacted` are Claude constructs: a Claude plan read off its boot credential, Claude
+ * Code versions and a Claude transcript's boundaries. Only `canon-stale` is provider-neutral, so a Codex chair is
+ * judged on it alone, from the instant its record took the chair, with its budget, CLI freshness and
+ * auto-compactions named UNMEASURED (`./codexChairCadence.ts`).
  *
  * This module decides only WHETHER to hand off; `./chairSuccessor.ts` decides which host the successor boots on,
  * off the plan register. A Claude successor needs no special ranking: `cmux spawn <handoff slug> --driver claude
@@ -89,6 +91,7 @@
  */
 import { type ClaudeCodeVersionReading, compareClaudeCodeVersions } from "../claude/claudeCodeVersion.js";
 import type { GaugeChair, SeatBootPlan } from "../claude/seatBoot.js";
+import { AUTO_COMPACTION_HANDOFF_TRIAL_COUNT, type ChairAutoCompactionReading } from "./chairAutoCompaction.js";
 import { planReasons } from "./chairCadenceBudget.js";
 import { chairCadenceRouteOf } from "./chairCadenceRoute.js";
 import type { ChairCadenceThresholds } from "./chairCadenceThresholds.js";
@@ -104,6 +107,8 @@ export interface ChairCadenceSession {
   readonly plan: SeatBootPlan;
   /** When its process booted, and what `origin/main` has changed in its loaded canon since. */
   readonly canon: ChairCanonReading;
+  /** How many times its session has been auto-compacted, off the transcript every process resuming it shares. */
+  readonly autoCompactions: ChairAutoCompactionReading;
 }
 
 /** The tick's captured plan gauge, as much of it as the cadence reads. */
@@ -167,6 +172,13 @@ export type ChairCadenceReason =
     }
   | { readonly kind: "plan-unmeasured"; readonly alias: string; readonly routeAlias: string }
   | { readonly kind: "claude-code-behind"; readonly running: string; readonly boots: string }
+  | {
+      readonly kind: "auto-compacted";
+      readonly sessionId: string;
+      readonly autoCompactionsAtLeast: number;
+      /** The trial count it was judged against. */
+      readonly trialCount: number;
+    }
   | CanonStaleReason;
 
 /**
@@ -223,6 +235,7 @@ function versionReason({ session, boots }: { session: ChairCadenceSession; boots
  * @param plans each chair session's plan, read off the credential it booted on
  * @param versions each session's Claude Code version, by session id
  * @param canon each session's boot and the canon commits main has landed since, by session id
+ * @param autoCompactions each session's automatic compactions, by session id
  * @returns one cadence row per chair session; none when the chair could not be read
  */
 export function chairCadenceSessions({
@@ -230,11 +243,13 @@ export function chairCadenceSessions({
   plans,
   versions,
   canon,
+  autoCompactions,
 }: {
   chair: ChairRead;
   plans: GaugeChair;
   versions: ReadonlyMap<string, ClaudeCodeVersionReading>;
   canon: ReadonlyMap<string, ChairCanonReading>;
+  autoCompactions: ReadonlyMap<string, ChairAutoCompactionReading>;
 }): readonly ChairCadenceSession[] {
   if (chair.kind === "unresolved") {
     return [];
@@ -259,8 +274,40 @@ export function chairCadenceSessions({
     if (own !== undefined) {
       loaded = own;
     }
-    return { canon: loaded, claudeCode, pid, plan, sessionId };
+    let compacted: ChairAutoCompactionReading = { kind: "unmeasured", why: "its transcript was not read" };
+    const counted = autoCompactions.get(sessionId);
+    if (counted !== undefined) {
+      compacted = counted;
+    }
+    return { autoCompactions: compacted, canon: loaded, claudeCode, pid, plan, sessionId };
   });
+}
+
+/**
+ * The auto-compaction reason for one session id, or the note saying why its count cannot be judged.
+ *
+ * @param sessionId the chair session
+ * @param reading its automatic compactions
+ * @returns the reason or the note, either possibly absent
+ */
+function autoCompactionReason({ sessionId, reading }: { sessionId: string; reading: ChairAutoCompactionReading }): {
+  reason?: ChairCadenceReason;
+  note?: string;
+} {
+  if (reading.kind === "unmeasured") {
+    return { note: `session ${sessionId}: its auto-compactions are UNMEASURED — ${reading.why}` };
+  }
+  if (reading.kind === "below-trial") {
+    return {};
+  }
+  return {
+    reason: {
+      autoCompactionsAtLeast: reading.autoCompactionsAtLeast,
+      kind: "auto-compacted",
+      sessionId,
+      trialCount: AUTO_COMPACTION_HANDOFF_TRIAL_COUNT,
+    },
+  };
 }
 
 /**
@@ -398,10 +445,22 @@ export function judgeChairCadence({
     }
   };
   notes.push(...fleetNotes({ boots, gauge, newestInstalled, sessionCount: sessions.length }));
+  const compactionJudged = new Set<string>();
   for (const session of sessions) {
     const own = sessionFindings({ boots, gauge, nowIso, session });
     own.reasons.forEach(add);
     notes.push(...own.notes);
+    // Per session id, not per process: two processes resuming one session share one transcript and one count.
+    if (!compactionJudged.has(session.sessionId)) {
+      compactionJudged.add(session.sessionId);
+      const judged = autoCompactionReason({ reading: session.autoCompactions, sessionId: session.sessionId });
+      if (judged.reason !== undefined) {
+        add(judged.reason);
+      }
+      if (judged.note !== undefined) {
+        notes.push(judged.note);
+      }
+    }
   }
   if (reasons.length === 0) {
     return { kind: "stay", notes };

@@ -7,9 +7,9 @@ import { describe, expect, it } from "vitest";
 import { CODEX_MODEL } from "../../../codex/profiles.js";
 import { chairCadenceLines } from "../../../supervisor/chairCadenceLines.js";
 import {
+  CODEX_CHAIR_AUTO_COMPACTIONS_UNMEASURED,
   CODEX_CHAIR_BUDGET_UNMEASURED,
   CODEX_CHAIR_CLI_UNMEASURED,
-  CODEX_CHAIR_CONTEXT_UNMEASURED,
   judgeCodexChairCadence,
 } from "../../../supervisor/codexChairCadence.js";
 import { behindOne as behind, handOffOf } from "./chairCadenceFixture.js";
@@ -45,7 +45,7 @@ describe("chairCadenceLines, off the chair's own host", () => {
       `  Record this tick, write the handoff, then \`slopweaver cmux spawn <handoff slug> --driver codex --model ${CODEX_MODEL}\` and let the successor take the pin and re-arm the sweep — do NOT re-arm from this chair.`,
       `chair cadence: Codex thread t1: ${CODEX_CHAIR_BUDGET_UNMEASURED}`,
       `chair cadence: Codex thread t1: ${CODEX_CHAIR_CLI_UNMEASURED}`,
-      `chair cadence: Codex thread t1: ${CODEX_CHAIR_CONTEXT_UNMEASURED}`,
+      `chair cadence: Codex thread t1: ${CODEX_CHAIR_AUTO_COMPACTIONS_UNMEASURED}`,
     ]);
   });
 

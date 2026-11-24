@@ -7,6 +7,8 @@ line, and stops none of them.** The owner's ruling: blocking risks undesirable o
 is usually not blocking at all but that the agent has no awareness there is a problem. It speaks to every
 session, not only the pinned supervisor — MEASURED over 822 transcripts touched in ten days, the
 pinned supervisor was 11.2% of all above-600k spend and every other session the other 88.8%.
+Under the recommended 300K window (§ below) a session compacts long before 500k, so the advisory speaks only to a
+user running a larger window; it is never the supervisor chair's hand-off line (`skills/supervisor/SKILL.md` § 6a).
 
 So there is no block verdict, no refusal, no allowlisted handoff path and no break-glass grant: nothing is
 refused, so there is nothing to waive. Past 500k the hook injects one advisory as `PreToolUse`
@@ -21,27 +23,38 @@ Every path exits 0, so this hook cannot wedge a session even when it fails. The 
 behind it and the logic are in `src/sessions/sessionDepthAwareness.ts` and
 `src/admit/sessionDepthWarningRunner.ts`, unit-tested there.
 
-## The auto-compact window is a user setting, not a hook
+## The auto-compact window is each user's own setting, and Slopweaver never writes it
 
-**`~/.claude/settings.json` sets `autoCompactWindow` to 300000**, beside `effortLevel` and `model`. It is the
-owner's user settings rather than a tracked project file, so it reaches every chat the owner runs on this
-device — the fleet's worktrees and the owner's own sessions in every other project alike — and the number is written in
-exactly one place. This repository tracks no project settings file of its own, and its gitignored
-`settings.local.json` stays for machine-local things.
+**The recommended window is ONE number for every model: 300000.** It lives in the user's own settings, never in
+this repository, so whoever pulls Slopweaver keeps whatever window they chose. **Slopweaver never writes a user's
+Claude or Codex settings** — no verb, hook or session edits `~/.claude/settings.json` or `~/.codex/config.toml`;
+the code only READS what a user set, to measure it. This repository tracks no project settings file, and its
+gitignored `settings.local.json` stays for machine-local things.
 
-The owner's ruling: a 300k auto-compact window is a low-effort, high-reward way to save tokens, and a session sets
-it rather than asking the owner to press anything. **No console press is needed** — `autoCompactWindow` is a
-member of the Claude Code `Settings` interface, so a settings file is the whole mechanism. A second ruling covers
-the owner's own chats as well as the fleet's worktrees: the setting lives at user level, because the drift risk is
-one number and a project-level copy left every chat the owner personally runs on the 967k default.
+- **Claude Code**: a top-level `"autoCompactWindow": 300000` in `~/.claude/settings.json` sets the window for
+  every model ([model-config § Set the auto-compact window](https://code.claude.com/docs/en/model-config#set-the-auto-compact-window)).
+  A per-model entry under `modelSettings` OUTRANKS that key for its model, and `/autocompact <size>` writes
+  exactly such an entry — so one `/autocompact` quietly takes a model off the shared window. Keep no
+  `modelSettings` window; `/autocompact auto` clears one. `CLAUDE_CODE_AUTO_COMPACT_WINDOW` and `--autocompact`
+  outrank the file too, and no Slopweaver spawn path sets either. Claude Code caps any window at the model's own
+  context window.
+- **Codex compacts automatically too.** `model_auto_compact_token_limit` in `~/.codex/config.toml` sets its
+  threshold; unset, Codex uses the model's own default
+  ([config reference](https://learn.chatgpt.com/docs/config-file/config-reference)). A rollout records the model's
+  window as `model_context_window`; where that window is already under 300K, Codex compacts under it and the key
+  stays UNSET: its reference does not say a limit above the window is clamped, so 300000 could put the threshold
+  past what the model reaches. Set it to 300000 only for a model whose window exceeds 300K.
+
+Why one shared number, the owner's ruling: a per-model window makes the threshold depend on which model a chat
+happens to run, so nobody can say what any one chat will do. Why 300K at all, the earlier ruling: a low-effort,
+high-reward way to save tokens.
 
 Three facts a reader needs, and none of them is derivable from the file:
 
-- **It takes effect at the next session start**, never on a running one, including the session that writes it.
-- **It is edited by a session, never by the owner.** A JSON file carries no comment, so this section is where the
-  number's reason lives — above all the drift number, **about half of the targeted tool calls after a compaction
-  re-read something the session had already read** — and a change to the window updates both the key and this
-  section in the same act.
+- **It takes effect at the next session start**, never on a running one.
+- **This section is where the number's reason lives**, because a JSON file carries no comment — above all the
+  drift measurement in the next point. A change to the recommended window updates this section in the same pull
+  request.
 - **Compaction is lossy, and the loss is measured rather than assumed.** MEASURED over seven
   days — roughly a thousand sessions and hundreds of squash commits on `origin/main`, repro (the script is read from the
   store, never the home, and writes `compaction.json` into its working directory, hence the scratch one)

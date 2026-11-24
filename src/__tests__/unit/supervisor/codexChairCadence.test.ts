@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import type { CanonCommit } from "../../../supervisor/chairCanon.js";
 import {
+  CODEX_CHAIR_AUTO_COMPACTIONS_UNMEASURED,
   CODEX_CHAIR_BUDGET_UNMEASURED,
   CODEX_CHAIR_CLI_UNMEASURED,
-  CODEX_CHAIR_CONTEXT_UNMEASURED,
   judgeCodexChairCadence,
 } from "../../../supervisor/codexChairCadence.js";
 
@@ -22,7 +22,7 @@ const CHANGED: readonly CanonCommit[] = [
 const UNMEASURED_NOTES = [
   `Codex thread ${THREAD}: ${CODEX_CHAIR_BUDGET_UNMEASURED}`,
   `Codex thread ${THREAD}: ${CODEX_CHAIR_CLI_UNMEASURED}`,
-  `Codex thread ${THREAD}: ${CODEX_CHAIR_CONTEXT_UNMEASURED}`,
+  `Codex thread ${THREAD}: ${CODEX_CHAIR_AUTO_COMPACTIONS_UNMEASURED}`,
 ];
 
 /** The verdict for a chair whose record took it `hoursAgo` before the tick, with `changed` on main since. */

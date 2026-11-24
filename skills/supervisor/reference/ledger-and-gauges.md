@@ -67,7 +67,9 @@ and ~520 turns to 988,396 tokens. A pull gauge stops being pulled exactly when i
 curve on any transcript with
 `jq -r 'select(.message.usage) | [.timestamp, (.message.usage | (.input_tokens//0)+(.cache_read_input_tokens//0)+(.cache_creation_input_tokens//0))] | @tsv' <transcript.jsonl>`.
 
-- **500k warns, and nothing blocks.** The advisory fires for EVERY session past 500k and stops none of them.
+- **500k warns, and nothing blocks.** The advisory fires for EVERY session past 500k and stops none of them. Under
+  the shared 300K window nothing reaches it, and it is not the chair's hand-off line: that is the auto-compaction
+  trial (§ Do not hand off early).
   Blocking risks undesirable outcomes here, and the issue is usually not blocking versus not blocking but that the
   agent has no awareness there is a problem. The 600k hard block, its allowlisted handoff path and
   its `session break-glass` grant are all gone — nothing is refused, so there is nothing to waive.
@@ -163,8 +165,12 @@ finished asks got used. It places one Queue card, and the owner answers one word
 
 ## Do not hand off early — the shift-length curve, measured
 
-**Handing off at 300–400k costs 3.3x per unit of supervision.** The warn line is 500k and it is the number to
-hand off on; stepping down below it is not caution, it is the most expensive thing a seat can do.
+**A hand-off has a fixed cost, so the chair hands off on its FIFTH auto-compaction, never on each one.** The
+owner's ruling replaced the 500k hand-off: every model compacts at one shared 300K window, and the concern is that
+a chair gets worse at its duties the more auto-compactions it goes through. Five is a starting guess, run as a
+TRIAL whose settling measurement — correction rate per supervisory ACTION (defined below), bucketed by
+auto-compactions so far — is named in `src/supervisor/chairAutoCompaction.ts`. The curve below argues against
+rotating on every compaction; it says nothing about quality after repeated summaries, so it cannot derive five.
 
 MEASURED over 200 supervisor shifts, from their own transcripts. A supervisory ACTION is an
 outward move the seat exists to make — a `cmux send`, a spawn, a board write, a Slack or GitHub write, a
@@ -186,6 +192,7 @@ pickup and wrap-up — a sub-hour shift spends 174 calls to make 12 actions, a 2
 **Peak depth is not the reason to go short.** Median peak by the same bands: 406k under an hour, 489k at
 2–3 hours (p90 575k), 725k past five hours (p90 999k). A 2–3 hour shift lands inside the warn/block band by
 design; only the five-hour shifts reach the wall.
+Those peaks are on the model's default window; under the shared 300K one a chair compacts long before them.
 
 What this cost, stated once so it is not re-derived: shifts per day went 5 to 48 while
 landings stayed flat, supervisor API calls per day went 1,999 to 8,047 at a flat 563k–624k units per call,

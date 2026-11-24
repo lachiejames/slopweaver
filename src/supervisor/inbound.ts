@@ -5,7 +5,7 @@
  *
  * ## The defect, measured
  *
- * The chair hands over at its 500k-token warn (`skills/supervisor/SKILL.md` § 6a), so a report addressed to
+ * The chair hands over on its own cadence (`skills/supervisor/SKILL.md` § 6a), so a report addressed to
  * the chair a sender correctly resolved can land after that chair stops reading. `SendMessage` still returns
  * success. MEASURED over 17 chairs: 19 messages arrived after the
  * successor took the pin and got no reply — 4 of them real reports, the rest a successor messaging its
