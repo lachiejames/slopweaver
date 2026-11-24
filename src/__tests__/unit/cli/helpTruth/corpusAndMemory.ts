@@ -96,6 +96,7 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--home": ["--home", "/tmp"],
     "--max-conversations": ["--max-conversations", "5"],
     "--max-pages": ["--max-pages", "5"],
+    "--relist": ["--relist"],
   },
   "chatgpt import-export": {
     "--from": ["--from", "/tmp/export.zip"],

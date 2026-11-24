@@ -146,7 +146,8 @@ The guard reads a command's words; it does not run them. Not judged:
 - the other verbs that read a local file to upload it (Slack, Linear and Notion attachments, Vanta evidence,
   browser uploads and image inputs, provider body files) — none is wired to the registry yet;
 - the ChatGPT writers beside the take-in: the certified and live as-of stamps (`exportAsOf.ts`'s
-  `writeCertifiedAsOf`, `liveAsOf.ts`'s `writeLiveAsOf`), the archive index (`archiveIndex.ts`'s `remember`, which
+  `writeCertifiedAsOf`, `liveAsOf.ts`'s `writeLiveAsOf`), `live-sync`'s listing carry (`liveSyncCarry.ts`'s
+  `readListingCarry` and `writeListingCarry`, beside the live as-of stamp), the archive index (`archiveIndex.ts`'s `remember`, which
   `takeInArchive` calls after a judged take-in), the held-export verification (`heldVerification.ts`'s
   `rememberVerified`), and `locateExport`'s read of `--from` (`src/cli/commands/chatgpt/exportLocation.ts`), which
   lists a folder before the take-in judges it. Beside them, derive's per-source freshness witness

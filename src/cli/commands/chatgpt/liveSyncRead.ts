@@ -1,7 +1,8 @@
 /**
  * The read leg of `chatgpt live-sync` (`./liveSyncRun.ts`): each planned chat read whole through the run's one pacer,
  * read strictly, and held as a snapshot the moment it is read, so a stopped run loses nothing it already read. The
- * first refusal of any kind stops every later read; nothing is retried.
+ * first refusal of any kind stops every later read, bar one: a chat ChatGPT answers "not found" for is deleted on the
+ * account, so it is named and skipped. Nothing is retried.
  */
 import { err, type Result } from "#lib/result.js";
 
@@ -22,6 +23,8 @@ export interface LiveReadOutcome {
   readonly read: number;
   /** Of those, the chats ChatGPT answered with a body older than the listing said, held to be read again. */
   readonly behind: number;
+  /** The ids ChatGPT answered "not found" for, deleted on the account since the listing; skipped, not a stop. */
+  readonly gone: readonly string[];
   /** The refusal that stopped the reads, when one did; every chat after it is left for the next run. */
   readonly stoppedBy: ChatgptError | ChatgptSnapshotError | undefined;
 }
@@ -138,10 +141,16 @@ export async function readPlannedConversations({
 }): Promise<LiveReadOutcome> {
   let read = 0;
   let behind = 0;
+  const gone: string[] = [];
   for (const conversation of toRead) {
     const held = await readAndHold({ conversation, fetchText, home, nowIso, pacer, protection, root });
     if (held.isErr()) {
-      return { behind, read, stoppedBy: held.error };
+      if (held.error.code === "HTTP_REFUSED" && held.error.status === 404) {
+        // Deleted on the account since it was listed: nothing to hold, and never a reason to leave every later chat unread.
+        gone.push(conversation.id);
+        continue;
+      }
+      return { behind, gone, read, stoppedBy: held.error };
     }
     read += 1;
     if (held.value.behind) {
@@ -151,5 +160,5 @@ export async function readPlannedConversations({
       onProgress({ of: toRead.length, read });
     }
   }
-  return { behind, read, stoppedBy: undefined };
+  return { behind, gone, read, stoppedBy: undefined };
 }

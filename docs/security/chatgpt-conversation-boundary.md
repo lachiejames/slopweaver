@@ -51,7 +51,10 @@ bring that history here, and they have different boundaries:
 - **The owner's account is read gently.** `chatgpt list` and `chatgpt live-sync` make one request at a time
   through one pacer per run, each at least three seconds after the last plus up to two more at random
   (`pacer.ts`), at the page size the web app's own sidebar uses. The first `429`, `401`/`403` or Cloudflare
-  challenge stops the whole run, and nothing is retried in the same run. One `live-sync` runs at a time per home,
+  challenge stops the whole run, and nothing is retried in the same run, bar one case: a LISTING page answered with a
+  5xx that Cloudflare did not mark a challenge (`cf-mitigated`) is retried three times after 30, 60 and 120 seconds (`liveSyncFetch.ts`'s `LISTING_BACKOFF_MS`). `live-sync` carries its completed
+  listing (`listing-carry.json` beside the snapshots) and lists only what moved since for up to three days, so a
+  stopped backfill does not re-list the account to resume. One `live-sync` runs at a time per home,
   under an operation lock. The limits themselves were deliberately never probed, because probing them is what
   could flag the account. MEASURED: one whole listing of an account with 2,267 conversations took 104 requests and
   met no refusal (`slopweaver chatgpt list` prints both counts).

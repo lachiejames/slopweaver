@@ -38,19 +38,29 @@ export const CHATGPT_LIST_USAGE =
 
 /** The usage line for `chatgpt live-sync`. */
 export const CHATGPT_LIVE_SYNC_USAGE =
-  "usage: slopweaver chatgpt live-sync [--max-conversations <n>] [--max-pages <n>] [--home <dir>]\n" +
+  "usage: slopweaver chatgpt live-sync [--max-conversations <n>] [--max-pages <n>] [--relist] [--home <dir>]\n" +
   "  --max-conversations  read at most this many chats this run, newest first (default: every one due)\n" +
   "  --max-pages          refuse past this many listing pages in any one lane (default 500, 28 chats a page)\n" +
+  "  --relist             list the whole account again, ignoring the listing the last walk carried\n" +
   "  Lists the account as chatgpt list does, then reads whole every chat the live copy does not hold at its\n" +
   "  listed update, newest first, holding each under $SLOPWEAVER_HOME/corpus/chatgpt/live as it is read. The\n" +
   "  first run is the full-history backfill (hours: one request at a time, at least three seconds apart); each\n" +
   "  later run reads only what changed. The first refusal stops every further request, and the next run picks\n" +
-  "  up where it stopped. Then refreshes the live copy and every held export into the corpus and the store.\n" +
+  "  up where it stopped. A listing page answered with a 5xx is retried three times with a growing wait; a 429\n" +
+  "  or any other refusal is not. A completed listing is carried (listing-carry.json beside the snapshots) and\n" +
+  "  the next run lists only what moved since, for up to three days, then lists everything again; a stopped\n" +
+  "  listing names the lane and the offset or page it stopped at. Then refreshes the live copy and every held\n" +
+  "  export into the corpus and the store.\n" +
   "  Exit 3 when nothing is held or new, 4 while another run holds the lock, 1 on any refusal.\n" +
   `  ${CHATGPT_WEB_CAVEATS.join("\n  ")}`;
 
 /** Every flag `chatgpt live-sync` accepts, for the help-truth sweep. */
-export const CHATGPT_LIVE_SYNC_FLAG_NAMES: readonly string[] = ["--home", "--max-conversations", "--max-pages"];
+export const CHATGPT_LIVE_SYNC_FLAG_NAMES: readonly string[] = [
+  "--home",
+  "--max-conversations",
+  "--max-pages",
+  "--relist",
+];
 
 /** Every flag `chatgpt list` accepts, for the help-truth sweep. */
 export const CHATGPT_LIST_FLAG_NAMES: readonly string[] = ["--home", "--json", "--max-pages"];

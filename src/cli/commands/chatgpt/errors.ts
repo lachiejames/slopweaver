@@ -45,6 +45,8 @@ export interface ChatgptHttpRefusedError {
   readonly code: "HTTP_REFUSED";
   readonly message: string;
   readonly status: number;
+  /** Cloudflare marked the answer a challenge (`cf-mitigated: challenge`), whatever its status: never retried. */
+  readonly challenged: boolean;
 }
 
 /** The request never completed: DNS, TLS, a reset connection. */
@@ -141,11 +143,26 @@ export const ChatgptErrors = {
     header,
     message: `the pasted request carries no \`${header}\` header — copy the Request Headers of a signed-in backend-api request again`,
   }),
-  httpRefused: ({ status, path }: { status: number; path: string }): ChatgptHttpRefusedError => ({
-    code: "HTTP_REFUSED",
-    message: `GET ${path} answered HTTP ${String(status)}${httpRefusalAdvice({ status })}`,
+  httpRefused: ({
     status,
-  }),
+    path,
+    challenged,
+  }: {
+    status: number;
+    path: string;
+    challenged?: boolean;
+  }): ChatgptHttpRefusedError => {
+    const isChallenge = challenged === true;
+    const advice = isChallenge
+      ? " — a Cloudflare challenge; the read stopped and is never retried in the same run"
+      : httpRefusalAdvice({ status });
+    return {
+      challenged: isChallenge,
+      code: "HTTP_REFUSED",
+      message: `GET ${path} answered HTTP ${String(status)}${advice}`,
+      status,
+    };
+  },
   listingBoundExceeded: ({ lane, maxPages }: { lane: string; maxPages: number }): ChatgptListingBoundExceededError => ({
     code: "LISTING_BOUND_EXCEEDED",
     lane,

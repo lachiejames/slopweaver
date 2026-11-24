@@ -128,7 +128,8 @@ export function productionChatgptWebDeps(): ChatgptWebDeps {
         return err(ChatgptErrors.transportFailed({ cause: new Error(withholdHeaderValues({ headers, text })), path }));
       }
       if (!response.ok) {
-        return err(ChatgptErrors.httpRefused({ path, status: response.status }));
+        const challenged = response.headers.get("cf-mitigated") === "challenge";
+        return err(ChatgptErrors.httpRefused({ challenged, path, status: response.status }));
       }
       const refusal = contentTypeRefusal({ contentType: response.headers.get("content-type"), headers, path });
       if (refusal !== undefined) {
