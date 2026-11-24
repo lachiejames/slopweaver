@@ -74,6 +74,28 @@ describe("stalenessOf", () => {
     expect(staleness.why).toBe("src/a.ts is 99 bytes, 10 at build time");
   });
 
+  it("names a path holding a line break on one line, quoted with the break escaped, in every arm", () => {
+    // The separator and its escape are both built from the code point, so neither sits raw in this source.
+    const separator = 0x2028;
+    const path = `src/line\nbreak${String.fromCodePoint(separator)}.ts`;
+    const quoted = `${String.raw`"src/line\nbreak`}\\u${separator.toString(16)}.ts"`;
+    const odd = stamp({ path });
+
+    const reasons = [
+      stalenessOf({ current: [odd], manifest: manifest({ stamps: [] }) }),
+      stalenessOf({ current: [stamp({ path, size: 12 })], manifest: manifest({ stamps: [odd] }) }),
+      stalenessOf({ current: [stamp({ mtimeMs: 2_000, path })], manifest: manifest({ stamps: [odd] }) }),
+      stalenessOf({ current: [], manifest: manifest({ stamps: [odd] }) }),
+    ].map((staleness) => staleness.why);
+
+    expect(reasons).toEqual([
+      `${quoted} is new since the build`,
+      `${quoted} is 12 bytes, 10 at build time`,
+      `${quoted} has changed since the build`,
+      `${quoted} is gone since the build`,
+    ]);
+  });
+
   it("is stale for a manifest repeating a path, even when its last stamp matches — a Map would keep only that one", () => {
     const current = stamp({ mtimeMs: 2_000, size: 20 });
 
