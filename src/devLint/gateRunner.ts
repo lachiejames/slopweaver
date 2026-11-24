@@ -204,7 +204,7 @@ function expectedSeconds({ name, priorSeconds }: { name: string; priorSeconds: R
  * @param wallMs how long the whole lap actually took
  * @param concurrency the pool width this machine ran, which the ratio is read against
  * @returns the witness line, without its trailing newline
- * @internal — {@link runDevLint} and this module's test.
+ * @internal — `lapClose` (`./lintVerdict.ts`) and this module's test.
  */
 export function concurrencyLine({
   concurrency,
