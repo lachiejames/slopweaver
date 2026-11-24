@@ -21,16 +21,21 @@ import { type FlagTailSpec, parseFlagTail, requiredFlagValue } from "../../optio
 
 /** What the verb advertises. */
 export const DEV_BASELINE_BUMP_USAGE =
-  'usage: slopweaver dev baseline-bump --reason "<why>" [--base <sha>] [--home <dir>] [--dry-run]';
+  'usage: slopweaver dev baseline-bump --reason "<why>" [--base <sha>] [--cwd <dir>] [--home <dir>] [--dry-run]';
 
 /** Every flag it takes — exported so the `--help` truth test checks the usage against it. */
-export const DEV_BASELINE_BUMP_FLAGS: FlagTailSpec = { boolean: ["dry-run"], value: ["reason", "base", "home"] };
+export const DEV_BASELINE_BUMP_FLAGS: FlagTailSpec = {
+  boolean: ["dry-run"],
+  value: ["reason", "base", "cwd", "home"],
+};
 
 /** The parsed tail. */
 export interface BaselineBumpArgs {
   readonly reason: string;
   /** Main's commit; absent means the merge-base with `origin/main`. */
   readonly base: string | undefined;
+  /** A directory inside the checkout whose committed `HEAD` is declared; absent means the working directory. */
+  readonly cwd: string | undefined;
   /** The state home the record is written into; absent means `$SLOPWEAVER_HOME`. */
   readonly home: string | undefined;
   readonly dryRun: boolean;
@@ -49,8 +54,9 @@ export function parseBaselineBumpArgs({ rest }: { rest: readonly string[] }): Re
       name: "reason",
       parsed,
     }).map((reason) => ({
-      // Absent is `undefined` by design: the verb resolves the base and the home itself when neither is passed.
+      // Absent is `undefined` by design: the verb resolves the base, the checkout and the home itself when unpassed.
       base: parsed.values["base"],
+      cwd: parsed.values["cwd"],
       dryRun: parsed.flags.has("dry-run"),
       home: parsed.values["home"],
       reason: reason.trim(),

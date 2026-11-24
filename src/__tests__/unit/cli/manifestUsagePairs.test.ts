@@ -1,5 +1,5 @@
 /**
- * Nine verbs hand-copy their full `--help` text into their manifest, because the manifest is loaded EAGERLY
+ * These verbs hand-copy their full `--help` text into their manifest, because the manifest is loaded EAGERLY
  * at CLI startup (to list every noun/verb, `--help` included) while the command module that also carries the
  * text is loaded LAZILY, only when the verb actually dispatches — often pulling in a real provider client
  * (`createDatadogClient`, an atlas sync/reset). Importing the command module's copy into the manifest would
@@ -12,7 +12,7 @@
  *
  * A verb whose usage lives in a `*Usage.ts` leaf beside its command module does not appear here: the manifest and
  * the command both import that one constant, so drift there is structurally impossible rather than merely tested.
- * Moving these nine into leaves the same way would retire this file.
+ * Moving these into leaves the same way would retire this file.
  */
 import { describe, expect, it } from "vitest";
 import { CLOUDFLARE_RESET_USAGE } from "../../../cli/commands/cloudflare/resetRun.js";
@@ -24,6 +24,7 @@ import { DATADOG_PROBE_USAGE } from "../../../cli/commands/datadog/probeRun.js";
 import { DATADOG_RAW_USAGE } from "../../../cli/commands/datadog/rawRun.js";
 import { DATADOG_SUBMIT_USAGE } from "../../../cli/commands/datadog/submitRun.js";
 import { DATADOG_VERIFY_USAGE } from "../../../cli/commands/datadog/verifyRun.js";
+import { DEV_BASELINE_BUMP_USAGE } from "../../../cli/commands/dev/baselineBumpCore.js";
 import { IDENTITY_AVATARS_USAGE } from "../../../cli/commands/identity/identityAvatars.js";
 import { IDENTITY_NARROW_USAGE } from "../../../cli/commands/identity/identityNarrow.js";
 import {
@@ -39,6 +40,7 @@ import {
   SUBMIT_USAGE as DATADOG_MANIFEST_SUBMIT_USAGE,
   VERIFY_USAGE as DATADOG_MANIFEST_VERIFY_USAGE,
 } from "../../../cli/manifests/datadog.js";
+import { devManifest } from "../../../cli/manifests/dev.js";
 import { identityManifest } from "../../../cli/manifests/identity.js";
 
 /** One verb whose usage text is duplicated between a manifest and its lazily-loaded command module. */
@@ -69,6 +71,12 @@ const PAIRS: readonly UsagePair[] = [
     commandCopy: IDENTITY_AVATARS_USAGE,
     manifestCopy: identityManifest["avatars"]!.meta.usage,
     verb: "identity avatars",
+  },
+  // `dev baseline-bump`'s usage sits in its core module, which the metadata-only barrel may not import.
+  {
+    commandCopy: DEV_BASELINE_BUMP_USAGE,
+    manifestCopy: devManifest["baseline-bump"]!.meta.usage,
+    verb: "dev baseline-bump",
   },
 ];
 

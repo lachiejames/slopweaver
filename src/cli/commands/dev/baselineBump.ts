@@ -10,8 +10,13 @@
  *
  * It reads COMMITS: commit the baseline change first, then run this. The record is written to the home, once: a second run with the same rows against the same base is refused, its bytes left as they were.
  * Main is `--base`, else the merge-base of `HEAD` with `origin/main`, printed so the reader can check it.
+ * The checkout is the one holding `--cwd`, else the working directory, so a shell standing elsewhere can still
+ * declare a worktree's bump; the printed witness names that checkout as its `--repo`, and the record's home as
+ * its `--home`, for the same reason.
  */
 
+import { resolve } from "node:path";
+import { shellCommandLine } from "#lib/shellCommandLine.js";
 import { bumpRecordPath, writeBumpRecord } from "../../../codex/bumpRecordStore.js";
 import { type BumpManifest, witnessCommand } from "../../../devLint/baselineBump.js";
 import { compareAgainstBase } from "../../../devLint/baselineComparison.js";
@@ -31,12 +36,20 @@ function gitLine({ root, args }: { root: string; args: readonly string[] }): str
   return lines[0];
 }
 
+/** The directory the checkout is resolved from: `--cwd` read against the working directory, else that directory. */
+function checkoutDir({ cwd, named }: { cwd: string; named: string | undefined }): string {
+  if (named === undefined) {
+    return cwd;
+  }
+  return resolve(cwd, named);
+}
+
 /**
  * Run the verb against an injected logger and working directory, so a test drives the real verb.
  *
  * @param argv the full process argv (the verb tail starts at index 4)
  * @param log where lines go
- * @param cwd the directory the checkout is resolved from
+ * @param cwd the working directory, which a relative `--cwd` is read against and an absent one falls to
  * @returns EXIT_OK on a record written (or previewed), EXIT_EXPECTED_EMPTY when nothing loosened,
  *   EXIT_ERROR when the checkout or a commit could not be read or the record already exists, EXIT_USAGE on a
  *   bad flag
@@ -62,9 +75,10 @@ export function runDevBaselineBumpWithDeps({
     }
     return EXIT_USAGE;
   }
-  const root = gitLine({ args: ["rev-parse", "--show-toplevel"], root: cwd });
+  const checkout = checkoutDir({ cwd, named: parsed.value.cwd });
+  const root = gitLine({ args: ["rev-parse", "--show-toplevel"], root: checkout });
   if (root === undefined) {
-    log.error({ msg: `baseline-bump: ${cwd} is not inside a git checkout` });
+    log.error({ msg: `baseline-bump: ${checkout} is not inside a git checkout` });
     return EXIT_ERROR;
   }
   const { reason, dryRun } = parsed.value;
@@ -84,7 +98,7 @@ export function runDevBaselineBumpWithDeps({
   }
   const source = parsed.value.base === undefined ? "merge-base with origin/main" : "--base";
   log.out({ line: `main is ${base} (${source})` });
-  return writeRecord({ base, dryRun, home: resolveHome({ named: parsed.value.home }), log, manifest });
+  return writeRecord({ base, dryRun, home: resolveHome({ named: parsed.value.home }), log, manifest, root });
 }
 
 /**
@@ -123,7 +137,8 @@ function resolveMain({
  * Print the record's rows and write it into the home, or say what a dry run would write.
  *
  * @param manifest the declaration, its digest naming the record
- * @param home the state home the record goes into
+ * @param home the state home the record goes into, which the printed witness command names as its `--home`
+ * @param root the checkout's top level, which the printed witness command names as its `--repo`
  * @returns EXIT_OK once written or previewed, EXIT_ERROR when the record exists or could not be written
  */
 function writeRecord({
@@ -132,12 +147,14 @@ function writeRecord({
   home,
   log,
   manifest,
+  root,
 }: {
   base: string;
   dryRun: boolean;
   home: string;
   log: Pick<Logger, "error" | "out">;
   manifest: BumpManifest;
+  root: string;
 }): number {
   for (const row of manifest.loosenings) {
     log.out({ line: `  ${row.file} ${row.entry}: ${String(row.from)} -> ${String(row.to)} (${row.cause})` });
@@ -153,7 +170,10 @@ function writeRecord({
   }
   log.out({ line: `wrote ${written.value.path} under ${home}` });
   log.out({ line: "push the change, then take the witness — the landing verbs refuse without it:" });
-  log.out({ line: `  ${witnessCommand({ base, manifest })}` });
+  // `--repo` and `--home` ride outside `witnessCommand`, a policy file the landing refusal shares, so the pasted
+  // command reviews the checkout declared and records into the home that holds the record, wherever the shell is.
+  const where = shellCommandLine({ command: ["--repo", root, "--home", home] });
+  log.out({ line: `  ${witnessCommand({ base, manifest })} ${where}` });
   return EXIT_OK;
 }
 

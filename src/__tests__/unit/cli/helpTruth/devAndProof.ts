@@ -86,6 +86,7 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
   // `--reason` is required, so every probe carries one.
   "dev baseline-bump": {
     "--base": ["--reason", "widening", "--base", "abc123"],
+    "--cwd": ["--reason", "widening", "--cwd", "/tmp/sw-checkout"],
     "--dry-run": ["--reason", "widening", "--dry-run"],
     "--home": ["--reason", "widening", "--home", "/tmp/sw-home"],
     "--reason": ["--reason", "widening"],
