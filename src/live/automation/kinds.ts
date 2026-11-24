@@ -163,6 +163,19 @@ export const THREAD_CHASE_KIND = "thread-chase";
 export const OWED_REPLY_KIND = "owed-reply";
 
 /**
+ * The kind that classifies what the owner said on the day's calls, passage by passage, and records what was learned,
+ * in a session seated for it once a day.
+ *
+ * The owner ruled one daily visible reader on the plans already owned, with no new spend, so no model is called in
+ * a process: the row's run is the `talk assessment-due` worklist, read from the call files in seconds, while
+ * deciding each passage's class and what it teaches is judgement a session the owner can watch makes (`AGENTS.md`
+ * rule 2). It writes only local state — the verdict register (`talk assessment-record`) and knowledge rows — never
+ * rewords a word, and never moves the public switch. `skills/automation/reference/call-assessment.md` is what the
+ * seated session follows.
+ */
+export const CALL_ASSESSMENT_KIND = "call-assessment";
+
+/**
  * The kind that triages the owner's Gmail inbox into cards on the owner's Queue — archive this set, reply to this,
  * send this — in a session seated for it.
  *
@@ -325,6 +338,17 @@ export const RECIPE_KINDS = [
     summary:
       "park one reply draft as the owner per followed Slack thread whose last word asks the owner something, " +
       "for the owner's yes, in a session a supervisor pass seats for it",
+  },
+  {
+    briefingOnly: false,
+    capability: "read-write",
+    // Local state only: a re-run reads the register and finds the day's calls already assessed.
+    destinationTakesSlotKey: false,
+    kind: CALL_ASSESSMENT_KIND,
+    perSlot: false,
+    summary:
+      "classify every passage the owner spoke on the calls not yet assessed and record what they teach, never " +
+      "rewording a word, in a session a supervisor pass seats for it",
   },
   {
     briefingOnly: false,

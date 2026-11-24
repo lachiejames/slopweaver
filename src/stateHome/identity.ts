@@ -56,6 +56,12 @@ export interface IdentityStateHomePaths {
      * owner-agnostic defaults (`store/dataClassRules.ts`). Absent means defaults only; malformed fails closed.
      */
     readonly dataClassRulesJson: string;
+    /**
+     * `$home/judgement/data-class-assessments.jsonl` — the daily call reader's verdicts, one line per assessed call,
+     * bound to the digest of the words it read (`store/recordedDataClassAssessment.ts`). Holds no passage text: the
+     * call file stays the one copy of the owner's words. Absent means nothing assessed yet.
+     */
+    readonly dataClassAssessmentsJsonl: string;
   };
   /** `$home/identity.json` — the RETIRED identity roster: a store with no row imports it once; never written. */
   readonly identityJson: string;
@@ -280,6 +286,7 @@ export interface IdentityStateHomePaths {
  */
 function judgementHomePaths({ home }: { home: string }): IdentityStateHomePaths["judgement"] {
   return {
+    dataClassAssessmentsJsonl: join(home, "judgement", "data-class-assessments.jsonl"),
     dataClassRulesJson: join(home, "judgement", "data-class-rules.json"),
     miningBriefJson: join(home, "judgement", "mining-brief.json"),
     miningCacheJson: join(home, "judgement", "mining-cache.json"),

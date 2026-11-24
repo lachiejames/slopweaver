@@ -6,9 +6,9 @@
  * material. So a rule ends in one of five actions: one of the four classes (`public`, `internal`, `personal`,
  * `restricted`), or `assess` (this is personal material, so an assessment decides). Bulk automated input such as
  * newsletters, receipts and automated senders is the owner's example of `internal` by rule; which senders those are is
- * the installation's to write. Who runs that assessment, with which model and budget, is still the owner's open
- * call, so nothing here produces one: an `assess` outcome is stored as `unknown`, which fails closed, and the
- * assessment itself is a types-only port at the end of this module with no implementation and no caller.
+ * the installation's to write. Nothing at intake waits on an assessment: an `assess` outcome is stored as `unknown`,
+ * which fails closed, and the assessment itself is a port at the end of this module, answered from what the owner's
+ * daily visible session recorded (`../talk/callAssessmentPort.ts`).
  *
  * ## Rules read facts, never content, and the first match wins
  *
@@ -308,24 +308,50 @@ export function composeDataClassRules({
 }
 
 /*
- * The AI assessment port, TYPES ONLY.
+ * The AI assessment port.
  *
- * The owner ruled that personal material gets an AI assessment. Which session runs it, on which model and budget,
- * is the owner's open call, so this is the shape a future producer must fill and nothing more: no implementation,
- * no model, no caller. Rule 2 binds whoever implements it: it runs in a session the owner can see. Until one
- * exists, a `needs-assessment` outcome is stored as `unknown`. This is the INTAKE assessment (what class a stored
- * record has), separate from the outbound privacy check's own assessment of text about to leave.
+ * The owner ruled that personal material gets an AI assessment, and then ruled who runs it: ONE daily visible
+ * session, on the plans already owned, with no new spend. So no model is called here or anywhere in this process.
+ * The session reads the record's exact words, decides, and writes its verdict down; the implementation of this port
+ * is a READER of those written verdicts (`../talk/callAssessmentPort.ts`, which reads the call's current words
+ * itself and the register in `./recordedDataClassAssessment.ts`), and a record nobody has assessed reads
+ * `undecided`, which fails closed. Rule 2 is why: judgement happens in a session the owner can see. This is the
+ * INTAKE assessment (what class a record has), separate from the outbound privacy check's own assessment of text
+ * about to leave.
+ *
+ * The first records it assesses are the owner's calls (`talk/calls/<callId>.jsonl`), which the store holds only as
+ * whole authored files, never as a row with a `data_class` column — so the request names its SUBJECT rather than
+ * claiming a table the record is not in. A stored row sent by a rule is the other subject; nothing assesses one yet.
  */
+
+/**
+ * What an assessment is about: a stored row a rule sent for assessment, or one of the owner's calls.
+ *
+ * @internal — the subject of {@link DataClassAssessmentRequest}.
+ */
+export type DataClassAssessmentSubject =
+  | {
+      readonly kind: "stored-row";
+      readonly facts: DataClassFacts;
+      /** The rule that sent it for assessment. */
+      readonly ruleId: string;
+    }
+  | {
+      readonly kind: "talk-call";
+      /**
+       * The call, and nothing about its words: the assessment reads the call's current passages itself, so a caller
+       * can never name earlier words and borrow the class they were given.
+       */
+      readonly callId: string;
+    };
 
 /**
  * What an assessment is asked about one record.
  *
- * @internal — part of the types-only assessment port, which has no caller until the owner rules on who classifies.
+ * @internal — the input of {@link DataClassAssessment}.
  */
 export interface DataClassAssessmentRequest {
-  readonly facts: DataClassFacts;
-  /** The rule that sent it for assessment. */
-  readonly ruleId: string;
+  readonly subject: DataClassAssessmentSubject;
   readonly title: string | null;
   readonly body: string;
 }
@@ -333,7 +359,7 @@ export interface DataClassAssessmentRequest {
 /**
  * What an assessment answers: a class with its reason, or that it could not decide.
  *
- * @internal — part of the types-only assessment port.
+ * @internal — the output of {@link DataClassAssessment}.
  */
 export type DataClassAssessmentVerdict =
   | { readonly kind: "classified"; readonly dataClass: AssignedDataClass; readonly reason: string }
@@ -342,7 +368,7 @@ export type DataClassAssessmentVerdict =
 /**
  * An assessment that did not complete.
  *
- * @internal — part of the types-only assessment port.
+ * @internal — the failure of {@link DataClassAssessment}.
  */
 export interface DataClassAssessmentFailedError {
   readonly code: "DATA_CLASS_ASSESSMENT_FAILED";
@@ -350,9 +376,9 @@ export interface DataClassAssessmentFailedError {
 }
 
 /**
- * The port a future assessment implements. An `undecided` verdict or a failure leaves the record `unknown`.
+ * The port an assessment implements. An `undecided` verdict or a failure leaves the record `unknown`.
  *
- * @internal — no implementation and no caller until the owner rules on who classifies.
+ * @internal — implemented by `../talk/callAssessmentPort.ts`, over what the daily visible session recorded.
  */
 export type DataClassAssessment = (input: {
   request: DataClassAssessmentRequest;

@@ -143,6 +143,12 @@ export const KIND_PURPOSES: Readonly<
     name: "Red bump fixer",
     whenBroken: "Red dependency bumps stay red until somebody picks them up.",
   },
+  "call-assessment": {
+    forWhat:
+      "Reads each call once a day and sorts what you said into public, internal, personal or restricted, word for word, writing down what it learned.",
+    name: "Call reader",
+    whenBroken: "What you said on calls stays unsorted, so none of it can ever be shown beyond you.",
+  },
   "datadog-alert-digest": {
     forWhat: "Gives you one card counting the Datadog alerts that fired and which of them need triage.",
     name: "Datadog alert digest",

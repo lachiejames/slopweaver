@@ -407,6 +407,7 @@ describe("absentStandingRowLine", () => {
     const ids = GENERIC_STANDING_ROWS.map((declared) => declared.definition.recipeId);
     expect(ids.toSorted((left, right) => left.localeCompare(right))).toEqual([
       "alignment-briefing-weekday",
+      "call-assessment-daily",
       "claude-survival-forecast",
       "compact-corpus-daily",
       "context-cost-weekly",

@@ -37,6 +37,7 @@
 import { RECIPE_DEFINITION_SCHEMA_VERSION, type RecipeDefinition } from "./definition.js";
 import { HYGIENE_SWEEP_KIND } from "./kinds.js";
 import { ALIGNMENT_BRIEFING_WEEKDAY } from "./standingAlignmentBriefingRows.js";
+import { CALL_ASSESSMENT_DAILY } from "./standingCallAssessmentRows.js";
 import { THREAD_CHASE_DAILY } from "./standingChaseRows.js";
 import { LINEAR_BRIEFING_DAILY } from "./standingLinearBriefingRows.js";
 import {
@@ -462,6 +463,7 @@ export const GENERIC_STANDING_ROWS: readonly StandingRow[] = [
   SELF_IMPROVEMENT,
   WORKTREE_PRUNE,
   SLACK_OWED_DAILY,
+  CALL_ASSESSMENT_DAILY,
   THREAD_CHASE_DAILY,
   MEETING_PREP_HOURLY,
   LINEAR_BRIEFING_DAILY,

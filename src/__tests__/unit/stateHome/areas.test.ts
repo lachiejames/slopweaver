@@ -171,6 +171,7 @@ describe("identityStateHomePaths", () => {
       "vantaTokenDir",
     ]);
     expect(Object.keys(area.judgement).toSorted()).toEqual([
+      "dataClassAssessmentsJsonl",
       "dataClassRulesJson",
       "miningBriefJson",
       "miningCacheJson",

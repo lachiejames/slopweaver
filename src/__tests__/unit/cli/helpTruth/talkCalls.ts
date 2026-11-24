@@ -14,6 +14,12 @@ import {
   TALK_SUPERVISOR_FLAG_NAMES,
 } from "../../../../cli/commands/talk/args.js";
 import {
+  parseAssessmentDueArgs,
+  parseAssessmentRecordArgs,
+  TALK_ASSESSMENT_DUE_FLAG_NAMES,
+  TALK_ASSESSMENT_RECORD_FLAG_NAMES,
+} from "../../../../cli/commands/talk/assessmentArgs.js";
+import {
   parseCallsArgs,
   parseCutInsArgs,
   parseFidelityArgs,
@@ -64,7 +70,12 @@ const ADOPT_BASE = ["--before", "2026-11-17T06:00:00.000Z", "--why", "read on an
 /** The clock `talk unread-adopt` fragments are judged at, so `--before` is never in their future. */
 const ADOPT_CLOCK = "2026-11-17T08:00:00.000Z";
 
+/** The three flags every `talk assessment-record` fragment needs: a synthetic call, digest and verdicts file. */
+const RECORD_BASE = ["--call", "c1", "--request", "0".repeat(64), "--verdicts-file", "/tmp/v.json"] as const;
+
 const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
+  "talk assessment-due": TALK_ASSESSMENT_DUE_FLAG_NAMES,
+  "talk assessment-record": TALK_ASSESSMENT_RECORD_FLAG_NAMES,
   "talk calls": TALK_CALLS_FLAG_NAMES,
   "talk call-tools": TALK_CALL_TOOLS_FLAG_NAMES,
   "talk call-thread": TALK_CALL_THREAD_FLAG_NAMES,
@@ -92,6 +103,21 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
 };
 
 const probes: NonNullable<HelpTruthSlice["probes"]> = {
+  "talk assessment-due": {
+    "--check": ["--check"],
+    "--home": ["--home", "/tmp/a-home"],
+    "--json": ["--json"],
+    "--now": ["--now", "2026-10-08T23:00:00Z"],
+  },
+  // `--call`, `--request` and `--verdicts-file` are all required, so every fragment carries all three.
+  "talk assessment-record": {
+    "--call": [...RECORD_BASE],
+    "--home": [...RECORD_BASE, "--home", "/tmp/a-home"],
+    "--json": [...RECORD_BASE, "--json"],
+    "--now": [...RECORD_BASE, "--now", "2026-10-08T23:00:00Z"],
+    "--request": [...RECORD_BASE],
+    "--verdicts-file": [...RECORD_BASE],
+  },
   "talk recent": {
     "--dir": ["--dir", "/tmp/handovers"],
     "--home": ["--home", "/tmp/a-home"],
@@ -259,6 +285,10 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
 };
 
 const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
+  "talk assessment-due": ({ fragment }) =>
+    parseAssessmentDueArgs({ rest: fragment }).mapErr((error) => [error.message]),
+  "talk assessment-record": ({ fragment }) =>
+    parseAssessmentRecordArgs({ rest: fragment }).mapErr((error) => [error.message]),
   "talk history": ({ fragment }) => parseHistoryArgs({ rest: fragment }),
   "talk log": ({ fragment }) => parseLogArgs({ rest: fragment }),
   "talk check-ins": ({ fragment }) => parseCheckInsArgs({ rest: fragment }),

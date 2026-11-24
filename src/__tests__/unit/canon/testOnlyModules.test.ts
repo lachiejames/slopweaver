@@ -73,6 +73,7 @@ const ALLOWED: Readonly<Record<string, string>> = {
   "src/reflect/briefingSectionErrors.ts": CANON_NAMES_IT_LIVE,
   "src/retrieval/justInTime.ts": CANON_NAMES_IT_LIVE,
   "src/route/sourceNouns.ts": TEST_IS_THE_CONSUMER,
+  "src/talk/callAssessmentPort.ts": CANON_NAMES_IT_LIVE,
   "src/talk/slackRouteCases.ts": TEST_IS_THE_CONSUMER,
 };
 

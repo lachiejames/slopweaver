@@ -8,6 +8,7 @@ import { seatAsk } from "../../../../../../cli/commands/automation/seatAsk.js";
 import {
   ALIGNMENT_BRIEFING_KIND,
   BUMP_FIX_KIND,
+  CALL_ASSESSMENT_KIND,
   ERROR_TRACKING_BATCH_KIND,
   HYGIENE_SWEEP_KIND,
   INBOX_TRIAGE_KIND,
@@ -161,6 +162,26 @@ describe("seatAsk", () => {
     expect(lines[command - 1]).toBe(
       "  (owed-reply: follow skills/automation/reference/owed-reply.md — park the replies FIRST, " +
         "then run this command LAST to settle the firing)",
+    );
+  });
+
+  it("puts the call-assessment procedure above its command, so every due call is recorded before the firing settles", () => {
+    const lines = seatAsk({
+      seated: [
+        {
+          claimId: "token-0001",
+          kind: CALL_ASSESSMENT_KIND,
+          recipeId: "call-assessment-daily",
+          slotIso: "2026-11-20T10:30:00.000Z",
+        },
+      ],
+    }).split("\n");
+    const command = lines.indexOf(
+      "  slopweaver automation run-due --recipe call-assessment-daily --claim-id token-0001",
+    );
+    expect(lines[command - 1]).toBe(
+      "  (call-assessment: follow skills/automation/reference/call-assessment.md — classify and record every due " +
+        "call FIRST, then run this command LAST to settle the firing)",
     );
   });
 

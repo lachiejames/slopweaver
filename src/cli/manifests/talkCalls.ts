@@ -4,8 +4,11 @@
  * handed, secrets masked, a bounded page at a time (`src/talk/callTools.ts`). `calls` never carries those answers, so an ordinary
  * status read stays small. `call-thread` reads the call's Codex thread journal, which the console server writes
  * through `call-thread-append` (`src/talk/callThreadStore.ts`) — an audit read, never context for anything else.
+ * `assessment-due` and `assessment-record` are the daily call reader's: the owner's passages a visible session has not
+ * classified yet, and its verdicts written down (`src/talk/callAssessmentRead.ts`).
  * Their own module, like `./talkList.ts`, so the noun's manifest stays under the ratchet.
  */
+import { TALK_ASSESSMENT_DUE_USAGE, TALK_ASSESSMENT_RECORD_USAGE } from "../commands/talk/assessmentUsage.js";
 import { TALK_CALL_THREAD_APPEND_USAGE, TALK_CALL_THREAD_USAGE } from "../commands/talk/callThreadUsage.js";
 import { TALK_CALL_TOOLS_USAGE } from "../commands/talk/callToolsUsage.js";
 import { TALK_CALLS_USAGE } from "../commands/talk/usage.js";
@@ -63,14 +66,49 @@ const talkCallThreadAppendMeta = {
   usage: TALK_CALL_THREAD_APPEND_USAGE,
 } as const;
 
+const talkAssessmentDueMeta = {
+  createsWorkItem: false,
+  diagnostic: false,
+  doorRouted: false,
+  dryParseSafe: true,
+  effect: "none",
+  example: "slopweaver talk assessment-due --json",
+  parseRejectIsIoFree: true,
+  summary:
+    "The calls whose current words the daily call reader has not classified yet, each with the owner's passages verbatim; --check prints counts only and exits deferred while any is due",
+  usage: TALK_ASSESSMENT_DUE_USAGE,
+} as const;
+
+const talkAssessmentRecordMeta = {
+  createsWorkItem: false,
+  diagnostic: false,
+  doorRouted: false,
+  dryParseSafe: true,
+  effect: "local-state",
+  example:
+    "slopweaver talk assessment-record --call <call-id> --request <sha256> --verdicts-file ./verdicts.json --json",
+  parseRejectIsIoFree: true,
+  summary:
+    "The daily call reader writes down one call's class: one verdict per passage the owner spoke, bound to the words it read, the call carrying the highest",
+  usage: TALK_ASSESSMENT_RECORD_USAGE,
+} as const;
+
+const loadAssessmentDue = () => import("../commands/talk/assessmentDueRun.js").then((m) => m.talkAssessmentDueCommand);
+const loadAssessmentRecord = () =>
+  import("../commands/talk/assessmentRecordRun.js").then((m) => m.talkAssessmentRecordCommand);
 const loadCalls = () => import("../commands/talk/callsRun.js").then((m) => m.talkCallsCommand);
 const loadCallTools = () => import("../commands/talk/callToolsRun.js").then((m) => m.talkCallToolsCommand);
 const loadCallThread = () => import("../commands/talk/callThreadRun.js").then((m) => m.talkCallThreadCommand);
 const loadCallThreadAppend = () =>
   import("../commands/talk/callThreadAppendRun.js").then((m) => m.talkCallThreadAppendCommand);
 
-/** `talk calls`, `talk call-tools`, `talk call-thread` and its writer, spread into the noun's manifest. */
+/**
+ * `talk calls`, `talk call-tools`, `talk call-thread` and its writer, and the daily call reader's two verbs, spread
+ * into the noun's manifest.
+ */
 export const talkCallsManifest: Readonly<Record<string, VerbManifestEntry>> = {
+  "assessment-due": lazy({ load: loadAssessmentDue, meta: talkAssessmentDueMeta }),
+  "assessment-record": lazy({ load: loadAssessmentRecord, meta: talkAssessmentRecordMeta }),
   "call-thread": lazy({ load: loadCallThread, meta: talkCallThreadMeta }),
   "call-thread-append": lazy({ load: loadCallThreadAppend, meta: talkCallThreadAppendMeta }),
   "call-tools": lazy({ load: loadCallTools, meta: talkCallToolsMeta }),
