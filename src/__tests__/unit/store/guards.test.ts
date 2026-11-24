@@ -42,6 +42,7 @@ import {
   IMPORT_STAGING_TRIGGERS,
   missingStagingTriggers,
 } from "../../../store/schema/importStaging.js";
+import { QUEUE_CHANGE_NOTIFY_STATEMENTS } from "../../../store/schema/queueChangeNotify.js";
 import {
   hasSourceRowTable,
   SOURCE_ROW_PRESENCE_STATEMENTS,
@@ -294,6 +295,7 @@ describe("the apply loop's three phases", () => {
         SOURCE_ROW_PRESENCE_STATEMENTS.length +
         IMPORT_STAGING_IMMUTABLE_STATEMENTS.length +
         STEER_MEASUREMENT_IMMUTABLE_STATEMENTS.length +
+        QUEUE_CHANGE_NOTIFY_STATEMENTS.length +
         storeTableGrantStatements().length,
     );
   });

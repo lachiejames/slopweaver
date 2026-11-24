@@ -44,8 +44,14 @@ export async function stagingGuardsInstalled({
   return ok(null);
 }
 
-/** Every trigger on a public table enabled ALWAYS, by table and name. */
-async function alwaysTriggers({
+/**
+ * Every trigger on a public table enabled ALWAYS, by table and name: what the apply's guards and the Queue's notify
+ * triggers are each checked against.
+ *
+ * @param writer an open transaction; the read changes nothing
+ * @returns each such trigger's table and name
+ */
+export async function alwaysTriggers({
   writer,
 }: {
   writer: StoreWriter;

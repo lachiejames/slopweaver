@@ -15,6 +15,7 @@ import { parseGroupsArgs, parseOpenArgs, parseProbeArgs } from "../../../../cli/
 import { parseStoreCollectArgs, STORE_COLLECT_FLAG_NAMES } from "../../../../cli/commands/store/readCore.js";
 import { parseSlackAsksArgs } from "../../../../cli/commands/store/slackAsksCore.js";
 import { parseStoreStatusArgs, STORE_STATUS_FLAG_NAMES } from "../../../../cli/commands/store/statusCore.js";
+import { parseStoreWatchQueueArgs } from "../../../../cli/commands/store/watchQueueRun.js";
 import { type HelpTruthSlice } from "./mergeSlices.js";
 import { dedupeFlags } from "./sharedProbes.js";
 
@@ -43,6 +44,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "store open": ["--id", "--source", "--json"],
   "store detect": ["--term", "--recalled", "--variant", "--name", "--slots", "--ask", "--out", "--json"],
   "store verify": ["--workdir", "--home", "--json"],
+  "store watch-queue": ["--home", "--json"],
 };
 
 const probes: NonNullable<HelpTruthSlice["probes"]> = {
@@ -128,6 +130,10 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--json": ["--json"],
     "--workdir": ["--workdir", "/tmp"],
   },
+  "store watch-queue": {
+    "--home": ["--home", "/tmp"],
+    "--json": ["--json"],
+  },
   "store collect": {
     "--json": ["--json"],
     "--plan": ["--plan", "p.json"],
@@ -190,6 +196,7 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
     }).mapErr((error) => storeCommandErrorLines({ error })),
   "store slack-asks": ({ fragment }) => parseSlackAsksArgs({ rest: [...fragment] }),
   "store verify": ({ fragment }) => parseVerifyArgs({ rest: [...fragment] }),
+  "store watch-queue": ({ fragment }) => parseStoreWatchQueueArgs({ rest: fragment }),
 };
 
 /** The rows for `store`'s corpus-inspection verbs. */

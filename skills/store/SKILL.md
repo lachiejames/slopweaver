@@ -119,6 +119,14 @@ when the database port is published beyond loopback (`PORT_EXPOSED`: set Docker 
 behavior to "Localhost only"). `store verify` fails on any
 lock finding. Order, reruns, `--rotate` and what it does not stop are in [the local lock](reference/local-lock.md).
 
+## The Queue hears the store change — `store watch-queue`
+
+The console's Queue re-reads a register when it changes, and polls only every five minutes or so while it can
+hear. The console server holds a `LISTEN` in-process on the notify triggers the apply's guard phase installs;
+`store watch-queue --json` shows the same stream from a terminal: one line per register that committed a write,
+and a 15-second heartbeat that is a real round trip. It exits 3 naming each trigger the store lacks (`store push`
+installs them); the console, missing one, keeps its old poll.
+
 ## Where the backup goes — `store backup --set-destination`, `--add-destination`
 
 A night is staged once and written to a LIST of local destinations in order, typically this Mac's folder for

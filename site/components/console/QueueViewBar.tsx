@@ -7,6 +7,7 @@ import { type QueueView } from "../../lib/queueViews";
 import { type FreshnessLine } from "../../lib/registerFreshness";
 import type { StalenessFact } from "../../lib/stalenessLabel";
 import { cn } from "../../lib/utils";
+import { LiveChangesNotice } from "../live/LiveChanges";
 import { CHIP } from "./controls";
 import { ReadingIndicator } from "./ReadingIndicator";
 import { StaleMark } from "./StaleMark";
@@ -77,6 +78,7 @@ export function QueueViewBar({
           a register is a FIXTURE: its rows are frozen and its acts would write against a live ledger
         </span>
       )}
+      <LiveChangesNotice />
       <FreshnessMark line={freshness} />
     </div>
   );

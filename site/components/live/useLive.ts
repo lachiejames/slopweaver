@@ -6,6 +6,7 @@ import { joinReads } from "../../lib/liveJoin";
 import { holdQuiet } from "../../lib/liveQuiet";
 import { firstArrival, forget, retire, take } from "../../lib/liveRetained";
 import { type LiveState, liveStateAfter } from "../../lib/liveState";
+import { wantedOf } from "./useLiveChangeHealth";
 import {
   answeredPressOf,
   channels,
@@ -209,7 +210,7 @@ function subscribe({
   }
   held.superseded.add(onSuperseded);
   asked.set(onArrival, everyMs);
-  rearm({ channel: held, url, wanted: [...asked.values()] });
+  rearm({ channel: held, url, wanted: wantedOf({ asked, key }) });
   if (supersede) {
     held.last = undefined;
     held.lastAnswered = undefined;
@@ -261,7 +262,7 @@ function subscribe({
       intervals.delete(key);
       return;
     }
-    rearm({ channel: held, url, wanted: [...asked.values()] });
+    rearm({ channel: held, url, wanted: wantedOf({ asked, key }) });
   };
   return { handedOver, unsubscribe };
 }

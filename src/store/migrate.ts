@@ -65,6 +65,7 @@ import {
 } from "./policies.js";
 
 import { IMPORT_STAGING_IMMUTABLE_STATEMENTS } from "./schema/importStaging.js";
+import { QUEUE_CHANGE_NOTIFY_STATEMENTS } from "./schema/queueChangeNotify.js";
 import { SOURCE_ROW_PRESENCE_STATEMENTS } from "./schema/sourceRows.js";
 import { STEER_MEASUREMENT_IMMUTABLE_STATEMENTS } from "./schema/steerMeasurements.js";
 
@@ -155,6 +156,7 @@ export function postMigrationStatements(): readonly string[] {
     ...SOURCE_ROW_PRESENCE_STATEMENTS,
     ...IMPORT_STAGING_IMMUTABLE_STATEMENTS,
     ...STEER_MEASUREMENT_IMMUTABLE_STATEMENTS,
+    ...QUEUE_CHANGE_NOTIFY_STATEMENTS,
     ...storeTableGrantStatements(),
   ];
 }

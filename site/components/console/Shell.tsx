@@ -13,6 +13,7 @@ import {
   SIDEBAR_STORAGE_KEY,
   type SidebarMode,
 } from "../../lib/workContext";
+import { LiveChanges } from "../live/LiveChanges";
 import { Button } from "../ui/button";
 import type { DesktopVoiceSeam } from "../voice/desktopVoiceSeam";
 import { desktopBridge, useDesktopRole, useOverlayStatus } from "../voice/useDesktopShell";
@@ -149,6 +150,7 @@ export function Shell({ children }: { children: ReactNode }): ReactElement {
       <ShellLandingProvider>
         <ConsoleFrame sidebar={sidebar}>{children}</ConsoleFrame>
         <VoiceFailureToasts />
+        <LiveChanges />
       </ShellLandingProvider>
     </VoiceProvider>
   );

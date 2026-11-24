@@ -6657,6 +6657,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"postgres@npm:3.4.9":
+  version: 3.4.9
+  resolution: "postgres@npm:3.4.9"
+  checksum: 10c0/b767dd2258df0f6523ce1ec0bce0a87e93c6fb961c97be0059f8ea2bc4c57c6057689258361a0988f0bb61d636483d35f0c591620566218f7083c78ab7955862
+  languageName: node
+  linkType: hard
+
 "proc-log@npm:^7.0.0":
   version: 7.0.0
   resolution: "proc-log@npm:7.0.0"
@@ -7526,6 +7533,7 @@ __metadata:
     nextra-theme-docs: "npm:4.6.1"
     openai: "npm:7.32.0"
     postcss: "npm:8.5.32"
+    postgres: "npm:3.4.9"
     radix-ui: "npm:1.6.7"
     react: "npm:19.3.1"
     react-dom: "npm:19.3.1"
