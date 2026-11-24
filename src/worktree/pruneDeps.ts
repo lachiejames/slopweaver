@@ -148,20 +148,23 @@ const DROP_TIMEOUT_MS = 15 * 60_000;
  * @param moved where each directory went
  * @param batch the batch holding them, removed once empty
  * @param paused why no further directory may be deleted right now, or null
+ * @param deleteDir deletes one moved directory inside its timeout and says whether it is gone
  */
 function deleteMoved({
   moved,
   batch,
   paused,
+  deleteDir,
 }: {
   moved: readonly string[];
   batch: string;
   paused: () => string | null;
+  deleteDir: (input: { dir: string; timeoutMs: number }) => boolean;
 }): void {
   for (const [index, to] of moved.entries()) {
     // At background priority (`./prunePacing.ts`): one acme-admin `node_modules` is millions of files, and deleted
     // at full speed it held the 1-minute load near 120 with fseventsd past 100% CPU.
-    if ((index > 0 && paused() !== null) || !deleteGently({ dir: to, timeoutMs: DROP_TIMEOUT_MS })) {
+    if ((index > 0 && paused() !== null) || !deleteDir({ dir: to, timeoutMs: DROP_TIMEOUT_MS })) {
       return;
     }
   }
@@ -185,6 +188,10 @@ function deleteMoved({
  * @param recyclePool the repository's recycle pool, or `undefined` to recycle nothing
  * @param paused why no further directory may be deleted right now, read between directories, or null
  * @param git how to run git, so a test can hand in a listing
+ * @param deleteDir deletes one moved directory; {@link deleteGently} unless a test passes one configured with a fixed
+ *   gauge and a non-darwin `os`. Both machine reads inside the default can hold a delete past a test's budget:
+ *   `taskpolicy -b`'s background QoS starves behind a saturated unit shard, and a hot live fseventsd holds every
+ *   quantum until the 15-minute deadline
  * @returns what was removed from the tree, and what declined
  */
 export function dropDeps({
@@ -193,12 +200,14 @@ export function dropDeps({
   recyclePool,
   paused,
   git = realGit,
+  deleteDir = deleteGently,
 }: {
   verdict: PruneVerdict;
   trashDir: string;
   recyclePool?: string | undefined;
   paused: () => string | null;
   git?: GitRunner;
+  deleteDir?: (input: { dir: string; timeoutMs: number }) => boolean;
 }): DepsOutcome {
   const { branch, path } = verdict;
   const refusal = notStrippable({ path });
@@ -239,7 +248,7 @@ export function dropDeps({
   // Nothing moved means nothing of this drop's to delete; a batch already at that name is not this drop's to empty,
   // and emptying it would delete bytes `dropDepsInRotation`'s cap reads as never deleted.
   if (moved.length > 0) {
-    deleteMoved({ batch, moved, paused });
+    deleteMoved({ batch, deleteDir, moved, paused });
   }
   return { branch, declined: failed.length === 0 ? null : failed.join("; "), dropped, path };
 }
