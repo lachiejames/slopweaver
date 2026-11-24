@@ -6,31 +6,32 @@
 # root that resolver knows about carries the entry, then runs `hooks/pretooluse.ts`'s logic by the cheapest
 # route available:
 #
-#   1. a PREBUILT esbuild bundle under $PLUGIN_DATA/hook-build, on plain `node`
-#   2. failing that, `tsx` over the TypeScript, exactly as before
+#   1. the root's CURRENT GENERATION under $ROOT/.hook-build/, on plain `node`, when its launcher proves every
+#      file the build read is unchanged — any root, dogfood checkout or install
+#   2. a versioned install's unsplit bundle at $ROOT/.hook-build/pretooluse.mjs, on plain `node`
+#   3. failing both, `tsx` over the TypeScript, exactly as before
 #
-# MEASURED on this machine, idle — this is the whole reason the bundle exists:
+# MEASURED at a load of 6–9, median of seven — this is the whole reason the generation exists:
 #
-#   one tsx hook boot                      0.28s wall / 0.25s CPU
-#   the six a single `Bash` call fired     0.99s wall / 2.15s CPU
-#   the same entry bundled, on `node`      0.11s wall / 0.04s CPU
-#   esbuild building that bundle           0.14s wall, once per plugin version
+#   tsx hooks/pretooluse.ts                    569–712 ms
+#   node over the code-split generation        220–290 ms
+#   node over the unsplit install bundle       2,317 ms (it inlines every dynamic import: 9.2 MB to parse)
+#   a stale generation's miss, before tsx      50–75 ms
 #
-# Repro: `echo '{"session_id":"t","tool_name":"Bash","tool_input":{"command":"echo hi"}}' | /usr/bin/time -p <cmd>`
+# Repro: `src/admit/hookBundleBuild.ts`'s header. THE INCIDENT IT ENDS: a supervising seat lost ten Bash
+# calls in a row to "killed after 13s/14s/15s without a verdict" while a local lap held the machine at
+# load 20 with swap filling. No seat runs a marketplace install, so every seat ran route 3 on every call — two
+# node processes and some thousand module loads through tsx's loader thread — and that boot is what starved.
 #
-# THE BUNDLE IS ONLY EVER BUILT FOR A VERSIONED INSTALL, and that single condition is the whole of both its
-# freshness story and its module resolution.
-#
-# FRESHNESS: it is written INSIDE the install, at $ROOT/.hook-build/, and a marketplace install path ENDS in
-# the plugin version (~/.claude/plugins/cache/<marketplace>/slopweaver/<version>). A plugin update is
-# therefore a different directory, which holds no bundle, so it builds one. Nothing has to compare mtimes
-# and nothing walks the tree. A root that is NOT under the plugin cache is a dogfood checkout, whose path
-# does NOT change when its source does — it would serve a stale bundle forever, so it runs tsx over live
-# source, which is what a dogfood session wants anyway.
+# FRESHNESS is exact, not inferred from a path: the launcher compares each input's stat to the stamp taken at
+# build time (`src/admit/hookBundleManifest.ts`), one stat per file, 17 ms for the whole set. A dogfood seat
+# that edits a guard therefore runs `tsx` over the edit on its next call and the generation the miss rebuilt
+# on the call after — it never answers with code its tree no longer carries. A miss never waits for a build;
+# see `launch_generation_build` below.
 #
 # RESOLUTION: `--packages=external` leaves every bare import (zod, neverthrow, the Slack SDK) resolving at
 # RUNTIME, and node resolves those from the importing FILE's own directory upward — not from the cwd. Inside
-# the install, $ROOT/node_modules is exactly one level up, and guard-root.sh has already made sure it is
+# the root, $ROOT/node_modules is a few levels up, and guard-root.sh has already made sure it is
 # there and matches the install's manifests. A bundle anywhere else would resolve against whatever happened
 # to sit above IT, which is how you get a guard silently running a different tree's zod.
 #
@@ -232,7 +233,68 @@ fi
 TSX="$ROOT/node_modules/.bin/tsx"
 [ -x "$TSX" ] || TSX="$DATA/cli-deps/node_modules/.bin/tsx"
 
-# A versioned install, and nothing else, gets the bundle. `pwd -P` on BOTH sides, so neither a symlinked
+# THE CURRENT GENERATION, for EVERY root, dogfood checkout and install alike: a code-split build of this very
+# entry under `$ROOT/.hook-build/`, whose launcher stats every file the build read and runs the gate only on an
+# exact match (`src/admit/hookBundleManifest.ts`). Only a VERDICT is returned as is: 0 or 2, the only codes the
+# gate exits by its own hand (every check, every `onUnhandledError`, the dispatcher and the entry's fail-closed
+# handler — `src/admit/preToolUseDispatch.ts`), and the 2 the bounded runner gives a spent budget. Anything else
+# falls through to the routes below, which re-feed the same `$PAYLOAD` from the variable: the launcher's 75 ("this
+# generation is stale"), and the 1 or 128+ of a process that died before any gate decided — a launcher chunk gone,
+# a kill that was not the budget's — either of which, returned, Claude Code would read as no block. `current` is read with
+# the `read` builtin and must name a `generation-*` directory holding a launcher, so a torn or foreign line is a
+# miss, never a path handed to node.
+HOOK_BUILD="$ROOT/.hook-build"
+GENERATION=""
+if [ -f "$HOOK_BUILD/current" ]; then
+  IFS= read -r GENERATION <"$HOOK_BUILD/current" 2>/dev/null || true
+fi
+if ! [[ "$GENERATION" =~ ^generation-[0-9]+-[0-9a-f]+$ ]] || [ ! -f "$HOOK_BUILD/$GENERATION/launch.mjs" ]; then
+  GENERATION=""
+fi
+
+if [ -n "$GENERATION" ] && command -v node >/dev/null 2>&1; then
+  GENERATION_BUDGET="$(budget_left)"
+  [ "$GENERATION_BUDGET" -gt 0 ] || give_up spent "the ${BUDGET}s budget was spent before the gate could run"
+  # `pipefail` off around the dispatch for the reason the final dispatch below gives.
+  set +o pipefail
+  printf '%s' "$PAYLOAD" | run_hook_bounded "$GENERATION_BUDGET" "$(give_up_code spent)" pretooluse \
+    node "$HOOK_BUILD/$GENERATION/launch.mjs" "$@"
+  GENERATION_STATUS="${PIPESTATUS[1]}"
+  set -o pipefail
+  case "$GENERATION_STATUS" in
+    0 | 2) exit "$GENERATION_STATUS" ;;
+  esac
+fi
+
+# A MISS NEVER WAITS FOR A BUILD. This call runs on the routes below exactly as it always did, and ONE builder
+# (`hooks/pretooluseBuild.ts`) is launched beside it: niced, double-forked out of this shim's process tree so the
+# bounded runner's tree kill never reaches it, every stream on `/dev/null` so it holds no pipe the harness reads.
+# A build therefore never spends a verdict's budget, however loaded the machine. Two cheap gates keep a burst of
+# misses from starting a burst of builders: a build lock younger than two minutes means one is running, and a
+# failure marker younger than two minutes means the last build of this tree failed — a broken tree is rebuilt
+# at most once in that window, never on every call. A tree without the builder (an install predating it), or
+# one it cannot write, never launches one.
+#
+# @returns 0 always; a launch that cannot start costs this call nothing
+launch_generation_build() {
+  [ -f "$ROOT/hooks/pretooluseBuild.ts" ] && [ -x "$TSX" ] || return 0
+  # A tree it could never write to (a read-only install) would fail every launch before it could leave a marker.
+  if [ -e "$HOOK_BUILD" ]; then
+    [ -d "$HOOK_BUILD" ] && [ -w "$HOOK_BUILD" ] || return 0
+  else
+    [ -w "$ROOT" ] || return 0
+  fi
+  local recent
+  for recent in "$HOOK_BUILD/build.lock" "$HOOK_BUILD/build.failed"; do
+    [ -e "$recent" ] || continue
+    [ -z "$(find "$recent" -maxdepth 0 -mmin -2 2>/dev/null)" ] || return 0
+  done
+  (nice -n 10 "$TSX" "$ROOT/hooks/pretooluseBuild.ts" "$ROOT" </dev/null >/dev/null 2>&1 &)
+  return 0
+}
+launch_generation_build
+
+# A versioned install, and nothing else, gets the unsplit bundle when no generation answered. `pwd -P` on BOTH sides, so neither a symlinked
 # install nor a config dir reached through a link (darwin's `/var` is `/private/var`) is mistaken for a
 # dogfood checkout — a mismatch there skipped the bundle, and with it every check below, in silence.
 ROOT_REAL="$( (cd "$ROOT" 2>/dev/null && pwd -P) || true)"

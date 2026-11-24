@@ -132,7 +132,7 @@ row, disjoint from both, hands `Read`, `Grep`, `Glob` and `NotebookEdit` to `scr
 which starts no Node process unless a protected-path registry exists in the configured or default state home, and
 otherwise runs `pretooluse.sh --only protected-path-guard` — so a read reaches that one check and no other, and every
 ending it cannot decide RELEASES (`SLOPWEAVER_HOOK_GIVE_UP=0`, and `give_up` for that row): a read-side tripwire must
-never stop a loaded session ([protected paths](../security/protected-paths.md)). `scripts/pretooluse.sh` runs a prebuilt esbuild bundle on plain `node`,
+never stop a loaded session ([protected paths](../security/protected-paths.md)). `scripts/pretooluse.sh` runs a prebuilt esbuild generation on plain `node`,
 falling back to `tsx` over the source; `src/admit/preToolUseChecks.ts` is the registry and
 `src/admit/preToolUseDispatch.ts` the pure rule that combines them. MEASURED the same day, same machine:
 the six-hook fan-out a `Bash` call fired cost 0.99s wall / **2.15s CPU**; the folded dispatcher on the
@@ -167,12 +167,15 @@ poll-gate pass refuse the call the first one recorded. `src/__tests__/unit/conte
 every shim to a real registry id and every per-check entry to a shim, so they are deleted together or not at
 all. A check registered on the folded entry gets no shim: no `hooks.json` names a path for it.
 
-**The bundle is built only for a versioned install**, at `$ROOT/.hook-build/` inside it. A marketplace install
-path ends in the plugin version, so an update is a different directory holding no bundle — freshness with
-nothing comparing mtimes. A root outside the plugin cache is a dogfood checkout, whose path does not change
-when its source does, so it runs `tsx` over live source, which is what a dogfood session wants. The bundle
-sits INSIDE the install because `--packages=external` resolves bare imports from the importing file's own
-directory upward: anywhere else and a guard silently runs whatever `zod` happened to sit above it.
+**Every root runs a prebuilt GENERATION once one is current**: a code-split build under
+`$ROOT/.hook-build/generation-<id>/`, whose launcher (`hooks/pretooluseLaunch.ts`) runs the gate only when every
+file its manifest lists stats exactly as stamped (`src/admit/hookBundleManifest.ts`); any status but 0 or 2 runs `tsx` over live source.
+A miss never waits: it launches one niced background builder (`hooks/pretooluseBuild.ts`). Every seat used to
+boot `tsx` on every call, which outlived the 15s budget under a lap's load; measurements, repro and the
+immutable-generation rule are in `src/admit/hookBundleBuild.ts`. It sits INSIDE the root because
+`--packages=external` resolves bare imports upward from the importing file: anywhere else a guard silently runs
+whatever `zod` sat above it. An install with no current generation keeps its unsplit, synchronously built
+`.hook-build/pretooluse.mjs`, because that build is also its integrity check (below).
 
 **A bundle that fails to build is a verdict on the install**, because esbuild walks every import the entry
 reaches and `tsx` over the same tree dies with exit 1, which turns every guard off. MEASURED:

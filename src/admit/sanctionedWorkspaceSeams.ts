@@ -65,6 +65,10 @@ export const WORKSPACE_SEAMS = {
   "src/worktree/recyclePool.ts": "local-state",
   "src/worktree/trashBatch.ts": "local-state",
   "src/worktree/provisionRecycle.ts": "local-state",
+  // The PreToolUse bundle builder: its lock, failure marker, generation directories and `current` pointer, all
+  // under the checkout's own gitignored `.hook-build/` (`mkdir`/`rename`/`rm`/`writeFile`). A build cache of
+  // the checkout's own source, the same class as the recycle pool above; nothing external is reachable.
+  "src/admit/hookBundleBuild.ts": "local-state",
   // The recycle race tests' contender processes: each writes its one result file into the `mkdtemp`
   // directory the calling test made under the per-file temp root. They reach no provider.
   "src/__tests__/subprocess/worktree/depsLockContender.entry.ts": "local-state",
