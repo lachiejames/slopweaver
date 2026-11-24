@@ -401,6 +401,7 @@ describe("verificationLines", () => {
   it("prints counts and the report path, never a finding's path", () => {
     const lines = verificationLines({
       reportPath: "/home/fresh-cuts/r/verify-1.json",
+      reviewedUnmatched: 5,
       verification: {
         destinationTreeSha: BLOB_A,
         exemptions: { "code-owner": 1, "documentation-address": 2, "own-address": 40, "owner-reference": 1 },
@@ -425,6 +426,7 @@ describe("verificationLines", () => {
       "fresh-cut verify: private-term matches exempted — own-address 40, code-owner 1, owner-reference 1, documentation-address 2",
       "fresh-cut verify: reviewed, accepted: 31",
       "fresh-cut verify: of those, accepted on an owner anchor — owner-name 0, owner-handle 0, person 0, organisation 0, place 0, health 0, money 4, topic 2",
+      "fresh-cut verify: reviewed, unmatched: 5",
       "fresh-cut verify: REFUSED — report /home/fresh-cuts/r/verify-1.json",
     ]);
   });

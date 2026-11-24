@@ -404,14 +404,17 @@ export interface FreshCutVerification {
  *
  * @param verification the finished verification
  * @param reportPath where its report was written
+ * @param reviewedUnmatched the reviewed-residue entries that applied and took nothing out, which the report does not store
  * @returns the lines, without trailing newlines
  */
 export function verificationLines({
   verification,
   reportPath,
+  reviewedUnmatched,
 }: {
   verification: FreshCutVerification;
   reportPath: string;
+  reviewedUnmatched: number;
 }): readonly string[] {
   const hygiene = verification.findings.filter((finding) => finding.kind === "hygiene").length;
   const privateTerm = verification.findings.length - hygiene;
@@ -425,6 +428,7 @@ export function verificationLines({
     `fresh-cut verify: private-term matches exempted — ${exempted.join(", ")}`,
     `fresh-cut verify: reviewed, accepted: ${String(verification.reviewedAccepted)}`,
     `fresh-cut verify: of those, accepted on an owner anchor — ${anchored.join(", ")}`,
+    `fresh-cut verify: reviewed, unmatched: ${String(reviewedUnmatched)}`,
     `fresh-cut verify: ${verification.status.toUpperCase()} — report ${reportPath}`,
   ];
 }

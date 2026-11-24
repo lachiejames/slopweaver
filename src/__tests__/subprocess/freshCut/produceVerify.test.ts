@@ -209,7 +209,9 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     writePrivateTerms({ home, rows: ["person\ti\tquillfeather\tsynthetic"] });
     const record = produce({ name: "cut", repo, root, tip });
 
-    const verification = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
+    const { verification } = unwrap(
+      verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }),
+    );
     expect([verification.status, verification.filesScanned, verification.findings]).toEqual(["clear", 3, []]);
   });
 
@@ -223,7 +225,9 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     writePrivateTerms({ home, rows: [`owner-address\ti\t${escaped}\tsynthetic`] });
     const record = produce({ name: "cut", repo, root, tip });
 
-    const verification = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
+    const { verification } = unwrap(
+      verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }),
+    );
     expect([verification.status, verification.findings]).toEqual([
       "refused",
       [{ className: "owner-address", kind: "private-term", line: 1, path: "AUTHORS" }],
@@ -243,7 +247,9 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     });
     const record = produce({ name: "cut", repo, root, tip });
 
-    const verification = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
+    const { verification } = unwrap(
+      verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }),
+    );
     expect([verification.status, verification.exemptions, verification.findings]).toEqual([
       "refused",
       { "code-owner": 0, "documentation-address": 1, "own-address": 1, "owner-reference": 0 },

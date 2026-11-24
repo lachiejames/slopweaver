@@ -12,10 +12,11 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { acquireOperationLock } from "../../../admit/operationLock.js";
 import { acceptReviewedResidue, REVIEWED_RESIDUE_LOCK_KEY } from "../../../freshCut/accept.js";
-import type { FreshCutRecord } from "../../../freshCut/core.js";
+import type { FreshCutRecord, FreshCutVerification } from "../../../freshCut/core.js";
 import { produceFreshCut } from "../../../freshCut/produce.js";
 import type { ReviewedResidueDecision } from "../../../freshCut/reviewedResidue.js";
 import { reviewedResiduePath } from "../../../freshCut/reviewedResidueStore.js";
+import { writeFreshCutVerification } from "../../../freshCut/store.js";
 import { verifyFreshCut } from "../../../freshCut/verify.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 import { githubNoReplyAddress } from "../../../live/github/viewerIdentity.js";
@@ -101,6 +102,10 @@ function projectsWithOwnerTurn(): string {
 /** A transcripts root nothing is written under, so no anchor resolves in it. */
 const noTranscripts = (): string => join(tmpdir(), "no-transcripts-here");
 
+/** Verify a cut and keep the verification its report stores, dropping the count that is only printed. */
+const verificationOf = (options: Parameters<typeof verifyFreshCut>[0]): FreshCutVerification =>
+  unwrap(verifyFreshCut(options)).verification;
+
 /** Accept one line of a cut: as a version string by default, or on a decision a case names. */
 const accept = ({
   home,
@@ -134,7 +139,7 @@ const accept = ({
 describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   it("takes an accepted line out of the next verify, counts it, and binds the list's exact bytes", () => {
     const { home, record, repo } = cutOf({ files: { "VERSION.md": "intro\nbuild 7.12.3.40\n" } });
-    const before = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
+    const before = verificationOf({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo });
     expect([before.status, before.findings, before.reviewedAccepted]).toEqual([
       "refused",
       [{ className: "owner-address", kind: "private-term", line: 2, path: "VERSION.md" }],
@@ -148,7 +153,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
       createHash("sha256").update("build 7.12.3.40").digest("hex"),
     ]);
 
-    const after = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
+    const after = verificationOf({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo });
     expect([after.status, after.findings, after.reviewedAccepted, after.reviewedResidueSha256]).toEqual([
       "clear",
       [],
@@ -188,6 +193,57 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
     expect(unwrapErr(accept({ home, line: 1, path: "VERSION.md", record, repo })).code).toBe(
       "REVIEWED_RESIDUE_CANDIDATE_REFUSED",
     );
+  });
+
+  it("clears only the accepted copy of two identical lines, and leaves the other open to its own acceptance", () => {
+    const { home, record, repo } = cutOf({ files: { "VERSION.md": "intro\nbuild 7.12.3.40\nbuild 7.12.3.40\n" } });
+    const accepted = unwrap(accept({ home, line: 3, path: "VERSION.md", record, repo }));
+    const verified = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
+    expect(accepted.entry).toMatchObject({ lineNumberAtReview: 3, occurrence: 2, schemaVersion: 1 });
+    expect([
+      verified.verification.findings,
+      verified.verification.reviewedAccepted,
+      verified.reviewedUnmatched,
+    ]).toEqual([[{ className: "owner-address", kind: "private-term", line: 2, path: "VERSION.md" }], 1, 0]);
+    expect(unwrapErr(accept({ home, line: 3, path: "VERSION.md", record, repo })).code).toBe(
+      "REVIEWED_RESIDUE_CANDIDATE_REFUSED",
+    );
+    expect(unwrap(accept({ home, line: 2, path: "VERSION.md", record, repo })).entry.lineNumberAtReview).toBe(2);
+  });
+
+  it("clears neither of two identical lines for an older entry from another cut, and stores no unmatched count", () => {
+    const { home, record, repo } = cutOf({ files: { "VERSION.md": "intro\nbuild 7.12.3.40\nbuild 7.12.3.40\n" } });
+    const older = {
+      className: "owner-address",
+      entryId: "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f",
+      judgement: "not-an-address",
+      lineNumberAtReview: 3,
+      lineSha256: createHash("sha256").update("build 7.12.3.40").digest("hex"),
+      path: "VERSION.md",
+      reviewedAtIso: NOW.toISOString(),
+      reviewedBySessionId: SESSION,
+      reviewedRecordId: "4a3b2c1d-0e9f-4a8b-9c7d-6e5f4a3b2c1d",
+      reviewedTreeSha: "b".repeat(40),
+      schemaVersion: 1,
+    };
+    mkdirSync(join(home, "fresh-cuts"), { recursive: true });
+    writeFileSync(reviewedResiduePath({ home }), `${JSON.stringify(older)}\n`, { mode: 0o600 });
+    const { verification, reviewedUnmatched } = unwrap(
+      verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }),
+    );
+    expect([verification.status, verification.findings, verification.reviewedAccepted, reviewedUnmatched]).toEqual([
+      "refused",
+      [
+        { className: "owner-address", kind: "private-term", line: 2, path: "VERSION.md" },
+        { className: "owner-address", kind: "private-term", line: 3, path: "VERSION.md" },
+      ],
+      0,
+      1,
+    ]);
+    const report = JSON.parse(
+      readFileSync(unwrap(writeFreshCutVerification({ home, verification })), "utf8"),
+    ) as Record<string, unknown>;
+    expect([report["schemaVersion"], Object.keys(report).includes("reviewedUnmatched")]).toEqual([3, false]);
   });
 
   it("refuses a reader's owner-address judgement on a line holding only a finding of another class", () => {
@@ -238,7 +294,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
       false,
     ]);
 
-    const after = unwrap(verifyFreshCut({ home, now: NOW, projectsDir, record, source: repo }));
+    const after = verificationOf({ home, now: NOW, projectsDir, record, source: repo });
     expect([
       after.status,
       after.findings,
@@ -262,7 +318,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
         repo,
       }),
     );
-    expect(unwrap(verifyFreshCut({ home, now: NOW, projectsDir, record, source: repo })).status).toBe("clear");
+    expect(verificationOf({ home, now: NOW, projectsDir, record, source: repo }).status).toBe("clear");
     const refused = unwrapErr(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
     expect([refused.code, refused.message.includes("could not be read")]).toEqual([
       "REVIEWED_RESIDUE_UNREADABLE",
@@ -337,9 +393,13 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
       }),
     );
     const other: FreshCutRecord = { ...first.record, recordId: "4a3b2c1d-0e9f-4a8b-9c7d-6e5f4a3b2c1d" };
-    const verification = unwrap(
-      verifyFreshCut({ home: first.home, now: NOW, projectsDir: noTranscripts(), record: other, source: first.repo }),
-    );
+    const verification = verificationOf({
+      home: first.home,
+      now: NOW,
+      projectsDir: noTranscripts(),
+      record: other,
+      source: first.repo,
+    });
     expect([verification.status, verification.findings, verification.reviewedAccepted]).toEqual([
       "refused",
       [{ className: "topic", kind: "private-term", line: 1, path: "NOTES.md" }],
@@ -355,15 +415,13 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
     mkdirSync(join(second.home, "fresh-cuts"), { recursive: true });
     writeFileSync(reviewedResiduePath({ home: second.home }), list);
 
-    const verification = unwrap(
-      verifyFreshCut({
-        home: second.home,
-        now: NOW,
-        projectsDir: noTranscripts(),
-        record: second.record,
-        source: second.repo,
-      }),
-    );
+    const verification = verificationOf({
+      home: second.home,
+      now: NOW,
+      projectsDir: noTranscripts(),
+      record: second.record,
+      source: second.repo,
+    });
     expect([verification.status, verification.findings, verification.reviewedAccepted]).toEqual([
       "refused",
       [{ className: "owner-address", kind: "private-term", line: 1, path: "VERSION.md" }],
