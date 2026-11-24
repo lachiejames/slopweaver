@@ -3,10 +3,11 @@
  * call's remaining lifetime puts it in (`rolloverUrgency`, `./callRollover.ts`). Pure: `QuietRollover` acts on the
  * answer and journals it, and `useVoiceActivity` supplies the meters and the fold.
  *
- * Calm, every hold below holds. Urgent — the lifetime's cut minutes away — the holds that only wait for the
- * conversation's next turn stop holding, since across a steady conversation they renew one another and leave no pause
- * free: a call was cut mid-word after every pause across eight minutes (15s, 28s, 11s) fell inside a 90-second "the
- * voice owes the next turn" hold or one of the owner's. Last — seconds away — the owner's turn stops holding too,
+ * Calm, every hold below holds. Urgent — the lifetime's cut minutes away, or the thread's context nearly full — the
+ * hold for a turn the voice owes stops holding, since across a steady conversation it renews after every statement
+ * and leaves no pause free: a call was cut mid-word after every pause across eight minutes (15s, 28s, 11s) fell inside
+ * a 90-second "the voice owes the next turn" hold or one of the owner's. A turn of the owner's still awaiting the voice
+ * keeps holding, since the voice's next words clear it. Last — seconds away — the owner's turn stops holding too,
  * leaving the voice's own work and the meters: a successor opened in a breath of the owner's is a smaller cut than the
  * lifetime's, which lands wherever it falls, while an answer the voice is giving or a turn still running would lose to
  * the rollover what the lifetime would only take later. Repro:
@@ -23,6 +24,37 @@ import type { TurnTaking } from "./voiceTurnTaking";
  * the estimated cut itself leaves no sample on which to release before the server's timer closes the call. Twelve samples, and room for the localhost stream's delivery.
  */
 export const ROLLOVER_CUT_SLACK_MS = 1_000;
+
+/** What holds the floor while the current call's words are not on disk yet, as the call file journals it. */
+export const UNWRITTEN_HOLD = "the call's last words are not written down yet";
+
+/**
+ * When the current call's words were first seen not on disk, carried across meter samples: the first unwritten sample
+ * starts it, later ones keep it, so a sink that stays behind is bounded from when it fell behind rather than renewed by
+ * every line; a sample that sees it caught up clears it.
+ *
+ * @param previousMs the instant carried from the last sample, `undefined` when it saw the sink caught up
+ * @param unwritten whether the sink holds words of the current call not on disk now (`TranscriptSink.unwritten`)
+ * @param nowMs this sample's instant, on `performance.now()`
+ * @returns the instant to carry, or `undefined` while nothing is unwritten
+ */
+export function unwrittenSinceAt({
+  previousMs,
+  unwritten,
+  nowMs,
+}: {
+  previousMs: number | undefined;
+  unwritten: boolean;
+  nowMs: number;
+}): number | undefined {
+  if (!unwritten) {
+    return undefined;
+  }
+  if (previousMs !== undefined) {
+    return previousMs;
+  }
+  return nowMs;
+}
 
 /**
  * When the voice's words of an answer it has not finished last arrived: words since its last final, which a pause for
@@ -70,9 +102,19 @@ export function voiceMidAnswerAt({
  * The owner's turn holds it, until the last stage: any of their words for the server's own quiet, and a turn of theirs
  * still open for {@link ROLLOVER_OWED_HOLD_MS} after its newest segment. A held ask once went ahead on
  * 1s of meter quiet inside a 72s turn of the owner's, so their whole turn went unanswered. Repro: the last 60 lines of
- * a call's `$SLOPWEAVER_HOME/talk/calls/<call-id>-*.jsonl`. Only calm waits on the next turn: a turn of the owner's that
- * ended until the voice speaks words again, and a turn the voice owes them, each for {@link ROLLOVER_OWED_HOLD_MS}.
+ * a call's `$SLOPWEAVER_HOME/talk/calls/<call-id>-*.jsonl`. A turn of the owner's that ended holds it until the voice
+ * speaks words again, for {@link ROLLOVER_OWED_HOLD_MS}, at calm and urgent: the voice's words clear it, so it never
+ * renews across a steady conversation, and a successor opened on it leaves the owner's question with nobody. Only calm
+ * waits on a turn the voice owes them, for the same bound: that debt follows nearly every statement of the voice's.
  * Muted, the owner is never loud, so only the voice holds the meters.
+ *
+ * The call's own words not yet on disk hold it at calm and urgent ({@link UNWRITTEN_HOLD}), for
+ * {@link ROLLOVER_OWED_HOLD_MS} from the first sample that saw them unwritten: the successor's mint reads the call it
+ * replaces from its file, so a successor minted ahead of the transcript sink is told an exchange that stops short. A
+ * call rolled over 1.4s after the voice finished answering the owner, with that answer still in the sink's queue for
+ * ten more seconds, and the successor's opener quoted the owner's question and the voice's "on it" as the last
+ * exchange. Repro: `storedIso` against the successor's `open` line in the two call files. The old call still listens
+ * while it waits, so the wait costs nothing; the bound keeps a dead route from pinning the floor.
  *
  * @param urgency how near the lifetime's cut is
  * @param turn both meters' last stretches of sound
@@ -88,6 +130,8 @@ export function voiceMidAnswerAt({
  * @param ownerOpenAtMs when the newest segment of an owner turn still open arrived, `undefined` when none is
  * @param ownerAwaitingVoiceMs when the owner's newest ended turn the voice has not spoken words since ended, `undefined` when the
  *   voice has
+ * @param unwrittenSinceMs when the page first saw the current call's words not on disk yet ({@link unwrittenSinceAt}),
+ *   `undefined` while the transcript sink holds none
  * @param inFlight how many rows of work the page shows in flight (`activityRows`, `./voiceActivity.ts`)
  * @param progressingInFlight how much of that work could still finish (`progressingWork`, `./voiceActivityRows.ts`):
  *   the last stage waits on no stalled work, nor a Codex turn whose own progress has gone quiet
@@ -110,12 +154,14 @@ export function pageRolloverHold({
   heardAtMs,
   ownerOpenAtMs,
   ownerAwaitingVoiceMs,
+  unwrittenSinceMs,
   inFlight,
   progressingInFlight,
   nowMs,
   remainingMs,
 }: {
   urgency: RolloverUrgency;
+  unwrittenSinceMs: number | undefined;
   remainingMs: number | undefined;
   progressingInFlight: number;
   turn: TurnTaking;
@@ -159,10 +205,11 @@ export function pageRolloverHold({
     : progressingInFlight > 0 && (releaseByMs === undefined || releaseByMs - nowMs > quietMs);
   const checks: readonly (readonly [boolean, string])[] = [
     [working, "work is in flight"],
+    [notLast && within({ ms: ROLLOVER_OWED_HOLD_MS, since: unwrittenSinceMs }), UNWRITTEN_HOLD],
     [notLast && within({ ms: quietMs, since: heardAtMs }), "the owner's words are inside the rollover quiet"],
     [notLast && within({ ms: ROLLOVER_OWED_HOLD_MS, since: ownerOpenAtMs }), "the owner's turn is still open"],
     [
-      calm && within({ ms: ROLLOVER_OWED_HOLD_MS, since: ownerAwaitingVoiceMs }),
+      notLast && within({ ms: ROLLOVER_OWED_HOLD_MS, since: ownerAwaitingVoiceMs }),
       "the owner's turn still awaits the voice",
     ],
     [timed({ ms: pendingMs, since: pendingSince }), "a completed answer is still pending"],

@@ -170,6 +170,17 @@ export class TranscriptHearing {
     return this.openPartial();
   }
 
+  /**
+   * Whether `call`'s speech still open holds words no partial has carried yet — what the next snapshot would write.
+   *
+   * @param call the call asked about; speech held open for another call answers false
+   * @returns true while that call's open stretch changed since the last partial written of it
+   */
+  changedFor({ call }: { call: string }): boolean {
+    const open = this.speech;
+    return open?.call === call && `${open.id}:${open.text}` !== this.written;
+  }
+
   /** The speech held open is done with: the call ended. */
   clearSpeech(): void {
     this.speech = undefined;

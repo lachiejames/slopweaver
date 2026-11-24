@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CONTEXT_URGENT_DETAIL, ROLLOVER_METER_QUIET_MS, ROLLOVER_OWED_HOLD_MS } from "../../lib/callRollover";
-import { ROLLOVER_CUT_SLACK_MS } from "../../lib/callRolloverFloor";
+import { ROLLOVER_CUT_SLACK_MS, UNWRITTEN_HOLD } from "../../lib/callRolloverFloor";
 import { PLAN_CALL_LIMITS } from "../../lib/planCallContract";
 import { type ActivityInput, activityRows, END_SKEW_MS, foldActivity, NO_ACTIVITY } from "../../lib/voiceActivity";
 import { ownerOpenAtOf } from "../../lib/voiceOwnerTurns";
@@ -371,5 +371,66 @@ describe("the page's rollover floor over a thread nearly full", () => {
       "journal: released in a meter pause (urgent)",
       ...SWAP,
     ]);
+  });
+
+  // Measured on one call: the urgent ask went ahead 1.4s after the voice's final answer to the owner, whose lines
+  // reached the call file 3.2s and 11.2s AFTER the successor was minted from it, so the successor's opener quoted an
+  // exchange ending on the owner's question and the voice's "on it". Replayed with that final as zero and the sink
+  // behind from the answer's first words. Repro: `storedIso` of the last segments against the successor's `open` line.
+  it("holds an urgent ask past the meters' quiet until the call's last words are on disk, then releases at once", () => {
+    const activity = folded({
+      script: [
+        [-13_000, { kind: "spoke" }],
+        [0, { asked: false, kind: "voice-finished", promised: false }],
+      ],
+    });
+    const quietVoice = { ...activity, turn: { ...activity.turn, voice: stretch({ lastMs: 0 }) } };
+    const held = recording();
+    const { did, rollover } = held;
+    ask({ atMs: -71_000, contextUrgent: true, held, lifetimeRemainingMs: null });
+    const sample = ({ nowMs, unwrittenSinceMs }: { nowMs: number; unwrittenSinceMs: number | undefined }): void => {
+      const stage = rollover.stage({ nowMs })!;
+      const hold = holdOf({ activity: quietVoice, nowMs, owedFromMs: 0, stage, unwrittenSinceMs });
+      rollover.observed({ hold, nowMs });
+    };
+    // What released the measured call: the meters' second of quiet, with nothing else holding.
+    const urgent = { remainingMs: undefined, urgency: "urgent" } as const;
+    const meterQuietAlone = holdOf({
+      activity: quietVoice,
+      nowMs: ROLLOVER_METER_QUIET_MS,
+      owedFromMs: 0,
+      stage: urgent,
+    });
+    sample({ nowMs: ROLLOVER_METER_QUIET_MS, unwrittenSinceMs: -13_000 });
+    sample({ nowMs: 11_000, unwrittenSinceMs: -13_000 });
+    sample({ nowMs: 11_080, unwrittenSinceMs: undefined });
+    expect(meterQuietAlone).toBe(undefined);
+    expect(did).toEqual([
+      "journal: ask received",
+      `journal: ${CONTEXT_URGENT_DETAIL}`,
+      `journal: held: ${UNWRITTEN_HOLD}`,
+      "journal: released in a meter pause (urgent)",
+      ...SWAP,
+    ]);
+  });
+
+  it("holds an urgent ask on an owner's turn the voice has not answered, until the voice's words clear it", () => {
+    const asked = folded({
+      script: [
+        [-20_000, said({ final: false, id: "o-1" })],
+        [0, said({ final: true, id: "o-1" })],
+      ],
+    });
+    const stage = { remainingMs: undefined, urgency: "urgent" } as const;
+    const quietMs = PLAN_CALL_LIMITS.rolloverQuietMs;
+    const unanswered = holdOf({ activity: asked, nowMs: quietMs + 1_000, stage });
+    const spoken = foldActivity({ activity: asked, input: { kind: "spoke" }, nowMs: quietMs + 2_000 });
+    const answered = foldActivity({
+      activity: spoken,
+      input: { asked: false, kind: "voice-finished", promised: false },
+      nowMs: quietMs + 3_000,
+    });
+    const afterAnswer = holdOf({ activity: answered, nowMs: 2 * quietMs + 4_000, stage });
+    expect([unanswered, afterAnswer]).toEqual(["the owner's turn still awaits the voice", undefined]);
   });
 });
