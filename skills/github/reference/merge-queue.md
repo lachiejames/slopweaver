@@ -108,7 +108,8 @@ Three because the write is impossible, and the fourth because it would be unsafe
 - **the pull request is not open** — GitHub has nothing to queue; if it merged already, pull the base;
 - **it is still a draft** — GitHub will not queue one. Undraft it with `github ready` first;
 - **the landing branch has no merge queue** — there is no button to press. Land it with
-  `github merge --admin --number <n>`, or enable a merge queue on that branch;
+  `slopweaver github merge --repo <owner/name> --base origin/main --head <branch> --description - --admin --number <n> < body.md`,
+  or enable a merge queue on that branch;
 - **that queue requires NO status-check contexts** — the write would work, and merge on arrival untested.
 
 The fourth is the one a reader argues with, so it has its own page: why acknowledging it could not make the

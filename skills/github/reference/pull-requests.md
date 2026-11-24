@@ -23,12 +23,12 @@ Bundled reference for the `github` skill, loaded when the body links here: the p
   GitHub then tests the entry against the tip and every entry ahead of it, and lands it. Nothing is handed to
   another session and no hold is taken, so a session that dies after queueing costs nothing — the entry is
   GitHub's. Subjects, refusals and `--dequeue`: [merge-queue.md](merge-queue.md).
-- **Where the base has NO merge queue, merge with `slopweaver github merge --admin --number <n>`.** It is an ADMIN
-  merge because that is what the configuration leaves open, not because a rule is being escaped: the sole `CODEOWNERS`
-  entry was the sole author, so the review could never arrive and a plain merge was
-  refused **permanently**, with `enforce_admins: false` the deliberate other half. `BLOCKED` here is a config fact,
-  never a blocker to escalate — why `enqueue`'s `review-not-approved` is acknowledged, not satisfied. `main` carries
-  no review requirement at all.
+- **Where the base has NO merge queue, merge with the admin form, every flag required** (`--description -` reads stdin):
+  `slopweaver github merge --repo <owner/name> --base origin/main --head <branch> --description - --admin --number <n> < body.md`.
+  ADMIN because the config leaves it open, not a rule escaped: the sole `CODEOWNERS` entry was the sole author, so the
+  review could never arrive and a plain merge was refused **permanently**, `enforce_admins: false` the other half.
+  `BLOCKED` here is a config fact, never a blocker to escalate — why `enqueue`'s `review-not-approved` is
+  acknowledged, not satisfied. `main` carries no review requirement at all.
 - **`stack push` and `pr request-review` refuse a branch whose board row is a
   fleet FINDING the owner has not ruled on.** A row registered with `handover register --finding` came from what
   a session observed, not from the owner; until `handover rule <slug>` records the owner's words and where the
