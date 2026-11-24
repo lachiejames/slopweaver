@@ -229,7 +229,7 @@ describe("postSelfReview answers to the description review", () => {
       ...baseDeps,
       descriptionReview: () => {
         asked.push(1);
-        return Promise.resolve({ boundHead: undefined, kind: "clear" });
+        return Promise.resolve({ boundHead: undefined, kind: "clear", notice: undefined });
       },
     };
     const code = await postSelfReview({

@@ -1,6 +1,7 @@
 # Description review — a fresh reader checks the description before GitHub does
 
-**A pull-request description reaches GitHub only over a CLEAN review of its exact bytes.** `github stack push` and
+**A pull-request description reaches GitHub only over a CLEAN review of its exact bytes**, bar one carried case
+([below](#an-unchanged-description-is-not-reviewed-again-over-an-immaterial-change)). `github stack push` and
 `github pr update` call `requireCleanDescriptionReview` (`src/outbound/github/descriptionReviewGate.ts`) immediately
 before they mutate, and refuse without a receipt for the exact title, body, inline comments, images, written rules
 and change set they are about to send, and for every comment already on the pull request. There is no escape hatch: the refusal says so, and names what changed since the last
@@ -122,6 +123,27 @@ elsewhere keeps it; a content edit, a rename, a mode-only change, a swapped bina
 the branch also touches moves it. Real-git witnesses:
 `src/__tests__/subprocess/outbound/github/descriptionChangeDigest.test.ts`.
 
+## An unchanged description is not reviewed again over an immaterial change
+
+A write with no receipt for its exact manifest may ride the NEWEST receipt over the same description: every input
+but `changeDigest` byte-identical. It does only when that receipt is CLEAN and the change set it reviewed, read back
+from its packet's `change/delta.txt` at the base commit and re-hashed to its `changeDigest`, differs from the
+current one in nothing but content, and only in files that:
+
+- end in `.md`;
+- sit outside `skills/` and `.claude/rules/`, the trees a description is judged against;
+- are named, by path or file name in any case, nowhere in the title, body, outgoing comments or proves lines.
+
+The same paths, statuses, modes and base-side blobs are required. A receipt over the exact bytes still decides
+first, a BROKEN newest receipt refuses without reaching behind it, and a stored receipt that does not read, or a
+packet that is gone or does not re-hash, asks for a fresh review. The refusal names each path that forced it
+(`src/outbound/github/descriptionReviewMateriality.ts`, `src/outbound/github/descriptionReviewCarry.ts`).
+
+**The blind spot, chosen:** a claim about prose in a changed Markdown file the description never names can ride
+the earlier review unread. The write prints one line naming the receipt it rode, the paths that moved and that
+blind spot. Whether the reviewer holds to its own earlier CLEAN on unchanged text when a review is asked is a
+separate open question.
+
 **The residue: a force-push mid-write.** `pr update` checks the receipt against the head it just re-read, but
 GitHub has no PATCH conditional on the head, so a push landing between that check and the PATCH cannot be
 refused. It is SEEN: the PATCH response carries the head it landed on, and a different one prints a warning
@@ -140,7 +162,7 @@ naming both commits (`src/cli/commands/github/performWrite.ts`, `patchAndConfirm
 
 **One review per distinct packet.** A second `review-record`, or a second `review-prepare`, over a packet that
 already has a receipt is refused, CLEAN or BROKEN; a new pass is owed only when the title, body, comments (its own or the pull request's existing ones), images,
-rules or change set changes. The packet is its own repository, so these passes never touch the PR branch's
+rules or change set changes, and a change set moving only as the carried case allows owes none. The packet is its own repository, so these passes never touch the PR branch's
 `codex-review-pass-cap` count or the code review floor `codex status --check` reads: the code's two Codex passes
 are unaffected, and neither lane spends the other's budget.
 

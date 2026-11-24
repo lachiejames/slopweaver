@@ -60,6 +60,11 @@ export type DescriptionReviewVerdict =
        * one. `undefined` only from {@link clearDescriptionReview}, a test's check that binds no commit at all.
        */
       readonly boundHead: string | undefined;
+      /**
+       * The line a write prints when an earlier CLEAN review of the same description was carried over a change set
+       * that moved only immaterially, naming the blind spot; undefined when a review of these exact bytes opened it.
+       */
+      readonly notice: string | undefined;
     }
   | { readonly kind: "refused"; readonly lines: readonly string[] };
 
@@ -331,7 +336,8 @@ function checkReviewed({
     if (change.isErr()) {
       return { kind: "refused", lines: [change.error.message] };
     }
-    return { boundHead: change.value.headSha, kind: "clear" };
+    const notice = verdict.value.kind === "carried" ? verdict.value.notice : undefined;
+    return { boundHead: change.value.headSha, kind: "clear", notice };
   }
   const pending = writePendingPacket({ body, comments: write.comments, home, images });
   return {
@@ -356,4 +362,4 @@ export const productionDescriptionReviewCheck: DescriptionReviewCheck = makeDesc
  * @returns clear
  */
 export const clearDescriptionReview: DescriptionReviewCheck = () =>
-  Promise.resolve({ boundHead: undefined, kind: "clear" });
+  Promise.resolve({ boundHead: undefined, kind: "clear", notice: undefined });

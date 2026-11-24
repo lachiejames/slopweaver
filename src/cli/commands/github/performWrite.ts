@@ -295,6 +295,9 @@ async function reviewRefusal({
   if (reviewed.kind === "refused") {
     return { kind: "refused", reason: reviewed.lines.join("\n") };
   }
+  if (reviewed.notice !== undefined) {
+    deps.err({ line: reviewed.notice });
+  }
   return undefined;
 }
 

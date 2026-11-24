@@ -57,6 +57,9 @@ async function outgoingCreate({
   if (reviewed.kind === "refused") {
     return { kind: "refused", reason: reviewed.lines.join("\n") };
   }
+  if (reviewed.notice !== undefined) {
+    deps.err({ line: reviewed.notice });
+  }
   return { body: rendered.body, boundHead: reviewed.boundHead, form, kind: "send" };
 }
 
