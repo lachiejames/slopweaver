@@ -161,6 +161,15 @@ const startMeta = {
   usage: "usage: slopweaver store start [--rotate] [--workdir <checkout>] [--home <dir>] [--json]",
 } as const;
 
+const watchQueueMeta = {
+  ...readMeta,
+  diagnostic: false,
+  example: "slopweaver store watch-queue --json",
+  summary:
+    "Hold a LISTEN on the store's Queue channel and print each register that changes, with a heartbeat — what the console's Queue hears from the store",
+  usage: "usage: slopweaver store watch-queue [--home <dir>] [--json]",
+} as const;
+
 const loadStatus = () => import("../commands/store/statusRun.js").then((m) => m.storeStatusCommand);
 
 export const storeManifest: Readonly<Record<string, VerbManifestEntry>> = {
@@ -204,6 +213,10 @@ export const storeManifest: Readonly<Record<string, VerbManifestEntry>> = {
   "import-questions": lazy({
     load: () => import("../commands/store/importQuestionsRun.js").then((m) => m.storeImportQuestionsCommand),
     meta: transferFamily.importQuestionsMeta,
+  }),
+  "watch-queue": lazy({
+    load: () => import("../commands/store/watchQueueRun.js").then((m) => m.storeWatchQueueCommand),
+    meta: watchQueueMeta,
   }),
   detail: lazy({
     load: () => import("../commands/store/run.js").then((m) => m.storeDetailCommand),

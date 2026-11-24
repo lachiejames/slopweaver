@@ -25,6 +25,7 @@
     "nextra-theme-docs": "4.6.1",
     "openai": "7.32.0",
     "postcss": "8.5.32",
+    "postgres": "3.4.9",
     "radix-ui": "1.6.7",
     "react": "19.3.1",
     "react-dom": "19.3.1",

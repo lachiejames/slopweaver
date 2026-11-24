@@ -74,3 +74,28 @@ export function consoleHomePaths({ home = consoleHome() }: { home?: string } = {
     slackChannelMedia: join(home, "live", "slack", "channel-media"),
   };
 }
+
+/**
+ * The secret holding the store's connection string, which the Queue's store listener reads when
+ * `SLOPWEAVER_STORE_URL` is empty (`./storeQueuePostgres.ts`) — `src/store/config.ts`'s `STORE_URL_SECRET` under the
+ * home's `secrets/`.
+ *
+ * @param home the home it sits under; this console's own by default
+ * @returns the absolute path of `secrets/store-url`
+ */
+export function consoleStoreUrlSecret({ home = consoleHome() }: { home?: string } = {}): string {
+  return join(home, "secrets", "store-url");
+}
+
+/**
+ * One directory the Queue's change broker watches (`./liveChangesServer.ts`), resolved here so its home paths have
+ * this one owner like every other: the relative directories themselves are `./queueLiveChanges.ts`'s
+ * `queueWatchRoots`, read off each register's own files.
+ *
+ * @param dir the directory relative to the home, `/`-separated, `""` for the home itself
+ * @param home the home it sits under; this console's own by default
+ * @returns the absolute directory
+ */
+export function consoleWatchedDir({ dir, home = consoleHome() }: { dir: string; home?: string }): string {
+  return join(home, ...dir.split("/").filter((part) => part !== ""));
+}
