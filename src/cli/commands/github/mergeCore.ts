@@ -313,8 +313,10 @@ function cleanVerdictLine({ unacknowledged, admin }: { unacknowledged: number; a
   }
   return admin
     ? "verdict: nothing stands unacknowledged — merging now, through the administrator bypass."
-    : "verdict: nothing stands unacknowledged. This invocation only REPORTS — merge with " +
-        "`slopweaver github merge --admin --number <n>`, or by hand in a way this guard cannot see.";
+    : "verdict: nothing stands unacknowledged. This invocation only REPORTS — merge by re-running " +
+        "this same command with `--admin --number <n>` added, or by hand in a way this guard cannot see. A " +
+        "native-stack member is the exception: `--admin` refuses every one, so land it by the route " +
+        "skills/github/reference/stack-merge.md names.";
 }
 
 /**

@@ -62,6 +62,7 @@ const DECLARED_SHARED_LEAVES: readonly string[] = [
   "src/live/github/testFailurePaths.ts",
   "src/live/listen/supervise/rearm.ts",
   "src/live/turn/liveStatusCap.ts",
+  "src/outbound/github/adminMergeCommand.ts",
   "src/outbound/github/holdLedgerLimits.ts",
   "src/outbound/github/mergeHold.ts",
   "src/outbound/proposal/register/events.ts",

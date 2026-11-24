@@ -369,7 +369,12 @@ describe("mergeVerdict", () => {
       reason: undefined,
     });
     expect(verdict.refused).toBe(false);
-    expect(verdict.lines.at(-1)).toContain("nothing stands unacknowledged");
+    expect(verdict.lines.at(-1)).toBe(
+      "verdict: nothing stands unacknowledged. This invocation only REPORTS — merge by re-running this same " +
+        "command with `--admin --number <n>` added, or by hand in a way this guard cannot see. A native-stack " +
+        "member is the exception: `--admin` refuses every one, so land it by the route " +
+        "skills/github/reference/stack-merge.md names.",
+    );
   });
 
   it("is refused when a finding is not acknowledged", () => {
