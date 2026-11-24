@@ -33,6 +33,7 @@ import { gatePrBody, prOwnership } from "../prformat/prBodyGate.js";
 import { stateHomePaths } from "../stateHome.js";
 import { answerQualityResult } from "./answerQualityCheck.js";
 import { handoffVerdict, observeHandoff } from "./handoffCheck.js";
+import { githubPrLabelsReader, labelsForDevGate } from "./prLabels.js";
 
 /** The four check names the gate composes, in run order. */
 const GATE_CHECK_NAMES = ["hygiene", "pr-format", "evidence-handoff", "answer-quality"] as const;
@@ -47,13 +48,13 @@ export interface GateCheckResult {
 
 /**
  * The PR-format check. This repository's own pull request must carry a present body that is the exact C3 render
- * (`../prformat/prBodyGate.ts`), with the kind labels its title derives when the event carries them; a missing or
+ * (`../prformat/prBodyGate.ts`), with the kind labels its title derives whenever its labels were read; a missing or
  * blank body is a failure, never a skip. A stranger's pull request (a fork, a Renovate bot, an App nothing here
  * names) is judged by the security scans alone. Both run the hygiene denylist over the PR TITLE + BODY. Pure.
  *
  * @param body the PR description (from `--pr-body-file` or `$PR_BODY`), or undefined
  * @param title the PR title (from `$PR_TITLE`), or undefined
- * @param labels the PR's labels (from `$PR_LABELS`, one per line), or undefined when the event did not carry them
+ * @param labels the PR's current labels, read live in CI (`./prLabels.ts`), or undefined on a local run
  * @param author the PR author's login (from `$PR_AUTHOR`), which decides whether the pull request is a stranger's
  * @param authorType the author's GitHub account type (from `$PR_AUTHOR_TYPE`): an unnamed `Bot` App is a stranger
  * @param headRepository the head branch's `owner/repo` (from `$PR_HEAD_REPOSITORY`): a fork is a stranger
@@ -228,30 +229,12 @@ export function prFormatUnderOrganisation({
 }
 
 /**
- * The labels the CI event carries, a JSON array of names in `$PR_LABELS`; undefined when the variable is unset, so
- * a local run skips the kind-label check rather than reading "no labels". A set variable that is not an array of
- * strings THROWS: the workflow broke, and saying so beats a refusal that blames the pull request's labels.
- *
- * @param value the variable's text, or undefined
- * @returns the label names, or undefined when unset
- */
-export function labelsFromEnv({ value }: { value: string | undefined }): readonly string[] | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const parsed: unknown = JSON.parse(value);
-  if (!Array.isArray(parsed) || !parsed.every((name): name is string => typeof name === "string")) {
-    throw new Error(`$PR_LABELS is not a JSON array of label names: ${value}`);
-  }
-  return parsed;
-}
-
-/**
  * The pr-format step: the description shape plus the hygiene denylist over the PR title + body (item #8).
  *
- * The denylist is the same private list the file scan uses. `$PR_TITLE`, `$PR_LABELS`, `$PR_AUTHOR` and the two
- * repository slugs all come from the CI event rather than from the body. Split out of {@link runDevGate} to keep it
- * under the repo's per-function line ceiling.
+ * The denylist is the same private list the file scan uses. `$PR_TITLE`, `$PR_AUTHOR` and the two repository slugs
+ * come from the CI event rather than from the body; the labels are read LIVE from the pull request
+ * (`./prLabels.ts`), because the event that opens it predates its kind label. A failed live read is this check's
+ * own red. Split out of {@link runDevGate} to keep it under the repo's per-function line ceiling.
  */
 async function prFormatStep({
   bodyFile,
@@ -265,7 +248,6 @@ async function prFormatStep({
   const prAuthorType = process.env["PR_AUTHOR_TYPE"];
   const prRepository = process.env["PR_REPOSITORY"];
   const prHeadRepository = process.env["PR_HEAD_REPOSITORY"];
-  const labels = labelsFromEnv({ value: process.env["PR_LABELS"] });
   // An `if` that RETURNS rather than `home ?? slopweaverHome()`: the ambient home standing in for an
   // unspecified one is a decision a reader must see, not an operator (`no-silent-fallback`).
   const organisationHome = (): string => {
@@ -274,6 +256,11 @@ async function prFormatStep({
     }
     return home;
   };
+  const read = await labelsForDevGate({ env: process.env, read: githubPrLabelsReader({ home: organisationHome() }) });
+  if (read.isErr()) {
+    return { name: "pr-format", ok: false, summary: read.error.message };
+  }
+  const labels = read.value;
   const organisation = await readOrganisation({ home: organisationHome() });
   return prFormatUnderOrganisation({
     check: ({ bots }) =>

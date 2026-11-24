@@ -7,7 +7,7 @@
  * {@link repoLabelsVia} to check against first rather than being trusted to spell.
  */
 import type { IngestError } from "../../lib/ingestError.js";
-import { safeProviderCall } from "../../lib/providerCall.js";
+import { type ApiRetryMode, safeProviderCall } from "../../lib/providerCall.js";
 import type { ResultAsync } from "../../lib/result.js";
 import type { PrRef, RepoRef, WriteCtx } from "./write.js";
 
@@ -80,6 +80,29 @@ function labelNamesOf({ labels }: { labels: readonly (string | { readonly name?:
   });
 }
 
+/** The one `issues.get` both label readers send, under the retry policy each caller names. */
+function issueLabelsRead({
+  ctx,
+  input,
+  retryMode,
+}: {
+  ctx: WriteCtx;
+  input: PrRef;
+  retryMode: ApiRetryMode;
+}): ResultAsync<IssueLabelState, IngestError> {
+  const { owner, repo, number } = input;
+  return safeProviderCall({
+    execute: async () => {
+      const res = await ctx.client.rest.issues.get({ issue_number: number, owner, repo });
+      return { htmlUrl: res.data.html_url, labels: labelNamesOf({ labels: res.data.labels }) };
+    },
+    operation: "github.issues.get",
+    provider: "github",
+    retryMode,
+    scopeId: ctx.scopeId,
+  });
+}
+
 /**
  * Read one issue's or pull request's current labels. Repeatable, so transient retries are allowed.
  *
@@ -94,17 +117,25 @@ export function issueLabelsVia({
   ctx: WriteCtx;
   input: PrRef;
 }): ResultAsync<IssueLabelState, IngestError> {
-  const { owner, repo, number } = input;
-  return safeProviderCall({
-    execute: async () => {
-      const res = await ctx.client.rest.issues.get({ issue_number: number, owner, repo });
-      return { htmlUrl: res.data.html_url, labels: labelNamesOf({ labels: res.data.labels }) };
-    },
-    operation: "github.issues.get",
-    provider: "github",
-    retryMode: "transient",
-    scopeId: ctx.scopeId,
-  });
+  return issueLabelsRead({ ctx, input, retryMode: "transient" });
+}
+
+/**
+ * Read one pull request's current labels in a single attempt, for the CI gate that judges them: a failed read is
+ * that gate's own red, so a retry loop would only hide how often the read fails.
+ *
+ * @param ctx the shared client and rate-limit scope
+ * @param input the issue or pull request to read
+ * @returns the labels currently on it and its own URL, or the provider failure of the one attempt
+ */
+export function issueLabelsOnceVia({
+  ctx,
+  input,
+}: {
+  ctx: WriteCtx;
+  input: PrRef;
+}): ResultAsync<IssueLabelState, IngestError> {
+  return issueLabelsRead({ ctx, input, retryMode: "never" });
 }
 
 /**

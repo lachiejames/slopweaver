@@ -154,7 +154,7 @@ export const WORKFLOW_JOB_ACTIONS: readonly {
       {
         actions: ["opened", "synchronize", "reopened", "edited", "labeled", "unlabeled"],
         job: "dev-gate",
-        why: "its subject IS the pull-request body, title and labels (the kind-label check reads `PR_LABELS`), so `edited`, `labeled` and `unlabeled` each change its verdict; it also reads the head sha and the merge commit's patch id",
+        why: "its subject IS the pull-request body, title and labels (the kind-label check reads the pull request's labels live), so `edited`, `labeled` and `unlabeled` each change its verdict; it also reads the head sha and the merge commit's patch id",
       },
     ],
     workflow: ".github/workflows/pr-body-gate.yml",

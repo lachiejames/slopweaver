@@ -104,10 +104,17 @@ both.
 
 **Two workflow files, because a trigger list is workflow-scoped and an outcome is job-scoped.**
 
-| file                                 | `pull_request.types`                | jobs                                                    | why those actions                                                                                                                 |
-| ------------------------------------ | ----------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`           | `opened`, `synchronize`, `reopened` | every lap above, `build`, `integration` and `ci-timing` | every one reads only the checked-out MERGE tree (and `build` only its workers' results), and these are the actions that change it |
-| `.github/workflows/pr-body-gate.yml` | those three plus `edited`           | `dev-gate`                                              | its subject IS the pull-request body and title, so a body-only fix must be able to clear a red gate                               |
+| file                                 | `pull_request.types`                              | jobs                                                    | why those actions                                                                                                                  |
+| ------------------------------------ | ------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/workflows/ci.yml`           | `opened`, `synchronize`, `reopened`               | every lap above, `build`, `integration` and `ci-timing` | every one reads only the checked-out MERGE tree (and `build` only its workers' results), and these are the actions that change it  |
+| `.github/workflows/pr-body-gate.yml` | those three plus `edited`, `labeled`, `unlabeled` | `dev-gate`                                              | its subject IS the pull-request body, title and labels, so a body-only fix or an added kind label must be able to clear a red gate |
+
+**`dev-gate` reads the labels LIVE, never from the event.** `github stack push` creates a pull request and only
+then adds its kind label, because GitHub's create call takes no labels, so the `opened` payload never carries it.
+The Dev gate step runs after the install and reads the pull request's current labels with the job's own read-only
+token (`src/devGate/prLabels.ts`); a failed read is its own named red, never a fall back to the event's list. That
+narrows the race rather than closing it: a push slower than the job's setup still reads no label, and the
+`labeled` run is then what clears it.
 
 **Neither lists `ready_for_review`.** No job reads the draft flag, so readying a pull request creates no
 workflow run at all and a draft's green stands through it rather than re-earning a lap on the identical
