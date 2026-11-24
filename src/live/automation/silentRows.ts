@@ -32,6 +32,10 @@
  * `missedSlots = firingsSinceWatermark - 1` and `overdue` already means "one whole slot went by unrun". For
  * a DAILY row that is exactly the handover doc's threshold, with no new number at all.
  *
+ * The one exception is a firing the due verdict HANDED TO ITS SUCCESSOR (`deferredSlotIso`): it is not due, it
+ * was given up, so it is counted whole. Without that, the `- 1` treats the handed-on slot as the one owed now and a
+ * daily row reads HEALTHY for up to half a period after a slot went by unrun.
+ *
  * The only new judgement is that a row firing more often than daily must miss TWO. The number that decides
  * "more often than daily" is a day, and it is the cadence of the SURFACE this lands on rather than a tuned
  * fraction of anything: the owner reads one briefing a day, so a sub-daily row that has missed a single firing has
@@ -63,6 +67,11 @@ export interface SilenceCandidate {
   readonly cadence: string;
   /** How many firings went by after the slot the row last covered, from the due verdict. */
   readonly firingsSinceWatermark: number;
+  /**
+   * The firing the due verdict handed to its successor, or `null` when it handed none on — then the newest counted
+   * firing is the one owed now, never a missed one.
+   */
+  readonly deferredSlotIso: string | null;
   /** When the row last ran, or `null` when it never has. */
   readonly lastRunAtIso: string | null;
   /** What its last run exited with, or `null` when it has never run. */
@@ -134,6 +143,11 @@ export interface SilentRow {
    * silence judgement: the slots that went by unrun still did. The stopped monitors read it as the row's owner.
    */
   readonly currentSlotHold: CurrentSlotHold | null;
+  /**
+   * The firing handed to its successor unrun, carried from its {@link SilenceCandidate}, or absent when none was — so
+   * `./supervisorStops.ts` keeps the sentence naming it rather than rewriting it away.
+   */
+  readonly deferredSlotIso?: string | undefined;
   /** The recorded steer covering this row, carried from its {@link SilenceCandidate}. */
   readonly steerId?: string | undefined;
   /** What the row reaches, carried from its {@link SilenceCandidate}. */
@@ -146,8 +160,20 @@ export interface SilentRow {
   readonly supervisorStop?: SilentSupervisorStop | undefined;
 }
 
-/** How many whole firings a row has let go by unrun. The currently due one has not been missed yet. */
-function missedSlotsOf({ firingsSinceWatermark }: { firingsSinceWatermark: number }): number {
+/**
+ * How many whole firings a row has let go by unrun. The currently due one has not been missed yet; one handed to its
+ * successor has.
+ */
+function missedSlotsOf({
+  firingsSinceWatermark,
+  deferredSlotIso,
+}: {
+  firingsSinceWatermark: number;
+  deferredSlotIso: string | null;
+}): number {
+  if (deferredSlotIso !== null) {
+    return firingsSinceWatermark;
+  }
   return Math.max(0, firingsSinceWatermark - 1);
 }
 
@@ -176,6 +202,13 @@ function silenceOf({ candidate, missedSlots }: { candidate: SilenceCandidate; mi
   const outcome = candidate.currentSlotOutcome;
   if (outcome?.kind === "deferred") {
     return { detail: `${slots}; the verb ran and declined to act — ${outcome.detail}`, reason: "DEFERRED" };
+  }
+  // MISSED, never DEFERRED: that reason means a verb ran and wrote a deferral, and here nothing ran at all.
+  if (candidate.deferredSlotIso !== null) {
+    return {
+      detail: `${slots}; slot ${candidate.deferredSlotIso} was handed to its successor because no tick took it in time`,
+      reason: "MISSED",
+    };
   }
   if (candidate.lastRunAtIso === null) {
     return { detail: `${slots} and it has never run at all`, reason: "NEVER RUN" };
@@ -244,7 +277,10 @@ export function silentRows({
       silent.push(unschedulableRow({ candidate }));
       continue;
     }
-    const missedSlots = missedSlotsOf({ firingsSinceWatermark: candidate.firingsSinceWatermark });
+    const missedSlots = missedSlotsOf({
+      deferredSlotIso: candidate.deferredSlotIso,
+      firingsSinceWatermark: candidate.firingsSinceWatermark,
+    });
     if (missedSlots < missedSlotsThreshold({ periodMs })) {
       continue;
     }
@@ -256,6 +292,7 @@ export function silentRows({
       recipeId: candidate.recipeId,
       ...silenceOf({ candidate, missedSlots }),
       ...carriedOf({ candidate }),
+      ...(candidate.deferredSlotIso === null ? {} : { deferredSlotIso: candidate.deferredSlotIso }),
     });
   }
   return silent.toSorted(

@@ -248,6 +248,16 @@ function calmOf({
   if (verdict.offReason === "disabled" || !definition.enabled) {
     return { health: "off", why: "its row is disabled" };
   }
+  // Below its silence threshold (a sub-daily row's one miss), a handed-on slot is still not a success: the class
+  // stays the silence measure's, and the sentence says which slot went by rather than claiming the latest one ran.
+  if (latest?.outcome === "succeeded" && verdict.deferredSlotIso !== null) {
+    return {
+      health: "healthy",
+      why:
+        `its last run succeeded at ${String(latest.settledAtIso)}; slot ${verdict.deferredSlotIso} went by unrun ` +
+        "and was handed to its successor",
+    };
+  }
   if (latest?.outcome === "succeeded") {
     return {
       health: "healthy",

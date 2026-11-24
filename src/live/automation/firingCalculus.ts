@@ -252,13 +252,18 @@ export function chooseSlot({
  * `urgent` band, and for the same reason: a fraction of a period is a number somebody chose, and there is
  * no authority for one.
  *
- * ## It cannot silence a row, and the guard that makes that true
+ * ## It never holds a row past one period, and the guard that makes that true
  *
- * The deferral only ever applies while `firingsSinceWatermark === 1` — one firing owed, none yet MISSED.
- * The moment a second firing goes by unrun the row is genuinely overdue and runs whatever its lateness, so
- * a deferral can never hold for more than one period. Written as `> 0` instead, an install whose passes all
- * land at the same late hour would defer the same row forever; `unit/live/automation/definitionDue.test.ts`
- * carries that case as the mutation killer.
+ * The deferral only ever applies while `firingsSinceWatermark === 1` — one firing owed. The moment a second
+ * firing goes by unrun the row is genuinely overdue and runs whatever its lateness, so a deferral can never
+ * hold for more than one period. Written as `> 0` instead, an install whose passes all land at the same late
+ * hour would defer the same row forever; `unit/live/automation/definitionDue.test.ts` carries that case as the
+ * mutation killer.
+ *
+ * A deferred firing is still a firing that went by unrun, and the verdict names it (`deferredSlotIso`) so the
+ * silence measure counts it as missed. Without the name, a daily row whose one slot no tick took within half a period
+ * read HEALTHY on its previous run until the successor came. Repro: `unit/live/automation/silentRowReader.test.ts`'s
+ * handed-on case.
  *
  * A backfilled per-slot datapoint is excluded by `coversLatest`: each of those slots is a distinct day's
  * value, so deferring one leaves a permanent hole rather than removing a repeat.

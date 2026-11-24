@@ -61,6 +61,42 @@ describe("dueAskLine", () => {
     expect(line).toContain("NO EXECUTOR in this build");
   });
 
+  it("prints a firing handed to its successor as DEFERRED naming that slot, never as current, and not actionable", () => {
+    const report = composeDueAskReport({
+      tickResyncIds: [],
+      claims: {},
+      definitions: [row({ recipeId: "sdlc-metrics" })],
+      nowIso: NOW_ISO,
+      rejected: [],
+      verdicts: [
+        verdict({ deferredSlotIso: "2026-09-08T11:00:00.000Z", due: false, recipeId: "sdlc-metrics", slotIso: null }),
+      ],
+    });
+    expect(report.rows[0]!.actionable).toBe(false);
+    expect(dueAskLine({ row: report.rows[0]! })).toBe(
+      "-- sdlc-metrics · verb-run · run here, in this process · effect read · DEFERRED · slot " +
+        "2026-09-08T11:00:00.000Z handed to its successor · next in 55.0m",
+    );
+  });
+
+  it("carries the handed-on slot on its row only when there is one, so an ordinary row's --json is unchanged", () => {
+    const report = composeDueAskReport({
+      tickResyncIds: [],
+      claims: {},
+      definitions: [row({ recipeId: "sdlc-metrics" }), row({ recipeId: "knock-alerts" })],
+      nowIso: NOW_ISO,
+      rejected: [],
+      verdicts: [
+        verdict({ deferredSlotIso: "2026-09-08T11:00:00.000Z", due: false, recipeId: "sdlc-metrics", slotIso: null }),
+        verdict({ recipeId: "knock-alerts" }),
+      ],
+    });
+    expect(report.rows.map((entry) => [entry.recipeId, Object.keys(entry).includes("deferredSlotIso")])).toEqual([
+      ["knock-alerts", false],
+      ["sdlc-metrics", true],
+    ]);
+  });
+
   it("never counts a kind this build cannot run as actionable, though it still prints", () => {
     const report = composeDueAskReport({
       tickResyncIds: [],

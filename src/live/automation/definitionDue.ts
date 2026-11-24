@@ -70,6 +70,12 @@ export interface RecipeDueVerdict {
   readonly firingsSinceWatermark: number;
   /** The cadence slot a run now would cover — the watermark it stamps — or `null` when the row is not due. */
   readonly slotIso: string | null;
+  /**
+   * The firing this verdict handed to its successor (`./firingCalculus.ts` `deferralToSuccessor`), or `null` on every
+   * other arm. Named rather than inferred from `!due && firingsSinceWatermark > 0`, because that firing is not due —
+   * it was given up, so the silence measure (`./silentRows.ts`) counts it as missed rather than as the one owed now.
+   */
+  readonly deferredSlotIso: string | null;
   /** How many slots stay owed after this run covers {@link RecipeDueVerdict.slotIso}; only a per-slot backfill owes any. */
   readonly slotsOwedAfterThis: number;
   /** The line this row prints, so a tick that skipped it is never a silent one. */
@@ -188,6 +194,7 @@ function blankVerdict({
   run: RecipeDefinitionRun | null;
 }): BlankVerdict {
   return {
+    deferredSlotIso: null,
     due: false,
     firingsSinceWatermark: 0,
     lastRunAtIso: run === null ? null : run.lastRunAtIso,
@@ -316,7 +323,7 @@ export function judgeRecipeDue({
       slotIso: chosen.slotIso,
       spans: deferred,
     });
-    return { ...base, firingsSinceWatermark: count, line };
+    return { ...base, deferredSlotIso: chosen.slotIso, firingsSinceWatermark: count, line };
   }
   return {
     ...base,

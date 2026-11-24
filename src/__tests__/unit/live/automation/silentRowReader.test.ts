@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { unwrap, unwrapErr } from "../../../../lib/result.js";
-import { judgeRecipeDue } from "../../../../live/automation/definitionDue.js";
+import { judgeRecipeDue, latestFiringAtOrBefore } from "../../../../live/automation/definitionDue.js";
 import { RESYNC_KIND } from "../../../../live/automation/kinds.js";
 import { currentSlotReadingOf, readSilentRecipeRows } from "../../../../live/automation/silentRowReader.js";
 import type { RecipeSlotAttempt } from "../../../../live/automation/slotAttempt.js";
@@ -65,6 +65,32 @@ describe("readSilentRecipeRows", () => {
     expect(reading.silent.map((silent) => [silent.recipeId, silent.reason, silent.missedSlots])).toEqual([
       ["vulnfix-digest-acme-admin", "MISSED", 2],
     ]);
+  });
+
+  it("reports a daily row whose one owed slot the due verdict HANDED TO ITS SUCCESSOR, naming that slot", () => {
+    // The handed-on shape: the last run covered one slot, the next went by, and the read lands past
+    // that slot's midpoint, so the verdict hands it on rather than running it. Slots come from the cadence in
+    // this process's own zone, so the case holds wherever it runs.
+    const owed = latestFiringAtOrBefore({ cadence: "30 9 * * *", nowIso: "2026-09-17T12:00:00.000Z" });
+    if (typeof owed !== "string") {
+      throw new Error(owed.error);
+    }
+    const covered = new Date(Date.parse(owed) - 24 * 60 * 60 * 1000).toISOString();
+    const nowIso = new Date(Date.parse(owed) + 13 * 60 * 60 * 1000).toISOString();
+    writeRecipeDefinitions({ home, rows: [dailyRow()] });
+    stampRecipeRuns({ home, stamps: { "vulnfix-digest-acme-admin": covered } });
+
+    const reading = unwrap(readSilentRecipeRows({ home, nowIso }));
+
+    expect(reading.eligibleRows).toBe(1);
+    expect(reading.silent.map((silent) => [silent.reason, silent.missedSlots, silent.deferredSlotIso])).toEqual([
+      ["MISSED", 1, owed],
+    ]);
+    expect(reading.silent[0]!.detail).toBe(
+      `1 slot(s) of \`30 9 * * *\` went by unrun; slot ${owed} was handed to its successor because no tick took ` +
+        `it in time; it last ran ${covered}, and the supervisor's own record could not be read to say why it was ` +
+        "not run since",
+    );
   });
 
   it("still reports a row the STORE held on a failure — a broken row is what this measure exists to see", () => {

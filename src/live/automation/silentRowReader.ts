@@ -303,6 +303,7 @@ function silenceCandidateOf({
     ...(steer === undefined ? {} : { steerId: steer.id }),
     ...currentSlotReadingOf({ nowIso, processAlive, stored: current }),
     cadence: definition.cadence,
+    deferredSlotIso: verdict.deferredSlotIso,
     firingsSinceWatermark: verdict.firingsSinceWatermark,
     lastExitCode: run === null ? null : run.exitCode,
     lastRunSlotOutcome: run === null ? null : stampedOutcomeFor({ recipeId: definition.recipeId, run }),

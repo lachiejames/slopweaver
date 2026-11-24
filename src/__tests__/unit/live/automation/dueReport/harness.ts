@@ -35,6 +35,7 @@ export function row(over: Partial<RecipeDefinition> = {}): RecipeDefinition {
  */
 export function verdict(over: Partial<RecipeDueVerdict> = {}): RecipeDueVerdict {
   return {
+    deferredSlotIso: null,
     due: true,
     firingsSinceWatermark: 1,
     lastRunAtIso: "2026-09-08T11:30:00.000Z",

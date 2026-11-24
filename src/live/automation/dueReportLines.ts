@@ -105,6 +105,12 @@ function lateness({ row }: { readonly row: DueAskRow }): string {
   if (row.offReason === "disabled") {
     return "OFF · disabled";
   }
+  // Never "current": a firing went by unrun and was given up, and the line says which.
+  if (row.deferredSlotIso !== undefined) {
+    const next =
+      row.tolerance.nextFiringInMs === null ? "" : ` · next in ${renderAge({ ms: row.tolerance.nextFiringInMs })}`;
+    return `DEFERRED · slot ${row.deferredSlotIso} handed to its successor${next}`;
+  }
   if (!row.due) {
     return row.tolerance.nextFiringInMs === null
       ? "current"

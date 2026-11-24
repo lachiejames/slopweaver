@@ -14,6 +14,7 @@ import {
 } from "../../../live/automation/slotAttempt.js";
 import type { SyncRunView } from "../../../syncRun/fold.js";
 import { auditedAgainst, HIS_ANCHOR } from "../../auditedOwnerHold.js";
+import { verdict } from "./dueVerdictFixture.js";
 
 const definition = (over: Partial<RecipeDefinition> = {}): RecipeDefinition => ({
   cadence: "0 */4 * * *",
@@ -25,18 +26,6 @@ const definition = (over: Partial<RecipeDefinition> = {}): RecipeDefinition => (
   params: { argv: ["recipe", "resync", "--source", "slack"] },
   recipeId: "resync-corpus-slack",
   schemaVersion: 1,
-  ...over,
-});
-
-const verdict = (over: Partial<RecipeDueVerdict> = {}): RecipeDueVerdict => ({
-  due: false,
-  firingsSinceWatermark: 0,
-  lastRunAtIso: "2026-10-03T00:00:00.000Z",
-  line: "",
-  recipeId: "resync-corpus-slack",
-  slotIso: null,
-  slotsOwedAfterThis: 0,
-  watermarkIso: "2026-10-03T00:00:00.000Z",
   ...over,
 });
 

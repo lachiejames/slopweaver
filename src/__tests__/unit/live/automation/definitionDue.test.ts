@@ -412,6 +412,7 @@ describe("a firing nearer its successor than its own hour defers to it (owner 29
     });
     expect(verdict.due).toBe(false);
     expect(verdict.slotIso).toBe(null);
+    expect(verdict.deferredSlotIso).toBe("2026-09-08T12:00:00.000Z");
     expect(verdict.line).toBe(
       "recipe atlas-rolling-window · DEFERRED · slot 2026-09-08T12:00:00.000Z came 40m ago and the next " +
         "`0 * * * *` firing is 20m away, so the successor covers it · watermark untouched",
@@ -436,6 +437,7 @@ describe("a firing nearer its successor than its own hour defers to it (owner 29
     });
     expect(verdict.due).toBe(true);
     expect(verdict.slotIso).toBe("2026-09-08T12:00:00.000Z");
+    expect(verdict.deferredSlotIso).toBe(null);
   });
 
   it("SELF-HEALS once a second firing has gone by, so no row can be deferred forever", () => {
