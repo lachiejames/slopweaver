@@ -5,6 +5,11 @@
  * Every lap store carries a docker label so an orphan a killed lap left behind is removed by the next one. That
  * is safe only because the holder of the machine's one lap lock (`./lapLock.ts`) is the only process that ever
  * starts a store.
+ *
+ * Both removals, the lap's own teardown and the next lap's orphan sweep, take the anonymous volume the image's
+ * `VOLUME /var/lib/postgresql/data` creates with the container. Without `-v` a forced `docker rm` leaves it behind:
+ * measured, unattached anonymous volumes had built up at about one per lap
+ * (`docker volume ls -qf dangling=true`).
  */
 
 import { err, ok, type Result } from "../../../lib/result.js";
@@ -45,6 +50,17 @@ export function storeUrls({ port }: { port: string }): Readonly<Record<string, s
   };
 }
 
+/**
+ * The docker arguments that force-remove a lap store together with its image-created anonymous volume. `-v`
+ * removes only volumes docker created unnamed for this container, never a named one.
+ *
+ * @param id the container docker assigned to the store
+ * @returns the arguments that remove the container and its anonymous volume
+ */
+export function storeRemovalArgs({ id }: { id: string }): readonly string[] {
+  return ["rm", "-f", "-v", id];
+}
+
 /** Wait one second without blocking the event loop. */
 async function pause(): Promise<void> {
   await new Promise((resolve) => {
@@ -56,7 +72,7 @@ async function pause(): Promise<void> {
 function removeOrphanStores({ cwd }: { cwd: string }): void {
   const orphans = runLapCommand({ args: ["ps", "-aq", "--filter", `label=${STORE_LABEL}`], cwd, file: "docker" });
   for (const id of orphans.isOk() ? orphans.value.split("\n").filter((line) => line.length > 0) : []) {
-    runLapCommand({ args: ["rm", "-f", id], cwd, file: "docker" });
+    runLapCommand({ args: storeRemovalArgs({ id }), cwd, file: "docker" });
   }
 }
 
@@ -112,7 +128,7 @@ export async function startLapStore({
   }
   const id = started.value;
   const dispose = (): Promise<void> => {
-    runLapCommand({ args: ["rm", "-f", id], cwd, file: "docker" });
+    runLapCommand({ args: storeRemovalArgs({ id }), cwd, file: "docker" });
     return Promise.resolve();
   };
   const reported = runLapCommand({ args: ["port", id, "5432/tcp"], cwd, file: "docker" });
