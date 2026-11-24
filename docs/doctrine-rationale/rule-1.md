@@ -63,10 +63,11 @@ Two things follow, and the second is why this is written down rather than rememb
 - **The admin bypass IS the mandated merge path on a base shaped like that**, not an escape from a rule. A session
   that treats a `BLOCKED` merge as a blocker to escalate is parking on a refusal that can never clear, and that is
   the exact cost — a context switch for the owner — that rule 1 exists to prevent.
-- **It has to be an explicit option, never a default.** `slopweaver github merge --admin --number <n>` merges only
-  after the guard's own report is clean, refuses separately when the token is not an admin and when the protection
-  carries `enforce_admins: true`, and remeasures base freshness against a freshly fetched remote tip first. A
-  silent bypass would be the same capability with none of the visibility.
+- **It has to be an explicit option, never a default.** The admin landing, every flag required,
+  `slopweaver github merge --repo <owner/name> --base origin/main --head <branch> --description - --admin --number <n> < body.md`,
+  merges only after the guard's own report is clean, refuses separately when the token is not an admin and when the
+  protection carries `enforce_admins: true`, and remeasures base freshness against a freshly fetched remote tip
+  first. A silent bypass would be the same capability with none of the visibility.
 
 **Re-measured, the config has MOVED since.** `lachiejames/slopweaver` `main` carries **no
 `required_pull_request_reviews` object at all** — only `required_status_checks` (`build`, `integration`) and
