@@ -44,6 +44,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { materialiseFixture } from "../../replayFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -82,7 +83,12 @@ function runSlopweaver({ args }: { args: readonly string[] }): { status: number;
   const result = spawnSync(BIN, [...args], {
     cwd: workspace,
     encoding: "utf8",
-    env: { CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"), HOME: workspace, PATH: process.env["PATH"]! },
+    env: {
+      ...accountSandboxChildEnv(),
+      CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"),
+      HOME: workspace,
+      PATH: process.env["PATH"]!,
+    },
     maxBuffer: 8 * 1024 * 1024,
   });
   // `status` is null when the child was killed by a SIGNAL rather than exiting, so the absence is named

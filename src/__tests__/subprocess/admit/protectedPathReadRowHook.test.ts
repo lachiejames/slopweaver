@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { renderProtectedPaths } from "../../../protectedPaths/registry.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const READ_SHIM = join(repoRoot, "scripts", "pretooluse-protected-paths.sh");
@@ -70,6 +71,8 @@ function readWithoutHome({
       PATH: process.env["PATH"]!,
       SLOPWEAVER_HOME: world.home,
       ...extraEnv,
+      // The sandbox spreads LAST, so a caller's `extraEnv` can never drop the account-home preload.
+      ...accountSandboxChildEnv(),
     },
     input: JSON.stringify({
       hook_event_name: "PreToolUse",

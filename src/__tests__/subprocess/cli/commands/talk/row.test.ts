@@ -12,6 +12,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 const SLUG = "a-tauri-prototype";
@@ -67,7 +69,12 @@ function homeWith({ journal }: { journal: string | undefined }): string {
 function talkRow({ home }: { home: string }): { status: number | null; row: Record<string, unknown> } {
   const result = spawnSync(BIN, ["talk", "row", "--slug", SLUG, "--json", "--home", home], {
     encoding: "utf8",
-    env: { HOME: process.env["HOME"]!, PATH: process.env["PATH"]!, TMPDIR: process.env["TMPDIR"]! },
+    env: {
+      ...accountSandboxChildEnv(),
+      HOME: process.env["HOME"]!,
+      PATH: process.env["PATH"]!,
+      TMPDIR: process.env["TMPDIR"]!,
+    },
     maxBuffer: 4 * 1024 * 1024,
   });
   if (result.error !== undefined) {

@@ -21,6 +21,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { stateHomePaths } from "../../../stateHome.js";
 import { STORE_URL_ENV } from "../../../store/config.js";
 import { statement } from "../../../store/profile/core.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { openProofTemplate, type ProofDatabase, type ProofTemplate, proofAdminUrl } from "../proofDatabase.js";
 
 const ADMIN_URL = proofAdminUrl();
@@ -98,6 +99,7 @@ function run({ args, root, storeUrl }: { args: readonly string[]; root: string; 
     cwd: root,
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       HOME: root,
       PATH: process.env["PATH"]!,
       ...(storeUrl === undefined ? {} : { [STORE_URL_ENV]: storeUrl }),

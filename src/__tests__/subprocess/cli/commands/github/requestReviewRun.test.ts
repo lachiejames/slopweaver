@@ -10,6 +10,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -27,7 +29,7 @@ function run({ args }: { args: readonly string[] }): { status: number; stdout: s
     const stdout = execFileSync(BIN, args, {
       cwd: isolatedHome,
       encoding: "utf8",
-      env: { HOME: isolatedHome, PATH: process.env["PATH"]! },
+      env: { ...accountSandboxChildEnv(), HOME: isolatedHome, PATH: process.env["PATH"]! },
       maxBuffer: 4 * 1024 * 1024,
     });
     return { status: 0, stderr: "", stdout };

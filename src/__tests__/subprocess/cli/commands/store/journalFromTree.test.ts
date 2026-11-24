@@ -29,6 +29,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 const CLOSED_PORT_URL = "postgresql://127.0.0.1:59999/nope";
@@ -50,6 +52,7 @@ function runFromForeignCwd({ args }: { args: readonly string[] }): { status: num
       cwd: foreignCwd,
       encoding: "utf8",
       env: {
+        ...accountSandboxChildEnv(),
         HOME: foreignCwd,
         PATH: process.env["PATH"]!,
         SLOPWEAVER_HOME: foreignCwd,

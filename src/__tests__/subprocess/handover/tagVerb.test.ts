@@ -24,6 +24,7 @@ import { readRunJournal } from "../../../handover/runStore.js";
 import { ROW_TAGS_LOCK_KEY } from "../../../handover/tagStore.js";
 import { parseTagRequest } from "../../../handover/tagWrite.js";
 import { unwrap } from "../../../lib/result.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
@@ -60,7 +61,13 @@ function stateHome({ row }: { row?: string } = {}): string {
 
 /** The environment every child runs in: this home and nothing of the operator's. */
 function childEnv({ home }: { home: string }): NodeJS.ProcessEnv {
-  return { HOME: home, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: home, TMPDIR: process.env["TMPDIR"]! };
+  return {
+    ...accountSandboxChildEnv(),
+    HOME: home,
+    PATH: process.env["PATH"]!,
+    SLOPWEAVER_HOME: home,
+    TMPDIR: process.env["TMPDIR"]!,
+  };
 }
 
 /** Run the shipped binary against one home, and report what it printed. */

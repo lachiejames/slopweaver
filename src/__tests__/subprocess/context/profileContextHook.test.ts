@@ -22,6 +22,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { storeFingerprint, writeContextCache } from "../../../context/cache.js";
 import { unwrap } from "../../../lib/result.js";
 import { stateHomePaths } from "../../../stateHome.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { seedProfileDelivered } from "../../profileDeliveredFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
@@ -62,6 +63,7 @@ async function run({
   const [command, ...args] = argv;
   const child = spawn(command!, args, {
     env: {
+      ...accountSandboxChildEnv(),
       HOME: userHome,
       PATH: process.env["PATH"]!,
       PLUGIN_ROOT: pluginRoot,

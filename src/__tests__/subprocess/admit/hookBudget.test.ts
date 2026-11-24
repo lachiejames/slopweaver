@@ -25,6 +25,7 @@
  * watchdog before it signalled anything, and the bound looked right in the diff and fired never).
  */
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -32,6 +33,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { seedProfileDelivered } from "../../profileDeliveredFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -90,6 +92,7 @@ async function runWedged({
   const child = spawn(join(repoRoot, "scripts", shim), {
     // An empty config dir, so the shim runs THIS tree's guard rather than the installed plugin's.
     env: {
+      ...accountSandboxChildEnv(),
       CLAUDE_CONFIG_DIR: tempDir(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
@@ -155,11 +158,7 @@ async function runStubbornGrandchild({
     },
     stdio: ["pipe", "pipe", "pipe"],
   });
-  await new Promise<void>((settle) => {
-    child.on("close", () => {
-      settle();
-    });
-  });
+  await once(child, "close");
   const elapsedMs = Date.now() - startedMs;
   const grandchildPid = Number(readFileSync(marker, "utf8").trim());
   let aliveAfter = true;

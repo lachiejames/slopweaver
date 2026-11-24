@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { applyRowEvent } from "../../../handover/rowEvent.js";
 import { unwrap } from "../../../lib/result.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
@@ -75,7 +76,13 @@ function cli({ args, home }: { args: readonly string[]; home: string }): {
   const child = spawnSync(BIN, [...args, "--home", home], {
     cwd: home,
     encoding: "utf8",
-    env: { HOME: home, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: home, TMPDIR: process.env["TMPDIR"]! },
+    env: {
+      ...accountSandboxChildEnv(),
+      HOME: home,
+      PATH: process.env["PATH"]!,
+      SLOPWEAVER_HOME: home,
+      TMPDIR: process.env["TMPDIR"]!,
+    },
   });
   return { status: child.status, stderr: child.stderr, stdout: child.stdout };
 }

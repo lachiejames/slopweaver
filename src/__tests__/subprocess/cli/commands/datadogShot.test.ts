@@ -22,6 +22,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -42,6 +44,7 @@ function run({ args, site = "ap1.datadoghq.com" }: { args: readonly string[]; si
   stderr: string;
 } {
   const env: Record<string, string> = {
+    ...accountSandboxChildEnv(),
     HOME: isolatedHome,
     PATH: process.env["PATH"]!,
     SLOPWEAVER_HOME: isolatedHome,

@@ -10,6 +10,8 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -30,7 +32,7 @@ const attach = ({ name, bytes }: { name: string; bytes: Uint8Array }): { status:
   const ran = spawnSync(BIN, ["talk", "attach", "--file", staged, "--name", name, "--home", home, "--json"], {
     cwd: scratch,
     encoding: "utf8",
-    env: { HOME: scratch, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: home },
+    env: { ...accountSandboxChildEnv(), HOME: scratch, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: home },
   });
   return { status: ran.status, stdout: ran.stdout };
 };

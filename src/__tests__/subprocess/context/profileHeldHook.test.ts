@@ -27,6 +27,7 @@ import { PROFILE_HELD_HEADLINE } from "../../../admit/profileHeld.js";
 import { storeFingerprint, writeContextCache } from "../../../context/cache.js";
 import { unwrap } from "../../../lib/result.js";
 import { stateHomePaths } from "../../../stateHome.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { seedProfileDelivered } from "../../profileDeliveredFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
@@ -81,6 +82,7 @@ function markerOf({ home, sessionId }: { home: string; sessionId: string }): str
 /** The environment every run gets: this tree's dispatcher (an empty plugin config), and the closed store. */
 function baseEnv(): Record<string, string> {
   return {
+    ...accountSandboxChildEnv(),
     CLAUDE_CONFIG_DIR: tempDir({ prefix: "sw-held-config-" }),
     PATH: process.env["PATH"]!,
     SLOPWEAVER_STORE_URL: CLOSED_STORE_URL,

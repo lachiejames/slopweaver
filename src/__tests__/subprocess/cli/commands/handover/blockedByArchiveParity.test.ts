@@ -18,6 +18,8 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { absentAsNumber } from "#lib/absent.js";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -53,7 +55,7 @@ function boardWithArchivedDependency(): { handoverDir: string; dependentDoc: str
 function run({ args }: { args: readonly string[] }): { status: number; stdout: string; stderr: string } {
   const result = spawnSync(BIN, args, {
     encoding: "utf8",
-    env: { HOME: process.env["HOME"]!, PATH: process.env["PATH"]! },
+    env: { ...accountSandboxChildEnv(), HOME: process.env["HOME"]!, PATH: process.env["PATH"]! },
     maxBuffer: 4 * 1024 * 1024,
   });
   if (result.error !== undefined) {

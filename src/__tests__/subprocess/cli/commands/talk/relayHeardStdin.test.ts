@@ -14,8 +14,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { unwrap } from "#lib/result.js";
-
 import { readTurn } from "../../../../../talk/relayStore.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
@@ -49,6 +49,7 @@ describe("bin/slopweaver talk relay --heard-stdin", () => {
         encoding: "utf8",
         // Two halves, because Linux refuses any ONE environment string past 128 KiB (MAX_ARG_STRLEN) on its own.
         env: {
+          ...accountSandboxChildEnv(),
           HOME: scratch,
           LARGE_INHERITED_A: "x".repeat(100_000),
           LARGE_INHERITED_B: "x".repeat(100_000),

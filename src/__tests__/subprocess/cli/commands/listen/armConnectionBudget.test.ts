@@ -19,6 +19,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -46,7 +48,7 @@ function arm({ extra = [] }: { extra?: readonly string[] } = {}): {
 } {
   const spawned = spawnSync(BIN, ["listen", "arm", "--home", isolatedHome, ...extra], {
     encoding: "utf8",
-    env: { HOME: isolatedHome, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: isolatedHome },
+    env: { ...accountSandboxChildEnv(), HOME: isolatedHome, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: isolatedHome },
   });
   return { status: spawned.status!, stderr: spawned.stderr, stdout: spawned.stdout };
 }

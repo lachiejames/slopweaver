@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { absentAsNumber } from "#lib/absent.js";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { grantedEnv } from "../../../../hatchGrantFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -111,7 +112,7 @@ function run({ args, stdin }: { args: readonly string[]; stdin: string }): {
   const result = spawnSync(BIN, args, {
     cwd: home,
     encoding: "utf8",
-    env: { ...grantEnv, HOME: home, PATH: process.env["PATH"]! },
+    env: { ...grantEnv, HOME: home, PATH: process.env["PATH"]!, ...accountSandboxChildEnv() },
     input: stdin,
     maxBuffer: 8 * 1024 * 1024,
   });

@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { absentAsNumber } from "#lib/absent.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { materialiseFixture } from "../../replayFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -54,7 +55,12 @@ function runSlopweaver({ args }: { args: readonly string[] }): { status: number;
   const run = spawnSync(BIN, [...args], {
     cwd: workspace,
     encoding: "utf8",
-    env: { CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"), HOME: workspace, PATH: process.env["PATH"]! },
+    env: {
+      ...accountSandboxChildEnv(),
+      CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"),
+      HOME: workspace,
+      PATH: process.env["PATH"]!,
+    },
     maxBuffer: 8 * 1024 * 1024,
   });
   return { status: absentAsNumber({ value: run.status, whenAbsent: 1 }), stderr: run.stderr, stdout: run.stdout };

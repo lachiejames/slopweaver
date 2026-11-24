@@ -10,6 +10,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { ASK_SHAPE } from "./askShapeArgs.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -44,6 +45,7 @@ function run({ args }: { args: readonly string[] }): { status: number | null; st
   const result = spawnSync(BIN, args, {
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       CLAUDE_CODE_SESSION_ID: SEAT,
       HOME: userHome,
       PATH: process.env["PATH"]!,

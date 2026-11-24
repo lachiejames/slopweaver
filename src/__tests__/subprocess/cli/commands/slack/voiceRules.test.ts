@@ -17,6 +17,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
 
@@ -48,6 +50,7 @@ afterEach(() => {
 /** Run the shipped binary with a minimal, isolated environment. */
 function run({ args }: { args: readonly string[] }): { status: number; stdout: string; stderr: string } {
   const env: Record<string, string> = {
+    ...accountSandboxChildEnv(),
     HOME: isolatedHome,
     PATH: process.env["PATH"]!,
     SLOPWEAVER_HOME: isolatedHome,

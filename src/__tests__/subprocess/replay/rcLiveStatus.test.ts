@@ -28,6 +28,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { liveChecklistUpdatePlan } from "../../../cli/commands/turn/sweepCard.js";
 import { foldAskLifecycle, parseAskLifecycleLog } from "../../../live/ask/lifecycle.js";
 import { liveLineOf } from "../../../live/turn/progressCard.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { materialiseFixture } from "../../replayFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -65,7 +66,12 @@ function runSlopweaver({ args }: { args: readonly string[] }): { status: number;
     const stdout = execFileSync(BIN, args, {
       cwd: workspace,
       encoding: "utf8",
-      env: { CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"), HOME: workspace, PATH: process.env["PATH"]! },
+      env: {
+        ...accountSandboxChildEnv(),
+        CMUX_SOCKET_PATH: join(workspace, "no-such-cmux.sock"),
+        HOME: workspace,
+        PATH: process.env["PATH"]!,
+      },
       maxBuffer: 8 * 1024 * 1024,
     });
     return { status: 0, stderr: "", stdout };

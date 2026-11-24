@@ -19,6 +19,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { appendRunEvent } from "../../../handover/runStore.js";
 import { unwrap } from "../../../lib/result.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const BIN = join(repoRoot, "bin", "slopweaver");
@@ -75,7 +76,13 @@ function underLimit({ home, limit, line }: { home: string; limit: number | "unli
   const run = spawnSync("sh", ["-c", command], {
     cwd: home,
     encoding: "utf8",
-    env: { HOME: home, PATH: process.env["PATH"]!, SLOPWEAVER_HOME: home, TMPDIR: process.env["TMPDIR"]! },
+    env: {
+      ...accountSandboxChildEnv(),
+      HOME: home,
+      PATH: process.env["PATH"]!,
+      SLOPWEAVER_HOME: home,
+      TMPDIR: process.env["TMPDIR"]!,
+    },
   });
   return { status: run.status, stderr: run.stderr, stdout: run.stdout };
 }

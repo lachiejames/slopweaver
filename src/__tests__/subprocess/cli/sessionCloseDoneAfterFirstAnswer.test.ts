@@ -43,6 +43,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { dispatchSessionName, dispatchWorkspaceName } from "../../../cmux/planNames.js";
 import type { AskLifecycleEvent } from "../../../live/ask/lifecycle.js";
 import { type SessionEvent, sessionEventLine } from "../../../sessions/session.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { type FakeCmuxServer, startFakeCmuxServer } from "../cmux/fakeCmuxServer.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -218,6 +219,7 @@ async function closeDone(): Promise<{ status: number; stdout: string; stderr: st
   const child = spawn(BIN, ["session", "close-done", "--dry-run", "--keep-worktrees", "--home", home], {
     cwd: sandbox,
     env: {
+      ...accountSandboxChildEnv(),
       CMUX_SOCKET_PATH: server.socketPath,
       HOME: sandbox,
       PATH: process.env["PATH"]!,

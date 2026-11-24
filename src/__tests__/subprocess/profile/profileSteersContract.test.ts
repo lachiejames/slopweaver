@@ -34,6 +34,7 @@ import { type SteerVerdict, steerVerdictLine } from "../../../profile/steerKinds
 import { stateHomePaths } from "../../../stateHome.js";
 import { STORE_URL_ENV } from "../../../store/client.js";
 import { applyStore } from "../../../store/migrate.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 
 const ADMIN_URL = process.env["PROFILE_STEERS_PROOF_ADMIN_URL"];
 
@@ -98,7 +99,7 @@ describe.skipIf(ADMIN_URL === undefined)(
 
       const run = spawnSync(BIN, ["profile", "steers", "--json", "--home", home, "--now", NOW], {
         encoding: "utf8",
-        env: { HOME: operatorHome, PATH: process.env["PATH"]!, [STORE_URL_ENV]: storeUrl },
+        env: { ...accountSandboxChildEnv(), HOME: operatorHome, PATH: process.env["PATH"]!, [STORE_URL_ENV]: storeUrl },
         timeout: 60_000,
       });
 

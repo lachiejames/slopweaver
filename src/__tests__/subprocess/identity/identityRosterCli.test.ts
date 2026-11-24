@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { STORE_URL_ENV } from "../../../store/config.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { openProofTemplate, type ProofDatabase, type ProofTemplate, proofAdminUrl } from "../proofDatabase.js";
 
 const ADMIN_URL = proofAdminUrl();
@@ -73,6 +74,7 @@ describe.skipIf(ADMIN_URL === undefined)("the identity roster through the shippe
       cwd: root,
       encoding: "utf8",
       env: {
+        ...accountSandboxChildEnv(),
         HOME: root,
         PATH: process.env["PATH"]!,
         SLACK_USER_TOKEN: "xoxp-test",

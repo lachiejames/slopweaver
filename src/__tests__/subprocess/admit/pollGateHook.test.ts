@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { pollGatePath, readPollRecord } from "../../../admit/pollGateStore.js";
+import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
 import { seedProfileDelivered } from "../../profileDeliveredFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -48,6 +49,7 @@ function runHook({ payload, home }: { payload: unknown; home: string }): {
     encoding: "utf8",
     // An empty config dir, so the shim runs THIS tree's guard rather than the installed plugin's.
     env: {
+      ...accountSandboxChildEnv(),
       CLAUDE_CONFIG_DIR: tempHome(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
@@ -115,6 +117,7 @@ describe("the shipped poll-gate shim", { timeout: HOOK_TIMEOUT_MS }, () => {
     const run = spawnSync(SHIM, {
       encoding: "utf8",
       env: {
+        ...accountSandboxChildEnv(),
         CLAUDE_CONFIG_DIR: tempHome(),
         HOME: process.env["HOME"]!,
         PATH: process.env["PATH"]!,

@@ -16,6 +16,7 @@ import { EXIT_USAGE } from "../../../../../cli/exitCodes.js";
 import { foldSlackDrafts } from "../../../../../outbound/slack/draftFold.js";
 import { parseSlackDraftLog } from "../../../../../outbound/slack/draftLog.js";
 import { type ParkedSlackDraft, parkedDraftDigest } from "../../../../../outbound/slack/draftRegister.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { storeAnnotatedShot } from "../../../../annotatedShotFixture.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -76,7 +77,7 @@ function run({ args }: { args: readonly string[] }): SpawnSyncReturns<string> {
     encoding: "utf8",
     // A shape-only fake, as `../slack/asMeBumpGate.fixture.test.ts` uses: the steer refusal fires off the register,
     // before any Slack call could use it.
-    env: { HOME: scratch, PATH: process.env["PATH"]!, SLACK_USER_TOKEN: "xoxp-test" },
+    env: { ...accountSandboxChildEnv(), HOME: scratch, PATH: process.env["PATH"]!, SLACK_USER_TOKEN: "xoxp-test" },
   });
 }
 

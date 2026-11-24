@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { absentAsNumber } from "#lib/absent.js";
+import { accountSandboxChildEnv } from "../../../../accountHomeSandboxChild.js";
 import { REAL_GIT_TIMEOUT_MS } from "../../../../tempGitRepo.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
@@ -32,6 +33,7 @@ function runBin({ args }: { args: readonly string[] }): { status: number; stdout
   const result = spawnSync(BIN, [...args], {
     encoding: "utf8",
     env: {
+      ...accountSandboxChildEnv(),
       HOME: process.env["HOME"]!,
       PATH: process.env["PATH"]!,
       SLOPWEAVER_CLI_DIR: repoRoot,
