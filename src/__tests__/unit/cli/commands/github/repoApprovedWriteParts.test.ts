@@ -9,10 +9,11 @@ import { readActionsPolicyState } from "../../../../../cli/commands/github/repoA
 import { repoApprovedWriteDoorRequest } from "../../../../../cli/commands/github/repoApprovedWrite.js";
 import { planRepoCreate } from "../../../../../cli/commands/github/repoCreateRun.js";
 import { approvedWritesOf } from "../../../../../cli/commands/github/repoWriteArgs.js";
-import { unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { errAsync, unwrap, unwrapErr } from "../../../../../lib/result.js";
 import {
   type ActionsWorld,
   actionsPolicyFake,
+  githubHttpError,
   type LifecycleWorld,
   lifecycleFake,
   lifecycleState,
@@ -110,6 +111,21 @@ describe("planRepoCreate", () => {
     );
     expect(planned.consequences).toEqual(["the new repository is readable by anyone from the moment it exists"]);
     expect(planned.previewCommand).toBe("slopweaver github repo --repo acme/fresh --create --public");
+  });
+
+  it("previews a create at a renamed repository's old address and binds the 301 that witnessed it free", async () => {
+    const world = lifecycleWorld();
+    const api = { ...lifecycleFake({ world }), read: () => errAsync(githubHttpError({ status: 301 })) };
+    const at301 = unwrap(await planRepoCreate({ api, request: { owner: "acme", private: true, repo: "widget" } }));
+    const at404 = unwrap(
+      await planRepoCreate({
+        api: lifecycleFake({ world }),
+        request: { owner: "acme", private: true, repo: "widget" },
+      }),
+    );
+    expect(at301.view["precondition"]).toEqual({ repository: "absent", status: 301 });
+    expect(at404.view["precondition"]).toEqual({ repository: "absent", status: 404 });
+    expect(world.sent).toEqual([]);
   });
 
   it("refuses an address that already holds a repository", async () => {
