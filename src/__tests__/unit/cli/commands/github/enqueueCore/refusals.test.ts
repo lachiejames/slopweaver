@@ -44,11 +44,12 @@ describe("enqueueRefusals", () => {
       queue: undefined,
       repo: "acme/widget",
     });
-    expect(refusals).toEqual([
+    expect(refusals).toHaveLength(1);
+    expect(refusals[0]).toBe(
       "acme/widget has no merge queue on main, so there is no 'Merge when ready' to press. Land it with " +
         "`slopweaver github merge --repo acme/widget --base origin/main --head feature --description - --admin " +
         "--number 9 < body.md` instead, or enable a merge queue on that branch.",
-    ]);
+    );
   });
 
   it("names no admin-merge command for a native-stack member, which that verb refuses outright", () => {

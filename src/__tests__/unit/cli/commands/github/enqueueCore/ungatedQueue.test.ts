@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { enqueueIdentityLines, enqueueVerdict } from "../../../../../../cli/commands/github/enqueueCore.js";
 import { enqueueRefusals } from "../../../../../../cli/commands/github/enqueueFindings.js";
+import { MID } from "../enqueueRun/fixtures.js";
 import { args, ORDINARY, PAIRED, PASSING, pr, QUEUE } from "./fixtures.js";
 
 describe("enqueueRefusals on an ungated queue", () => {
@@ -17,11 +18,28 @@ describe("enqueueRefusals on an ungated queue", () => {
       repo: "acme/widget",
       requiredContexts: [],
     });
-    expect(refusals).toEqual([
+    expect(refusals).toHaveLength(1);
+    expect(refusals[0]).toBe(
       "acme/widget's queue on main requires NO status-check contexts, so it would merge this pull request on " +
         "arrival without testing the merged result. Tick 'Require status checks to pass before merging' on main " +
         "and name the contexts the queue must wait for, or land it with `slopweaver github merge --repo " +
         "acme/widget --base origin/main --head feature --description - --admin --number 9 < body.md` instead.",
+    );
+  });
+
+  it("sends a native-stack member on an ungated queue to the stack route, never to the admin merge", () => {
+    const refusals = enqueueRefusals({
+      target: { branch: "staging", kind: "stack", stack: MID },
+      pr: pr(),
+      queue: QUEUE,
+      repo: "acme/widget",
+      requiredContexts: [],
+    });
+    expect(refusals).toEqual([
+      "acme/widget's queue on staging requires NO status-check contexts, so it would merge this pull request on " +
+        "arrival without testing the merged result. Tick 'Require status checks to pass before merging' on " +
+        "staging and name the contexts the queue must wait for, or land it out of its native stack by the route " +
+        "skills/github/reference/stack-merge.md names (`github merge --admin` cannot land a stack member) instead.",
     ]);
   });
 
