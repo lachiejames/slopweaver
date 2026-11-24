@@ -142,7 +142,7 @@ function OptionsRow({ card, known }: { card: BriefingCard; known: readonly strin
  * @param links where the row can be checked
  * @param folded whether the links are drawn above the fold instead
  * @param known the pull-request URLs the row publishes
- * @param mail the mail the card is about, drawn under the problem
+ * @param underProblem the mail or the private words the card is about, drawn under the problem
  * @returns the fields
  */
 export function BriefingFields({
@@ -151,14 +151,14 @@ export function BriefingFields({
   links,
   folded,
   known,
-  mail,
+  underProblem,
 }: {
   card: BriefingCard;
   preview: ReactNode;
   links: ReactNode;
   folded: boolean;
   known: readonly string[];
-  mail: ReactNode;
+  underProblem: ReactNode;
 }): ReactElement {
   const linksRow = links !== undefined && (
     <>
@@ -180,7 +180,7 @@ export function BriefingFields({
           </dd>
         </>
       )}
-      {!folded && <ProblemAndStakes card={card} known={known} mail={mail} />}
+      {!folded && <ProblemAndStakes card={card} known={known} underProblem={underProblem} />}
       {card.whyYou !== undefined && (
         <>
           <dt>why you</dt>

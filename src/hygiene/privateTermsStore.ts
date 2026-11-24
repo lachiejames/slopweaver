@@ -20,68 +20,23 @@ import { createHash, randomBytes } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { errorMessage } from "#lib/errorMessage.js";
 import { isRecord } from "#lib/parsers.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { safeJsonParse, safeJsonStringify } from "#lib/safeJson.js";
 import { createFileExclusive, ensureDirectory, removeEntry, writeFileAtomic } from "#lib/writeAtomic.js";
 
 import { stateHomePaths } from "../stateHome.js";
+import {
+  type PrivateTermAnswer,
+  privateTermAnswerContents,
+  privateTermAnswerPath,
+  readPrivateTermAnswer,
+} from "./privateTermAnswers.js";
 import { parsePrivateTerms } from "./privateTerms.js";
+import { type PrivateTermsStoreError, PrivateTermsStoreErrors } from "./privateTermsStoreErrors.js";
 
 /** A proposal's id: `pp-` and twelve lowercase hex digits. */
 const PROPOSAL_ID = /^pp-[0-9a-f]{12}$/u;
-
-/** A file or directory the store needed could not be read or written. */
-interface StoreIoFailedError {
-  readonly code: "STORE_IO_FAILED";
-  readonly message: string;
-}
-
-/** The proposal named is not one waiting to be confirmed: a bad id, none kept, or not this store's shape. */
-interface ProposalUnusableError {
-  readonly code: "PROPOSAL_UNUSABLE";
-  readonly message: string;
-}
-
-/** Another edit holds the file's lock. */
-interface LockHeldError {
-  readonly code: "LOCK_HELD";
-  readonly message: string;
-}
-
-/** The file changed after the proposal was decided over it, so the proposal is refused. */
-interface ProposalStaleError {
-  readonly code: "PROPOSAL_STALE";
-  readonly message: string;
-}
-
-/** Every way the store refuses. */
-export type PrivateTermsStoreError = StoreIoFailedError | ProposalUnusableError | LockHeldError | ProposalStaleError;
-
-/**
- * The factory every store refusal is built through; none carries a pattern, a source or a meaning.
- *
- * @internal
- */
-export const PrivateTermsStoreErrors = {
-  ioFailed: ({ what, path, cause }: { what: string; path: string; cause: unknown }): StoreIoFailedError => ({
-    code: "STORE_IO_FAILED",
-    message: `${what} ${path} failed: ${errorMessage({ error: cause })}`,
-  }),
-  lockHeld: ({ path, why }: { path: string; why: string }): LockHeldError => ({
-    code: "LOCK_HELD",
-    message: `the lock ${path} is not ours to take: ${why}; run the confirm again once that edit has finished`,
-  }),
-  proposalStale: ({ proposalId, why }: { proposalId: string; why: string }): ProposalStaleError => ({
-    code: "PROPOSAL_STALE",
-    message: `proposal ${proposalId} cannot land: ${why}; nothing was written, propose the edit again`,
-  }),
-  proposalUnusable: ({ why }: { why: string }): ProposalUnusableError => ({
-    code: "PROPOSAL_UNUSABLE",
-    message: `no proposal to confirm: ${why}`,
-  }),
-} as const;
 
 /** One edit waiting for its read-back to be confirmed. */
 export interface PrivateTermsProposal {
@@ -348,10 +303,69 @@ export function confirmPrivateTermsProposal({
   proposalId: string;
   pidAlive: PidAlive;
 }): Result<PrivateTermsLanded, PrivateTermsStoreError> {
-  const proposal = readPrivateTermsProposal({ home, proposalId });
-  if (proposal.isErr()) {
-    return err(proposal.error);
-  }
+  // The proposal and its answer are read only once the lock is held, so an answer recorded while a confirm
+  // waits cannot be missed by it, and two confirms cannot both land one proposal.
+  return underTermsLock({
+    home,
+    pidAlive,
+    run: ({ path }) => landProposal({ home, path, proposalId }),
+  });
+}
+
+/**
+ * Record the owner's answer to one proposal, under the same lock a confirm takes, and only while the proposal is
+ * still waiting: a confirm that lands it first leaves nothing to answer, and this refuses rather than writing an
+ * answer beside nothing.
+ *
+ * @param home the state home
+ * @param answer what was answered, for which proposal
+ * @param pidAlive whether a lock holder still runs
+ * @returns the path the answer is kept at, or why nothing was written
+ */
+export function answerPrivateTermsProposal({
+  home,
+  answer,
+  pidAlive,
+}: {
+  home: string;
+  answer: PrivateTermAnswer;
+  pidAlive: PidAlive;
+}): Result<string, PrivateTermsStoreError> {
+  return underTermsLock({
+    home,
+    pidAlive,
+    run: () => {
+      const waiting = readPrivateTermsProposal({ home, proposalId: answer.proposalId });
+      if (waiting.isErr()) {
+        return err(waiting.error);
+      }
+      const path = privateTermAnswerPath({ home, proposalId: answer.proposalId });
+      try {
+        writeFileAtomic({
+          contents: privateTermAnswerContents({ answer }),
+          dirMode: 0o700,
+          exactMode: true,
+          fileMode: 0o600,
+          path,
+        });
+      } catch (error: unknown) {
+        return err(PrivateTermsStoreErrors.ioFailed({ cause: error, path, what: "keeping the answer at" }));
+      }
+      return ok(path);
+    },
+  });
+}
+
+/** Run one store change holding the terms file's lock, releasing it however the change ends. */
+function underTermsLock<T>({
+  home,
+  pidAlive,
+  run,
+}: {
+  home: string;
+  pidAlive: PidAlive;
+  run: (input: { readonly path: string }) => Result<T, PrivateTermsStoreError>;
+}): Result<T, PrivateTermsStoreError> {
   const path = stateHomePaths({ home }).privateTerms;
   const lockPath = `${path}.lock`;
   const directory = dirname(path);
@@ -363,6 +377,37 @@ export function confirmPrivateTermsProposal({
   const locked = takeLock({ path: lockPath, pidAlive });
   if (locked.isErr()) {
     return err(locked.error);
+  }
+  try {
+    return run({ path });
+  } finally {
+    removeEntry({ path: lockPath });
+  }
+}
+
+/** Land one proposal; the caller holds the lock. */
+function landProposal({
+  home,
+  path,
+  proposalId,
+}: {
+  home: string;
+  path: string;
+  proposalId: string;
+}): Result<PrivateTermsLanded, PrivateTermsStoreError> {
+  const proposal = readPrivateTermsProposal({ home, proposalId });
+  if (proposal.isErr()) {
+    return err(proposal.error);
+  }
+  const answered = readPrivateTermAnswer({ home, proposalId });
+  if (answered.kind === "answered" && answered.answer.answer === "no") {
+    const why = `the owner answered no to ${proposalId} on ${answered.answer.via} at ${answered.answer.answeredAtIso}`;
+    return err(PrivateTermsStoreErrors.proposalUnusable({ why }));
+  }
+  // An answer file that does not read may have held a no, so it never lets a confirm through.
+  if (answered.kind === "unreadable") {
+    const why = `the owner's answer to ${proposalId} at ${answered.path} does not read; record it again with private-terms answer`;
+    return err(PrivateTermsStoreErrors.proposalUnusable({ why }));
   }
   try {
     const current = readCurrentPrivateTerms({ home });
@@ -381,10 +426,9 @@ export function confirmPrivateTermsProposal({
     }
     writeFileAtomic({ contents: proposal.value.text, dirMode: 0o700, exactMode: true, fileMode: 0o600, path });
     removeEntry({ path: proposalPath({ home, proposalId }) });
+    removeEntry({ path: privateTermAnswerPath({ home, proposalId }) });
     return ok({ action: proposal.value.action, path, rows: parsed.value.length, termId: proposal.value.termId });
   } catch (error: unknown) {
     return err(PrivateTermsStoreErrors.ioFailed({ cause: error, path, what: "writing the private terms file" }));
-  } finally {
-    removeEntry({ path: lockPath });
   }
 }

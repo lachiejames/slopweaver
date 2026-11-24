@@ -38,6 +38,7 @@
  */
 
 import { plansActVerbs } from "./actVerbsPlans";
+import { privateTermsActVerbs } from "./actVerbsPrivateTerms";
 import { RAISE_USAGE_LIMIT_READS, RAISE_USAGE_LIMIT_SLUG } from "./planUsageLimit";
 import { type BuiltArgv, fillSlots, type Slot } from "./slots";
 
@@ -381,6 +382,7 @@ export const ACT_VERBS: readonly ActVerb[] = [
       "slopweaver plans set-usage-limit --provider <provider> --plan <plan> --percent <percent> --from <from> --allowance weekly-window --json",
   },
   ...plansActVerbs({ localTimeoutMs: LOCAL_TIMEOUT_MS }),
+  ...privateTermsActVerbs({ bySession: BY_SESSION, localTimeoutMs: LOCAL_TIMEOUT_MS }),
 ];
 
 /**

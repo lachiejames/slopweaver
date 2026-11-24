@@ -80,8 +80,9 @@ export function MailField({ children }: { children: ReactNode }): ReactElement {
  *   folded alike, because it is the one thing the owner reads before deciding whether the card is theirs at all
  * @param figure a picture the card carries — a hand step's provider page (`./HandShot.tsx`) — drawn last inside the
  *   scrolling body, never beside it, where a picture's height would squeeze the body to a strip
- * @param mail the mail an inbox-triage card asks about (`./CardMail.tsx`), drawn under the problem in both the folded
- *   and unfolded arrangements, each message a closed row of its own
+ * @param underProblem what the card asks about, drawn under the problem in both the folded and unfolded arrangements:
+ *   the mail an inbox-triage card pinned (`./CardMail.tsx`), each message a closed row of its own, or the private
+ *   words a confirm card names (`./PrivateTermProposals.tsx`), each with its own Yes and No
  * @param thread the Slack thread the card is ABOUT (`./SlackThread.tsx`), drawn as its first field in every
  *   arrangement, ahead of the WHAT: the thread itself rather than a sentence describing it, the way the owner would
  *   stumble on it in Slack, never a sentence telling them about it
@@ -101,7 +102,7 @@ export function QueueCardBody({
   refusedMark,
   source,
   figure,
-  mail,
+  underProblem,
   thread,
   reasonWhy,
 }: {
@@ -117,7 +118,7 @@ export function QueueCardBody({
   refusedMark?: StalenessFact;
   source: CardSource;
   figure?: ReactNode;
-  mail?: ReactNode;
+  underProblem?: ReactNode;
   thread?: ReactNode;
   reasonWhy?: string;
 }): ReactElement {
@@ -139,7 +140,7 @@ export function QueueCardBody({
         refusedMark={refusedMark}
         source={source}
         figure={figure}
-        mail={mail}
+        underProblem={underProblem}
         thread={thread}
         reasonWhy={reasonWhy}
       />
@@ -189,7 +190,7 @@ function CardBody({
   refusedMark,
   source,
   figure,
-  mail,
+  underProblem,
   thread,
   reasonWhy,
 }: {
@@ -204,7 +205,7 @@ function CardBody({
   refusedMark: StalenessFact | undefined;
   source: CardSource;
   figure: ReactNode;
-  mail: ReactNode;
+  underProblem: ReactNode;
   thread: ReactNode;
   reasonWhy: string | undefined;
 }): ReactElement {
@@ -243,7 +244,16 @@ function CardBody({
       <StepFields card={card} preview={preview} links={folded ? undefined : links} known={known} folded={folded} />
     );
   } else {
-    briefing = <BriefingFields card={card} preview={preview} links={links} folded={folded} known={known} mail={mail} />;
+    briefing = (
+      <BriefingFields
+        card={card}
+        preview={preview}
+        links={links}
+        folded={folded}
+        known={known}
+        underProblem={underProblem}
+      />
+    );
   }
   if (refused !== undefined) {
     return (
@@ -304,7 +314,7 @@ function CardBody({
               <dl className={FIELDS}>
                 {lead}
                 {linksRow}
-                {card.kind !== "step" && <ProblemAndStakes card={card} known={known} mail={mail} />}
+                {card.kind !== "step" && <ProblemAndStakes card={card} known={known} underProblem={underProblem} />}
               </dl>
             )}
             {reasonRow}

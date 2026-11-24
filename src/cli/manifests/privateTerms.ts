@@ -5,6 +5,7 @@
  * `effect: "local-state"`: every write lands under this home: a proposal, the terms file at 0600 on a confirm, a
  * review packet or a receipt. Nothing is sent anywhere. `add`, `narrow` and `remove` only PROPOSE, and the terms
  * file changes on `confirm` alone, after the read-back has gone back to the owner (`src/hygiene/privateTermsStore.ts`).
+ * `answer` keeps the owner's per-item yes or no from the Queue card beside its proposal (`src/hygiene/privateTermAnswers.ts`).
  * `review-record` is `diagnostic`: a BROKEN verdict exits 1, which is the verb reporting that the write stays held.
  */
 import { lazy, type VerbManifestEntry } from "../manifest.js";
@@ -34,6 +35,19 @@ export const privateTermsManifest: Readonly<Record<string, VerbManifestEntry>> =
         "usage: slopweaver private-terms add [--allowed-where <value>] [--case <value>] [--class <value>] " +
         "[--home <value>] [--json] [--matches <value>] [--meaning <value>] [--misses <value>] [--pattern <value>] " +
         "[--pattern-file <value>] [--source <value>]",
+    },
+  }),
+  answer: lazy({
+    load: () => import("../commands/privateTerms/answer.js").then((m) => m.privateTermsAnswerCommand),
+    meta: {
+      ...sharedMeta,
+      example: "slopweaver private-terms answer pp-0123456789ab --as yes --via console --by-session work-console",
+      summary:
+        "Record the owner's yes or no to one waiting proposal, pressed on the Queue card that shows the word; " +
+        "writes the answer beside it, and `confirm` refuses one answered no",
+      usage:
+        "usage: slopweaver private-terms answer <proposal-id> [--as <value>] [--by-session <value>] " +
+        "[--home <value>] [--json] [--via <value>]",
     },
   }),
   confirm: lazy({

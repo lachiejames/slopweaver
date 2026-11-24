@@ -49,7 +49,9 @@ export function consoleTranscriptWrites({ callId }: { callId: string }): {
  *   the hand-step picture store (`src/hand/shotStore.ts`), the channel-media store
  *   (`src/live/slack/channelMedia.ts`), and the console sync failure ledger the monitor sweep reads
  *   (`src/live/consoleSyncFailureStore.ts`) with its fallback at the home root for a row that ledger refused, both
- *   written by `./consoleSyncFailureAppend.ts` because the failure they record can be the CLI itself not starting
+ *   written by `./consoleSyncFailureAppend.ts` because the failure they record can be the CLI itself not starting;
+ *   and the owner's private-terms file with its waiting proposals (`src/hygiene/privateTermsStore.ts`), read only by
+ *   `./privateTermProposalRead.ts` for the open card that asks the owner to confirm them
  */
 export function consoleHomePaths({ home = consoleHome() }: { home?: string } = {}): {
   readonly pages: string;
@@ -58,6 +60,8 @@ export function consoleHomePaths({ home = consoleHome() }: { home?: string } = {
   readonly slackChannelMedia: string;
   readonly consoleSyncFailures: string;
   readonly consoleSyncFailureAppendFailures: string;
+  readonly privateTerms: string;
+  readonly privateTermProposals: string;
 } {
   return {
     consoleSyncFailureAppendFailures: join(home, "console-sync-failure-append-failures.jsonl"),
@@ -65,6 +69,8 @@ export function consoleHomePaths({ home = consoleHome() }: { home?: string } = {
     draftMedia: join(home, "queue", "slack-draft-media"),
     handShots: join(home, "hand-steps", "shots"),
     pages: join(home, "pages"),
+    privateTermProposals: join(home, "hygiene", "private-term-proposals"),
+    privateTerms: join(home, "hygiene", "private-terms.tsv"),
     slackChannelMedia: join(home, "live", "slack", "channel-media"),
   };
 }

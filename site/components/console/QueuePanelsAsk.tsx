@@ -5,11 +5,14 @@
 import { type ReactElement, type ReactNode } from "react";
 
 import { prLabel } from "../../lib/askLinks";
+import { askedOptions } from "../../lib/askOffered";
 import { isInboxTriageSlug } from "../../lib/cardMailVerb";
 import { type QueueAskBoardRow } from "../../lib/detachedAskRow";
 import { drawnTexts, notInline } from "../../lib/inlineCitations";
 import { askMailThread, type MailThreadRef } from "../../lib/mailAnchor";
 import { waitWord } from "../../lib/ownerAsks";
+import { privateTermProposalIdsIn } from "../../lib/privateTermProposalIds";
+import { askTexts } from "../../lib/queueAskRow";
 import { reasonBeyondQuestion } from "../../lib/queueCardAsk";
 import { type QueueRow } from "../../lib/queueRows";
 import { type RecordLine, recordLine, recordLink, recordMaybe } from "../../lib/recordLines";
@@ -25,6 +28,7 @@ import { MailActionPreview } from "./MailActionPreview";
 import { MailThread } from "./MailThread";
 import { NamedDrafts } from "./NamedDrafts";
 import { Reasoning } from "./PanelReasoning";
+import { PrivateTermProposals } from "./PrivateTermProposals";
 import { MailField, QueueCardBody } from "./QueueCardBody";
 import { HeldDraftsThread } from "./QueuePanelMarks";
 import { type PanelCommon, RECORD_SUMMARY, refusedProps } from "./QueuePanelsCommon";
@@ -75,8 +79,9 @@ export function askPlaces({
 /**
  * The recorded ask's panel: the card, the thread it came out of, and the board row folded beneath.
  *
- * No press: `handover answer` is gated on the run's writer session, which this page is not, so option A
- * names the supervisor chat rather than offering a button that would always be refused.
+ * No press on the ask itself: `handover answer` is gated on the run's writer session, which this page is not, so
+ * option A names the supervisor chat rather than offering a button that would always be refused. The one press it
+ * carries is per private word, on a card naming proposals (`./PrivateTermProposals.tsx`).
  *
  * @returns the panel
  */
@@ -149,6 +154,18 @@ export function AskPanel({
   } else if (triage) {
     cardMail = <CardMail slug={boardRow.slug} />;
   }
+  // A card asking the owner to confirm private words draws those words under its problem, each with its own Yes and
+  // No. The card names them by proposal id only. The words are read from the owner's own machine while the card is
+  // open and go nowhere else: not the row, not a reading, not a log.
+  const proposalIds = privateTermProposalIdsIn({
+    texts: askTexts({ options: askedOptions({ action: boardRow.action, options: boardRow.options }), row: boardRow }),
+  });
+  const underProblem = (
+    <>
+      {cardMail}
+      {proposalIds.length > 0 && <PrivateTermProposals ids={proposalIds} />}
+    </>
+  );
   // The thread the ask is about leads the card rather than closing it, so the owner sees the Slack message itself
   // rather than a telling of it: it is the body's `thread`, never one of these details.
   const details = (
@@ -183,7 +200,7 @@ export function AskPanel({
         // No field of its own: the UI has one text input, the supervisor. The owner answers aloud or in the
         // supervisor, and the open card is what "this" means there.
         details={details}
-        mail={cardMail}
+        underProblem={underProblem}
         thread={thread === undefined ? undefined : <HeldDraftsThread id={thread} drafts={drafts} />}
         // The screenshot the ask is about, boxed where to look (`handover shot`) — or the line saying it did not read.
         figure={askFigure({ boardRow })}
