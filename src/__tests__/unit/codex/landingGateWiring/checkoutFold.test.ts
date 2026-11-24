@@ -242,7 +242,7 @@ describe("readLocalCodexLoop folds every checkout that holds the pull request's 
 
     expect(read.kind).toBe("read");
     expect(read.kind === "read" ? read.evidence.failures : []).toEqual([
-      "no review pass has run on this branch — the diff has never been read by the second brain",
+      "no general review pass has run on this branch — the diff has never been read by the second brain",
     ]);
   });
 });

@@ -83,10 +83,18 @@ verdict on it), never in the tree, so a fork starts with the rules and none of t
   commit; a `widening` row must name a file the change leaves byte-identical to main. A store that will not read,
   or an ancestry git cannot answer, refuses. A native-stack member above the bottom is judged against the tip of
   the branch the whole stack lands on, since GitHub lands every unmerged member below it in the same press. The
-  witness is a CURRENT, CLEAN adversarial Codex review (pass three) on the record's property id and exact claim
-  for the head, read off both the ledger row and its record; a CURRENT BROKEN one on an eligible record refuses
-  whatever stands beside it. `baseline-bump-unwitnessed` has no acknowledgement, and Codex capped means the bump
-  waits ([pull requests](../../skills/github/reference/pull-requests.md)).
+  witness is a CURRENT, CLEAN adversarial Codex review (the `r3` profile) on the record's property id and exact
+  claim for the head, read off both the ledger row and its record; a CURRENT BROKEN one on an eligible record
+  refuses whatever stands beside it. `baseline-bump-unwitnessed` has no acknowledgement, and Codex capped means
+  the bump waits ([pull requests](../../skills/github/reference/pull-requests.md)).
+- **The witness counts in its own lane** (`src/codex/reviewLane.ts`), so a branch that spent its two general
+  review passes can still take it. Every `baseline-bump-` property id is reserved. `codex review` admits one only
+  as the exact witness: pass `r3`, one property, an existing record's full id and its exact claim. Any other
+  invocation carrying one is refused before spend, and no acknowledgement or hatch opens that refusal; a
+  fallback review refuses every reserved id. The lane holds two distinct diffs, and a third is refused like a
+  third general pass. A witness row spends no general slot and never satisfies the pairing floor. **The residue,
+  stated:** a review recorded before admission existed, typed by hand with a full witness id and a statement
+  opening `Ratchet bump <digest>:` that then claimed more, is read as witness lane.
 
 So a rise is: fix the code first; if the rise is right, commit the baseline, run `dev baseline-bump`, push, take
 the witness it prints. A new row in `.baselines/file-size-tradeoffs.json` (a tradeoff the owner signed) and a

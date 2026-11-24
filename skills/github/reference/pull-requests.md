@@ -60,7 +60,7 @@ Bundled reference for the `github` skill, loaded when the body links here: the p
 --reason` lands it, the reason in the door ledger. No description carries it. A CAPPED or unregistered Codex never holds a landing: Claude fallback receipts ARE
   the plan and review; only unplanned work rides that acknowledgement ([reference](../../codex/reference/claude-fallback-review.md)).
   **`baseline-bump-unwitnessed`** (enqueue too): every loosened ratchet row needs a bump record in the state home
-  (`dev baseline-bump`) with a CURRENT CLEAN Codex witness of its claim; no acknowledgement or hatch ([why](../../../docs/toolchain/rebaseline-and-lanes.md)).
+  (`dev baseline-bump`) with a CURRENT CLEAN Codex witness of its claim, counted in its own lane past the two passes; no acknowledgement or hatch ([why](../../../docs/toolchain/rebaseline-and-lanes.md)).
 - **A base that REQUIRES A REVIEW** — classic protection's or a ruleset's `pull_request` rule, read live and unioned;
   a classic 404 read as `unprotected` and PERMITTED it. The measurement is in the rationale doc.
 - **Not an admin**, **`enforce_admins: true`**, a **DENIED protection read** — each refused alone ([local-lap](local-lap.md)).

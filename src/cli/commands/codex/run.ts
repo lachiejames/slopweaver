@@ -19,7 +19,7 @@ import { capturePassTree, captureReviewDiffWithProvenance, type ReviewDiff } fro
 import { type CompletedPass, runPlanPass, runReviewProperty } from "../../../codex/orchestrate.js";
 import type { AdmittedPass } from "../../../codex/passAdmission.js";
 import { type PassProfile, passProfile } from "../../../codex/profiles.js";
-import type { CodexPassTree, PassBound, PlanPassId, ReviewProperty } from "../../../codex/types.js";
+import type { CodexPassTree, PassBound, PlanPassId, ReviewPassId, ReviewProperty } from "../../../codex/types.js";
 import { logger } from "../../../lib/logger.js";
 import { stateHomePaths } from "../../../stateHome.js";
 import { defineCommand } from "../../defineCommand.js";
@@ -40,7 +40,7 @@ import { admittedRoutedPass, fanOutAdmittedReview } from "./passRoute.js";
 import { propertiesOrExit } from "./properties.js";
 import { codexRepoRoot, repoDirOf } from "./repoScope.js";
 import { reviewAnnounceLines } from "./reviewAnnounce.js";
-import { refusedByReviewCap } from "./reviewCapGate.js";
+import { refusedByLaneOrCap } from "./reviewLaneRead.js";
 import { readTaskFile } from "./taskFile.js";
 
 /**
@@ -288,7 +288,7 @@ export async function runCodexReviewWithDeps({
   }
   const home = resolveHome({ named: options.home });
   const orchestrationRoot = stateHomePaths({ home }).orchestration;
-  if (await refusedBeforeSpend({ deps, home, options, properties, scoped })) {
+  if (await refusedBeforeSpend({ deps, home, options, pass: profile.id, properties, scoped })) {
     return EXIT_ERROR;
   }
   // Each property is its OWN bounded call against the BYTE-IDENTICAL diff, so the verdicts are comparable
@@ -312,31 +312,37 @@ export async function runCodexReviewWithDeps({
 }
 
 /**
- * What runs before anything is spent: the two-pass cap, then the announce lines.
+ * What runs before anything is spent: review-lane admission, the two-pass cap in that lane, then the announce
+ * lines.
  *
- * A third review pass is refused here, whichever destination would have taken it. The announce runs before
- * routing, so a chase is read even when every destination is capped and the review goes to Claude.
+ * A reserved `baseline-bump-` id outside the exact witness, and a third pass in either lane, are refused here,
+ * whichever destination would have taken the review. The announce runs before routing, so a chase is read even
+ * when every destination is capped and the review goes to Claude.
  *
- * @returns true when the cap refused the review and nothing may run
+ * @param pass the review profile, which admission reads with the WHOLE property list
+ * @returns true when admission or the cap refused the review and nothing may run
  */
 async function refusedBeforeSpend({
   deps,
   home,
   options,
+  pass,
   properties,
   scoped,
 }: {
   deps: CodexDeps;
   home: string;
   options: { readonly concurrency: number };
-  properties: readonly { readonly id: string }[];
+  pass: ReviewPassId;
+  properties: readonly ReviewProperty[];
   scoped: ScopedDiff;
 }): Promise<boolean> {
   const branch = scoped.tree?.branch;
   const { fallbackPort, supersessions } = deps;
   const diff = scoped.diff;
   const verb = "codex review";
-  if (await refusedByReviewCap({ branch, diff, env: process.env, fallbackPort, home, supersessions, verb })) {
+  const env = process.env;
+  if (await refusedByLaneOrCap({ branch, diff, env, fallbackPort, home, pass, properties, supersessions, verb })) {
     return true;
   }
   for (const line of await reviewAnnounceLines({

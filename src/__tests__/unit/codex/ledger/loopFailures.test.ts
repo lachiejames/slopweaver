@@ -23,7 +23,7 @@ describe("loopFailures", () => {
   /** A tree the current fingerprint has since moved away from — what makes a pass STALE. */
   const beforeTheWork = treeOn({ branch: "feature", headSha: OTHER_HEAD, patch: "" });
   const NO_PLAN = "no planning pass has run on this branch — nothing planned the work before it was written";
-  const NO_REVIEW = "no review pass has run on this branch — the diff has never been read by the second brain";
+  const NO_REVIEW = "no general review pass has run on this branch — the diff has never been read by the second brain";
 
   function entriesFor({ records }: { records: readonly CodexArtifactRecord[] }): readonly LedgerEntry[] {
     return ledgerForBranch({ repoRoot: REPO, branch: "feature", now, records }).entries;
@@ -375,7 +375,7 @@ describe("loopFailures and a LIVE cap the ledger cannot witness", () => {
     const failures = loopFailures({ cap: CAP, entries: entriesFor({ records: [] }) });
 
     expect(failures[1]).toBe(
-      "no review pass has run on this branch — the diff has never been read by the second brain. " +
+      "no general review pass has run on this branch — the diff has never been read by the second brain. " +
         `${WITNESS}, so a visible Claude session takes this review (rule 9): ` +
         "`slopweaver codex review-fallback prepare`, answer the packet, then `codex review-fallback record`",
     );
@@ -386,7 +386,7 @@ describe("loopFailures and a LIVE cap the ledger cannot witness", () => {
 
     expect(failures).toEqual([
       "no planning pass has run on this branch — nothing planned the work before it was written",
-      "no review pass has run on this branch — the diff has never been read by the second brain",
+      "no general review pass has run on this branch — the diff has never been read by the second brain",
     ]);
   });
 

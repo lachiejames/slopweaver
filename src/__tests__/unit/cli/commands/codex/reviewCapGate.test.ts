@@ -1,7 +1,8 @@
 /**
  * The third-review-pass refusal, read over a real state home and a real checkout: two reviewed diffs refuse a
  * third before anything is spent, a diff already reviewed still runs, the hatch lets a third through and says
- * so, and a fold it cannot read refuses unless the hatch is open.
+ * so, and a fold it cannot read refuses unless the hatch is open. A baseline-bump witness counts in its own lane:
+ * two spent general passes leave it its first, and a third witness is refused in the witness lane's words.
  *
  * Zero mocks: the passes are Claude fallback receipts written through the in-memory register port — the cap is
  * on review, not on a provider, so they spend the same two passes a Codex row does.
@@ -11,7 +12,11 @@ import { mkdirSync } from "node:fs";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { ALLOW_CODEX_REVIEW_PASS_CAP_ENV, reviewCapVerdict } from "../../../../../cli/commands/codex/reviewCapGate.js";
+import {
+  ALLOW_CODEX_REVIEW_PASS_CAP_ENV,
+  reviewCapVerdict,
+  thirdPassVerdict,
+} from "../../../../../cli/commands/codex/reviewCapGate.js";
 import type { FallbackRegisterPort } from "../../../../../codex/fallbackPort.js";
 import { resolveRepoRoot } from "../../../../../codex/gitDiff.js";
 import { hatchFor } from "../../../../../hatch/lookup.js";
@@ -57,6 +62,7 @@ describe("reviewCapVerdict", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
       env: {},
       fallbackPort: port,
       home,
+      lane: "general",
       supersessions: memorySupersessionPort(),
       verb: VERB,
     });
@@ -71,6 +77,7 @@ describe("reviewCapVerdict", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
       env: {},
       fallbackPort: port,
       home,
+      lane: "general",
       supersessions: memorySupersessionPort(),
       verb: VERB,
     });
@@ -95,6 +102,7 @@ describe("reviewCapVerdict", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
       env: {},
       fallbackPort: port,
       home,
+      lane: "general",
       supersessions: memorySupersessionPort(),
       verb: VERB,
     });
@@ -109,6 +117,7 @@ describe("reviewCapVerdict", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
       env: { [ALLOW_CODEX_REVIEW_PASS_CAP_ENV]: "1" },
       fallbackPort: port,
       home,
+      lane: "general",
       supersessions: memorySupersessionPort(),
       verb: VERB,
     });
@@ -128,6 +137,7 @@ describe("reviewCapVerdict", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
       env: {},
       fallbackPort: unavailableFallbackRegisterPort(),
       home,
+      lane: "general",
       supersessions: memorySupersessionPort(),
       verb: VERB,
     });
@@ -148,6 +158,7 @@ describe("reviewCapVerdict", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
       env: { [ALLOW_CODEX_REVIEW_PASS_CAP_ENV]: "1" },
       fallbackPort: unavailableFallbackRegisterPort(),
       home,
+      lane: "general",
       supersessions: memorySupersessionPort(),
       verb: VERB,
     });
@@ -169,9 +180,66 @@ describe("reviewCapVerdict", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
       env: {},
       fallbackPort: port,
       home,
+      lane: "general",
       supersessions: memorySupersessionPort(),
       verb: VERB,
     });
     expect(verdict).toEqual({ lines: [], refused: false });
+  });
+
+  it("lets a witness run on a branch whose two general passes are spent, announced as a witness pass", async () => {
+    const { home, port, repoRoot } = await reviewedBranch({ minutes: [10, 20] });
+    const verdict = await reviewCapVerdict({
+      branch: "feature",
+      diff: { repoRoot, sha256: diffAtMinute({ minute: 30 }) },
+      env: {},
+      fallbackPort: port,
+      home,
+      lane: "baseline-bump-witness",
+      supersessions: memorySupersessionPort(),
+      verb: VERB,
+    });
+    expect(verdict).toEqual({ lines: ["codex review: baseline-bump witness pass 1 of 2 on feature"], refused: false });
+  });
+});
+
+describe("thirdPassVerdict in the witness lane", () => {
+  it("refuses a third witness diff in its own words, sending the bump to the owner rather than a leftover", () => {
+    const verdict = thirdPassVerdict({
+      branch: "feature",
+      diffSha256: "c".repeat(64),
+      hatchOpen: false,
+      lane: "baseline-bump-witness",
+      reviewed: ["a".repeat(64), "b".repeat(64)],
+      verb: VERB,
+    });
+    const hatch = hatchFor({ id: "codex-review-pass-cap" });
+    expect(verdict.refused).toBe(true);
+    expect(verdict.lines).toEqual([
+      `${hatch.command} blocked because ${hatch.caught} (feature has had its two baseline-bump witness passes ` +
+        "(diffs aaaaaaaaaaaa… and bbbbbbbbbbbb…) and this diff (cccccccccccc…) would be a third witness pass — " +
+        "baseline-bump-unwitnessed has no landing acknowledgement, so the bump waits for the owner's explicit steer).",
+      `Legitimate exceptions may include ${hatch.exceptions.join("; ")}.`,
+      `To override use the designated escape hatch ${ALLOW_CODEX_REVIEW_PASS_CAP_ENV}=1 ${hatch.command}.`,
+      "Use good judgement to determine whether the owner would approve of this, then proceed or correct your approach.",
+    ]);
+  });
+
+  it("names a hatched third witness as a witness pass, never a general one", () => {
+    const verdict = thirdPassVerdict({
+      branch: "feature",
+      diffSha256: "c".repeat(64),
+      hatchOpen: true,
+      lane: "baseline-bump-witness",
+      reviewed: ["a".repeat(64), "b".repeat(64)],
+      verb: VERB,
+    });
+    expect(verdict).toEqual({
+      lines: [
+        "codex review: a THIRD baseline-bump witness pass on feature, run by " +
+          "SLOPWEAVER_ALLOW_CODEX_REVIEW_PASS_CAP=1 — say why in the pull request",
+      ],
+      refused: false,
+    });
   });
 });

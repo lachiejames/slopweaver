@@ -2,11 +2,16 @@
  * The review half of the Codex pairing floor, as `./ledger.ts`'s `assessCodexLoop` reads it: one current,
  * conclusive review, and what a CURRENT `BROKEN` one means — a refusal before the second review pass, a named
  * leftover after it (`./reviewPassCap.ts`, `./reviewLeftovers.ts`). The plan half stays in `./ledger.ts`.
+ *
+ * It reads the GENERAL review lane only (`./reviewLane.ts`). A baseline-bump witness judges one narrow claim, so a
+ * CLEAN one cannot stand in for a review of the diff, and a BROKEN one is the landing's own refusal
+ * (`./baselineBumpWitness.ts`), never a pairing failure or a leftover.
  */
 import type { CodexLoopAssessment, LedgerEntry } from "./ledger.js";
 import { cappedNextStep } from "./ledgerCapClauses.js";
 import { concluded, newestDriftClause, newestFaultClause } from "./ledgerNewestClauses.js";
 import type { CodexQuotaEvidence } from "./quotaTypes.js";
+import { reviewLaneOfEntry } from "./reviewLane.js";
 import { leftoverOf } from "./reviewLeftovers.js";
 import { REVIEW_PASS_CAP, reviewedDiffs } from "./reviewPassCap.js";
 
@@ -32,7 +37,7 @@ export function reviewHalf({
   if (failures.broken.length === 0) {
     return { failures: failures.lines, leftovers: [] };
   }
-  if (reviewedDiffs({ entries }).length < REVIEW_PASS_CAP) {
+  if (reviewedDiffs({ entries, lane: "general" }).length < REVIEW_PASS_CAP) {
     return {
       failures: [
         ...failures.lines,
@@ -59,7 +64,7 @@ function reviewFailures({ entries, cap }: { entries: readonly LedgerEntry[]; cap
   readonly lines: readonly string[];
   readonly broken: readonly LedgerEntry[];
 } {
-  const reviews = entries.filter((entry) => entry.mode === "review");
+  const reviews = entries.filter((entry) => entry.mode === "review" && reviewLaneOfEntry({ entry }) === "general");
   // A review arm answers CLEAN or BROKEN and nothing else. Testing only for "concluded" let a record whose
   // scope says review carry a PLAN's `READY` answer and satisfy the floor without any diff having been read —
   // `scanPassRecords` shallow-decodes, so scope and outcome are never checked against each other. Found by a
@@ -78,7 +83,7 @@ function reviewFailures({ entries, cap }: { entries: readonly LedgerEntry[]; cap
     return {
       broken: [],
       lines: [
-        "no review pass has run on this branch — the diff has never been read by the second brain" +
+        "no general review pass has run on this branch — the diff has never been read by the second brain" +
           cappedNextStep({ cap, entries: reviews }),
       ],
     };

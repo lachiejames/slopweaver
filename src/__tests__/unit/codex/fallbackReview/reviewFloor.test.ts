@@ -138,7 +138,7 @@ describe("the review floor with a Claude fallback receipt", () => {
       receipts: [receiptFor({ req: request({ repoRoot: "/w/other" }) })],
     });
     expect(failures).toEqual([
-      "no review pass has run on this branch — the diff has never been read by the second brain",
+      "no general review pass has run on this branch — the diff has never been read by the second brain",
     ]);
   });
 
@@ -146,7 +146,7 @@ describe("the review floor with a Claude fallback receipt", () => {
     const req = request({ tree: treeOn({ branch: "elsewhere", headSha: HEAD, patch: "" }) });
     const failures = floor({ records: [STALE_PLAN], receipts: [receiptFor({ req })] });
     expect(failures).toEqual([
-      "no review pass has run on this branch — the diff has never been read by the second brain",
+      "no general review pass has run on this branch — the diff has never been read by the second brain",
     ]);
   });
 
