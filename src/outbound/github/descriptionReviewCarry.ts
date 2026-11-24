@@ -88,7 +88,7 @@ export function parseStoredTreeDelta({
  * @param receipt the earlier receipt
  * @returns the entries, re-hashed to the receipt's own change digest, or why they cannot be trusted
  */
-export function readReviewedTreeDelta({
+function readReviewedTreeDelta({
   home,
   receipt,
 }: {
@@ -198,7 +198,7 @@ export function carriedCleanReview({
  * @param home the state home holding the receipts
  * @returns every stored receipt, or the first file that does not read
  */
-export function readEveryReceipt({
+function readEveryReceipt({
   home,
 }: {
   home: string;
