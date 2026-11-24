@@ -5,7 +5,7 @@ import { catalogFromRows, tokenOfName } from "../../../../store/browse/catalog.j
 import { decodeStoreRowLocator, encodeStoreRowLocator, MAX_LOCATOR_HEX } from "../../../../store/browse/locator.js";
 import { cellsOf } from "../../../../store/browse/read.js";
 import { rowsSqlPlan } from "../../../../store/browse/sql.js";
-import { maskedQueryFailure, storeCellOf } from "../../../../store/browse/values.js";
+import { catalogWithSafeIdentifiers, maskedQueryFailure, storeCellOf } from "../../../../store/browse/values.js";
 
 /** A synthetic GitHub token's shape, assembled so no committed line holds one whole. 40 characters. */
 const TOKEN = `${["gh", "p_"].join("")}${"A1".repeat(18)}`;
@@ -109,6 +109,93 @@ describe("cellsOf", () => {
       body: { characters: 15, kind: "value", text: "plain acme text", truncated: false },
       id: { characters: 40, kind: "value", text: "[redacted:github-token]", truncated: false },
     });
+  });
+});
+
+describe("catalogWithSafeIdentifiers", () => {
+  /** One catalog-query row for a synthetic `acme` column; a key column passes its key position. */
+  const column = ({
+    table,
+    name,
+    ordinal,
+    key = null,
+    type = "text",
+  }: {
+    table: string;
+    name: string;
+    ordinal: number;
+    key?: number | null;
+    type?: string;
+  }): Record<string, unknown> => ({
+    column_name: name,
+    formatted_type: type,
+    generated: false,
+    identity: false,
+    live_tuples: 1,
+    nullable: key === null,
+    ordinal,
+    pk_position: key,
+    reltuples: 1,
+    table_name: table,
+    type_category: "S",
+    type_name: "text",
+  });
+  const clean = [
+    column({ key: 1, name: "id", ordinal: 1, table: "acme_clean" }),
+    column({ name: "body", ordinal: 2, table: "acme_clean" }),
+  ];
+  const denylist = ["acme-private-word"];
+
+  it("withholds a table whole when its name, a column name, a key column or a column type would be masked", () => {
+    const catalog = unwrap(
+      catalogFromRows({
+        rows: [
+          ...clean,
+          column({ key: 1, name: "id", ordinal: 1, table: TOKEN }),
+          column({ key: 1, name: "id", ordinal: 1, table: "acme_column_hit" }),
+          column({ name: "acme-private-word", ordinal: 2, table: "acme_column_hit" }),
+          column({ key: 1, name: TOKEN, ordinal: 1, table: "acme_key_hit" }),
+          column({ key: 1, name: "id", ordinal: 1, table: "acme_type_hit" }),
+          column({ name: "parent", ordinal: 2, table: "acme_type_hit", type: TOKEN }),
+        ],
+      }),
+    );
+    expect(catalog.length).toBe(5);
+    const safe = catalogWithSafeIdentifiers({ catalog, denylist });
+    expect(safe.withheldTables).toBe(4);
+    expect(safe.catalog.map((table) => table.definition.name)).toEqual(["acme_clean"]);
+    expect(safe.catalog[0]).toBe(catalog[0]);
+    expect(JSON.stringify(safe.catalog).includes("acme-private-word")).toBe(false);
+    expect(JSON.stringify(safe.catalog).includes(TOKEN)).toBe(false);
+  });
+
+  it("withholds a table whose token, or a column's, prints a denylisted string, never a 16-byte name's hex", () => {
+    const catalog = unwrap(
+      catalogFromRows({
+        rows: [
+          ...clean,
+          column({ key: 1, name: "id", ordinal: 1, table: "hexed" }),
+          column({ key: 1, name: "id", ordinal: 1, table: "acme_column_hex" }),
+          column({ name: "hexed", ordinal: 2, table: "acme_column_hex" }),
+          column({ key: 1, name: "id", ordinal: 1, table: "acme_sixteen_ab1" }),
+        ],
+      }),
+    );
+    const safe = catalogWithSafeIdentifiers({ catalog, denylist: [tokenOfName({ name: "hexed" })] });
+    expect(tokenOfName({ name: "acme_sixteen_ab1" }).length).toBe(32);
+    expect(safe.withheldTables).toBe(2);
+    expect(safe.catalog.map((table) => table.definition.name)).toEqual(["acme_clean", "acme_sixteen_ab1"]);
+  });
+
+  it("passes a clean catalog through as the same objects, withholding none", () => {
+    const catalog = unwrap(
+      catalogFromRows({ rows: [...clean, column({ name: "note", ordinal: 1, table: "acme_other" })] }),
+    );
+    const safe = catalogWithSafeIdentifiers({ catalog, denylist });
+    expect(safe.withheldTables).toBe(0);
+    expect(safe.catalog).toEqual(catalog);
+    expect(safe.catalog[0]).toBe(catalog[0]);
+    expect(safe.catalog[1]).toBe(catalog[1]);
   });
 });
 

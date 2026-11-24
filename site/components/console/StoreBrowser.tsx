@@ -174,6 +174,7 @@ function StoreReads({
       <aside className="sticky top-2 max-h-[calc(100vh-6rem)] w-[15rem] flex-none self-start overflow-y-auto max-[760px]:static max-[760px]:max-h-none max-[760px]:w-full">
         <StoreTableList
           tables={tables.document.tables}
+          withheldTables={tables.document.withheldTables}
           selected={state.table}
           onSelect={(token) => {
             setState((was) => selectStoreTable({ state: was, table: token }));
@@ -182,7 +183,7 @@ function StoreReads({
       </aside>
       <section className="flex min-w-0 flex-1 flex-col gap-3">
         {table === undefined ? (
-          <p className="m-0 text-[0.82rem] text-muted-foreground">The public schema holds no tables to show.</p>
+          <p className="m-0 text-[0.82rem] text-muted-foreground">No table to show.</p>
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2">

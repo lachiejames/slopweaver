@@ -23,16 +23,19 @@ function estimateOf({ estimatedRows }: { estimatedRows: number | null }): string
  * marked. No box narrows it by name: the console takes typed words in the call's chat alone.
  *
  * @param tables every table the tables document listed, in its order
+ * @param withheldTables how many the verb left out because a name in their definition would be masked
  * @param selected the token of the table shown, or `null`
  * @param onSelect what choosing a table does, given its token
  * @returns the rail
  */
 export function StoreTableList({
   tables,
+  withheldTables,
   selected,
   onSelect,
 }: {
   tables: readonly StoreTableDefinition[];
+  withheldTables: number;
   selected: string | null;
   onSelect: (table: string) => void;
 }): ReactElement {
@@ -44,6 +47,11 @@ export function StoreTableList({
       >
         {String(tables.length)} tables · counts estimated
       </p>
+      {withheldTables > 0 && (
+        <p className="m-0 text-[0.7rem] text-muted-foreground">
+          {String(withheldTables)} withheld: a name in their definition would be masked
+        </p>
+      )}
       <ul className="m-0 flex list-none flex-col gap-px p-0">
         {tables.map((table) => (
           <li key={table.token}>
@@ -66,7 +74,7 @@ export function StoreTableList({
           </li>
         ))}
       </ul>
-      {tables.length === 0 && (
+      {tables.length === 0 && withheldTables === 0 && (
         <p className="m-0 text-[0.75rem] text-muted-foreground">The public schema holds no tables.</p>
       )}
     </nav>
