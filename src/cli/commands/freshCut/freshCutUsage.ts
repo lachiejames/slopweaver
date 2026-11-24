@@ -20,7 +20,8 @@ export const FRESH_CUT_VERIFY_USAGE =
   "  the cut with the hygiene gate and every private term, owner-address rows included. A private-term match\n" +
   "  wholly inside this repository's own address, the code-owner file's owner account or the README's one owner\n" +
   "  link, exactly as the hygiene gate forgives each, or one that is a TEST-NET or 1.2.3.4 address, is counted as\n" +
-  '  exempt instead. A finding the reviewed-residue list accepts is taken out and counted as "reviewed, accepted".\n' +
+  '  exempt instead. A finding the reviewed-residue list accepts is taken out and counted as "reviewed, accepted";\n' +
+  '  an entry that applies to this cut but takes nothing out is printed as "reviewed, unmatched", never stored.\n' +
   "  Findings go to\n" +
   "  <home>/fresh-cuts/<record-id>/verify-<instant>.json, never to the terminal. Exits 1 on any finding.";
 
@@ -35,7 +36,8 @@ export const FRESH_CUT_ACCEPT_USAGE =
   "  is accepted only on --anchor, the owner's own turn ruling on it, which is resolved in the local transcripts\n" +
   "  first; that entry counts in this one record and tree only. Appends one entry to\n" +
   "  <home>/fresh-cuts/reviewed-residue.jsonl\n" +
-  "  keyed by the path, the class and the SHA-256 of the line, so a later change to that line refuses again.\n" +
+  "  bound to that one line: the path, the class, the SHA-256 of the line and, for owner-address, its occurrence\n" +
+  "  among the file's identical lines, so a later change to that line refuses again and an identical copy stays open.\n" +
   "  Refused for --anchor on owner-address, --as or no anchor on any other class, an anchor naming no owner turn,\n" +
   "  a line the verify does not flag, one already accepted, and when no single visible session is named. Prints\n" +
   "  the entry id and class, never the path, line, text or anchor.";

@@ -178,21 +178,26 @@ export function runFreshCutVerify(argv: readonly string[]): number {
   if (verified.isErr()) {
     return exitFor({ error: verified.error });
   }
-  const written = writeFreshCutVerification({ home, verification: verified.value });
+  const { verification, reviewedUnmatched } = verified.value;
+  const written = writeFreshCutVerification({ home, verification });
   if (written.isErr()) {
     return exitFor({ error: written.error });
   }
   if (options.json) {
-    const { findings, ...summary } = verified.value;
+    const { findings, ...summary } = verification;
     logger.out({
-      line: JSON.stringify({ ...summary, findingCount: findings.length, reportPath: written.value }, null, 2),
+      line: JSON.stringify(
+        { ...summary, findingCount: findings.length, reportPath: written.value, reviewedUnmatched },
+        null,
+        2,
+      ),
     });
   } else {
-    for (const line of verificationLines({ reportPath: written.value, verification: verified.value })) {
+    for (const line of verificationLines({ reportPath: written.value, reviewedUnmatched, verification })) {
       logger.out({ line });
     }
   }
-  return verified.value.status === "clear" ? EXIT_OK : EXIT_ERROR;
+  return verification.status === "clear" ? EXIT_OK : EXIT_ERROR;
 }
 
 /**

@@ -6,7 +6,8 @@
  * ids is refused rather than recorded. The turn's text is read only to find it, and never stored or printed.
  *
  * The finding is re-derived exactly as `fresh-cut verify` would report it, so a line the verify does not flag, a
- * finding of another class, or one already accepted is refused rather than recorded; the list is read, checked and
+ * finding of another class, or one already accepted is refused rather than recorded, while the byte-identical copy of
+ * an accepted line stays open to its own acceptance; the list is read, checked and
  * appended under one operation lock, so two concurrent accepts of one line cannot both succeed. The entry names the
  * session that recorded it, the instant and the cut, and carries no term value and no text of the line.
  */
@@ -117,21 +118,26 @@ export function acceptReviewedResidue({
 }
 
 /**
- * Pure: the entry one acceptance appends — version 1 for an owner-address judgement, version 2 for an owner anchor.
+ * Pure: the entry one acceptance appends — version 1 for an owner-address judgement, carrying the line's occurrence
+ * among the file's byte-identical lines because it matches in any cut, and version 2 for an owner anchor, which
+ * matches only at its own line of its own cut and so needs none.
  *
  * @param decision what the acceptance records
  * @param shared the fields both shapes carry
+ * @param occurrence the line's 1-based index among the file's lines with its exact bytes
  * @returns the entry
  */
 function entryFor({
   decision,
   shared,
+  occurrence,
 }: {
   decision: ReviewedResidueDecision;
   shared: Omit<ReviewedResidueEntry, "className" | "schemaVersion" | "judgement" | "ownerAnchor">;
+  occurrence: number;
 }): ReviewedResidueEntry {
   if (decision.className === REVIEWED_RESIDUE_CLASS) {
-    return { ...shared, className: decision.className, judgement: decision.judgement, schemaVersion: 1 };
+    return { ...shared, className: decision.className, judgement: decision.judgement, occurrence, schemaVersion: 1 };
   }
   return { ...shared, className: decision.className, ownerAnchor: decision.ownerAnchor, schemaVersion: 2 };
 }
@@ -181,10 +187,11 @@ function acceptUnderLock({
   }
   const entry = entryFor({
     decision,
+    occurrence: candidate.value.occurrence,
     shared: {
       entryId: randomUUID(),
       lineNumberAtReview: line,
-      lineSha256: candidate.value,
+      lineSha256: candidate.value.lineSha256,
       path,
       reviewedAtIso: now.toISOString(),
       reviewedBySessionId: sessionId,

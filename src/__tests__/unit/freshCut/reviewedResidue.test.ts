@@ -7,13 +7,12 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { emptyAcceptedOnAnchor } from "../../../freshCut/anchoredAcceptance.js";
 import type { CutFile, FreshCutFinding } from "../../../freshCut/core.js";
+import { lineBytesAt, reviewedLineSha256 } from "../../../freshCut/reviewedLines.js";
 import {
   acceptanceCandidate,
   isCanonicalTurnPointer,
-  lineBytesAt,
   type OwnerAddressResidueEntry,
   type OwnerAnchoredResidueEntry,
-  reviewedLineSha256,
   reviewedResidueEntrySchema,
   subtractReviewedResidue,
 } from "../../../freshCut/reviewedResidue.js";
@@ -173,6 +172,7 @@ describe("subtractReviewedResidue", () => {
       acceptedOnAnchor: emptyAcceptedOnAnchor(),
       findings: [address({ line: 1 })],
       reviewedAccepted: 1,
+      reviewedUnmatched: 0,
     });
   });
 
@@ -187,6 +187,22 @@ describe("subtractReviewedResidue", () => {
       acceptedOnAnchor: emptyAcceptedOnAnchor(),
       findings: [address({ line: 3 })],
       reviewedAccepted: 1,
+      reviewedUnmatched: 0,
+    });
+  });
+
+  it("takes out the identical line an entry was accepted for, not the copy met first", () => {
+    const result = subtractReviewedResidue({
+      ...SCOPE,
+      entries: [anchored({ lineNumberAtReview: 3 })],
+      files: [FILE],
+      findings: [topic({ line: 2 }), topic({ line: 3 })],
+    });
+    expect(result).toEqual({
+      acceptedOnAnchor: { ...emptyAcceptedOnAnchor(), topic: 1 },
+      findings: [topic({ line: 2 })],
+      reviewedAccepted: 1,
+      reviewedUnmatched: 0,
     });
   });
 
@@ -198,7 +214,12 @@ describe("subtractReviewedResidue", () => {
       files: [FILE],
       findings: [address({ line: 2 }), address({ line: 3 })],
     });
-    expect(result).toEqual({ acceptedOnAnchor: emptyAcceptedOnAnchor(), findings: [], reviewedAccepted: 2 });
+    expect(result).toEqual({
+      acceptedOnAnchor: emptyAcceptedOnAnchor(),
+      findings: [],
+      reviewedAccepted: 2,
+      reviewedUnmatched: 0,
+    });
   });
 
   it("refuses again when the line's bytes changed", () => {
@@ -213,6 +234,7 @@ describe("subtractReviewedResidue", () => {
       acceptedOnAnchor: emptyAcceptedOnAnchor(),
       findings: [address({ line: 2 }), topic({ line: 2 })],
       reviewedAccepted: 0,
+      reviewedUnmatched: 2,
     });
   });
 
@@ -227,6 +249,7 @@ describe("subtractReviewedResidue", () => {
       acceptedOnAnchor: emptyAcceptedOnAnchor(),
       findings: [topic({ line: 2 })],
       reviewedAccepted: 0,
+      reviewedUnmatched: 1,
     });
   });
 
@@ -248,6 +271,7 @@ describe("subtractReviewedResidue", () => {
       acceptedOnAnchor: emptyAcceptedOnAnchor(),
       findings: [hygiene, pathList],
       reviewedAccepted: 0,
+      reviewedUnmatched: 1,
     });
   });
 
@@ -265,19 +289,25 @@ describe("subtractReviewedResidue", () => {
       acceptedOnAnchor: emptyAcceptedOnAnchor(),
       findings: [pathList, withheld],
       reviewedAccepted: 0,
+      reviewedUnmatched: 2,
     });
   });
 
   it("takes out nothing from an empty list", () => {
     expect(subtractReviewedResidue({ ...SCOPE, entries: [], files: [FILE], findings: [address({ line: 2 })] })).toEqual(
-      { acceptedOnAnchor: emptyAcceptedOnAnchor(), findings: [address({ line: 2 })], reviewedAccepted: 0 },
+      {
+        acceptedOnAnchor: emptyAcceptedOnAnchor(),
+        findings: [address({ line: 2 })],
+        reviewedAccepted: 0,
+        reviewedUnmatched: 0,
+      },
     );
   });
 
   it("takes out an anchored finding in its own record and tree, and counts it under its class", () => {
     const result = subtractReviewedResidue({
       ...SCOPE,
-      entries: [anchored(), entry()],
+      entries: [anchored(), entry({ lineNumberAtReview: 3 })],
       files: [FILE],
       findings: [topic({ line: 2 }), address({ line: 3 })],
     });
@@ -285,6 +315,7 @@ describe("subtractReviewedResidue", () => {
       acceptedOnAnchor: { ...emptyAcceptedOnAnchor(), topic: 1 },
       findings: [],
       reviewedAccepted: 2,
+      reviewedUnmatched: 0,
     });
   });
 
@@ -311,6 +342,7 @@ describe("subtractReviewedResidue", () => {
       acceptedOnAnchor: { ...emptyAcceptedOnAnchor(), "owner-name": 1, topic: 2 },
       findings: [name({ line: 1 }), name({ line: 3 })],
       reviewedAccepted: 3,
+      reviewedUnmatched: 0,
     });
   });
 
@@ -321,26 +353,34 @@ describe("subtractReviewedResidue", () => {
     ].map((scope) =>
       subtractReviewedResidue({ ...scope, entries: [anchored()], files: [FILE], findings: [topic({ line: 2 })] }),
     );
-    expect(elsewhere).toEqual([
-      { acceptedOnAnchor: emptyAcceptedOnAnchor(), findings: [topic({ line: 2 })], reviewedAccepted: 0 },
-      { acceptedOnAnchor: emptyAcceptedOnAnchor(), findings: [topic({ line: 2 })], reviewedAccepted: 0 },
-    ]);
+    const untouched = {
+      acceptedOnAnchor: emptyAcceptedOnAnchor(),
+      findings: [topic({ line: 2 })],
+      reviewedAccepted: 0,
+      reviewedUnmatched: 0,
+    };
+    expect(elsewhere).toEqual([untouched, untouched]);
   });
 
-  it("still takes out an owner-address finding in another record, as it always has", () => {
+  it("still takes out an owner-address finding in another record, at the occurrence it was accepted for", () => {
     const result = subtractReviewedResidue({
-      entries: [entry()],
+      entries: [entry({ occurrence: 1 })],
       files: [FILE],
       findings: [address({ line: 2 })],
       recordId: "4a3b2c1d-0e9f-4a8b-9c7d-6e5f4a3b2c1d",
       treeSha: "b".repeat(40),
     });
-    expect(result).toEqual({ acceptedOnAnchor: emptyAcceptedOnAnchor(), findings: [], reviewedAccepted: 1 });
+    expect(result).toEqual({
+      acceptedOnAnchor: emptyAcceptedOnAnchor(),
+      findings: [],
+      reviewedAccepted: 1,
+      reviewedUnmatched: 0,
+    });
   });
 });
 
 describe("acceptanceCandidate", () => {
-  it("returns the line's digest for an open owner-address finding", () => {
+  it("returns the line's digest and occurrence for an open owner-address finding", () => {
     const result = acceptanceCandidate({
       ...SCOPE,
       className: "owner-address",
@@ -350,7 +390,22 @@ describe("acceptanceCandidate", () => {
       line: 2,
       path: "src/a.ts",
     });
-    expect(unwrap(result)).toBe(sha({ text: "mask line\r" }));
+    expect(unwrap(result)).toEqual({ lineSha256: sha({ text: "mask line\r" }), occurrence: 1 });
+  });
+
+  it("refuses the identical line an anchored entry was accepted for, and accepts the copy beside it", () => {
+    const at = ({ line }: { line: number }) =>
+      acceptanceCandidate({
+        ...SCOPE,
+        className: "topic",
+        entries: [anchored({ lineNumberAtReview: 3 })],
+        files: [FILE],
+        findings: [topic({ line: 2 }), topic({ line: 3 })],
+        line,
+        path: "src/a.ts",
+      });
+    expect(at({ line: 3 })._unsafeUnwrapErr().code).toBe("NO_SUCH_FINDING");
+    expect(unwrap(at({ line: 2 }))).toEqual({ lineSha256: sha({ text: "mask line\r" }), occurrence: 1 });
   });
 
   it("returns the line's digest for an open finding of the named anchored class", () => {
@@ -363,7 +418,7 @@ describe("acceptanceCandidate", () => {
       line: 2,
       path: "src/a.ts",
     });
-    expect(unwrap(result)).toBe(sha({ text: "mask line\r" }));
+    expect(unwrap(result).lineSha256).toBe(sha({ text: "mask line\r" }));
   });
 
   it("refuses a line already accepted", () => {
@@ -402,7 +457,7 @@ describe("acceptanceCandidate", () => {
       treeSha: TREE,
     });
     expect(here._unsafeUnwrapErr().code).toBe("NO_SUCH_FINDING");
-    expect(unwrap(there)).toBe(sha({ text: "mask line\r" }));
+    expect(unwrap(there).lineSha256).toBe(sha({ text: "mask line\r" }));
   });
 
   it("still accepts the second of two identical lines when one is accepted", () => {
@@ -415,7 +470,7 @@ describe("acceptanceCandidate", () => {
       line: 3,
       path: "src/a.ts",
     });
-    expect(unwrap(result)).toBe(sha({ text: "mask line\r" }));
+    expect(unwrap(result)).toEqual({ lineSha256: sha({ text: "mask line\r" }), occurrence: 2 });
   });
 
   it("refuses a line the scan did not flag", () => {

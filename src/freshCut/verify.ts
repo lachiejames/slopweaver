@@ -217,17 +217,28 @@ function checkedAnchoredEntries({
 }
 
 /**
+ * One verification to write, and the count printed beside it that its report does not store.
+ *
+ * @internal — the declared shape of {@link verifyFreshCut}'s success.
+ */
+export interface FreshCutVerified {
+  readonly verification: FreshCutVerification;
+  /** The reviewed-residue entries that applied to this cut and took nothing out. Printed, never written. */
+  readonly reviewedUnmatched: number;
+}
+
+/**
  * Verify one recorded cut and return the verification to write. A tree-hash difference, a cut that is no longer
  * one parentless commit, scan inputs that cannot be trusted or a reviewed-residue list that cannot be relied on —
  * an anchored entry whose owner turn does not resolve included — are errors; findings left once the list's accepted
- * ones are taken out are a `refused` verification.
+ * ones are taken out are a `refused` verification. An entry that took nothing out never changes the status.
  *
  * @param record the cut's record
  * @param source the source checkout to re-derive the tree in
  * @param home the state home whose denylist, private terms and reviewed-residue list the scan applies
  * @param projectsDir the transcripts' root every anchored entry is resolved in again
  * @param now the instant the verification is stamped with
- * @returns the verification, or the first failure
+ * @returns the verification and its unmatched-entry count, or the first failure
  */
 export function verifyFreshCut({
   record,
@@ -241,7 +252,7 @@ export function verifyFreshCut({
   home: string;
   projectsDir: string;
   now: Date;
-}): Result<FreshCutVerification, FreshCutError> {
+}): Result<FreshCutVerified, FreshCutError> {
   const scan = prepareFreshCutScan({ home, record, source });
   if (scan.isErr()) {
     return err(scan.error);
@@ -260,7 +271,7 @@ export function verifyFreshCut({
   if (anchored.isErr()) {
     return err(anchored.error);
   }
-  const { acceptedOnAnchor, findings, reviewedAccepted } = subtractReviewedResidue({
+  const { acceptedOnAnchor, findings, reviewedAccepted, reviewedUnmatched } = subtractReviewedResidue({
     entries: list.value.entries,
     files: scan.value.files,
     findings: scan.value.findings,
@@ -268,17 +279,20 @@ export function verifyFreshCut({
     treeSha: record.treeSha,
   });
   return ok({
-    acceptedOnAnchor,
-    destinationTreeSha: record.treeSha,
-    exemptions: scan.value.exemptions,
-    filesScanned: scan.value.files.length,
-    findings,
-    recordId: record.recordId,
-    reviewedAccepted,
-    reviewedResidueSha256: list.value.sha256,
-    schemaVersion: 3,
-    sourceTreeSha: scan.value.sourceTreeSha,
-    status: findings.length === 0 ? "clear" : "refused",
-    verifiedAtIso: now.toISOString(),
+    reviewedUnmatched,
+    verification: {
+      acceptedOnAnchor,
+      destinationTreeSha: record.treeSha,
+      exemptions: scan.value.exemptions,
+      filesScanned: scan.value.files.length,
+      findings,
+      recordId: record.recordId,
+      reviewedAccepted,
+      reviewedResidueSha256: list.value.sha256,
+      schemaVersion: 3,
+      sourceTreeSha: scan.value.sourceTreeSha,
+      status: findings.length === 0 ? "clear" : "refused",
+      verifiedAtIso: now.toISOString(),
+    },
   });
 }
