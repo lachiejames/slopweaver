@@ -38,7 +38,11 @@ export function readBuiltState({ builtRoot }: { builtRoot: string }): BuiltState
     // nothing, never thrown at the capture, which would lose every reading instead of one.
     return { kind: "unjudgeable" };
   }
-  return stalenessOf({ current, manifest }).stale ? { kind: "stale", manifestText } : { kind: "fresh", manifestText };
+  const staleness = stalenessOf({ current, manifest });
+  if (staleness.stale) {
+    return { evidence: staleness.why, kind: "stale", manifestText };
+  }
+  return { kind: "fresh", manifestText };
 }
 
 /**

@@ -14,6 +14,11 @@ bash scripts/docs-site.sh --check    # is it wired? (what the handover probe run
 bash scripts/docs-site.sh --build    # a production build, for proving a page renders
 ```
 
+Both dev starts, `yarn docs` and `--start`, first check the checkout's built CLI and refuse a stale one, naming
+`slopweaver dev build`: over a stale `dist-cli` every console page waits out the console child's 30 s rebuild bound
+and draws "Organisation required" (`src/builtCli/servingCheckout.ts`). They never build it themselves, because a
+build beside another seat's test lap is a load decision.
+
 - [One server per worktree, recorded — and what reaps the ones that outlive a seat](./docs-site/runtime.md)
   - [The production console: built and served, rebuilt when the checkout moves](./docs-site/runtime.md#the-production-console-built-and-served-rebuilt-when-the-checkout-moves)
   - [Internal, and local-first](./docs-site/runtime.md#internal-and-local-first)

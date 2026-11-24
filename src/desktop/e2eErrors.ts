@@ -3,8 +3,14 @@
  * the report (`./e2eOutcome.ts`). Each `message` says what to do next, because a seat reads it and acts.
  */
 
-/** One reason the walk never started, or stopped before its steps. */
+import type { ServingCheckoutError } from "../builtCli/servingCheckout.js";
+
+/**
+ * One reason the walk never started, or stopped before its steps. A named worktree whose built CLI is stale is the
+ * shared serving-checkout refusal (`../builtCli/servingCheckout.ts`), owned there rather than restated here.
+ */
 export type DesktopE2eError =
+  | ServingCheckoutError
   | { readonly code: "BUNDLE_MISSING"; readonly message: string; readonly path: string }
   | { readonly code: "UNSUPPORTED_BUILD"; readonly message: string; readonly path: string }
   | { readonly code: "UNSUPPORTED_MENU_BAR_BUILD"; readonly message: string; readonly path: string }

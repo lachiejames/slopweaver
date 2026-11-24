@@ -45,7 +45,7 @@ function stamp({ builtRoot, root }: { builtRoot: string; root: string }): string
 
 const FRESH_1: BuiltState = { kind: "fresh", manifestText: "one" };
 const FRESH_2: BuiltState = { kind: "fresh", manifestText: "two" };
-const STALE_1: BuiltState = { kind: "stale", manifestText: "one" };
+const STALE_1: BuiltState = { evidence: "src/a.ts moved", kind: "stale", manifestText: "one" };
 const UNBUILT: BuiltState = { kind: "unbuilt" };
 const UNJUDGEABLE: BuiltState = { kind: "unjudgeable" };
 
@@ -89,11 +89,15 @@ describe("readBuiltState", () => {
     expect(readBuiltState({ builtRoot })).toEqual({ kind: "fresh", manifestText: text });
   });
 
-  it("reads a manifest whose source moved as stale, carrying its text", () => {
+  it("reads a manifest whose source moved as stale, carrying its text and the first file that moved", () => {
     const { builtRoot, root } = checkout();
     const text = stamp({ builtRoot, root });
     writeFileSync(join(root, "src/a.ts"), "export const a = 11;\n");
-    expect(readBuiltState({ builtRoot })).toEqual({ kind: "stale", manifestText: text });
+    expect(readBuiltState({ builtRoot })).toEqual({
+      evidence: "src/a.ts is 21 bytes, 20 at build time",
+      kind: "stale",
+      manifestText: text,
+    });
   });
 
   it("reads a manifest that does not parse as unjudgeable", () => {

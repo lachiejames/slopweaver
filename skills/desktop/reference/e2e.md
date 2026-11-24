@@ -76,7 +76,8 @@ apart from `passed` and `failed`, and never a pass: [the empty Queue](e2e-empty-
 - **It reads the console the checkout already serves.** If the Queue never shows within 90s it photographs what did
   and stops with `CONSOLE_NEVER_SHOWN`; check `slopweaver checkout console`. `--checkout <worktree>` walks a
   worktree's own console (`scripts/docs-site.sh --start`), which proves a `site/` change before it lands; that one is
-  a DEV server, slower on a first read ([still-loading](e2e-still-loading.md)).
+  a DEV server, slower on a first read ([still-loading](e2e-still-loading.md)). A worktree with a stale built CLI is
+  refused before launch (`STALE_BUILT_CLI`, `src/builtCli/servingCheckout.ts`): run `slopweaver dev build` there.
 - **`--context work|slopweaver` picks the instance's work context**, as the console's switcher does, after every
   launch (the walk, the card inventory, each call and each relaunch), so a count is read off the Queue that holds the
   cards. The owner's app keeps its own context. Unset, the instance starts in the console's own default. If the address,
