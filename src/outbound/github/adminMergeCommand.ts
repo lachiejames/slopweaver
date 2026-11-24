@@ -5,6 +5,10 @@
  * (`src/cli/commands/github/mergeArgs.ts`), so a hint printing `merge --admin --number <n>` alone names a command
  * that cannot run. Each caller fills what it already holds and passes a `<placeholder>` for what it does not;
  * nothing here invents a value. The spelling is `skills/github/SKILL.md`'s.
+ *
+ * Residue, stated: a value is printed verbatim, never shell-quoted. Git refuses a space in a branch name, but a
+ * head such as `fix;x` or one carrying `$` is a legal ref and prints unquoted, so a reader pasting the line
+ * runs what follows the `;` or expands the `$`. The heads this repository's sessions cut are slugs.
  */
 
 /**
