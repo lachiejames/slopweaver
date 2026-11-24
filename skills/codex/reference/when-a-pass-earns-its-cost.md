@@ -123,11 +123,11 @@ the check is a lookup, never a similarity judgement:
 **Read the plan row twice, because it costs you something real.** Re-running `p2` on the same branch and
 commit with a COMPLETELY DIFFERENT planning question is a duplicate by this key, and will be refused. That is
 the requested rule rather than a bug, the refusal says so in its own words, and it is the first exception on
-the hatch's list. The review row trades the other way and in your favour: a rebase that changes every SHA and
-no bytes is still the same question, so the answer you already paid for still counts — and the landing floor
-counts it too: `codex status` and both landing verbs print that review `CURRENT` with the reason "the diff it
-judged against <base> is byte-identical", read from the same `diffSha256` this gate refuses on. A rebase that
-DID move the diff leaves the review STALE and the re-run is not a duplicate.
+the hatch's list. The review row trades the other way, in your favour: a rebase changing every SHA and no bytes
+is the same question, so `codex status` and both landing verbs print that review `CURRENT`, "the diff it judged
+against <base> is byte-identical". A `--base <full SHA>` review re-diffs against that OLD commit, so the landing
+verbs also diff against the pull request's CURRENT base (`codex status` has none: STALE, `src/codex/diffCarry.ts`).
+A rebase that DID move the diff leaves the review STALE and the re-run is not a duplicate.
 
 **Only a CONCLUSIVE record refuses.** A plan that answered `READY` or `BLOCKED`, or a review that answered
 `CLEAN` or `BROKEN` about the property its own scope names. A `NO_VERDICT`, a `FATAL`, or a review record

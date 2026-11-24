@@ -23,8 +23,9 @@
  * duplicate — which is the common duplicate class the measurement found.
  *
  * **The landing floor agrees, and must.** `./ledger.ts`'s `freshnessOf` carries a review across a rebase as
- * CURRENT when the diff the tree now produces against the record's base ref hashes to this same
- * `diffSha256`. Before it did, the floor keyed the review on the TREE: after a conflict-free rebase it called
+ * CURRENT when the diff the tree now produces against the record's base ref — or, at landing, against the
+ * pull request's current base, which is what carries a review pinned to an older base commit — hashes to this
+ * same `diffSha256`. Before it did, the floor keyed the review on the TREE: after a conflict-free rebase it called
  * every review STALE while this gate refused the re-run, and only the hatch got a branch out.
  * Two gates asking one question must key it the same way.
  *
