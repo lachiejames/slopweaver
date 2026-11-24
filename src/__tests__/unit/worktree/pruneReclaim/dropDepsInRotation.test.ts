@@ -117,7 +117,55 @@ describe("dropDepsInRotation and depsClause", () => {
       "settle",
       "check /a/2",
       "drop /a/2",
+      "settle",
     ]);
+  });
+
+  it("waits after the last drop of a pass that reached every tree", async () => {
+    const steps: string[] = [];
+    const pass = await dropDepsInRotation({
+      deadlineMs: Number.MAX_SAFE_INTEGER,
+      drop: ({ verdict }) => {
+        steps.push(`drop ${verdict.path}`);
+        return outcome({ verdict });
+      },
+      pace: {
+        settle: async () => {
+          steps.push("settle");
+        },
+        stopReason: () => null,
+      },
+      paused: () => null,
+      plans: [{ repoRoot: "/a", verdicts: [verdictFor({ path: "/a/1" })] }],
+      print: () => undefined,
+      stillCold: async () => true,
+    });
+
+    expect(steps).toEqual(["drop /a/1", "settle"]);
+    expect(pass.remaining).toHaveLength(0);
+  });
+
+  it("never waits after a last tree the re-check refused", async () => {
+    const steps: string[] = [];
+    await dropDepsInRotation({
+      deadlineMs: Number.MAX_SAFE_INTEGER,
+      drop: ({ verdict }) => {
+        steps.push(`drop ${verdict.path}`);
+        return outcome({ verdict });
+      },
+      pace: {
+        settle: async () => {
+          steps.push("settle");
+        },
+        stopReason: () => null,
+      },
+      paused: () => null,
+      plans,
+      print: () => undefined,
+      stillCold: async ({ verdict }) => verdict.path !== "/a/2",
+    });
+
+    expect(steps).toEqual(["drop /a/1", "settle", "drop /b/1", "settle"]);
   });
 
   it("stops before the next tree once the pacer says so, and owes the rest to the next run", async () => {
@@ -194,7 +242,7 @@ describe("dropDepsInRotation and depsClause", () => {
       stillCold: async () => true,
     });
 
-    expect(steps).toEqual(["drop /a/1", "drop /b/1", "drop /a/2"]);
+    expect(steps).toEqual(["drop /a/1", "drop /b/1", "drop /a/2", "settle"]);
     expect(pass.stripped).toBe(1);
     expect(pass.remaining).toHaveLength(0);
   });
