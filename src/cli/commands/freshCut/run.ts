@@ -7,6 +7,7 @@
  * creates a remote repository, adds a remote or pushes: a cut leaves this machine only by a later, separate act.
  */
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 import { githubToken } from "../../../config.js";
 import { acceptReviewedResidue } from "../../../freshCut/accept.js";
 import { verificationLines } from "../../../freshCut/core.js";
@@ -19,6 +20,7 @@ import { logger } from "../../../lib/logger.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { githubReadGraphql } from "../../../live/github/read.js";
 import { githubNoReplyAddress, viewerIdentity } from "../../../live/github/viewerIdentity.js";
+import { claudeHomeDir } from "../../../supervisor/chairRead.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { resolveHome, verbTail } from "../../optionParsers.js";
@@ -54,6 +56,7 @@ function exitFor({ error }: { error: FreshCutError }): number {
     error.code === "COMMIT_NOT_ON_MAIN" ||
     error.code === "DESTINATION_REFUSED" ||
     error.code === "REVIEWED_RESIDUE_CANDIDATE_REFUSED" ||
+    error.code === "OWNER_ANCHOR_REFUSED" ||
     error.code === "REVIEWER_SESSION_UNAVAILABLE"
   ) {
     return EXIT_USAGE;
@@ -168,6 +171,7 @@ export function runFreshCutVerify(argv: readonly string[]): number {
   const verified = verifyFreshCut({
     home,
     now: new Date(),
+    projectsDir: join(claudeHomeDir(), "projects"),
     record: record.value,
     source,
   });
@@ -223,11 +227,12 @@ export function runFreshCutAccept(argv: readonly string[]): number {
     source = options.source;
   }
   const accepted = acceptReviewedResidue({
+    decision: options.decision,
     home,
-    judgement: options.judgement,
     line: options.line,
     now: new Date(),
     path: options.path,
+    projectsDir: join(claudeHomeDir(), "projects"),
     record: record.value,
     sessionId,
     source,
@@ -237,16 +242,14 @@ export function runFreshCutAccept(argv: readonly string[]): number {
   }
   const { entry, listPath } = accepted.value;
   if (options.json) {
+    // The anchor stays in the owner-only list: the output says only that the entry rests on one.
+    const basis = entry.schemaVersion === 1 ? { judgement: entry.judgement } : { acceptedOn: "owner-anchor" as const };
     logger.out({
-      line: JSON.stringify(
-        { className: entry.className, entryId: entry.entryId, judgement: entry.judgement, listPath },
-        null,
-        2,
-      ),
+      line: JSON.stringify({ className: entry.className, entryId: entry.entryId, ...basis, listPath }, null, 2),
     });
     return EXIT_OK;
   }
-  for (const line of acceptLines({ entryId: entry.entryId, judgement: entry.judgement, listPath })) {
+  for (const line of acceptLines({ entry, listPath })) {
     logger.out({ line });
   }
   return EXIT_OK;

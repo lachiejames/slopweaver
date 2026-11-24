@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { emptyAcceptedOnAnchor } from "../../../freshCut/anchoredAcceptance.js";
 import {
   FRESH_CUT_MESSAGE,
   firstGitlinkPath,
@@ -408,10 +409,11 @@ describe("verificationLines", () => {
           { className: "person", kind: "private-term", line: 1, path: "secret/quillfeather.md" },
           { kind: "hygiene", label: "denylist", line: 2, path: "b.txt" },
         ],
+        acceptedOnAnchor: { ...emptyAcceptedOnAnchor(), money: 4, topic: 2 },
         recordId: "r",
         reviewedAccepted: 31,
         reviewedResidueSha256: "e".repeat(64),
-        schemaVersion: 2,
+        schemaVersion: 3,
         sourceTreeSha: BLOB_A,
         status: "refused",
         verifiedAtIso: "2026-11-20T01:02:03.000Z",
@@ -422,6 +424,7 @@ describe("verificationLines", () => {
       "fresh-cut verify: 3 files scanned — 1 hygiene finding(s), 1 private-term finding(s)",
       "fresh-cut verify: private-term matches exempted — own-address 40, code-owner 1, owner-reference 1, documentation-address 2",
       "fresh-cut verify: reviewed, accepted: 31",
+      "fresh-cut verify: of those, accepted on an owner anchor — owner-name 0, owner-handle 0, person 0, organisation 0, place 0, health 0, money 4, topic 2",
       "fresh-cut verify: REFUSED — report /home/fresh-cuts/r/verify-1.json",
     ]);
   });

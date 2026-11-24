@@ -14,6 +14,7 @@ import { acquireOperationLock } from "../../../admit/operationLock.js";
 import { acceptReviewedResidue, REVIEWED_RESIDUE_LOCK_KEY } from "../../../freshCut/accept.js";
 import type { FreshCutRecord } from "../../../freshCut/core.js";
 import { produceFreshCut } from "../../../freshCut/produce.js";
+import type { ReviewedResidueDecision } from "../../../freshCut/reviewedResidue.js";
 import { reviewedResiduePath } from "../../../freshCut/reviewedResidueStore.js";
 import { verifyFreshCut } from "../../../freshCut/verify.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
@@ -73,26 +74,58 @@ function cutOf({ files }: { files: Readonly<Record<string, string>> }): {
   return { home, record, repo, root };
 }
 
-/** Accept one line of a cut as a version string. */
+/** The synthetic transcript an owner anchor resolves in, and the owner turn inside it. */
+const OWNER_SESSION = "11111111-0000-4333-8444-555555555555";
+const OWNER_TURN = "66666666-0000-4888-9999-aaaaaaaaaaaa";
+const ANCHOR = `transcript:${OWNER_SESSION}#${OWNER_TURN}`;
+
+/** A throwaway transcripts root holding one transcript with one owner turn, written the way Claude Code writes one. */
+function projectsWithOwnerTurn(): string {
+  const root = mkdtempSync(join(tmpdir(), "fresh-accept-claude-"));
+  roots.push(root);
+  const project = join(root, "projects", "-repo");
+  mkdirSync(project, { recursive: true });
+  writeFileSync(
+    join(project, `${OWNER_SESSION}.jsonl`),
+    `${JSON.stringify({
+      cwd: "/repo",
+      message: { content: [{ text: "yes, those lines are fine", type: "text" }], role: "user" },
+      timestamp: "2026-11-20T00:00:00.000Z",
+      type: "user",
+      uuid: OWNER_TURN,
+    })}\n`,
+  );
+  return join(root, "projects");
+}
+
+/** A transcripts root nothing is written under, so no anchor resolves in it. */
+const noTranscripts = (): string => join(tmpdir(), "no-transcripts-here");
+
+/** Accept one line of a cut: as a version string by default, or on a decision a case names. */
 const accept = ({
   home,
   record,
   repo,
   path,
   line,
+  decision = { className: "owner-address", judgement: "not-an-address" },
+  projectsDir = noTranscripts(),
 }: {
   home: string;
   record: FreshCutRecord;
   repo: string;
   path: string;
   line: number;
+  decision?: ReviewedResidueDecision;
+  projectsDir?: string;
 }) =>
   acceptReviewedResidue({
+    decision,
     home,
-    judgement: "not-an-address",
     line,
     now: NOW,
     path,
+    projectsDir,
     record,
     sessionId: SESSION,
     source: repo,
@@ -101,7 +134,7 @@ const accept = ({
 describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   it("takes an accepted line out of the next verify, counts it, and binds the list's exact bytes", () => {
     const { home, record, repo } = cutOf({ files: { "VERSION.md": "intro\nbuild 7.12.3.40\n" } });
-    const before = unwrap(verifyFreshCut({ home, now: NOW, record, source: repo }));
+    const before = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
     expect([before.status, before.findings, before.reviewedAccepted]).toEqual([
       "refused",
       [{ className: "owner-address", kind: "private-term", line: 2, path: "VERSION.md" }],
@@ -115,7 +148,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
       createHash("sha256").update("build 7.12.3.40").digest("hex"),
     ]);
 
-    const after = unwrap(verifyFreshCut({ home, now: NOW, record, source: repo }));
+    const after = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
     expect([after.status, after.findings, after.reviewedAccepted, after.reviewedResidueSha256]).toEqual([
       "clear",
       [],
@@ -130,7 +163,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
     const { home, record, repo } = cutOf({ files: { "VERSION.md": "build 7.12.3.40\n" } });
     unwrap(accept({ home, line: 1, path: "VERSION.md", record, repo }));
     appendFileSync(reviewedResiduePath({ home }), "\n");
-    expect(unwrapErr(verifyFreshCut({ home, now: NOW, record, source: repo })).code).toBe(
+    expect(unwrapErr(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo })).code).toBe(
       "REVIEWED_RESIDUE_UNREADABLE",
     );
   });
@@ -157,11 +190,161 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
     );
   });
 
-  it("refuses a line holding only a finding of another class", () => {
+  it("refuses a reader's owner-address judgement on a line holding only a finding of another class", () => {
     const { home, record, repo } = cutOf({ files: { "NOTES.md": "about quillfeather\n" } });
     expect(unwrapErr(accept({ home, line: 1, path: "NOTES.md", record, repo })).code).toBe(
       "REVIEWED_RESIDUE_CANDIDATE_REFUSED",
     );
+  });
+
+  it("accepts a topic line on a resolved owner anchor, storing no text, and the verify clears and says so by class", () => {
+    const { home, record, repo } = cutOf({ files: { "NOTES.md": "intro\nabout quillfeather\n" } });
+    const projectsDir = projectsWithOwnerTurn();
+    const accepted = unwrap(
+      accept({
+        decision: { className: "topic", ownerAnchor: ANCHOR },
+        home,
+        line: 2,
+        path: "NOTES.md",
+        projectsDir,
+        record,
+        repo,
+      }),
+    );
+    const stored = readFileSync(reviewedResiduePath({ home }), "utf8");
+    expect([
+      accepted.entry.schemaVersion,
+      accepted.entry.className,
+      Object.keys(JSON.parse(stored) as object).toSorted(),
+      stored.includes("quillfeather"),
+      stored.includes("those lines are fine"),
+    ]).toEqual([
+      2,
+      "topic",
+      [
+        "className",
+        "entryId",
+        "lineNumberAtReview",
+        "lineSha256",
+        "ownerAnchor",
+        "path",
+        "reviewedAtIso",
+        "reviewedBySessionId",
+        "reviewedRecordId",
+        "reviewedTreeSha",
+        "schemaVersion",
+      ],
+      false,
+      false,
+    ]);
+
+    const after = unwrap(verifyFreshCut({ home, now: NOW, projectsDir, record, source: repo }));
+    expect([
+      after.status,
+      after.findings,
+      after.reviewedAccepted,
+      after.acceptedOnAnchor.topic,
+      after.schemaVersion,
+    ]).toEqual(["clear", [], 1, 1, 3]);
+  });
+
+  it("refuses the whole verify when an anchored entry's owner turn no longer resolves", () => {
+    const { home, record, repo } = cutOf({ files: { "NOTES.md": "about quillfeather\n" } });
+    const projectsDir = projectsWithOwnerTurn();
+    unwrap(
+      accept({
+        decision: { className: "topic", ownerAnchor: ANCHOR },
+        home,
+        line: 1,
+        path: "NOTES.md",
+        projectsDir,
+        record,
+        repo,
+      }),
+    );
+    expect(unwrap(verifyFreshCut({ home, now: NOW, projectsDir, record, source: repo })).status).toBe("clear");
+    const refused = unwrapErr(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
+    expect([refused.code, refused.message.includes("could not be read")]).toEqual([
+      "REVIEWED_RESIDUE_UNREADABLE",
+      true,
+    ]);
+  });
+
+  it("refuses the whole verify over a hand-written anchored entry whose owner turn is not in its transcript", () => {
+    const { home, record, repo } = cutOf({ files: { "NOTES.md": "about quillfeather\n" } });
+    const forged = {
+      className: "topic",
+      entryId: "2d9a7a6e-8c0c-4f5a-9d3f-4b6c8e0a2c3d",
+      lineNumberAtReview: 1,
+      lineSha256: createHash("sha256").update("about quillfeather").digest("hex"),
+      ownerAnchor: `transcript:${OWNER_SESSION}#${"0".repeat(8)}-0000-4000-8000-${"0".repeat(12)}`,
+      path: "NOTES.md",
+      reviewedAtIso: NOW.toISOString(),
+      reviewedBySessionId: SESSION,
+      reviewedRecordId: record.recordId,
+      reviewedTreeSha: record.treeSha,
+      schemaVersion: 2,
+    };
+    mkdirSync(join(home, "fresh-cuts"), { recursive: true });
+    writeFileSync(reviewedResiduePath({ home }), `${JSON.stringify(forged)}\n`, { mode: 0o600 });
+    const refused = unwrapErr(
+      verifyFreshCut({ home, now: NOW, projectsDir: projectsWithOwnerTurn(), record, source: repo }),
+    );
+    expect([refused.code, refused.message.includes(`entry ${forged.entryId} rests on an owner anchor`)]).toEqual([
+      "REVIEWED_RESIDUE_UNREADABLE",
+      true,
+    ]);
+  });
+
+  it("refuses, and appends nothing, when the anchor names no owner turn in its transcript", () => {
+    const { home, record, repo } = cutOf({ files: { "NOTES.md": "about quillfeather\n" } });
+    const refused = unwrapErr(
+      accept({
+        decision: {
+          className: "topic",
+          ownerAnchor: `transcript:${OWNER_SESSION}#${"0".repeat(8)}-0000-4000-8000-${"0".repeat(12)}`,
+        },
+        home,
+        line: 1,
+        path: "NOTES.md",
+        projectsDir: projectsWithOwnerTurn(),
+        record,
+        repo,
+      }),
+    );
+    expect([refused.code, existsSync(reviewedResiduePath({ home }))]).toEqual(["OWNER_ANCHOR_REFUSED", false]);
+  });
+
+  it("refuses, and appends nothing, when the anchor's transcript is not there to read", () => {
+    const { home, record, repo } = cutOf({ files: { "NOTES.md": "about quillfeather\n" } });
+    const refused = unwrapErr(
+      accept({ decision: { className: "topic", ownerAnchor: ANCHOR }, home, line: 1, path: "NOTES.md", record, repo }),
+    );
+    expect([refused.code, existsSync(reviewedResiduePath({ home }))]).toEqual(["OWNER_ANCHOR_UNREADABLE", false]);
+  });
+
+  it("never forgives the same anchored line in another record over the same home", () => {
+    const first = cutOf({ files: { "NOTES.md": "about quillfeather\n" } });
+    unwrap(
+      accept({
+        decision: { className: "topic", ownerAnchor: ANCHOR },
+        home: first.home,
+        line: 1,
+        path: "NOTES.md",
+        projectsDir: projectsWithOwnerTurn(),
+        record: first.record,
+        repo: first.repo,
+      }),
+    );
+    const other: FreshCutRecord = { ...first.record, recordId: "4a3b2c1d-0e9f-4a8b-9c7d-6e5f4a3b2c1d" };
+    const verification = unwrap(
+      verifyFreshCut({ home: first.home, now: NOW, projectsDir: noTranscripts(), record: other, source: first.repo }),
+    );
+    expect([verification.status, verification.findings, verification.reviewedAccepted]).toEqual([
+      "refused",
+      [{ className: "topic", kind: "private-term", line: 1, path: "NOTES.md" }],
+      0,
+    ]);
   });
 
   it("refuses again once the accepted line changes, in a new cut over the same home", () => {
@@ -173,7 +356,13 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
     writeFileSync(reviewedResiduePath({ home: second.home }), list);
 
     const verification = unwrap(
-      verifyFreshCut({ home: second.home, now: NOW, record: second.record, source: second.repo }),
+      verifyFreshCut({
+        home: second.home,
+        now: NOW,
+        projectsDir: noTranscripts(),
+        record: second.record,
+        source: second.repo,
+      }),
     );
     expect([verification.status, verification.findings, verification.reviewedAccepted]).toEqual([
       "refused",

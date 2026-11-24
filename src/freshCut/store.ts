@@ -9,6 +9,7 @@ import { z } from "zod";
 import { err, ok, type Result } from "../lib/result.js";
 import { writeFileAtomic } from "../lib/writeAtomic.js";
 import { stateHomePaths } from "../stateHome.js";
+import { acceptedOnAnchorSchema } from "./anchoredAcceptance.js";
 import { type FreshCutRecord, type FreshCutVerification, freshCutRecordSchema } from "./core.js";
 import { type FreshCutError, FreshCutErrors } from "./errors.js";
 
@@ -107,43 +108,54 @@ const countSchema = z.number().int().nonnegative();
  * every field is checked, and `clear` must mean no findings: a file carrying a `clear` status and nothing else is not a
  * verification, and reading it as one would let it publish a cut nothing scanned.
  */
+const reportFields = {
+  destinationTreeSha: z.string().regex(OBJECT_ID),
+  exemptions: z
+    .object({
+      "code-owner": countSchema,
+      "documentation-address": countSchema,
+      "own-address": countSchema,
+      "owner-reference": countSchema,
+    })
+    .strict(),
+  filesScanned: countSchema,
+  findings: z.array(
+    z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("hygiene"), label: z.string().min(1), line: countSchema, path: z.string() }).strict(),
+      z
+        .object({
+          className: z.string().min(1),
+          kind: z.literal("private-term"),
+          line: countSchema,
+          path: z.string(),
+        })
+        .strict(),
+    ]),
+  ),
+  recordId: z.uuid(),
+  reviewedAccepted: countSchema,
+  reviewedResidueSha256: z.string().regex(/^[0-9a-f]{64}$/),
+  sourceTreeSha: z.string().regex(OBJECT_ID),
+  status: z.enum(["clear", "refused"]),
+  verifiedAtIso: z.iso.datetime(),
+};
+
+/**
+ * Every report a verify has written: version 2, from before an owner anchor could accept a finding, and version 3,
+ * which carries the anchored share of the accepted count by class. A version 3 report's anchored counts can never sum
+ * past the total it says it accepted.
+ */
 const verificationReportSchema = z
-  .object({
-    destinationTreeSha: z.string().regex(OBJECT_ID),
-    exemptions: z
-      .object({
-        "code-owner": countSchema,
-        "documentation-address": countSchema,
-        "own-address": countSchema,
-        "owner-reference": countSchema,
-      })
-      .strict(),
-    filesScanned: countSchema,
-    findings: z.array(
-      z.discriminatedUnion("kind", [
-        z
-          .object({ kind: z.literal("hygiene"), label: z.string().min(1), line: countSchema, path: z.string() })
-          .strict(),
-        z
-          .object({
-            className: z.string().min(1),
-            kind: z.literal("private-term"),
-            line: countSchema,
-            path: z.string(),
-          })
-          .strict(),
-      ]),
-    ),
-    recordId: z.uuid(),
-    reviewedAccepted: countSchema,
-    reviewedResidueSha256: z.string().regex(/^[0-9a-f]{64}$/),
-    schemaVersion: z.literal(2),
-    sourceTreeSha: z.string().regex(OBJECT_ID),
-    status: z.enum(["clear", "refused"]),
-    verifiedAtIso: z.iso.datetime(),
-  })
-  .strict()
-  .refine((report) => (report.status === "clear") === (report.findings.length === 0));
+  .discriminatedUnion("schemaVersion", [
+    z.object({ ...reportFields, schemaVersion: z.literal(2) }).strict(),
+    z.object({ ...reportFields, acceptedOnAnchor: acceptedOnAnchorSchema, schemaVersion: z.literal(3) }).strict(),
+  ])
+  .refine((report) => (report.status === "clear") === (report.findings.length === 0))
+  .refine(
+    (report) =>
+      report.schemaVersion === 2 ||
+      Object.values(report.acceptedOnAnchor).reduce((sum, count) => sum + count, 0) <= report.reviewedAccepted,
+  );
 
 /** Where the cuts carrying one root stand: none recorded, recorded but never verified, or their latest verification. */
 export type CutRootStanding =

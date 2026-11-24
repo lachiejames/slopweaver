@@ -84,7 +84,7 @@ export interface ScanInputUnavailableError {
   readonly message: string;
 }
 
-/** The reviewed-residue list could not be read, or a line in it is not a valid owner-address entry. */
+/** The reviewed-residue list could not be read, or a line in it is not a valid entry of either shape. */
 export interface ReviewedResidueUnreadableError {
   readonly code: "REVIEWED_RESIDUE_UNREADABLE";
   readonly message: string;
@@ -96,9 +96,21 @@ export interface ReviewedResidueWriteFailedError {
   readonly message: string;
 }
 
-/** The finding named to `fresh-cut accept` is not exactly one current owner-address finding. */
+/** The finding named to `fresh-cut accept` is not exactly one current finding of the named class. */
 export interface ReviewedResidueCandidateRefusedError {
   readonly code: "REVIEWED_RESIDUE_CANDIDATE_REFUSED";
+  readonly message: string;
+}
+
+/** The owner anchor an acceptance names is a well-formed pointer to no owner turn in its transcript. */
+export interface OwnerAnchorRefusedError {
+  readonly code: "OWNER_ANCHOR_REFUSED";
+  readonly message: string;
+}
+
+/** The transcript an owner anchor names could not be found or read completely, so the anchor cannot be checked. */
+export interface OwnerAnchorUnreadableError {
+  readonly code: "OWNER_ANCHOR_UNREADABLE";
   readonly message: string;
 }
 
@@ -126,6 +138,8 @@ export type FreshCutError =
   | ReviewedResidueUnreadableError
   | ReviewedResidueWriteFailedError
   | ReviewedResidueCandidateRefusedError
+  | OwnerAnchorRefusedError
+  | OwnerAnchorUnreadableError
   | ReviewerSessionUnavailableError;
 
 /** The factory every fresh-cut failure is built through. */
@@ -159,6 +173,15 @@ export const FreshCutErrors = {
   identityUnavailable: ({ why }: { why: string }): IdentityUnavailableError => ({
     code: "IDENTITY_UNAVAILABLE",
     message: `the owner's GitHub identity could not be read: ${why}`,
+  }),
+  ownerAnchorRefused: (): OwnerAnchorRefusedError => ({
+    code: "OWNER_ANCHOR_REFUSED",
+    message:
+      "nothing accepted: --anchor names no owner turn in its transcript — pass the pointer to the owner's own turn that ruled on this line",
+  }),
+  ownerAnchorUnreadable: ({ why }: { why: string }): OwnerAnchorUnreadableError => ({
+    code: "OWNER_ANCHOR_UNREADABLE",
+    message: `nothing accepted: the transcript --anchor names could not be read, so the anchor cannot be checked: ${why}`,
   }),
   recordUnreadable: ({ path, why }: { path: string; why: string }): RecordUnreadableError => ({
     code: "RECORD_UNREADABLE",

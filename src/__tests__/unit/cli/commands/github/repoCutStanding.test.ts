@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { writePushRootBinding } from "../../../../../admit/pushRootStore.js";
 import { refusePublicUnlessCutClear } from "../../../../../cli/commands/github/repoCutStanding.js";
+import { emptyAcceptedOnAnchor } from "../../../../../freshCut/anchoredAcceptance.js";
 import { writeFreshCutRecord, writeFreshCutVerification } from "../../../../../freshCut/store.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 
@@ -79,8 +80,9 @@ function verified({
         findings: status === "refused" ? [{ kind: "hygiene", label: "token", line: 1, path: "a.ts" }] : [],
         recordId,
         reviewedAccepted: 0,
+        acceptedOnAnchor: emptyAcceptedOnAnchor(),
         reviewedResidueSha256: "e".repeat(64),
-        schemaVersion: 2,
+        schemaVersion: 3,
         sourceTreeSha: "b".repeat(40),
         status,
         verifiedAtIso: at,
@@ -160,6 +162,84 @@ describe("refusePublicUnlessCutClear", () => {
     expect(refused.message).toContain(
       "verify-forged.json could not be read: it is not a whole verification of that cut",
     );
+  });
+
+  it("still reads a version 2 report written before the anchored counts existed", () => {
+    const home = homeWith({ recordIds: [FIRST] });
+    const older = {
+      destinationTreeSha: "b".repeat(40),
+      exemptions: { "code-owner": 0, "documentation-address": 0, "own-address": 0, "owner-reference": 0 },
+      filesScanned: 3,
+      findings: [{ kind: "hygiene", label: "token", line: 1, path: "a.ts" }],
+      recordId: FIRST,
+      reviewedAccepted: 0,
+      reviewedResidueSha256: "e".repeat(64),
+      schemaVersion: 2,
+      sourceTreeSha: "b".repeat(40),
+      status: "refused",
+      verifiedAtIso: "2026-11-23T12:00:00.000Z",
+    };
+    verified({ at: "2026-11-23T11:00:00.000Z", home, recordId: FIRST, status: "clear" });
+    writeFileSync(join(home, "fresh-cuts", FIRST, "verify-older.json"), JSON.stringify(older));
+    const refused = unwrapErr(refusePublicUnlessCutClear({ home, repositories: REPOSITORIES }));
+
+    expect(refused.message).toContain(`the latest fresh-cut verify of cut ${FIRST} (2026-11-23T12:00:00.000Z) refused`);
+  });
+
+  it("refuses a version 3 report whose anchored counts are wrong in shape or sum past the total", () => {
+    const base = {
+      destinationTreeSha: "b".repeat(40),
+      exemptions: { "code-owner": 0, "documentation-address": 0, "own-address": 0, "owner-reference": 0 },
+      filesScanned: 3,
+      findings: [],
+      recordId: FIRST,
+      reviewedResidueSha256: "e".repeat(64),
+      schemaVersion: 3,
+      sourceTreeSha: "b".repeat(40),
+      status: "clear",
+      verifiedAtIso: "2026-11-23T12:00:00.000Z",
+    };
+    const { topic: _dropped, ...missingClass } = emptyAcceptedOnAnchor();
+    const forgeries = [
+      { ...base, reviewedAccepted: 0 },
+      { ...base, acceptedOnAnchor: missingClass, reviewedAccepted: 0 },
+      { ...base, acceptedOnAnchor: { ...emptyAcceptedOnAnchor(), "owner-address": 0 }, reviewedAccepted: 0 },
+      { ...base, acceptedOnAnchor: { ...emptyAcceptedOnAnchor(), money: 2 }, reviewedAccepted: 1 },
+      { ...base, acceptedOnAnchor: emptyAcceptedOnAnchor(), reviewedAccepted: 0, schemaVersion: 2 },
+    ];
+    const messages = forgeries.map((forged) => {
+      const home = homeWith({ recordIds: [FIRST] });
+      writeFileSync(join(home, "fresh-cuts", FIRST, "verify-forged.json"), JSON.stringify(forged));
+      return unwrapErr(refusePublicUnlessCutClear({ home, repositories: REPOSITORIES })).message;
+    });
+
+    expect(forgeries.length).toBe(5);
+    expect(
+      messages.filter((message) =>
+        message.includes("verify-forged.json could not be read: it is not a whole verification of that cut"),
+      ).length,
+    ).toBe(5);
+  });
+
+  it("lets a bound repository go public on a clear that rests on anchored acceptances", () => {
+    const home = homeWith({ recordIds: [FIRST] });
+    const anchoredClear = {
+      acceptedOnAnchor: { ...emptyAcceptedOnAnchor(), money: 2, topic: 1 },
+      destinationTreeSha: "b".repeat(40),
+      exemptions: { "code-owner": 0, "documentation-address": 0, "own-address": 0, "owner-reference": 0 },
+      filesScanned: 3,
+      findings: [],
+      recordId: FIRST,
+      reviewedAccepted: 3,
+      reviewedResidueSha256: "e".repeat(64),
+      schemaVersion: 3,
+      sourceTreeSha: "b".repeat(40),
+      status: "clear",
+      verifiedAtIso: "2026-11-23T12:00:00.000Z",
+    };
+    writeFileSync(join(home, "fresh-cuts", FIRST, "verify-anchored.json"), JSON.stringify(anchoredClear));
+
+    expect(unwrap(refusePublicUnlessCutClear({ home, repositories: REPOSITORIES }))).toBe(undefined);
   });
 
   it("refuses rather than skipping a verification report it cannot parse", () => {

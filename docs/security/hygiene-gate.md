@@ -211,7 +211,7 @@ read afresh each time (`src/outbound/writePrivacyPolicy.ts`) from the home the v
   literals, so a catastrophically backtracking row would stall the write that matches it.
 - **A picture's pixels are read on this machine, and what reading cannot see is a stated residue.** macOS Vision (`src/visualEvidence/imageTextRecognition.ts`, no egress, no model call) reads the text a PNG shows before `github attach` sends it; a failed, timed-out or non-macOS read refuses.
   It cannot see a face, a map, a photographed place, a logo or handwriting, nor text too small, blurred, rotated or low-contrast to read, a term split across two lines or a misread one. Those stay the capture rule: no picture shows the owner's real Queue, calls or home. A recording's pixels are not read; its transcript is its text.
-- **`fresh-cut verify` runs these same rows over every file of a cut, none narrowed**; an owner-address line a session READ is taken out only by an exact reviewed-residue entry ([fresh-cut residue](fresh-cut-residue.md)).
+- **`fresh-cut verify` runs these same rows over every file of a cut, none narrowed**; a finding is taken out only by an exact reviewed-residue entry: an owner-address line a session READ, or a line of another class on an owner anchor, in that one record ([fresh-cut residue](fresh-cut-residue.md)).
 
 A fresh installation with no private words declares that once (a first word goes in with `private-terms add`):
 

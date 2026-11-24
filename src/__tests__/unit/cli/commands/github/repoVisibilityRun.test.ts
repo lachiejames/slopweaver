@@ -9,6 +9,7 @@ import type { DoorLedgerPort } from "../../../../../admit/doorLedgerPort.js";
 import { writePushRootBinding } from "../../../../../admit/pushRootStore.js";
 import { runGithubRepo } from "../../../../../cli/commands/github/repoRun.js";
 import { SET_PUBLIC_CONSEQUENCES } from "../../../../../cli/commands/github/repoVisibilityRun.js";
+import { emptyAcceptedOnAnchor } from "../../../../../freshCut/anchoredAcceptance.js";
 import { writeFreshCutRecord, writeFreshCutVerification } from "../../../../../freshCut/store.js";
 import { unwrap } from "../../../../../lib/result.js";
 import { memoryDoorLedger } from "../../../../doorLedgerFixture.js";
@@ -119,8 +120,9 @@ function verified({ home, status, at }: { home: string; status: "clear" | "refus
         findings: status === "refused" ? [{ kind: "hygiene", label: "token", line: 1, path: "a.ts" }] : [],
         recordId: RECORD_ID,
         reviewedAccepted: 0,
+        acceptedOnAnchor: emptyAcceptedOnAnchor(),
         reviewedResidueSha256: "e".repeat(64),
-        schemaVersion: 2,
+        schemaVersion: 3,
         sourceTreeSha: "b".repeat(40),
         status,
         verifiedAtIso: at,

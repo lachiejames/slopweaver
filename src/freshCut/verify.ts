@@ -12,6 +12,8 @@
 import { loadPrivateTerms, privateTermsRefusal } from "../hygiene/privateTerms.js";
 import { loadDenylistResult, unreadableDenylistMessage } from "../hygiene/scan.js";
 import { err, ok, type Result } from "../lib/result.js";
+import { findOwnerTurn } from "../supervisor/chairTranscript.js";
+import { parseTurnPointer } from "../transcripts/pointer.js";
 import { parseCatFileBatch } from "../worktree/salvageScan.js";
 import {
   type CutExemptionCounts,
@@ -25,8 +27,8 @@ import {
 import { type FreshCutError, FreshCutErrors } from "./errors.js";
 import { freshCutGitText, runFreshCutGit } from "./git.js";
 import { checkCut, readTreeEntries } from "./produce.js";
-import { subtractReviewedResidue } from "./reviewedResidue.js";
-import { readReviewedResidue } from "./reviewedResidueStore.js";
+import { type ReviewedResidueEntry, subtractReviewedResidue } from "./reviewedResidue.js";
+import { readReviewedResidue, reviewedResiduePath } from "./reviewedResidueStore.js";
 
 /** How many blobs one `cat-file --batch` run reads, so no single answer holds the whole repository at once. */
 const BLOB_BATCH = 500;
@@ -140,14 +142,90 @@ export function prepareFreshCutScan({
   return ok({ exemptions, files: files.value, findings, sourceTreeSha: sourceTree.value });
 }
 
+/** Why an owner anchor cannot be relied on: it names no owner turn, or its transcript could not be read. */
+type OwnerAnchorProblem = { readonly kind: "no-owner-turn" } | { readonly kind: "unreadable"; readonly why: string };
+
+/**
+ * Resolve an owner anchor to the owner's own turn in its transcript — the one check `fresh-cut accept` runs before it
+ * records an anchored entry and `fresh-cut verify` runs again before it subtracts one, so a hand-written entry with an
+ * invented pair of ids is never trusted. The turn found is dropped here: neither its text nor anything else of it
+ * goes further.
+ *
+ * @param ownerAnchor the `transcript:<session>#<turn>` pointer the entry carries
+ * @param projectsDir the transcripts' root, `~/.claude/projects` in a real run
+ * @returns nothing, or why the anchor cannot be relied on
+ */
+export function resolveOwnerAnchor({
+  ownerAnchor,
+  projectsDir,
+}: {
+  ownerAnchor: string;
+  projectsDir: string;
+}): Result<void, OwnerAnchorProblem> {
+  const pointer = parseTurnPointer({ text: ownerAnchor });
+  if (pointer === undefined) {
+    return err({ kind: "no-owner-turn" });
+  }
+  const turn = findOwnerTurn({ pointer, projectsDir });
+  if (turn.isOk()) {
+    return ok(undefined);
+  }
+  if (turn.error.code === "TURN_NOT_FOUND") {
+    return err({ kind: "no-owner-turn" });
+  }
+  return err({ kind: "unreadable", why: turn.error.message });
+}
+
+/**
+ * Re-resolve every anchored entry that can subtract a finding of this record and tree. One that does not resolve
+ * refuses the whole list, exactly as a malformed line does, rather than being skipped: skipping it would leave a
+ * forged entry's finding refused today and say nothing about the list that carried it.
+ *
+ * @param entries the list's entries
+ * @param recordId the cut's record id
+ * @param treeSha the cut's tree
+ * @param listPath the list's path, for the refusal
+ * @returns nothing, or the refusal naming the entry by id
+ */
+function checkedAnchoredEntries({
+  entries,
+  recordId,
+  treeSha,
+  projectsDir,
+  listPath,
+}: {
+  entries: readonly ReviewedResidueEntry[];
+  recordId: string;
+  treeSha: string;
+  projectsDir: string;
+  listPath: string;
+}): Result<void, FreshCutError> {
+  for (const entry of entries) {
+    if (entry.schemaVersion !== 2 || entry.reviewedRecordId !== recordId || entry.reviewedTreeSha !== treeSha) {
+      continue;
+    }
+    const resolved = resolveOwnerAnchor({ ownerAnchor: entry.ownerAnchor, projectsDir });
+    if (resolved.isErr()) {
+      let why = `entry ${entry.entryId} rests on an owner anchor that names no owner turn in its transcript`;
+      if (resolved.error.kind === "unreadable") {
+        why = `entry ${entry.entryId}'s owner anchor could not be read: ${resolved.error.why}`;
+      }
+      return err(FreshCutErrors.reviewedResidueUnreadable({ path: listPath, why }));
+    }
+  }
+  return ok(undefined);
+}
+
 /**
  * Verify one recorded cut and return the verification to write. A tree-hash difference, a cut that is no longer
- * one parentless commit, scan inputs that cannot be trusted or a reviewed-residue list that cannot be relied on are
- * errors; findings left once the list's accepted ones are taken out are a `refused` verification.
+ * one parentless commit, scan inputs that cannot be trusted or a reviewed-residue list that cannot be relied on —
+ * an anchored entry whose owner turn does not resolve included — are errors; findings left once the list's accepted
+ * ones are taken out are a `refused` verification.
  *
  * @param record the cut's record
  * @param source the source checkout to re-derive the tree in
  * @param home the state home whose denylist, private terms and reviewed-residue list the scan applies
+ * @param projectsDir the transcripts' root every anchored entry is resolved in again
  * @param now the instant the verification is stamped with
  * @returns the verification, or the first failure
  */
@@ -155,11 +233,13 @@ export function verifyFreshCut({
   record,
   source,
   home,
+  projectsDir,
   now,
 }: {
   record: FreshCutRecord;
   source: string;
   home: string;
+  projectsDir: string;
   now: Date;
 }): Result<FreshCutVerification, FreshCutError> {
   const scan = prepareFreshCutScan({ home, record, source });
@@ -170,12 +250,25 @@ export function verifyFreshCut({
   if (list.isErr()) {
     return err(list.error);
   }
-  const { findings, reviewedAccepted } = subtractReviewedResidue({
+  const anchored = checkedAnchoredEntries({
+    entries: list.value.entries,
+    listPath: reviewedResiduePath({ home }),
+    projectsDir,
+    recordId: record.recordId,
+    treeSha: record.treeSha,
+  });
+  if (anchored.isErr()) {
+    return err(anchored.error);
+  }
+  const { acceptedOnAnchor, findings, reviewedAccepted } = subtractReviewedResidue({
     entries: list.value.entries,
     files: scan.value.files,
     findings: scan.value.findings,
+    recordId: record.recordId,
+    treeSha: record.treeSha,
   });
   return ok({
+    acceptedOnAnchor,
     destinationTreeSha: record.treeSha,
     exemptions: scan.value.exemptions,
     filesScanned: scan.value.files.length,
@@ -183,7 +276,7 @@ export function verifyFreshCut({
     recordId: record.recordId,
     reviewedAccepted,
     reviewedResidueSha256: list.value.sha256,
-    schemaVersion: 2,
+    schemaVersion: 3,
     sourceTreeSha: scan.value.sourceTreeSha,
     status: findings.length === 0 ? "clear" : "refused",
     verifiedAtIso: now.toISOString(),

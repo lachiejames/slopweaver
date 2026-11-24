@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { emptyAcceptedOnAnchor } from "../../../freshCut/anchoredAcceptance.js";
 import type { FreshCutRecord } from "../../../freshCut/core.js";
 import { readFreshCutRecord, writeFreshCutRecord, writeFreshCutVerification } from "../../../freshCut/store.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
@@ -76,8 +77,9 @@ describe("writeFreshCutVerification", () => {
           findings: [],
           recordId: RECORD_ID,
           reviewedAccepted: 0,
+          acceptedOnAnchor: emptyAcceptedOnAnchor(),
           reviewedResidueSha256: "c".repeat(64),
-          schemaVersion: 2,
+          schemaVersion: 3,
           sourceTreeSha: "b".repeat(40),
           status: "clear",
           verifiedAtIso: "2026-11-20T01:02:03.000Z",

@@ -17,6 +17,7 @@ import { privateTermHitsBeside } from "../hygiene/privateTermMatches.js";
 import type { PrivateTerm, PrivateTermClass } from "../hygiene/privateTerms.js";
 import { isRefusedHit, scanContent } from "../hygiene/scan.js";
 import { err, ok, type Result } from "../lib/result.js";
+import { type AcceptedOnAnchor, OWNER_ANCHORED_CLASSES } from "./anchoredAcceptance.js";
 
 /** The one commit message every cut carries. Owner-agnostic on purpose: it names no person, place or date. */
 export const FRESH_CUT_MESSAGE = "Initial commit";
@@ -378,10 +379,12 @@ export function scanCutFiles({
 /**
  * A finished verification, as it is written to the state home. `findings` is what is left once the reviewed-residue
  * list took out `reviewedAccepted` of them; `reviewedResidueSha256` is the digest of the exact list bytes it used, so
- * the freeze audit can bind this report to the list it re-reads.
+ * the freeze audit can bind this report to the list it re-reads. `acceptedOnAnchor` is the share of
+ * `reviewedAccepted` taken out on an owner anchor, by class, so a clear that rests on the owner's ruling reads as
+ * that rather than as a cut with nothing in it.
  */
 export interface FreshCutVerification {
-  readonly schemaVersion: 2;
+  readonly schemaVersion: 3;
   readonly recordId: string;
   readonly verifiedAtIso: string;
   readonly status: "clear" | "refused";
@@ -391,6 +394,7 @@ export interface FreshCutVerification {
   readonly findings: readonly FreshCutFinding[];
   readonly exemptions: CutExemptionCounts;
   readonly reviewedAccepted: number;
+  readonly acceptedOnAnchor: AcceptedOnAnchor;
   readonly reviewedResidueSha256: string;
 }
 
@@ -412,11 +416,15 @@ export function verificationLines({
   const hygiene = verification.findings.filter((finding) => finding.kind === "hygiene").length;
   const privateTerm = verification.findings.length - hygiene;
   const exempted = CUT_EXEMPTION_REASONS.map((reason) => `${reason} ${String(verification.exemptions[reason])}`);
+  const anchored = OWNER_ANCHORED_CLASSES.map(
+    (className) => `${className} ${String(verification.acceptedOnAnchor[className])}`,
+  );
   return [
     `fresh-cut verify: tree ${verification.sourceTreeSha} matches the record and the cut's root`,
     `fresh-cut verify: ${String(verification.filesScanned)} files scanned — ${String(hygiene)} hygiene finding(s), ${String(privateTerm)} private-term finding(s)`,
     `fresh-cut verify: private-term matches exempted — ${exempted.join(", ")}`,
     `fresh-cut verify: reviewed, accepted: ${String(verification.reviewedAccepted)}`,
+    `fresh-cut verify: of those, accepted on an owner anchor — ${anchored.join(", ")}`,
     `fresh-cut verify: ${verification.status.toUpperCase()} — report ${reportPath}`,
   ];
 }

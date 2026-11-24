@@ -8,6 +8,7 @@ import type { DoorLedgerPort } from "../../../../../admit/doorLedgerPort.js";
 import { writePushRootBinding } from "../../../../../admit/pushRootStore.js";
 import { type FreshCutPushGit, parseRemoteRefs } from "../../../../../cli/commands/github/repoPushFreshCutRun.js";
 import { runGithubRepo } from "../../../../../cli/commands/github/repoRun.js";
+import { emptyAcceptedOnAnchor } from "../../../../../freshCut/anchoredAcceptance.js";
 import { writeFreshCutRecord, writeFreshCutVerification } from "../../../../../freshCut/store.js";
 import { err, ok, unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
@@ -218,8 +219,9 @@ describe("github repo --push-fresh-cut", () => {
           findings: [{ kind: "hygiene", label: "token", line: 1, path: "a.ts" }],
           recordId: RECORD_ID,
           reviewedAccepted: 0,
+          acceptedOnAnchor: emptyAcceptedOnAnchor(),
           reviewedResidueSha256: "e".repeat(64),
-          schemaVersion: 2,
+          schemaVersion: 3,
           sourceTreeSha: TREE,
           status: "refused",
           verifiedAtIso: "2026-11-23T11:00:00.000Z",
