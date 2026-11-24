@@ -88,8 +88,9 @@ Two policy locks you should expect, each with a key, and neither worth fighting 
 
 - **`this pull request was opened by a different GitHub account`** → you are not the author. Do not override
   it in a bot turn; log it and say whose it is.
-- **`--form REPLACES the whole description`** → re-run with `SLOPWEAVER_ALLOW_PR_REPLACE=1` when a whole-form
-  write is genuinely what the turn needs, and say so in the pull request. It never releases
+- **`--form REPLACES the whole description`** → a turn changing only some fields takes `--edit`, as the refusal
+  says. Re-run with `SLOPWEAVER_ALLOW_PR_REPLACE=1` only when a whole-form write is genuinely what the turn
+  needs, and say so in the pull request. It never releases
   `pr-evidence-loss`: a write dropping a screenshot or run link a settled ask of the owner's named is refused on every
   mode ([pr-update-locks](../../github/reference/pr-update-locks.md)).
 

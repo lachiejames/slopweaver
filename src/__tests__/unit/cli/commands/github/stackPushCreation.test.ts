@@ -430,7 +430,8 @@ describe("a stale reservation is released, never a live one", () => {
     const { deps, lines } = harnessDeps({ api });
     const code = await runGithubStackPush({ argv: [...PUSH_ARGS, "--form", formArg(), "--home", home], deps });
     expect(code).toBe(EXIT_ERROR);
-    expect(lines.some((line) => line.includes("already reserved by #15324"))).toBe(true);
+    // Only a duplicate citing the open pull request prints its update, on the form target's own repository.
+    expect(lines.includes("  slopweaver github pr update --repo o/r --number 15324 --edit - < edit.json")).toBe(true);
   });
 
   it("releases the reservation and creates when the recorded pull request is CLOSED", async () => {

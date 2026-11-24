@@ -202,8 +202,9 @@ export function replaceDecisionFor({
     kind: "refused",
     reason:
       "--form REPLACES the whole description, so anything in the live one that a form cannot carry is " +
-      `discarded and GitHub keeps no history of it. The diff above is what would change. Re-run with ` +
-      `${ALLOW_PR_REPLACE}=1 if that is what you want`,
+      `discarded and GitHub keeps no history of it. The diff above is what would change. To change only some ` +
+      `fields and keep the rest, use --edit instead. Re-run with ${ALLOW_PR_REPLACE}=1 if a whole replacement ` +
+      `is what you want`,
   };
 }
 

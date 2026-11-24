@@ -21,6 +21,7 @@ import type { DoorRequest } from "../../../admit/types.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import type { PrFormDraft } from "../../../outbound/github/types.js";
 import { booleanFlagsOf, type FlagSpec, parseFlags, stringFlagsOf } from "../../parseFlags.js";
+import { duplicateRefusalLines } from "./duplicateRefusal.js";
 import { type GithubVerbError, GithubVerbErrors } from "./errors.js";
 import type { PrAddress } from "./updateCore.js";
 
@@ -388,7 +389,16 @@ export type PrOutcome =
    * for — so it exits 0.
    */
   | { readonly kind: "unchanged"; readonly number: number; readonly url: string }
-  | { readonly kind: "duplicate"; readonly locus: string; readonly existing: number | undefined }
+  /**
+   * The branch pair is already reserved. `repo` is the form target's `owner/name` as the caller spelled it, which
+   * the update command prints: `locus` is a lowercased ledger key and is never parsed back into a repository.
+   */
+  | {
+      readonly kind: "duplicate";
+      readonly locus: string;
+      readonly existing: number | undefined;
+      readonly repo: string;
+    }
   | { readonly kind: "refused"; readonly reason: string }
   | { readonly kind: "unconfirmed"; readonly locus: string; readonly detail: string };
 
@@ -413,11 +423,7 @@ export function outcomeLines({ outcome }: { outcome: PrOutcome }): readonly stri
         "  the merged description is byte-identical to the one already there, so nothing was sent.",
       ];
     case "duplicate":
-      return [
-        `refused: ${outcome.locus} is already reserved` +
-          (outcome.existing === undefined ? "" : ` by #${String(outcome.existing)}`) +
-          ". A second pull request for the same branches would be a duplicate, not a retry.",
-      ];
+      return duplicateRefusalLines({ existing: outcome.existing, locus: outcome.locus, repo: outcome.repo });
     case "refused":
       return [`refused: ${outcome.reason}`];
     case "unconfirmed":
