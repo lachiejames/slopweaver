@@ -129,13 +129,13 @@
  * that joins the two.
  */
 import { join } from "node:path";
-import { EXIT_ERROR, EXIT_OK } from "../cli/exitCodes.js";
+import { EXIT_OK } from "../cli/exitCodes.js";
 import { err, ok as okResult, type Result } from "../lib/result.js";
 import { machineConcurrency } from "./gateCapacity.js";
 import { bespokeRatchets, externalChecks } from "./gateGroups.js";
-import { concurrencyLine, runLintSegments } from "./gateRunner.js";
+import { runLintSegments } from "./gateRunner.js";
 import { previousGateSeconds, recordGateSeconds } from "./gateSeconds.js";
-import { composeLint, laneVerdictLine, lintSummaryLine, onlyScopeLine } from "./lintVerdict.js";
+import { lapClose } from "./lintVerdict.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
 import { lintGateRefusal } from "./refusal/render.js";
 import {
@@ -220,6 +220,11 @@ export interface LintCheckResult {
    * the machine. Such a result is never `ok`: a gate that did not run passed nothing.
    */
   readonly withheld?: string;
+  /**
+   * Present only on a gate that RAN and failed: every byte it printed, stdout then stderr, so the closing
+   * recap (`failedGateRecapLines`, `./lintVerdict.ts`) can repeat its finding beside the verdict.
+   */
+  readonly output?: string;
 }
 
 /**
@@ -544,7 +549,7 @@ export async function runDevLint({
   if (resolved.isErr()) {
     return reportPlanRefusal({ error: resolved.error });
   }
-  const { lane, laneScope, partial, running, uncovered } = resolved.value;
+  const { lane, partial, running } = resolved.value;
   const priorSeconds = previousGateSeconds();
   const startedAt = Date.now();
   const concurrency = machineConcurrency();
@@ -565,20 +570,9 @@ export async function runDevLint({
   if (!partial && lane !== "seat") {
     recordGateSeconds({ previous: priorSeconds, results });
   }
-
-  process.stdout.write("\ndev lint:\n");
-  for (const r of results) {
-    process.stdout.write(`${lintSummaryLine({ result: r })}\n`);
-  }
-  const { exit } = composeLint({ planned: running.map((check) => check.name), results });
-  process.stdout.write(`${concurrencyLine({ concurrency, results, wallMs })}\n`);
-  if (partial) {
-    process.stdout.write(`${onlyScopeLine({ ran: results.map((r) => r.name), total: planned.length })}\n`);
-  }
-  const withheld = results.filter((r) => r.withheld !== undefined).map((r) => r.name);
-  const ranOk = exit !== EXIT_ERROR;
-  process.stdout.write(`${laneVerdictLine({ lane, laneScope, ok: ranOk, uncovered, withheld })}\n`);
-  return exit;
+  const close = lapClose({ concurrency, results, run: resolved.value, totalGates: planned.length, wallMs });
+  process.stdout.write(`\n${close.lines.join("\n")}\n`);
+  return close.exit;
 }
 
 /**

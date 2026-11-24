@@ -21,6 +21,10 @@ sum of gate times against wall time cannot. Three consequences worth knowing bef
 - **Output is BUFFERED, not streamed.** Each gate's stdout and stderr are captured whole and replayed under
   its `dev lint: <name>` header in PLAN order, never completion order, and never interleaved. A gate is
   replayed as soon as every gate before it in plan order has been, so output still flows during the lap.
+  The whole section, the gate's stderr included, goes out as ONE write to stdout: across two pipes a
+  failing gate's stderr overtook its own header on the hosted runner and printed under an earlier gate
+  (`gateSection`, `src/devLint/gateRunner.ts`). Each gate that ran and failed is repeated directly above
+  the verdict line, so a tail read of the log shows the finding as well as the `✗`.
 - **The two whole-Program gates run alone**, each declaring `exclusive: true`. `named-object-params`, because
   what its heap (`HEAP_BUDGET_MIB`, over 6 GiB) costs beside a full pool is unmeasured. `oxlint`, because its
   type-aware pass (`tsgolint`, Go) measured 7.30 GB resident alone with a worker per core, and beside five other

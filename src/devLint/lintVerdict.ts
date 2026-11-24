@@ -4,8 +4,49 @@
  * which plans and spawns, along that seam: everything here reads finished results and returns text or a code.
  */
 import { EXIT_DEFERRED, EXIT_ERROR, EXIT_OK } from "../cli/exitCodes.js";
-import type { LintCheckResult, LintLane } from "./devLint.js";
-import { secondsLabel } from "./gateRunner.js";
+import type { LintCheckResult, LintLane, LintRun } from "./devLint.js";
+import { concurrencyLine, secondsLabel } from "./gateRunner.js";
+
+/**
+ * A lap's whole closing block, in print order, and its exit code. Pure.
+ *
+ * The order is the contract: the `dev lint:` heading, one summary line per gate in plan order, the concurrency
+ * witness, the `--only` scope line on a narrowed run, each failed gate's recap ({@link failedGateRecapLines}),
+ * and the verdict line LAST. The recap sits directly above the verdict so a read of the log's tail carries each
+ * failed gate's finding, not only its name.
+ *
+ * @param concurrency the pool width this machine ran, which the witness ratio is read against
+ * @param results every gate's outcome, in plan order
+ * @param run the resolved plan: its lane, scope, `--only` flag and the gates it spawned
+ * @param totalGates how many gates the whole plan holds, for the `--only` scope line
+ * @param wallMs how long the whole lap took
+ * @returns the closing lines, each without a trailing newline, and the process exit code
+ */
+export function lapClose({
+  concurrency,
+  results,
+  run,
+  totalGates,
+  wallMs,
+}: {
+  concurrency: number;
+  results: readonly LintCheckResult[];
+  run: LintRun;
+  totalGates: number;
+  wallMs: number;
+}): { readonly lines: readonly string[]; readonly exit: number } {
+  const { lane, laneScope, partial, running, uncovered } = run;
+  const { exit } = composeLint({ planned: running.map((check) => check.name), results });
+  const lines = ["dev lint:", ...results.map((result) => lintSummaryLine({ result }))];
+  lines.push(concurrencyLine({ concurrency, results, wallMs }));
+  if (partial) {
+    lines.push(onlyScopeLine({ ran: results.map((result) => result.name), total: totalGates }));
+  }
+  lines.push(...failedGateRecapLines({ results }));
+  const withheld = results.filter((result) => result.withheld !== undefined).map((result) => result.name);
+  lines.push(laneVerdictLine({ lane, laneScope, ok: exit !== EXIT_ERROR, uncovered, withheld }));
+  return { exit, lines };
+}
 
 /**
  * One gate's line in the closing summary: its verdict, how long it took, and whether it was killed or withheld.
@@ -15,7 +56,7 @@ import { secondsLabel } from "./gateRunner.js";
  *
  * @param result the gate's outcome
  * @returns the summary line, without its trailing newline
- * @internal — `runDevLint` and this module's test.
+ * @internal — {@link lapClose} and this module's test.
  */
 export function lintSummaryLine({ result }: { result: LintCheckResult }): string {
   if (result.withheld !== undefined) {
@@ -24,6 +65,54 @@ export function lintSummaryLine({ result }: { result: LintCheckResult }): string
   const time = result.elapsedMs === undefined ? "" : ` (${secondsLabel({ ms: result.elapsedMs })})`;
   const hung = result.hung === true ? " — HUNG, killed at the ceiling" : "";
   return `  ${result.ok ? "✓" : "✗"} ${result.name}${time}${hung}`;
+}
+
+/**
+ * How many of one failed gate's own lines the closing recap repeats before pointing back at its section.
+ *
+ * Bounded because the recap sits in the TAIL of the log, where a default `github run-log` read lands: a
+ * gate that failed on a thousand findings would otherwise push every other failed gate, and the verdict
+ * line, out of that window. Twenty holds a typical finding list plus the four-line refusal that closes it.
+ *
+ * @internal — {@link failedGateRecapLines} and its test.
+ */
+export const RECAP_LINES_PER_GATE = 20;
+
+/**
+ * The closing recap: every gate that RAN and failed, each followed by what it printed, so the end of the log
+ * carries the finding and not only the gate's name. Pure.
+ *
+ * The `✗ <name>` summary line says WHICH gate failed and nothing about why, and on the hosted runner the why
+ * sits hundreds of lines up, inside a lap thousands of lines long. A read of the log's tail — the default one,
+ * and the one a session reaches for first — then names the failure without showing it. So each failed gate's
+ * output is repeated here, blank lines dropped, up to {@link RECAP_LINES_PER_GATE} lines; past that, the line
+ * names how many more there are and the section header that holds them all. A withheld gate is not repeated:
+ * it ran nothing, and its summary line already carries its reason.
+ *
+ * @param results every gate's outcome, in plan order
+ * @returns the recap lines, each without a trailing newline; empty when no gate that ran failed
+ * @internal — {@link lapClose} and its test.
+ */
+export function failedGateRecapLines({ results }: { results: readonly LintCheckResult[] }): readonly string[] {
+  const lines: string[] = [];
+  for (const result of results) {
+    if (result.ok || result.withheld !== undefined) {
+      continue;
+    }
+    const printed = result.output === undefined ? [] : result.output.split("\n").filter((line) => line.trim() !== "");
+    lines.push(`dev lint: ${result.name} FAILED — what it printed, repeated from its section:`);
+    if (printed.length === 0) {
+      lines.push("  (nothing: its exit code alone failed it)");
+    }
+    for (const line of printed.slice(0, RECAP_LINES_PER_GATE)) {
+      lines.push(`  ${line}`);
+    }
+    if (printed.length > RECAP_LINES_PER_GATE) {
+      const more = printed.length - RECAP_LINES_PER_GATE;
+      lines.push(`  … ${String(more)} more line(s) under \`dev lint: ${result.name}\` above`);
+    }
+  }
+  return lines;
 }
 
 /**
@@ -41,6 +130,7 @@ export function lintSummaryLine({ result }: { result: LintCheckResult }): string
  * @param planned the name of every check this lap set out to run
  * @returns the overall pass/fail + the process exit code (0 all-clear, 4 all that ran passed but a gate was
  *   withheld, 1 any failure)
+ * @internal — {@link lapClose} and this module's test.
  */
 export function composeLint({
   results,
@@ -77,7 +167,7 @@ export function composeLint({
  * @param ran the gates this run actually spawned, in plan order
  * @param total how many gates the whole plan holds
  * @returns the scope line, without its trailing newline
- * @internal — `runDevLint` and this module's test.
+ * @internal — {@link lapClose} and this module's test.
  */
 export function onlyScopeLine({ ran, total }: { ran: readonly string[]; total: number }): string {
   return `dev lint: --only ran ${String(ran.length)} of ${String(total)} gates, NOT the whole bar: ${ran.join(", ")}`;
@@ -108,6 +198,7 @@ export function onlyScopeLine({ ran, total }: { ran: readonly string[]; total: n
  * @param uncovered what a `seat` run did not cover, by name
  * @param withheld the gates this run planned and then refused to spawn, by name
  * @returns the verdict line, without its trailing newline
+ * @internal — {@link lapClose} and this module's test.
  */
 export function laneVerdictLine({
   ok,
