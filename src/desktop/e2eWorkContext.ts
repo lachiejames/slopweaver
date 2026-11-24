@@ -8,10 +8,10 @@
  * address (`site/lib/workContext.ts`) — so every page the walk reaches, and the voice window, which resolves the
  * console window's address before storage, show the one asked for. These restate the site's values because a file
  * under `src/` may not import one under `site/`; `site/__tests__/unit/e2eWorkContextMirror.test.ts` holds them equal.
+ *
+ * That mirror puts this module inside the console site's own typecheck, whose CI job installs only `site/`'s
+ * dependencies, so it imports nothing: the flag's read, which returns a `Result`, is `./e2eContextFlag.ts`.
  */
-import { err, ok, type Result } from "#lib/result.js";
-
-import { type DesktopE2eFlagError, DesktopE2eFlagErrors } from "./e2eErrors.js";
 
 /** The two contexts the console can be looked at in — `site/lib/workContext.ts`'s `WorkContext`. */
 export type E2eWorkContext = "work" | "slopweaver";
@@ -29,26 +29,6 @@ export const E2E_CONTEXT_STORAGE_KEY = "sw-context";
  */
 export function isE2eWorkContext(value: unknown): value is E2eWorkContext {
   return value === "work" || value === "slopweaver";
-}
-
-/**
- * The `--context` flag's value, read.
- *
- * @param text the flag's value, or `undefined` when the flag was not passed
- * @returns the context, `undefined` when not asked for — the instance then opens as it always has — or the refusal
- */
-export function e2eContextOf({
-  text,
-}: {
-  text: string | undefined;
-}): Result<E2eWorkContext | undefined, DesktopE2eFlagError> {
-  if (text === undefined) {
-    return ok(undefined);
-  }
-  if (!isE2eWorkContext(text)) {
-    return err(DesktopE2eFlagErrors.contextUnknown({ contexts: E2E_WORK_CONTEXTS, text }));
-  }
-  return ok(text);
 }
 
 /**

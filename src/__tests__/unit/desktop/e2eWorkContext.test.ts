@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  e2eContextOf,
-  e2eContextQueuePath,
-  e2eDrawnContextSelector,
-  isE2eWorkContext,
-} from "../../../desktop/e2eWorkContext.js";
+import { e2eContextOf } from "../../../desktop/e2eContextFlag.js";
+import { e2eContextQueuePath, e2eDrawnContextSelector, isE2eWorkContext } from "../../../desktop/e2eWorkContext.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 
 describe("e2eContextOf", () => {
