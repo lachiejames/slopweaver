@@ -311,24 +311,45 @@ export function withheldOutcome({ check, reason }: { check: LintCheck; reason: s
 }
 
 /**
- * Print one finished gate exactly as the serial loop did: its header, then its own bytes, in full.
+ * One finished gate's whole section as ONE string: its header, its stdout, its stderr, and the hung line when
+ * the ceiling killed it. Pure.
+ *
+ * **One string, written to one stream, is the whole fix for a finding printed outside its own section.** The
+ * section used to go out as a header on stdout and the gate's findings on stderr. Those are two pipes, and
+ * nothing orders bytes ACROSS two pipes: `process.stdout.write` to a pipe queues whatever the 64 KiB pipe
+ * buffer will not take (`./stdoutDataChannel.ts` measures that), while the next gate's stderr finds its own
+ * pipe empty and goes straight out. A lap prints thousands of stdout lines (the hygiene report alone fills
+ * the buffer), so on the hosted runner a failing gate's stderr overtook its own header and landed a dozen lines
+ * early, under whichever earlier gate stdout was still draining — and its own section read empty. A terminal
+ * never shows this, because a TTY write is synchronous.
+ *
+ * So a gate's stderr is replayed onto stdout, after its stdout, inside its own section. Nothing is lost by
+ * that: the bytes are the gate's own, verbatim, and the lap's verdict is its exit code, never which stream a
+ * line came out of.
+ *
+ * @param outcome the settled gate
+ * @returns the section text, opening with a blank line and the `dev lint: <name>` header
+ * @internal — {@link runLintSegments} and this module's test.
+ */
+export function gateSection({ outcome }: { outcome: GateOutcome }): string {
+  const hung =
+    outcome.result.hung === true ? `${gateHungLine({ name: outcome.result.name, timeoutMs: GATE_TIMEOUT_MS })}\n` : "";
+  return `\ndev lint: ${outcome.result.name}\n${outcome.stdout}${outcome.stderr}${hung}`;
+}
+
+/**
+ * Print one finished gate: its header, then its own bytes, in full, in ONE write to ONE stream.
  *
  * The contract this holds, now that nothing streams: every gate's stdout and stderr appear whole and
  * untruncated, gates appear in PLAN order rather than completion order, one gate's bytes are never
- * interleaved with another's, and the `dev lint: <name>` header still precedes each gate's output — which
- * is what `subprocess/devLint/onlyFlagScope.test.ts` reads as its witness.
+ * interleaved with another's, and the `dev lint: <name>` header precedes each gate's output — which
+ * is what `subprocess/devLint/onlyFlagScope.test.ts` reads as its witness. {@link gateSection} says why one
+ * stream is what keeps a finding under its own header.
  *
  * @param outcome the settled gate
  */
 function emitGate({ outcome }: { outcome: GateOutcome }): void {
-  process.stdout.write(`\ndev lint: ${outcome.result.name}\n`);
-  process.stdout.write(outcome.stdout);
-  // devlint: not-a-refusal -- the gate's own bytes, replayed verbatim; this runner writes no summary of its own
-  process.stderr.write(outcome.stderr);
-  if (outcome.result.hung === true) {
-    // devlint: not-a-refusal -- a gate that never returned is a runner fact, not a finding that gate made
-    process.stderr.write(`${gateHungLine({ name: outcome.result.name, timeoutMs: GATE_TIMEOUT_MS })}\n`);
-  }
+  process.stdout.write(gateSection({ outcome }));
 }
 
 /**
@@ -436,6 +457,8 @@ async function runOneGate({ check, cwd }: { check: LintCheck; cwd: string }): Pr
       name: check.name,
       ok: report.ok,
       ...(report.hung ? { hung: true as const } : {}),
+      // A failed gate's bytes ride to the closing recap (`./lintVerdict.ts`), in the order its section prints them.
+      ...(report.ok ? {} : { output: `${report.stdout}${report.stderr}` }),
     },
     stderr: report.stderr,
     stdout: report.stdout,

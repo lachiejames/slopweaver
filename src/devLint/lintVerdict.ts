@@ -27,6 +27,53 @@ export function lintSummaryLine({ result }: { result: LintCheckResult }): string
 }
 
 /**
+ * How many of one failed gate's own lines the closing recap repeats before pointing back at its section.
+ *
+ * Bounded because the recap sits in the TAIL of the log, where a default `github run-log` read lands: a
+ * gate that failed on a thousand findings would otherwise push every other failed gate, and the verdict
+ * line, out of that window. Twenty holds a typical finding list plus the four-line refusal that closes it.
+ *
+ * @internal — {@link failedGateRecapLines} and its test.
+ */
+export const RECAP_LINES_PER_GATE = 20;
+
+/**
+ * The closing recap: every gate that RAN and failed, each followed by what it printed, so the end of the log
+ * carries the finding and not only the gate's name. Pure.
+ *
+ * The `✗ <name>` summary line says WHICH gate failed and nothing about why, and on the hosted runner the why
+ * sits hundreds of lines up, inside a lap thousands of lines long. A read of the log's tail — the default one,
+ * and the one a session reaches for first — then names the failure without showing it. So each failed gate's
+ * output is repeated here, blank lines dropped, up to {@link RECAP_LINES_PER_GATE} lines; past that, the line
+ * names how many more there are and the section header that holds them all. A withheld gate is not repeated:
+ * it ran nothing, and its summary line already carries its reason.
+ *
+ * @param results every gate's outcome, in plan order
+ * @returns the recap lines, each without a trailing newline; empty when no gate that ran failed
+ */
+export function failedGateRecapLines({ results }: { results: readonly LintCheckResult[] }): readonly string[] {
+  const lines: string[] = [];
+  for (const result of results) {
+    if (result.ok || result.withheld !== undefined) {
+      continue;
+    }
+    const printed = result.output === undefined ? [] : result.output.split("\n").filter((line) => line.trim() !== "");
+    lines.push(`dev lint: ${result.name} FAILED — what it printed, repeated from its section:`);
+    if (printed.length === 0) {
+      lines.push("  (nothing: its exit code alone failed it)");
+    }
+    for (const line of printed.slice(0, RECAP_LINES_PER_GATE)) {
+      lines.push(`  ${line}`);
+    }
+    if (printed.length > RECAP_LINES_PER_GATE) {
+      const more = printed.length - RECAP_LINES_PER_GATE;
+      lines.push(`  … ${String(more)} more line(s) under \`dev lint: ${result.name}\` above`);
+    }
+  }
+  return lines;
+}
+
+/**
  * Compose the final verdict: `ok` iff every PLANNED check reported and passed. Pure.
  *
  * Fail closed: `every` is true of an empty list, so a lap that ran nothing — or lost a

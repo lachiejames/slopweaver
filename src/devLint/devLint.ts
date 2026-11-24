@@ -135,7 +135,7 @@ import { machineConcurrency } from "./gateCapacity.js";
 import { bespokeRatchets, externalChecks } from "./gateGroups.js";
 import { concurrencyLine, runLintSegments } from "./gateRunner.js";
 import { previousGateSeconds, recordGateSeconds } from "./gateSeconds.js";
-import { composeLint, laneVerdictLine, lintSummaryLine, onlyScopeLine } from "./lintVerdict.js";
+import { composeLint, failedGateRecapLines, laneVerdictLine, lintSummaryLine, onlyScopeLine } from "./lintVerdict.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
 import { lintGateRefusal } from "./refusal/render.js";
 import {
@@ -220,6 +220,11 @@ export interface LintCheckResult {
    * the machine. Such a result is never `ok`: a gate that did not run passed nothing.
    */
   readonly withheld?: string;
+  /**
+   * Present only on a gate that RAN and failed: every byte it printed, stdout then stderr, so the closing
+   * recap (`failedGateRecapLines`, `./lintVerdict.ts`) can repeat its finding beside the verdict.
+   */
+  readonly output?: string;
 }
 
 /**
@@ -577,6 +582,10 @@ export async function runDevLint({
   }
   const withheld = results.filter((r) => r.withheld !== undefined).map((r) => r.name);
   const ranOk = exit !== EXIT_ERROR;
+  // Directly above the verdict, so a tail read of the log carries each failed gate's finding, not only its name.
+  for (const line of failedGateRecapLines({ results })) {
+    process.stdout.write(`${line}\n`);
+  }
   process.stdout.write(`${laneVerdictLine({ lane, laneScope, ok: ranOk, uncovered, withheld })}\n`);
   return exit;
 }
