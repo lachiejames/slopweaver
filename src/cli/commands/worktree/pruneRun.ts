@@ -45,7 +45,7 @@ import { setTimeout as setTimeoutPromise } from "node:timers/promises";
 import { acquireOperationLockDetailed } from "../../../admit/operationLock.js";
 import { slopweaverHome } from "../../../config.js";
 import { logger } from "../../../lib/logger.js";
-import { fseventsdBalloonHold, readFseventsdRss } from "../../../worktree/fseventsdBalloon.js";
+import { readFseventsdBalloonHold } from "../../../worktree/fseventsdBalloon.js";
 import {
   DEFAULT_APPLY_BUDGET,
   DEFAULT_NUKE_AFTER,
@@ -396,13 +396,13 @@ export async function runWorktreePrune(argv: readonly string[]): Promise<number>
   }
   // Before the lock and the scan, not just before a delete: a ballooned fseventsd's swap is what holds the disk
   // under the floor, so every ten minutes the threshold trigger would otherwise spend a full scan for nothing.
-  const balloon = fseventsdBalloonHold({ rss: readFseventsdRss() });
+  const home = slopweaverHome();
+  const balloon = readFseventsdBalloonHold({ home });
   if (balloon !== null) {
     // stderr, so a `--json` caller's stdout stays one document or nothing.
     logger.error({ msg: balloon });
     return EXIT_EXPECTED_EMPTY;
   }
-  const home = slopweaverHome();
   const lock = await acquirePruneApplyLock({
     deps: {
       // A retry never ages a live holder out (`./pruneApplyLock.ts`); a finite maximum rather than infinity, which

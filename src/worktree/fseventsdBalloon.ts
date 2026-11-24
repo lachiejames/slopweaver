@@ -21,16 +21,28 @@
  * minutes of the killall. So while fseventsd is ballooned the apply does nothing and says why; the relief is the
  * restart the `fseventsd-bloated` monitor's card already asks for (`../monitor/fseventsdBloated.ts`).
  *
- * ## Why resident size, and why 1 GiB
+ * ## Two sizes, either one at 1 GiB
  *
- * `ps` reads it without root and in one listing; at this line it cannot be confused with a healthy daemon, whose
- * largest reading in those eleven days was 16 MB, and a balloon passes it within about forty minutes of its onset.
- * It is the line `machine watch` already dispatches an investigation at. An unreadable size does NOT hold: the CPU
- * gates inside the apply (`./fseventsdGauge.ts`) already stop on an unreadable fseventsd.
+ * Resident size from `ps` reads without root in one listing, and the `top` footprint the `fseventsd-bloated` monitor
+ * reads (`../monitor/fseventsdBloatedSource.ts`) counts the compressed and swapped pages resident size does not. Resident
+ * size alone missed a balloon as macOS paged it out: in one night, between its stand-downs, later applies found
+ * the same pid under the line and removed trees while its footprint kept growing
+ * (`grep -n -E 'stood down|^removed [1-9]' "$SLOPWEAVER_HOME/worktree-bundles/auto-prune.log"`). So the apply stands down
+ * when EITHER reads at or over the line, and a reading that fails never cancels the other's: each reader can fail
+ * alone (`ps` timing out, `top` printing nothing for the pid).
+ *
+ * At 1 GiB neither can be confused with a healthy daemon, whose largest reading in those eleven days was 16 MB, and a
+ * balloon passes it within about forty minutes of its onset. It is the line `machine watch` already dispatches an
+ * investigation at; the monitor's 2 GiB line is higher because it asks for a restart, where this only skips one
+ * apply. An unreadable size does NOT hold by itself: the CPU gates inside the apply (`./fseventsdGauge.ts`) already
+ * stop on an unreadable fseventsd.
  */
 import { execFileSync } from "node:child_process";
 
 import { WATCHED_DAEMONS } from "../live/machine/daemonWatch.js";
+import { productionMachineCapacityDeps } from "../live/machine/read.js";
+import type { FseventsdFootprint } from "../monitor/fseventsdBloated.js";
+import { readFseventsdFootprint } from "../monitor/fseventsdBloatedSource.js";
 import { gaugeTimeoutMs, parsePsRow } from "./fseventsdGauge.js";
 
 /** fseventsd's resident size, in KiB, at or above which an apply stands down. */
@@ -69,20 +81,59 @@ export function parseFseventsdRss({ text }: { text: string }): FseventsdRss {
   };
 }
 
+/** One readable size, normalised to bytes, with the pids it belongs to and the name it is printed under. */
+interface BalloonMeasure {
+  readonly bytes: number;
+  readonly measure: "footprint" | "resident size";
+  readonly pids: readonly number[];
+}
+
+/** The larger of the readable sizes, resident size winning a tie; undefined when neither could be read. */
+function largestMeasure({
+  footprint,
+  rss,
+}: {
+  footprint: FseventsdFootprint;
+  rss: FseventsdRss;
+}): BalloonMeasure | undefined {
+  const measures: BalloonMeasure[] = [];
+  if (rss.kind === "read") {
+    measures.push({ bytes: rss.kib * 1024, measure: "resident size", pids: rss.pids });
+  }
+  if (footprint.kind === "read") {
+    measures.push({ bytes: footprint.bytes, measure: "footprint", pids: [footprint.pid] });
+  }
+  return measures.reduce<BalloonMeasure | undefined>(
+    (largest, candidate) => (largest === undefined || candidate.bytes > largest.bytes ? candidate : largest),
+    undefined,
+  );
+}
+
 /**
- * Why a ballooned fseventsd stands the apply down, or null when it is under the line, not running or unreadable.
+ * Why a ballooned fseventsd stands the apply down, or null when both sizes are under the line, not running or
+ * unreadable. Either size at the line holds, and one that could not be read never cancels the other.
  *
- * @param rss one read of fseventsd's resident size
- * @returns the one line the apply prints in place of its run, or null to run
+ * @param rss one read of fseventsd's resident size from `ps`
+ * @param footprint one read of fseventsd's `top` footprint, which counts the compressed and swapped pages
+ *   resident size does not
+ * @returns the one line the apply prints in place of its run, naming the larger size and which it was, or null to run
  */
-export function fseventsdBalloonHold({ rss }: { rss: FseventsdRss }): string | null {
-  if (rss.kind !== "read" || rss.kib < FSEVENTSD_BALLOON_KIB) {
+export function fseventsdBalloonHold({
+  footprint,
+  rss,
+}: {
+  footprint: FseventsdFootprint;
+  rss: FseventsdRss;
+}): string | null {
+  const largest = largestMeasure({ footprint, rss });
+  if (largest === undefined || largest.bytes < FSEVENTSD_BALLOON_KIB * 1024) {
     return null;
   }
-  const gb = (rss.kib / (1024 * 1024)).toFixed(1);
+  const gb = (largest.bytes / (1024 * 1024 * 1024)).toFixed(1);
   const relief = WATCHED_DAEMONS.find((daemon) => daemon.label === "fseventsd")!.relief;
   return (
-    `worktree prune: stood down, nothing scanned or deleted — fseventsd (pid ${rss.pids.join(", ")}) holds ${gb} GB, ` +
+    `worktree prune: stood down, nothing scanned or deleted — fseventsd (pid ${largest.pids.join(", ")}) has a ` +
+    `${gb} GB ${largest.measure}, ` +
     `a stuck FSEvents client's queue that every delete would only add to, and the free-space deficit is its swap, ` +
     `which no prune reclaims. Relief, as the fseventsd-bloated card asks: \`${relief}\`, not during a call; ` +
     `the next run prunes as normal.`
@@ -94,7 +145,7 @@ export function fseventsdBalloonHold({ rss }: { rss: FseventsdRss }): string | n
  *
  * @returns the reading
  */
-export function readFseventsdRss(): FseventsdRss {
+function readFseventsdRss(): FseventsdRss {
   if (process.platform !== "darwin") {
     return { kind: "not-running" };
   }
@@ -110,4 +161,18 @@ export function readFseventsdRss(): FseventsdRss {
   } catch (error) {
     return { kind: "unreadable", why: error instanceof Error ? error.message : "`ps` failed" };
   }
+}
+
+/**
+ * Whether a ballooned fseventsd stands an apply on this machine down now, both sizes read once.
+ *
+ * @param home the state home the capacity reads resolve under
+ * @returns the one stand-down line, or null to run
+ */
+export function readFseventsdBalloonHold({ home }: { home: string }): string | null {
+  const { comms, watchedTopReport } = productionMachineCapacityDeps({ home, topN: 1 });
+  return fseventsdBalloonHold({
+    footprint: readFseventsdFootprint({ seams: { comms, watchedTopReport } }),
+    rss: readFseventsdRss(),
+  });
 }
