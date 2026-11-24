@@ -18,6 +18,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runDevSliceShapeWithDeps } from "../../../../../cli/commands/dev/sliceShape.js";
 import { EXIT_EXPECTED_EMPTY, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
+import type { OwnerProtectionResolver } from "../../../../../corpus/bronzeProtection.js";
+import { ok } from "../../../../../lib/result.js";
+import { NO_PROTECTION } from "../../../../noProtection.js";
 
 let home: string;
 
@@ -51,8 +54,16 @@ function writeBronze({ source, lines }: { source: string; lines: readonly string
   writeFileSync(join(dir, "compact.jsonl"), `${lines.join("\n")}\n`, "utf8");
 }
 
-/** Run the verb, collecting what it wrote to each sink. */
-function run({ rest, nowIso }: { rest: readonly string[]; nowIso: string }): {
+/** Run the verb, collecting what it wrote to each sink; the protect list is empty unless a test names one. */
+function run({
+  rest,
+  nowIso,
+  protection = NO_PROTECTION,
+}: {
+  rest: readonly string[];
+  nowIso: string;
+  protection?: OwnerProtectionResolver;
+}): {
   code: number;
   out: string[];
   errors: string[];
@@ -60,6 +71,7 @@ function run({ rest, nowIso }: { rest: readonly string[]; nowIso: string }): {
   const out: string[] = [];
   const errors: string[] = [];
   const code = runDevSliceShapeWithDeps({
+    protection,
     argv: ["node", "cli", "dev", "slice-shape", "--home", home, ...rest],
     log: {
       error: ({ msg }) => {
@@ -160,6 +172,18 @@ describe("dev slice-shape over a real bronze tree", () => {
 
   it("refuses a flag it does not have", () => {
     expect(run({ nowIso: "2026-09-06T00:00:00.000Z", rest: ["--nope"] }).code).toBe(EXIT_USAGE);
+  });
+
+  it("names a source the protect list kept out of the walk on stderr, and measures the rest", () => {
+    const held = join(home, "corpus", "bronze", "github");
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "no-access", path: held, why: "never read" }]);
+    const { code, errors, out } = run({ nowIso: "2026-09-06T00:00:00.000Z", protection, rest: ["--json"] });
+    expect(code).toBe(EXIT_OK);
+    expect(errors).toEqual([`NOT READ, protected by the owner's list: ${held} [no-access]`]);
+    const report = JSON.parse(out[0]!) as { fileCount: number; shape: { totalRecords: number } };
+    expect(report.fileCount).toBe(1);
+    expect(report.shape.totalRecords).toBe(4);
   });
 });
 

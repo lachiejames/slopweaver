@@ -15,6 +15,7 @@ import { type ChatgptArchiveDeps, unzipArchiveDeps } from "../../../corpus/chatg
 import { ChatgptExportErrors } from "../../../corpus/chatgpt/errors.js";
 import { importChatgptExport } from "../../../corpus/chatgpt/exportStore.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
+import { UNPROTECTED } from "../../noProtection.js";
 
 /** What the one member inflates to. */
 const INFLATED_BYTES = 3 * 1024 * 1024;
@@ -154,7 +155,13 @@ describe("importChatgptExport over the bounded edge", () => {
       extractZipMember: (args) => unzipArchiveDeps.extractZipMember({ ...args, maxBytes: BUDGET_BYTES }),
     };
     const refused = unwrapErr(
-      importChatgptExport({ archive: bounded, from: bombZip(), nowIso: "2026-10-17T00:00:00.000Z", root }),
+      importChatgptExport({
+        ...UNPROTECTED,
+        archive: bounded,
+        from: bombZip(),
+        nowIso: "2026-10-17T00:00:00.000Z",
+        root,
+      }),
     );
     expect(refused.code).toBe("EXPORT_TOO_LARGE");
     expect(readdirSync(root)).toEqual([]);

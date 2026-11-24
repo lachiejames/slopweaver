@@ -26,6 +26,11 @@
  * answer from claims mined outside its own window while the manifest promised otherwise — the exact
  * confusion the banner exists to end. A subset's gold leg reports `absent`, which is true.
  *
+ * ## The owner's protect list is judged first
+ *
+ * Before anything is listed or copied, every tree the build reads and the home it writes are judged in one
+ * batch (`./subsetProtection.ts`), and each sink asks the same judge about its own path as it opens.
+ *
  * ## Streaming, because the source runs to gigabytes
  *
  * Every read goes line-at-a-time through {@link readJsonlLines} and every write is a batched append, so peak
@@ -40,6 +45,7 @@ import { isRecord } from "../lib/parsers.js";
 import { err, ok, type Result } from "../lib/result.js";
 import { safeFs } from "../lib/safeBoundary.js";
 import { stateHomePaths } from "../stateHome.js";
+import type { CorpusJudge, OwnerProtectionResolver } from "./bronzeProtection.js";
 import { bronzeFile, bronzeSourceDir, historyDir, historyFile } from "./corpusPaths.js";
 import { readJsonlLines } from "./corpusStore.js";
 import {
@@ -50,12 +56,10 @@ import {
   windowVerdict,
 } from "./subset.js";
 import { type SubsetBuildError, SubsetBuildErrors } from "./subsetBuild.errors.js";
+import { subsetPreflight, subsetScaffoldPairs } from "./subsetProtection.js";
 import { type LineSink, openCappedSink, openSink } from "./subsetSink.js";
 import { writeSubsetManifest } from "./subsetStore.js";
 import { type CorpusSource } from "./types.js";
-
-/** The root-level home entries the query path reads, copied verbatim so a subset home can answer at all. */
-const COPIED_ROOT_ENTRIES: readonly string[] = ["profile.json", "capability-profile.json", "judgement"];
 
 /** What a caller watching a build is told as each source finishes. */
 export interface SubsetProgress {
@@ -174,7 +178,30 @@ function copySourceSidecars({ from, to }: { from: string; to: string }): void {
   }
 }
 
-/** Slice one source's bronze into the subset home, returning its tally. */
+/** Open the sink a slice writes through: every line, or only the newest `limit`. Its path is judged first. */
+function sinkFor({
+  path,
+  limit,
+  judge,
+}: {
+  path: string;
+  limit: number | undefined;
+  judge: CorpusJudge;
+}): Result<LineSink> {
+  return limit === undefined ? openSink({ judge, path }) : openCappedSink({ judge, limit, path });
+}
+
+/** The window, cap, both homes and the protect-list judge every slice of one build runs under. */
+interface SubsetSlice {
+  readonly sourceHome: string;
+  readonly outHome: string;
+  readonly sinceIso: string;
+  readonly untilIso: string;
+  readonly limit: number | undefined;
+  readonly judge: CorpusJudge;
+}
+
+/** Slice one source's bronze into the subset home, returning its tally or the sink's refusal. */
 function sliceSource({
   source,
   sourceHome,
@@ -182,17 +209,15 @@ function sliceSource({
   sinceIso,
   untilIso,
   limit,
-}: {
-  source: CorpusSource;
-  sourceHome: string;
-  outHome: string;
-  sinceIso: string;
-  untilIso: string;
-  limit: number | undefined;
-}): SubsetSourceTally {
+  judge,
+}: SubsetSlice & { source: CorpusSource }): Result<SubsetSourceTally> {
   const from = bronzeSourceDir({ home: sourceHome, source });
   const path = bronzeFile({ home: outHome, source, window: { since: sinceIso, until: untilIso } });
-  const sink = limit === undefined ? openSink({ path }) : openCappedSink({ limit, path });
+  const opened = sinkFor({ judge, limit, path });
+  if (opened.isErr()) {
+    return err(opened.error);
+  }
+  const sink = opened.value;
   let tally = EMPTY_TALLY;
   for (const name of jsonlFilesIn({ dir: from })) {
     tally = addTally({ add: filterFile({ from: join(from, name), sinceIso, sink, untilIso }), into: tally });
@@ -200,7 +225,7 @@ function sliceSource({
   const written = sink.written();
   sink.flush();
   copySourceSidecars({ from, to: bronzeSourceDir({ home: outHome, source }) });
-  return {
+  return ok({
     kept: written,
     scanned: tally.scanned,
     source,
@@ -209,7 +234,7 @@ function sliceSource({
     // Only when the cap actually bit. An `inWindow` equal to `kept` states nothing and would appear on every
     // capped source whether or not it was capped, which is exactly the kind of noise a reader learns to skip.
     ...(limit !== undefined && written < tally.kept ? { inWindow: tally.kept } : {}),
-  };
+  });
 }
 
 /**
@@ -221,19 +246,7 @@ function sliceSource({
  * N records per source. Measured, that was several times more history than bronze. Capping both keeps the
  * home's contents matching its own description.
  */
-function sliceHistory({
-  sourceHome,
-  outHome,
-  sinceIso,
-  untilIso,
-  limit,
-}: {
-  sourceHome: string;
-  outHome: string;
-  sinceIso: string;
-  untilIso: string;
-  limit: number | undefined;
-}): void {
+function sliceHistory({ sourceHome, outHome, sinceIso, untilIso, limit, judge }: SubsetSlice): Result<void> {
   for (const name of jsonlFilesIn({ dir: historyDir({ home: sourceHome }) })) {
     // A history file is named for its source. An unrecognised name is SKIPPED rather than coerced: the
     // reader that consumes these keys on the same union, so copying a file it could never read forward would
@@ -242,34 +255,55 @@ function sliceHistory({
     if (source === undefined) {
       continue;
     }
-    const path = historyFile({ home: outHome, source });
-    const sink = limit === undefined ? openSink({ path }) : openCappedSink({ limit, path });
-    filterFile({ from: join(historyDir({ home: sourceHome }), name), sinceIso, sink, untilIso });
-    sink.flush();
+    const opened = sinkFor({ judge, limit, path: historyFile({ home: outHome, source }) });
+    if (opened.isErr()) {
+      return err(opened.error);
+    }
+    filterFile({ from: join(historyDir({ home: sourceHome }), name), sinceIso, sink: opened.value, untilIso });
+    opened.value.flush();
   }
+  return ok(undefined);
 }
 
-/** Copy one path verbatim when it exists — a file or a whole directory. */
-function copyIfPresent({ from, to }: { from: string; to: string }): void {
-  if (existsSync(from)) {
-    cpSync(from, to, { recursive: true });
+/**
+ * Slice every source, then the history stream, then copy the scaffolding — stopping at the first sink the protect
+ * list refuses, so a refused build never reaches the scaffolding.
+ *
+ * @param slice the window, cap, homes and judge every source is sliced under
+ * @param sources the sources that hold bronze, in order
+ * @param onProgress called once per source as it finishes, for a live line
+ * @returns every source's tally, or the refusal lines
+ */
+function sliceEverySource({
+  slice,
+  sources,
+  onProgress,
+}: {
+  slice: SubsetSlice;
+  sources: readonly CorpusSource[];
+  onProgress: ((progress: SubsetProgress) => void) | undefined;
+}): Result<SubsetSourceTally[]> {
+  const tallies: SubsetSourceTally[] = [];
+  for (const source of sources) {
+    const tally = sliceSource({ ...slice, source });
+    if (tally.isErr()) {
+      return err(tally.error);
+    }
+    onProgress?.({ kept: tally.value.kept, scanned: tally.value.scanned, source });
+    tallies.push(tally.value);
   }
+  return sliceHistory(slice).map(() => {
+    copyScaffolding({ outHome: slice.outHome, sourceHome: slice.sourceHome });
+    return tallies;
+  });
 }
 
-/** Copy the scaffolding a subset home needs to resolve people, containers and the owner lens. */
+/** Copy the scaffolding a subset home needs to resolve people, containers and the owner lens, each when present. */
 function copyScaffolding({ sourceHome, outHome }: { sourceHome: string; outHome: string }): void {
-  const src = stateHomePaths({ home: sourceHome });
-  const out = stateHomePaths({ home: outHome });
-  copyIfPresent({ from: src.corpus.members, to: out.corpus.members });
-  copyIfPresent({ from: src.corpus.structures, to: out.corpus.structures });
-  copyIfPresent({ from: src.corpus.watermark, to: out.corpus.watermark });
-  copyIfPresent({ from: src.corpus.githubReposWatermark, to: out.corpus.githubReposWatermark });
-  copyIfPresent({ from: src.corpus.slackThreads, to: out.corpus.slackThreads });
-  copyIfPresent({ from: src.corpus.slackChannelsWatermark, to: out.corpus.slackChannelsWatermark });
-  copyIfPresent({ from: join(src.corpus.root, "watermarks"), to: join(out.corpus.root, "watermarks") });
-  copyIfPresent({ from: src.homeVersion, to: out.homeVersion });
-  for (const entry of COPIED_ROOT_ENTRIES) {
-    copyIfPresent({ from: join(sourceHome, entry), to: join(outHome, entry) });
+  for (const { from, to } of subsetScaffoldPairs({ outHome, sourceHome })) {
+    if (existsSync(from)) {
+      cpSync(from, to, { recursive: true });
+    }
   }
 }
 
@@ -305,7 +339,9 @@ function checkDestination({
  * @param limit the per-source cap: keep only the newest N in-window records. Undefined means uncapped
  * @param now the instant the window is measured back from (injected, so the boundary is testable)
  * @param onProgress called once per source as it finishes, for a live line
- * @returns the manifest written into the subset home, or the typed reason the build did not happen
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
+ * @returns the manifest written into the subset home, or the typed reason the build did not happen — the protect
+ *   list's refusal among them, judged before anything is listed or copied (`./subsetProtection.ts`)
  */
 export function buildSubset({
   sourceHome,
@@ -314,6 +350,7 @@ export function buildSubset({
   now,
   limit,
   onProgress,
+  protection,
 }: {
   sourceHome: string;
   outHome: string;
@@ -321,7 +358,12 @@ export function buildSubset({
   now: Date;
   limit?: number | undefined;
   onProgress?: (progress: SubsetProgress) => void;
+  protection?: OwnerProtectionResolver | undefined;
 }): Result<SubsetManifest, SubsetBuildError> {
+  const judge = subsetPreflight({ outHome, protection, sourceHome });
+  if (judge.isErr()) {
+    return err(judge.error);
+  }
   const rejected = checkDestination({ outHome, sourceHome });
   if (rejected !== undefined) {
     return err(rejected);
@@ -331,29 +373,24 @@ export function buildSubset({
     return err(SubsetBuildErrors.noSourceCorpus({ sourceHome: resolve(sourceHome) }));
   }
   const { sinceIso, untilIso } = subsetWindow({ days, now });
+  const slice = { judge: judge.value, limit, outHome, sinceIso, sourceHome, untilIso };
   const built = safeFs({
-    execute: () => {
-      const tallies = sources.map((source) => {
-        const tally = sliceSource({ limit, outHome, sinceIso, source, sourceHome, untilIso });
-        onProgress?.({ kept: tally.kept, scanned: tally.scanned, source });
-        return tally;
-      });
-      sliceHistory({ limit, outHome, sinceIso, sourceHome, untilIso });
-      copyScaffolding({ outHome, sourceHome });
-      return tallies;
-    },
+    execute: () => sliceEverySource({ onProgress, slice, sources }),
     operation: "buildSubset",
     path: resolve(outHome),
   });
   if (built.isErr()) {
     return err(SubsetBuildErrors.copyFailed({ cause: built.error.cause, path: built.error.path ?? resolve(outHome) }));
   }
+  if (built.value.isErr()) {
+    return err(SubsetBuildErrors.protectedPath({ lines: built.value.error }));
+  }
   const manifest = buildSubsetManifest({
     builtAtIso: untilIso,
     days,
     sinceIso,
     sourceHome: resolve(sourceHome),
-    sources: built.value,
+    sources: built.value.value,
     untilIso,
     ...(limit !== undefined ? { limit } : {}),
   });

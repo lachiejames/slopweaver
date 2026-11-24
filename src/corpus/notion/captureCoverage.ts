@@ -21,6 +21,9 @@ import { join } from "node:path";
 import { slopweaverHome } from "../../config.js";
 import { readJsonFile, writeJsonFile } from "../../lib/jsonFile.js";
 import { isRecord } from "../../lib/parsers.js";
+import { err, ok, type Result } from "../../lib/result.js";
+import type { OwnerProtectionResolver } from "../bronzeProtection.js";
+import { preflightCorpusAccesses } from "../corpusAccessGuard.js";
 import { bronzeSourceDir } from "../corpusPaths.js";
 
 /** The on-disk shape. Versioned so a future widening is a migration rather than a silent reinterpretation. */
@@ -54,20 +57,37 @@ export function readNotionCaptureCoverage({ home = slopweaverHome() }: { home?: 
  * later, narrower crawl does not un-mark the pages an earlier, wider one already marked.
  *
  * The CALLER decides whether a crawl qualifies (see {@link notionCrawlCoversWindow}) — this only records.
+ * The owner's protect list is judged first, because the read below opens the very file this rewrites; a
+ * refusal records nothing, which is the safe direction (an absent claim skips no page).
  *
  * @param home the Slopweaver home (defaults to {@link slopweaverHome})
  * @param sinceIso the completed crawl's own `since`
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
+ * @returns nothing once recorded, or the protect list's refusal
  */
 export function recordNotionCaptureCoverage({
   home = slopweaverHome(),
   sinceIso,
+  protection,
 }: {
   home?: string;
   sinceIso: string;
-}): void {
+  protection?: OwnerProtectionResolver | undefined;
+}): Result<void> {
+  const path = coveragePath({ home });
+  const judged = preflightCorpusAccesses({
+    accesses: [{ access: "write", path }],
+    home,
+    operation: { target: "notion capture coverage", verb: "record" },
+    protection,
+  });
+  if (judged.isErr()) {
+    return err(judged.error);
+  }
   const existing = readNotionCaptureCoverage({ home });
   const coveredSinceIso = existing !== undefined && existing < sinceIso ? existing : sinceIso;
-  writeJsonFile({ path: coveragePath({ home }), value: { coveredSinceIso, version: 1 } satisfies CaptureCoverageFile });
+  writeJsonFile({ path, value: { coveredSinceIso, version: 1 } satisfies CaptureCoverageFile });
+  return ok(undefined);
 }
 
 /**

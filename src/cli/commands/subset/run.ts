@@ -65,7 +65,7 @@ export function runSubsetBuild(argv: readonly string[]): number {
     logger.error({ msg: built.error.message });
     if (built.error.code === "NO_SOURCE_CORPUS") {
       return EXIT_EXPECTED_EMPTY;
-    } else if (built.error.code === "COPY_FAILED") {
+    } else if (built.error.code === "COPY_FAILED" || built.error.code === "SUBSET_PROTECTED") {
       return EXIT_ERROR;
     } else {
       return EXIT_USAGE;

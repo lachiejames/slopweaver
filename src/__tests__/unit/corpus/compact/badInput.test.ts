@@ -30,6 +30,26 @@ describe("compactSource", () => {
     expect(readFileSync(path, "utf8")).toBe(before);
   });
 
+  it("REFUSES a source holding a read-only window, which the listing reads but compaction would unlink", () => {
+    const kept = writeWindow({ name: "2026-06-01_2026-06-08.jsonl", records: [record()] });
+    const held = writeWindow({ name: "2026-06-08_2026-06-15.jsonl", records: [record({ sourceId: "#2" })] });
+    const entry = { addedIso: "2026-01-01T00:00:00.000Z", mode: "read-only" as const, path: held, why: "fixture" };
+
+    const refusal = unwrapErr(compactSource({ home, protection: () => ok([entry]), source: "github" }));
+
+    expect(refusal).toStrictEqual({
+      code: "COMPACT_PROTECTED",
+      message:
+        `refusing to compact github: it would write to ${held}, which the owner's protect list marks read-only at ` +
+        `${held} (fixture) — nothing was compacted`,
+    });
+    expect(readdirSync(bronzeSourceDir({ home, source: "github" })).toSorted()).toStrictEqual([
+      "2026-06-01_2026-06-08.jsonl",
+      "2026-06-08_2026-06-15.jsonl",
+    ]);
+    expect(readFileSync(kept, "utf8")).toBe(jsonl({ records: [record()] }));
+  });
+
   it("ABORTS on a line that isn't even JSON — the file itself is suspect, not just that row", () => {
     const path = writeWindow({ name: "2026-06-01_2026-06-08.jsonl", records: [record()] });
     writeFileSync(path, `${readFileSync(path, "utf8")}{not json\n`, "utf8");

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -10,6 +10,7 @@ import {
   runLinearQuery,
 } from "../../../../../cli/commands/linear/queryRun.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
+import type { OwnerProtectionResolver } from "../../../../../corpus/bronzeProtection.js";
 import { LinearQueryErrors } from "../../../../../corpus/linear/queryErrors.js";
 import { linearBronzeDir, scanLinearBronze } from "../../../../../corpus/linear/queryScan.js";
 import type { CorpusRecord } from "../../../../../corpus/types.js";
@@ -70,11 +71,13 @@ function depsOver({
   diagnostics,
   verify,
   ownerHandle = async () => ok("kim.lee"),
+  protection = () => ok([]),
 }: {
   out: string[];
   diagnostics: string[];
   verify: LinearQueryDeps["verify"];
   ownerHandle?: LinearQueryDeps["ownerHandle"];
+  protection?: OwnerProtectionResolver;
 }): LinearQueryDeps {
   return {
     nowIso: () => NOW,
@@ -82,7 +85,7 @@ function depsOver({
     // The fixture dir is its own home: nothing here is a real home's bronze, and the empty list reads no registry.
     scan: ({ home, corpus, filter }) => {
       const dir = linearBronzeDir({ corpus, home });
-      return scanLinearBronze({ dir, filter, home: dir, protection: () => ok([]) });
+      return scanLinearBronze({ dir, filter, home: dir, protection });
     },
     verify,
     writeDiagnostic: (line) => diagnostics.push(line),
@@ -128,6 +131,25 @@ describe("runLinearQuery", () => {
     expect(out[0]!).toContain("ENG-2  [changed]");
     expect(out[0]!).toContain("state: Todo → Done");
     expect(out[0]!).toContain("1 confirmed, 1 changed, 0 gone, 0 unverified");
+  });
+
+  it("names a path the protect list kept out of the walk, and answers from the rest", async () => {
+    const dir = bronzeWith({ records: [issueRecord({ sourceId: "ENG-1", state: "In Review" })] });
+    const held = join(dir, "held");
+    mkdirSync(held);
+    writeFileSync(join(held, "window.jsonl"), JSON.stringify(issueRecord({ sourceId: "ENG-9", state: "Todo" })) + "\n");
+    const out: string[] = [];
+    const diagnostics: string[] = [];
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "no-access", path: held, why: "never read" }]);
+    const code = await runLinearQuery({
+      deps: depsOver({ diagnostics, out, protection, verify: () => Promise.resolve({ skipped: "no-token" as const }) }),
+      rest: ["--corpus", dir, "--assignee", "kim.lee"],
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(diagnostics).toEqual([`NOT READ, protected by the owner's list: ${held} [no-access]`]);
+    expect(out[0]!).toContain("ENG-1");
+    expect(out[0]!).not.toContain("ENG-9");
   });
 
   it("says the citations are UNVERIFIED, in words, when no credential is configured", async () => {

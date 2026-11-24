@@ -13,6 +13,7 @@ import { exportBudgetBytes, resolveMemberSource, stageMember } from "../../../..
 import { importChatgptExport } from "../../../../../corpus/chatgpt/exportStore.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { FUTURE, syntheticExportAt } from "../../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../../noProtection.js";
 import { fakeZip, NO_ZIP, tempDir, useTempDirs, ZIP_MAGIC } from "./harness.js";
 
 /** The synthetic export, dated past every clock here so an import dates it at its own `nowIso`. */
@@ -53,7 +54,7 @@ describe("the take-in's byte budget", () => {
       },
     };
     const root = join(tempDir(), "exports");
-    unwrap(importChatgptExport({ archive, from: zip, nowIso: "2026-10-17T00:00:00.000Z", root }));
+    unwrap(importChatgptExport({ ...UNPROTECTED, archive, from: zip, nowIso: "2026-10-17T00:00:00.000Z", root }));
     expect(asked.length).toBe(2);
     expect(asked[0]!).toBeGreaterThan(0);
     // The second member is offered what the first left: the budget is one for the whole export.

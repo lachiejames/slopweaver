@@ -1,7 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { OwnerProtectionResolver } from "../../../../corpus/bronzeProtection.js";
+import { memberFile } from "../../../../corpus/corpusPaths.js";
 import {
   freshMemberRows,
   memberFingerprint,
@@ -11,7 +13,8 @@ import {
   writeMemberRows,
 } from "../../../../corpus/members/store.js";
 import type { MemberBronzeRow } from "../../../../corpus/members/types.js";
-import { unwrap } from "../../../../lib/result.js";
+import { ok, unwrap, unwrapErr } from "../../../../lib/result.js";
+import { NO_PROTECTION } from "../../../noProtection.js";
 
 // Every fixture directory this file has minted, so `afterEach` can remove them.
 const fixtureDirs: string[] = [];
@@ -91,17 +94,18 @@ describe("freshMemberRows", () => {
 describe("writeMemberRows + readMemberRows", () => {
   it("round-trips the FULL raw object exactly (nothing projected away)", () => {
     const home = tempHome();
-    unwrap(writeMemberRows({ home, rows: [row({ nativeId: "U1" })], source: "slack" }));
+    unwrap(writeMemberRows({ home, protection: NO_PROTECTION, rows: [row({ nativeId: "U1" })], source: "slack" }));
     const read = readMemberRows({ home, source: "slack" });
     expect(read.rows[0]!.raw).toEqual({ deeply: { nested: ["ada@example.com", 42] }, id: "U1" });
   });
 
   it("re-writing the same member is idempotent (deduped, nothing new written)", () => {
     const home = tempHome();
-    unwrap(writeMemberRows({ home, rows: [row({ nativeId: "U1" })], source: "slack" }));
+    unwrap(writeMemberRows({ home, protection: NO_PROTECTION, rows: [row({ nativeId: "U1" })], source: "slack" }));
     const second = unwrap(
       writeMemberRows({
         home,
+        protection: NO_PROTECTION,
         rows: [row({ fetchedAtIso: "2026-08-01T00:00:00.000Z", nativeId: "U1" })],
         source: "slack",
       }),
@@ -112,9 +116,28 @@ describe("writeMemberRows + readMemberRows", () => {
 
   it("appends a new row when a profile field genuinely changed", () => {
     const home = tempHome();
-    unwrap(writeMemberRows({ home, rows: [row({ nativeId: "U1" })], source: "slack" }));
-    unwrap(writeMemberRows({ home, rows: [row({ nativeId: "U1", title: "Staff Engineer" })], source: "slack" }));
+    unwrap(writeMemberRows({ home, protection: NO_PROTECTION, rows: [row({ nativeId: "U1" })], source: "slack" }));
+    unwrap(
+      writeMemberRows({
+        home,
+        protection: NO_PROTECTION,
+        rows: [row({ nativeId: "U1", title: "Staff Engineer" })],
+        source: "slack",
+      }),
+    );
     expect(readMemberRows({ home, source: "slack" }).rows).toHaveLength(2);
+  });
+
+  it("refuses a members file the owner's list marks read-only, and appends nothing", () => {
+    const home = tempHome();
+    const path = memberFile({ home, source: "slack" });
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "read-only", path, why: "kept as it is" }]);
+    expect(unwrapErr(writeMemberRows({ home, protection, rows: [row({ nativeId: "U1" })], source: "slack" }))).toEqual([
+      `refusing to write members/slack.jsonl: it would write to ${path}, which the owner's protect list marks ` +
+        `read-only at ${path} (kept as it is)`,
+    ]);
+    expect(existsSync(path)).toBe(false);
   });
 });
 
@@ -135,7 +158,7 @@ describe("parseMemberRow", () => {
 describe("readAllMembers", () => {
   it("aggregates every source's rows and surfaces a corrupt line as a labelled warning", () => {
     const home = tempHome();
-    unwrap(writeMemberRows({ home, rows: [row({ nativeId: "U1" })], source: "slack" }));
+    unwrap(writeMemberRows({ home, protection: NO_PROTECTION, rows: [row({ nativeId: "U1" })], source: "slack" }));
     const all = readAllMembers({ home });
     expect(all.rows.map((r) => r.sourceId)).toEqual(["U1"]);
     expect(all.warnings).toEqual([]);

@@ -1,13 +1,16 @@
 /**
  * The write half of the live copy's snapshot store (`./liveSnapshotStore.ts`, which holds the layout and every read):
  * one conversation's whole body held under its own hash, then the manifest naming it, then the body it replaced
- * removed. The manifest is written last, so a manifest never names half-written bytes.
+ * removed. The manifest is written last, so a manifest never names half-written bytes, and the owner's protect list
+ * is judged over the conversation's whole directory before any of it (`../corpusAccessGuard.ts`).
  */
 import { createHash } from "node:crypto";
 import { unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { err, ok, type Result } from "#lib/result.js";
 import { writeFileAtomic, writeFileAtomicStream } from "#lib/writeAtomic.js";
+import type { OwnerProtectionResolver } from "../bronzeProtection.js";
+import { preflightCorpusAccesses } from "../corpusAccessGuard.js";
 import { CHATGPT_CONVERSATION_ID } from "./exportSchema.js";
 import { type ChatgptSnapshotError, ChatgptSnapshotErrors } from "./liveSnapshotStore.errors.js";
 import { conversationDir, type LiveSnapshotManifest, readLiveManifest, snapshotsDir } from "./liveSnapshotStore.js";
@@ -23,6 +26,8 @@ import { conversationDir, type LiveSnapshotManifest, readLiveManifest, snapshots
  * @param bodyUpdatedIso when the body says it last moved
  * @param listedUpdatedIso when the listing said it last moved
  * @param fetchedAtIso when the body was read
+ * @param home the Slopweaver home whose protect registry applies, beside the account's own
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns the manifest now current, or the refusal
  */
 export function writeLiveSnapshot({
@@ -32,6 +37,8 @@ export function writeLiveSnapshot({
   bodyUpdatedIso,
   listedUpdatedIso,
   fetchedAtIso,
+  home,
+  protection,
 }: {
   root: string;
   conversationId: string;
@@ -39,10 +46,22 @@ export function writeLiveSnapshot({
   bodyUpdatedIso: string | null;
   listedUpdatedIso: string | null;
   fetchedAtIso: string;
+  home: string;
+  protection?: OwnerProtectionResolver | undefined;
 }): Result<LiveSnapshotManifest, ChatgptSnapshotError> {
   const directory = conversationDir({ conversationId, root });
   if (!CHATGPT_CONVERSATION_ID.test(conversationId)) {
     return err(ChatgptSnapshotErrors.writeFailed({ detail: "not a conversation id", path: snapshotsDir({ root }) }));
+  }
+  // The manifest read, the new body, the manifest and the replaced body all sit in this one directory.
+  const judged = preflightCorpusAccesses({
+    accesses: [{ access: "tree-write", path: directory }],
+    home,
+    operation: { target: directory, verb: "hold the live snapshot in" },
+    protection,
+  });
+  if (judged.isErr()) {
+    return err(ChatgptSnapshotErrors.protectedPath({ lines: judged.error }));
   }
   const previous = readLiveManifest({ conversationId, root });
   if (previous.isErr()) {
@@ -61,26 +80,50 @@ export function writeLiveSnapshot({
     listedUpdatedIso,
     schemaVersion: 1,
   };
-  const bodyPath = join(directory, `${bodyHash}.json`);
-  const manifestPath = join(directory, "manifest.json");
+  const written = writeBodyThenManifest({ chunks, directory, manifest });
+  if (written.isErr()) {
+    return err(written.error);
+  }
+  removeReplacedBody({ bodyHash, conversationId, directory, replaced: previous.value?.bodyHash, root });
+  return ok(manifest);
+}
+
+/**
+ * Write the body under its own hash, then the manifest naming it, both private, so a manifest never names half-written
+ * bytes.
+ *
+ * @param chunks the body's text, in order
+ * @param directory the conversation's snapshot directory
+ * @param manifest the manifest to publish once the body is down
+ * @returns nothing, or the refusal naming the directory
+ */
+function writeBodyThenManifest({
+  chunks,
+  directory,
+  manifest,
+}: {
+  chunks: readonly string[];
+  directory: string;
+  manifest: LiveSnapshotManifest;
+}): Result<void, ChatgptSnapshotError> {
   try {
     writeFileAtomicStream({
       dirMode: 0o700,
       fileMode: 0o600,
-      path: bodyPath,
+      path: join(directory, `${manifest.bodyHash}.json`),
       produce: ({ write }) => {
         for (const text of chunks) {
           write({ text });
         }
       },
     });
-    writeFileAtomic({ contents: `${JSON.stringify(manifest)}\n`, dirMode: 0o700, fileMode: 0o600, path: manifestPath });
+    const contents = `${JSON.stringify(manifest)}\n`;
+    writeFileAtomic({ contents, dirMode: 0o700, fileMode: 0o600, path: join(directory, "manifest.json") });
   } catch (error: unknown) {
     const detail = error instanceof Error ? error.message : String(error);
     return err(ChatgptSnapshotErrors.writeFailed({ detail, path: directory }));
   }
-  removeReplacedBody({ bodyHash, conversationId, directory, replaced: previous.value?.bodyHash, root });
-  return ok(manifest);
+  return ok(undefined);
 }
 
 /**

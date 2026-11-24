@@ -97,14 +97,27 @@ code can enforce, it does, in these places:
   never refuses every reader of the rest. A `list` is refused only at or under a `no-access` entry, and only a walk
   judging every child may ask one; the hook's search above still refuses an ancestor. That covers `readCorpusDir`
   and its tally, the census, corpus resolution, derive, `audit`, `slice verify`, `dev manifest`, `distil plan`, the
-  hygiene scan, `identity`, `linear query`, the voice measure, Notion's ref heal content stores. The census and the
-  tally carry a `NOT READ` warning per skip; `audit` names each protected source as `NOT AUDITED`; the hygiene
+  hygiene scan, `identity`, `linear query`, the voice measure, Notion's ref heal content stores. The census, the
+  tally and corpus resolution carry a `NOT READ` warning per skip, and every walk caller says it: `linear query`,
+  `identity`, `dev slice-shape`, `dev heap-curve` and `profile voice measure` print each on stderr, and the
+  refresh voice leg counts them; `audit` names each protected source as `NOT AUDITED`; the hygiene
   scan and its `corpus-hygiene` gate print `NOT CHECKED, protected by the owner's list` on every run, and the gate
   passes that arm alone. `listBronzeFiles` refuses a SOURCE holding a covered entry instead, since `compact`
   rewrites its file set: that covers the cycle reads, Notion's seen index and ref heal, Slack member hydration,
   Gmail's meeting proof, and the listings `compact` and `fathom share` read before they rewrite. A refusal is an
   `Err` naming the entry, never the empty corpus it would otherwise read as, so a refused read fails its verb;
   member hydration alone skips its supplementary recovery with the refusal as its warning.
+
+- **The corpus rewriters**, through one preflight (`preflightCorpusAccesses`, `src/corpus/corpusAccessGuard.ts`):
+  each lists every path it will read, list, write or `tree-write` (a write that may land anywhere beneath a root,
+  refused when an entry covers the root or lies under it) and has the whole set judged before its first effect, so
+  a writer REFUSES and is never a partial one. That covers `compact` (the canonical file and every window it
+  unlinks, judged as writes, so a `read-only` window survives; its orphan sweep keeps a covered temp file and names
+  it), `fathom share`'s supersede rewrite, `subset` (every tree it copies as a search, the destination home as a
+  tree-write, each sink as a write), the ChatGPT take-in (the archive as a search, the export store as a tree-write)
+  with its receipt write and receipt sweep, the live snapshot hold, Notion's capture-coverage file, and the member
+  and structure stores. They read the same two registries the bronze writer does and fail CLOSED; a refusal is an
+  `Err` naming the entry, and nothing was written.
 
 **The account's own default home is not movable from a command line.** It comes from the password database
 (`accountDefaultHome`, `src/homeDir.ts`), and no flag or environment variable relocates it, so a verb pointed at a
@@ -132,11 +145,21 @@ The guard reads a command's words; it does not run them. Not judged:
 - Codex, which reads files through its own sandbox outside these hooks, and any native process run as the owner;
 - the other verbs that read a local file to upload it (Slack, Linear and Notion attachments, Vanta evidence,
   browser uploads and image inputs, provider body files) — none is wired to the registry yet;
-- every corpus rewriter other than the bronze writer, and the readers that sit beside the judged ones: Notion's
-  capture-coverage file, the files `compact` and `fathom share` write, the subset and ChatGPT export writers, the member
-  and structure stores, derive's per-source freshness witness (a one-level stat, `src/silver/derive/stamp.ts`), and
-  the writer's own dedup-index seam for a caller that hands it no judge. So `refresh` as a whole is not a no-access
-  fence; only its bronze append and the reads above are;
+- the ChatGPT writers beside the take-in: the certified and live as-of stamps (`exportAsOf.ts`'s
+  `writeCertifiedAsOf`, `liveAsOf.ts`'s `writeLiveAsOf`), the archive index (`archiveIndex.ts`'s `remember`, which
+  `takeInArchive` calls after a judged take-in), the held-export verification (`heldVerification.ts`'s
+  `rememberVerified`), and `locateExport`'s read of `--from` (`src/cli/commands/chatgpt/exportLocation.ts`), which
+  lists a folder before the take-in judges it. Beside them, derive's per-source freshness witness
+  (a one-level stat, `src/silver/derive/stamp.ts`) and the writer's own dedup-index seam for a caller that hands it
+  no judge. So `refresh` as a whole is not a no-access fence; only its bronze append, the rewriters and the reads
+  above are;
+- what a SPAWNED test reads: a verb resolves the home's registry and the account's own default unless a resolver
+  is injected. In process the account default is the per-file sandbox above, but a subprocess-lane child resolves
+  the real one, so a spawned verb with no seam reads the owner's real list. `loadCorpus` (and `dev heap-curve`
+  over it), `subset`'s verb shell, `seed`, `fathom`'s verb deps and the refresh legs (the Notion coverage record,
+  the bronze committer they flush through) take no resolver yet, so an in-process test of those is judged by the
+  sandbox's registry and a spawned one by the account's (`src/__tests__/noProtection.ts` is the seam the others
+  pass);
 - a path swapped for a symlink between a judgment and its open, in the bronze writer or a judged reader's walk. The registries themselves are
   read again for every source a commit writes, so an entry added mid-run over that source refuses its next append.
 

@@ -11,6 +11,7 @@ import { unwrap, unwrapErr } from "#lib/result.js";
 import { writeMemberRows } from "../../../../corpus/members/store.js";
 import type { MemberBronzeRow } from "../../../../corpus/members/types.js";
 import { loadResolvedWitnessBots, resolveWitnessBots } from "../../../../live/listen/witnessIdentity.js";
+import { NO_PROTECTION } from "../../../noProtection.js";
 
 /** One Slack member row with just the fields resolution reads. */
 function row({
@@ -103,7 +104,7 @@ describe("loadResolvedWitnessBots", () => {
 
   it("resolves through the stored member directory", () => {
     const home = freshHome();
-    unwrap(writeMemberRows({ home, rows: [PEER], source: "slack" }));
+    unwrap(writeMemberRows({ home, protection: NO_PROTECTION, rows: [PEER], source: "slack" }));
 
     expect(unwrap(loadResolvedWitnessBots({ handles: ["peerbot"], home }))).toEqual([
       { handle: "peerbot", userId: "U0PEER" },

@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { ok, unwrap, unwrapErr } from "../../../lib/result.js";
 import { readSlackVoiceMeasurement } from "../../../profile/voiceMeasureRead.js";
+import { NO_PROTECTION } from "../../noProtection.js";
 
 import { voiceHome as home, NOW, OTHER, OWNER, removeVoiceHomes, voiceRow as row } from "./voiceMeasureFixture.js";
 
@@ -18,32 +19,40 @@ afterEach(() => {
 
 describe("readSlackVoiceMeasurement", () => {
   it("skips, naming why, when profile.json declares no owner id", () => {
-    const outcome = unwrap(readSlackVoiceMeasurement({ home: home({ files: {} }), nowIso: NOW }));
+    const outcome = unwrap(
+      readSlackVoiceMeasurement({ home: home({ files: {} }), nowIso: NOW, protection: NO_PROTECTION }),
+    );
     expect(outcome).toMatchObject({ kind: "skipped", reason: "owner-user-id-absent" });
   });
 
   it("fails, naming the file, when profile.json is not one it can trust", () => {
     const dir = home({ ownerId: OWNER });
     writeFileSync(join(dir, "profile.json"), "{ not json");
-    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     expect(failure.code).toBe("VOICE_MEASURE_PROFILE_UNREADABLE");
     expect(failure.message).toContain("because whose Slack messages to measure is read from it");
   });
 
   it("skips when the home holds no Slack corpus directory at all", () => {
-    const outcome = unwrap(readSlackVoiceMeasurement({ home: home({ ownerId: OWNER }), nowIso: NOW }));
+    const outcome = unwrap(
+      readSlackVoiceMeasurement({ home: home({ ownerId: OWNER }), nowIso: NOW, protection: NO_PROTECTION }),
+    );
     expect(outcome).toStrictEqual({
       kind: "skipped",
       message: "this home holds no Slack corpus yet — a Slack refresh writes it",
+      notRead: [],
       reason: "no-slack-bronze",
     });
   });
 
   it("skips when the Slack corpus directory holds no file", () => {
-    const outcome = unwrap(readSlackVoiceMeasurement({ home: home({ files: {}, ownerId: OWNER }), nowIso: NOW }));
+    const outcome = unwrap(
+      readSlackVoiceMeasurement({ home: home({ files: {}, ownerId: OWNER }), nowIso: NOW, protection: NO_PROTECTION }),
+    );
     expect(outcome).toStrictEqual({
       kind: "skipped",
       message: "this home holds no Slack corpus yet — a Slack refresh writes it",
+      notRead: [],
       reason: "no-slack-bronze",
     });
   });
@@ -52,7 +61,7 @@ describe("readSlackVoiceMeasurement", () => {
     const dir = home({ ownerId: OWNER });
     mkdirSync(join(dir, "corpus"), { recursive: true });
     writeFileSync(join(dir, "corpus", "bronze"), "a file where a directory belongs");
-    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     expect(failure.code).toBe("VOICE_MEASURE_CORPUS_UNREADABLE");
     expect(failure.message).toContain("could not be read");
   });
@@ -61,7 +70,7 @@ describe("readSlackVoiceMeasurement", () => {
     const dir = home({ files: { "a.jsonl": [row({ id: "1", text: "one two" })] }, ownerId: OWNER });
     const path = join(dir, "corpus", "bronze", "slack", "a.jsonl");
     chmodSync(path, 0o000);
-    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     chmodSync(path, 0o600);
     expect(failure).toMatchObject({ code: "VOICE_MEASURE_CORPUS_UNREADABLE", path });
   });
@@ -71,7 +80,7 @@ describe("readSlackVoiceMeasurement", () => {
     const nested = join(dir, "corpus", "bronze", "slack", "archived");
     mkdirSync(nested);
     chmodSync(nested, 0o000);
-    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     chmodSync(nested, 0o700);
     expect(failure).toMatchObject({ code: "VOICE_MEASURE_CORPUS_UNREADABLE", path: nested });
   });
@@ -88,11 +97,41 @@ describe("readSlackVoiceMeasurement", () => {
     );
   });
 
+  it("names a subtree the protect list kept out of the walk, and measures the owner's rows beside it", () => {
+    const dir = home({ files: { "a.jsonl": [row({ id: "1", text: "one two three" })] }, ownerId: OWNER });
+    const held = join(dir, "corpus", "bronze", "slack", "held");
+    mkdirSync(held);
+    writeFileSync(join(held, "b.jsonl"), `${row({ id: "2", text: "a b c d e f g" })}\n`);
+    const entry = { addedIso: "2026-01-01T00:00:00.000Z", mode: "no-access" as const, path: held, why: "fixture" };
+    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: () => ok([entry]) }));
+    expect(outcome).toMatchObject({
+      filesRead: 1,
+      kind: "measured",
+      notRead: [`NOT READ, protected by the owner's list: ${held} [no-access]`],
+    });
+    expect(outcome.measurement!.counts.eligibleAllSent).toBe(1);
+  });
+
+  it("names the held subtree on the skip when it holds every Slack file the walk would have read", () => {
+    const dir = home({ files: {}, ownerId: OWNER });
+    const held = join(dir, "corpus", "bronze", "slack", "held");
+    mkdirSync(held);
+    writeFileSync(join(held, "b.jsonl"), `${row({ id: "2", text: "a b c d e f g" })}\n`);
+    const entry = { addedIso: "2026-01-01T00:00:00.000Z", mode: "no-access" as const, path: held, why: "fixture" };
+    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: () => ok([entry]) }));
+    expect(outcome).toStrictEqual({
+      kind: "skipped",
+      message: "this home holds no Slack corpus yet — a Slack refresh writes it",
+      notRead: [`NOT READ, protected by the owner's list: ${held} [no-access]`],
+      reason: "no-slack-bronze",
+    });
+  });
+
   it("leaves out a row of the owner's that stored no Slack payload", () => {
     const bare = row({ id: "2", text: "no payload" }).replace(/"raw":\{[^}]*\},/, "");
     expect(bare).not.toContain('"raw"');
     const dir = home({ files: { "a.jsonl": [row({ id: "1", text: "one two" }), bare] }, ownerId: OWNER });
-    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     expect(outcome.measurement!.counts.excludedNoRawText).toBe(1);
     expect(outcome.measurement!.counts.eligibleAllSent).toBe(1);
   });
@@ -105,7 +144,7 @@ describe("readSlackVoiceMeasurement", () => {
       },
       ownerId: OWNER,
     });
-    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     expect(outcome).toMatchObject({ filesRead: 2, kind: "measured" });
     expect(
       outcome.measurement!.cohorts.map((cohort) => [cohort.surface, cohort.sampleCount, cohort.medianWords]),
@@ -120,7 +159,7 @@ describe("readSlackVoiceMeasurement", () => {
       files: { "a.jsonl": [row({ id: "1", raw: { bot_id: "B0SYNAPP001" }, text: "posted by the fleet" })] },
       ownerId: OWNER,
     });
-    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     expect(outcome).toMatchObject({ kind: "skipped", reason: "no-eligible-messages" });
     expect(outcome.measurement!.counts.excludedAppBotId).toBe(1);
   });
@@ -130,7 +169,7 @@ describe("readSlackVoiceMeasurement", () => {
       files: { "a.jsonl": [row({ id: "1", text: "fine" }), `{"author":"${OWNER}",`] },
       ownerId: OWNER,
     });
-    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const failure = unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     expect(failure.code).toBe("VOICE_MEASURE_ROW_MALFORMED");
     expect(failure.message).toContain("line 2 names the owner's Slack id but does not parse");
   });
@@ -141,7 +180,9 @@ describe("readSlackVoiceMeasurement", () => {
       files: { "a.jsonl": [row({ id: "1", text: "fine" }), `{"author":"${escaped}",`] },
       ownerId: OWNER,
     });
-    expect(unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW })).code).toBe("VOICE_MEASURE_ROW_MALFORMED");
+    expect(unwrapErr(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION })).code).toBe(
+      "VOICE_MEASURE_ROW_MALFORMED",
+    );
   });
 
   it("ignores a malformed line that does not name the owner", () => {
@@ -149,7 +190,7 @@ describe("readSlackVoiceMeasurement", () => {
       files: { "a.jsonl": [row({ id: "1", text: "fine" }), `{"author":"${OTHER}",`] },
       ownerId: OWNER,
     });
-    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW }));
+    const outcome = unwrap(readSlackVoiceMeasurement({ home: dir, nowIso: NOW, protection: NO_PROTECTION }));
     expect(outcome.kind).toBe("measured");
   });
 });

@@ -16,7 +16,8 @@ import { orphanStagingFiles } from "../../../corpus/compactOrphanTemps.js";
 import { bronzeSourceDir } from "../../../corpus/corpusPaths.js";
 import { serialiseRecord } from "../../../corpus/recordSerialisation.js";
 import type { CorpusRecord } from "../../../corpus/types.js";
-import { unwrap } from "../../../lib/result.js";
+import { ok, unwrap } from "../../../lib/result.js";
+import { NO_PROTECTION } from "../../noProtection.js";
 
 const DEAD_PID = 48591;
 const LIVE_PID = 17469;
@@ -79,7 +80,7 @@ describe("compactSource — sweeping a dead writer's staged file", () => {
 
   it("removes the dead writer's file, keeps the live one, and reports the bytes apart from the measure", () => {
     const { dir, dead, live } = seed();
-    const plan = unwrap(compactSource({ home, isAlive: onlyLiveRuns, source: "slack" }));
+    const plan = unwrap(compactSource({ home, isAlive: onlyLiveRuns, protection: NO_PROTECTION, source: "slack" }));
     expect(plan.orphanTemps).toStrictEqual({ bytes: 29, failures: [], removed: 1 });
     expect(existsSync(join(dir, dead))).toBe(false);
     expect(existsSync(join(dir, live))).toBe(true);
@@ -93,13 +94,30 @@ describe("compactSource — sweeping a dead writer's staged file", () => {
     mkdirSync(dir, { recursive: true });
     const dead = `compact.jsonl.${String(DEAD_PID)}.${UUID}.tmp`;
     writeFileSync(join(dir, dead), "partial", "utf8");
-    const plan = unwrap(compactSource({ home, isAlive: onlyLiveRuns, source: "slack" }));
+    const plan = unwrap(compactSource({ home, isAlive: onlyLiveRuns, protection: NO_PROTECTION, source: "slack" }));
     expect(plan.orphanTemps).toStrictEqual({ bytes: 7, failures: [], removed: 1 });
     expect(readdirSync(dir)).toStrictEqual([]);
   });
 
+  it("keeps a dead writer's file the owner's list protects, naming it, and still compacts the source", () => {
+    const { dir, dead } = seed();
+    const path = join(dir, dead);
+    const entry = { addedIso: "2026-11-01T00:00:00.000Z", mode: "read-only" as const, path, why: "kept" };
+    const plan = unwrap(compactSource({ home, isAlive: onlyLiveRuns, protection: () => ok([entry]), source: "slack" }));
+    expect(plan.orphanTemps).toStrictEqual({
+      bytes: 0,
+      failures: [
+        `refusing to compact slack: it would write to ${path}, which the owner's protect list marks read-only at ` +
+          `${path} (kept)`,
+      ],
+      removed: 0,
+    });
+    expect(existsSync(path)).toBe(true);
+    expect(plan.after.records).toBe(1);
+  });
+
   it("reports nothing swept for a source that was never ingested", () => {
-    const plan = unwrap(compactSource({ home, isAlive: onlyLiveRuns, source: "slack" }));
+    const plan = unwrap(compactSource({ home, isAlive: onlyLiveRuns, protection: NO_PROTECTION, source: "slack" }));
     expect(plan.orphanTemps).toStrictEqual({ bytes: 0, failures: [], removed: 0 });
   });
 });

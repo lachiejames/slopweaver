@@ -39,7 +39,7 @@
 import type { IngestError } from "#lib/ingestError.js";
 import type { OwnerProtectionResolver } from "../corpus/bronzeProtection.js";
 import { parseRow } from "../corpus/corpusRowCore.js";
-import { readJsonlLines, scanJsonlProtected } from "../corpus/corpusStore.js";
+import { protectedSkipWarnings, readJsonlLines, scanJsonlProtected } from "../corpus/corpusStore.js";
 import { err, ok, type Result } from "../lib/result.js";
 import { safeFs } from "../lib/safeBoundary.js";
 import type { PersonIdentity } from "./identity.js";
@@ -110,7 +110,7 @@ function foldFileCandidates({
  * @param home the Slopweaver home whose protect list applies, beside the account's own; `dir` may sit outside it
  * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns the distinct candidates, the paths that could not be read at all, and a warning per unreadable
- *   file or unlistable directory — or the protect list's refusal
+ *   file, unlistable directory or path the protect list kept out of the walk — or the protect list's refusal
  */
 export function streamIdentityCandidates({
   dir,
@@ -149,5 +149,6 @@ export function streamIdentityCandidates({
     unreadable.push(unlistable);
     warnings.push(`${unlistable}: directory could not be listed — any person named only there will not resolve`);
   }
+  warnings.push(...protectedSkipWarnings({ scan }));
   return ok({ candidates: [...seen.values()], unreadable, warnings });
 }

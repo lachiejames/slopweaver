@@ -57,19 +57,25 @@ export function voiceLegVerdict({
     };
   }
   const value = outcome.value;
+  // Every outcome carries what the protect list kept out of the walk, so the count rides whichever line is printed.
+  const notRead =
+    value.notRead.length === 0 ? "" : `; ${String(value.notRead.length)} path(s) on the protect list not read`;
   switch (value.kind) {
     case "written": {
       const counts = value.measurement.cohorts
         .map((cohort) => `${cohort.surface}/${cohort.cohort} n=${String(cohort.sampleCount)}`)
         .join(", ");
-      return { failures: [], lines: [{ level: "out", text: `voice: measured their sent Slack — ${counts}` }] };
+      return {
+        failures: [],
+        lines: [{ level: "out", text: `voice: measured their sent Slack — ${counts}${notRead}` }],
+      };
     }
     case "skipped":
     case "no-store": {
-      return { failures: [], lines: [{ level: "out", text: `voice: nothing measured — ${value.message}` }] };
+      return { failures: [], lines: [{ level: "out", text: `voice: nothing measured — ${value.message}${notRead}` }] };
     }
     case "dry-run": {
-      return { failures: [], lines: [{ level: "out", text: "voice: dry run, nothing written" }] };
+      return { failures: [], lines: [{ level: "out", text: `voice: dry run, nothing written${notRead}` }] };
     }
     default: {
       const unreachable: never = value;

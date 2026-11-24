@@ -84,6 +84,7 @@ export function flushNotionBatch({
  * @param gaps the transient coverage gaps the run reported
  * @param home the Slopweaver home the sidecar lives in
  * @param window the window this crawl was asked for
+ * @returns the protect list's refusal lines when the sidecar is covered, so the run warns rather than records
  */
 function recordCoverageIfEarned({
   bounded,
@@ -97,10 +98,11 @@ function recordCoverageIfEarned({
   gaps: readonly string[];
   home: string;
   window: ExportWindow;
-}): void {
-  if (notionCrawlCoversWindow({ bounded, enumerationIncomplete, gaps })) {
-    recordNotionCaptureCoverage({ home, sinceIso: window.since });
-  }
+}): readonly string[] {
+  const recorded = notionCrawlCoversWindow({ bounded, enumerationIncomplete, gaps })
+    ? recordNotionCaptureCoverage({ home, sinceIso: window.since })
+    : ok(undefined);
+  return recorded.isErr() ? recorded.error : [];
 }
 
 /**
@@ -352,7 +354,7 @@ function finaliseNotionIngest({
   gaps: readonly CoverageGap[];
 } {
   const gaps = notionCoverageGaps({ skips: fetched.skips });
-  recordCoverageIfEarned({
+  const refused = recordCoverageIfEarned({
     bounded: fetchCap !== undefined,
     enumerationIncomplete: enumerationWasIncomplete({ skips: fetched.skips }),
     gaps,
@@ -371,7 +373,7 @@ function finaliseNotionIngest({
       ...notionSpendNotes({ elapsedMs: Date.now() - startedAtMs, meter, seen }),
     ],
     records: [...projectNotionRecords(backfill), ...projectNotionRecords(fetched)],
-    warnings: fetched.warnings,
+    warnings: [...fetched.warnings, ...refused],
   };
 }
 

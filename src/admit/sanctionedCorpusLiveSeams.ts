@@ -27,9 +27,9 @@ export const CORPUS_LIVE_SEAMS = {
   "src/corpus/fathom/shareBronze.ts": "local-state",
   "src/corpus/github/repoWatermark.ts": "local-state",
   // The owner's ChatGPT export, taken in: `/usr/bin/unzip` lists the zip they downloaded and writes one conversations file
-  // into a staging folder under `$SLOPWEAVER_HOME/corpus/exports/chatgpt`, and `exportStore.ts` renames that
-  // folder into place, and `exportReceipts.ts` writes a receipt beside it. Every byte came off this machine's disk;
-  // nothing is fetched and nothing leaves it.
+  // into a staging folder `exportStaging.ts` makes under `$SLOPWEAVER_HOME/corpus/exports/chatgpt`, `exportStore.ts`
+  // renames that folder into place, and `exportReceipts.ts` writes a receipt beside it. Every byte came off this
+  // machine's disk; nothing is fetched and nothing leaves it.
   "src/corpus/chatgpt/archive.ts": "local-state",
   // `audit references`: `git archive` of one commit into a zip under `$SLOPWEAVER_HOME/proof/zero-references`,
   // `/usr/bin/unzip` of it into the run's own temporary directory, a read of every extracted file, and the removal
@@ -37,6 +37,7 @@ export const CORPUS_LIVE_SEAMS = {
   // nothing leaves the machine.
   "src/hygiene/referenceExport.ts": "local-state",
   "src/corpus/chatgpt/exportReceipts.ts": "local-state",
+  "src/corpus/chatgpt/exportStaging.ts": "local-state",
   "src/corpus/chatgpt/exportStore.ts": "local-state",
   // The live copy of the owner's ChatGPT history under `$SLOPWEAVER_HOME/corpus/chatgpt/live`: writes a snapshot
   // atomically and unlinks the body it replaced. Every byte was already read; nothing is fetched and nothing leaves.

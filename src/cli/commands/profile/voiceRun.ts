@@ -87,6 +87,10 @@ export async function runProfileVoiceMeasure({
     logger.out({ line: safeJsonStringify({ label: "profile voice measure", value }) });
     return value.kind === "skipped" ? EXIT_EXPECTED_EMPTY : EXIT_OK;
   }
+  // A path the protect list kept out of the walk is said on stderr, so a cohort measured without it never reads as whole.
+  value.notRead.forEach((msg) => {
+    logger.error({ msg });
+  });
   if (value.kind === "skipped") {
     logger.out({ line: `profile voice measure: nothing measured; no cohorts written — ${value.message}` });
     if (value.measurement !== undefined) {

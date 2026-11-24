@@ -15,6 +15,7 @@ import type { NotionSkip } from "../../../../corpus/notion/skips.js";
 import { writeStructureRows } from "../../../../corpus/structures/store.js";
 import type { StructureBronzeRow } from "../../../../corpus/structures/types.js";
 import { unwrap } from "../../../../lib/result.js";
+import { NO_PROTECTION } from "../../../noProtection.js";
 
 const A = "0e2f4a1b-1111-4222-8333-444455556661";
 const B = "0e2f4a1b-1111-4222-8333-444455556662";
@@ -233,6 +234,7 @@ describe("structureNotionDataSourceIds", () => {
     unwrap(
       writeStructureRows({
         home,
+        protection: NO_PROTECTION,
         rows: [dataSourceRow({ sourceId: A }), dataSourceRow({ sourceId: B })],
         source: "notion",
       }),

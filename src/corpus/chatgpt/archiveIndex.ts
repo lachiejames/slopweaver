@@ -24,6 +24,7 @@ import { logger } from "#lib/logger.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { writeFileAtomic } from "#lib/writeAtomic.js";
 
+import type { OwnerProtectionResolver } from "../bronzeProtection.js";
 import type { ChatgptArchiveDeps } from "./archive.js";
 import { type ChatgptExportError, ChatgptExportErrors } from "./errors.js";
 import { HASH_DIR, parseSmallJson } from "./exportReceipts.js";
@@ -106,6 +107,8 @@ function remember({ root, entries, entry }: { root: string; entries: readonly In
  * @param nowIso the instant an import is stamped with
  * @param root the managed export root
  * @param heldHashes every export currently held, so a hit on one moved aside since is a miss
+ * @param home the Slopweaver home whose protect registry the import judges against
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns what was done, or why the import failed
  */
 export function takeInArchive({
@@ -114,17 +117,21 @@ export function takeInArchive({
   nowIso,
   root,
   heldHashes,
+  home,
+  protection,
 }: {
   archive: ChatgptArchiveDeps;
   from: string;
   nowIso: string;
   root: string;
   heldHashes: ReadonlySet<string>;
+  home: string;
+  protection?: OwnerProtectionResolver | undefined;
 }): Result<ArchiveTakeIn, ChatgptExportError> {
   const path = resolve(from);
   const before = fileIdentity({ path });
   if (before === undefined) {
-    return importChatgptExport({ archive, from, nowIso, root }).map((outcome) => ({
+    return importChatgptExport({ archive, from, home, nowIso, protection, root }).map((outcome) => ({
       kind: "imported" as const,
       outcome,
     }));
@@ -137,7 +144,7 @@ export function takeInArchive({
     // takes it in or refuses it by name. A second check here would only move the window, never shut it.
     return ok({ contentHash: known.contentHash, kind: "known", modifiedIso: before.modifiedIso });
   }
-  const imported = importChatgptExport({ archive, from, nowIso, root });
+  const imported = importChatgptExport({ archive, from, home, nowIso, protection, root });
   if (imported.isErr()) {
     return err(imported.error);
   }

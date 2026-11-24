@@ -99,4 +99,17 @@ describe("streamIdentityCandidates", () => {
     expect(refusal.length).toBe(1);
     expect(refusal[0]).toContain(`it would list ${root}, which the owner's protect list marks no-access`);
   });
+
+  it("names a subtree the protect list kept out of the walk, and reads the candidates beside it", () => {
+    writeJsonl({ lines: [JSON.stringify(rec({ author: "U0SYN1AAAAAAA" }))], path: join(root, "a.jsonl") });
+    const held = join(root, "held");
+    mkdirSync(held);
+    writeJsonl({ lines: [JSON.stringify(rec({ author: "U0SYN2BBBBBBB" }))], path: join(held, "b.jsonl") });
+    const entry = { addedIso: "2026-01-01T00:00:00.000Z", mode: "no-access" as const, path: held, why: "fixture" };
+
+    const read = unwrap(streamIdentityCandidates({ dir: root, home: root, protection: () => ok([entry]) }));
+
+    expect(read.candidates.map((candidate) => candidate.nativeId)).toEqual(["U0SYN1AAAAAAA"]);
+    expect(read.warnings).toEqual([`NOT READ, protected by the owner's list: ${held} [no-access]`]);
+  });
 });

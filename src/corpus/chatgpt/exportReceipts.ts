@@ -13,6 +13,8 @@ import { z } from "zod";
 import { err, ok, type Result } from "#lib/result.js";
 import { writeFileAtomic } from "#lib/writeAtomic.js";
 
+import type { OwnerProtectionResolver } from "../bronzeProtection.js";
+import { preflightCorpusAccesses } from "../corpusAccessGuard.js";
 import { type ChatgptExportError, ChatgptExportErrors } from "./errors.js";
 
 /** A content hash's directory name. */
@@ -74,10 +76,30 @@ export function hasReceipt({ root, contentHash }: { root: string; contentHash: s
  * newer export live only in it. Removing a receipt only ever makes a pass read more, so a crash part-way is safe.
  *
  * @param root the managed export root
+ * @param home the Slopweaver home whose protect registry applies, beside the account's own
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns how many receipts were removed, or why the receipts folder could not be cleared
  */
-export function forgetReceipts({ root }: { root: string }): Result<number, ChatgptExportError> {
+export function forgetReceipts({
+  root,
+  home,
+  protection,
+}: {
+  root: string;
+  home: string;
+  protection?: OwnerProtectionResolver | undefined;
+}): Result<number, ChatgptExportError> {
   const dir = join(root, "receipts");
+  // Any receipt beneath it may be removed, so the folder is judged as a tree before it is even looked at.
+  const judged = preflightCorpusAccesses({
+    accesses: [{ access: "tree-write", path: dir }],
+    home,
+    operation: { target: dir, verb: "forget the ChatGPT receipts in" },
+    protection,
+  });
+  if (judged.isErr()) {
+    return err(ChatgptExportErrors.exportProtected({ lines: judged.error }));
+  }
   if (!existsSync(dir)) {
     return ok(0);
   }
@@ -106,18 +128,33 @@ export function forgetReceipts({ root }: { root: string }): Result<number, Chatg
  * @param root the managed export root
  * @param contentHash the export
  * @param nowIso the instant stamped as the sync time
+ * @param home the Slopweaver home whose protect registry applies, beside the account's own
+ * @param protection an injected resolver, which a test supplies so it never reads the owner's own registry
  * @returns nothing, or why the receipt could not be written
  */
 export function writeReceipt({
   root,
   contentHash,
   nowIso,
+  home,
+  protection,
 }: {
   root: string;
   contentHash: string;
   nowIso: string;
+  home: string;
+  protection?: OwnerProtectionResolver | undefined;
 }): Result<void, ChatgptExportError> {
   const path = receiptPath({ contentHash, root });
+  const judged = preflightCorpusAccesses({
+    accesses: [{ access: "write", path }],
+    home,
+    operation: { target: path, verb: "write the ChatGPT receipt" },
+    protection,
+  });
+  if (judged.isErr()) {
+    return err(ChatgptExportErrors.exportProtected({ lines: judged.error }));
+  }
   const body = JSON.stringify({ contentHash, schemaVersion: 1, syncedAtIso: nowIso });
   try {
     mkdirSync(dirname(path), { mode: 0o700, recursive: true });

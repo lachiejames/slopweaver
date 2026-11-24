@@ -21,6 +21,7 @@ import { buildResyncPolicies, type ResyncPolicy } from "../../../../live/resync/
 import { type ResyncRunDeps, runResync } from "../../../../live/resync/run.js";
 import { stateHomePaths } from "../../../../stateHome.js";
 import { FUTURE, syntheticExportAt, syntheticFileAlone } from "../../../chatgptFixture.js";
+import { NO_PROTECTION, UNPROTECTED } from "../../../noProtection.js";
 
 /** The synthetic export, its files dated past every clock here so it is dated at the instant it is taken in. */
 const FIXTURE = syntheticExportAt({ modifiedIso: FUTURE });
@@ -64,6 +65,7 @@ function syncDeps({ nowIso, refreshExit }: { nowIso: string; refreshExit: number
     },
     downloadsDir: tempDir(),
     nowIso: () => nowIso,
+    protection: NO_PROTECTION,
     runVerb: () => Promise.resolve(refreshExit),
   };
 }
@@ -124,7 +126,7 @@ describe("the chatgpt resync's verified-sync clock", () => {
     const root = stateHomePaths({ home }).corpus.chatgptExports;
     const straggler = syntheticFileAlone({ member: "conversations-000.json", modifiedIso: FUTURE });
     const { archive } = syncDeps({ nowIso: IMPORTED, refreshExit: EXIT_OK });
-    unwrap(importChatgptExport({ archive, from: straggler, nowIso: "2026-10-16T20:00:00.000Z", root }));
+    unwrap(importChatgptExport({ ...UNPROTECTED, archive, from: straggler, nowIso: "2026-10-16T20:00:00.000Z", root }));
     const { deps, exits } = runnerDeps({ home, nowIso: "2026-10-16T21:00:00.000Z", refreshExit: EXIT_OK });
     const result = await runResync({ blocker: null, deps, home, policy: chatgptPolicy(), previous: null });
     expect(exits).toEqual([EXIT_OK]);
@@ -137,7 +139,7 @@ describe("the chatgpt resync's verified-sync clock", () => {
     const root = stateHomePaths({ home }).corpus.chatgptExports;
     const august = syntheticExportAt({ modifiedIso: "2026-08-01T00:00:00.000Z" });
     const { archive } = syncDeps({ nowIso: IMPORTED, refreshExit: EXIT_OK });
-    unwrap(importChatgptExport({ archive, from: august, nowIso: IMPORTED, root }));
+    unwrap(importChatgptExport({ ...UNPROTECTED, archive, from: august, nowIso: IMPORTED, root }));
     const { deps, exits } = runnerDeps({ home, nowIso: IMPORTED, refreshExit: EXIT_OK });
     const result = await runResync({ blocker: null, deps, home, policy: chatgptPolicy(), previous: null });
     expect(exits).toEqual([EXIT_OK]);

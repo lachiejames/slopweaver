@@ -218,7 +218,7 @@ describe("buildNotionSeenIndex", () => {
         '{"sourceId":"page:0e2f4a1b-1111-4222-8333-4444555',
       ].join("\n"),
     );
-    recordNotionCaptureCoverage({ home, sinceIso: COVERED });
+    unwrap(recordNotionCaptureCoverage({ home, protection: NO_ENTRIES, sinceIso: COVERED }));
     const index = unwrap(await buildNotionSeenIndex({ home, protection: NO_ENTRIES }));
     expect(index.size).toBe(2);
     expect(index.isUnchanged({ id: PAGE, lastEdited: "2026-05-01T00:00:00.000Z" })).toBe(true);

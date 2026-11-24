@@ -3,7 +3,7 @@
  * further request, the refresh leg run whenever the live copy holds anything, a second run reading only what moved,
  * and the one-run lock. The listing walk and the GET edge are plain fakes passed in; the snapshot store is real.
  */
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -20,11 +20,13 @@ import {
 import { importRequestPaste } from "../../../../../cli/commands/chatgpt/session.js";
 import { CHATGPT_WEB_CAVEATS } from "../../../../../cli/commands/chatgpt/usage.js";
 import { EXIT_DEFERRED, EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK } from "../../../../../cli/exitCodes.js";
+import type { OwnerProtectionResolver } from "../../../../../corpus/bronzeProtection.js";
 import { readLiveAsOf } from "../../../../../corpus/chatgpt/liveAsOf.js";
-import { heldLiveManifests } from "../../../../../corpus/chatgpt/liveSnapshotStore.js";
+import { conversationDir, heldLiveManifests } from "../../../../../corpus/chatgpt/liveSnapshotStore.js";
 import { err, ok, type Result, unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { chatId } from "../../../../chatgptFixture.js";
+import { NO_PROTECTION, UNPROTECTED } from "../../../../noProtection.js";
 import { conversation, liveBody, tempDir, useTempDirs } from "../../../corpus/chatgpt/ingest/harness.js";
 
 useTempDirs();
@@ -104,6 +106,7 @@ function depsFor({
       listInventory: () => Promise.resolve(inventory),
       nowIso: () => "2026-11-18T00:00:00.000Z",
       pacer: NO_PACE,
+      protection: NO_PROTECTION,
       runVerb: (argv) => {
         verbs.push(argv);
         return Promise.resolve(refreshExit);
@@ -145,6 +148,7 @@ describe("readPlannedConversations", () => {
       ]),
     });
     const outcome = await readPlannedConversations({
+      ...UNPROTECTED,
       fetchText: table.fetchText,
       nowIso: () => "2026-11-18T00:00:00.000Z",
       onProgress: () => undefined,
@@ -170,6 +174,7 @@ describe("readPlannedConversations", () => {
       ]),
     });
     const outcome = await readPlannedConversations({
+      ...UNPROTECTED,
       fetchText: table.fetchText,
       nowIso: () => "2026-11-18T00:00:00.000Z",
       onProgress: () => undefined,
@@ -194,6 +199,7 @@ describe("readPlannedConversations", () => {
       ]),
     });
     const outcome = await readPlannedConversations({
+      ...UNPROTECTED,
       fetchText: table.fetchText,
       nowIso: () => "2026-11-18T00:00:00.000Z",
       onProgress: () => undefined,
@@ -219,6 +225,7 @@ describe("readPlannedConversations", () => {
       ]),
     });
     const outcome = await readPlannedConversations({
+      ...UNPROTECTED,
       fetchText: table.fetchText,
       nowIso: () => "2026-11-18T00:00:00.000Z",
       onProgress: () => undefined,
@@ -229,6 +236,34 @@ describe("readPlannedConversations", () => {
     expect(outcome.read).toBe(0);
     expect(outcome.stoppedBy!.code).toBe("PAGE_MALFORMED");
     expect(unwrap(heldLiveManifests({ root })).size).toBe(0);
+  });
+
+  it("stops on a live copy the owner's list marks read-only, writing nothing of the chat it read", async () => {
+    const root = join(tempDir(), "live");
+    const table = tableFetch({
+      answers: new Map<string, Result<string, ChatgptError>>([
+        [`/backend-api/conversation/${Y}`, ok(bodyOf({ name: "conv-y", text: "why" }))],
+      ]),
+    });
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "read-only", path: root, why: "kept as it is" }]);
+    const outcome = await readPlannedConversations({
+      fetchText: table.fetchText,
+      home: tempDir(),
+      nowIso: () => "2026-11-18T00:00:00.000Z",
+      onProgress: () => undefined,
+      pacer: NO_PACE,
+      protection,
+      root,
+      toRead: [listed({ id: Y, updatedIso: "2026-11-01T00:00:00.000Z" })],
+    });
+    const directory = conversationDir({ conversationId: Y, root });
+    expect(outcome.read).toBe(0);
+    expect(outcome.stoppedBy!.message).toBe(
+      `chatgpt: refusing to hold the live snapshot in ${directory}: it would write to ${directory}, which the ` +
+        `owner's protect list marks read-only at ${root} (kept as it is) — nothing was written`,
+    );
+    expect(existsSync(root)).toBe(false);
   });
 });
 

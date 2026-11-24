@@ -17,10 +17,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { OwnerProtectionResolver } from "../../../../../corpus/bronzeProtection.js";
 import { ChatgptExportErrors } from "../../../../../corpus/chatgpt/errors.js";
 import { importChatgptExport } from "../../../../../corpus/chatgpt/exportStore.js";
-import { unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { ok, unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { FUTURE, syntheticExportAt, syntheticFileAlone } from "../../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../../noProtection.js";
 import { fakeZip, NO_ZIP, tempDir, useTempDirs, ZIP_MAGIC } from "./harness.js";
 
 /** The synthetic export, dated past every clock here so an import dates it at its own `nowIso`. */
@@ -32,7 +34,7 @@ describe("importChatgptExport", () => {
   it("copies an unzipped export's conversations files under their content hash, private, with a manifest", () => {
     const root = join(tempDir(), "exports");
     const outcome = unwrap(
-      importChatgptExport({ archive: NO_ZIP, from: FIXTURE, nowIso: "2026-10-17T01:00:00.000Z", root }),
+      importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from: FIXTURE, nowIso: "2026-10-17T01:00:00.000Z", root }),
     );
     expect(outcome.fresh).toBe(true);
     expect(outcome.stored.contentHash).toMatch(/^[0-9a-f]{64}$/);
@@ -60,12 +62,13 @@ describe("importChatgptExport", () => {
   it("takes the same export in once: a second import, from a zip of the same files, writes nothing", () => {
     const root = join(tempDir(), "exports");
     const first = unwrap(
-      importChatgptExport({ archive: NO_ZIP, from: FIXTURE, nowIso: "2026-10-17T01:00:00.000Z", root }),
+      importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from: FIXTURE, nowIso: "2026-10-17T01:00:00.000Z", root }),
     );
     const zipPath = join(tempDir(), "a1b2c3-2026-10-17-01-00-00.zip");
     writeFileSync(zipPath, ZIP_MAGIC);
     const again = unwrap(
       importChatgptExport({
+        ...UNPROTECTED,
         archive: fakeZip({ contents: FIXTURE, zipPath }),
         from: zipPath,
         nowIso: "2026-10-18T01:00:00.000Z",
@@ -83,6 +86,7 @@ describe("importChatgptExport", () => {
     const root = join(tempDir(), "exports");
     const outcome = unwrap(
       importChatgptExport({
+        ...UNPROTECTED,
         archive: NO_ZIP,
         from: syntheticFileAlone({ member: "conversations-001.json", modifiedIso: FUTURE }),
         nowIso: "2026-10-17T01:00:00.000Z",
@@ -97,7 +101,7 @@ describe("importChatgptExport", () => {
   it("refuses one part of a split export named on its own, so the rest is never left unread behind a receipt", () => {
     const root = join(tempDir(), "exports");
     const refused = ["conversations-001.json", "conversations-000.json"].map((name) =>
-      unwrapErr(importChatgptExport({ archive: NO_ZIP, from: join(FIXTURE, name), nowIso: "x", root })),
+      unwrapErr(importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from: join(FIXTURE, name), nowIso: "x", root })),
     );
     expect(refused).toEqual([
       ChatgptExportErrors.unsafeMember({
@@ -118,7 +122,7 @@ describe("importChatgptExport", () => {
     writeFileSync(join(folder, "conversations.json"), "[]");
     copyFileSync(join(FIXTURE, "conversations-000.json"), join(folder, "conversations-part-000.json"));
     const from = join(folder, "conversations.json");
-    expect(unwrapErr(importChatgptExport({ archive: NO_ZIP, from, nowIso: "x", root }))).toEqual(
+    expect(unwrapErr(importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from, nowIso: "x", root }))).toEqual(
       ChatgptExportErrors.unsafeMember({
         member: "conversations-part-000.json",
         why: "a conversations file named in a shape this reader does not know, so its history would go unread",
@@ -130,14 +134,14 @@ describe("importChatgptExport", () => {
   it("refuses a path that does not exist, and a folder that is not an export, writing nothing", () => {
     const root = join(tempDir(), "exports");
     const missing = join(tempDir(), "nope.zip");
-    expect(unwrapErr(importChatgptExport({ archive: NO_ZIP, from: missing, nowIso: "x", root }))).toEqual(
-      ChatgptExportErrors.exportPathMissing({ path: missing }),
-    );
+    expect(
+      unwrapErr(importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from: missing, nowIso: "x", root })),
+    ).toEqual(ChatgptExportErrors.exportPathMissing({ path: missing }));
     const notExport = tempDir();
     writeFileSync(join(notExport, "notes.json"), "[]");
-    expect(unwrapErr(importChatgptExport({ archive: NO_ZIP, from: notExport, nowIso: "x", root })).code).toBe(
-      "NOT_AN_EXPORT",
-    );
+    expect(
+      unwrapErr(importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from: notExport, nowIso: "x", root })).code,
+    ).toBe("NOT_AN_EXPORT");
     expect(existsSync(root)).toBe(false);
   });
 
@@ -145,9 +149,9 @@ describe("importChatgptExport", () => {
     const root = join(tempDir(), "exports");
     const from = tempDir();
     symlinkSync(join(FIXTURE, "conversations-001.json"), join(from, "conversations.json"));
-    expect(unwrapErr(importChatgptExport({ archive: NO_ZIP, from, nowIso: "x", root })).message).toContain(
-      "a symbolic link",
-    );
+    expect(
+      unwrapErr(importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from, nowIso: "x", root })).message,
+    ).toContain("a symbolic link");
     expect(readdirSync(root)).toEqual([]);
   });
 
@@ -155,7 +159,9 @@ describe("importChatgptExport", () => {
     const elsewhere = tempDir();
     const root = join(tempDir(), "exports");
     symlinkSync(elsewhere, root);
-    expect(unwrapErr(importChatgptExport({ archive: NO_ZIP, from: FIXTURE, nowIso: "x", root }))).toEqual(
+    expect(
+      unwrapErr(importChatgptExport({ ...UNPROTECTED, archive: NO_ZIP, from: FIXTURE, nowIso: "x", root })),
+    ).toEqual(
       ChatgptExportErrors.exportStoreFailed({
         cause: new Error("the export root is a symbolic link, and an export is never written through one"),
         path: root,
@@ -172,8 +178,50 @@ describe("importChatgptExport", () => {
     const zipPath = join(tempDir(), "rezipped.zip");
     writeFileSync(zipPath, ZIP_MAGIC);
     const outcome = unwrap(
-      importChatgptExport({ archive: fakeZip({ contents, zipPath }), from: zipPath, nowIso: "x", root }),
+      importChatgptExport({
+        ...UNPROTECTED,
+        archive: fakeZip({ contents, zipPath }),
+        from: zipPath,
+        nowIso: "x",
+        root,
+      }),
     );
     expect(outcome.stored.files).toEqual([join(outcome.stored.directory, "conversations.json")]);
+  });
+});
+
+describe("importChatgptExport on the owner's protect list", () => {
+  it("refuses a source the list marks no-access before reading a byte of it, writing nothing", () => {
+    const root = join(tempDir(), "exports");
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "no-access", path: FIXTURE, why: "never read" }]);
+    expect(
+      unwrapErr(
+        importChatgptExport({ archive: NO_ZIP, from: FIXTURE, home: tempDir(), nowIso: "x", protection, root }),
+      ),
+    ).toEqual(
+      ChatgptExportErrors.exportProtected({
+        lines: [
+          `refusing to take in the ChatGPT export ${FIXTURE}: it would search ${FIXTURE}, which the owner's ` +
+            `protect list marks no-access at ${FIXTURE} (never read)`,
+        ],
+      }),
+    );
+    expect(existsSync(root)).toBe(false);
+  });
+
+  it("refuses an export root holding a read-only entry anywhere beneath it, writing nothing", () => {
+    const root = join(tempDir(), "exports");
+    const held = join(root, "kept");
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "read-only", path: held, why: "kept as it is" }]);
+    expect(
+      unwrapErr(importChatgptExport({ archive: NO_ZIP, from: FIXTURE, home: tempDir(), nowIso: "x", protection, root }))
+        .message,
+    ).toBe(
+      `refusing to take in the ChatGPT export ${FIXTURE}: it would write to ${held}, which the owner's protect ` +
+        `list marks read-only at ${held} (kept as it is) — nothing was written`,
+    );
+    expect(existsSync(root)).toBe(false);
   });
 });

@@ -6,6 +6,9 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { appendLines } from "#lib/appendSeparator.js";
+import type { Result } from "#lib/result.js";
+
+import type { CorpusJudge } from "./bronzeProtection.js";
 
 /** How many bytes of kept lines accumulate before an append flushes. One batch is the peak write heap. */
 const FLUSH_BYTES = 8 * 1024 * 1024;
@@ -30,11 +33,18 @@ function appendBatch({ path, lines }: { path: string; lines: readonly string[] }
 }
 
 /**
- * Open a batched append sink at `path`, creating its parent directory.
+ * Open a batched append sink at `path`, creating its parent directory, once the owner's protect list allows it.
  *
- * @returns a sink writing every line it is pushed, flushing a batch whenever `FLUSH_BYTES` have accumulated
+ * @param judge the build's protect-list judge, asked about `path` as a write before the sink exists
+ * @returns a sink writing every line it is pushed, flushing a batch whenever `FLUSH_BYTES` have accumulated, or
+ *   the judge's refusal
  */
-export function openSink({ path }: { path: string }): LineSink {
+export function openSink({ path, judge }: { path: string; judge: CorpusJudge }): Result<LineSink> {
+  return judge({ access: "write", path }).map(() => batchedSink({ path }));
+}
+
+/** The batched append sink itself, for a path already judged. */
+function batchedSink({ path }: { path: string }): LineSink {
   const pending: string[] = [];
   let pendingBytes = 0;
   let total = 0;
@@ -68,9 +78,23 @@ export function openSink({ path }: { path: string }): LineSink {
  * tiebreak available — the corpus carries one timestamp per record — and a stable one is what makes a rebuild
  * from unchanged bronze produce the same subset twice.
  *
- * @returns a sink holding the newest `limit` lines, which it writes oldest first on `flush`
+ * @param judge the build's protect-list judge, asked about `path` as a write before the sink exists
+ * @returns a sink holding the newest `limit` lines, which it writes oldest first on `flush`, or the judge's refusal
  */
-export function openCappedSink({ path, limit }: { path: string; limit: number }): LineSink {
+export function openCappedSink({
+  path,
+  limit,
+  judge,
+}: {
+  path: string;
+  limit: number;
+  judge: CorpusJudge;
+}): Result<LineSink> {
+  return judge({ access: "write", path }).map(() => cappedSink({ limit, path }));
+}
+
+/** The capped sink itself, for a path already judged. */
+function cappedSink({ path, limit }: { path: string; limit: number }): LineSink {
   // A cap of zero would make every `kept[0]!` below unreachable-but-unprovable; the flag parser already
   // refuses a non-positive `--limit`, so this is a belt on a braces rather than a live branch.
   // Ascending by tsIso, so index 0 is the oldest kept line and the one a newer arrival displaces.

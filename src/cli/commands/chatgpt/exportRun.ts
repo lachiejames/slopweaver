@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { logger } from "#lib/logger.js";
 import { err, ok, type Result } from "#lib/result.js";
 
+import type { OwnerProtectionResolver } from "../../../corpus/bronzeProtection.js";
 import { type ChatgptArchiveDeps, unzipArchiveDeps } from "../../../corpus/chatgpt/archive.js";
 import { takeInArchive } from "../../../corpus/chatgpt/archiveIndex.js";
 import { ChatgptExportErrors } from "../../../corpus/chatgpt/errors.js";
@@ -60,6 +61,8 @@ export interface ChatgptExportVerbDeps {
   readonly nowIso: () => string;
   /** One CLI invocation through the router, in process — `sync`'s refresh leg. */
   readonly runVerb: (argv: readonly string[]) => Promise<number>;
+  /** The owner's protect list every import and receipt is judged against — the home's own registry when absent. */
+  readonly protection?: OwnerProtectionResolver | undefined;
 }
 
 /**
@@ -154,7 +157,9 @@ export function runChatgptImportExport({
   const outcome = importChatgptExport({
     archive: deps.archive,
     from: path,
+    home,
     nowIso: deps.nowIso(),
+    protection: deps.protection,
     root: stateHomePaths({ home }).corpus.chatgptExports,
   });
   if (outcome.isErr()) {
@@ -189,10 +194,12 @@ function modifiedIso({ path }: { path: string }): string | undefined {
 function takeInExports({
   deps,
   from,
+  home,
   root,
 }: {
   deps: ChatgptExportVerbDeps;
   from: string | undefined;
+  home: string;
   root: string;
 }): { readonly exit: number } | { readonly seen: readonly SeenArchive[] } {
   const location = locateExport({ archive: deps.archive, downloadsDir: deps.downloadsDir, from });
@@ -212,7 +219,15 @@ function takeInExports({
   const seen: SeenArchive[] = [];
   const heldHashes = new Set(heldExports({ root }).exports.map((stored) => stored.contentHash));
   for (const path of location.paths.toReversed()) {
-    const taken = takeInArchive({ archive: deps.archive, from: path, heldHashes, nowIso: deps.nowIso(), root });
+    const taken = takeInArchive({
+      archive: deps.archive,
+      from: path,
+      heldHashes,
+      home,
+      nowIso: deps.nowIso(),
+      protection: deps.protection,
+      root,
+    });
     if (taken.isErr()) {
       diagnose({ lines: [`chatgpt: ${taken.error.message}`] });
       return { exit: EXIT_ERROR };
@@ -264,7 +279,13 @@ async function refreshAndReceipt({
     return EXIT_ERROR;
   }
   for (const stored of pending) {
-    const receipt = writeReceipt({ contentHash: stored.contentHash, nowIso: deps.nowIso(), root });
+    const receipt = writeReceipt({
+      contentHash: stored.contentHash,
+      home,
+      nowIso: deps.nowIso(),
+      protection: deps.protection,
+      root,
+    });
     if (receipt.isErr()) {
       diagnose({
         lines: [`chatgpt: export ${stored.contentHash.slice(0, 12)} reached the corpus, but ${receipt.error.message}`],
@@ -277,8 +298,8 @@ async function refreshAndReceipt({
 }
 
 /** `--replay`: forget every receipt so the refresh reads every held export again; false once that was refused. */
-function forgotten({ root }: { root: string }): boolean {
-  const forgot = forgetReceipts({ root });
+function forgotten({ deps, home, root }: { deps: ChatgptExportVerbDeps; home: string; root: string }): boolean {
+  const forgot = forgetReceipts({ home, protection: deps.protection, root });
   if (forgot.isErr()) {
     diagnose({ lines: [`chatgpt: ${forgot.error.message}`] });
     return false;
@@ -315,7 +336,7 @@ export async function runChatgptSync({
   }
   const { from, home, replay } = options.value;
   const root = stateHomePaths({ home }).corpus.chatgptExports;
-  const taken = takeInExports({ deps, from, root });
+  const taken = takeInExports({ deps, from, home, root });
   if ("exit" in taken) {
     return taken.exit;
   }
@@ -331,7 +352,7 @@ export async function runChatgptSync({
     diagnose({ lines: [ChatgptExportErrors.noImportedExport().message] });
     return EXIT_EXPECTED_EMPTY;
   }
-  if (replay && !forgotten({ root })) {
+  if (replay && !forgotten({ deps, home, root })) {
     return EXIT_ERROR;
   }
   // Any held export with no receipt, not only the newest, calls for a refresh (which reads every held export,

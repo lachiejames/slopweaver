@@ -1,12 +1,15 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { OwnerProtectionResolver } from "../../../../corpus/bronzeProtection.js";
 import {
   notionCrawlCoversWindow,
   readNotionCaptureCoverage,
   recordNotionCaptureCoverage,
 } from "../../../../corpus/notion/captureCoverage.js";
+import { ok, unwrapErr } from "../../../../lib/result.js";
+import { NO_PROTECTION } from "../../../noProtection.js";
 
 // Every fixture directory this file has minted, so `afterEach` can remove them.
 const fixtureDirs: string[] = [];
@@ -32,7 +35,7 @@ describe("readNotionCaptureCoverage", () => {
 
   it("reads back exactly what a completed crawl recorded", () => {
     const home = freshHome();
-    recordNotionCaptureCoverage({ home, sinceIso: "2026-01-01" });
+    recordNotionCaptureCoverage({ home, protection: NO_PROTECTION, sinceIso: "2026-01-01" });
     expect(readNotionCaptureCoverage({ home })).toBe("2026-01-01");
   });
 
@@ -54,16 +57,30 @@ describe("readNotionCaptureCoverage", () => {
 describe("recordNotionCaptureCoverage keeps the OLDEST since ever completed", () => {
   it("widens when a later crawl reached further back", () => {
     const home = freshHome();
-    recordNotionCaptureCoverage({ home, sinceIso: "2026-05-01" });
-    recordNotionCaptureCoverage({ home, sinceIso: "2024-01-01" });
+    recordNotionCaptureCoverage({ home, protection: NO_PROTECTION, sinceIso: "2026-05-01" });
+    recordNotionCaptureCoverage({ home, protection: NO_PROTECTION, sinceIso: "2024-01-01" });
     expect(readNotionCaptureCoverage({ home })).toBe("2024-01-01");
   });
 
   it("does not NARROW when a later crawl covered less — those pages were already marked", () => {
     const home = freshHome();
-    recordNotionCaptureCoverage({ home, sinceIso: "2024-01-01" });
-    recordNotionCaptureCoverage({ home, sinceIso: "2026-08-20" });
+    recordNotionCaptureCoverage({ home, protection: NO_PROTECTION, sinceIso: "2024-01-01" });
+    recordNotionCaptureCoverage({ home, protection: NO_PROTECTION, sinceIso: "2026-08-20" });
     expect(readNotionCaptureCoverage({ home })).toBe("2024-01-01");
+  });
+});
+
+describe("recordNotionCaptureCoverage under the owner's protect list", () => {
+  it("refuses a read-only Notion bronze directory, and records nothing", () => {
+    const home = freshHome();
+    const entry = join(home, "corpus", "bronze", "notion");
+    const protection: OwnerProtectionResolver = () =>
+      ok([{ addedIso: "2026-11-01T00:00:00.000Z", mode: "read-only", path: entry, why: "held as it is" }]);
+    expect(unwrapErr(recordNotionCaptureCoverage({ home, protection, sinceIso: "2026-01-01" }))).toEqual([
+      `refusing to record notion capture coverage: it would write to ${sidecar({ home })}, which the owner's ` +
+        `protect list marks read-only at ${entry} (held as it is)`,
+    ]);
+    expect(existsSync(sidecar({ home }))).toBe(false);
   });
 });
 

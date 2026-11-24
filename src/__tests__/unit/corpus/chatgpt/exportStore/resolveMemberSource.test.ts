@@ -12,6 +12,7 @@ import { resolveMemberSource } from "../../../../../corpus/chatgpt/exportSource.
 import { heldExports, importChatgptExport } from "../../../../../corpus/chatgpt/exportStore.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { FUTURE, syntheticExportAt, syntheticFileAlone } from "../../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../../noProtection.js";
 import { NO_ZIP, tempDir, useTempDirs } from "./harness.js";
 
 /** The synthetic export, dated past every clock here so an import dates it at its own `nowIso`. */
@@ -51,7 +52,13 @@ describe("resolveMemberSource", () => {
       "a conversations file deeper than one folder down",
     );
     const root = tempDir();
-    const imported = importChatgptExport({ archive: NO_ZIP, from: folder, nowIso: "2026-10-17T03:00:00.000Z", root });
+    const imported = importChatgptExport({
+      ...UNPROTECTED,
+      archive: NO_ZIP,
+      from: folder,
+      nowIso: "2026-10-17T03:00:00.000Z",
+      root,
+    });
     expect(unwrapErr(imported).code).toBe("UNSAFE_MEMBER");
     expect(heldExports({ root }).exports).toEqual([]);
   });

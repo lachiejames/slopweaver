@@ -45,6 +45,15 @@ describe("SubsetBuildErrors", () => {
     expect(error.cause).toBe(cause);
   });
 
+  it("protectedPath is SUBSET_PROTECTED and carries the judge's lines, saying nothing was copied", () => {
+    expect(
+      SubsetBuildErrors.protectedPath({ lines: ["refusing to build a subset into /homes/subset: a", "b"] }),
+    ).toEqual({
+      code: "SUBSET_PROTECTED",
+      message: "refusing to build a subset into /homes/subset: a; b — nothing was copied",
+    });
+  });
+
   it("copyFailed is COPY_FAILED and stringifies a non-Error cause", () => {
     const error = SubsetBuildErrors.copyFailed({ cause: "disk vanished", path: "/homes/subset/x" });
     expect(error.code).toBe("COPY_FAILED");

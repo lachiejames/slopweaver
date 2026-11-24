@@ -1,9 +1,9 @@
 /**
  * The typed failure kinds of a subset build.
  *
- * Its own union rather than `readonly string[]` because a caller genuinely branches on all four: the verb
+ * Its own union rather than `readonly string[]` because a caller genuinely branches on all five: the verb
  * maps `NO_SOURCE_CORPUS` to the expected-empty exit, `DESTINATION_OCCUPIED` and `DESTINATION_IS_SOURCE` to
- * a usage exit, and `COPY_FAILED` to a hard error. Collapsing them would make "you pointed at an empty
+ * a usage exit, and `COPY_FAILED` and the protect list's `SUBSET_PROTECTED` refusal to a hard error. Collapsing them would make "you pointed at an empty
  * corpus" and "the disk filled up halfway through" the same exit code, which is the failure this repo's
  * error rules exist to prevent.
  */
@@ -37,9 +37,15 @@ export interface CopyFailedError {
   readonly cause?: unknown;
 }
 
+/** A path the build would read or write is on the owner's protect list — refused before anything is copied. */
+export interface SubsetProtectedError {
+  readonly code: "SUBSET_PROTECTED";
+  readonly message: string;
+}
+
 /** Every way a subset build can fail. */
 export type SubsetBuildError =
-  NoSourceCorpusError | DestinationOccupiedError | DestinationIsSourceError | CopyFailedError;
+  NoSourceCorpusError | DestinationOccupiedError | DestinationIsSourceError | CopyFailedError | SubsetProtectedError;
 
 /** The factory every producer of a {@link SubsetBuildError} calls — tests construct through it too. */
 export const SubsetBuildErrors = {
@@ -63,5 +69,9 @@ export const SubsetBuildErrors = {
     code: "NO_SOURCE_CORPUS",
     message: `no bronze corpus under ${sourceHome} — run \`slopweaver refresh\` before slicing a subset out of it`,
     sourceHome,
+  }),
+  protectedPath: ({ lines }: { lines: readonly string[] }): SubsetProtectedError => ({
+    code: "SUBSET_PROTECTED",
+    message: `${lines.join("; ")} — nothing was copied`,
   }),
 } as const;

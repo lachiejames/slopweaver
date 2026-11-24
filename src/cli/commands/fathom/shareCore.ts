@@ -22,6 +22,7 @@
  * a call the API cannot see would make the next `refresh` skip calls it can.
  */
 import type { BrowserTransportError } from "../../../browser/pageTransport.js";
+import type { OwnerProtectionResolver } from "../../../corpus/bronzeProtection.js";
 import { createBronzeCommitter } from "../../../corpus/corpusWriter.js";
 import {
   handWrittenShareSourceId,
@@ -57,6 +58,8 @@ export interface FathomShareDeps {
   }) => Promise<Result<Record<string, unknown>, BrowserTransportError | readonly string[]>>;
   /** Retire these fathom identities in the store, then replay the fathom source into it. */
   readonly storeLeg: (args: { home: string; retire: readonly string[] }) => Promise<Result<FathomStoreLegReport>>;
+  /** The owner's protect list every bronze read and rewrite asks; a test injects one so no real registry is read. */
+  readonly protection?: OwnerProtectionResolver | undefined;
 }
 
 /** What one share read did. */
@@ -101,6 +104,46 @@ function transportLines({ error }: { error: BrowserTransportError | readonly str
     return [`${error.code}: ${error.message}`];
   }
   return error;
+}
+
+/**
+ * Commit one share's record to bronze for its recording day, then drop any hand-written row for the same token.
+ *
+ * @param address the validated share address, whose token and url the failures name
+ * @param day the recording's calendar day, the bronze window's both ends
+ * @param protection the owner's protect list both writes ask; a test injects one
+ * @param record the projected share record
+ * @returns whether a line was written and how many hand-written lines went, or why bronze refused
+ */
+function writeShareBronze({
+  address,
+  day,
+  home,
+  protection,
+  record,
+}: {
+  address: FathomShareAddress;
+  day: string;
+  home: string;
+  protection: OwnerProtectionResolver | undefined;
+  record: CorpusRecord;
+}): Result<{ handWrittenLinesRemoved: number; written: boolean }, FathomCommandError> {
+  const committed = createBronzeCommitter({
+    home,
+    window: { since: day, until: day },
+    ...(protection !== undefined ? { protection } : {}),
+  }).commit({ records: [record] });
+  if (committed.isErr()) {
+    return err(FathomCommandErrors.bronzeWriteFailed({ problems: committed.error }));
+  }
+  if (committed.value.excluded > 0) {
+    return err(FathomCommandErrors.denylistExcluded({ url: address.url }));
+  }
+  const removed = removeHandWrittenShareRows({ home, protection, token: address.token });
+  if (removed.isErr()) {
+    return err(FathomCommandErrors.bronzeWriteFailed({ problems: removed.error }));
+  }
+  return ok({ handWrittenLinesRemoved: removed.value.removed, written: committed.value.written > 0 });
 }
 
 /**
@@ -149,19 +192,17 @@ export async function shareOne({
   if (dryRun) {
     return ok({ ...shared, handWrittenLinesRemoved: 0, store: null, storeWithheldFor: [], written: false });
   }
-  const day = call.value.recordingStartIso.slice(0, "YYYY-MM-DD".length);
-  const committed = createBronzeCommitter({ home, window: { since: day, until: day } }).commit({ records: [record] });
-  if (committed.isErr()) {
-    return err(FathomCommandErrors.bronzeWriteFailed({ problems: committed.error }));
+  const bronze = writeShareBronze({
+    address,
+    day: call.value.recordingStartIso.slice(0, "YYYY-MM-DD".length),
+    home,
+    protection: deps.protection,
+    record,
+  });
+  if (bronze.isErr()) {
+    return err(bronze.error);
   }
-  if (committed.value.excluded > 0) {
-    return err(FathomCommandErrors.denylistExcluded({ url: address.url }));
-  }
-  const removed = removeHandWrittenShareRows({ home, token: address.token });
-  if (removed.isErr()) {
-    return err(FathomCommandErrors.bronzeWriteFailed({ problems: removed.error }));
-  }
-  const base = { ...shared, handWrittenLinesRemoved: removed.value.removed, written: committed.value.written > 0 };
+  const base = { ...shared, ...bronze.value };
   if (!store) {
     return ok({ ...base, store: null, storeWithheldFor: [] });
   }
@@ -190,11 +231,12 @@ export async function settleFathomStore({
   deps,
   home,
 }: {
-  deps: Pick<FathomShareDeps, "storeLeg">;
+  deps: Pick<FathomShareDeps, "protection" | "storeLeg">;
   home: string;
 }): Promise<Result<FathomSettleReport, FathomCommandError>> {
-  const tokens = readShareTokens({ home }).andThen((heldSet) =>
-    handWrittenShareTokens({ home }).map((standing) => ({
+  const { protection } = deps;
+  const tokens = readShareTokens({ home, protection }).andThen((heldSet) =>
+    handWrittenShareTokens({ home, protection }).map((standing) => ({
       held: [...heldSet].toSorted(),
       standing: new Set(standing),
     })),
@@ -204,12 +246,12 @@ export async function settleFathomStore({
   }
   const { held, standing } = tokens.value;
   for (const token of held.filter((one) => standing.has(one))) {
-    const removed = removeHandWrittenShareRows({ home, token });
+    const removed = removeHandWrittenShareRows({ home, protection, token });
     if (removed.isErr()) {
       return err(FathomCommandErrors.bronzeWriteFailed({ problems: removed.error }));
     }
   }
-  const pending = handWrittenShareTokens({ home });
+  const pending = handWrittenShareTokens({ home, protection });
   if (pending.isErr()) {
     return err(FathomCommandErrors.bronzeWriteFailed({ problems: pending.error }));
   }

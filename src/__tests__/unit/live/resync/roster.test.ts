@@ -20,6 +20,7 @@ import {
 import { resyncTargetLabel } from "../../../../live/resync/target.js";
 import { stateHomePaths } from "../../../../stateHome.js";
 import { chatId, FUTURE, syntheticExportAt } from "../../../chatgptFixture.js";
+import { UNPROTECTED } from "../../../noProtection.js";
 import { gitInTemp } from "../../../tempGitRepo.js";
 
 const CHATGPT_FIXTURE = syntheticExportAt({ modifiedIso: FUTURE });
@@ -215,6 +216,7 @@ describe("corpusResyncInputs", () => {
     dirs.push(home);
     const imported = unwrap(
       importChatgptExport({
+        ...UNPROTECTED,
         archive: NO_ZIP,
         from: CHATGPT_FIXTURE,
         nowIso: "2026-10-17T01:00:00.000Z",
@@ -233,6 +235,7 @@ describe("corpusResyncInputs", () => {
     dirs.push(home);
     unwrap(
       importChatgptExport({
+        ...UNPROTECTED,
         archive: NO_ZIP,
         from: CHATGPT_FIXTURE,
         nowIso: "2026-10-17T01:00:00.000Z",
@@ -241,6 +244,7 @@ describe("corpusResyncInputs", () => {
     );
     unwrap(
       writeLiveSnapshot({
+        ...UNPROTECTED,
         bodyUpdatedIso: null,
         conversationId: chatId({ name: "conv-y" }),
         elementText: "{}",
@@ -267,6 +271,7 @@ describe("corpusResyncInputs", () => {
     const id = chatId({ name: "conv-y" });
     unwrap(
       writeLiveSnapshot({
+        ...UNPROTECTED,
         bodyUpdatedIso: null,
         conversationId: id,
         elementText: "{}",
@@ -290,7 +295,13 @@ describe("corpusResyncInputs", () => {
     dirs.push(home);
     const root = stateHomePaths({ home }).corpus.chatgptExports;
     const { stored } = unwrap(
-      importChatgptExport({ archive: NO_ZIP, from: CHATGPT_FIXTURE, nowIso: "2026-10-17T01:00:00.000Z", root }),
+      importChatgptExport({
+        ...UNPROTECTED,
+        archive: NO_ZIP,
+        from: CHATGPT_FIXTURE,
+        nowIso: "2026-10-17T01:00:00.000Z",
+        root,
+      }),
     );
     writeFileSync(join(stored.directory, "manifest.json"), "{");
     const roster = await readResyncRoster({ home });

@@ -10,6 +10,7 @@ import { basename, dirname, join } from "node:path";
 import { atomicTempWriterPid } from "#lib/writeAtomic.js";
 import { holderIsAlive } from "../admit/lockHolder.js";
 import { safeFs } from "../lib/safeBoundary.js";
+import type { CorpusJudge } from "./bronzeProtection.js";
 
 /** What the pre-staging sweep of dead writers' temp files did. Never part of the before/after measure. */
 export interface OrphanTempSweep {
@@ -66,49 +67,78 @@ export const pidRuns: PidAlive = ({ pid }) => holderIsAlive({ pid, start: undefi
  *
  * @param canonicalPath the canonical file whose staged siblings are weighed
  * @param isAlive answers whether a writer pid still runs; a pid it reads alive is never unlinked
+ * @param judge the compaction's protect-list judge; an orphan it refuses to let be written is kept, with its line
  * @returns how many orphans were removed, their bytes, and one warning line per orphan that would not go
  */
 export function sweepOrphanTemps({
   canonicalPath,
   isAlive,
+  judge,
 }: {
   canonicalPath: string;
   isAlive: PidAlive;
+  judge: CorpusJudge;
 }): OrphanTempSweep {
   const directory = dirname(canonicalPath);
   const target = basename(canonicalPath);
-  const listed = safeFs({ execute: () => readdirSync(directory), operation: "compact.sweepList", path: directory });
-  if (listed.isErr()) {
-    return { bytes: 0, failures: [], removed: 0 };
-  }
-  const entries: DirEntryStat[] = [];
-  for (const name of listed.value) {
-    if (atomicTempWriterPid({ name, target }) !== undefined) {
-      const path = join(directory, name);
-      const statted = safeFs({ execute: () => statSync(path).size, operation: "compact.sweepStat", path });
-      if (statted.isOk()) {
-        entries.push({ bytes: statted.value, name });
-      }
-    }
-  }
+  const entries = stagedEntries({ directory, target });
   let removed = 0;
   let bytes = 0;
-  const failures: string[] = [];
+  const failureGroups: (readonly string[])[] = [];
   for (const orphan of orphanStagingFiles({ entries, isAlive, target })) {
-    const path = join(directory, orphan.name);
-    const unlinked = safeFs({
-      execute: () => {
-        unlinkSync(path);
-      },
-      operation: "compact.sweepUnlink",
-      path,
-    });
-    if (unlinked.isErr()) {
-      failures.push(`could not remove a dead writer's staged file ${path}: ${unlinked.error.message}`);
-    } else {
+    const lines = removeOrphan({ judge, path: join(directory, orphan.name) });
+    if (lines.length === 0) {
       removed += 1;
       bytes += orphan.bytes;
+    } else {
+      failureGroups.push(lines);
     }
   }
-  return { bytes, failures, removed };
+  return { bytes, failures: failureGroups.flat(), removed };
+}
+
+/**
+ * Every staged write of `target` in `directory`, with its size; a missing directory or an entry that will not stat
+ * is left out, since a source nothing has written yet has nothing to sweep.
+ *
+ * @param directory the canonical file's folder
+ * @param target the canonical file's basename
+ * @returns the staged entries, in listing order
+ */
+function stagedEntries({ directory, target }: { directory: string; target: string }): DirEntryStat[] {
+  const listed = safeFs({ execute: () => readdirSync(directory), operation: "compact.sweepList", path: directory });
+  if (listed.isErr()) {
+    return [];
+  }
+  const entries: DirEntryStat[] = [];
+  for (const name of listed.value.filter((entry) => atomicTempWriterPid({ name: entry, target }) !== undefined)) {
+    const path = join(directory, name);
+    const statted = safeFs({ execute: () => statSync(path).size, operation: "compact.sweepStat", path });
+    if (statted.isOk()) {
+      entries.push({ bytes: statted.value, name });
+    }
+  }
+  return entries;
+}
+
+/**
+ * Unlink one dead writer's staged file, unless the protect list refuses it.
+ *
+ * @param path the staged file
+ * @param judge the compaction's protect-list judge, asked about the file as a write
+ * @returns no lines when the file went, else the judge's refusal or the one unlink failure line
+ */
+function removeOrphan({ path, judge }: { path: string; judge: CorpusJudge }): readonly string[] {
+  const judged = judge({ access: "write", path });
+  if (judged.isErr()) {
+    return judged.error;
+  }
+  const unlinked = safeFs({
+    execute: () => {
+      unlinkSync(path);
+    },
+    operation: "compact.sweepUnlink",
+    path,
+  });
+  return unlinked.isErr() ? [`could not remove a dead writer's staged file ${path}: ${unlinked.error.message}`] : [];
 }

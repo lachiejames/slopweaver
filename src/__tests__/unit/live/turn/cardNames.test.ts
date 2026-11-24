@@ -8,6 +8,7 @@ import { writeMemberRows } from "../../../../corpus/members/store.js";
 import type { MemberBronzeRow } from "../../../../corpus/members/types.js";
 import { unwrap } from "../../../../lib/result.js";
 import { cardNameLookup, frameTagIds, namedFrame, namedTags, personTagIds } from "../../../../live/turn/cardNames.js";
+import { NO_PROTECTION } from "../../../noProtection.js";
 
 /** The owner's own tag, as the listener normalised it — what the card quoted. */
 const OWNER_TAG = "add @(U0SYN000003) and @(U0SYN000015) to the whitelist, and also answer @(U0SYN000003)'s question";
@@ -113,6 +114,7 @@ describe("cardNameLookup", () => {
     unwrap(
       writeMemberRows({
         home,
+        protection: NO_PROTECTION,
         rows: [member({ name: "Ari", nativeId: "U0SYN000003" })],
         source: "slack",
       }),
@@ -122,10 +124,24 @@ describe("cardNameLookup", () => {
   });
 
   it("reads member bronze once, so a name written after the first frame is not seen by the same card", () => {
-    unwrap(writeMemberRows({ home, rows: [member({ name: "Ari", nativeId: "U0A" })], source: "slack" }));
+    unwrap(
+      writeMemberRows({
+        home,
+        protection: NO_PROTECTION,
+        rows: [member({ name: "Ari", nativeId: "U0A" })],
+        source: "slack",
+      }),
+    );
     const names = cardNameLookup({ home });
     expect(names({ ids: ["U0A"] })).toEqual({ U0A: "Ari" });
-    unwrap(writeMemberRows({ home, rows: [member({ name: "Jared", nativeId: "U0J" })], source: "slack" }));
+    unwrap(
+      writeMemberRows({
+        home,
+        protection: NO_PROTECTION,
+        rows: [member({ name: "Jared", nativeId: "U0J" })],
+        source: "slack",
+      }),
+    );
     expect(names({ ids: ["U0A", "U0J"] })).toEqual({ U0A: "Ari" });
   });
 
