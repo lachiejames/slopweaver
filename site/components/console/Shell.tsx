@@ -31,8 +31,8 @@ import { VoiceFailureToasts } from "./VoiceFailureToasts";
 import { useContextAddress } from "./workContextState";
 
 /**
- * The console shell: a sidebar topped by the Acme/Slopweaver context switcher, the owner's six pages — Queue, Alignment,
- * Pull requests, Workstreams, Automations, Fleet — the build this page is and whether it is the latest
+ * The console shell: a sidebar topped by the Acme/Slopweaver context switcher, the owner's seven pages — Queue,
+ * Alignment, Pull requests, Workstreams, Automations, Fleet, Store — the build this page is and whether it is the latest
  * (`BuildStatus.tsx`), small Settings and Docs entries at its foot, and the page beside it. Settings opens as a modal
  * over the page rather than a page of its own (`SettingsModal.tsx`), and holds what the Setup page did, its Models
  * section first. The entries are `SIDEBAR_ENTRIES` (`../../lib/sidebarCounts.ts`), drawn in its order.
@@ -42,12 +42,13 @@ import { useContextAddress } from "./workContextState";
  * Talk & voice page lives in the call widget. Alignment sits between the Queue and Pull requests, because anywhere
  * lower it is not prominent enough. Every sidebar item has a number badge next to it, so every entry carries the
  * count its registry row decides — Queue and Pull requests hot while nonzero, Alignment, Workstreams, Automations and
- * Fleet neutral — or none, by design, with the reason in the row's hover (Settings, Docs). Settings carries a dot
- * while no plan is connected.
+ * Fleet neutral — or none, by design, with the reason in the row's hover (Store, Settings, Docs). Settings carries a
+ * dot while no plan is connected.
  *
  * The sidebar keeps the pages the owner actually opens (measured over two weeks of visits), and `/` opens the Queue (`next.config.mjs`). Board and
  * Machine keep their routes for a floating note or a page to link to. Workstreams is the owner's outcomes page. Fleet
  * (`/fleet`, each running session and its latest turns) is there because the desktop app carries the sessions page.
+ * Store (`/store`) is a read-only view of every table in the store database, through `slopweaver store tables|rows|row`.
  *
  * Above the build line the sidebar carries nothing — no per-source freshness strip, no "N more" notice and no
  * Incidents indicator, all of which are noise — and the build line keeps its Update button but no "Updated to <hash>"

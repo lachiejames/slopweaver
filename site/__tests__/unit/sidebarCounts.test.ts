@@ -32,6 +32,7 @@ describe("SIDEBAR_ENTRIES", () => {
       ["workstreams", "count"],
       ["automations", "count"],
       ["fleet", "count"],
+      ["store", "none"],
       ["settings", "none"],
       ["docs", "none"],
     ]);
@@ -43,6 +44,22 @@ describe("SIDEBAR_ENTRIES", () => {
       (entry) => entry.key,
     );
     expect(hot).toEqual(["queue", "pull-requests"]);
+  });
+
+  it("draws Store as the last main page, linking /store, its hover saying each table carries its own estimate", () => {
+    const main = SIDEBAR_ENTRIES.filter((entry) => entry.place === "main");
+    expect(main.length).toBeGreaterThan(0);
+    const store = main.at(-1)!;
+    expect([store.key, store.label, store.href, store.glyph, store.badge]).toEqual([
+      "store",
+      "Store",
+      "/store",
+      "▦",
+      {
+        kind: "none",
+        why: "no count: it is a read-only view of the store, and each table carries its own estimated row count on the page",
+      },
+    ]);
   });
 
   it("says in Settings' hover that a dot marks it while no plan is connected, since Setup went into it", () => {

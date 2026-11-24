@@ -29,6 +29,7 @@ export const CONSOLE_ROUTES: readonly ConsoleRoute[] = [
   { inSidebar: true, path: "/workstreams" },
   { inSidebar: true, path: "/automations" },
   { inSidebar: true, path: "/fleet" },
+  { inSidebar: true, path: "/store" },
   { inSidebar: true, path: "/docs" },
 ];
 

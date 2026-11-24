@@ -1,0 +1,73 @@
+---
+title: Store
+---
+
+# Store
+
+What the store database holds, table by table, and nothing it can change. The page lives at `/store` and is the
+sidebar's Store entry, the last of its pages; it carries no count, because each table carries its own estimate on the
+page and a sum of estimates would mean nothing.
+
+<details>
+<summary>What the page shows</summary>
+
+- **Every table down the left**, each with its estimated row count and a box that narrows the list by name. The
+  count is `pg_class.reltuples`, the planner's figure, written `~1,200`; a table never analysed says **not
+  analysed**, never zero. No exact `count(*)` is run, so a large table costs nothing to list.
+- **A table's rows in a grid**, fifty to a page. Each header shows the column's name, its type in grey and a key mark on
+  a primary-key column. Click a header to sort ascending, click it again for descending. A NULL is an italic grey
+  **NULL**, an empty string is `""`, and a value the credential mask withheld is marked **withheld**, its reason on hover
+  — four states, never drawn alike.
+- **Filter**: one column, one operator (**equals**, **contains**, **is null**, **is not null**) and, for the first
+  two, a value. Clear is its own button: an empty value is refused with a sentence, never read as "no filter".
+  Contains is a case-insensitive match on the value as text.
+- **Previous / Page N / Next**, each enabled only as far as the verb says there is a page. Changing the table, the sort
+  or the filter goes back to page 1 and closes any open row.
+- **Data / Definition**: the definition is every column in catalog order with its type, whether it may be null, whether
+  the database generates it, whether it is an identity column, and where it sits in the primary key.
+- **A row, opened whole**: click a row for a read-only panel of every column. Long text and JSON fold in a native
+  disclosure with their whitespace kept, and a value the verb cut says how much of it is shown. A row is found again
+  by its position as the page read it, never by a value it holds, so a row written since reads as gone; the panel
+  says so.
+
+A read that fails shows the verb's own reason where its answer would have been, never an empty table.
+
+</details>
+
+<details>
+<summary>How it reads, and the line it keeps</summary>
+
+Every reading is one of three verbs, run on this machine by the console's server:
+
+| Read                       | Verb                                                            |
+| -------------------------- | --------------------------------------------------------------- |
+| the table list and columns | `slopweaver store tables --json`                                |
+| a page of rows             | `slopweaver store rows --table-hex <token> … --page <n> --json` |
+| one row, whole             | `slopweaver store row --locator-hex <locator> --json`           |
+
+- **The verbs hold the credential, the page never does.** Each verb selects the store the way every `store` verb
+  does, from `$SLOPWEAVER_HOME`, and reads in a read-only transaction with its own statement timeout. Nothing on the
+  page, its route or its list can write.
+- **Credentials are masked before a value leaves the verb.** A cell whose credential survives the mask is withheld
+  whole, with a reason, rather than shown.
+- **What a request may carry is closed** (`site/lib/storeReadVerbs.ts`). A table or column travels as the token a
+  document printed (its name's bytes in hex), a filter value hex-encoded, a row by the opaque locator a page printed,
+  a page as digits; the verb decodes each one and checks it against the live catalog before any of it reaches SQL.
+  No value is ever a verb, a flag or a path, and a field the list does not declare is refused.
+- **Reads go by POST from this page only**, behind the same same-origin check the Queue's acts use, so a filter value
+  or a row never lands in a URL, the browser's history or a log, and the route keeps no copy of what it read.
+
+</details>
+
+<details>
+<summary>Limits</summary>
+
+- A page holds 50 rows; the route takes a page size of 1 to 100.
+- A filter value is up to 2,000 characters; a row locator up to 8 KiB.
+- Each read is killed at 15 seconds if the verb has not answered; the verb's own statement timeout ends a slow query
+  well inside that.
+- The grid shows one line per cell, cut; the row panel shows each value as the verb printed it, and a value the verb
+  cut is marked as cut.
+- Only the `public` schema's tables are listed: no views and no system catalogs.
+
+</details>

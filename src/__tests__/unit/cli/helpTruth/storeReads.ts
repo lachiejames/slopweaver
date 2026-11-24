@@ -3,6 +3,11 @@
  * whose header says what each table proves.
  */
 
+import {
+  parseStoreRowArgs,
+  parseStoreRowsArgs,
+  parseStoreTablesArgs,
+} from "../../../../cli/commands/store/browseCore.js";
 import { STORE_CITE_FLAG_NAMES, STORE_CITE_FLAG_SPEC } from "../../../../cli/commands/store/cite.js";
 import {
   parseStoreDetailArgs,
@@ -28,9 +33,40 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "store hits": ["--term", "--shape", "--source", "--limit", "--offset", "--include-bots", "--exclude-bots", "--json"],
   "store peek": ["--id", "--match", "--chars", "--source", "--json"],
   "store around": ["--id", "--mode", "--before", "--after", "--chars", "--json"],
+  "store tables": ["--home", "--json"],
+  "store rows": [
+    "--table-hex",
+    "--sort-hex",
+    "--direction",
+    "--filter-column-hex",
+    "--filter-op",
+    "--filter-value-hex",
+    "--page",
+    "--page-size",
+    "--home",
+    "--json",
+  ],
+  "store row": ["--locator-hex", "--home", "--json"],
 };
 
+/** `acme_note` as the hex token `store tables` would print for it. */
+const ACME_TABLE_HEX = "61636d655f6e6f7465";
+
 const probes: NonNullable<HelpTruthSlice["probes"]> = {
+  "store tables": { "--home": ["--home", "/tmp"], "--json": ["--json"] },
+  "store rows": {
+    "--direction": ["--sort-hex", "6964", "--direction", "desc"],
+    "--filter-column-hex": ["--filter-column-hex", "6964", "--filter-op", "is-null"],
+    "--filter-op": ["--filter-column-hex", "6964", "--filter-op", "not-null"],
+    "--filter-value-hex": ["--filter-column-hex", "6964", "--filter-op", "eq", "--filter-value-hex", "61"],
+    "--home": ["--home", "/tmp"],
+    "--json": ["--json"],
+    "--page": ["--page", "2"],
+    "--page-size": ["--page-size", "10"],
+    "--sort-hex": ["--sort-hex", "6964"],
+    "--table-hex": ["--table-hex", "61636d65"],
+  },
+  "store row": { "--home": ["--home", "/tmp"], "--json": ["--json"], "--locator-hex": ["--locator-hex", "7b7d"] },
   "store query": {
     "--contains": ["--contains", "17000"],
     "--like": ["--like", "%staging%"],
@@ -185,6 +221,16 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
     parseAroundArgs({
       rest: [...dedupeFlags({ base: ["--id", "a71ce9c5-f59a-45d7-b28c-3d31ff21b12a"], fragment })],
     }).mapErr((error) => storeCommandErrorLines({ error })),
+  "store tables": ({ fragment }) =>
+    parseStoreTablesArgs({ rest: [...fragment] }).mapErr((error) => storeCommandErrorLines({ error })),
+  "store rows": ({ fragment }) =>
+    parseStoreRowsArgs({ rest: [...dedupeFlags({ base: ["--table-hex", ACME_TABLE_HEX], fragment })] }).mapErr(
+      (error) => storeCommandErrorLines({ error }),
+    ),
+  "store row": ({ fragment }) =>
+    parseStoreRowArgs({ rest: [...dedupeFlags({ base: ["--locator-hex", "7b7d"], fragment })] }).mapErr((error) =>
+      storeCommandErrorLines({ error }),
+    ),
 };
 
 /** The rows for `store`'s read verbs. */

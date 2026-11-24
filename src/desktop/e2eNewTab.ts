@@ -26,6 +26,7 @@ export const NEW_TAB_PAGES: readonly { readonly glyph: string; readonly name: st
   { glyph: "▰", name: "Workstreams", path: "/workstreams" },
   { glyph: "↻", name: "Automations", path: "/automations" },
   { glyph: "◎", name: "Fleet", path: "/fleet" },
+  { glyph: "▦", name: "Store", path: "/store" },
   { glyph: "¶", name: "Docs", path: "/docs" },
 ];
 

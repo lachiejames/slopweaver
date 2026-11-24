@@ -1,5 +1,5 @@
 /**
- * The console's derivation pages: the sidebar's seven first, in its own order, Alignment (steers included) between
+ * The console's derivation pages: the sidebar's eight first, in its own order, Alignment (steers included) between
  * the Queue and Pull requests, then the call widget, which has no page of its own. The console at `/queue` is the
  * thing, and each page here says how one of its pages is derived — which verb, which lane, what a zero means.
  */
@@ -11,6 +11,7 @@ export default {
   workstreams: "Workstreams",
   automations: "Automations",
   fleet: "Fleet",
+  store: "Store",
   settings: "Settings",
   "call-widget": "The call widget",
 };

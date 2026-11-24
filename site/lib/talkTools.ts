@@ -1,10 +1,10 @@
 /**
- * The closed list of tools a MODEL may call from the console voice — the fourth list beside `liveVerbs.ts`,
- * `syncVerbs.ts` and `actVerbs.ts`, and the only one whose caller is not this repository.
+ * The closed list of tools a MODEL may call from the console voice — beside `liveVerbs.ts`, `syncVerbs.ts`,
+ * `actVerbs.ts` and `storeReadVerbs.ts`, and the only one whose caller is not this repository.
  *
  * ## Why it is a separate list from `actVerbs.ts`, and why that is the mechanism
  *
- * The other three lists are reached by a page this repo wrote. This one is reached by a language model
+ * The other lists are reached by a page this repo wrote. This one is reached by a language model
  * that has just read source text out of the checkout, a board row and whatever the page is showing, so
  * anything it can call is something a file, a row or a card could ask it to call. The origin guard does not
  * separate the two — `consolePress.ts` says so in its own header — because a model-driven fetch really is

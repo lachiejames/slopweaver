@@ -10,6 +10,7 @@ describe("tabIcon", () => {
     expect(tabIcon({ path: "/pull-requests/acme/app/12?tab=files" })).toBe("⇄");
     expect(tabIcon({ path: "/fleet/session/0f1e2d3c-0000-4000-8000-000000000000" })).toBe("◎");
     expect(tabIcon({ path: "/alignment#steers" })).toBe("◇");
+    expect(tabIcon({ path: "/store" })).toBe("▦");
   });
 
   it("gives a page in the viewer the glyph of what it frames", () => {
@@ -34,6 +35,7 @@ describe("NEW_TAB_PAGES", () => {
       "Workstreams",
       "Automations",
       "Fleet",
+      "Store",
       "Docs",
     ]);
   });

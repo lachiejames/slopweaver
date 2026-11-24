@@ -38,6 +38,7 @@ const CONSOLE_LIST_ROUTES: ReadonlySet<string> = new Set([
   "pull-requests",
   "queue",
   "setup",
+  "store",
   "workstreams",
 ]);
 

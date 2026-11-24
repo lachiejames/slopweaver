@@ -11,8 +11,10 @@
  * - Alignment: the general-ruling questions not yet answered — the cards that need the owner's call, never the acts
  *   the fleet already did, so the number is one the owner would actually answer.
  *
- * The sidebar holds the queue, pull requests, workstreams, automations and fleet: every element on the UI must earn
- * its place, so a page the owner does not visit is not there. The Steers record folds into the Alignment page, which
+ * The sidebar holds the queue, alignment, pull requests, workstreams, automations, fleet and store: every element on
+ * the UI must earn its place, so a page the owner does not visit is not there. Store, the last of the main pages, is a
+ * read-only view of what the store database holds, and carries no number: each of its tables carries its own
+ * estimated row count on the page, and a sum of estimates across every table would mean nothing. The Steers record folds into the Alignment page, which
  * tracks steers and alignment over time, and the Talk & voice page is retired, its controls and record in the call
  * widget.
  *
@@ -49,7 +51,7 @@ export type SidebarBadgeDecision =
 
 /** Every sidebar entry, by name. */
 export type SidebarEntryKey =
-  "queue" | "alignment" | "pull-requests" | "workstreams" | "automations" | "fleet" | "settings" | "docs";
+  "queue" | "alignment" | "pull-requests" | "workstreams" | "automations" | "fleet" | "store" | "settings" | "docs";
 
 /** One sidebar entry: where it goes, how it is drawn, and its badge. */
 export interface SidebarEntry {
@@ -67,8 +69,8 @@ export interface SidebarEntry {
 const FINISHED_LANES: ReadonlySet<string> = new Set(["done", "abandoned", "kept-here"]);
 
 /**
- * The sidebar, in order: Queue, Alignment between it and Pull requests, then pull requests, workstreams, automations
- * and fleet, then Settings and Docs at the foot.
+ * The sidebar, in order: Queue, Alignment between it and Pull requests, then pull requests, workstreams, automations,
+ * fleet and store, then Settings and Docs at the foot.
  */
 export const SIDEBAR_ENTRIES = [
   {
@@ -140,6 +142,17 @@ export const SIDEBAR_ENTRIES = [
     href: "/fleet",
     key: "fleet",
     label: "Fleet",
+    place: "main",
+  },
+  {
+    badge: {
+      kind: "none",
+      why: "no count: it is a read-only view of the store, and each table carries its own estimated row count on the page",
+    },
+    glyph: "▦",
+    href: "/store",
+    key: "store",
+    label: "Store",
     place: "main",
   },
   {

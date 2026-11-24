@@ -1,6 +1,6 @@
 /**
- * The closed list of acts the console may take — the third list beside `liveVerbs.ts` and `syncVerbs.ts`,
- * and the one that writes.
+ * The closed list of acts the console may take — beside `liveVerbs.ts`, `syncVerbs.ts`, `talkTools.ts` and
+ * `storeReadVerbs.ts` (the Store page's parameterised reads), and the one that writes.
  *
  * The queue's panels APPROVE, so the console writes; the shape of the door does not move: every act here is one
  * `slopweaver` verb, run on this machine with a literal argv, and the only thing a request may supply is the value of
