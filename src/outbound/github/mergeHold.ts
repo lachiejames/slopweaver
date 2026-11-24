@@ -507,7 +507,7 @@ export function baseMovedRemedy({ lane }: { lane: BaseMovedLane | undefined }): 
   const held = `${hold.repo}#${String(hold.pr)}`;
   const age = `${String(holdAgeMinutes({ hold, nowIso }))}m${holdIsStale({ hold, nowIso }) ? " STALE" : ""}`;
   if (sessionId !== undefined && hold.holder === sessionId) {
-    const land = adminMergeCommand({ base: "<base>", head: "<branch>", number: hold.pr, repo: hold.repo });
+    const land = adminMergeCommand({ base: undefined, head: undefined, number: hold.pr, repo: hold.repo });
     return [
       `remedy: you own the merge hold on ${hold.repo} (${held}, placed ${age} ago) — this is the lap that lands: ` +
         `rebase onto the current base, run the full gate ONCE, push, and \`${land}\` releases it`,

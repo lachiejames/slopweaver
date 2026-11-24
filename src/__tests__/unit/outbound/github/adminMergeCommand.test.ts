@@ -11,8 +11,8 @@ describe("adminMergeCommand", () => {
     );
   });
 
-  it("carries a placeholder through bare where the caller holds no value", () => {
-    expect(adminMergeCommand({ base: "<base>", head: "<branch>", number: 32, repo: "owner/name" })).toBe(
+  it("prints its own placeholder for a field the caller does not hold", () => {
+    expect(adminMergeCommand({ base: undefined, head: undefined, number: 32, repo: "owner/name" })).toBe(
       "slopweaver github merge --repo owner/name --base origin/<base> --head <branch> --description - " +
         "--admin --number 32 < body.md",
     );
@@ -21,6 +21,13 @@ describe("adminMergeCommand", () => {
   it("single-quotes a head carrying a shell character, so pasting it runs nothing", () => {
     expect(adminMergeCommand({ base: "main", head: "fix;x", number: 9, repo: "acme/widget" })).toBe(
       "slopweaver github merge --repo acme/widget --base origin/main --head 'fix;x' --description - " +
+        "--admin --number 9 < body.md",
+    );
+  });
+
+  it("single-quotes a held head shaped like a placeholder, which is a legal ref and not one", () => {
+    expect(adminMergeCommand({ base: "main", head: "<x;id>", number: 9, repo: "acme/widget" })).toBe(
+      "slopweaver github merge --repo acme/widget --base origin/main --head '<x;id>' --description - " +
         "--admin --number 9 < body.md",
     );
   });
@@ -38,12 +45,8 @@ describe("shellWord", () => {
     expect(shellWord({ value: "feature/a-b_c.1" })).toBe("feature/a-b_c.1");
   });
 
-  it("leaves exactly one angle-bracket placeholder bare", () => {
-    expect(shellWord({ value: "<owner/name>" })).toBe("<owner/name>");
-  });
-
-  it("quotes text around a placeholder, which is not one placeholder", () => {
-    expect(shellWord({ value: "a<b>" })).toBe("'a<b>'");
+  it("single-quotes an angle-bracket value, since only an unheld field prints a placeholder", () => {
+    expect(shellWord({ value: "<owner/name>" })).toBe("'<owner/name>'");
   });
 
   it("single-quotes a dollar sign, so nothing expands", () => {
