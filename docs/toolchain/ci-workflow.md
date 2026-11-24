@@ -11,10 +11,9 @@ So `lint`, `typecheck`, the unit shards, `subprocess`, `compile`, `desktop` and 
 each with its own checkout and install, and the lap's wall time is the slowest of them rather than their sum.
 
 **`build` is the job that turns their results into one verdict**, and that is not tidiness:
-`build` and `integration` are `main`'s required contexts and the merge queue's, so renaming the check would
-need a ruleset change and strand every open pull request and queue entry waiting on a context that never
-arrives. A new leg joins `build.needs` instead of the ruleset — which is what makes the shape scale
-as the suites grow. `ci-offload-contract` holds the property that makes the aggregator safe rather than a
+`build` is one of `main`'s required contexts, so renaming the check would need a ruleset change and strand
+every open pull request waiting on a context that never arrives. A new leg joins `build.needs` instead of the
+ruleset — which is what makes the shape scale as the suites grow. `ci-offload-contract` holds the property that makes the aggregator safe rather than a
 rubber stamp: see [its entry above](lint-reference-tests-and-ci.md).
 
 Three things this does NOT buy, stated because each is easy to assume:
@@ -121,12 +120,12 @@ counts as PASSING both to GitHub's branch protection and to `PASSING_CONCLUSIONS
 a **red `build` green** in the rollup. Two files never fire on an event their jobs do not need, so no check
 run is created to be misread.
 
-**A base retarget is the one case the narrowing gives up, and it is caught elsewhere.** GitHub reports a
-retarget as `edited` (carrying `changes.base`) and fires nothing else for one, so `build` and `integration`
-do not re-run on the pull request when its base moves. The `merge_group` run is what catches it: the queue
-tests each entry against the real base tip and both of this branch's required contexts run there. Confirm the
-required set rather than trusting this sentence — `slopweaver github checks --number <n> --json`, field
-`gate.required`, which reads `["build", "integration"]`.
+**A base retarget is the one case the narrowing gives up.** GitHub reports a retarget as `edited` (carrying
+`changes.base`) and fires nothing else for one, so `build` and `integration` do not re-run on the pull request
+when its base moves. On a base with a merge queue the `merge_group` run catches it, testing each entry against
+the real base tip with `build` and `integration`. `main` has no queue, so there `build` and `integration` re-run
+only on the next push or a reopen. Confirm the required set rather than trusting this sentence — `slopweaver github checks --number <n> --json`,
+field `gate.required`, which reads `["build", "dev-gate", "integration"]`.
 
 **Gated by `ci-trigger-contract`** ([above](lint-reference-tests-and-ci.md)), so this survives the next job somebody adds: an undeclared job,
 a `types` entry no job needs, and a job name in two files each fail the gate by name.
