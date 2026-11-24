@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import { creditedLook, gatedTypedLook, refusedLook, type ToolLook } from "../../components/voice/screenLooks";
-import type { TypedLookState } from "../../lib/typedLookGate";
+import { TYPED_LOOK_NOT_ASKED_DETAIL, type TypedLookState } from "../../lib/typedLookGate";
 
 type Shot = Awaited<ReturnType<ToolLook["screenShot"]>>;
 
@@ -52,6 +52,8 @@ describe("gatedTypedLook", () => {
     const shot = await gatedTypedLook({ look, typedLook: { current: undefined } })();
     expect(taken()).toBe(0);
     expect(shot.answer).toContain("the owner did not ask for one in this message");
+    // The exact detail the toast classifier keeps quiet: the same constant on both sides, so neither drifts alone.
+    expect(shot.detail).toBe(TYPED_LOOK_NOT_ASKED_DETAIL);
   });
 
   it("takes no frame for the turn before's late tool call", async () => {

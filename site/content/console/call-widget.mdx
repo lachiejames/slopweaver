@@ -615,8 +615,11 @@ tools live on the thinking model the voice delegates to. Measured: a voice that 
 **They also carry what slopweaver it reaches, derived from the catalog** (`src/talk/voiceReach.ts`): one line per
 noun it can read, and a rule to run `talk capabilities <noun>` before telling you it cannot, so it never guesses a verb such as `slack history` that does not exist and then claims it cannot read a DM it could read from the corpus.
 
-**When one of these fails, the console window says so** (five card openings refused with nothing on screen must never happen again). A refused tool, a part of `open_card` that did not open, or a relay
-that did not reach the supervisor raises one red toast at the top middle of the console window, under the tabs:
+**When one of these fails, the console window says so**, because a refusal with nothing on screen is a failure nobody sees. A refused tool or a part of `open_card` that did not open
+raises one red toast at the top middle of the console window, under the tabs. Two refusals stay quiet: a relay,
+journalled on its line rather than toasted, and a typed message's look you did not ask for, which the voice already
+answers in words (`site/lib/voiceFailureToast.ts`); a look refused for any other reason still toasts. The top middle,
+because the
 bottom left is the sidebar's foot, and beside the orb would draw it over whatever app you have open. One line shows,
 "Details" holds the reason, and each failure is its own toast, so a repeat you missed is shown again rather than
 counted. A card that did not open adds "Open in new tab", which opens that card on the Queue as a new tab in the

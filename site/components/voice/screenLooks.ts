@@ -12,7 +12,7 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { FrameTaken } from "../../lib/edgeGlow";
 import { frontAppBandOf } from "../../lib/messengerBand";
 import type { LookTaken } from "../../lib/screenFocus";
-import { type TypedLookState, typedLookGate } from "../../lib/typedLookGate";
+import { TYPED_LOOK_NOT_ASKED_DETAIL, type TypedLookState, typedLookGate } from "../../lib/typedLookGate";
 import type { DesktopVoiceSeam } from "./desktopVoiceSeam";
 import { screenLookSeam } from "./screenLookSeam";
 import type { screenShotOf } from "./talkToolRunScreen";
@@ -36,7 +36,7 @@ export interface ToolLook {
 export function refusedLook({ reason }: { reason: string }): ScreenShot {
   return {
     answer: reason,
-    detail: "not asked for in this message",
+    detail: TYPED_LOOK_NOT_ASKED_DETAIL,
     looked: undefined,
     output: undefined,
     relayScreen: { kind: "none", reason: "screen-not-shared" },

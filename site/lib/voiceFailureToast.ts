@@ -17,9 +17,16 @@
  * (`src/talk/chairWake.ts`), so a relay that did not reach its chat loses no word of the owner's, and saying it did
  * would be false. Its outcome is journalled on the relay's line and in `talk log`.
  *
+ * Nor is a typed turn's look the owner did not ask for. The gate (`typedLookGate.ts`) refusing a `read_screen` the
+ * owner's message gave no authority for is the design working: the voice says it took no look and asks what the owner
+ * means, and a toast on top of that would present the design as an error. Only that exact refusal is quiet; a look
+ * refused for any other reason still toasts.
+ *
  * This module is the pure half: which final outcome is a failure worth a toast ({@link voiceFailureNoticeOf}), and
  * the stack the console draws ({@link receiveNotice}, {@link dismissToast}, {@link expireToasts}). Pure.
  */
+
+import { TYPED_LOOK_NOT_ASKED_DETAIL } from "./typedLookGate";
 
 /** One opening inside a tool call that came back refused, though the call itself answered — `open_card`'s page, say. */
 export interface VoicePartialFailure {
@@ -132,16 +139,29 @@ function refusedSummary({ tool, bounded }: { tool: string; bounded: string }): s
 }
 
 /**
+ * Whether an outcome is a typed turn's `read_screen` refused because the owner's message did not ask for a look: the
+ * gate working as designed, which the voice answers in words, so no toast. Exactly that detail on exactly that tool;
+ * a look refused for any other reason (no screen shared, a capture that failed) still toasts.
+ *
+ * @param outcome the final outcome
+ * @returns whether it is the not-asked refusal
+ */
+function isNotAskedLook({ outcome }: { outcome: VoiceFailureOutcome }): boolean {
+  return outcome.tool === "read_screen" && outcome.refused && outcome.detail === TYPED_LOOK_NOT_ASKED_DETAIL;
+}
+
+/**
  * The toast one final outcome earns, or none. Every refused tool call earns one — a malformed call included, since
  * the voice still tried something and did not do it, and guessing which refusals matter is how this went unseen — and
  * so does an `open_card` that answered but whose openings were refused. A success earns none, and so does every
- * outcome of `relay_steer`, which is journalled instead (see the file header).
+ * outcome of `relay_steer`, which is journalled instead (see the file header), and a typed turn's look refused because
+ * the owner did not ask for one, which is the gate doing its job rather than a failure.
  *
  * @param outcome the final outcome
- * @returns the notice, or `undefined` when nothing failed or the call was the relay
+ * @returns the notice, or `undefined` when nothing failed, the call was the relay, or the look was not asked for
  */
 export function voiceFailureNoticeOf({ outcome }: { outcome: VoiceFailureOutcome }): VoiceFailureNotice | undefined {
-  if (outcome.tool === RELAY_TOOL) {
+  if (outcome.tool === RELAY_TOOL || isNotAskedLook({ outcome })) {
     return undefined;
   }
   const tool = boundedTool({ tool: outcome.tool });
