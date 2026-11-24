@@ -116,7 +116,8 @@ export const contentTable = pgTable(
     body: text("body").notNull(),
     visibility: visibilityEnum("visibility").default("public").notNull(),
     // The row's data class (`../dataClass.ts`): nullable with no default, so a row written before classification
-    // existed holds none and reads as `unknown`, which fails closed. Never backfilled by the migration adding it.
+    // existed holds none and reads as `unknown`, which fails closed. Never backfilled by the migration adding it;
+    // `store classify` (`../resolveDataClasses.ts`) sorts the rows already stored.
     dataClass: dataClassEnum("data_class"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
     // The parent's own `(source, source_id)` half — the thread edge as a COLUMN rather than a convention

@@ -6,6 +6,7 @@
  */
 import { DEFAULT_VERB, lazy, type VerbManifestEntry } from "../manifest.js";
 import { storeAuthoredManifest } from "./storeAuthored.js";
+import { backfillVerbs } from "./storeBackfillMeta.js";
 import * as backupFamily from "./storeBackup.js";
 import { aroundMeta, detectMeta, groupsMeta, hitsMeta, openMeta, peekMeta, probeMeta } from "./storeDetectiveMeta.js";
 import { measurementVerbs } from "./storeMeasurementMeta.js";
@@ -102,40 +103,6 @@ const loadMeta = {
   summary: "Repull one week from every provider straight into the store — never from a bronze file",
   usage:
     "usage: slopweaver store load [--source <a,b>] [--days <n>] [--cap <n>] [--github-org <org>] [--home <dir>] [--json]",
-} as const;
-
-const edgesMeta = {
-  createsWorkItem: false,
-  diagnostic: false,
-  doorRouted: false,
-  dryParseSafe: true,
-  effect: "local-state",
-  example: "slopweaver store edges",
-  parseRejectIsIoFree: true,
-  summary:
-    "Derive every row's parent key and point it at the row it names, so a thread walk is an index seek — idempotent and safe to interrupt, so a half-finished pass is finished by running it again",
-  usage:
-    "usage: slopweaver store edges [--keys-only] [--batch <n>] [--home <dir>] [--json]\n" +
-    "  Two halves, in order: derive `parent_source_id` for every row, then resolve `parent_id` for every\n" +
-    "  edge whose parent this store holds. --keys-only stops after the first, for checking what a rule\n" +
-    "  change would write. An edge whose parent is outside the ingested window keeps its key and resolves\n" +
-    "  on the next pass after that parent lands.",
-} as const;
-
-const botsMeta = {
-  createsWorkItem: false,
-  diagnostic: false,
-  doorRouted: false,
-  dryParseSafe: true,
-  effect: "local-state",
-  example: "slopweaver store bots",
-  parseRejectIsIoFree: true,
-  summary:
-    "Flag every stored row an automation authored, so the detective verbs can start human-only — idempotent and safe to interrupt, so a half-finished pass is finished by running it again",
-  usage:
-    "usage: slopweaver store bots [--batch <n>] [--home <dir>] [--json]\n" +
-    "  Fills `content.author_is_bot` from the evidence each row already carries, by the same rule ingest\n" +
-    "  uses. Run once after the column lands and again after a rule change; new rows never need it.",
 } as const;
 
 const lifecycleMeta = {
@@ -266,8 +233,7 @@ export const storeManifest: Readonly<Record<string, VerbManifestEntry>> = {
     meta: collectMeta,
   }),
   load: lazy({ load: () => import("../commands/store/load.js").then((m) => m.storeLoadCommand), meta: loadMeta }),
-  edges: lazy({ load: () => import("../commands/store/edges.js").then((m) => m.storeEdgesCommand), meta: edgesMeta }),
-  bots: lazy({ load: () => import("../commands/store/bots.js").then((m) => m.storeBotsCommand), meta: botsMeta }),
+  ...backfillVerbs,
   // The progressive-disclosure ladder, in the order a detective climbs it. See `src/cli/commands/store/probe.ts`
   // for the counting rungs and `src/cli/commands/store/probeDisclose.ts` for the reading rungs.
   probe: lazy({ load: () => import("../commands/store/probe.js").then((m) => m.storeProbeCommand), meta: probeMeta }),

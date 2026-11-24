@@ -102,6 +102,13 @@ object in the private `published-pages` bucket. It reads both folders, changes n
 on any link, odd entry, unsafe name or bad freeze, naming each. Re-runnable: a second run writes only what changed.
 `--dry-run` counts without a connection. The move's stages: [published pages](../../docs/store/published-pages.md).
 
+## Every stored row gets a data class — `store classify`
+
+`store classify --dry-run`, then `store classify`, sorts every stored row by the data-class rules intake uses and
+writes an explicit class, `unknown` where no rule decides; a second run writes nothing, and an applying pass that
+leaves a row with no class exits 1, so run it again. Run it after a rules change. Its report is counts only; quote
+nothing else from it, and `--sample` ids stay in the owner's own session: [data classes](../../docs/store/data-classification.md).
+
 ## The local stack is locked — `store start`, `store lock`
 
 `yarn store:start` runs `store start`: the pinned CLI starts the stack, then `store lock` leaves the verbs'

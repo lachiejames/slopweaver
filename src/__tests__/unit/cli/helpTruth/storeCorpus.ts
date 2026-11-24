@@ -4,6 +4,7 @@
  */
 
 import { parseStoreBotsArgs, STORE_BOTS_FLAG_NAMES } from "../../../../cli/commands/store/bots.js";
+import { parseStoreClassifyArgs, STORE_CLASSIFY_FLAG_NAMES } from "../../../../cli/commands/store/classifyCore.js";
 import { parseDetectArgs } from "../../../../cli/commands/store/detect.js";
 import { parseStoreEdgesArgs, STORE_EDGES_FLAG_NAMES } from "../../../../cli/commands/store/edges.js";
 import { storeCommandErrorLines } from "../../../../cli/commands/store/errors.js";
@@ -25,6 +26,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "store status": STORE_STATUS_FLAG_NAMES,
   "store edges": STORE_EDGES_FLAG_NAMES,
   "store bots": STORE_BOTS_FLAG_NAMES,
+  "store classify": STORE_CLASSIFY_FLAG_NAMES,
   "store slack-asks": ["--stranded", "--home", "--json"],
   // The progressive-disclosure ladder. Each takes a closed flag set off one pure parser, so every one of
   // them is guarded rather than listed as unguarded — see `src/cli/commands/store/probeCore.ts`.
@@ -68,6 +70,13 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--batch": ["--batch", "500"],
     "--home": ["--home", "/tmp"],
     "--json": ["--json"],
+  },
+  "store classify": {
+    "--batch": ["--batch", "500"],
+    "--dry-run": ["--dry-run"],
+    "--home": ["--home", "/tmp"],
+    "--json": ["--json"],
+    "--sample": ["--sample", "10"],
   },
   "store identity": {
     "--home": ["--home", "/tmp"],
@@ -159,6 +168,8 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
     parseStoreEdgesArgs({ rest: [...fragment] }).mapErr((error) => storeCommandErrorLines({ error })),
   "store bots": ({ fragment }) =>
     parseStoreBotsArgs({ rest: [...fragment] }).mapErr((error) => storeCommandErrorLines({ error })),
+  "store classify": ({ fragment }) =>
+    parseStoreClassifyArgs({ rest: [...fragment] }).mapErr((error) => storeCommandErrorLines({ error })),
   // Each ladder verb is probed against its own required arguments plus the fragment under test, so a flag
   // that the usage advertises and the parser refuses fails here rather than in a detective's hands.
   "store probe": ({ fragment }) =>
