@@ -161,7 +161,7 @@ const baselineBumpMeta = {
   requiresApproval: false,
   summary:
     "Declare what HEAD loosens in a ratchet baseline against main as a write-once bump record in the state home, and print the Codex review that must witness it before the landing verbs will",
-  usage: 'usage: slopweaver dev baseline-bump --reason "<why>" [--base <sha>] [--home <dir>] [--dry-run]',
+  usage: 'usage: slopweaver dev baseline-bump --reason "<why>" [--base <sha>] [--cwd <dir>] [--home <dir>] [--dry-run]',
 } as const;
 
 const sliceShapeMeta = {

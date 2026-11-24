@@ -67,9 +67,11 @@ verdict on it), never in the tree, so a fork starts with the rules and none of t
   a tree included, while one deleted passes. A change to a file in `BASELINE_POLICY_FILES` (the registry,
   the comparator, the store, the witness) that main already holds is itself a `policy` row, so the rules that
   judge a rise are witnessed like a rise. Run with no base it fails and prints the command that supplies one.
-- **`slopweaver dev baseline-bump --reason "<why>" [--home <dir>]`** writes the record (one write-once file
-  named for its digest) from the committed `HEAD`, deriving each row's cause, and prints the one Codex review that
-  witnesses it. The record names the main commit it was declared against, and that commit is in its digest, so
+- **`slopweaver dev baseline-bump --reason "<why>" [--cwd <dir>] [--home <dir>]`** writes the record (one
+  write-once file named for its digest) from the committed `HEAD` of the checkout holding `--cwd` (else the working
+  directory), deriving each row's cause, and prints the one Codex review that witnesses it, its `--repo` that
+  checkout and its `--home` the record's. The record binds no path, so the landing read's comparison decides what
+  it covers. It names the main commit it was declared against, and that commit is in its digest, so
   the same rows declared again later get a record of their own. A second run with the same rows against the same
   base is refused, the first record's bytes untouched, since its reason is what a witness already judged.
 - **`github enqueue` / `github merge --admin`** re-run the comparison THEMSELVES, against main and the merge
