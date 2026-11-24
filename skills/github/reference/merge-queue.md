@@ -4,9 +4,10 @@
 whose base branch has a native merge queue. It hands the landing to GitHub, which merges the pull request
 once the queue's own required checks pass on the MERGED result rather than on the branch alone.
 
-**On `lachiejames/slopweaver` `main` it is THE landing verb**, not the hand-run
-hold-and-baton lane. `merge --admin` is what a base branch with no queue uses. Why, with the measurement:
-[pull-requests.md](pull-requests.md).
+**On a queued base it is THE landing verb**, not the hand-run hold-and-baton lane. `lachiejames/slopweaver`
+`main` is not one: a native merge queue is an organisation-repository feature and this is a personal repository,
+so its `main` lands through `github lap --land` while hosted CI is off ([local-lap.md](local-lap.md)), else
+`merge --admin`. Why, with the measurement: [pull-requests.md](pull-requests.md).
 
 ## Enqueue DIRECTLY — no seat, no wave, and no rebase for a mergeable pull request
 

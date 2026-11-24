@@ -3,8 +3,8 @@
 Bundled reference for the `github` skill, split out of [pr-operations.md](pr-operations.md) when the lane
 stopped being the default landing path.
 
-**Scope first: this is for a base branch with NO native merge queue.** On a queued base — `lachiejames/slopweaver`
-`main` — [`github enqueue`](merge-queue.md) serialises the landings
+**Scope first: this is for a base branch with NO native merge queue**, `lachiejames/slopweaver` `main` among
+them. On a queued base [`github enqueue`](merge-queue.md) serialises the landings
 instead, and the last bullet below is why the hand-run lane could not. The exceptions on a queued base are
 a proof that is an expensive live measurement a moved head would invalidate outright, and a repository whose
 hosted Actions is off, where the queue waits on contexts nothing posts and `github lap --land` takes this hold

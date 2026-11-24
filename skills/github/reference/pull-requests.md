@@ -18,7 +18,8 @@ Bundled reference for the `github` skill, loaded when the body links here: the p
   and a RENOVATE one is THE OWNER'S to review, a review the owner is withholding until the owner's word ends the hold, so it reads
   `review-withheld`: no Queue card, never a colleague ask ([backlog.md](backlog.md)).
 - **Land with `slopweaver github enqueue --pr <n> --repo <owner/name>` where the base branch has a native
-  merge queue.** On `lachiejames/slopweaver` `main` it does. You press GitHub's own **Merge when ready**;
+  merge queue.** `lachiejames/slopweaver` `main` has none: a native merge queue is an organisation-repository
+  feature, and this is a personal repository. On a queued base you press GitHub's own **Merge when ready**;
   GitHub then tests the entry against the tip and every entry ahead of it, and lands it. Nothing is handed to
   another session and no hold is taken, so a session that dies after queueing costs nothing — the entry is
   GitHub's. Subjects, refusals and `--dequeue`: [merge-queue.md](merge-queue.md).
