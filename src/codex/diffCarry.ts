@@ -33,6 +33,19 @@ export interface LandingBaseDiff {
 }
 
 /**
+ * The diff digest a REVIEW record carries, when it carries a usable one. Read through `unknown`, because
+ * `scanPassRecords` shallow-decodes disk JSON. Shared by both carries (this module's and the ratchet-bump
+ * witness's, `./baselineBumpWitness.ts`), so the two can never disagree on what a usable digest is.
+ *
+ * @param record the pass record
+ * @returns the lowercase sha256 hex digest, or `undefined` for a plan or a value that is not one
+ */
+export function recordedReviewDiffSha256({ record }: { record: CodexArtifactRecord }): string | undefined {
+  const recorded: unknown = record.scope.mode === "review" ? record.scope.diffSha256 : undefined;
+  return typeof recorded === "string" && SHA256_HEX.test(recorded) ? recorded : undefined;
+}
+
+/**
  * The reason a STALE review still counts: the diff the tree being judged produces against the record's own
  * base ref, or — when a landing reader supplies one — against the pull request's current base, is the one
  * whose sha256 the record carries. The record's own base ref is tried first, so a row both would carry reads
@@ -59,11 +72,8 @@ export function carriedReviewReason({
   landingBaseDiff?: LandingBaseDiff | undefined;
 }): string | undefined {
   const scope = record.scope;
-  if (scope.mode !== "review") {
-    return undefined;
-  }
-  const recorded: unknown = scope.diffSha256;
-  if (typeof recorded !== "string" || !SHA256_HEX.test(recorded)) {
+  const recorded = recordedReviewDiffSha256({ record });
+  if (scope.mode !== "review" || recorded === undefined) {
     return undefined;
   }
   if (diffsNow?.get(scope.baseRef) === recorded) {

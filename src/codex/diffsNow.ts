@@ -114,9 +114,10 @@ export function commitDiffSha256({
  * ref its review passes on the branch name, and the diff the pull request presents against its current base
  * (`LandingBaseDiff` in `./diffCarry.ts`, which carries why both exist).
  *
- * Read by the landing floor (`./landingGateRun.ts`), the one reader that carries a review on a pull request's base
- * commit. The ratchet-bump witness (`./baselineBumpWitnessRun.ts`) deliberately does not: carrying a witness this
- * way would relax which stale witness counts, a gate change of its own. A checkout holding no review record on
+ * Read by the landing floor (`./landingGateRun.ts`), which applies the landing-base diff to every review row. The
+ * ratchet-bump witness does not take this function: `./baselineBumpFloor.ts` hashes the same landing diff, and the
+ * witness predicate (`./baselineBumpWitness.ts`) carries a stale witness only when the manifest's named baseline
+ * files are also unchanged between its base and the landing base. A checkout holding no review record on
  * the branch costs no git call: it merely holds the head, and nothing there could be carried. Every git failure is an
  * omitted digest, never a guessed one, so it leaves a stale review stale.
  *

@@ -143,6 +143,7 @@ export const BASELINE_POLICY_FILES: readonly string[] = [
   "src/cli/commands/github/baselineBumpGate.ts",
   "src/codex/baselineBumpCheckouts.ts",
   "src/codex/baselineBumpCoverage.ts",
+  "src/codex/baselineBumpFloor.ts",
   "src/codex/baselineBumpLanding.ts",
   "src/codex/baselineBumpPlacement.ts",
   "src/codex/baselineBumpWitness.ts",

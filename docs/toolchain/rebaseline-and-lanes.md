@@ -85,8 +85,15 @@ verdict on it), never in the tree, so a fork starts with the rules and none of t
   the branch the whole stack lands on, since GitHub lands every unmerged member below it in the same press. The
   witness is a CURRENT, CLEAN adversarial Codex review (the `r3` profile) on the record's property id and exact
   claim for the head, read off both the ledger row and its record; a CURRENT BROKEN one on an eligible record
-  refuses whatever stands beside it. `baseline-bump-unwitnessed` has no acknowledgement, and Codex capped means
-  the bump waits ([pull requests](../../skills/github/reference/pull-requests.md)).
+  refuses whatever stands beside it. A STALE witness still counts when its recorded diff is the diff the head
+  presents against the landing base AND every file the record's rows name (a ratchet row's baseline, a policy
+  row's source file) is unchanged between the review's base and the landing base: an identical patch after a
+  rebase gets no extra review, while the same patch on a moved floor is `floor-moved`. A record with no usable
+  diff digest, and an UNKNOWN row, never carry; a STALE BROKEN review over the same patch and floor keeps
+  refusing (`src/codex/baselineBumpFloor.ts` reads the evidence). Those two checks do not prove main left alone
+  everything the claim's reasoning leaned on, such as comparator code no row names; the landing comparison still
+  re-measures every row's exact `from -> to`. `baseline-bump-unwitnessed` has no acknowledgement, and Codex
+  capped means the bump waits ([pull requests](../../skills/github/reference/pull-requests.md)).
 - **The witness counts in its own lane** (`src/codex/reviewLane.ts`), so a branch that spent its two general
   review passes can still take it. Every `baseline-bump-` property id is reserved. `codex review` admits one only
   as the exact witness: pass `r3`, one property, an existing record's full id and its exact claim. Any other
