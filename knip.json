@@ -2,6 +2,8 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "hooks/pretooluse.ts",
+    "hooks/pretooluseBuild.ts",
+    "hooks/pretooluseLaunch.ts",
     "src/**/*.entry.ts",
     "eval/*.ts",
     "src/cli/index.ts",
