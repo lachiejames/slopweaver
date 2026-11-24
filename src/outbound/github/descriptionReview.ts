@@ -56,7 +56,7 @@ export function textSha256({ text }: { text: string }): string {
 /**
  * The digest of the written rules, over each file's path and exact bytes, in the order given.
  *
- * @param files every rule file the packet carries, as read from this build's tree
+ * @param files every rule file the packet carries, as read from the selected tree (`./descriptionReviewRules.ts`)
  * @returns the digest
  */
 export function rulesSha256Of({ files }: { files: readonly { path: string; contents: string }[] }): string {

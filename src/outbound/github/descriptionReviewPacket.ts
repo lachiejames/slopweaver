@@ -46,6 +46,7 @@ import {
   type DescriptionReviewComment,
   type DescriptionReviewManifest,
   type DescriptionReviewPreparation,
+  type DescriptionRulesOrigin,
   descriptionReviewPacketReadme,
   type ExistingPullRequestComment,
 } from "./descriptionReviewTypes.js";
@@ -90,6 +91,8 @@ export interface PacketContents {
   readonly existingComments: readonly ExistingPullRequestComment[];
   readonly images: readonly PacketImage[];
   readonly rules: readonly { readonly path: string; readonly contents: string }[];
+  /** The tree `rules` was read from, which the README names. */
+  readonly rulesOrigin: DescriptionRulesOrigin;
   readonly change: { readonly patch: string; readonly deltaLines: readonly string[] };
   readonly evidence: readonly PacketEvidence[];
   /** Whether `github attach upload` is permitted on this install; when not, the README says no picture can come. */
@@ -146,7 +149,10 @@ function writeBase({ repo, contents }: { repo: string; contents: PacketContents 
     mkdirSync(join(repo, directory), { recursive: true });
   }
   writeFileSync(join(repo, ".gitattributes"), GITATTRIBUTES);
-  const readme = descriptionReviewPacketReadme({ attachUploadPermitted: contents.attachUploadPermitted });
+  const readme = descriptionReviewPacketReadme({
+    attachUploadPermitted: contents.attachUploadPermitted,
+    rulesOrigin: contents.rulesOrigin,
+  });
   writeFileSync(join(repo, "README.md"), readme);
   contents.rules.forEach((rule, index) => {
     writeFileSync(join(repo, "rules", numberedName({ index, name: rule.path })), rule.contents);

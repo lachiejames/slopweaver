@@ -34,8 +34,8 @@ import {
   type DescriptionReviewError,
   DescriptionReviewErrors,
 } from "../../../outbound/github/descriptionReviewErrors.js";
+import { installedRulesRoot } from "../../../outbound/github/descriptionReviewRules.js";
 import {
-  installedRulesRoot,
   packetCommitFacts,
   readPreparationAtRoot,
   writeReceiptOnce,
@@ -62,8 +62,8 @@ export interface GithubPrDescriptionReviewDeps {
   readonly newId: () => string;
   /** The working directory a `--cwd`-less prepare reads the change set from. */
   readonly cwd: string;
-  /** The tree the written rules are read from. */
-  readonly rulesRoot: string;
+  /** The running CLI's tree, the written rules' source for any repository but this source repository. */
+  readonly installedRulesRoot: string;
   /** One Codex pass record by artifact id: undefined when the id names none, an error when it is unreadable. */
   readonly readPass: (args: {
     orchestrationRoot: string;
@@ -230,8 +230,8 @@ export async function runGithubPrReviewRecord({
 }
 
 /**
- * Production edges: the real environment, clock, ids, working directory, this build's rules, the home's Codex pass
- * records, the fallback store and the pull request's comments on GitHub.
+ * Production edges: the real environment, clock, ids, working directory, this build's tree for another repository's
+ * rules, the home's Codex pass records, the fallback store and the pull request's comments on GitHub.
  *
  * @returns the deps
  */
@@ -240,12 +240,12 @@ export function productionGithubPrDescriptionReviewDeps(): GithubPrDescriptionRe
     attachUploadStanding: ({ home }) => readAttachUploadStanding({ runsDir: stateHomePaths({ home }).runs }),
     cwd: process.cwd(),
     env: process.env,
+    installedRulesRoot: installedRulesRoot(),
     newId: () => randomUUID(),
     nowIso: () => new Date().toISOString(),
     out: logger.out,
     readComments: readDescriptionComments,
     readPass: readCitedPass,
-    rulesRoot: installedRulesRoot(),
     scanFallback: (args) => fallbackRegisterPort().scan(args),
     writeDiagnostic: ({ line }) => {
       logger.error({ msg: line });

@@ -29,11 +29,20 @@ export interface DescriptionReviewImageMismatchError {
   readonly path: string;
 }
 
-/** One of the written rules the packet carries could not be read from this build's own tree. */
+/** One of the written rules the packet carries could not be read from the tree it was selected from. */
 export interface DescriptionReviewRulesUnreadableError {
   readonly code: "RULES_UNREADABLE";
   readonly message: string;
   readonly path: string;
+}
+
+/** A written rule absent at the reviewed head: the change set deleted or renamed it, and no other copy stands in. */
+export interface DescriptionReviewRuleAbsentAtHeadError {
+  readonly code: "RULE_ABSENT_AT_HEAD";
+  readonly message: string;
+  readonly path: string;
+  readonly headRef: string;
+  readonly headSha: string;
 }
 
 /** The change set's digest could not be computed from the checkout. */
@@ -118,6 +127,7 @@ export type DescriptionReviewError =
   | DescriptionReviewInputUnreadableError
   | DescriptionReviewImageMismatchError
   | DescriptionReviewRulesUnreadableError
+  | DescriptionReviewRuleAbsentAtHeadError
   | DescriptionReviewChangeDigestError
   | DescriptionReviewCommentsReadFailedError
   | DescriptionReviewPreparationFailedError
@@ -227,9 +237,35 @@ export const DescriptionReviewErrors = {
     message: `description review receipt ${path} could not be written: ${detail}`,
     path,
   }),
-  rulesUnreadable: ({ path, detail }: { path: string; detail: string }): DescriptionReviewRulesUnreadableError => ({
+  ruleAbsentAtHead: ({
+    path,
+    headRef,
+    headSha,
+  }: {
+    path: string;
+    headRef: string;
+    headSha: string;
+  }): DescriptionReviewRuleAbsentAtHeadError => ({
+    code: "RULE_ABSENT_AT_HEAD",
+    headRef,
+    headSha,
+    message:
+      `written rule ${path} is absent at the head under review (ref ${JSON.stringify(headRef)}, commit ${headSha}), ` +
+      "so no packet can be judged against it; the installed copy is never substituted. Restore the file at that " +
+      "path, or land the change to the rule list first.",
+    path,
+  }),
+  rulesUnreadable: ({
+    path,
+    source,
+    detail,
+  }: {
+    path: string;
+    source: string;
+    detail: string;
+  }): DescriptionReviewRulesUnreadableError => ({
     code: "RULES_UNREADABLE",
-    message: `written rule ${path} cannot be read from this build's tree: ${detail}`,
+    message: `written rule ${path} cannot be read from ${source}: ${detail}`,
     path,
   }),
   unusable: ({ reviewId, why }: { reviewId: string; why: string }): DescriptionReviewUnusableError => ({

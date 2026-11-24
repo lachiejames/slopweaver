@@ -20,12 +20,14 @@ import {
   rulesSha256Of,
 } from "./descriptionReview.js";
 import type { DescriptionReviewError } from "./descriptionReviewErrors.js";
-import { listReadableReceipts, readDescriptionRules, readReceipt } from "./descriptionReviewStore.js";
+import { descriptionRulesSourceFor, readDescriptionRules } from "./descriptionReviewRules.js";
+import { listReadableReceipts, readReceipt } from "./descriptionReviewStore.js";
 import type {
   DescriptionImage,
   DescriptionReviewComment,
   DescriptionReviewManifest,
   DescriptionReviewReceipt,
+  DescriptionRulesOrigin,
   ExistingPullRequestComment,
 } from "./descriptionReviewTypes.js";
 
@@ -51,8 +53,11 @@ export interface DescriptionUnderReview {
   readonly comments: readonly DescriptionReviewComment[];
   /** Every comment already on the pull request, read whole; `[]` for one not yet opened. */
   readonly existingComments: readonly ExistingPullRequestComment[];
-  /** The tree the written rules are read from: `installedRulesRoot()` in production. */
-  readonly rulesRoot: string;
+  /**
+   * The running CLI's tree (`installedRulesRoot()` in production), read for the rules only when the repository is
+   * not this source repository, whose rules are read at the head under review (`./descriptionReviewRules.ts`).
+   */
+  readonly installedRulesRoot: string;
 }
 
 /** The manifest of a description, with the readings it was built from. */
@@ -61,6 +66,8 @@ export interface DescriptionManifestReading {
   readonly manifestSha256: string;
   readonly change: ChangeDigestReading;
   readonly rules: readonly { readonly path: string; readonly contents: string }[];
+  /** The tree the rules were read from, which the packet README names. */
+  readonly rulesOrigin: DescriptionRulesOrigin;
 }
 
 /**
@@ -74,10 +81,6 @@ export function descriptionManifestFor({
 }: {
   description: DescriptionUnderReview;
 }): Result<DescriptionManifestReading, DescriptionReviewError> {
-  const rules = readDescriptionRules({ rulesRoot: description.rulesRoot });
-  if (rules.isErr()) {
-    return err(rules.error);
-  }
   const change = computeChangeDigest({
     baseRef: description.baseRef,
     headRef: description.headRef,
@@ -85,6 +88,19 @@ export function descriptionManifestFor({
   });
   if (change.isErr()) {
     return err(change.error);
+  }
+  // The rules are read at the commit the change digest resolved, never the ref again: a ref that moved in between
+  // would pair one commit's change set with another's rules.
+  const source = descriptionRulesSourceFor({
+    headRef: description.headRef,
+    headSha: change.value.headSha,
+    installedRoot: description.installedRulesRoot,
+    repoDir: description.repoDir,
+    repository: description.repository,
+  });
+  const rules = readDescriptionRules({ source });
+  if (rules.isErr()) {
+    return err(rules.error);
   }
   const manifest = buildDescriptionManifest({
     baseBranch: description.baseBranch,
@@ -94,10 +110,16 @@ export function descriptionManifestFor({
     existingComments: description.existingComments,
     images: description.images,
     repository: description.repository,
-    rulesSha256: rulesSha256Of({ files: rules.value }),
+    rulesSha256: rulesSha256Of({ files: rules.value.files }),
     title: description.title,
   });
-  return ok({ change: change.value, manifest, manifestSha256: manifestSha256Of({ manifest }), rules: rules.value });
+  return ok({
+    change: change.value,
+    manifest,
+    manifestSha256: manifestSha256Of({ manifest }),
+    rules: rules.value.files,
+    rulesOrigin: rules.value.origin,
+  });
 }
 
 /**
