@@ -5,14 +5,12 @@ import { errAsync, okAsync } from "neverthrow";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { NotPerformed } from "../../../../../admit/doorRefusal.js";
-import {
-  type GithubSelfReviewApi,
-  selfReviewOutcomeLines,
-  sendSelfReviewRound,
-} from "../../../../../cli/commands/github/selfReviewRun.js";
+import { selfReviewOutcomeLines } from "../../../../../cli/commands/github/selfReviewOutcome.js";
+import { type GithubSelfReviewApi, sendSelfReviewRound } from "../../../../../cli/commands/github/selfReviewRun.js";
 import type { WrittenPr } from "../../../../../corpus/github/write.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 import {
+  confirmSelfReviewRound,
   readSelfReviewReservation,
   readSelfReviewRound,
   reserveSelfReviewRound,
@@ -117,15 +115,140 @@ describe("sendSelfReviewRound", () => {
       url: "https://example.test/o/r/pull/7",
     });
     expect(calls).toEqual(["submit:1:", "read:1", "submit:2:T1", "read:2"]);
-    expect(unwrap(readSelfReviewRound({ home, locus: selfReviewLocus({ number: 7, owner: "o", repo: "r" }) }))).toEqual(
-      {
+    expect(
+      unwrap(
+        readSelfReviewRound({
+          home,
+          locus: selfReviewLocus({ number: 7, owner: "o", repo: "r" }),
+          pullRequestId: "PR7",
+        }),
+      ),
+    ).toEqual({
+      kind: "owned",
+      record: {
         confirmedIso: "t2",
         formHash: "cd9012516a45bbabb328e4869e154f81",
         headSha: "two",
         locus: "o/r#7",
+        pullRequestId: "PR7",
         threadIds: ["T2"],
       },
-    );
+    });
+  });
+
+  it("resolves none of a round another pull request left at this address, says so, and binds the next to this one", async () => {
+    const home = tempHome();
+    const door = memoryDoorLedger();
+    const locus = selfReviewLocus({ number: 7, owner: "o", repo: "r" });
+    // The archived repository's #7 confirmed a round at this address before the rename, bound to its own node id.
+    reserveSelfReviewRound({
+      home,
+      intent: { formHash: "old", headSha: "old", locus, reservedIso: "t0" },
+      pullRequestId: "ARCHIVED_PR7",
+    });
+    expect(
+      confirmSelfReviewRound({
+        home,
+        record: {
+          confirmedIso: "t0",
+          formHash: "old",
+          headSha: "old",
+          locus,
+          pullRequestId: "ARCHIVED_PR7",
+          threadIds: ["OLD1", "OLD2"],
+        },
+      }),
+    ).toEqual({ kind: "confirmed" });
+    const resolved: string[][] = [];
+    const api: GithubSelfReviewApi = {
+      diffFiles: () => okAsync([{ patch: DIFF_PATCH, path: "src/a.ts" }]),
+      reviewThreads: () => okAsync([{ commentIds: ["C1"], id: "T1", isResolved: false }]),
+      submitReviewRound: ({ resolveThreadIds }) => {
+        resolved.push([...resolveThreadIds]);
+        return okAsync({ commentIds: ["C1"], reviewId: "R1" });
+      },
+    };
+    const outcome = await sendSelfReviewRound({
+      api,
+      form: {
+        comments: [{ body: "This now keeps the ledger current.", kind: "explanation", line: 3, path: "src/a.ts" }],
+      },
+      home,
+      ledger: door.port,
+      nowIso: "t1",
+      pr: pr({ sha: "one" }),
+    });
+    expect(resolved).toEqual([[]]);
+    expect(selfReviewOutcomeLines({ command: "slopweaver github push", outcome })).toEqual([
+      "self-review: posted 1 inline comment(s) on #7 and resolved 0 previous thread(s)",
+      "https://example.test/o/r/pull/7",
+      "self-review: set aside the round confirmed at t0 for o/r#7: it is not bound to this pull request, so none " +
+        "of its threads were resolved",
+    ]);
+    expect(unwrap(readSelfReviewRound({ home, locus, pullRequestId: "PR7" }))).toEqual({
+      kind: "owned",
+      record: {
+        confirmedIso: "t1",
+        formHash: "cd9012516a45bbabb328e4869e154f81",
+        headSha: "one",
+        locus,
+        pullRequestId: "PR7",
+        threadIds: ["T1"],
+      },
+    });
+  });
+
+  it("reports a round set aside on a refusal too, where nothing overwrites it", async () => {
+    const home = tempHome();
+    const door = memoryDoorLedger();
+    const locus = selfReviewLocus({ number: 7, owner: "o", repo: "r" });
+    reserveSelfReviewRound({
+      home,
+      intent: { formHash: "old", headSha: "old", locus, reservedIso: "t0" },
+      pullRequestId: "ARCHIVED_PR7",
+    });
+    confirmSelfReviewRound({
+      home,
+      record: {
+        confirmedIso: "t0",
+        formHash: "old",
+        headSha: "old",
+        locus,
+        pullRequestId: "ARCHIVED_PR7",
+        threadIds: ["OLD1"],
+      },
+    });
+    const api: GithubSelfReviewApi = {
+      diffFiles: () => okAsync([{ patch: DIFF_PATCH, path: "src/other.ts" }]),
+      reviewThreads: () => okAsync([]),
+      submitReviewRound: () => okAsync({ commentIds: ["C1"], reviewId: "R1" }),
+    };
+    const outcome = await sendSelfReviewRound({
+      api,
+      form: {
+        comments: [{ body: "This now keeps the ledger current.", kind: "explanation", line: 3, path: "src/a.ts" }],
+      },
+      home,
+      ledger: door.port,
+      nowIso: "t1",
+      pr: pr({ sha: "one" }),
+    });
+    expect(selfReviewOutcomeLines({ command: "slopweaver github push", outcome })).toEqual([
+      "self-review refused: these comment anchors are not part of the live diff at the reviewed head SHA: src/a.ts:3",
+      "self-review: set aside the round confirmed at t0 for o/r#7: it is not bound to this pull request, so none " +
+        "of its threads were resolved",
+    ]);
+    expect(unwrap(readSelfReviewRound({ home, locus, pullRequestId: "ARCHIVED_PR7" }))).toEqual({
+      kind: "owned",
+      record: {
+        confirmedIso: "t0",
+        formHash: "old",
+        headSha: "old",
+        locus,
+        pullRequestId: "ARCHIVED_PR7",
+        threadIds: ["OLD1"],
+      },
+    });
   });
 
   it("holds an ambiguous write and never calls the provider again", async () => {
@@ -189,7 +312,11 @@ describe("sendSelfReviewRound", () => {
       ],
     };
     const locus = selfReviewLocus({ number: 7, owner: "o", repo: "r" });
-    reserveSelfReviewRound({ home, intent: { formHash: "f", headSha: "one", locus, reservedIso: "t0" } });
+    reserveSelfReviewRound({
+      home,
+      intent: { formHash: "f", headSha: "one", locus, reservedIso: "t0" },
+      pullRequestId: "PR7",
+    });
     const ledger = join(stateHomePaths({ home }).ledgers, "github-self-reviews");
     const lock = join(
       ledger,
@@ -224,7 +351,11 @@ describe("sendSelfReviewRound", () => {
     const home = tempHome();
     const door = memoryDoorLedger();
     const locus = selfReviewLocus({ number: 7, owner: "o", repo: "r" });
-    reserveSelfReviewRound({ home, intent: { formHash: "f", headSha: "one", locus, reservedIso: "t0" } });
+    reserveSelfReviewRound({
+      home,
+      intent: { formHash: "f", headSha: "one", locus, reservedIso: "t0" },
+      pullRequestId: "PR7",
+    });
     const ledger = join(stateHomePaths({ home }).ledgers, "github-self-reviews");
     const lock = join(
       ledger,

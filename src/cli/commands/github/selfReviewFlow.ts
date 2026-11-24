@@ -19,7 +19,8 @@ import type { GithubPrArgs } from "./core.js";
 import { githubVerbErrorLines } from "./errors.js";
 import type { GithubPrDeps } from "./prDeps.js";
 import { parseSelfReviewForm } from "./selfReviewCore.js";
-import { selfReviewOutcomeLines, sendSelfReviewRound } from "./selfReviewRun.js";
+import { selfReviewOutcomeLines } from "./selfReviewOutcome.js";
+import { sendSelfReviewRound } from "./selfReviewRun.js";
 import { updateHeadRefusal } from "./updateCore.js";
 
 /**

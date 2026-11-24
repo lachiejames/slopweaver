@@ -17,15 +17,7 @@ import { isRecord } from "../../lib/parsers.js";
 import { err, ok, type Result } from "../../lib/result.js";
 import { stateHomePaths } from "../../stateHome.js";
 import type { SelfReviewForm } from "./selfReview.js";
-
-/** One confirmed self-review round. */
-export interface SelfReviewRoundRecord {
-  readonly locus: string;
-  readonly headSha: string;
-  readonly formHash: string;
-  readonly threadIds: readonly string[];
-  readonly confirmedIso: string;
-}
+import { type BoundSelfReviewRoundRecord, parseSelfReviewRound, type SelfReviewRoundRead } from "./selfReviewRound.js";
 
 /** One mutation intent, persisted before any GitHub write. */
 export interface SelfReviewReservationRecord {
@@ -36,14 +28,19 @@ export interface SelfReviewReservationRecord {
 }
 
 /**
- * A fresh reservation carries the previous round that this write is allowed to resolve, `null` when none was
- * ever confirmed. An unreadable one names why a record cannot be trusted: the previous round, whose
- * reservation this call took and has already released since nothing was attempted, or a hold already there,
- * which this call never took.
+ * A fresh reservation carries what the ledger held for this pull request, read under the lock: only an
+ * `owned` round's threads may be resolved by this write. An unreadable one names why a record cannot be
+ * trusted: the previous round, whose reservation this call took and has already released since nothing was
+ * attempted, or a hold already there, which this call never took.
  */
 export type SelfReviewReservation =
-  | { readonly kind: "fresh"; readonly previous: SelfReviewRoundRecord | null }
-  | { readonly kind: "taken"; readonly pending: SelfReviewReservationRecord | null }
+  | { readonly kind: "fresh"; readonly previous: SelfReviewRoundRead }
+  // `previous` rides a lost race too, so a round set aside before the lock was refused is still reported.
+  | {
+      readonly kind: "taken";
+      readonly pending: SelfReviewReservationRecord | null;
+      readonly previous: SelfReviewRoundRead;
+    }
   | { readonly kind: "unreadable"; readonly reason: string };
 
 /** Whether local confirmation completed after GitHub's readback. */
@@ -52,6 +49,9 @@ export type SelfReviewConfirmation =
 
 /**
  * Build a stable pull-request address used only for local ownership, never GitHub authorisation.
+ *
+ * It names where a round's record lives and which lock a send takes, never WHICH pull request owns the round:
+ * that is the record's `pullRequestId`, because a renamed repository's address is reused by its successor.
  *
  * @param owner the repository owner
  * @param repo the repository name
@@ -97,53 +97,6 @@ function ensureLedgerDir({ home }: { home: string }): void {
   mkdirSync(ledgerDir({ home }), { recursive: true });
 }
 
-/** Parse a non-empty array of opaque GitHub node ids. */
-function threadIdsOf({ value }: { value: unknown }): readonly string[] | undefined {
-  if (
-    !Array.isArray(value) ||
-    value.length === 0 ||
-    value.some((item) => typeof item !== "string" || item.length === 0)
-  ) {
-    return undefined;
-  }
-  const threadIds = value;
-  return new Set(threadIds).size === threadIds.length ? threadIds : undefined;
-}
-
-/**
- * Decode a confirmed round. Unreadable state grants no ownership.
- *
- * @param raw the candidate JSON bytes
- * @returns the record, or undefined when any ownership field is invalid
- */
-export function parseSelfReviewRound({ raw }: { raw: string }): SelfReviewRoundRecord | undefined {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed)) {
-      return undefined;
-    }
-    const threadIds = threadIdsOf({ value: parsed["threadIds"] });
-    if (
-      typeof parsed["locus"] !== "string" ||
-      typeof parsed["headSha"] !== "string" ||
-      typeof parsed["formHash"] !== "string" ||
-      typeof parsed["confirmedIso"] !== "string" ||
-      threadIds === undefined
-    ) {
-      return undefined;
-    }
-    return {
-      confirmedIso: parsed["confirmedIso"],
-      formHash: parsed["formHash"],
-      headSha: parsed["headSha"],
-      locus: parsed["locus"],
-      threadIds,
-    };
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * Decode an unresolved mutation intent.
  *
@@ -176,20 +129,28 @@ function parseSelfReviewReservation({ raw }: { raw: string }): SelfReviewReserva
 /**
  * Read the last confirmed Slopweaver-owned round for one pull request.
  *
- * A record that is there but unreadable, malformed or for another pull request is refused, never read as
- * no round: read as none, the next round posted beside the old walkthrough instead of retiring it.
+ * A record that is there but unreadable, malformed or for another locus is refused, never read as no round:
+ * read as none, the next round posted beside the old walkthrough instead of retiring it.
+ *
+ * A well-formed record at this locus that is not bound to `pullRequestId` — bound to another pull request, or
+ * written before rounds were bound — is SET ASIDE: it grants no thread to resolve, and the caller says so. That
+ * is the case of a repository renamed away and a fresh one taking its address: resolving the old round's
+ * thread ids would close threads on the archived pull request while reporting them as this one's.
  *
  * @param home the state home holding the ledger
  * @param locus the normalised pull-request locus
- * @returns the owned round, `null` when none was ever confirmed, or why the record on disk cannot be trusted
+ * @param pullRequestId the live pull request's GraphQL node id, which alone decides ownership
+ * @returns the owned round, `absent`, a set-aside round, or why the record on disk cannot be trusted
  */
 export function readSelfReviewRound({
   home,
   locus,
+  pullRequestId,
 }: {
   home: string;
   locus: string;
-}): Result<SelfReviewRoundRecord | null> {
+  pullRequestId: string;
+}): Result<SelfReviewRoundRead> {
   const path = roundPath({ home, locus });
   const untrusted = ({ detail }: { detail: string }): Result<never> =>
     err([
@@ -201,13 +162,16 @@ export function readSelfReviewRound({
     return untrusted({ detail: text.error.join("; ") });
   }
   if (text.value === null) {
-    return ok(null);
+    return ok({ kind: "absent" });
   }
   const record = parseSelfReviewRound({ raw: text.value });
   if (record === undefined || record.locus !== locus) {
     return untrusted({ detail: "it is not a confirmed round for this pull request" });
   }
-  return ok(record);
+  if (record.pullRequestId !== pullRequestId) {
+    return ok({ confirmedIso: record.confirmedIso, kind: "set-aside", locus });
+  }
+  return ok({ kind: "owned", record: { ...record, pullRequestId } });
 }
 
 /**
@@ -253,19 +217,23 @@ export function readSelfReviewReservation({
  *
  * @param home the state home
  * @param intent the exact round being attempted
- * @returns the prior owned round, the held intent that blocks another send, or why the prior round's record
- *   cannot be trusted
+ * @param pullRequestId the live pull request's GraphQL node id, passed beside the intent so the lock record's
+ *   bytes stay what `self-review release` and `doctor` already read
+ * @returns what the ledger held for this pull request, the held intent that blocks another send, or why the
+ *   prior round's record cannot be trusted
  */
 export function reserveSelfReviewRound({
   home,
   intent,
+  pullRequestId,
 }: {
   home: string;
   intent: SelfReviewReservationRecord;
+  pullRequestId: string;
 }): SelfReviewReservation {
   // A round record already corrupt is refused before the ledger is touched. The read under the lock below
   // still decides, since a concurrent confirm may land between the two.
-  const before = readSelfReviewRound({ home, locus: intent.locus });
+  const before = readSelfReviewRound({ home, locus: intent.locus, pullRequestId });
   if (before.isErr()) {
     return { kind: "unreadable", reason: before.error.join("; ") };
   }
@@ -278,9 +246,9 @@ export function reserveSelfReviewRound({
     if (held.isErr()) {
       return { kind: "unreadable", reason: held.error.join("; ") };
     }
-    return { kind: "taken", pending: held.value };
+    return { kind: "taken", pending: held.value, previous: before.value };
   }
-  const previous = readSelfReviewRound({ home, locus: intent.locus });
+  const previous = readSelfReviewRound({ home, locus: intent.locus, pullRequestId });
   if (previous.isErr()) {
     releaseSelfReviewReservation({ home, locus: intent.locus });
     return { kind: "unreadable", reason: previous.error.join("; ") };
@@ -405,6 +373,9 @@ export function pendingSelfReviewReservations({
 /**
  * Persist the new owned thread ids, then release the reservation.
  *
+ * The record is always bound to the pull request it was posted on, and replacing the file retires whatever
+ * round a previous occupant of this address left there.
+ *
  * @param home the state home
  * @param record the exactly confirmed round
  * @returns whether both persistence and reservation cleanup completed
@@ -414,7 +385,7 @@ export function confirmSelfReviewRound({
   record,
 }: {
   home: string;
-  record: SelfReviewRoundRecord;
+  record: BoundSelfReviewRoundRecord;
 }): SelfReviewConfirmation {
   try {
     writeFileAtomic({ contents: JSON.stringify(record), path: roundPath({ home, locus: record.locus }) });

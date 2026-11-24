@@ -64,7 +64,10 @@ Pass `--self-review <json|->` to `stack push`, `pr update`, or `push`. A `pr upd
 only `--self-review`. The authenticated account must own the pull request; the foreign-description
 override never applies to self-review. When a diff changes, supply the replacement form. The write posts the
 fresh round first, then uses its local ledger to resolve the previous self-review round. It never guesses at a
-human thread. An ambiguous result is `UNCONFIRMED` and must be inspected before retrying.
+human thread. An ambiguous result is `UNCONFIRMED` and must be inspected before retrying. A round is bound to
+its pull request's node id, not its `owner/repo#number`: a round at that address bound to another pull request
+(a repository renamed away left it there) or to none is SET ASIDE, none of its threads resolved, and the output
+says so in one line.
 
 **A round answers to the description review.** Its rendered comments are bound beside the title and body, so
 `stack push` and `pr update` refuse a round no CLEAN review covers and print the `review-prepare` command over it.

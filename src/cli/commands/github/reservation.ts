@@ -6,6 +6,7 @@
  * the lines that report it, live in `./reservationAbsence.ts`.
  */
 import type { GithubWriteApi, WrittenPr } from "../../../corpus/github/write.js";
+import { errorStatus } from "../../../lib/ingestError.js";
 import {
   backfillPrIdentity,
   type PrRecord,
@@ -19,6 +20,7 @@ import {
   absenceVerdictFor,
   ambiguousPairLine,
   backfilledNumberLine,
+  foreignRecordedNumberLine,
   qualifiedHeadRef,
   releasedOnAbsenceLine,
   releasedOnClosedLine,
@@ -73,7 +75,12 @@ function releasedAndRetaken({
  * than one GitHub itself ever had — this is the fix for a real refusal: a closed pull request GitHub refused
  * to reopen after a rebase, blocking every subsequent create for its branch pair with no governed way out.
  *
- * A failed read leaves the reservation standing. An unreadable API is not evidence of anything.
+ * A failed read leaves the reservation standing. An unreadable API is not evidence of anything — bar a 404, and
+ * a live read naming a pull request whose node id is not the recorded one. Both say the record was written by a
+ * repository that once held this address, so the number names nothing here; neither proves the branch pair
+ * free, so both go to {@link settledByBranchPair} without adopting what it finds. A record carrying a number but
+ * no node id goes there BEFORE any read of that number: with nothing to compare, a live read cannot say whether
+ * the pull request it returns is the one recorded or a successor's.
  *
  * @param api the write API, used for the one read that decides staleness
  * @param form the form, whose target names the repository the recorded number belongs to
@@ -104,8 +111,25 @@ async function settledByRecordedNumber({
   out: OutSink;
   record: PrRecord;
 }): Promise<PrReservation> {
+  // A number with no node id cannot say WHICH pull request it meant, so the live read of that number proves
+  // nothing about this record: only the branch pair can, and what it finds is never adopted.
+  if (record.nodeId === undefined) {
+    out({ line: foreignRecordedNumberLine({ found: "unbound", locus, number }) });
+    return settledByBranchPair({ adopt: false, api, form, home, locus, nowIso, out, record });
+  }
   const live = await api.getPr({ number, owner: form.target.owner, repo: form.target.repo });
-  if (live.isErr() || stillOpen({ pr: live.value })) {
+  if (live.isErr()) {
+    if (errorStatus({ error: live.error }) !== 404) {
+      return { kind: "taken", record };
+    }
+    out({ line: foreignRecordedNumberLine({ found: "not-found", locus, number }) });
+    return settledByBranchPair({ adopt: false, api, form, home, locus, nowIso, out, record });
+  }
+  if (live.value.nodeId !== record.nodeId) {
+    out({ line: foreignRecordedNumberLine({ found: "another-pull-request", locus, number }) });
+    return settledByBranchPair({ adopt: false, api, form, home, locus, nowIso, out, record });
+  }
+  if (stillOpen({ pr: live.value })) {
     return { kind: "taken", record };
   }
   return releasedAndRetaken({
@@ -130,6 +154,12 @@ async function settledByRecordedNumber({
  * the next attempt to {@link settledByRecordedNumber} — and where that one is already closed, releases in the
  * same invocation. Two or more, or a failed read, leaves the reservation standing and says so.
  *
+ * It is also where a record naming ANOTHER repository's pull request lands, `adopt` false: a repository renamed
+ * away left the record at an address its successor now holds. There the one pull request the listing finds is
+ * the successor's, never the record's, so it is not backfilled onto the record: an open one keeps the locus
+ * taken under its own number, a closed one releases it.
+ *
+ * @param adopt whether a single pull request found is written onto the record as the create it lost
  * @param api the write API, used for the one read that decides absence
  * @param form the form, whose target names the branch pair
  * @param record the numberless record as read off disk, returned unchanged wherever the reservation stands
@@ -140,6 +170,7 @@ async function settledByRecordedNumber({
  * @returns `fresh` once the locus is safely reclaimed, or the reservation still held
  */
 async function settledByBranchPair({
+  adopt,
   api,
   form,
   home,
@@ -148,6 +179,7 @@ async function settledByBranchPair({
   out,
   record,
 }: {
+  adopt: boolean;
   api: ReservationApi;
   form: PrForm;
   home: string;
@@ -175,15 +207,17 @@ async function settledByBranchPair({
     return releasedAndRetaken({ home, line: releasedOnAbsenceLine({ locus }), locus, nowIso, out });
   }
   const found = verdict.pr;
-  out({ line: backfilledNumberLine({ locus, number: found.number }) });
-  backfillPrIdentity({
-    home,
-    locus,
-    nodeId: found.nodeId,
-    nowIso,
-    number: found.number,
-    storedBody: found.body,
-  });
+  if (adopt) {
+    out({ line: backfilledNumberLine({ locus, number: found.number }) });
+    backfillPrIdentity({
+      home,
+      locus,
+      nodeId: found.nodeId,
+      nowIso,
+      number: found.number,
+      storedBody: found.body,
+    });
+  }
   if (stillOpen({ pr: found })) {
     return { kind: "taken", record: recoveredRecord({ found, record }) };
   }
@@ -239,7 +273,7 @@ export async function resolvedReservation({
   }
   const recorded = initial.record.number;
   if (recorded === undefined) {
-    return settledByBranchPair({ api, form, home, locus, nowIso, out, record: initial.record });
+    return settledByBranchPair({ adopt: true, api, form, home, locus, nowIso, out, record: initial.record });
   }
   return settledByRecordedNumber({
     api,

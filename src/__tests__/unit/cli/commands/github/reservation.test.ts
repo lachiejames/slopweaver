@@ -6,7 +6,7 @@
  * The two API reads are plain functions that record what they were asked.
  */
 
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { errAsync, okAsync } from "neverthrow";
@@ -16,7 +16,15 @@ import { resolvedReservation } from "../../../../../cli/commands/github/reservat
 import type { GithubWriteApi, WrittenPr } from "../../../../../corpus/github/write.js";
 import type { IngestError } from "../../../../../lib/ingestError.js";
 import { EXAMPLE_PR_FORM } from "../../../../../outbound/github/formExample.js";
-import { bodyHash, confirmPr, locusOf, readPrRecord, reservePr } from "../../../../../outbound/github/prLedger.js";
+import {
+  bodyHash,
+  confirmPr,
+  ledgerDir,
+  locusFilename,
+  locusOf,
+  readPrRecord,
+  reservePr,
+} from "../../../../../outbound/github/prLedger.js";
 import type { PrForm } from "../../../../../outbound/github/types.js";
 
 const TARGET = { base: "main", head: "a-branch", owner: "octo-self", repo: "slopweaver" };
@@ -201,6 +209,136 @@ describe("resolvedReservation — a record carrying a number", () => {
         "fresh create for these branches.",
     ]);
     expect(readPrRecord({ home, locus: LOCUS })).toEqual({ locus: LOCUS, reservedIso: NOW_ISO });
+  });
+});
+
+describe("resolvedReservation — a record another repository wrote at this address", () => {
+  const NOT_FOUND: IngestError = { kind: "http", message: "Not Found", operation: "github.pulls.get", status: 404 };
+  const FOREIGN_LINE =
+    "the reservation for octo-self/slopweaver#main...a-branch names a pull request that is not this repository's: " +
+    "#7 on the repository now at this address is a different pull request from the one recorded, so the branch " +
+    "pair is read instead.";
+  const MISSING_LINE =
+    "the reservation for octo-self/slopweaver#main...a-branch names a pull request that is not this repository's: " +
+    "GitHub has no #7 on the repository now at this address, so the branch pair is read instead.";
+  const ABSENT_LINE =
+    "releasing the reservation for octo-self/slopweaver#main...a-branch: GitHub reports no pull request on these " +
+    "branches in any state, so the create that claimed it never landed.";
+
+  it("releases when the recorded number is a different pull request here and the branch pair is empty", async () => {
+    const home = seededHome({ number: 7 });
+    const h = harness({
+      getPr: () => okAsync({ ...pr({ number: 7, state: "open" }), nodeId: "SUCCESSOR_PR_7" }),
+      listPrs: () => okAsync([]),
+    });
+    const result = await resolvedReservation({
+      api: h.api,
+      form: FORM,
+      home,
+      locus: LOCUS,
+      nowIso: NOW_ISO,
+      out: h.out,
+    });
+    expect(result).toEqual({ kind: "fresh" });
+    expect(h.lines).toEqual([FOREIGN_LINE, ABSENT_LINE]);
+    expect(readPrRecord({ home, locus: LOCUS })).toEqual({ locus: LOCUS, reservedIso: NOW_ISO });
+  });
+
+  it("holds under the successor's own open pull request without writing it onto the old record", async () => {
+    const home = seededHome({ number: 7 });
+    const before = readPrRecord({ home, locus: LOCUS });
+    const h = harness({
+      getPr: () => okAsync({ ...pr({ number: 7, state: "open" }), nodeId: "SUCCESSOR_PR_7" }),
+      listPrs: () => okAsync([{ ...pr({ number: 9, state: "open" }), nodeId: "SUCCESSOR_PR_9" }]),
+    });
+    const result = await resolvedReservation({
+      api: h.api,
+      form: FORM,
+      home,
+      locus: LOCUS,
+      nowIso: NOW_ISO,
+      out: h.out,
+    });
+    expect(result).toEqual({ kind: "taken", record: { ...before, nodeId: "SUCCESSOR_PR_9", number: 9 } });
+    expect(h.lines).toEqual([FOREIGN_LINE]);
+    expect(readPrRecord({ home, locus: LOCUS })).toEqual(before);
+  });
+
+  it("releases on a 404 only once the branch pair reads empty", async () => {
+    const home = seededHome({ number: 7 });
+    const h = harness({ getPr: () => errAsync(NOT_FOUND), listPrs: () => okAsync([]) });
+    const result = await resolvedReservation({
+      api: h.api,
+      form: FORM,
+      home,
+      locus: LOCUS,
+      nowIso: NOW_ISO,
+      out: h.out,
+    });
+    expect(result).toEqual({ kind: "fresh" });
+    expect(h.lines).toEqual([MISSING_LINE, ABSENT_LINE]);
+    expect(readPrRecord({ home, locus: LOCUS })).toEqual({ locus: LOCUS, reservedIso: NOW_ISO });
+  });
+
+  it("holds on a 404 when the branch-pair read fails, since a 404 alone can mean access rather than absence", async () => {
+    const home = seededHome({ number: 7 });
+    const before = readPrRecord({ home, locus: LOCUS });
+    const h = harness({ getPr: () => errAsync(NOT_FOUND) });
+    const result = await resolvedReservation({
+      api: h.api,
+      form: FORM,
+      home,
+      locus: LOCUS,
+      nowIso: NOW_ISO,
+      out: h.out,
+    });
+    expect(result).toEqual({ kind: "taken", record: before });
+    expect(h.lines).toEqual([
+      MISSING_LINE,
+      "leaving the reservation for octo-self/slopweaver#main...a-branch standing: could not read the pull requests " +
+        "on these branches (other side closed), so nothing here proves the create did not land.",
+    ]);
+    expect(readPrRecord({ home, locus: LOCUS })).toEqual(before);
+  });
+
+  it("never lists the branch pair on a failure other than 404", async () => {
+    const home = seededHome({ number: 7 });
+    const h = harness({ getPr: () => errAsync({ ...GET_FAILURE, status: 502 }) });
+    const result = await resolvedReservation({
+      api: h.api,
+      form: FORM,
+      home,
+      locus: LOCUS,
+      nowIso: NOW_ISO,
+      out: h.out,
+    });
+    expect(result.kind).toBe("taken");
+    expect({ lines: h.lines, list: h.listCalls.length }).toEqual({ lines: [], list: 0 });
+  });
+
+  it("settles a number recorded without its node id by the branch pair alone, never by that number's read", async () => {
+    const home = seededHome({ number: undefined });
+    const unbound = { locus: LOCUS, number: 7, reservedIso: OLD_ISO };
+    writeFileSync(join(ledgerDir({ home }), `${locusFilename({ locus: LOCUS })}.json`), JSON.stringify(unbound));
+    const h = harness({
+      getPr: () => okAsync(pr({ number: 7, state: "closed" })),
+      listPrs: () => okAsync([{ ...pr({ number: 9, state: "open" }), nodeId: "SUCCESSOR_PR_9" }]),
+    });
+    const result = await resolvedReservation({
+      api: h.api,
+      form: FORM,
+      home,
+      locus: LOCUS,
+      nowIso: NOW_ISO,
+      out: h.out,
+    });
+    expect(result).toEqual({ kind: "taken", record: { ...unbound, nodeId: "SUCCESSOR_PR_9", number: 9 } });
+    expect(h.getCalls.length).toBe(0);
+    expect(h.lines).toEqual([
+      "the reservation for octo-self/slopweaver#main...a-branch records #7 without its node id, so which pull " +
+        "request it meant cannot be told: the branch pair is read instead.",
+    ]);
+    expect(readPrRecord({ home, locus: LOCUS })).toEqual(unbound);
   });
 });
 

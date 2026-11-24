@@ -60,6 +60,7 @@ describe("runGithubSelfReviewRelease", () => {
     reserveSelfReviewRound({
       home,
       intent: { formHash: "f", headSha: "abc123", locus: "o/r#7", reservedIso: "t1" },
+      pullRequestId: "PR7",
     });
     const { deps, lines } = harness();
     const code = runGithubSelfReviewRelease({
@@ -76,6 +77,7 @@ describe("runGithubSelfReviewRelease", () => {
     reserveSelfReviewRound({
       home,
       intent: { formHash: "f", headSha: "abc123", locus: "o/r#7", reservedIso: "t1" },
+      pullRequestId: "PR7",
     });
     const { deps, diagnostics } = harness();
     const code = runGithubSelfReviewRelease({
@@ -99,6 +101,7 @@ describe("runGithubSelfReviewRelease", () => {
     reserveSelfReviewRound({
       home,
       intent: { formHash: "f", headSha: "abc123", locus: "o/r#7", reservedIso: "t1" },
+      pullRequestId: "PR7",
     });
     const ledger = join(stateHomePaths({ home }).ledgers, "github-self-reviews");
     const path = join(
@@ -122,6 +125,7 @@ describe("runGithubSelfReviewRelease", () => {
     reserveSelfReviewRound({
       home,
       intent: { formHash: "f", headSha: "abc123", locus: "o/r#7", reservedIso: "t1" },
+      pullRequestId: "PR7",
     });
     const { deps, lines } = harness();
     const code = runGithubSelfReviewRelease({
