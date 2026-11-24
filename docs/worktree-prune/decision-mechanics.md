@@ -230,9 +230,12 @@ rewinds a file a session made in the root during a minutes-long background delet
 noindex`). FSEvents has no per-directory opt-out. `.fseventsd/no_log` turns it off for the whole volume,
 and Time Machine and every file watcher depend on it. So the delete RATE is the lever, and the pacing sets it.
 
-**A ballooned fseventsd stands the whole apply down**, before its scan, when fseventsd's resident size is at or
-over 1 GiB: it prints one line naming the pid, the size and `sudo killall fseventsd`, deletes nothing, and exits
-`EXIT_EXPECTED_EMPTY` (`src/worktree/fseventsdBalloon.ts`). A balloon is a stuck FSEvents client whose queue grows
+**A ballooned fseventsd stands the whole apply down**, before its scan, when fseventsd's resident size OR its
+`top` footprint is at or over 1 GiB: it prints one line naming the pid, the size, which of the two it was and
+`sudo killall fseventsd`, deletes nothing, and exits `EXIT_EXPECTED_EMPTY` (`src/worktree/fseventsdBalloon.ts`).
+Resident size alone missed a balloon as macOS paged it out: in one night it dipped under the line between
+stand-downs, applies removed trees mid-balloon, and the balloon's footprint, which counts the compressed and
+swapped pages resident size does not, kept growing. A balloon is a stuck FSEvents client whose queue grows
 at the machine's whole event rate, and the prune does not start one: MEASURED across every
 supervisor capacity tick, fseventsd sat at 4-16 MB bar two balloons (each climbing about 25 MB a minute to 31 and
 36.5 GB), the apply before the first had removed

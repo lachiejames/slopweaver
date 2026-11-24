@@ -1,10 +1,22 @@
 /**
- * A ballooned fseventsd stands the prune's apply down: its resident size read by exact binary path and summed,
- * and judged against the 1 GiB line, where an unreadable read never holds.
+ * A ballooned fseventsd stands the prune's apply down: its resident size read by exact binary path and summed, or
+ * its `top` footprint, either judged against the 1 GiB line, where an unreadable read never holds by itself.
  */
 import { describe, expect, it } from "vitest";
 
+import type { FseventsdFootprint } from "../../../monitor/fseventsdBloated.js";
 import { FSEVENTSD_BALLOON_KIB, fseventsdBalloonHold, parseFseventsdRss } from "../../../worktree/fseventsdBalloon.js";
+
+/** The line, in bytes, as the footprint is read. */
+const LINE_BYTES = FSEVENTSD_BALLOON_KIB * 1024;
+const NO_FOOTPRINT: FseventsdFootprint = { kind: "not-running" };
+const FOOTPRINT_UNREADABLE: FseventsdFootprint = { kind: "unreadable", why: "`top` printed nothing for the pid" };
+/** What every stand-down line says after the size. */
+const TAIL =
+  "a stuck FSEvents client's queue that every delete would only add to, and the free-space deficit is its swap, " +
+  "which no prune reclaims. Relief, as the fseventsd-bloated card asks: `sudo killall fseventsd`, not during a " +
+  "call; the next run prunes as normal.";
+const HEAD = "worktree prune: stood down, nothing scanned or deleted — fseventsd";
 
 const FSEVENTSD =
   "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/Support/fseventsd";
@@ -39,35 +51,91 @@ describe("parseFseventsdRss", () => {
 });
 
 describe("fseventsdBalloonHold", () => {
-  it("stands down at exactly 1 GiB, naming the pid, the size, why, and the relief", () => {
-    expect(fseventsdBalloonHold({ rss: { kib: FSEVENTSD_BALLOON_KIB, kind: "read", pids: [61323] } })).toBe(
-      "worktree prune: stood down, nothing scanned or deleted — fseventsd (pid 61323) holds 1.0 GB, a stuck FSEvents " +
-        "client's queue that every delete would only add to, and the free-space deficit is its swap, which no prune " +
-        "reclaims. Relief, as the fseventsd-bloated card asks: `sudo killall fseventsd`, not during a call; the next " +
-        "run prunes as normal.",
-    );
+  it("stands down at exactly 1 GiB of resident size, naming the pid, the size, which size, why, and the relief", () => {
+    expect(
+      fseventsdBalloonHold({
+        footprint: NO_FOOTPRINT,
+        rss: { kib: FSEVENTSD_BALLOON_KIB, kind: "read", pids: [61323] },
+      }),
+    ).toBe(`${HEAD} (pid 61323) has a 1.0 GB resident size, ${TAIL}`);
   });
 
-  it("names every instance's pid, in listing order", () => {
-    const line = fseventsdBalloonHold({ rss: { kib: 2 * FSEVENTSD_BALLOON_KIB, kind: "read", pids: [100, 200] } })!;
-    expect(line).toContain("fseventsd (pid 100, 200) holds 2.0 GB");
+  it("names every instance's pid, in listing order, when the summed resident size is the larger", () => {
+    expect(
+      fseventsdBalloonHold({
+        footprint: FOOTPRINT_UNREADABLE,
+        rss: { kib: 2 * FSEVENTSD_BALLOON_KIB, kind: "read", pids: [100, 200] },
+      }),
+    ).toBe(`${HEAD} (pid 100, 200) has a 2.0 GB resident size, ${TAIL}`);
   });
 
-  it("stands down on a real balloon's own size, 36.5 GB", () => {
-    const line = fseventsdBalloonHold({ rss: { kib: 38_273_024, kind: "read", pids: [61323] } })!;
-    expect(line).toContain("holds 36.5 GB");
+  it("stands down on a real balloon's own resident size, 36.5 GB", () => {
+    expect(
+      fseventsdBalloonHold({ footprint: NO_FOOTPRINT, rss: { kib: 38_273_024, kind: "read", pids: [61323] } }),
+    ).toBe(`${HEAD} (pid 61323) has a 36.5 GB resident size, ${TAIL}`);
   });
 
-  it("runs one KiB under the line", () => {
-    expect(fseventsdBalloonHold({ rss: { kib: FSEVENTSD_BALLOON_KIB - 1, kind: "read", pids: [79903] } })).toBe(null);
+  it("stands down on a swapped-out balloon: 16 MB resident, a 4 GB footprint", () => {
+    expect(
+      fseventsdBalloonHold({
+        footprint: { bytes: 4 * LINE_BYTES, kind: "read", pid: 4242 },
+        rss: { kib: 16_384, kind: "read", pids: [4242] },
+      }),
+    ).toBe(`${HEAD} (pid 4242) has a 4.0 GB footprint, ${TAIL}`);
   });
 
-  it("runs on a healthy daemon's largest measured size, 16 MB", () => {
-    expect(fseventsdBalloonHold({ rss: { kib: 16_384, kind: "read", pids: [79903] } })).toBe(null);
+  it("stands down on the footprint when the resident size cannot be read", () => {
+    expect(
+      fseventsdBalloonHold({
+        footprint: { bytes: LINE_BYTES, kind: "read", pid: 4242 },
+        rss: { kind: "unreadable", why: "ps timed out" },
+      }),
+    ).toBe(`${HEAD} (pid 4242) has a 1.0 GB footprint, ${TAIL}`);
   });
 
-  it("runs when fseventsd is not running or its size cannot be read, leaving the CPU gates to stop", () => {
-    expect(fseventsdBalloonHold({ rss: { kind: "not-running" } })).toBe(null);
-    expect(fseventsdBalloonHold({ rss: { kind: "unreadable", why: "ps timed out" } })).toBe(null);
+  it("prints the larger size when both are over the line, and resident size on a tie", () => {
+    expect(
+      fseventsdBalloonHold({
+        footprint: { bytes: 3 * LINE_BYTES, kind: "read", pid: 4242 },
+        rss: { kib: 2 * FSEVENTSD_BALLOON_KIB, kind: "read", pids: [4242] },
+      }),
+    ).toBe(`${HEAD} (pid 4242) has a 3.0 GB footprint, ${TAIL}`);
+    expect(
+      fseventsdBalloonHold({
+        footprint: { bytes: 2 * LINE_BYTES, kind: "read", pid: 4242 },
+        rss: { kib: 2 * FSEVENTSD_BALLOON_KIB, kind: "read", pids: [4242] },
+      }),
+    ).toBe(`${HEAD} (pid 4242) has a 2.0 GB resident size, ${TAIL}`);
+  });
+
+  it("runs one KiB under the line on resident size and one byte under on footprint", () => {
+    expect(
+      fseventsdBalloonHold({
+        footprint: { bytes: LINE_BYTES - 1, kind: "read", pid: 79903 },
+        rss: { kib: FSEVENTSD_BALLOON_KIB - 1, kind: "read", pids: [79903] },
+      }),
+    ).toBe(null);
+  });
+
+  it("runs on a healthy daemon's largest measured size, 16 MB, by either measure", () => {
+    expect(
+      fseventsdBalloonHold({
+        footprint: { bytes: 16 * 1024 * 1024, kind: "read", pid: 79903 },
+        rss: { kib: 16_384, kind: "read", pids: [79903] },
+      }),
+    ).toBe(null);
+  });
+
+  it("runs when the footprint cannot be read and the resident size is under the line", () => {
+    expect(
+      fseventsdBalloonHold({ footprint: FOOTPRINT_UNREADABLE, rss: { kib: 16_384, kind: "read", pids: [79903] } }),
+    ).toBe(null);
+  });
+
+  it("runs when neither size is running or readable, leaving the CPU gates to stop", () => {
+    expect(fseventsdBalloonHold({ footprint: NO_FOOTPRINT, rss: { kind: "not-running" } })).toBe(null);
+    expect(
+      fseventsdBalloonHold({ footprint: FOOTPRINT_UNREADABLE, rss: { kind: "unreadable", why: "ps timed out" } }),
+    ).toBe(null);
   });
 });
