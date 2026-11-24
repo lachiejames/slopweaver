@@ -72,7 +72,9 @@ characters, plain text.
   name first. A problem nobody can re-observe on demand is still seen, on the day it was observed.
 - **A proof slot's reason is quoted by the proof hover** when that slot has no screenshot, so a proof slot's reason
   is at most two sentences: why there is no screenshot, then where the proof is instead. The second is optional ("The
-  unit cases below are the proof."), each sentence is one fact, and a reader accepts both without opening anything.
+  checks below are the proof."), points at the checks or a linked record, and never names a test or test cases as
+  the proof (`PROOF_IS_TEST_SENTENCE`, below). Each sentence is one fact, and a reader accepts both without opening
+  anything.
   A result goes in a check and an unrun check under Not checked; a third sentence is refused as
   `PROOF_REASON_SENTENCES` before any review. The reason is judged on whether it is true of the change, never on
   whether a capture should have been gathered: that is the landing grade's question ([pull requests](pull-requests.md)).
@@ -83,9 +85,10 @@ characters, plain text.
   branch, `widgets export` keeps the last row." Proof of the problem is the product itself failing on screen; a
   vendor's doc can be linked as cause, never as proof.
 - **A proof slot holds a capture, never a sentence about a test.** Where a command shows it, capture that command
-  failing on main and passing on the branch with `slopweaver browser terminal-shot`; a reason that talks about a
-  test is refused (`PROOF_IS_TEST_SENTENCE`), and so is one reason in both slots (`REASON_REPEATED`). A slot with a
-  reason renders its heading as `Proof of the problem: not shown`.
+  failing on main and passing on the branch with `slopweaver browser terminal-shot`. A reason that talks about a
+  test is refused: its common shapes, "the unit cases below" included, before any review (`PROOF_IS_TEST_SENTENCE`),
+  and the rest by the review. One reason in both slots is refused too (`REASON_REPEATED`). The sentence about the
+  test goes under Checks. A slot with a reason renders its heading as `Proof of the problem: not shown`.
 - **A check is one sentence with no screenshot**: what was checked and what it showed, under `## Checks` as a list.
   A group of checks is a label with its checks nested under it, the base checks everyone shares first
   (`checkGroups`; in an authoring file, a `- <label>` bullet with ` -` bullets under it). Lint, typecheck or a gate

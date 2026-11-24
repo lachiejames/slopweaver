@@ -2,6 +2,8 @@
  * The content rules a layout-2 description is held to: each rule refuses the shape the owner ruled out and leaves the
  * nearest shape that is fine alone, so a rule that widens or narrows shows up here.
  */
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import { descriptionWordIssues } from "../../../../outbound/github/descriptionWords.js";
@@ -30,14 +32,54 @@ describe("descriptionWordIssues", () => {
     "Reproduced by the new test.",
     "The test fails before this change and passes after it.",
     "`yarn vitest run a.test.ts` shows it.",
+    "Nothing on screen changes. The unit cases below are the proof.",
+    "The test cases above show it.",
+    "The integration cases cover it.",
+    "The cases below show it.",
+    "The specs in the fold are the proof.",
+    "The proof is in the test cases below.",
+    "The test shows the fix.",
+    "The new spec demonstrates it.",
+    "Nothing changes on screen. The test supplies the proof.",
+    "The new tests show it.",
   ])("refuses a proof reason that is a sentence about a test: %s", (text) => {
     expect(codes({ body: withSolutionReason({ reason: t({ text }) }) })).toContain(
       "PROOF_IS_TEST_SENTENCE solutionProof.reason",
     );
   });
 
-  it("leaves a reason that mentions a test without saying what it proves", () => {
-    expect(codes({ body: withSolutionReason({ reason: t({ text: "A refactor of the test helpers." }) }) })).toEqual([]);
+  it.each([
+    "A refactor of the test helpers.",
+    "Nothing on screen changes.",
+    "In both cases the export stays byte-identical.",
+    "Only the test helpers change, so there is no proof to show.",
+    "Only the test helpers change, so there is nothing to confirm on screen.",
+    "Nothing on screen changes. The resolved-tree read below is the proof.",
+    "Nothing on screen changes. The checks below are the proof.",
+    "Nothing on screen changes. The linked run is the proof.",
+  ])("leaves a reason that points at no test as the proof: %s", (text) => {
+    expect(codes({ body: withSolutionReason({ reason: t({ text }) }) })).toStrictEqual([]);
+  });
+
+  it("accepts the second sentence the rule file gives as its example, and refuses the one it rules out", () => {
+    const rule = readFileSync(
+      new URL("../../../../../skills/github/reference/composing-a-body.md", import.meta.url),
+      "utf8",
+    ).replace(/\s+/gu, " ");
+    const example = /The second is optional \("([^"]+)"\)/u.exec(rule)![1]!;
+    expect(example).toBe("The checks below are the proof.");
+    expect(
+      codes({ body: withSolutionReason({ reason: t({ text: `Nothing on screen changes. ${example}` }) }) }),
+    ).toStrictEqual([]);
+    const ruledOut = /its common shapes, "([^"]+)" included, before any review \(`PROOF_IS_TEST_SENTENCE`\)/u.exec(
+      rule,
+    )![1]!;
+    expect(ruledOut).toBe("the unit cases below");
+    expect(
+      codes({
+        body: withSolutionReason({ reason: t({ text: `Nothing on screen changes. ${ruledOut} are the proof.` }) }),
+      }),
+    ).toStrictEqual(["PROOF_IS_TEST_SENTENCE solutionProof.reason"]);
   });
 
   it("names the capture verb when it refuses a test sentence", () => {

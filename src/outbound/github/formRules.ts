@@ -241,9 +241,10 @@ function reasonProseOf({ content }: { content: Content }): string {
 
 /**
  * A proof reason past {@link PROOF_REASON_SENTENCES_MAX} sentences. Its first sentence says why there is no
- * screenshot and its second, when there is one, where the proof is instead; a result belongs in `checks` and an
- * unrun check in `notChecked`. Refused here so a description review never has to choose between "one sentence"
- * and "one fact per sentence".
+ * screenshot and its second, when there is one, where the proof is instead (the checks or a linked record, never a
+ * test, whose common shapes `./descriptionWords.ts` refuses); a result belongs in `checks` and an unrun check in
+ * `notChecked`. Refused here so a description review never has to choose between "one sentence" and "one fact per
+ * sentence".
  */
 function proofReasonSentenceIssues({ body }: { body: PrBody }): readonly FormRuleIssue[] {
   return (["problemProof", "solutionProof"] as const).flatMap((field): FormRuleIssue[] => {

@@ -156,7 +156,8 @@ export type ProofSlot =
       readonly kind: "reason";
       /**
        * Why there is no screenshot, then optionally where the proof is instead: at most two sentences and 25 words
-       * (`PROOF_REASON_SENTENCES`, `./formRules.ts`).
+       * (`PROOF_REASON_SENTENCES`, `./formRules.ts`). The second points at the checks or a linked record, never a
+       * test, whose common shapes are refused (`PROOF_IS_TEST_SENTENCE`, `./descriptionWords.ts`).
        */
       readonly reason: Content;
     };
