@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { builtCheckoutFixture } from "../../builtCheckoutFixture.js";
+import { gitInTemp } from "../../tempGitRepo.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const SCRIPT = join(repoRoot, "scripts", "docs-site.sh");
@@ -157,6 +158,23 @@ describe("docsSiteStart.entry.ts — the check the script runs, from source", ()
       "stale\n",
       `docs-site: refusing to serve or walk the console from ${checkout}: its built CLI is stale (src/a.ts is 21 ` +
         "bytes, 20 at build time), so every console page would wait 30s for a rebuild nothing here starts — run " +
+        "`slopweaver dev build` in that checkout\n",
+    ]);
+  });
+
+  it("keeps the refusal on one line when the file that moved has a line break in its name", () => {
+    const checkout = builtCheckout();
+    writeFileSync(join(checkout, "src/line\nbreak.ts"), "export const b = 1;\n");
+    gitInTemp({ args: ["add", "--", "src/line\nbreak.ts"], cwd: checkout });
+
+    const run = runEntry({ checkout });
+
+    expect([run.status, run.stdout, run.stderr]).toEqual([
+      3,
+      "stale\n",
+      `docs-site: refusing to serve or walk the console from ${checkout}: its built CLI is stale (` +
+        String.raw`"src/line\nbreak.ts"` +
+        " is new since the build), so every console page would wait 30s for a rebuild nothing here starts — run " +
         "`slopweaver dev build` in that checkout\n",
     ]);
   });

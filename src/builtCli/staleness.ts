@@ -18,6 +18,7 @@
  * The comparison names the FIRST difference in path order rather than counting them: an operator reading a
  * refusal wants one file to look at, and a count is not that.
  */
+import { escapeJsonLineBreaks, hasLineBreak } from "#lib/lineBreaks.js";
 import { safeJsonParse } from "#lib/safeJson.js";
 
 /** The manifest's filename, inside the built tree. */
@@ -56,11 +57,23 @@ export interface Staleness {
 }
 
 /**
+ * A source path as a `why` sentence names it. `git ls-files -z` keeps a line break inside a tracked name, and every
+ * refusal printing the sentence is one line, so such a name is JSON-quoted with each line break written as an escape:
+ * still the exact path, never a second line. Any other name is printed as it is.
+ */
+function pathInReason({ path }: { path: string }): string {
+  if (!hasLineBreak({ text: path })) {
+    return path;
+  }
+  return escapeJsonLineBreaks({ json: JSON.stringify(path) });
+}
+
+/**
  * Compare a build's recorded stamps against the source as it stands now.
  *
  * @param manifest what the build recorded
  * @param current the stamps taken just now
- * @returns whether the build is stale, naming the first file that differs
+ * @returns whether the build is stale, naming the first file that differs, quoted when its name holds a line break
  */
 export function stalenessOf({
   manifest,
@@ -77,23 +90,23 @@ export function stalenessOf({
   for (const stamp of [...current].toSorted((a, b) => a.path.localeCompare(b.path))) {
     const was = recorded.get(stamp.path);
     if (was === undefined) {
-      return { stale: true, why: `${stamp.path} is new since the build` };
+      return { stale: true, why: `${pathInReason({ path: stamp.path })} is new since the build` };
     }
     if (was.size !== stamp.size) {
       return {
         stale: true,
-        why: `${stamp.path} is ${String(stamp.size)} bytes, ${String(was.size)} at build time`,
+        why: `${pathInReason({ path: stamp.path })} is ${String(stamp.size)} bytes, ${String(was.size)} at build time`,
       };
     }
     if (was.mtimeMs !== stamp.mtimeMs) {
-      return { stale: true, why: `${stamp.path} has changed since the build` };
+      return { stale: true, why: `${pathInReason({ path: stamp.path })} has changed since the build` };
     }
     recorded.delete(stamp.path);
   }
   const gone = [...recorded.keys()].toSorted();
   const first = gone[0];
   if (first !== undefined) {
-    return { stale: true, why: `${first} is gone since the build` };
+    return { stale: true, why: `${pathInReason({ path: first })} is gone since the build` };
   }
   return {
     stale: false,
