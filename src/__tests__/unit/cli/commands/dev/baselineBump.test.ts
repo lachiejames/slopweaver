@@ -46,7 +46,6 @@ describe("parseBaselineBumpArgs", () => {
   });
 });
 
-// deleted-with-code: BUMP_DIR
 describe("bumpManifestFor", () => {
   const grown = { entry: "offenders:src/a.ts", file: SIZE, from: 310, to: 320 };
   const widened = { entry: "offenders:tools/gen.ts", file: SIZE, from: null, to: 319 };
