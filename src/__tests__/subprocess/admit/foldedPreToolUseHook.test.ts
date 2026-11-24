@@ -12,15 +12,24 @@
  * one would duplicate: `pollGateHook.test.ts` and `browserDoorGuardHook.test.ts`. The three main-checkout
  * guards need a DECLARED main checkout, which is machine state a subprocess test must not mint, and
  * `session-depth-warning` has no refusal path at all — it is witnessed below by the advisory it injects.
+ *
+ * Every case runs on the shim's node GENERATION route, because the `beforeAll` publishes one through the shipped
+ * builder before the first case starts. Without it the route was a race: a checkout with no fresh generation (every
+ * hosted run's fresh checkout) ran each call on `tsx` over the whole registry until the niced background builder a
+ * miss launches had finished, and under load that boot alone spent the shim's 15-second budget, whose fail-closed 2
+ * read as a refusal on a case that expects 0. The budget is still the shipped wall clock under test, so these cases
+ * remain bounded by it; the shim prints nothing that names its route, so the witness is the published generation.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { HOOK_BUILD_DIR } from "../../../admit/hookBundleBuild.js";
 import { writeAgentToolBan } from "../../../sessions/agentToolBanStore.js";
 import { writeSupervisorPin } from "../../../sessions/supervisorPinStore.js";
 import { accountSandboxChildEnv } from "../../accountHomeSandboxChild.js";
@@ -45,6 +54,99 @@ const LEAF_WITH_BAD_LINK = [
   "The body, which links to [[Not A Memory Name]].",
   "",
 ].join("\n");
+
+const TSX = join(repoRoot, "node_modules", ".bin", "tsx");
+const BUILDER = join(repoRoot, "hooks", "pretooluseBuild.ts");
+/** One foreground build; the builder's own lock goes stale at 120s, and a build is far shorter than that. */
+const BUILD_ATTEMPT_TIMEOUT_MS = 120_000;
+/** Past the builder's 120s stale-lock window, so the next attempt can take back a lock a dead builder left. */
+const BUSY_LOCK_WAIT_MS = 125_000;
+/** A lock wait that is almost the whole stale window, then one foreground build, with runway. */
+const BUILD_SETUP_TIMEOUT_MS = 270_000;
+/** Past the setup's own deadline, so the setup's diagnostic is what a spent deadline prints, never Vitest's. */
+const BUILD_SETUP_HOOK_TIMEOUT_MS = BUILD_SETUP_TIMEOUT_MS + 10_000;
+const LOCK_POLL_MS = 250;
+const GENERATION_NAME = /^generation-[0-9]+-[0-9a-f]+$/;
+/** The files the launcher needs to reach a verdict rather than exit 75 and send the call to `tsx`. */
+const GENERATION_FILES = ["launch.mjs", "entry.mjs", "manifest.json"] as const;
+
+/**
+ * Run the shipped builder once over `root`, in the foreground, inheriting this worker's environment so the lane's
+ * temp-root and account-home setup reach it.
+ *
+ * @param timeoutMs at most one attempt's bound, cut to what is left of the setup's deadline: the call blocks the
+ *   worker, so an attempt started late must not outlive the deadline its caller reports against
+ * @returns how it ended, every field the failure message needs
+ */
+function runBuilder({ root, timeoutMs }: { root: string; timeoutMs: number }): {
+  status: number | null;
+  signal: NodeJS.Signals | null;
+  error: Error | undefined;
+  stderr: string;
+} {
+  // SIGKILL, because the call blocks the worker and a TERM the child ignored would hold it past every deadline.
+  const run = spawnSync(TSX, [BUILDER, root], {
+    cwd: root,
+    encoding: "utf8",
+    killSignal: "SIGKILL",
+    timeout: timeoutMs,
+  });
+  return { error: run.error, signal: run.signal, status: run.status, stderr: run.stderr };
+}
+
+/**
+ * Throw unless `current` names a generation holding every file the launcher needs — the shim's own precondition for
+ * its node route. Another builder may have published after this one, so the name is not compared to ours.
+ */
+function assertCurrentGeneration({ root }: { root: string }): void {
+  const buildDir = join(root, HOOK_BUILD_DIR);
+  const current = readFileSync(join(buildDir, "current"), "utf8").trim();
+  if (!GENERATION_NAME.test(current)) {
+    throw new Error(`${HOOK_BUILD_DIR}/current names "${current}", not a generation`);
+  }
+  const missing = GENERATION_FILES.filter((file) => !existsSync(join(buildDir, current, file)));
+  if (missing.length > 0) {
+    throw new Error(`${HOOK_BUILD_DIR}/${current} has no ${missing.join(", ")}`);
+  }
+}
+
+/** Wait until the build lock is gone or `deadlineMs` passes, whichever is first. */
+async function waitForLockTurn({ lock, deadlineMs }: { lock: string; deadlineMs: number }): Promise<void> {
+  while (existsSync(lock) && Date.now() < deadlineMs) {
+    await delay(LOCK_POLL_MS);
+  }
+}
+
+/**
+ * Publish a generation of `root` through the shipped builder before any case runs. Only lock contention is waited
+ * through — a parallel file's shim miss may hold the builder's lock — and any other ending fails the file.
+ */
+async function publishHookGeneration({ root }: { root: string }): Promise<void> {
+  const lock = join(root, HOOK_BUILD_DIR, "build.lock");
+  const setupDeadlineMs = Date.now() + BUILD_SETUP_TIMEOUT_MS;
+  // Read once per pass and above zero by the loop's own test: a `spawnSync` timeout of 0 would mean no bound at all.
+  for (let leftMs = setupDeadlineMs - Date.now(); leftMs > 0; leftMs = setupDeadlineMs - Date.now()) {
+    const run = runBuilder({ root, timeoutMs: Math.min(BUILD_ATTEMPT_TIMEOUT_MS, leftMs) });
+    const published = run.status === 0 && /^pretooluse build: published generation-/m.test(run.stderr);
+    if (published) {
+      assertCurrentGeneration({ root });
+      return;
+    }
+    const busy = run.status === 0 && run.stderr.includes("another build holds the lock");
+    if (!busy) {
+      throw new Error(
+        `the hook builder published nothing: status ${String(run.status)}, signal ${String(run.signal)}, ` +
+          `error ${String(run.error)}, stderr ${run.stderr}`,
+      );
+    }
+    await waitForLockTurn({ deadlineMs: Math.min(Date.now() + BUSY_LOCK_WAIT_MS, setupDeadlineMs), lock });
+  }
+  throw new Error(`no hook generation was published within ${String(BUILD_SETUP_TIMEOUT_MS)}ms`);
+}
+
+beforeAll(async () => {
+  await publishHookGeneration({ root: repoRoot });
+}, BUILD_SETUP_HOOK_TIMEOUT_MS);
 
 const dirs: string[] = [];
 
