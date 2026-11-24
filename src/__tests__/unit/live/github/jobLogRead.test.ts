@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ok, unwrap, unwrapErr } from "../../../../lib/result.js";
+import { MAX_LINE_CHARS } from "../../../../live/github/jobLog.js";
 import {
   accumulateJobLog,
   type FetchWorkflowRun,
@@ -396,6 +397,29 @@ describe("renderJobLogText --from", () => {
     const text = renderJobLogText({ document: await readFrom({ from: "escape-hatch", tailLines: 0 }) });
 
     expect(text).toContain('first line containing "escape-hatch" is 3; no log lines were kept — --lines was zero');
+  });
+
+  it("qualifies the match when a line was cut before the search, since a match past the cut is not seen", async () => {
+    const cut = `${"x".repeat(MAX_LINE_CHARS)}NEEDLE\n`;
+    const caveat = `1 line(s) were cut at ${String(MAX_LINE_CHARS)} characters and searched only on what was kept`;
+    const matched = renderJobLogText({
+      document: await readFrom({ from: "NEEDLE", logs: { 7: [cut, "later NEEDLE\n"] }, tailLines: 1 }),
+    });
+    const unmatched = renderJobLogText({
+      document: await readFrom({ from: "NEEDLE", logs: { 7: [cut] }, tailLines: 1 }),
+    });
+
+    expect(matched).toContain('lines 2..2 of 2, from the first line containing "NEEDLE":');
+    expect(matched).toContain(caveat);
+    expect(unmatched).toContain('no line in this job\'s log contains "NEEDLE"');
+    expect(unmatched).toContain(caveat);
+  });
+
+  it("states no cut when every line was searched whole", async () => {
+    const text = renderJobLogText({ document: await readFrom({ from: "escape-hatch", tailLines: 2 }) });
+
+    expect(text).not.toContain("were cut at");
+    expect(text).toContain('from the first line containing "escape-hatch"');
   });
 
   it("carries the window into the JSON document", async () => {

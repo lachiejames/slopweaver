@@ -56,7 +56,8 @@ slopweaver github run-log <run-id> --repo <owner/name> --job lint --from "dev li
 `--from <text>` keeps, INSTEAD of the tail, the first line of each job's WHOLE log containing `<text>` (plain,
 case-sensitive substring) and the lines after it, at most `--lines` of them; the report says which line it
 opened at and how long the log is. Annotations still come first, and the stream is still read to its end. A
-loose query matches the first mention anywhere, so name the section header, not the bare gate. `--from` is
+loose query matches the first mention anywhere, so name the section header, not the bare gate. A line longer
+than the per-line cap reaches the search already cut, and the report says so whenever the job had one. `--from` is
 `run-log`'s alone; `checks --log` keeps the tail.
 
 ## Three properties that are the contract, not details
