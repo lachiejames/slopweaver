@@ -7,18 +7,21 @@
  * The owner's rule counts only once it is read back to the owner. So an edit is first a PROPOSAL: the whole new file,
  * the digest of the file it was decided over, and the row it changes, kept owner-only under
  * `hygiene/private-term-proposals/`. The verb prints a read-back naming the row by id, class, case and probe results,
- * never its pattern; the supervisor says it back to the owner, and on the owner's yes `--confirm <proposal>` writes it.
+ * never its pattern; the supervisor says it back to the owner, and on the owner's yes `confirm <proposal>` writes it.
+ * A proposal the owner did not take, or one a later edit left stale, is RETIRED: removed without being applied.
  *
  * ## The write
  *
- * Confirming takes the file's lock, re-reads the file, and writes only when its digest is still the one the proposal
- * was decided over: an edit landing in between makes the proposal stale, refused, and nothing is written. The new text
- * is re-parsed whole before the write, written atomically at exactly `0600`, and the proposal is removed once it has
- * landed so it cannot land twice. The lock is a file naming its holder's pid; one whose pid is gone is cleared.
+ * Confirming takes the file's lock, re-reads the proposal and the file under it, and writes only when the file's
+ * digest is still the one the proposal was decided over: an edit landing in between makes the proposal stale, refused,
+ * and nothing is written. The new text is re-parsed whole before the write, written atomically at exactly `0600`, and
+ * the proposal is removed once it has landed so it cannot land twice. Retiring takes the SAME lock and re-reads the
+ * proposal under it too, so a confirm and a retire of one proposal cannot both succeed. The lock and how a stale one is
+ * cleared without deleting a live one are `./privateTermsLock.ts`.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import { isRecord } from "#lib/parsers.js";
 import { err, ok, type Result } from "#lib/result.js";
@@ -33,40 +36,33 @@ import {
   readPrivateTermAnswer,
 } from "./privateTermAnswers.js";
 import { parsePrivateTerms } from "./privateTerms.js";
+import { type PidAlive, underTermsLock } from "./privateTermsLock.js";
+import {
+  type PrivateTermsFileState,
+  type PrivateTermsProposal,
+  type PrivateTermsProposalAction,
+  privateTermsProposalIsStale,
+} from "./privateTermsProposal.js";
 import { type PrivateTermsStoreError, PrivateTermsStoreErrors } from "./privateTermsStoreErrors.js";
 
 /** A proposal's id: `pp-` and twelve lowercase hex digits. */
 const PROPOSAL_ID = /^pp-[0-9a-f]{12}$/u;
 
-/** One edit waiting for its read-back to be confirmed. */
-export interface PrivateTermsProposal {
-  readonly schemaVersion: 1;
-  readonly proposalId: string;
-  readonly createdAtIso: string;
-  readonly action: "add" | "narrow" | "remove";
-  /** The row it changes, by the id it carries in the new file. */
-  readonly termId: string;
-  /** sha256 of the exact bytes of the file the edit was decided over, or null when there was none. */
-  readonly baseSha256: string | null;
-  /** The whole new file. */
-  readonly text: string;
-}
-
 /** What one confirm landed. */
 export interface PrivateTermsLanded {
   readonly path: string;
   readonly termId: string;
-  readonly action: PrivateTermsProposal["action"];
+  readonly action: PrivateTermsProposalAction;
   readonly rows: number;
 }
 
-/**
- * The private-terms file as an edit starts from it. `bytesSha256` is over the raw bytes, never the decoded text:
- * two different invalid UTF-8 sequences both decode to U+FFFD, so a hash of the text would call a changed file
- * unchanged and a confirm would overwrite an edit it never saw.
- */
-export type PrivateTermsFileState =
-  { readonly kind: "absent" } | { readonly kind: "present"; readonly text: string; readonly bytesSha256: string };
+/** What one retire removed, and whether it was stale against the file read under the lock. */
+export interface PrivateTermsRetired {
+  readonly action: PrivateTermsProposalAction;
+  readonly proposalId: string;
+  readonly stale: boolean;
+  readonly termId: string;
+}
 
 /**
  * sha256 of a file's exact bytes.
@@ -77,19 +73,6 @@ export type PrivateTermsFileState =
  */
 export function privateTermsBytesSha256({ bytes }: { bytes: Uint8Array }): string {
   return createHash("sha256").update(bytes).digest("hex");
-}
-
-/**
- * The base hash a proposal records and a confirm compares: the raw bytes' digest, or null for no file.
- *
- * @param state the file as read
- * @returns the digest, or null when the file is absent
- */
-export function privateTermsBaseSha256({ state }: { state: PrivateTermsFileState }): string | null {
-  if (state.kind === "absent") {
-    return null;
-  }
-  return state.bytesSha256;
 }
 
 /**
@@ -139,7 +122,7 @@ function proposalPath({ home, proposalId }: { home: string; proposalId: string }
 }
 
 /**
- * Keep one proposal, owner-only, until it is confirmed.
+ * Keep one proposal, owner-only, until it is confirmed or retired.
  *
  * @param home the state home
  * @param proposal the edit decided, with the whole new file
@@ -186,7 +169,7 @@ function isProposal(value: unknown): value is PrivateTermsProposal {
  * @internal
  * @param home the state home
  * @param proposalId the id the read-back printed
- * @returns the proposal, or why there is none to confirm
+ * @returns the proposal, or why none is waiting under that id
  */
 export function readPrivateTermsProposal({
   home,
@@ -198,7 +181,7 @@ export function readPrivateTermsProposal({
   if (!PROPOSAL_ID.test(proposalId)) {
     return err(
       PrivateTermsStoreErrors.proposalUnusable({
-        why: "--confirm takes a proposal id, pp- and twelve hex digits, as the read-back printed it",
+        why: "a proposal id is pp- and twelve lowercase hex digits, as the read-back printed it",
       }),
     );
   }
@@ -208,7 +191,7 @@ export function readPrivateTermsProposal({
     parsed = safeJsonParse({ label: "private terms proposal", text: readFileSync(path, "utf8") });
   } catch (error: unknown) {
     if (isRecord(error) && error["code"] === "ENOENT") {
-      const why = `${proposalId} is not waiting: it was confirmed already, or never made under this home`;
+      const why = `${proposalId} is not waiting: it was confirmed or retired already, or never made under this home`;
       return err(PrivateTermsStoreErrors.proposalUnusable({ why }));
     }
     return err(PrivateTermsStoreErrors.ioFailed({ cause: error, path, what: "reading the proposal at" }));
@@ -242,50 +225,6 @@ export function waitingPrivateTermsProposals({ home }: { home: string }): readon
     .toSorted((left, right) => left.createdAtIso.localeCompare(right.createdAtIso));
 }
 
-/** Whether a pid names a running process, injected so the stale-lock branch is testable. */
-export type PidAlive = (input: { readonly pid: number }) => boolean;
-
-/**
- * The production liveness check: signal 0 asks the kernel without delivering anything.
- *
- * @param pid the lock holder's pid
- * @returns whether it is running, or running under another user
- */
-export function processPidAlive({ pid }: { pid: number }): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error: unknown) {
-    return isRecord(error) && error["code"] === "EPERM";
-  }
-}
-
-/** Take the file's lock, clearing one whose holder is gone; answer why not when it is held. */
-function takeLock({ path, pidAlive }: { path: string; pidAlive: PidAlive }): Result<true, PrivateTermsStoreError> {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      createFileExclusive({ contents: `${String(process.pid)}\n`, mode: 0o600, path });
-      return ok(true);
-    } catch (error: unknown) {
-      if (!isRecord(error) || error["code"] !== "EEXIST") {
-        return err(PrivateTermsStoreErrors.ioFailed({ cause: error, path, what: "taking the lock" }));
-      }
-    }
-    let holder: number;
-    try {
-      holder = Number.parseInt(readFileSync(path, "utf8").trim(), 10);
-    } catch {
-      // It was released between the create and the read; the next attempt takes it.
-      continue;
-    }
-    if (Number.isInteger(holder) && holder > 0 && pidAlive({ pid: holder })) {
-      return err(PrivateTermsStoreErrors.lockHeld({ path, why: `pid ${String(holder)} holds it and is running` }));
-    }
-    removeEntry({ path });
-  }
-  return err(PrivateTermsStoreErrors.lockHeld({ path, why: "another edit took it again as a stale one was cleared" }));
-}
-
 /**
  * Land one proposal: under the lock, only over the file it was decided against, re-parsed, atomically at `0600`.
  *
@@ -304,7 +243,7 @@ export function confirmPrivateTermsProposal({
   pidAlive: PidAlive;
 }): Result<PrivateTermsLanded, PrivateTermsStoreError> {
   // The proposal and its answer are read only once the lock is held, so an answer recorded while a confirm
-  // waits cannot be missed by it, and two confirms cannot both land one proposal.
+  // waits cannot be missed by it, and a confirm and a retire cannot both succeed on one proposal.
   return underTermsLock({
     home,
     pidAlive,
@@ -356,33 +295,47 @@ export function answerPrivateTermsProposal({
   });
 }
 
-/** Run one store change holding the terms file's lock, releasing it however the change ends. */
-function underTermsLock<T>({
+/**
+ * Retire one waiting proposal: remove it and any answer recorded for it, under the same lock a confirm takes, WITHOUT
+ * applying it. The private terms file is read only to say whether the proposal was stale against it, and is never
+ * written.
+ *
+ * @param home the state home
+ * @param proposalId the id the read-back or `list` printed
+ * @param pidAlive whether a lock holder still runs
+ * @returns what was retired and whether it was stale, or why nothing was removed
+ */
+export function retirePrivateTermsProposal({
   home,
+  proposalId,
   pidAlive,
-  run,
 }: {
   home: string;
+  proposalId: string;
   pidAlive: PidAlive;
-  run: (input: { readonly path: string }) => Result<T, PrivateTermsStoreError>;
-}): Result<T, PrivateTermsStoreError> {
-  const path = stateHomePaths({ home }).privateTerms;
-  const lockPath = `${path}.lock`;
-  const directory = dirname(path);
-  try {
-    ensureDirectory({ directory, mode: 0o700 });
-  } catch (error: unknown) {
-    return err(PrivateTermsStoreErrors.ioFailed({ cause: error, path: directory, what: "making the directory" }));
-  }
-  const locked = takeLock({ path: lockPath, pidAlive });
-  if (locked.isErr()) {
-    return err(locked.error);
-  }
-  try {
-    return run({ path });
-  } finally {
-    removeEntry({ path: lockPath });
-  }
+}): Result<PrivateTermsRetired, PrivateTermsStoreError> {
+  return underTermsLock({
+    home,
+    pidAlive,
+    run: ({ path }) => {
+      const proposal = readPrivateTermsProposal({ home, proposalId });
+      if (proposal.isErr()) {
+        return err(proposal.error);
+      }
+      const current = readCurrentPrivateTerms({ home });
+      if (current.isErr()) {
+        return err(current.error);
+      }
+      const stale = privateTermsProposalIsStale({ proposal: proposal.value, state: current.value });
+      try {
+        removeEntry({ path: proposalPath({ home, proposalId }) });
+        removeEntry({ path: privateTermAnswerPath({ home, proposalId }) });
+      } catch (error: unknown) {
+        return err(PrivateTermsStoreErrors.ioFailed({ cause: error, path, what: "retiring the proposal beside" }));
+      }
+      return ok({ action: proposal.value.action, proposalId, stale, termId: proposal.value.termId });
+    },
+  });
 }
 
 /** Land one proposal; the caller holds the lock. */
@@ -414,8 +367,7 @@ function landProposal({
     if (current.isErr()) {
       return err(current.error);
     }
-    const sha = privateTermsBaseSha256({ state: current.value });
-    if (sha !== proposal.value.baseSha256) {
+    if (privateTermsProposalIsStale({ proposal: proposal.value, state: current.value })) {
       const why = "the private terms file changed after it was proposed";
       return err(PrivateTermsStoreErrors.proposalStale({ proposalId, why }));
     }

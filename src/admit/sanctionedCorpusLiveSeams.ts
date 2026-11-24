@@ -36,6 +36,9 @@ export const CORPUS_LIVE_SEAMS = {
   // of that directory and of the earlier proof zips. No fetch: the ref is read as this checkout holds it, and
   // nothing leaves the machine.
   "src/hygiene/referenceExport.ts": "local-state",
+  // The private-terms lock beside `$SLOPWEAVER_HOME/hygiene/private-terms.tsv`: renames a dead holder's lock aside
+  // to compare and remove it. A file under the home only; nothing is fetched and nothing leaves the machine.
+  "src/hygiene/privateTermsLock.ts": "local-state",
   "src/corpus/chatgpt/exportReceipts.ts": "local-state",
   "src/corpus/chatgpt/exportStaging.ts": "local-state",
   "src/corpus/chatgpt/exportStore.ts": "local-state",

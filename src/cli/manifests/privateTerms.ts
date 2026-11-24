@@ -4,7 +4,8 @@
  *
  * `effect: "local-state"`: every write lands under this home: a proposal, the terms file at 0600 on a confirm, a
  * review packet or a receipt. Nothing is sent anywhere. `add`, `narrow` and `remove` only PROPOSE, and the terms
- * file changes on `confirm` alone, after the read-back has gone back to the owner (`src/hygiene/privateTermsStore.ts`).
+ * file changes on `confirm` alone, after the read-back has gone back to the owner (`src/hygiene/privateTermsStore.ts`);
+ * `retire` removes a waiting proposal without applying it.
  * `answer` keeps the owner's per-item yes or no from the Queue card beside its proposal (`src/hygiene/privateTermAnswers.ts`).
  * `review-record` is `diagnostic`: a BROKEN verdict exits 1, which is the verb reporting that the write stays held.
  */
@@ -67,8 +68,8 @@ export const privateTermsManifest: Readonly<Record<string, VerbManifestEntry>> =
       ...sharedMeta,
       example: "slopweaver private-terms list",
       summary:
-        "Every private term by id, class and case, whether it carries a meaning, and every proposal waiting; " +
-        "never a pattern",
+        "Every private term by id, class and case, whether it carries a meaning, and every proposal waiting " +
+        "with the owner's answer, marked current or stale; never a pattern",
       usage: "usage: slopweaver private-terms list [--home <value>] [--json]",
     },
   }),
@@ -93,6 +94,17 @@ export const privateTermsManifest: Readonly<Record<string, VerbManifestEntry>> =
       example: "slopweaver private-terms remove pt-0123456789ab",
       summary: "Propose taking one term out; prints the read-back and writes nothing until `confirm`",
       usage: "usage: slopweaver private-terms remove <term-id> [--home <value>] [--json]",
+    },
+  }),
+  retire: lazy({
+    load: () => import("../commands/privateTerms/retire.js").then((m) => m.privateTermsRetireCommand),
+    meta: {
+      ...sharedMeta,
+      example: "slopweaver private-terms retire pp-0123456789ab",
+      summary:
+        "Retire one waiting proposal without applying it, under the confirm lock; the terms file is never " +
+        "written, and the line says whether it was stale",
+      usage: "usage: slopweaver private-terms retire <proposal-id> [--home <value>] [--json]",
     },
   }),
   "review-prepare": lazy({

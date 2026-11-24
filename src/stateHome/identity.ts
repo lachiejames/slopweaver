@@ -166,7 +166,7 @@ export interface IdentityStateHomePaths {
   readonly privateTerms: string;
   /**
    * `$home/hygiene/private-term-proposals/` — one `slopweaver private-terms` edit each, read back before it is
-   * confirmed (`../hygiene/privateTermsStore.ts`). Owner-only, because a proposal holds the whole new file.
+   * confirmed or retired (`../hygiene/privateTermsStore.ts`). Owner-only, because a proposal holds the whole new file.
    */
   readonly privateTermProposals: string;
   /**

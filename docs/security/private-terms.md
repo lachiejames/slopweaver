@@ -48,4 +48,9 @@ The owner never edits the file by hand.
   sit on a command line.
 - The read-back names the class, meaning and probe results, never the pattern, and is read back to the owner.
 - `private-terms confirm <proposal>` lands it at `0600` under a lock, refusing if the file's raw bytes moved since.
-- `private-terms list` names rows by id, never a pattern.
+- `private-terms retire <proposal>` removes a waiting proposal WITHOUT applying it, under the same lock, and never
+  writes the file: one the owner did not take, or one a later edit left stale. Confirm and retire both re-read the
+  proposal under the lock, so the two cannot both succeed on one proposal.
+- `private-terms list` names rows by id, never a pattern, and marks each waiting proposal `current` or `stale`
+  against the one read it made: stale means a confirm would refuse it now, not forever, since the file can return
+  to the exact bytes it recorded.

@@ -38,6 +38,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "private-terms list": PRIVATE_TERMS_FLAG_NAMES["list"]!,
   "private-terms narrow": PRIVATE_TERMS_FLAG_NAMES["narrow"]!,
   "private-terms remove": PRIVATE_TERMS_FLAG_NAMES["remove"]!,
+  "private-terms retire": PRIVATE_TERMS_FLAG_NAMES["retire"]!,
   "private-terms review-prepare": PRIVATE_TERMS_FLAG_NAMES["review-prepare"]!,
   "private-terms review-record": PRIVATE_TERMS_FLAG_NAMES["review-record"]!,
 };
@@ -86,6 +87,10 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--home": ["--home", "/tmp"],
     "--json": ["--json"],
   },
+  "private-terms retire": {
+    "--home": ["--home", "/tmp"],
+    "--json": ["--json"],
+  },
   "private-terms review-prepare": {
     "--hold": ["--hold", "ph-0123456789ab"],
     "--home": ["--home", "/tmp"],
@@ -127,6 +132,8 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
   "private-terms narrow": ({ fragment }) => parsePrivateTermsNarrowArgs({ rest: ["pt-0123456789ab", ...fragment] }),
   "private-terms remove": ({ fragment }) =>
     parsePrivateTermsTargetArgs({ rest: ["pt-0123456789ab", ...fragment], verb: "remove" }),
+  "private-terms retire": ({ fragment }) =>
+    parsePrivateTermsTargetArgs({ rest: ["pp-0123456789ab", ...fragment], verb: "retire" }),
   "private-terms review-prepare": ({ fragment }) =>
     parsePrivateTermsReviewArgs({
       rest: dedupeFlags({ base: ["--hold", "ph-0123456789ab"], fragment }),

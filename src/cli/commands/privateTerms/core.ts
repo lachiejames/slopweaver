@@ -13,7 +13,7 @@ export const VERB_ARG_OFFSET = 4;
 
 /** The `private-terms` verbs. */
 export type PrivateTermsVerb =
-  "add" | "answer" | "confirm" | "list" | "narrow" | "remove" | "review-prepare" | "review-record";
+  "add" | "answer" | "confirm" | "list" | "narrow" | "remove" | "retire" | "review-prepare" | "review-record";
 
 /** Flags each verb accepts. */
 const SPECS: Readonly<Record<PrivateTermsVerb, FlagSpec>> = {
@@ -42,6 +42,7 @@ const SPECS: Readonly<Record<PrivateTermsVerb, FlagSpec>> = {
     string: ["allowed-where", "case", "home", "matches", "meaning", "misses", "pattern", "pattern-file"],
   },
   remove: { boolean: ["json"], string: ["home"] },
+  retire: { boolean: ["json"], string: ["home"] },
   "review-prepare": { boolean: ["json"], string: ["hold", "home"] },
   "review-record": { boolean: ["json"], string: ["home", "review"] },
 };
@@ -72,6 +73,7 @@ const POSITIONALS: Readonly<Partial<Record<PrivateTermsVerb, string>>> = {
   confirm: "<proposal-id>",
   narrow: "<term-id>",
   remove: "<term-id>",
+  retire: "<proposal-id>",
 };
 
 /**
@@ -331,10 +333,10 @@ export function parsePrivateTermsNarrowArgs({ rest }: { rest: readonly string[] 
 }
 
 /**
- * Parse a verb naming one target: `remove <term-id>` or `confirm <proposal-id>`.
+ * Parse a verb naming one target: `remove <term-id>`, `confirm <proposal-id>` or `retire <proposal-id>`.
  *
  * @param rest the argv after the noun and verb
- * @param verb which of the two
+ * @param verb which of the three
  * @returns the options, or every reason it could not be one
  */
 export function parsePrivateTermsTargetArgs({
@@ -342,7 +344,7 @@ export function parsePrivateTermsTargetArgs({
   verb,
 }: {
   rest: readonly string[];
-  verb: "remove" | "confirm";
+  verb: "remove" | "confirm" | "retire";
 }): Result<PrivateTermsTargetOptions> {
   const parsed = parseFlags({ allowPositionals: true, args: rest, spec: SPECS[verb] });
   if (parsed.isErr()) {

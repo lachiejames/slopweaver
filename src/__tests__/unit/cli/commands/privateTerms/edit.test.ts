@@ -1,7 +1,8 @@
 /**
  * The hands-free list's verbs over a throwaway home: `add` proposes and writes nothing, its read-back names no
  * pattern, `confirm` lands the file at 0600, `list` never prints a pattern, and a confirm over a file that moved, or
- * under a lock a live process holds, writes nothing. Every term here is synthetic.
+ * under a lock a live process holds, writes nothing. Stale marks on `list` are `./list.test.ts`, `retire`
+ * `./retire.test.ts`. Every term here is synthetic.
  */
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -195,6 +196,7 @@ describe("private-terms add, then confirm", () => {
     ).toBe(1);
     expect(confirmed.diagnostics).toStrictEqual([
       "proposal pp-00000000000a cannot land: the private terms file changed after it was proposed; nothing was written, propose the edit again",
+      `  retire it: slopweaver private-terms retire pp-00000000000a --home ${home}`,
     ]);
   });
 
@@ -328,7 +330,7 @@ describe("private-terms list", () => {
     expect(listed.out).toStrictEqual([
       "line-2  person  case-insensitive  refuses on a match (no meaning), names nowhere it is fine",
       "1 row(s)",
-      "waiting: proposal pp-00000000000a to add pt-00000000000c, owner unanswered",
+      "waiting: proposal pp-00000000000a to add pt-00000000000c, owner unanswered (current)",
     ]);
   });
 

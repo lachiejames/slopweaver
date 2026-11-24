@@ -1,5 +1,6 @@
 /**
- * `slopweaver private-terms add | narrow | remove | confirm` — THE HANDS-FREE LIST's edit verbs; `list` is `./list.ts`.
+ * `slopweaver private-terms add | narrow | remove | confirm` — THE HANDS-FREE LIST's edit verbs; `list` is `./list.ts`
+ * and `retire` is `./retire.ts`.
  *
  * The owner says or types a rule to the supervisor and never edits `$SLOPWEAVER_HOME/hygiene/private-terms.tsv`.
  * `add`, `narrow` and `remove` PROPOSE an edit and print its read-back; nothing is written until `confirm` names that
@@ -9,17 +10,16 @@
 import { readFileSync } from "node:fs";
 
 import { applyPrivateTermsEdit, type PrivateTermsEdit, privateTermClassOf } from "../../../hygiene/privateTermsEdit.js";
+import { processPidAlive } from "../../../hygiene/privateTermsLock.js";
+import { privateTermsBaseSha256 } from "../../../hygiene/privateTermsProposal.js";
 import {
   confirmPrivateTermsProposal,
   mintPrivateTermId,
   mintPrivateTermsProposalId,
-  privateTermsBaseSha256,
-  processPidAlive,
   readCurrentPrivateTerms,
   writePrivateTermsProposal,
 } from "../../../hygiene/privateTermsStore.js";
 import { errorMessage } from "../../../lib/errorMessage.js";
-import { logger } from "../../../lib/logger.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
@@ -27,7 +27,6 @@ import { resolveHome } from "../../optionParsers.js";
 import {
   type PatternInput,
   type PrivateTermProbes,
-  type PrivateTermsVerb,
   parsePrivateTermsAddArgs,
   parsePrivateTermsNarrowArgs,
   parsePrivateTermsTargetArgs,
@@ -36,11 +35,10 @@ import {
 } from "./core.js";
 import { printEdgesUnderArgvHomes } from "./printGuard.js";
 import { probeOutcomeOf, probesHeld, readBackLines } from "./readBack.js";
+import { asksHelp, failUsage, type PrivateTermsCommandDeps, productionPrivateTermsCommandDeps } from "./runSupport.js";
 
 /** The edges the edit verbs run over, injected so a test passes plain values and no mocks. */
-export interface PrivateTermsEditDeps {
-  readonly out: (args: { line: string }) => void;
-  readonly writeDiagnostic: (args: { line: string }) => void;
+export interface PrivateTermsEditDeps extends PrivateTermsCommandDeps {
   readonly nowIso: () => string;
   readonly mintTermId: () => string;
   readonly mintProposalId: () => string;
@@ -54,10 +52,10 @@ export interface PrivateTermsEditDeps {
  */
 export function productionPrivateTermsEditDeps(): PrivateTermsEditDeps {
   return {
+    ...productionPrivateTermsCommandDeps(),
     mintProposalId: mintPrivateTermsProposalId,
     mintTermId: mintPrivateTermId,
     nowIso: () => new Date().toISOString(),
-    out: logger.out,
     readPatternFile: ({ path }) => {
       try {
         return ok(readFileSync(path, "utf8"));
@@ -65,43 +63,7 @@ export function productionPrivateTermsEditDeps(): PrivateTermsEditDeps {
         return err(`--pattern-file ${path} could not be read: ${errorMessage({ error })}`);
       }
     },
-    writeDiagnostic: ({ line }) => {
-      logger.error({ msg: line });
-    },
   };
-}
-
-/**
- * Print usage problems and the usage line, answering the usage exit code.
- *
- * @param problems every reason the argv was refused
- * @param verb whose usage line follows them
- * @returns the usage exit code
- */
-export function failUsage({
-  deps,
-  problems,
-  verb,
-}: {
-  deps: PrivateTermsEditDeps;
-  problems: readonly string[];
-  verb: PrivateTermsVerb;
-}): number {
-  for (const problem of problems) {
-    deps.writeDiagnostic({ line: problem });
-  }
-  deps.writeDiagnostic({ line: privateTermsUsage({ verb }) });
-  return EXIT_USAGE;
-}
-
-/**
- * Whether the argv asks for help.
- *
- * @param rest the argv after the noun and verb
- * @returns true for `--help` or `-h` anywhere in it
- */
-export function asksHelp({ rest }: { rest: readonly string[] }): boolean {
-  return rest.includes("--help") || rest.includes("-h");
 }
 
 /** The pattern text a verb was given, read from its file when it came as one. */
@@ -345,6 +307,9 @@ export function runPrivateTermsConfirm({
   const landed = confirmPrivateTermsProposal({ home, pidAlive: processPidAlive, proposalId: target });
   if (landed.isErr()) {
     deps.writeDiagnostic({ line: landed.error.message });
+    if (landed.error.code === "PROPOSAL_STALE") {
+      deps.writeDiagnostic({ line: `  retire it: slopweaver private-terms retire ${target} --home ${home}` });
+    }
     return landed.error.code === "PROPOSAL_UNUSABLE" ? EXIT_USAGE : EXIT_ERROR;
   }
   if (json) {
