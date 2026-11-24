@@ -88,6 +88,11 @@ export function createdHeadWarning({
   );
 }
 
+/** The form target's `owner/name` as the caller spelled it, which a duplicate's update command prints. */
+function targetRepo({ owner, repo }: { owner: string; repo: string }): string {
+  return `${owner}/${repo}`;
+}
+
 /**
  * The create path, already inside the door: stamp, render and gate, then reserve → create → confirm.
  *
@@ -134,7 +139,7 @@ export async function performCreate({
     out: deps.out,
   });
   if (reservation.kind === "taken") {
-    return { existing: reservation.record.number, kind: "duplicate", locus };
+    return { existing: reservation.record.number, kind: "duplicate", locus, repo: targetRepo(form.target) };
   }
   const created = await api.createPr({
     base: form.target.base,

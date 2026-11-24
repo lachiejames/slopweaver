@@ -130,10 +130,17 @@ describe("authorisationFor — authorship is authorisation, by immutable id", ()
 });
 
 describe("replaceDecisionFor — the mode fails loudly first, then takes a key", () => {
-  it("refuses a replacement by default, naming the escape", () => {
+  it("refuses a replacement by default, naming the field edit before the escape", () => {
     const decided = replaceDecisionFor({ allowReplace: false, unchanged: false });
     expect(decided.kind).toBe("refused");
-    expect(decided.kind === "refused" ? decided.reason : "").toContain(ALLOW_PR_REPLACE);
+    expect(decided).toEqual({
+      kind: "refused",
+      reason:
+        "--form REPLACES the whole description, so anything in the live one that a form cannot carry is " +
+        "discarded and GitHub keeps no history of it. The diff above is what would change. To change only some " +
+        `fields and keep the rest, use --edit instead. Re-run with ${ALLOW_PR_REPLACE}=1 if a whole replacement ` +
+        "is what you want",
+    });
   });
 
   it("allows it with the key, and says loudly that it was used", () => {

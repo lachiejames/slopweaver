@@ -129,11 +129,16 @@ describe("report", () => {
 
   it("prints a duplicate and exits 1", () => {
     expect(
-      reportOf({ routed: performed({ result: { existing: 5, kind: "duplicate", locus: "feat/x -> main" } }) }),
+      reportOf({
+        routed: performed({ result: { existing: 5, kind: "duplicate", locus: "feat/x -> main", repo: "a/b" } }),
+      }),
     ).toEqual({
       code: EXIT_ERROR,
       lines: [
         "refused: feat/x -> main is already reserved by #5. A second pull request for the same branches would be a duplicate, not a retry.",
+        "To bring #5 up to date instead, put only the fields to change in edit.json and run:",
+        "  slopweaver github pr update --repo a/b --number 5 --edit - < edit.json",
+        "  A new walkthrough rides the same call as inline JSON: --self-review '<json>'.",
       ],
     });
   });

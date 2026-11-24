@@ -283,8 +283,39 @@ describe("outcome reporting", () => {
   });
 
   it("names the existing pull request on a duplicate", () => {
-    const lines = outcomeLines({ outcome: { existing: 12, kind: "duplicate", locus: "o/r#main...f" } }).join("\n");
+    const lines = outcomeLines({
+      outcome: { existing: 12, kind: "duplicate", locus: "o/r#main...f", repo: "o/r" },
+    }).join("\n");
     expect(lines).toContain("already reserved by #12");
+  });
+
+  it("names the field-edit update for the pull request a duplicate cites, its repository quoted for paste", () => {
+    expect(
+      outcomeLines({
+        outcome: { existing: 44, kind: "duplicate", locus: "acme/w$x#main...fix", repo: "Acme/w$x" },
+      }),
+    ).toStrictEqual([
+      "refused: acme/w$x#main...fix is already reserved by #44. A second pull request for the same branches would be a duplicate, not a retry.",
+      "To bring #44 up to date instead, put only the fields to change in edit.json and run:",
+      "  slopweaver github pr update --repo 'Acme/w$x' --number 44 --edit - < edit.json",
+      "  A new walkthrough rides the same call as inline JSON: --self-review '<json>'.",
+    ]);
+  });
+
+  it("names no update for a recorded number `pr update --number` would refuse", () => {
+    expect(
+      outcomeLines({ outcome: { existing: 0, kind: "duplicate", locus: "o/r#main...f", repo: "o/r" } }),
+    ).toStrictEqual([
+      "refused: o/r#main...f is already reserved by #0. A second pull request for the same branches would be a duplicate, not a retry.",
+    ]);
+  });
+
+  it("names no update when the reservation cites no pull request", () => {
+    expect(
+      outcomeLines({ outcome: { existing: undefined, kind: "duplicate", locus: "o/r#main...f", repo: "o/r" } }),
+    ).toStrictEqual([
+      "refused: o/r#main...f is already reserved. A second pull request for the same branches would be a duplicate, not a retry.",
+    ]);
   });
 
   it("passes a refusal reason through verbatim", () => {

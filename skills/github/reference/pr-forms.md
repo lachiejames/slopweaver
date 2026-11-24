@@ -53,7 +53,9 @@ Outcomes worth recognising, because two of them are the verb working rather than
 
 - **`opened #<n>` / `updated #<n>`** — done, and verified by read-back.
 - **`refused: … is already reserved by #<n>`** — the duplicate guard, keyed on the BRANCH LOCUS (repo, base, head),
-  never the content, so a retry whose form changed slightly cannot open a second pull request.
+  never the content, so a retry whose form changed slightly cannot open a second pull request. It prints the
+  `pr update --repo <owner/name> --number <n> --edit - < edit.json` that brings `#<n>` up to date instead; a
+  reservation with no number cites nothing and prints no command.
 - **`UNCONFIRMED: …`** — the reservation is held and this invocation did not retry. **Run it again**, never `rm` the
   ledger record: a create whose POST died records no number, so the settling read goes to the BRANCH PAIR instead.
   Zero releases the reservation, exactly one adopts that number (an open one still guards, a closed one releases on

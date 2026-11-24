@@ -12,7 +12,8 @@ between the pull request and `users.getAuthenticated`. Editing other people's de
 verb is for, but it is possible. An identity that could not be READ — an installation token, a 401 — fails
 closed rather than being guessed either way, and the override does not lift that.
 
-**`--form` would replace the whole description** → `SLOPWEAVER_ALLOW_PR_REPLACE=1`. A complete form works on
+**`--form` would replace the whole description** → `--edit` when only some fields change, which keeps the rest
+and the refusal names it; `SLOPWEAVER_ALLOW_PR_REPLACE=1` for a deliberate whole replacement. A complete form works on
 any pull request you authored, cached or not, house-format or not — that is the point of it. What it does not
 do is act silently: anything in the live description a form cannot carry is discarded, GitHub keeps no history
 of it, so the diff is printed to stderr first and the key is required. A replacement that changes nothing does
