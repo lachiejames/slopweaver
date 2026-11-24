@@ -1,6 +1,6 @@
 # Git hooks (installed by `lefthook install`, run automatically). Two gates and two keep-currents:
 #   pre-commit — organise the staged code files' imports (Biome, `biome.jsonc`: sort, merge, drop unused),
-#                then format the staged files (Prettier — code and docs alike) and re-stage both, so every
+#                then format every staged file CI's Prettier check covers (code and docs alike) and re-stage both, so every
 #                commit is already formatted + import-sorted the way CI checks; also
 #                refuses a commit made directly in this repository's own main checkout, from ANY driving tool
 #                (see src/admit/mainCheckoutCommitGuard.ts) — `.git/hooks` is shared across every worktree, so
@@ -73,6 +73,17 @@ rc: scripts/lefthook-rc.sh
 pre-commit:
   # Piped, in order: the refusal first, then Biome's import pass, then Prettier over what it wrote. Prettier may
   # rewrap an import line Biome wrote; the reverse order would leave Biome's line for the next commit.
+  #
+  # Each formatter's staged set is the set CI's gate of the same name checks, chosen by the same rule:
+  #   · `biome-imports` keeps a glob because Biome's own scope IS a list — `biome.jsonc`'s `files.includes`
+  #     extensions, which the gate's `biome check .` also reads; the two lists change together.
+  #   · `prettier` has NO glob. The gate runs `prettier --check .`, so its scope is every file Prettier can
+  #     parse, minus `.prettierignore`; a hand-kept extension list here drifts from that the moment a new
+  #     kind of file is committed, and the first place the miss shows is hosted lint. Prettier filters the
+  #     staged list itself: `--ignore-unknown` skips a file it has no parser for (an image, a `.jsonl`) and
+  #     `.prettierignore` is honoured for a path named explicitly, each without a non-zero exit — and
+  #     `{staged_files}` never names a deleted path (lefthook stages with `--diff-filter=ACMR`). The `--` makes a
+  #     staged name that opens with `-` a path, never an option Prettier would read and skip.
   piped: true
   commands:
     main-checkout-guard:
@@ -85,8 +96,7 @@ pre-commit:
       stage_fixed: true
     prettier:
       priority: 3
-      glob: "*.{js,jsx,ts,tsx,json,jsonc,md,yaml,yml}"
-      run: node_modules/.bin/prettier --write --ignore-unknown {staged_files}
+      run: node_modules/.bin/prettier --write --ignore-unknown -- {staged_files}
       stage_fixed: true
 
 pre-push:

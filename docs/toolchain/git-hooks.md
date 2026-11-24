@@ -8,7 +8,10 @@ Part of [Toolchain](../toolchain.md).
 - **pre-commit** — organises the _staged_ code files' imports (Biome: sort, merge, drop an unused one), then
   formats the staged files (Prettier — code and docs alike) and re-stages both, so every commit is already
   formatted + import-sorted the way CI checks. `piped: true` holds that order: Prettier may rewrap an import
-  line Biome wrote.
+  line Biome wrote. Each step's staged set is its CI gate's scope: Biome's is `biome.jsonc`'s extension list,
+  so it keeps a glob; Prettier's is every file Prettier parses (`--check .`), so its command has NO glob and
+  Prettier filters the staged list itself (`--ignore-unknown`, `.prettierignore`). A site `.mdx` page, a
+  stylesheet or a config file is formatted at commit, never first caught by hosted lint.
 - **pre-push** — refuses a working tree that differs from HEAD (`src/admit/prePushWorkingTree.ts`, named
   paths), then runs `yarn validate:local` (the local lane — see [the section above](rebaseline-and-lanes.md#two-lanes-the-local-one-is-a-secrets-scan-and-a-working-tree-check-and-everything-else-is-cis) for what it deliberately
   leaves to CI). `piped: true` plus the two `priority:` values are what hold that order: the gate reads the
