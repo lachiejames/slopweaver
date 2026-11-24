@@ -185,6 +185,16 @@ export interface GithubFactRefusedError {
 }
 
 /**
+ * `stack push` could not learn whether its branch already has an open pull request. Its own member, so the one
+ * read both description reviews depend on fails closed by name rather than reading as "none open".
+ */
+export interface GithubStackPushOpenPrUnreadError {
+  readonly code: "STACK_PUSH_OPEN_PR_UNREAD";
+  readonly message: string;
+  readonly subject: string;
+}
+
+/**
  * GitHub denied the token a read of a branch's protection. Its own member, never a `READ_FAILED`, so a real
  * permission denial is told apart from the plan-gated 403 a verb proceeds past (`corpus/github/protectionRead.ts`).
  */
@@ -218,6 +228,7 @@ export type GithubVerbError =
   | GithubSelfReviewInvalidError
   | GithubAuthorizationFailedError
   | GithubPrePushFailedError
+  | GithubStackPushOpenPrUnreadError
   | GithubFactRefusedError;
 
 /** A result whose failure is one of this directory's own — the alias keeps a signature on one line. */

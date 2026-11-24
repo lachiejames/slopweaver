@@ -9,6 +9,7 @@ import type {
   GithubGitFailedError,
   GithubReadFailedError,
   GithubStackInvalidError,
+  GithubStackPushOpenPrUnreadError,
   GithubStateChangedError,
   GithubWorktreeRefusedError,
   GithubWriteUnconfirmedError,
@@ -232,6 +233,38 @@ export const githubStackErrorFactories = {
     code: "FACT_REFUSED",
     message: `the checked-out branch is the remote default (${defaultBranch}); stack push raises pull-request branches only`,
     subject: defaultBranch,
+  }),
+  stackPushOpenPrBaseMismatch: ({
+    head,
+    number,
+    expectedBase,
+    actualBase,
+  }: {
+    head: string;
+    number: number;
+    expectedBase: string;
+    actualBase: string;
+  }): GithubFactRefusedError => ({
+    code: "FACT_REFUSED",
+    message:
+      `${head} already has open pull request #${String(number)} onto ${actualBase}, but the form targets ` +
+      `${expectedBase}; nothing was pushed. Retarget that pull request, or name its base in the form.`,
+    subject: head,
+  }),
+  stackPushOpenPrUnread: ({
+    repo,
+    head,
+    cause,
+  }: {
+    repo: string;
+    head: string;
+    cause: string;
+  }): GithubStackPushOpenPrUnreadError => ({
+    code: "STACK_PUSH_OPEN_PR_UNREAD",
+    message:
+      `could not read whether ${repo}:${head} already has an open pull request, so neither description review ` +
+      `can name it; nothing was pushed: ${cause}`,
+    subject: `${repo}:${head}`,
   }),
   stackRepoMismatch: ({
     owner,

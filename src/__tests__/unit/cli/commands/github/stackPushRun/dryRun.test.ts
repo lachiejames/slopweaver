@@ -15,13 +15,16 @@ useTempHomes();
 describe("runGithubStackPush", () => {
   it("dry-runs without touching Git or the API", async () => {
     const api = {} as GithubWriteApi;
-    const { deps, lines, pins, reads, writes } = harness({ api });
+    const { deps, lines, openPrReads, pins, reads, writes } = harness({ api });
     const code = await runGithubStackPush({
       argv: [...PREFIX, "--form", baseForm(), "--dry-run", "--home", tempHome()],
       deps,
     });
     expect(code).toBe(EXIT_OK);
     expect(writes).toEqual([]);
+    // The harness answers the open pull request read rather than throwing, so its record is the witness that a dry
+    // run makes no such read.
+    expect(openPrReads).toEqual([]);
     expect(pins).toEqual([]);
     expect(reads.filter((read) => read === "add --all" || read === "write-tree")).toEqual([]);
     expect(lines).toContain("dry run: no git add/amend, no door record, no push, no create, no network.");

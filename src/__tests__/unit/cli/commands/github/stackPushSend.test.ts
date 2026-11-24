@@ -63,6 +63,7 @@ describe("sendStackPush", () => {
       home: tempHome(),
       locus: locusOf({ target: plan.form.target }),
       plan,
+      pullRequest: { kind: "new" },
       selfReview: undefined,
     });
     expect(code).toBe(EXIT_OK);
@@ -100,6 +101,7 @@ describe("sendStackPush", () => {
       home: tempHome(),
       locus: locusOf({ target: plan.form.target }),
       plan,
+      pullRequest: { kind: "new" },
       selfReview: undefined,
     });
     expect(code).toBe(EXIT_ERROR);

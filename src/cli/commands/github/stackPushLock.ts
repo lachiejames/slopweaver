@@ -14,6 +14,7 @@ import type { SelfReviewForm } from "../../../outbound/github/selfReview.js";
 import type { WaitOptions } from "../../../wait/flags.js";
 import { realWaitClock } from "../../../wait/loop.js";
 import { EXIT_ERROR } from "../../exitCodes.js";
+import type { DescriptionPullRequest } from "./prDescriptionReviewCore.js";
 import type { StackCarryGate } from "./stackCarryRun.js";
 import type { GatedStackPushPlan, GithubStackPushArgs } from "./stackPushCore.js";
 import type { GithubStackPushDeps } from "./stackPushDeps.js";
@@ -73,6 +74,7 @@ export async function sendUnderStackPushLock({
   deps,
   home,
   plan,
+  pullRequest,
   selfReview,
   token,
 }: {
@@ -81,6 +83,8 @@ export async function sendUnderStackPushLock({
   deps: GithubStackPushDeps;
   home: string;
   plan: GatedStackPushPlan;
+  /** The pull request the early description review bound, handed on so the create's review binds the same one. */
+  pullRequest: DescriptionPullRequest;
   selfReview: SelfReviewForm | undefined;
   token: string;
 }): Promise<number> {
@@ -108,6 +112,7 @@ export async function sendUnderStackPushLock({
       home,
       locus,
       plan,
+      pullRequest,
       selfReview,
     });
   } finally {

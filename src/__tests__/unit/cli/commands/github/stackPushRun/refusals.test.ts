@@ -63,9 +63,10 @@ describe("runGithubStackPush", () => {
   });
 
   it("refuses before the amend and push when no CLEAN description review covers the body, naming the checkout", async () => {
-    // An empty object: any API method the verb reached would throw, so reaching none is the witness.
+    // An empty object: any API method the verb reached would throw, so reaching none but the harness's own
+    // open pull request read (none open) is the witness.
     const api = {} as GithubWriteApi;
-    const { deps: baseDeps, lines, writes } = harness({ api });
+    const { deps: baseDeps, lines, openPrReads, writes } = harness({ api });
     const asked: { headRef: string; repoDir: string; body: string; pullRequest: unknown }[] = [];
     const deps: GithubStackPushDeps = {
       ...baseDeps,
@@ -80,6 +81,7 @@ describe("runGithubStackPush", () => {
     });
     expect(code).toBe(EXIT_ERROR);
     expect(writes).toEqual([]);
+    expect(openPrReads).toEqual(["o/r:top"]);
     expect(asked).toHaveLength(1);
     expect(asked[0]!.headRef).toBe("HEAD");
     expect(asked[0]!.repoDir).toBe("/repo");

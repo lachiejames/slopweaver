@@ -11,9 +11,9 @@
  * stack registration that follows a successful create.
  *
  * The order is the contract: parse → [example prints stop here] → read the form → read git facts → pin the
- * amend tree → plan → render+gate → commit-message scan → [dry-run stops here] → local gates → token → write
- * preflight → door →
- * amend (only the pinned tree) → push → create → register → report.
+ * amend tree → plan → render+gate → commit-message scan → [dry-run stops here] → local gates → token → the
+ * branch's open pull request, read once (`./stackPushPullRequest.ts`) → description review → door →
+ * amend (only the pinned tree) → push → write preflight → create → register → report.
  *
  * What an injectable EDGE is belongs to `./stackPushDeps.ts` (the file-size ratchet, step 3), including the
  * adapter that widens them for `performCreate`; this file states the order and calls them.
@@ -35,6 +35,7 @@ import { linkifiedPrFormOrReported } from "./bareRefFlow.js";
 import { dryRunLines } from "./core.js";
 import { printedExample } from "./createExamples.js";
 import { GithubVerbErrors, type GithubVerbResult, githubVerbErrorLines } from "./errors.js";
+import type { DescriptionPullRequest } from "./prDescriptionReviewCore.js";
 import { parsePrForm } from "./prFormParse.js";
 import { previewCreateBody } from "./prRenderGate.js";
 import { stackPushCommitMessagesRefused } from "./pushCommitMessages.js";
@@ -57,6 +58,7 @@ import {
 import { stackPushLocalGatesRefused } from "./stackPushGates.js";
 import { resolveStackPushFacts } from "./stackPushGit.js";
 import { sendUnderStackPushLock } from "./stackPushLock.js";
+import { resolveStackPushPullRequest } from "./stackPushPullRequest.js";
 
 const VERB_ARG_OFFSET = 5; // node, cli, "github", "stack", "push"
 
@@ -283,17 +285,21 @@ function printStackPushDryRun({
  * create asks again immediately before its POST; this earlier ask is what keeps a missing review from costing a
  * pushed branch and a hosted CI run. A body the gates refuse is left to the create, which prints their lines.
  *
+ * @param pullRequest the branch's open pull request, or `new`, as the one read before this resolved it; the create
+ *   asks about the same one, so a single review covers both
  * @returns whether the push is refused, its lines already printed
  */
 async function stackPushReviewRefused({
   deps,
   home,
   plan,
+  pullRequest,
   selfReview,
 }: {
   deps: GithubStackPushDeps;
   home: string;
   plan: GatedStackPushPlan;
+  pullRequest: DescriptionPullRequest;
   selfReview: SelfReviewForm | undefined;
 }): Promise<boolean> {
   const { form, installationIdentifiers } = plan;
@@ -307,7 +313,7 @@ async function stackPushReviewRefused({
     form,
     headRef: "HEAD",
     home,
-    pullRequest: { kind: "new" },
+    pullRequest,
     repoDir: plan.facts.repoRoot,
   });
   if (verdict.kind === "clear") {
@@ -320,8 +326,13 @@ async function stackPushReviewRefused({
   return true;
 }
 
-/** The local gates, then the description review: every refusal that must come before the token, lock and push. */
-async function stackPushPreSendRefused({
+/**
+ * The local gates, the token, the one read of the branch's open pull request, then the description review: every
+ * refusal that must come before the lock and the push. The read answers which pull request BOTH reviews describe.
+ *
+ * @returns the token and that pull request, or the exit code once a refusal has been printed
+ */
+async function stackPushPreSend({
   args,
   deps,
   home,
@@ -333,11 +344,24 @@ async function stackPushPreSendRefused({
   home: string;
   plan: GatedStackPushPlan;
   selfReview: SelfReviewForm | undefined;
-}): Promise<boolean> {
+}): Promise<Result<{ readonly pullRequest: DescriptionPullRequest; readonly token: string }, number>> {
   if (await stackPushLocalGatesRefused({ args, deps, home, target: plan.form.target })) {
-    return true;
+    return err(EXIT_ERROR);
   }
-  return stackPushReviewRefused({ deps, home, plan, selfReview });
+  const token = deps.token({ home });
+  if (token === undefined) {
+    deps.out({ line: "refused: no GitHub token resolved ($SLOPWEAVER_HOME/secrets/github-token, or gh auth token)" });
+    return err(EXIT_ERROR);
+  }
+  const pullRequest = await resolveStackPushPullRequest({ api: deps.makeApi({ home, token }), plan });
+  if (!pullRequest.isOk()) {
+    deps.out({ line: `refused: ${pullRequest.error.message}` });
+    return err(EXIT_ERROR);
+  }
+  if (await stackPushReviewRefused({ deps, home, plan, pullRequest: pullRequest.value, selfReview })) {
+    return err(EXIT_ERROR);
+  }
+  return ok({ pullRequest: pullRequest.value, token });
 }
 
 /**
@@ -370,15 +394,13 @@ export async function runGithubStackPush({
   if (args.dryRun) {
     return printStackPushDryRun({ aboveFold, deps, home, plan, selfReview });
   }
-  if (await stackPushPreSendRefused({ args, deps, home, plan, selfReview })) {
-    return EXIT_ERROR;
+  const preSend = await stackPushPreSend({ args, deps, home, plan, selfReview });
+  if (!preSend.isOk()) {
+    return preSend.error;
   }
-  const token = deps.token({ home });
-  if (token === undefined) {
-    deps.out({ line: "refused: no GitHub token resolved ($SLOPWEAVER_HOME/secrets/github-token, or gh auth token)" });
-    return EXIT_ERROR;
-  }
-  // The write preflight is NOT here. It runs inside `performStackPush`, after the push — see that
-  // function's own doc: an HTTP call before the push leaves a socket the create POST then dies on.
-  return sendUnderStackPushLock({ args, carry, deps, home, plan, selfReview, token });
+  const { pullRequest, token } = preSend.value;
+  // The write preflight is NOT here. It runs inside `performStackPush`, after the push — see that function's own
+  // doc: a socket an earlier GET (the open pull request read above) left idle dies during the push, and the
+  // retryable preflight GET, run immediately before the never-retried create POST, is what absorbs it.
+  return sendUnderStackPushLock({ args, carry, deps, home, plan, pullRequest, selfReview, token });
 }

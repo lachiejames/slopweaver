@@ -586,12 +586,13 @@ describe("a numberless reservation is settled against the branch pair", () => {
 });
 
 describe("the write preflight runs AFTER the push, immediately before the create", () => {
-  it("makes no API call before the push, so the create never inherits a socket the wait killed", async () => {
+  it("runs the retryable preflight between the push and the create, so the create never inherits a dead socket", async () => {
     // MEASURED: the push streams this repository's whole pre-push gate (444s and 1314s on two
     // runs), so any keep-alive socket an earlier GET left behind is dead when the create POST inherits it —
     // `UNCONFIRMED: the create call failed (write EPIPE)` with the branch already on the remote. A fresh
     // GithubWriteApi does not fix it (Octokit shares undici's global dispatcher); ordering does, because
-    // `canPush` retries and the create does not. This is the falsifiable witness for that ordering.
+    // `canPush` retries and the create does not. The open pull request read before the push is one such earlier
+    // GET; `stackPushRun/pullRequestReview.test.ts` witnesses it ahead of this order.
     const calls: string[] = [];
     const api = fakeApi({
       canPush: () => {
