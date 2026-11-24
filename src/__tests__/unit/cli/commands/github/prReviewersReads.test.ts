@@ -92,7 +92,8 @@ describe("movedSince", () => {
 });
 
 describe("describeMovedSince", () => {
-  const describeNow = (now: PrReviewersFacts | string): string | undefined => describeMovedSince({ first: FIRST, now });
+  const describeNow = (over: Partial<PrReviewersFacts>): string | undefined =>
+    describeMovedSince({ first: FIRST, now: { ...FIRST, ...over } });
 
   it("says nothing moved for the same pull request, whatever its body", () => {
     expect(describeNow({ ...FIRST, body: "edited" })).toBe(undefined);
@@ -123,7 +124,7 @@ describe("describeMovedSince", () => {
   });
 
   it("names a re-read that failed rather than a move", () => {
-    expect(describeNow("404 Not Found")).toBe("re-read failed: 404 Not Found");
+    expect(describeMovedSince({ first: FIRST, now: "404 Not Found" })).toBe("re-read failed: 404 Not Found");
   });
 });
 
