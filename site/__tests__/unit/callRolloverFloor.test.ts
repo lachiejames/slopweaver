@@ -1,6 +1,6 @@
 /*
  * The page's floor for a held rollover at each of its three stages: calm holds for every conversational turn, urgent
- * stops waiting for the next turn, last waits only for the voice's own work and a second of quiet on both meters. The
+ * stops waiting for a turn the voice owes, last waits only for the voice's own work and a second of quiet on both meters. The
  * same floor over folded turns and whole calls is `callRolloverFloorTurns.test.ts`.
  */
 import { describe, expect, it } from "vitest";
@@ -13,7 +13,13 @@ import {
   rolloverUrgency,
   soonerRemainder,
 } from "../../lib/callRollover";
-import { pageRolloverHold, ROLLOVER_CUT_SLACK_MS, voiceMidAnswerAt } from "../../lib/callRolloverFloor";
+import {
+  pageRolloverHold,
+  ROLLOVER_CUT_SLACK_MS,
+  UNWRITTEN_HOLD,
+  unwrittenSinceAt,
+  voiceMidAnswerAt,
+} from "../../lib/callRolloverFloor";
 import { PLAN_CALL_LIMITS } from "../../lib/planCallContract";
 import type { ActivityInput } from "../../lib/voiceActivity";
 import { progressingWork } from "../../lib/voiceActivityRows";
@@ -257,6 +263,28 @@ describe("pageRolloverHold, calm", () => {
       pageRolloverHold({ ...FREE, ownerAwaitingVoiceMs: atMs, nowMs: atMs + ROLLOVER_OWED_HOLD_MS }),
     ]).toEqual(["the owner's turn is still open", undefined, "the owner's turn still awaits the voice", undefined]);
   });
+
+  // A successor's mint reads the call it replaces from its file: one minted while the voice's answer was still queued
+  // in the transcript sink was told an exchange ending on the owner's question.
+  it("holds while the call's words are not on disk, for the bounded hold from when they fell behind only", () => {
+    const sinceMs = 400_000;
+    expect(
+      (["calm", "urgent"] as const).flatMap((urgency) => [
+        pageRolloverHold({ ...FREE, nowMs: sinceMs + ROLLOVER_OWED_HOLD_MS - 1, unwrittenSinceMs: sinceMs, urgency }),
+        pageRolloverHold({ ...FREE, nowMs: sinceMs + ROLLOVER_OWED_HOLD_MS, unwrittenSinceMs: sinceMs, urgency }),
+      ]),
+    ).toEqual([UNWRITTEN_HOLD, undefined, UNWRITTEN_HOLD, undefined]);
+  });
+});
+
+describe("unwrittenSinceAt", () => {
+  it("starts on the first unwritten sample, keeps that instant while it stays unwritten, and clears once caught up", () => {
+    const first = unwrittenSinceAt({ nowMs: 1_000, previousMs: undefined, unwritten: true });
+    const kept = unwrittenSinceAt({ nowMs: 1_080, previousMs: first, unwritten: true });
+    const cleared = unwrittenSinceAt({ nowMs: 1_160, previousMs: kept, unwritten: false });
+    const again = unwrittenSinceAt({ nowMs: 1_240, previousMs: cleared, unwritten: true });
+    expect([first, kept, cleared, again]).toEqual([1_000, 1_000, undefined, 1_240]);
+  });
 });
 
 describe("pageRolloverHold, urgent and last", () => {
@@ -269,6 +297,7 @@ describe("pageRolloverHold, urgent and last", () => {
     [
       { owedFromMs: recent },
       { ownerAwaitingVoiceMs: recent },
+      { unwrittenSinceMs: recent },
       { heardAtMs: recent },
       { ownerOpenAtMs: recent },
       { inFlight: 1, progressingInFlight: 1 },
@@ -291,16 +320,20 @@ describe("pageRolloverHold, urgent and last", () => {
     expect(each({ urgency: "calm" })).toEqual([
       "the voice still owes its turn",
       "the owner's turn still awaits the voice",
+      UNWRITTEN_HOLD,
       "the owner's words are inside the rollover quiet",
       "the owner's turn is still open",
       ...voiceWork,
     ]);
   });
 
-  it("stops waiting for the conversation's next turn when urgent, and keeps every other hold", () => {
+  // A successor opened on an owner's turn the voice never answered leaves that question with nobody; the voice's
+  // next words clear the hold, so it never renews across a steady conversation the way the voice's own debt does.
+  it("stops waiting on a turn the voice owes when urgent, and keeps the owner's unanswered turn and every other hold", () => {
     expect(each({ urgency: "urgent" })).toEqual([
       undefined,
-      undefined,
+      "the owner's turn still awaits the voice",
+      UNWRITTEN_HOLD,
       "the owner's words are inside the rollover quiet",
       "the owner's turn is still open",
       ...voiceWork,
@@ -311,7 +344,7 @@ describe("pageRolloverHold, urgent and last", () => {
   // lifetime would only take later. A breath inside the owner's turn can lose the rest of a sentence that would have ended
   // before the cut: the named trade, against a cut that lands mid-word.
   it("stops waiting on the owner's turn in the last stage too, and still holds for the voice's work and both meters", () => {
-    expect(each({ urgency: "last" })).toEqual([undefined, undefined, undefined, undefined, ...voiceWork]);
+    expect(each({ urgency: "last" })).toEqual([undefined, undefined, undefined, undefined, undefined, ...voiceWork]);
   });
 
   // Renewed by every sound for the owed hold, a pending answer pinned the last stage to the cut.

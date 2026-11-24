@@ -117,6 +117,8 @@ export interface CallTranscript {
   readonly heardStamp: TranscriptSink["heardStamp"];
   /** A relay went out: what the next one is about starts again from the owner's next words. */
   readonly relayed: () => void;
+  /** Whether the current call has words not on disk yet, which a rollover waits on before it releases the call. */
+  readonly unwritten: TranscriptSink["unwritten"];
 }
 
 /**
@@ -259,6 +261,7 @@ export function useCallTranscript({
       relayed: sink.relayed,
       speaking: sink.speaking,
       spoke: sink.spoke,
+      unwritten: sink.unwritten,
       cue: () => {
         const began = call.current;
         return ({ detail, refused }) => {

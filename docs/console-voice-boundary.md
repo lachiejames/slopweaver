@@ -94,8 +94,8 @@ does not restate it.
   call (the console's own ceiling, not OpenAI's — [calls](console/voice-context-and-calls.md)), or the console server exiting each kill it too (`PLAN_CALL_LIMITS`, `site/lib/planCallContract.ts`), the
   last with a synchronous SIGKILL, so a child deaf to SIGTERM cannot outlive the server — a hang-up, quit or any other catchable ending signal included, which would otherwise end Node with no `exit` event, and an interrupt or SIGTERM too, stopped at once because Next's own cleanup waits for every open response, the call's attached event stream among them, before it exits (`site/lib/talkCallRegistry.ts`); the windows left are the uncatchable ones, a SIGKILL of the server and a fault or native abort where no JavaScript runs, where the child sees only its stdin close; a page that goes away
   while the handshake runs stops it there (`site/lib/talkPlanLaunch.ts`). Before the ceiling, the SAME visible page
-  closes a long call in a pause and opens a silent successor, a new plan call with its own child, one at a time
-  (`site/lib/callRollover.ts`). A live call that drops on a reason the owner did not ask for — the ceiling among them, when no
+  closes a long call in a pause once its words are on disk and opens a successor, silent unless the owner's last words
+  went unanswered, a new plan call with its own child, one at a time (`site/lib/callRollover.ts`). A live call that drops on a reason the owner did not ask for — the ceiling among them, when no
   pause came — is reopened by that page until it is back, as a new plan call with its own child
   (`site/lib/callReconnect.ts`); the owner's hang-up and an absent page stay terminal, and a page opened again never reconnects
   on its own. A tool no

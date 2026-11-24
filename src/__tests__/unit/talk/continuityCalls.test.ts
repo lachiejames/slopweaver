@@ -5,91 +5,24 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { type CallRecord, type CallSegment } from "../../../talk/callRecord.js";
-import type { ContinuitySteer, TalkContinuity } from "../../../talk/continuity.js";
+import type { CallRecord } from "../../../talk/callRecord.js";
+import type { TalkContinuity } from "../../../talk/continuity.js";
 import { callsSince, lastSpokenCall, unrelayedWords } from "../../../talk/continuityCalls.js";
 import { readingLine } from "../../../talk/continuityReading.js";
 import { continuityOpener, renderContinuity } from "../../../talk/continuityRender.js";
 import { CONTINUITY_MAX_BYTES, continuityForTool } from "../../../talk/continuityTool.js";
 import { mintOpener, reconnectOpener, resumeLines, rolloverOpener } from "../../../talk/mintOpener.js";
-import type { TypedConversation } from "../../../talk/typedConversation.js";
-
-/** Nothing typed since the call: these cases are about the call itself. */
-const NO_TYPING: TypedConversation = {
-  afterCall: true,
-  cut: 0,
-  floorPartial: false,
-  partial: false,
-  sinceIso: "2026-09-25T02:29:40.000Z",
-  turns: [],
-};
-
-const CALL = "a0000041-0000-4000-8000-000000000044";
-const SINCE = "2026-09-22T02:30:00.000Z";
-const RELAYED_AT = "2026-09-25T02:26:00.000Z";
-
-/** One segment, overridable. */
-const segment = (over: Partial<CallSegment> = {}): CallSegment => ({
-  atIso: "2026-09-25T02:25:00.000Z",
-  beganIso: "2026-09-25T02:25:00.000Z",
-  final: true,
-  id: "s-1",
-  open: undefined,
-  text: "look at the staging pool",
-  who: "owner",
-  ...over,
-});
-
-/** One call as the store folds it: dropped, no end written. */
-const call = (over: Partial<CallRecord> = {}): CallRecord => ({
-  callId: CALL,
-  ended: undefined,
-  lastIso: "2026-09-25T02:29:40.000Z",
-  notes: [],
-  offers: [],
-  openedIso: "2026-09-25T02:20:00.000Z",
-  origin: undefined,
-  reconnects: [],
-  segments: [
-    segment(),
-    segment({ atIso: "2026-09-25T02:25:30.000Z", id: "s-2", text: "on it", who: "voice" }),
-    segment({ atIso: "2026-09-25T02:29:10.000Z", id: "s-3", text: "and merge the ISO PR once CI is green" }),
-    segment({ atIso: "2026-09-25T02:29:40.000Z", final: false, id: "s-4", text: "then ping Ari about the" }),
-  ],
-  sessionId: "sess_1",
-  skipped: 0,
-  surface: "voice",
-  usages: [],
-  voice: "marin",
-  written: [],
-  ...over,
-});
-
-/** The one relayed steer, registered between the owner's first words and their later ones. */
-const steer: ContinuitySteer = {
-  atIso: RELAYED_AT,
-  delivery: { detail: "typed", kind: "typed" },
-  heard: "look at the staging pool",
-  outcome: { lastAction: undefined, marks: [], rowPresent: true, settlement: undefined },
-  reachedChat: true,
-  slug: "talk-9b2f",
-  turnId: "a0000075-0000-4000-8000-000000000082",
-  typed: false,
-  words: "Look at the staging pool.",
-};
-
-/** A read holding the calls given and, by default, the one steer. */
-const continuity = (over: Partial<TalkContinuity> = {}): TalkContinuity => ({
-  builtIso: "2026-09-25T02:40:00.000Z",
-  calls: callsSince({ calls: [call()], sinceIso: SINCE }),
-  knowledge: [],
-  rulings: [],
-  sinceIso: SINCE,
-  steers: [steer],
-  typed: [],
-  unread: [],
-  ...over,
-});
+import {
+  CALL,
+  call,
+  continuity,
+  NO_TYPING,
+  RELAYED_AT,
+  SILENT_ROLLOVER,
+  SINCE,
+  segment,
+  steer,
+} from "./continuityCallsFixture.js";
 
 describe("callsSince", () => {
   it("names a call with no end written as dropped, with when it was last heard", () => {
@@ -232,7 +165,7 @@ describe("a call that wrote nothing never hides the owner's last one", () => {
   // follows still carries the spoken call's words.
   it("quotes no older call as a reconnect's or a rollover's dropped call, and the ordinary opener still carries it", () => {
     expect(reconnectOpener({ continuity: withEmpty() }).split("\n").length).toBe(4);
-    expect(rolloverOpener({ continuity: withEmpty() }).split("\n").length).toBe(4);
+    expect(rolloverOpener({ continuity: withEmpty() }).split("\n")).toEqual(SILENT_ROLLOVER);
     const reopened = mintOpener({ continuity: withEmpty(), conversation: NO_TYPING, mode: "reconnect" })!;
     expect(reopened).toContain('they last said: "and merge the ISO PR once CI is green … then ping Ari about the"');
   });
@@ -242,7 +175,7 @@ describe("a call that wrote nothing never hides the owner's last one", () => {
     const partial = continuity({ unread: [{ section: "calls", why: "1 newer call file could not be read" }] });
     expect(reconnectOpener({ continuity: continuity() }).split("\n").length).toBe(11);
     expect(reconnectOpener({ continuity: partial }).split("\n").length).toBe(4);
-    expect(rolloverOpener({ continuity: partial }).split("\n").length).toBe(4);
+    expect(rolloverOpener({ continuity: partial }).split("\n")).toEqual(SILENT_ROLLOVER);
   });
 });
 
@@ -726,26 +659,55 @@ describe("the opener a reconnect is minted with", () => {
 
 // The console's own 90-minute limit cut the owner off mid-sentence; a rollover in a pause replaces it.
 describe("the opener a rollover is minted with", () => {
-  it("tells the voice to stay silent until the owner speaks, never saying it is back, and quotes the call before it", () => {
+  it("quotes the call before it as rolled over, never dropped, and answers the owner's words it left unanswered", () => {
     const opener = rolloverOpener({ continuity: continuity() }).split("\n");
-    expect(opener.slice(0, 4)).toEqual([
-      "This call is an AUTOMATIC ROLLOVER: the console moved the owner's ongoing call with you onto this fresh one in a pause, so",
-      "it is the same conversation and, to the owner, nothing happened. Say NOTHING until they speak. Never greet them, never say",
-      "you are back or reconnected, and never ask them to repeat themselves; when they speak, answer as the same call. If they",
-      "were showing their screen, the share carried over, so read_screen works without asking them to share again.",
-    ]);
+    expect(opener.slice(0, 4)).toEqual(SILENT_ROLLOVER.slice(0, 4));
     expect(opener.slice(4)).toEqual([
-      "The call before this one (no end recorded — it dropped or the page went away; last heard 2026-09-25T02:29:40.000Z) ended on this exchange, oldest first:",
+      "The call before this one (rolled over onto this call in a pause) ended on this exchange, oldest first:",
       '- the owner: "look at the staging pool"',
       '- you: "on it"',
       '- the owner: "and merge the ISO PR once CI is green"',
       '- the owner (cut off mid-sentence): "then ping Ari about the"',
+      "If the owner's last words in it went unanswered, answer them now as the same call; otherwise say NOTHING until they speak.",
     ]);
     expect(opener.filter((line) => line.includes("that you're back"))).toEqual([]);
   });
 
+  // The page releases the old call before its close reaches the file, so the file read alone says it dropped; the
+  // successor was told so under "nothing happened" and its recap of the exchange came out wrong.
+  it("says the rollover however the call before it reads on disk, while a reconnect keeps the file's own end", () => {
+    const [read] = continuity().calls;
+    expect(read!.end).toBe("no end recorded — it dropped or the page went away; last heard 2026-09-25T02:29:40.000Z");
+    expect(rolloverOpener({ continuity: continuity() })).not.toContain("no end recorded");
+    expect(reconnectOpener({ continuity: continuity() })).toContain(
+      "The dropped call (no end recorded — it dropped or the page went away; last heard 2026-09-25T02:29:40.000Z) ended",
+    );
+  });
+
+  it("ends on the conditional whatever the quoted exchange ends on, the voice's answer included", () => {
+    const answered = continuity({
+      calls: callsSince({
+        calls: [
+          call({
+            segments: [
+              segment({ atIso: "2026-09-25T02:25:00.000Z", id: "s-1", text: "is the pool healthy", who: "owner" }),
+              segment({ atIso: "2026-09-25T02:25:30.000Z", id: "s-2", text: "yes, all twelve are up", who: "voice" }),
+            ],
+          }),
+        ],
+        sinceIso: SINCE,
+      }),
+    });
+    expect(rolloverOpener({ continuity: answered }).split("\n").slice(4)).toEqual([
+      "The call before this one (rolled over onto this call in a pause) ended on this exchange, oldest first:",
+      '- the owner: "is the pool healthy"',
+      '- you: "yes, all twelve are up"',
+      "If the owner's last words in it went unanswered, answer them now as the same call; otherwise say NOTHING until they speak.",
+    ]);
+  });
+
   it("is the silent lines alone when no call was written down", () => {
-    expect(rolloverOpener({ continuity: continuity({ calls: [] }) }).split("\n").length).toBe(4);
+    expect(rolloverOpener({ continuity: continuity({ calls: [] }) }).split("\n")).toEqual(SILENT_ROLLOVER);
   });
 
   it("leads an ordinary opener with the rollover's lines, and is them alone when an ordinary start carries nothing", () => {

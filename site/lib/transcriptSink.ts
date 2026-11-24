@@ -25,6 +25,9 @@
  *   that card (`openBy`) is taken the same first time, and `talk transcript` lands nothing said over a card the voice
  *   opened. The cards the owner's utterances since the last relay began over are
  *   `heardOver`, which says what a relay is about (`./heardOver.ts`).
+ * - **It says whether the current call's words are on disk yet** (`unwritten`), which a rollover waits on: the
+ *   successor's mint reads the call it replaces from its file, and a successor minted while an answer was still
+ *   queued here was told an exchange that ended before that answer. A dead route is the rollover floor's to bound, not this.
  * - **The end is written once**, after a snapshot of the speech still open, both in the one post that follows — a
  *   `keepalive` post when the page is going away, which the browser lets outlive the page, and as many of them as
  *   the queue needs. The residues: a batch already in flight as the page goes is the browser's to finish or cancel,
@@ -81,7 +84,8 @@ export function createTranscriptSink({
   let current: string | undefined;
   let isOpen = false;
   let queue: readonly QueuedLine[] = [];
-  let posting = false;
+  // The regular batch awaiting its answer, held whole so `unwritten` can say whose lines are in it.
+  let posting: readonly QueuedLine[] | undefined;
   const stamps = new TranscriptStamps({ mintWriteId });
   const hearing = new TranscriptHearing({ nowIso });
   // A reconnect step reaches the queue only once its call's `closed` line was WRITTEN — the route answered 200 for it —
@@ -163,7 +167,7 @@ export function createTranscriptSink({
   };
 
   const flush = ({ keepalive }: { keepalive: boolean }): void => {
-    if (posting && !keepalive) {
+    if (posting !== undefined && !keepalive) {
       return;
     }
     const batch = nextTranscriptBatch({ maxBytes: TRANSCRIPT_BATCH_BYTES, queued: queue });
@@ -177,7 +181,7 @@ export function createTranscriptSink({
     const stepsAlone = taken.every((queued) => queued.line.kind === "reconnect");
     const posted = post({ keepalive, wire: batch.wire });
     if (!keepalive && !stepsAlone) {
-      posting = true;
+      posting = taken;
     }
     void (async (): Promise<void> => {
       let answer: TranscriptPostAnswer = { status: 0, why: undefined };
@@ -202,7 +206,7 @@ export function createTranscriptSink({
         }
         return;
       }
-      posting = false;
+      posting = undefined;
       if (answer.status === 200) {
         tookCloses({ lines: taken });
         flush({ keepalive: false });
@@ -351,6 +355,15 @@ export function createTranscriptSink({
     },
     spoke: ({ call, speech, open, openBy, context }) => {
       record({ call, line: hearing.spoke({ call, current, speech, stamp: { context, open, openBy } }) });
+    },
+    unwritten: () => {
+      if (current === undefined) {
+        return false;
+      }
+      // A reconnect step is diagnostics on a call already closed, never its words, so it holds no rollover.
+      const ofCurrent = (queued: QueuedLine): boolean => queued.callId === current && !isStep(queued);
+      const inFlight = posting?.some(ofCurrent) === true;
+      return hearing.changedFor({ call: current }) || queue.some(ofCurrent) || inFlight;
     },
   };
 }

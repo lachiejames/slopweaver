@@ -42,6 +42,7 @@ export const FREE = {
   resumedAtMs: undefined,
   progressingInFlight: 0,
   turn: NO_TURN_TAKING,
+  unwrittenSinceMs: undefined,
   urgency: "calm",
   voiceMidAnswerMs: undefined,
 } as const;
@@ -112,6 +113,7 @@ export function ask({
  *
  * @param stage the held ask's stage and remainder (`QuietRollover.stage`), calm with none named when omitted
  * @param owedFromMs when the voice's final began a turn it owes the owner, which the tests set by hand
+ * @param unwrittenSinceMs when the call's words were first seen not on disk (`unwrittenSinceAt`), none when omitted
  * @returns what holds the floor, or `undefined` when it is free
  */
 export function holdOf({
@@ -119,11 +121,13 @@ export function holdOf({
   nowMs,
   stage = { remainingMs: undefined, urgency: "calm" },
   owedFromMs,
+  unwrittenSinceMs,
 }: {
   activity: VoiceActivity;
   nowMs: number;
   stage?: { urgency: RolloverUrgency; remainingMs: number | undefined };
   owedFromMs?: number;
+  unwrittenSinceMs?: number | undefined;
 }): string | undefined {
   const rows = activityRows({ activity, nowMs });
   return pageRolloverHold({
@@ -141,6 +145,7 @@ export function holdOf({
     resumedAtMs: activity.resumedAtMs,
     progressingInFlight: progressingWork({ activity, nowMs }),
     turn: activity.turn,
+    unwrittenSinceMs,
     urgency: stage.urgency,
     voiceMidAnswerMs: voiceMidAnswerAt({ answerOpen: activity.voiceAnswerOpen, lastSpokeMs: activity.lastSpokeMs }),
   });

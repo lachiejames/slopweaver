@@ -47,24 +47,32 @@ function newestKnownCall({ continuity }: { continuity: TalkContinuity }): Contin
  *
  * @param previous the call quoted: the newest one for a reconnect or a rollover, the owner's last spoken one for a resume
  * @param heading what the quoted call was, opening the quote
+ * @param end how the quoted call ended, when the caller knows better than its file: a rollover's predecessor has
+ *   its close queued behind the release, so its file says it dropped. Omitted, the file's own end is said
  * @returns the quote's lines, or none when no call was written down or it carried no lines
  */
 export function previousExchange({
   previous,
   heading,
+  end,
 }: {
   previous: ContinuityCall | undefined;
   heading: string;
+  end?: string;
 }): string[] {
   if (previous === undefined || previous.lines.length === 0) {
     return [];
   }
-  const lines = [`${heading} (${previous.end}) ended on this exchange, oldest first:`];
+  let ended = previous.end;
+  if (end !== undefined) {
+    ended = end;
+  }
+  const lines = [`${heading} (${ended}) ended on this exchange, oldest first:`];
   // A crash tears at most a file's last line, which the read skips and counts (`./callStore.ts`). Refusing the whole
   // call over it would lose continuity in exactly the crash it exists for, so the gap is said instead.
   if (previous.skipped !== undefined && previous.skipped > 0) {
     lines[0] =
-      `${heading} (${previous.end}) ended on this exchange, oldest first — ${String(previous.skipped)} line(s) of ` +
+      `${heading} (${ended}) ended on this exchange, oldest first — ${String(previous.skipped)} line(s) of ` +
       "its file could not be read, so its last words may be missing; if the owner says otherwise, they are right:";
   }
   for (const line of previous.lines.slice(-RECONNECT_TAIL_LINES)) {
@@ -107,21 +115,36 @@ export function reconnectOpener({ continuity }: { continuity: TalkContinuity }):
 
 /**
  * The lines the voice is told when the console rolled a long call over onto this one in a pause, ahead of its own
- * 90-minute limit (the limit would otherwise cut the owner off mid-sentence). Unlike a reconnect nothing
- * dropped, so the owner must not hear that anything happened: the voice stays silent until they speak, and then answers as
- * the same call. The previous call's last exchange is quoted so it knows where the floor was.
+ * 90-minute limit (the limit would otherwise cut the owner off mid-sentence) or its thread's context filling. Unlike a
+ * reconnect nothing dropped, so the owner must not hear that anything happened: the voice answers the owner's last words
+ * if the quoted exchange left them unanswered, and otherwise stays silent until they speak, then answers as the same
+ * call. The previous call's last exchange is quoted so it knows where the floor was, its end said as the rollover it
+ * was: the page releases the old call before its close reaches the file, so the file alone says it dropped, and a
+ * successor told so contradicted the "nothing happened" above it.
  *
  * @param continuity the read
- * @returns the lines, which always say to wait silently, quoting the previous call when there is one
+ * @returns the lines, quoting the previous call when there is one, and always saying when to stay silent
  */
 export function rolloverOpener({ continuity }: { continuity: TalkContinuity }): string {
   const lines = [
     "This call is an AUTOMATIC ROLLOVER: the console moved the owner's ongoing call with you onto this fresh one in a pause, so",
-    "it is the same conversation and, to the owner, nothing happened. Say NOTHING until they speak. Never greet them, never say",
-    "you are back or reconnected, and never ask them to repeat themselves; when they speak, answer as the same call. If they",
-    "were showing their screen, the share carried over, so read_screen works without asking them to share again.",
+    "it is the same conversation and, to the owner, nothing happened. Never greet them, never say you are back or",
+    "reconnected, and never ask them to repeat themselves; when they speak, answer as the same call. If they were showing",
+    "their screen, the share carried over, so read_screen works without asking them to share again.",
   ];
-  lines.push(...previousExchange({ heading: "The call before this one", previous: newestKnownCall({ continuity }) }));
+  const exchange = previousExchange({
+    end: "rolled over onto this call in a pause",
+    heading: "The call before this one",
+    previous: newestKnownCall({ continuity }),
+  });
+  if (exchange.length === 0) {
+    lines.push("Say NOTHING until they speak.");
+    return lines.join("\n");
+  }
+  lines.push(
+    ...exchange,
+    "If the owner's last words in it went unanswered, answer them now as the same call; otherwise say NOTHING until they speak.",
+  );
   return lines.join("\n");
 }
 

@@ -8,7 +8,7 @@
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { QuietRollover } from "../../lib/callRollover";
-import { pageRolloverHold, voiceMidAnswerAt } from "../../lib/callRolloverFloor";
+import { pageRolloverHold, unwrittenSinceAt, voiceMidAnswerAt } from "../../lib/callRolloverFloor";
 import { ownerTalkingShown, wordsLatchOf } from "../../lib/ownerTalkingShown";
 import {
   type ActivityInput,
@@ -34,6 +34,7 @@ import { sameRows, sameStatus } from "../../lib/voiceSame";
 import type { VoiceLevels } from "../../lib/voiceStage";
 import { type Talking, talkingOf } from "../../lib/voiceTalking";
 import { micAheadOfWords, ownerSounding } from "../../lib/voiceTurnTaking";
+import type { CallTranscript } from "./useCallTranscript";
 import type { HeldPosts } from "./useHeldPosts";
 import { useLatest } from "./useLatest";
 
@@ -113,6 +114,8 @@ function rmsOf({ meter, buffer }: { meter: AnalyserNode | undefined; buffer: Uin
  * @param rollover the page's held rollover: asked on every sample for the stage a held ask is in, and told what holds
  *   the floor at that stage (`pageRolloverHold`, `callRolloverFloor.ts`), so a rollover the server asked for goes ahead
  *   only on a floor the page itself saw free
+ * @param transcript the call's transcript, asked on every sample whether its words are on disk yet, which holds that
+ *   floor until they are (`unwrittenSinceAt`)
  * @returns `act` to feed the fold, `reset` for a hang-up, `offer` for the nudge a press may send now, judged on the
  *   live fold rather than the last render, `workRunning` for whether a Codex turn still runs on that same live fold,
  *   `sounding` for whether the microphone carries the owner talking on it, `micAhead` for whether it was audible after the
@@ -126,9 +129,11 @@ export function useVoiceActivity({
   muted,
   outMeter,
   posts,
+  transcript,
 }: {
   link: VoiceLink;
   rollover: Pick<QuietRollover, "observed" | "stage">;
+  transcript: Pick<CallTranscript, "unwritten">;
   micMeter: RefObject<AnalyserNode | undefined>;
   muted: boolean;
   outMeter: RefObject<AnalyserNode | undefined>;
@@ -154,6 +159,8 @@ export function useVoiceActivity({
   // The stretch of the owner's a word has landed in (`wordsLatchOf`), folded on every event and read, so their typing dots stay
   // down for it whatever later clears the marker that latched it.
   const wordsLatch = useRef<number | undefined>(undefined);
+  // When the meters first saw the call's words not on disk, carried across samples (`unwrittenSinceAt`).
+  const unwrittenSince = useRef<number | undefined>(undefined);
 
   const act = useCallback(({ input }: { input: ActivityInput }): void => {
     const nowMs = performance.now();
@@ -169,6 +176,7 @@ export function useVoiceActivity({
   const reset = useCallback((): void => {
     activity.current = NO_ACTIVITY;
     wordsLatch.current = undefined;
+    unwrittenSince.current = undefined;
     resumeTrace.current = NO_RESUME_TRACE;
     setBars(FLAT);
     setSample(SILENT_SAMPLE);
@@ -296,6 +304,12 @@ export function useVoiceActivity({
       setStatus((held) => (sameStatus({ a: held, b: next }) ? held : next));
       const inFlight = activityRows({ activity: activity.current, nowMs });
       setRows((held) => (sameRows({ a: held, b: inFlight }) ? held : inFlight));
+      // Folded on every sample, so a sink already behind when the ask arrives is bounded from when it fell behind.
+      unwrittenSince.current = unwrittenSinceAt({
+        nowMs,
+        previousMs: unwrittenSince.current,
+        unwritten: transcript.unwritten(),
+      });
       // Judged only while the server's ask is held, at the stage its call's remaining lifetime puts it in.
       const stage = rollover.stage({ nowMs });
       if (stage !== undefined) {
@@ -314,6 +328,7 @@ export function useVoiceActivity({
           resumedAtMs: activity.current.resumedAtMs,
           progressingInFlight: progressingWork({ activity: activity.current, nowMs }),
           turn: activity.current.turn,
+          unwrittenSinceMs: unwrittenSince.current,
           urgency: stage.urgency,
           voiceMidAnswerMs: voiceMidAnswerAt({
             answerOpen: activity.current.voiceAnswerOpen,
@@ -326,7 +341,7 @@ export function useVoiceActivity({
     return () => {
       window.clearInterval(timer);
     };
-  }, [rollover, link, micMeter, muted, outMeter, posts]);
+  }, [rollover, link, micMeter, muted, outMeter, posts, transcript]);
 
   const isLive = link === "live";
   // A mute clears the owner's typing dots the render it lands, never a sample later: the clock's next read is up to 80 ms off

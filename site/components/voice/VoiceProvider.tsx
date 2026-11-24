@@ -372,7 +372,7 @@ export function VoiceProvider({
     sample,
     status,
     workRunning,
-  } = useVoiceActivity({ link, micMeter, muted, outMeter, posts: postsNow, rollover });
+  } = useVoiceActivity({ link, micMeter, muted, outMeter, posts: postsNow, rollover, transcript });
   // Third-party data the session carries from its mint — the context pack — so every relay treats it as read
   // after the owner spoke (`site/lib/relayGate.ts`). Set from the offer's own report, closed when it does not say.
   const standingData = useRef<readonly string[]>([]);

@@ -83,4 +83,11 @@ export interface TranscriptSink {
   readonly heardStamp: (input: { segmentId: string }) => HeardStamp | undefined;
   /** A relay went out carrying the owner's words so far: what a later one is about starts again from their next words. */
   readonly relayed: () => void;
+  /**
+   * Whether the CURRENT call has words not on disk yet: open speech changed since its last partial, a line queued, or a
+   * line in the regular post awaiting its answer. What a rollover waits on before it releases the call, since the
+   * successor's mint reads the call it replaces from its file (`site/lib/callRolloverFloor.ts`). An earlier call's
+   * residue, a reconnect step and a keepalive post never count; a refused batch is said and gone, so it counts no longer.
+   */
+  readonly unwritten: () => boolean;
 }
