@@ -2,7 +2,7 @@
  * The `desktop e2e --context` flag's read. It lives apart from `./e2eWorkContext.ts` because that module is
  * reached by the console site's own typecheck through `site/__tests__/unit/e2eWorkContextMirror.test.ts`, and the
  * site's CI job installs only `site/`'s dependencies: a `#lib/result.js` import there resolves `neverthrow` from
- * the root, which that job never installs (run 45321460719 on 24 Nov 2026, job site, TS2307 at `src/lib/result.ts`).
+ * the root, which that job never installs (the CI site job's TS2307 at `src/lib/result.ts`).
  */
 import { err, ok, type Result } from "#lib/result.js";
 
