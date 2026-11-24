@@ -14,6 +14,7 @@ import {
   reviewedResidueEntrySchema,
 } from "../../../freshCut/reviewedResidue.js";
 import { isPathListLocus, matchReviewedResidue } from "../../../freshCut/reviewedResidueMatching.js";
+import type { PrivateTermClass } from "../../../hygiene/privateTerms.js";
 import { unwrap } from "../../../lib/result.js";
 
 /** The digest of a string's UTF-8 bytes. */
@@ -37,7 +38,7 @@ const SCOPE = { recordId: RECORD, treeSha: TREE };
 const ELSEWHERE = { recordId: "4a3b2c1d-0e9f-4a8b-9c7d-6e5f4a3b2c1d", treeSha: "b".repeat(40) };
 
 /** One private-term finding of a class at a line of `src/a.ts`. */
-const finding = ({ className, line }: { className: string; line: number }): FreshCutFinding => ({
+const finding = ({ className, line }: { className: PrivateTermClass; line: number }): FreshCutFinding => ({
   className,
   kind: "private-term",
   line,
