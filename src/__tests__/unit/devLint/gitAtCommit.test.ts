@@ -10,16 +10,28 @@ import {
   gitShow,
   gitSucceeds,
   grepOutcome,
+  readFloorBaseClaim,
   resolveFloorBase,
 } from "../../../devLint/gitAtCommit.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../tempGitRepo.js";
 
 const SHA = "f0e52dd6574e8f326c6f13d1cd2521c0ef811e70";
 
-describe("resolveFloorBase", () => {
+const ZERO_SHA = "0".repeat(40);
+
+/** The reason an all-zeroes base that HEAD does not confirm fails with, around the confirmation's own gap. */
+function unconfirmedReason({ why }: { why: string }): string {
+  return (
+    `${FLOOR_BASE_ENV} is all zeroes, but nothing confirms this ref is new: ${why} — only a root commit or the ` +
+    `push that created the ref may skip the comparison; re-run with ` +
+    `\`${FLOOR_BASE_ENV}=$(git merge-base origin/main HEAD)\` in front of the command`
+  );
+}
+
+describe("readFloorBaseClaim", () => {
   it("reports INVALID, naming the command that supplies a base, when nobody supplied one", () => {
     // A branch once reached the lap red on host-wording after a seat's run with no base printed a pass.
-    expect(resolveFloorBase({ env: {} })).toEqual({
+    expect(readFloorBaseClaim({ env: {} })).toEqual({
       kind: "invalid",
       reason:
         `no ${FLOOR_BASE_ENV} in the environment, so nothing was compared — run \`git fetch origin main\`, ` +
@@ -27,22 +39,22 @@ describe("resolveFloorBase", () => {
     });
   });
 
-  it("reports ABSENT, the one passing kind, for the all-zeroes SHA a brand-new ref carries", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "0".repeat(40) } })).toEqual({
+  it("reports ABSENT for the all-zeroes SHA from the environment alone — a claim resolveFloorBase checks", () => {
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "0".repeat(40) } })).toEqual({
       kind: "absent",
       reason: `${FLOOR_BASE_ENV} is all zeroes — this ref has no previous commit`,
     });
   });
 
   it("reports INVALID, never the passing absent, when the variable is set but empty", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "   " } })).toEqual({
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "   " } })).toEqual({
       kind: "invalid",
       reason: `${FLOOR_BASE_ENV} is set but empty — give it the base commit's full SHA`,
     });
   });
 
   it("reports INVALID for an abbreviated SHA, and prints the command that expands it", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "f0e52dd" } })).toEqual({
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "f0e52dd" } })).toEqual({
       kind: "invalid",
       reason:
         `${FLOOR_BASE_ENV} is not a full 40-character commit SHA: f0e52dd — expand it with ` +
@@ -51,25 +63,25 @@ describe("resolveFloorBase", () => {
   });
 
   it("reports INVALID without an expand command for a value that is not a SHA prefix at all", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "origin/main" } })).toEqual({
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "origin/main" } })).toEqual({
       kind: "invalid",
       reason: `${FLOOR_BASE_ENV} is not a full 40-character commit SHA: origin/main`,
     });
   });
 
   it("reports INVALID for a 40-character value that is not hexadecimal", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "z".repeat(40) } })).toEqual({
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "z".repeat(40) } })).toEqual({
       kind: "invalid",
       reason: `${FLOOR_BASE_ENV} is not a full 40-character commit SHA: ${"z".repeat(40)}`,
     });
   });
 
   it("accepts a full SHA and surrounding whitespace", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: `  ${SHA}\n` } })).toEqual({ kind: "sha", sha: SHA });
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: `  ${SHA}\n` } })).toEqual({ kind: "sha", sha: SHA });
   });
 
   it("accepts an uppercase SHA and normalises it, because git does too", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: SHA.toUpperCase() } })).toEqual({
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: SHA.toUpperCase() } })).toEqual({
       kind: "sha",
       sha: SHA,
     });
@@ -79,6 +91,7 @@ describe("resolveFloorBase", () => {
 describe("reading a real repository at a commit", () => {
   let root = "";
   let baseSha = "";
+  let headSha = "";
 
   beforeAll(() => {
     root = mkdtempSync(join(tmpdir(), "git-at-commit-"));
@@ -94,10 +107,89 @@ describe("reading a real repository at a commit", () => {
     writeFileSync(join(root, "added.txt"), "new\n");
     git("add", ".");
     git("commit", "-m", "head");
+    headSha = git("rev-parse", "HEAD");
   }, REAL_GIT_TIMEOUT_MS);
 
   afterAll(() => {
     rmSync(root, { force: true, recursive: true });
+  });
+
+  /** Write a push payload under `.git`, outside the work tree, and return the runner variables naming it. */
+  const pushEvent = ({ after, created }: { after: string; created: boolean }): NodeJS.ProcessEnv => {
+    const path = join(root, ".git", `event-${String(created)}-${after}.json`);
+    writeFileSync(path, `{"after":"${after}","before":"${ZERO_SHA}","created":${String(created)}}`);
+    return { GITHUB_EVENT_NAME: "push", GITHUB_EVENT_PATH: path };
+  };
+
+  it("resolveFloorBase FAILS forty zeroes exported by hand on a HEAD with a parent — the closed hole", () => {
+    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: ZERO_SHA }, root })).toEqual({
+      kind: "invalid",
+      reason: unconfirmedReason({ why: "HEAD has a parent, and no GitHub event is in the environment" }),
+    });
+  });
+
+  it("resolveFloorBase keeps forty zeroes when the runner's push event created this ref at HEAD", () => {
+    const env = { ...pushEvent({ after: headSha, created: true }), [FLOOR_BASE_ENV]: ZERO_SHA };
+    expect(resolveFloorBase({ env, root })).toEqual({
+      kind: "absent",
+      reason: `${FLOOR_BASE_ENV} is all zeroes — this ref has no previous commit (the push event created this ref at HEAD)`,
+    });
+  });
+
+  it("resolveFloorBase fails forty zeroes when the push event says the ref already existed", () => {
+    const env = { ...pushEvent({ after: headSha, created: false }), [FLOOR_BASE_ENV]: ZERO_SHA };
+    expect(resolveFloorBase({ env, root })).toEqual({
+      kind: "invalid",
+      reason: unconfirmedReason({
+        why:
+          "HEAD has a parent, and the push event does not record a created ref (`created: true`, `before` all " +
+          "zeroes, `after` a full SHA)",
+      }),
+    });
+  });
+
+  it("resolveFloorBase fails forty zeroes when the named event file is not there", () => {
+    const missing = join(root, ".git", "no-such-event.json");
+    const env = { [FLOOR_BASE_ENV]: ZERO_SHA, GITHUB_EVENT_NAME: "push", GITHUB_EVENT_PATH: missing };
+    expect(resolveFloorBase({ env, root })).toEqual({
+      kind: "invalid",
+      reason: unconfirmedReason({
+        why:
+          "HEAD has a parent, and the GitHub event file could not be read " +
+          `(ENOENT: no such file or directory, open '${missing}')`,
+      }),
+    });
+  });
+
+  it("resolveFloorBase fails forty zeroes when the event file is there but is not JSON", () => {
+    const path = join(root, ".git", "event-not-json.json");
+    writeFileSync(path, "not json at all");
+    const env = { [FLOOR_BASE_ENV]: ZERO_SHA, GITHUB_EVENT_NAME: "push", GITHUB_EVENT_PATH: path };
+    expect(resolveFloorBase({ env, root })).toEqual({
+      kind: "invalid",
+      reason: unconfirmedReason({ why: "HEAD has a parent, and the GitHub event file is not JSON" }),
+    });
+  });
+
+  it.each([
+    { file: "event-null.json", shape: "null", text: "null" },
+    { file: "event-array.json", shape: "an array", text: `["${ZERO_SHA}"]` },
+  ])("resolveFloorBase fails forty zeroes when the event file parses to $shape", ({ file, text }) => {
+    const path = join(root, ".git", file);
+    writeFileSync(path, text);
+    const env = { [FLOOR_BASE_ENV]: ZERO_SHA, GITHUB_EVENT_NAME: "push", GITHUB_EVENT_PATH: path };
+    expect(resolveFloorBase({ env, root })).toEqual({
+      kind: "invalid",
+      reason: unconfirmedReason({
+        why:
+          "HEAD has a parent, and the push event does not record a created ref (`created: true`, `before` all " +
+          "zeroes, `after` a full SHA)",
+      }),
+    });
+  });
+
+  it("resolveFloorBase passes a full SHA through without reading HEAD", () => {
+    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: baseSha }, root })).toEqual({ kind: "sha", sha: baseSha });
   });
 
   it("gitSucceeds is true for a commit that is present", () => {
@@ -214,6 +306,42 @@ describe("a shallow base with no merge-base — the shape CI actually builds", (
     expect(gitLines({ root: shallow, args: ["diff", "--name-status", "-M", baseSha, "HEAD"] })).toEqual([
       "M\tkept.txt",
     ]);
+  });
+
+  it("grafts HEAD parentless for a history walk, yet its raw commit keeps the parent the new-ref check reads", () => {
+    expect(
+      gitLines({ root: shallow, args: ["rev-list", "--parents", "-n", "1", "HEAD"] })![0]!.split(" "),
+    ).toHaveLength(1);
+    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: ZERO_SHA }, root: shallow })).toEqual({
+      kind: "invalid",
+      reason: unconfirmedReason({ why: "HEAD has a parent, and no GitHub event is in the environment" }),
+    });
+  });
+});
+
+describe("resolveFloorBase on a root commit — the brand-new ref that keeps passing", () => {
+  let root = "";
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), "git-root-"));
+    const git = (...args: readonly string[]): string => gitInTemp({ cwd: root, args });
+    git("init", "--initial-branch=main", ".");
+    git("config", "user.email", "fixture@example.invalid");
+    git("config", "user.name", "Fixture");
+    writeFileSync(join(root, "kept.txt"), "only\n");
+    git("add", ".");
+    git("commit", "-m", "only");
+  }, REAL_GIT_TIMEOUT_MS);
+
+  afterAll(() => {
+    rmSync(root, { force: true, recursive: true });
+  });
+
+  it("keeps forty zeroes as absent, naming the root commit as the evidence", () => {
+    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: ZERO_SHA }, root })).toEqual({
+      kind: "absent",
+      reason: `${FLOOR_BASE_ENV} is all zeroes — this ref has no previous commit (HEAD is a root commit)`,
+    });
   });
 });
 

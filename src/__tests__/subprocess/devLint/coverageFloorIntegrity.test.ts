@@ -2,7 +2,7 @@
  * The floor-integrity half of the coverage gate: the committed floor against its own content at a base
  * commit.
  *
- * The pure decisions ({@link loweredMetrics}, {@link resolveFloorBase}) are tested as plain functions. The
+ * The pure decisions ({@link loweredMetrics}, {@link readFloorBaseClaim}) are tested as plain functions. The
  * git read is tested against REAL temporary repositories, which `testing.md` sanctions for a genuine
  * round-trip — and this is one. The property under test is "does git, as actually invoked, distinguish an
  * unreachable commit from a path missing at a reachable one?", and both cases exit 128, so a fake git would
@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest";
 import { type CoverageBaseline, type CoverageMetrics, loweredMetrics } from "../../../devLint/coverageFloor.js";
 import { CoverageFloorErrors } from "../../../devLint/coverageFloorErrors.js";
 import { readBaselineAtCommit } from "../../../devLint/coverageRatchet.js";
-import { FLOOR_BASE_ENV, resolveFloorBase } from "../../../devLint/gitAtCommit.js";
+import { FLOOR_BASE_ENV, readFloorBaseClaim } from "../../../devLint/gitAtCommit.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../tempGitRepo.js";
 
@@ -156,25 +156,25 @@ describe("loweredMetrics", () => {
   });
 });
 
-describe("resolveFloorBase", () => {
+describe("readFloorBaseClaim", () => {
   const sha = "a".repeat(40);
 
   it("takes a full SHA from the environment", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: sha } })).toEqual({ kind: "sha", sha });
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: sha } })).toEqual({ kind: "sha", sha });
   });
 
   it("trims surrounding whitespace", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: `  ${sha}\n` } })).toEqual({ kind: "sha", sha });
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: `  ${sha}\n` } })).toEqual({ kind: "sha", sha });
   });
 
   it("is invalid, a failing kind, when the variable is unset", () => {
-    expect(resolveFloorBase({ env: {} }).kind).toBe("invalid");
+    expect(readFloorBaseClaim({ env: {} }).kind).toBe("invalid");
   });
 
   it("accepts an uppercase SHA, which git also accepts, and normalises it", () => {
     // Rejecting case would manufacture a failure out of nothing — and under the earlier design a rejected
     // value fell through to a skip, i.e. skipped-but-green.
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "A".repeat(40) } })).toEqual({
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "A".repeat(40) } })).toEqual({
       kind: "sha",
       sha: "a".repeat(40),
     });
@@ -183,7 +183,7 @@ describe("resolveFloorBase", () => {
   it("treats the all-zero SHA as absent, not as a comparison and not as a missing base", () => {
     // A new-ref push supplies all zeroes. That means "no previous commit", which is a scope boundary —
     // distinct from a base nobody supplied or one that cannot be used, which are faults.
-    const resolved = resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "0".repeat(40) } });
+    const resolved = readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "0".repeat(40) } });
     expect(resolved).toEqual({
       kind: "absent",
       reason: `${FLOOR_BASE_ENV} is all zeroes — this ref has no previous commit`,
@@ -194,19 +194,19 @@ describe("resolveFloorBase", () => {
   // "reported green while checking nothing", and a mistyped CI variable that silently disables the history
   // half — while printing a reassuring "skipped" line — is exactly that, permanently and invisibly.
   it("rejects an empty value rather than treating it as no-base", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "   " } }).kind).toBe("invalid");
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "   " } }).kind).toBe("invalid");
   });
 
   it("rejects an abbreviated SHA rather than skipping the check", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "a1b2c3d" } }).kind).toBe("invalid");
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "a1b2c3d" } }).kind).toBe("invalid");
   });
 
   it("rejects a branch name rather than skipping the check", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "origin/main" } }).kind).toBe("invalid");
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "origin/main" } }).kind).toBe("invalid");
   });
 
   it("rejects a 40-character non-hex string", () => {
-    expect(resolveFloorBase({ env: { [FLOOR_BASE_ENV]: "z".repeat(40) } }).kind).toBe("invalid");
+    expect(readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: "z".repeat(40) } }).kind).toBe("invalid");
   });
 });
 

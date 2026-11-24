@@ -13,7 +13,7 @@
  */
 import { err, ok, type Result } from "#lib/result.js";
 import type { LintCheck } from "../devLint/devLint.js";
-import { FLOOR_BASE_ENV, resolveFloorBase } from "../devLint/gitAtCommit.js";
+import { FLOOR_BASE_ENV, readFloorBaseClaim } from "../devLint/gitAtCommit.js";
 import { type ProfileSubjectError, ProfileSubjectErrors } from "./errors.js";
 
 /** The vitest lanes, by the name of their config under `config/vitest/`. */
@@ -143,7 +143,7 @@ export function profileEnv({
  * refusing for want of a base — which costs a fraction of the real run and would land in the baseline as if
  * it were the gate's cost.
  *
- * A base the caller exported is kept when the gates' own `resolveFloorBase` reads it as a full SHA, and a gate
+ * A base the caller exported is kept when the gates' own `readFloorBaseClaim` reads it as a full SHA, and a gate
  * is refused on any other value (short, malformed, all zeroes): each makes a diff gate refuse or skip rather
  * than compare, so measuring under one records a refusal as the gate's cost. Otherwise the merge-base
  * of HEAD and origin/main is handed over, as `dev lint --lane seat` hands it, with no fetch-age bound — a stale
@@ -164,7 +164,7 @@ export function profileBase({
   resolve: () => Result<{ readonly baseSha: string }, { readonly detail: string }>;
 }): Result<{ readonly env: Readonly<Record<string, string>>; readonly line: string }, string> {
   if (inherited !== undefined) {
-    const judged = resolveFloorBase({ env: { [FLOOR_BASE_ENV]: inherited } });
+    const judged = readFloorBaseClaim({ env: { [FLOOR_BASE_ENV]: inherited } });
     if (judged.kind === "sha") {
       return ok({ env: {}, line: `dev profile: base ${judged.sha}, from ${FLOOR_BASE_ENV} in the environment` });
     }

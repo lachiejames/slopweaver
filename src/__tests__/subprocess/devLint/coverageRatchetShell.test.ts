@@ -248,7 +248,7 @@ describe("runCoverageRatchet — the base comparison", { timeout: REAL_GIT_TIMEO
     );
   });
 
-  it("says it skipped the comparison for a brand-new ref's all-zeroes base, and passes", () => {
+  it("says it skipped the comparison for a brand-new ref's all-zeroes base on a root commit, and passes", () => {
     const { dir } = repoAtFloor({ text: FLOOR });
     withSummary({ dir, pct: 71 });
 
@@ -256,7 +256,7 @@ describe("runCoverageRatchet — the base comparison", { timeout: REAL_GIT_TIMEO
 
     expect(result.exit).toBe(0);
     expect(result.out).toBe(
-      `coverage-floor: history comparison skipped — ${FLOOR_BASE_ENV} is all zeroes — this ref has no previous commit\n` +
+      `coverage-floor: history comparison skipped — ${FLOOR_BASE_ENV} is all zeroes — this ref has no previous commit (HEAD is a root commit)\n` +
         `coverage-ratchet: clean (floor {"branches":66,"functions":68,"lines":70,"statements":70}, 0 directory floor(s))\n`,
     );
   });
