@@ -343,7 +343,7 @@ describe("runGithubPrReviewers", () => {
     expect(await runGithubPrReviewers({ deps: run.deps, rest: [PR] })).toBe(EXIT_ERROR);
     expect(run.out).toEqual([]);
     expect(run.diag).toEqual([
-      `${PR} moved while the table was derived (head aaaaaaaaa read first), so nothing was printed or written. Run it again`,
+      `${PR} moved while the table was derived (head aaaaaaaaa -> bbbbbbbbb), so nothing was printed or written. Run it again`,
     ]);
   });
 
@@ -352,7 +352,7 @@ describe("runGithubPrReviewers", () => {
     expect(await runGithubPrReviewers({ deps: run.deps, rest: [PR] })).toBe(EXIT_ERROR);
     expect(run.out).toEqual([]);
     expect(run.diag).toEqual([
-      `${PR} moved while the table was derived (head aaaaaaaaa read first), so nothing was printed or written. Run it again`,
+      `${PR} moved while the table was derived (base commit ccccccccc -> ddddddddd), so nothing was printed or written. Run it again`,
     ]);
   });
 

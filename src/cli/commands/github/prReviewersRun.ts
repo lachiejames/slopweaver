@@ -34,8 +34,8 @@ import {
   changedPaths,
   codeownersAt,
   codeownersErrorLines,
+  describeMovedSince,
   factsAt,
-  movedSince,
   type PrAt,
 } from "./prReviewersReads.js";
 import { GITHUB_PR_REVIEWERS_USAGE } from "./prUsage.js";
@@ -228,9 +228,10 @@ export async function runGithubPrReviewers({
   // Past 300 files the list is not pinned to a commit, and CODEOWNERS is read at the base BRANCH, so a push between
   // the first read and them would cut a table the recorded commits never had. The pull request is read again and
   // nothing is printed if it moved.
-  if (movedSince({ first: facts, now: await factsAt({ at, url: args.url }) })) {
+  const moved = describeMovedSince({ first: facts, now: await factsAt({ at, url: args.url }) });
+  if (moved !== undefined) {
     deps.writeDiagnostic({
-      line: `${args.url} moved while the table was derived (head ${facts.headSha.slice(0, 9)} read first), so nothing was printed or written. Run it again`,
+      line: `${args.url} moved while the table was derived (${moved}), so nothing was printed or written. Run it again`,
     });
     return EXIT_ERROR;
   }

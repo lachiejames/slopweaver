@@ -71,11 +71,56 @@ export async function factsAt({ at, url }: { at: PrAt; url: string }): Promise<P
  * @returns true when nothing derived from `first` may be printed
  */
 export function movedSince({ first, now }: { first: PrReviewersFacts; now: PrReviewersFacts | string }): boolean {
-  if (typeof now === "string") {
-    return true;
+  return describeMovedSince({ first, now }) !== undefined;
+}
+
+/** A pull request's open state as the diagnostic words it. */
+function stateWord({ open }: { open: boolean }): string {
+  if (open) {
+    return "open";
   }
-  const commits = now.headSha !== first.headSha || now.base !== first.base || now.baseSha !== first.baseSha;
-  return commits || now.changedFiles !== first.changedFiles || now.open !== first.open;
+  return "closed";
+}
+
+/**
+ * Says what moved between two reads of one pull request, naming each side that did: the head commit, the base
+ * branch, the base commit, the changed-file count and the open state, in that order, each as `old -> new`. A re-read
+ * that failed is named as that rather than as a move. The one criterion `movedSince` answers from.
+ *
+ * @param first the facts the table was derived from
+ * @param now the re-read, or the reason it failed
+ * @returns the movements joined by `; `, or undefined when nothing the table rests on moved
+ */
+export function describeMovedSince({
+  first,
+  now,
+}: {
+  first: PrReviewersFacts;
+  now: PrReviewersFacts | string;
+}): string | undefined {
+  if (typeof now === "string") {
+    return `re-read failed: ${now}`;
+  }
+  const moves: string[] = [];
+  if (now.headSha !== first.headSha) {
+    moves.push(`head ${first.headSha.slice(0, 9)} -> ${now.headSha.slice(0, 9)}`);
+  }
+  if (now.base !== first.base) {
+    moves.push(`base branch ${first.base} -> ${now.base}`);
+  }
+  if (now.baseSha !== first.baseSha) {
+    moves.push(`base commit ${first.baseSha.slice(0, 9)} -> ${now.baseSha.slice(0, 9)}`);
+  }
+  if (now.changedFiles !== first.changedFiles) {
+    moves.push(`changed files ${first.changedFiles} -> ${now.changedFiles}`);
+  }
+  if (now.open !== first.open) {
+    moves.push(`state ${stateWord({ open: first.open })} -> ${stateWord({ open: now.open })}`);
+  }
+  if (moves.length === 0) {
+    return undefined;
+  }
+  return moves.join("; ");
 }
 
 /** Reads one response into the list it carries, or undefined when it carries none — paths alone, or files with counts. */
