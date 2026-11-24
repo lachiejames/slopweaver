@@ -6,10 +6,30 @@
  * that cannot run. Each caller fills what it already holds and passes a `<placeholder>` for what it does not;
  * nothing here invents a value. The spelling is `skills/github/SKILL.md`'s.
  *
- * Residue, stated: a value is printed verbatim, never shell-quoted. Git refuses a space in a branch name, but a
- * head such as `fix;x` or one carrying `$` is a legal ref and prints unquoted, so a reader pasting the line
- * runs what follows the `;` or expands the `$`. The heads this repository's sessions cut are slugs.
+ * A filled value is text somebody else chose: a pull request's head branch is named by whoever opened it, and
+ * `fix;x` or one carrying `$` is a legal ref. The hint exists to be pasted, so every value crosses
+ * {@link shellWord}, which leaves a plain or placeholder value bare and single-quotes anything else.
  */
+
+/** A value made only of characters no POSIX shell treats specially, so it prints bare. */
+const SHELL_SAFE = /^[A-Za-z0-9._/-]+$/;
+
+/** Exactly one angle-bracket placeholder, such as `<branch>`, which the reader replaces before running. */
+const PLACEHOLDER = /^<[^<>]+>$/;
+
+/**
+ * One value as a shell word: bare when it is plain or a placeholder, otherwise single-quoted with each embedded
+ * single quote closed, escaped and reopened.
+ *
+ * @param value the text to print where a reader will paste it into a shell
+ * @returns the value, safe to paste as one argument
+ */
+export function shellWord({ value }: { value: string }): string {
+  if (SHELL_SAFE.test(value) || PLACEHOLDER.test(value)) {
+    return value;
+  }
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
 
 /**
  * Render the complete administrator-merge command for one pull request.
@@ -32,7 +52,7 @@ export function adminMergeCommand({
   head: string;
 }): string {
   return (
-    `slopweaver github merge --repo ${repo} --base origin/${base} --head ${head} --description - ` +
-    `--admin --number ${String(number)} < body.md`
+    `slopweaver github merge --repo ${shellWord({ value: repo })} --base origin/${shellWord({ value: base })} ` +
+    `--head ${shellWord({ value: head })} --description - --admin --number ${String(number)} < body.md`
   );
 }

@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import { enqueueRefusals } from "../../../../../../cli/commands/github/enqueueFindings.js";
+import { MID } from "../enqueueRun/fixtures.js";
 import { ORDINARY, pr, QUEUE } from "./fixtures.js";
 
 describe("enqueueRefusals", () => {
@@ -47,6 +48,21 @@ describe("enqueueRefusals", () => {
       "acme/widget has no merge queue on main, so there is no 'Merge when ready' to press. Land it with " +
         "`slopweaver github merge --repo acme/widget --base origin/main --head feature --description - --admin " +
         "--number 9 < body.md` instead, or enable a merge queue on that branch.",
+    ]);
+  });
+
+  it("names no admin-merge command for a native-stack member, which that verb refuses outright", () => {
+    const refusals = enqueueRefusals({
+      target: { branch: "staging", kind: "stack", stack: MID },
+      requiredContexts: ["build"],
+      pr: pr(),
+      queue: undefined,
+      repo: "acme/widget",
+    });
+    expect(refusals).toEqual([
+      "acme/widget has no merge queue on staging, so there is no 'Merge when ready' to press. Land it out of " +
+        "its native stack by the route skills/github/reference/stack-merge.md names (`github merge --admin` " +
+        "cannot land a stack member) instead, or enable a merge queue on that branch.",
     ]);
   });
 });

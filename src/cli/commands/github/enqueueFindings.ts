@@ -150,7 +150,7 @@ export function enqueueRefusals({
   requiredContexts: readonly string[];
 }): readonly string[] {
   const refusals: string[] = [];
-  const adminMerge = adminMergeCommand({ base: target.branch, head: pr.headRefName, number: pr.number, repo });
+  const landAlone = adminLandingRoute({ pr, repo, target });
   if (pr.state !== "OPEN") {
     refusals.push(
       `#${String(pr.number)} is ${pr.state}, not open — nothing to queue. If it merged already, pull ${pr.baseRefName}.`,
@@ -165,18 +165,46 @@ export function enqueueRefusals({
   if (queue === undefined) {
     refusals.push(
       `${repo} has no merge queue on ${target.branch}, so there is no 'Merge when ready' to press. Land it ` +
-        `with \`${adminMerge}\` instead, or enable a merge queue on that branch.`,
+        `${landAlone} instead, or enable a merge queue on that branch.`,
     );
   }
   if (queue !== undefined && requiredContexts.length === 0) {
     refusals.push(
       `${repo}'s queue on ${target.branch} requires NO status-check contexts, so it would merge this pull ` +
         "request on arrival without testing the merged result. Tick 'Require status checks to pass before " +
-        `merging' on ${target.branch} and name the contexts the queue must wait for, or land it with ` +
-        `\`${adminMerge}\` instead.`,
+        `merging' on ${target.branch} and name the contexts the queue must wait for, or land it ` +
+        `${landAlone} instead.`,
     );
   }
   return refusals;
+}
+
+/**
+ * How a refusal tells its reader to land this pull request without the queue: the whole `github merge --admin`
+ * command for an ordinary pull request, and for a native-stack member the stack-merge reference instead, since
+ * GitHub's merge endpoint merges no stack member and `./mergeAdminCore.ts`'s `stackRefusal` refuses every one.
+ *
+ * @param pr the pull request, for its number and head branch
+ * @param repo the `owner/name` slug
+ * @param target where it really lands — the stack's base for a native-stack member
+ * @returns the phrase that follows "land it" in the refusal
+ */
+function adminLandingRoute({
+  pr,
+  repo,
+  target,
+}: {
+  pr: MergeQueuePrState;
+  repo: string;
+  target: EnqueueTarget;
+}): string {
+  if (target.kind === "stack") {
+    return (
+      "out of its native stack by the route skills/github/reference/stack-merge.md names " +
+      "(`github merge --admin` cannot land a stack member)"
+    );
+  }
+  return `with \`${adminMergeCommand({ base: target.branch, head: pr.headRefName, number: pr.number, repo })}\``;
 }
 
 /**
