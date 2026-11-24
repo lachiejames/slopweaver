@@ -18,6 +18,7 @@ import { err, ok, type Result } from "#lib/result.js";
 import type { HandoverDoc } from "../../handover/doc.js";
 import { findingRowForBranch } from "../../handover/findingGate.js";
 import type { RunEvent } from "../../handover/ledger.js";
+import { utcMidnightOf } from "./days.js";
 import { type DescriptionReviewError, DescriptionReviewErrors } from "./descriptionReviewErrors.js";
 import type { PacketEvidence } from "./descriptionReviewPacket.js";
 
@@ -34,7 +35,7 @@ const ISO_DAY = /^(\d{4}-\d{2}-\d{2})T/u;
  * @param journals each finding row's run-journal events, by slug, so a branch recorded at `handover start` matches
  * @param branch the pull request's head branch, exactly
  * @returns the record, `undefined` for a branch no finding claims, or a refusal for a matched row with no
- *   registered day
+ *   registered day or one that is not a real calendar day
  */
 export function findingPacketEvidence({
   docs,
@@ -56,6 +57,17 @@ export function findingPacketEvidence({
         detail:
           `finding row ${row.slug} carries no askedIso instant, so its fleet-finding record has no day to state; ` +
           "set askedIso: on the row to when it was registered",
+      }),
+    );
+  }
+  // `Date.parse` rolls a 31st of February into March, so the board's own instant check admits one; the badge rule
+  // says an agent's seen day IS this day, and `problem-seen.on` refuses a day that does not exist.
+  if (utcMidnightOf({ day }) === undefined) {
+    return err(
+      DescriptionReviewErrors.preparationFailed({
+        detail:
+          `finding row ${row.slug} carries askedIso ${row.askedIso}, whose day ${day} is not a real calendar day, ` +
+          "so no seen day could ever match its fleet-finding record; set askedIso: on the row to when it was registered",
       }),
     );
   }

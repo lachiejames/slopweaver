@@ -24,9 +24,13 @@ never authored (`src/outbound/github/derive.ts`, `tooltips.ts`); each carries a 
 The description review reads this file as a rule (`DESCRIPTION_RULE_FILES`), because a badge's words are the
 renderer's and the claim is the typed field behind them. Judge the field; derivation is not immunity.
 
-- **`Seen <day>`** claims `problemSeen.on`: the problem was seen on a real run that day. A fleet finding's packet
-  carries the day it was registered (`evidence/01-fleet-finding.json`), which bounds the seen day: one on or
-  before it is consistent, one after it is unsupported. The record never proves the exact day by itself.
+- **`Seen <day>`** claims `problemSeen.on`: the problem was seen on a real run that day. For the problem a fleet
+  finding claims on a branch, `by: agent` with `on` equal to `registeredOn` in the packet's
+  `evidence/01-fleet-finding.json` means the observing agent saw and registered the problem in that one act, and
+  that record alone is sufficient evidence for the agent credit and that exact day. It proves nothing else about the
+  run: what was run, what refused and how it was invoked still need a record in `evidence/` or `change/`, or come
+  out of the body. The record supports no earlier or later day; either needs its own evidence. On any other branch,
+  or without that record, it supplies no evidence. The owner rule below is unchanged.
 - **`An agent ran it.`** claims `problemSeen.by: agent`, supported by that record or by `change/`. **`The owner ran
 it.`** needs a record in `evidence/`, as every act credited to the owner does.
 - **`Who ran it isn't recorded.`** is `by: unrecorded`, the honest answer when nothing records who ran it. It credits

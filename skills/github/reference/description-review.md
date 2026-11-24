@@ -58,8 +58,11 @@ the image check. `--evidence` files are the records an act credited to the owner
 
 `--branch` names the head branch. When a fleet-finding row claims it (the finding gate's three exact matches),
 `evidence/` opens with `01-fleet-finding.json` (`src/outbound/github/descriptionFindingEvidence.ts`): the origin, an
-agent as observer, the registered day and how many records the row cites. It witnesses an agent credit, and bounds a
-seen day: one on or before the registered day is consistent with it, one after it is not. It carries fixed fields only, never a string the row's author wrote, so no session id or state-home
+agent as observer, the registered day and how many records the row cites. That record is sufficient evidence that
+the observing agent saw and registered the problem on `registeredOn`: for that problem it supports `by: agent` with
+`on` equal to `registeredOn`, which is what an agent's seen day means on such a branch
+([badges](pr-badges.md#what-each-derived-phrase-claims)). It supports no other day and nothing else the body says
+about the run. It carries fixed fields only, never a string the row's author wrote, so no session id or state-home
 path reaches the packet.
 
 ## What the reviewer reads
