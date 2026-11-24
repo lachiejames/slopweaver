@@ -47,7 +47,7 @@ import type {
   StoreRowsRequest,
   StoreTablesDocument,
 } from "./types.js";
-import { maskedQueryFailure, storeCellOf } from "./values.js";
+import { catalogWithSafeIdentifiers, maskedQueryFailure, storeCellOf } from "./values.js";
 
 /** How long one statement may run before Postgres cancels it; below the console's 15-second process bound. */
 const STORE_BROWSE_BUDGET_MS = 5000;
@@ -138,10 +138,19 @@ async function withReadOnlyStore<T>({
   }
 }
 
-/** Read the catalog inside the transaction. */
-async function catalogIn({ tx }: { tx: ReadTransaction }): Promise<ReturnType<typeof catalogFromRows>> {
+/**
+ * Read the catalog inside the transaction, every table whose definition the mask would change withheld before any
+ * caller sees it, so all three verbs browse only the tables `store tables` lists.
+ */
+async function catalogIn({
+  tx,
+  denylist,
+}: {
+  tx: ReadTransaction;
+  denylist: readonly string[];
+}): Promise<Result<ReturnType<typeof catalogWithSafeIdentifiers>, StoreBrowseError>> {
   const rows: readonly unknown[] = await tx.unsafe(CATALOG_SQL);
-  return catalogFromRows({ rows });
+  return catalogFromRows({ rows }).map((catalog) => catalogWithSafeIdentifiers({ catalog, denylist }));
 }
 
 /** Run a plan inside the transaction, its parameters bound. */
@@ -245,15 +254,16 @@ export async function readStoreTables({
   budgetMs?: number;
 }): Promise<Result<StoreTablesDocument, StoreBrowseError>> {
   return withReadOnlyStore({
-    body: async ({ tx }) => {
-      const catalog = await catalogIn({ tx });
+    body: async ({ tx, denylist }) => {
+      const catalog = await catalogIn({ denylist, tx });
       if (catalog.isErr()) {
         return err(catalog.error);
       }
       return ok({
         observedAtIso: new Date().toISOString(),
         schema: "public" as const,
-        tables: catalog.value.map((table) => table.definition),
+        tables: catalog.value.catalog.map((table) => table.definition),
+        withheldTables: catalog.value.withheldTables,
       });
     },
     budgetMs,
@@ -280,11 +290,11 @@ export async function readStoreRows({
 }): Promise<Result<StoreRowsDocument, StoreBrowseError>> {
   return withReadOnlyStore({
     body: async ({ tx, denylist }) => {
-      const catalog = await catalogIn({ tx });
+      const catalog = await catalogIn({ denylist, tx });
       if (catalog.isErr()) {
         return err(catalog.error);
       }
-      const table = tableFromCatalog({ catalog: catalog.value, table: request.table });
+      const table = tableFromCatalog({ catalog: catalog.value.catalog, table: request.table });
       if (table.isErr()) {
         return err(table.error);
       }
@@ -348,11 +358,11 @@ export async function readStoreRow({
   const locator: StoreRowLocator = decoded.value;
   return withReadOnlyStore({
     body: async ({ tx, denylist }) => {
-      const catalog = await catalogIn({ tx });
+      const catalog = await catalogIn({ denylist, tx });
       if (catalog.isErr()) {
         return err(catalog.error);
       }
-      const table = tableFromCatalog({ catalog: catalog.value, table: locator.table });
+      const table = tableFromCatalog({ catalog: catalog.value.catalog, table: locator.table });
       if (table.isErr()) {
         return err(table.error);
       }

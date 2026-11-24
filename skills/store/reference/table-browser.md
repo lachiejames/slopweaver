@@ -5,7 +5,7 @@ page (`/store`) is built on them; a session uses them to look at a table it cann
 which answers only from the typed content model.
 
 ```bash
-slopweaver store tables --json                                   # every table: columns, key, estimated rows
+slopweaver store tables --json                                   # tables: columns, key, estimated rows, withheld count
 slopweaver store rows --table-hex <token> --page-size 20 --json  # one page, primary key ascending by default
 slopweaver store rows --table-hex <token> --sort-hex <token> --direction desc \
   --filter-column-hex <token> --filter-op contains --filter-value-hex <hex> --json
@@ -39,6 +39,11 @@ parameter.
   use (`src/talk/fileRedaction.ts`) with the private denylist; a cell where a credential survives is `withheld`
   with the reason. A database error's message goes through the same mask, since a cast can quote a value, and
   is withheld whole when a credential survives. An unreadable denylist refuses the read.
+- **Names masked too, by leaving the table out.** A name is printed beside every value and its token is that
+  name's hex, so a name cannot be masked in place. A table whose name, a column's name, a primary-key entry or a
+  column's formatted type (which spells a user-defined type's name) the same mask would change, or whose token
+  prints a denylisted string, is withheld whole: absent from `store tables`, counted in its `withheldTables` and never named, and `TABLE_UNKNOWN` to
+  `store rows` and `store row`. The page says how many.
 - **Cut, and said so.** A page shows 512 characters of each value; `store row` shows up to a million. A cut cell
   carries `truncated: true` and the stored length in `characters`. `bytea` is base64.
 - **A row found again is the same row, and its locator holds no data.** Every row, keyed or not, reopens by

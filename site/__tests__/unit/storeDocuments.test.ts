@@ -66,6 +66,7 @@ const TABLES: CliTablesDocument = {
       token: utf8Hex({ text: "acme_notes" }),
     },
   ],
+  withheldTables: 2,
 };
 
 const ROWS: CliRowsDocument = {
@@ -126,6 +127,18 @@ describe("decodeStoreTables", () => {
     const decoded = decodeStoreTables({ value: TABLES })._unsafeUnwrap();
     expect(decoded).toEqual(TABLES);
     expect(decoded.tables[1].estimatedRows).toBeNull();
+    expect(decoded.withheldTables).toBe(2);
+  });
+
+  it("refuses a withheld count that is missing, negative, fractional or not a number, rather than reading zero", () => {
+    const refusal = "the tables document.withheldTables is not a whole number from 0";
+    const missing = Object.fromEntries(Object.entries(TABLES).filter(([key]) => key !== "withheldTables"));
+    expect(decodeStoreTables({ value: missing })._unsafeUnwrapErr()).toBe(refusal);
+    const withCount = ({ value }: { value: unknown }): string =>
+      decodeStoreTables({ value: withField({ doc: TABLES, key: "withheldTables", value }) })._unsafeUnwrapErr();
+    expect(withCount({ value: -1 })).toBe(refusal);
+    expect(withCount({ value: 0.5 })).toBe(refusal);
+    expect(withCount({ value: "2" })).toBe(refusal);
   });
 
   it("tolerates a field the page does not draw yet", () => {

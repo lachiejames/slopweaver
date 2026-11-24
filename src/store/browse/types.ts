@@ -44,6 +44,11 @@ export interface StoreTablesDocument {
   readonly observedAtIso: string;
   readonly schema: "public";
   readonly tables: readonly StoreTableDefinition[];
+  /**
+   * How many tables were left out because a name, key or column type in their definition would be masked. A count
+   * only, never which: a table listed here is one `store rows` and `store row` refuse as `TABLE_UNKNOWN`.
+   */
+  readonly withheldTables: number;
 }
 
 /** One cell: SQL NULL, a value withheld by the credential mask, or the value as text. */

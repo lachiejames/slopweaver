@@ -11,6 +11,7 @@ import type { Result } from "../../../lib/result.js";
 import { safeJsonStringify } from "../../../lib/safeJson.js";
 import type { StoreBrowseError } from "../../../store/browse/errors.js";
 import { readStoreRow, readStoreRows, readStoreTables } from "../../../store/browse/read.js";
+import type { StoreTablesDocument } from "../../../store/browse/types.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { parseStoreRowArgs, parseStoreRowsArgs, parseStoreTablesArgs } from "./browseCore.js";
@@ -94,16 +95,24 @@ export async function runStoreTables(argv: readonly string[]): Promise<number> {
   return emit({
     json: args.value.json,
     label: "store tables",
-    lines: (document) =>
-      document.tables.map((table) => {
-        let rows = "never analysed";
-        if (table.estimatedRows !== null) {
-          rows = `~${String(table.estimatedRows)} rows`;
-        }
-        return `${table.name}  ${rows}  ${String(table.columns.length)} columns`;
-      }),
+    lines: (document) => tablesLines({ document }),
     read,
   });
+}
+
+/** The text form of a tables document: one line per table, then how many were withheld when any were. */
+function tablesLines({ document }: { document: StoreTablesDocument }): readonly string[] {
+  const lines = document.tables.map((table) => {
+    let rows = "never analysed";
+    if (table.estimatedRows !== null) {
+      rows = `~${String(table.estimatedRows)} rows`;
+    }
+    return `${table.name}  ${rows}  ${String(table.columns.length)} columns`;
+  });
+  if (document.withheldTables > 0) {
+    lines.push(`${String(document.withheldTables)} table(s) withheld: a name in their definition would be masked`);
+  }
+  return lines;
 }
 
 /**

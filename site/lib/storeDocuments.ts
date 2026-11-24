@@ -64,6 +64,8 @@ export interface StoreTablesDocument {
   readonly observedAtIso: string;
   readonly schema: "public";
   readonly tables: readonly StoreTableDefinition[];
+  /** How many tables the verb left out because their definition would print a masked name; never which. */
+  readonly withheldTables: number;
 }
 
 /** One cell: SQL NULL, a value withheld by the credential mask, or the value as text. */
@@ -135,11 +137,14 @@ export function decodeStoreTables({ value }: { value: unknown }): Result<StoreTa
       return err(wrong({ at: `${at}.schema`, what: "public" }));
     }
     return observedAt({ at, bag }).andThen((observedAtIso) =>
-      list({ at, bag, key: "tables", read: decodeTable }).map((tables): StoreTablesDocument => ({
-        observedAtIso,
-        schema: "public",
-        tables,
-      })),
+      list({ at, bag, key: "tables", read: decodeTable }).andThen((tables) =>
+        whole({ at, bag, key: "withheldTables", min: 0 }).map((withheldTables): StoreTablesDocument => ({
+          observedAtIso,
+          schema: "public",
+          tables,
+          withheldTables,
+        })),
+      ),
     );
   });
 }

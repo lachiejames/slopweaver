@@ -30,7 +30,9 @@ export const STORE_TABLES_USAGE =
   "usage: slopweaver store tables [--home <dir>] [--json]\n" +
   "  Every table in the store's public schema, with its columns, types, primary key and the planner's\n" +
   "  ESTIMATED row count (never an exact count, which would scan every table). Read-only: one READ ONLY\n" +
-  "  transaction on the store the verbs' own credential selects. The console's Store page reads this.";
+  "  transaction on the store the verbs' own credential selects. The console's Store page reads this.\n" +
+  "  A table whose name, a column's name or a column type the credential mask would change is left out\n" +
+  "  whole and counted in withheldTables, never named.";
 
 /** What `store rows --help` prints. */
 export const STORE_ROWS_USAGE =

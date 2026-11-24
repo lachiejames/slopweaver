@@ -99,7 +99,8 @@ prints a text body, and writes an image or other binary body byte-exact with `--
 
 The console's Store page reads through these, and a session can too: every table with its estimated row count,
 one page of a table sorted and filtered, one row whole. Read-only in the database itself, credentials masked
-before anything prints, names passed as hex tokens: [table browser](reference/table-browser.md).
+before anything prints (a table whose names would be masked is withheld and counted), names passed as hex tokens:
+[table browser](reference/table-browser.md).
 
 ## Published pages into the store — `store pages-import`
 
