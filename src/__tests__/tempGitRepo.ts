@@ -46,8 +46,22 @@ import { stripGitEnv } from "../codex/gitRun.js";
  * `core.autocrlf input`: `pruneBranchSafety.test.ts`'s line-ending case committed its trunk's `y\r\n` as `y\n`, so
  * branch and trunk held one blob and it failed every run, 28/29 alone and 29/29 with `HOME` pointed at an empty
  * directory. Reproduce: `git config --global core.autocrlf input`, then run that file with this pin removed.
+ *
+ * Automatic maintenance and `gc --auto` are switched off too. A `git commit` hands them to a DETACHED process that
+ * takes and drops a lock under `.git/objects` after the commit has returned, so a seeded template copied straight
+ * after its commit can lose a file under `cpSync`: on hosted CI `checkoutLandingFloor.test.ts` failed once with
+ * ENOENT on its copy's `.git/objects`, in a shard that passed unchanged the run before. A fixture needs neither job.
  */
-const CLEAN_ENV = { ...stripGitEnv({ env: process.env }), GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
+const CLEAN_ENV = {
+  ...stripGitEnv({ env: process.env }),
+  GIT_CONFIG_COUNT: "2",
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_KEY_0: "maintenance.auto",
+  GIT_CONFIG_KEY_1: "gc.auto",
+  GIT_CONFIG_NOSYSTEM: "1",
+  GIT_CONFIG_VALUE_0: "false",
+  GIT_CONFIG_VALUE_1: "0",
+};
 
 /**
  * Refuse to run git anywhere but a temporary directory.
