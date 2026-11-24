@@ -70,10 +70,12 @@ function tailSection({ entry, tailLines }: { entry: JobLogEntry; tailLines: numb
  *
  * `--lines 0` still searched the whole log, so it names the match without printing a range that would read
  * `lines 12..11`. A line longer than {@link MAX_LINE_CHARS} reaches the search cut to that many characters, so
- * when the job had one the claim is qualified rather than stated absolutely: a match past the cut is not seen.
+ * when the job had one every claim is scoped to the searched prefix rather than stated of the whole line, and
+ * a note says a match past the cut is not seen.
  */
 function fromSection({ span, truncated }: { span: JobLogFromWindow; truncated: number }): readonly string[] {
-  const text = JSON.stringify(span.text);
+  const within = truncated === 0 ? "" : ` in its first ${String(MAX_LINE_CHARS)} characters`;
+  const text = `${JSON.stringify(span.text)}${within}`;
   const caveat =
     truncated === 0
       ? []

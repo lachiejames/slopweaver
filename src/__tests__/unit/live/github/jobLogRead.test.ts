@@ -409,9 +409,11 @@ describe("renderJobLogText --from", () => {
       document: await readFrom({ from: "NEEDLE", logs: { 7: [cut] }, tailLines: 1 }),
     });
 
-    expect(matched).toContain('lines 2..2 of 2, from the first line containing "NEEDLE":');
+    const within = `in its first ${String(MAX_LINE_CHARS)} characters`;
+
+    expect(matched).toContain(`lines 2..2 of 2, from the first line containing "NEEDLE" ${within}:`);
     expect(matched).toContain(caveat);
-    expect(unmatched).toContain('no line in this job\'s log contains "NEEDLE"');
+    expect(unmatched).toContain(`no line in this job's log contains "NEEDLE" ${within}`);
     expect(unmatched).toContain(caveat);
   });
 
@@ -419,7 +421,7 @@ describe("renderJobLogText --from", () => {
     const text = renderJobLogText({ document: await readFrom({ from: "escape-hatch", tailLines: 2 }) });
 
     expect(text).not.toContain("were cut at");
-    expect(text).toContain('from the first line containing "escape-hatch"');
+    expect(text).toContain('from the first line containing "escape-hatch":');
   });
 
   it("carries the window into the JSON document", async () => {
