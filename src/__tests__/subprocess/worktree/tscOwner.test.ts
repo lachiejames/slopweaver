@@ -205,8 +205,13 @@ function leaderRecordingJob({ leaderFile }: { leaderFile: string }): readonly st
   return ["sh", "-c", 'echo "$$" > "$1"; exit 0', "settle-witness", leaderFile];
 }
 
-/** A shell fragment printing, on its stdout, whether file descriptor 3 reached the job open. */
-const FD3_PROBE = "if { : >&3; } 2>/dev/null; then echo fd3=open; else echo fd3=closed; fi";
+/**
+ * A shell fragment printing, on its stdout, whether file descriptor 3 reached the job open. It redirects `true`, a
+ * regular builtin, never `:`: a redirection error on a POSIX special builtin makes a non-interactive dash exit 2,
+ * so on a hosted Ubuntu runner, where `sh` is dash, the probe ended the job before it printed (run 45321460719 on
+ * 24 Nov 2026, job subprocess, `expected 2 to be +0`), while on macOS, where `sh` is bash, it printed `fd3=closed`.
+ */
+const FD3_PROBE = "if { true >&3; } 2>/dev/null; then echo fd3=open; else echo fd3=closed; fi";
 
 /** The modification time of a file, or 0 while it does not exist. */
 function mtimeOrZero({ path }: { path: string }): number {
