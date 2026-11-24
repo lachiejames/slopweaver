@@ -85,17 +85,20 @@ export interface JobLogDocument {
  * the whole body is streamed through and the accumulator's own close snapshot decides where it ends.
  *
  * @param chunks the streamed body
- * @param tailLines how many trailing lines to keep
+ * @param tailLines how many lines to keep — trailing ones, or with `from` the ones from its first match
+ * @param from keep a forward window opening at the first line containing this substring instead of a tail
  * @returns the bounded summary of the whole log
  */
 export async function accumulateJobLog({
   chunks,
   tailLines,
+  from,
 }: {
   chunks: AsyncIterable<string>;
   tailLines: number;
+  from?: string;
 }): Promise<JobLogSummary> {
-  const accumulator = new JobLogAccumulator({ tailLines });
+  const accumulator = new JobLogAccumulator(from === undefined ? { tailLines } : { from, tailLines });
   let carry = "";
   for await (const chunk of chunks) {
     const split = splitStreamChunk({ carry, chunk });
@@ -164,6 +167,28 @@ function selectJobs({
 }
 
 /**
+ * The first residue line: which window each job kept, and the way past it.
+ *
+ * A tail read names `--from`, because a finding printed under its own section header far above the end of
+ * the step is otherwise reachable only through the job URL.
+ */
+function windowResidue({ from, tailLines }: { from: string | undefined; tailLines: number }): string {
+  const lines = String(tailLines);
+  if (from === undefined) {
+    return (
+      `each job reports every annotation it raised in full, and only the last ${lines} lines of its failing ` +
+      "step — raise it with --lines, read a section from its first line with --from <text>, or open the job URL " +
+      "for the whole log"
+    );
+  }
+  return (
+    `each job reports every annotation it raised in full, and at most ${lines} lines from the first line of ` +
+    `its whole log containing ${JSON.stringify(from)} — narrow --from, raise --lines, or open the job URL for ` +
+    "the whole log"
+  );
+}
+
+/**
  * What this read could not cover, named rather than left implicit.
  *
  * Every entry is a real bound of the read, not a disclaimer: a tail is a tail, a dropped annotation is a
@@ -174,14 +199,13 @@ function selectJobs({
 function readResidue({
   entries,
   tailLines,
+  from,
 }: {
   entries: readonly JobLogEntry[];
   tailLines: number;
+  from: string | undefined;
 }): readonly string[] {
-  const residue: string[] = [
-    `each job reports every annotation it raised in full, and only the last ${String(tailLines)} lines of ` +
-      "its failing step — raise it with --lines, or open the job URL for the whole log",
-  ];
+  const residue: string[] = [windowResidue({ from, tailLines })];
   const dropped = entries.reduce((total, entry) => total + entry.log.annotationsDropped, 0);
   if (dropped > 0) {
     residue.push(`${String(dropped)} annotation(s) past the cap were not kept`);
@@ -194,7 +218,8 @@ function readResidue({
     );
   }
   const unclosed = entries.filter((entry) => !entry.log.closed).map((entry) => entry.name);
-  if (unclosed.length > 0) {
+  // A forward window never claims to be the end of anything, so the unclosed note is a tail read's alone.
+  if (unclosed.length > 0 && from === undefined) {
     residue.push(
       `no \`Process completed\` marker in ${unclosed.join(", ")} — the lines shown are the end of the whole ` +
         "job log, not of one step",
@@ -214,12 +239,14 @@ async function readEntries({
   owner,
   repo,
   tailLines,
+  from,
   streamLog,
 }: {
   selected: readonly JobFacts[];
   owner: string;
   repo: string;
   tailLines: number;
+  from: string | undefined;
   streamLog: StreamJobLog;
 }): Promise<Result<readonly JobLogEntry[], GithubJobLogError>> {
   const entries: JobLogEntry[] = [];
@@ -228,16 +255,40 @@ async function readEntries({
     if (chunks.isErr()) {
       return err(chunks.error);
     }
+    const bound = from === undefined ? { tailLines } : { from, tailLines };
     entries.push({
       conclusion: candidate.conclusion,
       failedStep: failedStepOf({ steps: candidate.steps }),
       htmlUrl: candidate.htmlUrl,
       jobId: candidate.id,
-      log: await accumulateJobLog({ chunks: chunks.value, tailLines }),
+      log: await accumulateJobLog({ chunks: chunks.value, ...bound }),
       name: candidate.name,
     });
   }
   return ok(entries);
+}
+
+/** The run header, read and parsed, or the named failure that ends the read before any job is fetched. */
+async function readRunFacts({
+  fetchRun,
+  owner,
+  repo,
+  runId,
+}: {
+  fetchRun: FetchWorkflowRun;
+  owner: string;
+  repo: string;
+  runId: number;
+}): Promise<Result<RunFacts, GithubJobLogError>> {
+  const runPayload = await fetchRun({ owner, repo, runId });
+  if (runPayload.isErr()) {
+    return err(runPayload.error);
+  }
+  const run = parseRunFacts({ payload: runPayload.value });
+  if (run === undefined) {
+    return err(GithubJobLogErrors.runNotFound({ runId }));
+  }
+  return ok(run);
 }
 
 /**
@@ -249,7 +300,10 @@ async function readEntries({
  * @param job read only the job with this name, instead of every unsuccessful one
  * @param jobIds read exactly these jobs — what a caller that already resolved them from a check's details
  *   URL passes, so nothing is re-derived from a conclusion
- * @param tailLines how many trailing lines of each job's failing step to keep
+ * @param tailLines how many trailing lines of each job's failing step to keep, or with `from` the most lines
+ *   kept from its first match
+ * @param from keep, per job, a forward window opening at the first line of its whole log containing this plain
+ *   substring instead of a tail — `github run-log --from`; every other caller omits it
  * @param fetchRun the run-header seam
  * @param fetchJobs the jobs-page seam
  * @param streamLog the log-body seam
@@ -263,6 +317,7 @@ export async function readJobLogs({
   job,
   jobIds,
   tailLines,
+  from,
   fetchRun,
   fetchJobs,
   streamLog,
@@ -274,19 +329,17 @@ export async function readJobLogs({
   job: string | undefined;
   jobIds: readonly number[] | undefined;
   tailLines: number;
+  from?: string;
   fetchRun: FetchWorkflowRun;
   fetchJobs: FetchWorkflowRunJobs;
   streamLog: StreamJobLog;
   nowIso: () => string;
 }): Promise<Result<JobLogDocument, GithubJobLogError>> {
-  const runPayload = await fetchRun({ owner, repo, runId });
-  if (runPayload.isErr()) {
-    return err(runPayload.error);
+  const runRead = await readRunFacts({ fetchRun, owner, repo, runId });
+  if (runRead.isErr()) {
+    return err(runRead.error);
   }
-  const run = parseRunFacts({ payload: runPayload.value });
-  if (run === undefined) {
-    return err(GithubJobLogErrors.runNotFound({ runId }));
-  }
+  const run = runRead.value;
   const jobsPayload = await fetchJobs({ owner, repo, runId });
   if (jobsPayload.isErr()) {
     return err(jobsPayload.error);
@@ -301,7 +354,7 @@ export async function readJobLogs({
   if (selected.isErr()) {
     return err(selected.error);
   }
-  const entries = await readEntries({ owner, repo, selected: selected.value, streamLog, tailLines });
+  const entries = await readEntries({ from, owner, repo, selected: selected.value, streamLog, tailLines });
   if (entries.isErr()) {
     return err(entries.error);
   }
@@ -309,7 +362,7 @@ export async function readJobLogs({
     jobs: entries.value,
     readAtIso: nowIso(),
     repo: `${owner}/${repo}`,
-    residue: readResidue({ entries: entries.value, tailLines }),
+    residue: readResidue({ entries: entries.value, from, tailLines }),
     run,
     tailLines,
   });

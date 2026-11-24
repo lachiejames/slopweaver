@@ -19,6 +19,7 @@ function runLog({ runId, jobId, paths }: { runId: number; jobId: number; paths: 
           annotations: [],
           annotationsDropped: 0,
           closed: true,
+          from: undefined,
           linesTruncated: 0,
           regionLines: 40,
           tail: [],

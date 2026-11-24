@@ -26,6 +26,7 @@ describe("runGithubChecks --log", () => {
           annotations: [],
           annotationsDropped: 0,
           closed: true,
+          from: undefined,
           linesTruncated: 0,
           regionLines: 1,
           tail: ["dev lint: FAIL"],

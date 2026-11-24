@@ -100,6 +100,25 @@ export interface JobLogAnnotation {
   readonly text: string;
 }
 
+/**
+ * The window a `--from <text>` read keeps: the first line of the WHOLE job log containing `text`, and the lines
+ * after it, at most the read's line bound.
+ *
+ * It exists because the tail cannot reach a finding printed far above the end of the step: a red lint step's
+ * log can exceed the line ceiling, and a gate that fails with no annotation prints its finding under its own
+ * `dev lint: <gate>` header, above the window.
+ */
+export interface JobLogFromWindow {
+  /** The plain, case-sensitive substring searched for. */
+  readonly text: string;
+  /** The 1-based line number of the first line that contained it, or `undefined` when none did. */
+  readonly firstLine: number | undefined;
+  /** That line and the lines after it, oldest first, at most the read's line bound. */
+  readonly lines: readonly string[];
+  /** How many lines the whole job log held, so a reader knows where in it the window sits. */
+  readonly logLines: number;
+}
+
 /** What one job's log yielded, already bounded. */
 export interface JobLogSummary {
   /** Every annotation kept, oldest first, capped at {@link MAX_ANNOTATIONS}. */
@@ -125,6 +144,11 @@ export interface JobLogSummary {
    * up to {@link MAX_TEST_FILE_PATHS}, so a reader of a full count knows it is a floor.
    */
   readonly testFilePathsDropped: number;
+  /**
+   * The forward window a `--from` read asked for, or `undefined` on a tail read. When present, {@link tail} is
+   * empty: one read keeps one window, so the bound a caller typed is the bound held in memory.
+   */
+  readonly from: JobLogFromWindow | undefined;
 }
 
 /**
@@ -225,11 +249,50 @@ export class JobLogAccumulator {
   /** The window as it stood at the most recent close, or `undefined` when no close has been seen. */
   private closedAt: { tail: readonly string[]; annotations: readonly JobLogAnnotation[]; lines: number } | undefined;
 
+  /** The `--from` substring, or `undefined` on a tail read. */
+  private readonly fromText: string | undefined;
+
+  /** The 1-based line number of the first line containing {@link fromText}, once one has arrived. */
+  private fromFirstLine: number | undefined;
+
+  /** The forward window from that line, never longer than {@link tailLines}. */
+  private readonly fromLines: string[] = [];
+
   /**
-   * @param tailLines how many trailing lines to keep; a non-positive value keeps none
+   * @param tailLines how many lines to keep — trailing ones, or with `from` the ones from its first match; a
+   *   non-positive value keeps none
+   * @param from keep a forward window opening at the first line containing this plain substring INSTEAD of a tail
    */
-  public constructor({ tailLines }: { tailLines: number }) {
+  public constructor({ tailLines, from }: { tailLines: number; from?: string }) {
     this.tailLines = tailLines;
+    this.fromText = from;
+  }
+
+  /**
+   * Keep the line in the forward window when it opens or extends it. Once the window is full nothing more is
+   * kept, while the stream itself goes on through annotations, test files and step closes.
+   */
+  private keepFromLine({ line }: { line: string }): void {
+    if (this.fromText === undefined) {
+      return;
+    }
+    if (this.fromFirstLine === undefined) {
+      if (!line.includes(this.fromText)) {
+        return;
+      }
+      this.fromFirstLine = this.seen;
+    }
+    if (this.fromLines.length < this.tailLines) {
+      this.fromLines.push(line);
+    }
+  }
+
+  /** The forward window as it stands, or `undefined` on a tail read. */
+  private fromWindow(): JobLogFromWindow | undefined {
+    if (this.fromText === undefined) {
+      return undefined;
+    }
+    return { firstLine: this.fromFirstLine, lines: [...this.fromLines], logLines: this.seen, text: this.fromText };
   }
 
   /**
@@ -283,7 +346,8 @@ export class JobLogAccumulator {
       this.keepTestFile({ path });
     }
     this.keepAnnotation({ line });
-    if (this.tailLines > 0) {
+    this.keepFromLine({ line });
+    if (this.tailLines > 0 && this.fromText === undefined) {
       this.tail.push(line);
       if (this.tail.length > this.tailLines) {
         this.tail.shift();
@@ -313,6 +377,7 @@ export class JobLogAccumulator {
         annotations: [...this.annotations],
         annotationsDropped: this.dropped,
         closed: false,
+        from: this.fromWindow(),
         linesTruncated: this.truncated,
         regionLines: this.seen,
         tail: [...this.tail],
@@ -324,6 +389,7 @@ export class JobLogAccumulator {
       annotations: closed.annotations,
       annotationsDropped: this.dropped,
       closed: true,
+      from: this.fromWindow(),
       linesTruncated: this.truncated,
       regionLines: closed.lines,
       tail: closed.tail,

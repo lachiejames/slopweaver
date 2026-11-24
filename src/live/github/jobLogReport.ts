@@ -11,6 +11,7 @@
  */
 
 import { safeJsonStringify } from "../../lib/safeJson.js";
+import { type JobLogFromWindow, MAX_LINE_CHARS } from "./jobLog.js";
 import type { JobLogDocument, JobLogEntry } from "./jobLogRead.js";
 
 /** The header line naming the run this report is about. */
@@ -64,9 +65,45 @@ function tailSection({ entry, tailLines }: { entry: JobLogEntry; tailLines: numb
   ];
 }
 
-/** One job's whole block. */
+/**
+ * The `--from` window, with where in the whole log it sits — or the one line saying nothing matched.
+ *
+ * `--lines 0` still searched the whole log, so it names the match without printing a range that would read
+ * `lines 12..11`. A line longer than {@link MAX_LINE_CHARS} reaches the search cut to that many characters, so
+ * when the job had one every claim is scoped to the searched prefix rather than stated of the whole line, and
+ * a note says a match past the cut is not seen.
+ */
+function fromSection({ span, truncated }: { span: JobLogFromWindow; truncated: number }): readonly string[] {
+  const within = truncated === 0 ? "" : ` in its first ${String(MAX_LINE_CHARS)} characters`;
+  const text = `${JSON.stringify(span.text)}${within}`;
+  const caveat =
+    truncated === 0
+      ? []
+      : [
+          `  ${String(truncated)} line(s) were cut at ${String(MAX_LINE_CHARS)} characters and searched only on ` +
+            "what was kept, so a match past the cut is not seen",
+        ];
+  if (span.firstLine === undefined) {
+    return [`  no line in this job's log contains ${text}`, ...caveat];
+  }
+  const first = String(span.firstLine);
+  if (span.lines.length === 0) {
+    return [`  first line containing ${text} is ${first}; no log lines were kept — --lines was zero`, ...caveat];
+  }
+  const last = String(span.firstLine + span.lines.length - 1);
+  return [
+    `  lines ${first}..${last} of ${String(span.logLines)}, from the first line containing ${text}:`,
+    ...caveat,
+    ...span.lines.map((line) => `    ${line}`),
+  ];
+}
+
+/** One job's whole block: a `--from` window when the read asked for one, otherwise the tail. */
 function jobBlock({ entry, tailLines }: { entry: JobLogEntry; tailLines: number }): readonly string[] {
-  const lines = [jobHeading({ entry }), ...annotationLines({ entry }), ...tailSection({ entry, tailLines })];
+  const span = entry.log.from;
+  const body =
+    span === undefined ? tailSection({ entry, tailLines }) : fromSection({ span, truncated: entry.log.linesTruncated });
+  const lines = [jobHeading({ entry }), ...annotationLines({ entry }), ...body];
   if (entry.htmlUrl !== undefined) {
     lines.push(`  whole log: ${entry.htmlUrl}`);
   }
