@@ -12,7 +12,8 @@
  * It RACES rather than aborts: threading a signal through both clients and their retry layers is a larger change,
  * and the CLI ends through `process.exit` (`../../cli/main.ts`), so an abandoned request cannot hold the process
  * once the lap returns. Two consequences are stated rather than discovered. A timed-out WRITE is not known absent —
- * a status POST may still land — so a caller stops and never re-sends it. And the deadline covers the whole logical
+ * a status POST may still land — so the caller reads the head before it re-sends one, and re-sends only a status it
+ * does not find there, at most twice (`../../cli/commands/github/lapStatusPost.ts`). And the deadline covers the whole logical
  * method, its own retries and throttling waits included, so a legitimately long rate-limit wait is cut off too.
  *
  * The production timer is a REF'd `setTimeout`, cleared when the call settles: an unref'd one is exactly the timer the

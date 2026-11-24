@@ -24,7 +24,8 @@ import {
 } from "./lapBatchCore.js";
 import { type BatchMember, type LapBatch, memberSession } from "./lapBatchPhases.js";
 import type { LapSession } from "./lapDeps.js";
-import { diagnose, land, post } from "./lapPhases.js";
+import { diagnose, land } from "./lapPhases.js";
+import { post } from "./lapStatusPost.js";
 
 /** One member's landing: the tip it now leaves the base at, or why the batch stops (and whether it landed first). */
 type MemberLanding =

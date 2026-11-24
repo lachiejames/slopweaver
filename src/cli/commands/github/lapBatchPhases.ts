@@ -19,7 +19,8 @@ import type { GithubLapArgs } from "./lapCore.js";
 import type { GithubLapDeps, LapSession } from "./lapDeps.js";
 import { type LapError, LapErrors } from "./lapErrors.js";
 import type { LapTarget } from "./lapLanes.js";
-import { post, protectionFacts } from "./lapPhases.js";
+import { protectionFacts } from "./lapPhases.js";
+import { post } from "./lapStatusPost.js";
 import { lapPreflightVerdict } from "./lapVerdict.js";
 
 /** One member as the batch will land it: its simulated squash, and what its merge will report over that link. */
