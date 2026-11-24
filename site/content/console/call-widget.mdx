@@ -64,7 +64,10 @@ take over 15 seconds to respond. The pause is measured from the call arriving to
 the silence you hear. What each turn of the plan thread cost in tokens is written into the call's own record.
 
 **The record reads as a conversation.** Messenger draws what you and the voice said
-(`components/voice/Messenger.tsx`), pinned to the newest line as they are heard. The session details tray
+(`components/voice/Messenger.tsx`), pinned to the newest line as they are heard. The voice's words are drawn formatted
+as they stream in, the way a chat app draws a reply: paragraphs, lists, a bold word and a code block, as light Markdown
+through the console's one renderer, which never fetches a remote picture. Your own words are drawn exactly as you
+wrote them, line breaks kept, never read as Markdown. The session details tray
 (`components/voice/VoiceSession.tsx`) draws each lookup on the same Tool parts a session's turn uses, each with how
 long it took, and under them the call's relays, folded to one line of counts (`site/lib/talkContext.ts`) that opens
 to every relay: how it ended, what the voice heard and what it read back.

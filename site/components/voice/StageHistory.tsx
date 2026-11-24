@@ -19,6 +19,14 @@
  * two lines of each with an ellipsis between (`foldOf`), and a click opens it whole or folds it back. A turn still being
  * said is never folded.
  *
+ * **The voice's words are drawn formatted as they stream; the owner's stay as they wrote them.** The voice's typed
+ * replies carry blank lines and one option per line, and a bubble that collapsed every newline would read them as one
+ * wall of a paragraph. So a voice turn renders as light Markdown through the console's one renderer
+ * (`MessageResponse`: no remote media, the measured code themes), paragraphs and lists drawn while it is still
+ * arriving, and a single line break inside a paragraph is kept, so a reply written to the older plain-text prompt — one
+ * `•` option per line — still reads one per line. The owner's words are never read as Markdown, only kept to their
+ * own line breaks.
+ *
  * Above the conversation going on now sits every earlier one, spoken or typed, read off the call files and nothing else
  * (the history ends on the last message sent either way, never on supervisor chatter), so a reopened console opens
  * where the two of them stopped. Each stretch after an hour's
@@ -41,6 +49,7 @@ import { readerTimeZone } from "../../lib/dateTimeFormat";
 import type { PlaceKeeper } from "../../lib/readingPlace";
 import type { StalenessFact } from "../../lib/stalenessLabel";
 import { foldOf, type HeardSegment, speakingIndicatorShows } from "../../lib/voiceTranscript";
+import { MessageResponse } from "../ai-elements/message";
 import { ReadingIndicator } from "../console/ReadingIndicator";
 import { StaleMark } from "../console/StaleMark";
 import { refreshLive } from "../live/useLive";
@@ -56,7 +65,19 @@ const TURN =
 
 /** A folded turn of the owner's: the whole bubble is the control that opens it, in the bubble's own ink. */
 const FOLD =
-  "block cursor-pointer border-0 bg-transparent p-0 text-left text-inherit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary";
+  "block cursor-pointer whitespace-pre-wrap border-0 bg-transparent p-0 text-left text-inherit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary";
+
+/** The owner's words whole: exactly as written, their own line breaks kept. */
+const OWNER_WORDS = "whitespace-pre-wrap";
+
+/**
+ * A voice turn's rendered reply, set for a bubble rather than a page: tight paragraph and list spacing, list markers
+ * drawn (the reset removes them), a line break inside a paragraph kept, and links in the bubble's own ink, underlined,
+ * so no colour is added that the contrast tests do not measure. Static, since `MessageResponse` re-renders only on its
+ * words and whether they are still arriving.
+ */
+const REPLY =
+  "[&_p]:my-[0.45rem] [&_p]:whitespace-pre-wrap [&_ul]:my-[0.45rem] [&_ul]:list-disc [&_ul]:pl-[1.2rem] [&_ol]:my-[0.45rem] [&_ol]:list-decimal [&_ol]:pl-[1.4rem] [&_li]:my-[0.15rem] [&_a]:text-inherit [&_a]:underline [&_strong]:font-semibold";
 
 /** A finished turn: an opaque bubble, the owner's in the owner's colour. */
 const BUBBLE = `${TURN} border-transparent bg-(--c-panel) data-[who=owner]:bg-[color-mix(in_oklch,var(--c-primary)_22%,var(--c-panel))]`;
@@ -210,6 +231,8 @@ export function StageHistory({
                 <Said
                   id={id}
                   text={final ? text : `${text} …`}
+                  who={who}
+                  arriving={false}
                   folds={who === "owner"}
                   opened={opened}
                   onToggle={toggle}
@@ -254,7 +277,15 @@ export function StageHistory({
                 }}
               >
                 {liveMedium === "typed" ? <span className={TYPED_LABEL}>typed</span> : null}
-                <Said id={id} text={text} folds={final && who === "owner"} opened={opened} onToggle={toggle} />
+                <Said
+                  id={id}
+                  text={text}
+                  who={who}
+                  arriving={!final}
+                  folds={final && who === "owner"}
+                  opened={opened}
+                  onToggle={toggle}
+                />
                 {final ? null : (
                   <span
                     aria-hidden="true"
@@ -331,25 +362,38 @@ function SaidAt({
 }
 
 /**
- * One turn's words: whole, or — a finished turn of the owner's long enough to fold — its opening and its close, at most two
- * lines each, with an ellipsis at the gap; a click opens it whole and a second folds it back.
+ * One turn's words. The voice's render as light Markdown, drawn as they arrive. The owner's are literal: whole, or — a
+ * finished turn of theirs long enough to fold — its opening and its close, at most two lines each, with an ellipsis at
+ * the gap; a click opens it whole and a second folds it back.
  */
 function Said({
   id,
   text,
+  who,
+  arriving,
   folds,
   opened,
   onToggle,
 }: {
   id: string;
   text: string;
+  who: HeardSegment["who"];
+  /** Whether the words are still arriving, so a half-written list or emphasis is drawn as it will end. */
+  arriving: boolean;
   folds: boolean;
   opened: ReadonlySet<string>;
   onToggle: (turn: { id: string; from: HTMLElement }) => void;
 }): ReactElement {
+  if (who !== "owner") {
+    return (
+      <MessageResponse className={REPLY} isAnimating={arriving}>
+        {text}
+      </MessageResponse>
+    );
+  }
   const fold = foldOf({ text });
   if (!folds || fold.kind === "whole") {
-    return <>{text}</>;
+    return <span className={OWNER_WORDS}>{text}</span>;
   }
   const open = opened.has(id);
   let shown = (
