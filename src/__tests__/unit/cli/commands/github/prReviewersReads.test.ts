@@ -7,6 +7,7 @@ import { type PrReviewersFacts, prReviewersFactsOf } from "../../../../../cli/co
 import {
   changedFiles,
   changedPaths,
+  describeMovedSince,
   movedSince,
   type PrAt,
 } from "../../../../../cli/commands/github/prReviewersReads.js";
@@ -83,6 +84,47 @@ describe("movedSince", () => {
       "404 Not Found",
     ];
     expect(moves.map((now) => movedSince({ first: FIRST, now }))).toEqual([true, true, true, true, true]);
+  });
+
+  it("catches a moved changed-file count", () => {
+    expect(movedSince({ first: FIRST, now: { ...FIRST, changedFiles: 3 } })).toBe(true);
+  });
+});
+
+describe("describeMovedSince", () => {
+  const describeNow = (over: Partial<PrReviewersFacts>): string | undefined =>
+    describeMovedSince({ first: FIRST, now: { ...FIRST, ...over } });
+
+  it("says nothing moved for the same pull request, whatever its body", () => {
+    expect(describeNow({ ...FIRST, body: "edited" })).toBe(undefined);
+  });
+
+  it("names the head alone when only the head moved", () => {
+    expect(describeNow({ ...FIRST, headSha: "b".repeat(40) })).toBe("head aaaaaaaaa -> bbbbbbbbb");
+  });
+
+  it("names the base commit alone when only the base commit moved", () => {
+    expect(describeNow({ ...FIRST, baseSha: "d".repeat(40) })).toBe("base commit ccccccccc -> ddddddddd");
+  });
+
+  it("names the base branch alone when only the branch moved", () => {
+    expect(describeNow({ ...FIRST, base: "main" })).toBe("base branch staging -> main");
+  });
+
+  it("names both sides when both moved, head first", () => {
+    expect(describeNow({ ...FIRST, baseSha: "d".repeat(40), headSha: "b".repeat(40) })).toBe(
+      "head aaaaaaaaa -> bbbbbbbbb; base commit ccccccccc -> ddddddddd",
+    );
+  });
+
+  it("names a changed-file count, a close and a reopen", () => {
+    expect(describeNow({ ...FIRST, changedFiles: 3 })).toBe("changed files 2 -> 3");
+    expect(describeNow({ ...FIRST, open: false })).toBe("state open -> closed");
+    expect(describeMovedSince({ first: { ...FIRST, open: false }, now: FIRST })).toBe("state closed -> open");
+  });
+
+  it("names a re-read that failed rather than a move", () => {
+    expect(describeMovedSince({ first: FIRST, now: "404 Not Found" })).toBe("re-read failed: 404 Not Found");
   });
 });
 
