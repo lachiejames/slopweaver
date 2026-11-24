@@ -88,4 +88,14 @@ describe("findingPacketEvidence", () => {
     expect(failure.code).toBe("PREPARATION_FAILED");
     expect(failure.message).toContain("finding row a-finding-row carries no askedIso instant");
   });
+
+  it("refuses a 31st of February the board's instant check admits, since no seen day could match it", () => {
+    const askedIso = "2026-02-31T15:03:52.444Z";
+    const failure = unwrapErr(
+      findingPacketEvidence({ branch: "a-finding-branch", docs: [{ ...FINDING, askedIso }], journals: NO_JOURNALS }),
+    );
+    expect(Number.isNaN(Date.parse(askedIso))).toBe(false);
+    expect(failure.code).toBe("PREPARATION_FAILED");
+    expect(failure.message).toContain("whose day 2026-02-31 is not a real calendar day");
+  });
 });
