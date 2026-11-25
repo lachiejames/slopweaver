@@ -39,6 +39,22 @@ describe("FleetErrors", () => {
     });
   });
 
+  it("names the linked hop a Recovery check would not follow", () => {
+    expect(FleetErrors.scratchLinked({ path: "/h/sessions" })).toEqual({
+      code: "SCRATCH_LINKED",
+      message: "/h/sessions is a link, so the Recovery check neither made nor removed anything through it",
+      path: "/h/sessions",
+    });
+  });
+
+  it("names the request and the reply kind when the desktop app answers something else", () => {
+    expect(FleetErrors.appAnswerUnexpected({ kind: "closed", request: "list" })).toEqual({
+      code: "APP_ANSWER_UNEXPECTED",
+      kind: "closed",
+      message: "the desktop app answered list with closed, so what it holds was not read",
+    });
+  });
+
   it("prefixes a refused reorientation with the verb that was refused", () => {
     const error = FleetErrors.reorientationRefused({ why: "not the awaited chair" });
     expect(error).toEqual({

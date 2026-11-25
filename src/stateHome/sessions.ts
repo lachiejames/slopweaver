@@ -142,6 +142,12 @@ export interface SessionsStateHomePaths {
    */
   readonly sessions: string;
   /**
+   * `$home/sessions/recovery-scratch` — the empty directory each throwaway session of `slopweaver fleet recover` runs
+   * in, one `<attempt id>/fleet-recovery` per session, removed once its session is proven gone
+   * (`fleet/recoveryScratch.ts`).
+   */
+  readonly recoveryScratch: string;
+  /**
    * `$home/sessions/supervisor-pin.json` — which visible session (a Claude Code session or a Codex thread) holds the supervisor pin, as
    * `cmux pin`/`cmux takeover` last recorded it. Read by the `PreToolUse` depth guard, which cannot afford a
    * cmux socket round-trip per tool call; see `sessions/supervisorPin.ts` for why the socket stays the
@@ -254,6 +260,7 @@ export function sessionsStateHomePaths({ home }: { home: string }): SessionsStat
     runs: join(home, "runs"),
     ...grantPaths({ home }),
     sessions: join(home, "sessions"),
+    recoveryScratch: join(home, "sessions", "recovery-scratch"),
     agentToolBansJson: join(home, "sessions", "agent-tool-bans.json"),
     supervisorPinJson: join(home, "sessions", "supervisor-pin.json"),
     supervisorChainJsonl: join(home, "sessions", "supervisor-chain.jsonl"),

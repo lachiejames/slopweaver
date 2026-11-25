@@ -5,6 +5,7 @@
  */
 import { err, ok, type Result } from "#lib/result.js";
 import { logger } from "../../../lib/logger.js";
+import { closeAbsentAppRow } from "../../../sessionHarness/absentAppClose.js";
 import { cmuxWorkspaceFromSession } from "../../../sessionHarness/cmuxSession.js";
 import type { SessionHarnessError } from "../../../sessionHarness/errors.js";
 import { type HarnessName, parseHarnessFlag, withNamedSessionHarness } from "../../../sessionHarness/harnessChoice.js";
@@ -14,7 +15,6 @@ import { appendSessionEvent, readSessionLogText } from "../../../sessions/sessio
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { resolveHome } from "../../optionParsers.js";
-import { closeAbsentAppRow } from "./closeAbsentApp.js";
 import { cmuxUsage, parseCmuxVerb, stringFlag, workspaceOperand } from "./core.js";
 import { openSessionKeyFor } from "./run.js";
 import { type ResidueReport, reapClosedSeat, renderResidueReport } from "./worktreeResidue.js";
@@ -124,7 +124,7 @@ async function closeViaCard({
 
 /**
  * A failed close's exit code. The one failure that still ends a row is the app proving the session gone while the
- * operand names exactly one open app row (`./closeAbsentApp.ts`); every other failure keeps its error and writes
+ * operand names exactly one open app row (`../../../sessionHarness/absentAppClose.ts`); every other failure keeps its error and writes
  * nothing.
  *
  * @returns the process exit code
@@ -168,7 +168,7 @@ function closeFailed({
  * cmux refuses the close for a running process, it forces once only if the screen proves Claude Code or Codex
  * idle at its prompt, and otherwise holds the workspace open and exits 1 (`../../../sessions/closeForce.ts`).
  * Under `--harness app`, a session the app answers `SESSION_NOT_FOUND` for is already gone: its exact open ledger
- * row is closed and the verb exits 0 (`./closeAbsentApp.ts`).
+ * row is closed and the verb exits 0 (`../../../sessionHarness/absentAppClose.ts`).
  *
  * @param argv the full process argv
  * @returns the process exit code

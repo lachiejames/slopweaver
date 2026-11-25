@@ -230,7 +230,7 @@ function gateSeatBrowserSurface({
  *   only; an unreadable register refuses with or without it
  * @returns the gate a spawn's deps run before any workspace exists
  */
-function credentialGateFor({
+export function credentialGateFor({
   home,
   namedPin,
   port,

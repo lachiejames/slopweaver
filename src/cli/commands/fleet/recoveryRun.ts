@@ -24,33 +24,11 @@ import { defineCommand } from "../../defineCommand.js";
 import { EXIT_DEFERRED, EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { resolveHome } from "../../optionParsers.js";
 import type { ParsedFlags } from "../../parseFlags.js";
-import { boolFlag, type FleetVerb, fleetUsage, parseFleetArgs, stringFlag, VERB_ARG_OFFSET } from "./core.js";
+import { boolFlag, fleetUsage, stringFlag } from "./core.js";
+import { fleetFlagsOnly } from "./flagsOnly.js";
 import { closeOwnShell } from "./ownShellClose.js";
 import type { FleetResumeResult } from "./resumePassState.js";
 import { runFleetResumePass } from "./resumeRun.js";
-
-/** Parse one verb's flags, refusing positionals; the exit code on help or a usage error. */
-function resolve({ verb, argv }: { verb: FleetVerb; argv: readonly string[] }): ParsedFlags | number {
-  const rest = argv.slice(VERB_ARG_OFFSET);
-  if (rest.includes("--help") || rest.includes("-h")) {
-    logger.out({ line: fleetUsage({ verb }) });
-    return EXIT_OK;
-  }
-  const parsed = parseFleetArgs({ rest, verb });
-  if (parsed.isErr()) {
-    for (const error of parsed.error) {
-      logger.error({ msg: error });
-    }
-    logger.error({ msg: fleetUsage({ verb }) });
-    return EXIT_USAGE;
-  }
-  if (parsed.value.positionals.length > 0) {
-    logger.error({ msg: `fleet ${verb}: takes no positional argument (got ${parsed.value.positionals.join(" ")})` });
-    logger.error({ msg: fleetUsage({ verb }) });
-    return EXIT_USAGE;
-  }
-  return parsed.value;
-}
 
 /** A whole number of seconds from a flag, its default when the flag is absent, or the usage problem. */
 function secondsFlag({
@@ -132,7 +110,7 @@ export async function fleetHealth({
   fleet: FleetPort;
   port: PlanRegisterPort;
 }): Promise<number> {
-  const parsed = resolve({ argv, verb: "health" });
+  const parsed = fleetFlagsOnly({ argv, verb: "health" });
   if (typeof parsed === "number") {
     return parsed;
   }
@@ -182,7 +160,7 @@ export async function runFleetHealth(argv: readonly string[]): Promise<number> {
  * @returns the process exit code
  */
 export async function fleetConfigure({ argv, fleet }: { argv: readonly string[]; fleet: FleetPort }): Promise<number> {
-  const parsed = resolve({ argv, verb: "configure" });
+  const parsed = fleetFlagsOnly({ argv, verb: "configure" });
   if (typeof parsed === "number") {
     return parsed;
   }
@@ -245,7 +223,7 @@ function resumeExit({ result }: { result: FleetResumeResult }): number {
  *   pass is running, 1 on a refusal
  */
 export async function runFleetResume(argv: readonly string[]): Promise<number> {
-  const parsed = resolve({ argv, verb: "resume" });
+  const parsed = fleetFlagsOnly({ argv, verb: "resume" });
   if (typeof parsed === "number") {
     return parsed;
   }

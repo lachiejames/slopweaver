@@ -63,20 +63,42 @@ export interface FleetRuntimeUnavailableError {
   readonly message: string;
 }
 
+/** A hop on the way to a Recovery check's scratch directory is a link, so nothing was made or removed through it. */
+export interface FleetScratchLinkedError {
+  readonly code: "SCRATCH_LINKED";
+  readonly message: string;
+  readonly path: string;
+}
+
+/** The desktop app answered a request with a reply of another kind, so what it holds was not read. */
+export interface FleetAppAnswerUnexpectedError {
+  readonly code: "APP_ANSWER_UNEXPECTED";
+  readonly message: string;
+  /** The kind of reply that came back. */
+  readonly kind: string;
+}
+
 /** Why a fleet verb could not answer. */
 export type FleetError =
+  | FleetAppAnswerUnexpectedError
   | FleetConfigConflictError
   | FleetConfigInvalidError
   | FleetIoError
   | FleetLockHeldError
   | FleetReorientationRefusedError
   | FleetRuntimeUnavailableError
+  | FleetScratchLinkedError
   | FleetStampInvalidError
   | FleetStoreUnavailableError
   | FleetStoredInvalidError;
 
 /** The {@link FleetError} factory. */
 export const FleetErrors = {
+  appAnswerUnexpected: ({ kind, request }: { kind: string; request: string }): FleetAppAnswerUnexpectedError => ({
+    code: "APP_ANSWER_UNEXPECTED",
+    kind,
+    message: `the desktop app answered ${request} with ${kind}, so what it holds was not read`,
+  }),
   configConflict: ({ expectedRevision }: { expectedRevision: number }): FleetConfigConflictError => ({
     code: "CONFIG_CONFLICT",
     expectedRevision,
@@ -116,6 +138,11 @@ export const FleetErrors = {
   runtimeUnavailable: ({ detail }: { detail: string }): FleetRuntimeUnavailableError => ({
     code: "RUNTIME_UNAVAILABLE",
     message: `nothing was locked or stamped — ${detail}`,
+  }),
+  scratchLinked: ({ path }: { path: string }): FleetScratchLinkedError => ({
+    code: "SCRATCH_LINKED",
+    message: `${path} is a link, so the Recovery check neither made nor removed anything through it`,
+    path,
   }),
   stampInvalid: ({ atIso }: { atIso: string }): FleetStampInvalidError => ({
     code: "STAMP_INVALID",

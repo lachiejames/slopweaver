@@ -9,7 +9,7 @@
  * rule 2). `status` reads the board; `health`, `resume` and `configure` are the restart recovery the desktop app
  * drives (`../../../fleet/`), and `resume` only ever relaunches seats in their own visible cmux workspaces.
  * `restore-policy` reads, and with `--apply` turns off, cmux's own relaunch of those seats, so `resume` is the one
- * path that brings them back.
+ * path that brings them back. `recover` proves one turn on each vendor in a throwaway app session the owner can see.
  */
 
 import { stateHomePaths } from "../../../stateHome.js";
@@ -26,6 +26,7 @@ const COMMON: readonly string[] = ["dir", "home"];
 const SPECS = {
   configure: { boolean: ["json"], string: ["capacity", "home"] },
   health: { boolean: ["json"], string: ["home"] },
+  recover: { string: ["home"] },
   "restore-policy": { boolean: ["apply", "json"], string: ["config"] },
   resume: { boolean: ["json"], string: ["episode", "home", "reorient-seconds", "timeout-seconds"] },
   status: { boolean: ["json"], string: [...COMMON, "base"] },

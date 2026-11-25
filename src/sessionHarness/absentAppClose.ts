@@ -1,7 +1,7 @@
 /**
- * `cmux close app:<id> --harness app` for a session the app no longer hosts: the app answers `SESSION_NOT_FOUND`
- * to the close's `resolve`, so no close is ever sent and, before this, nothing was written either — the ledger row
- * stayed open forever, read by every later spawn as a session to continue.
+ * Closing the ledger row of a session the app no longer hosts, for `cmux close app:<id> --harness app` and for `fleet
+ * recover`'s own throwaway sessions: the app answers `SESSION_NOT_FOUND`, so no close is ever sent and, with nothing
+ * written, the row would stay open forever, read by every later spawn as a session to continue.
  *
  * The app's refusal is the proof the session is gone; what remains is which ledger row it ends. That choice is
  * EXACT: the operand must name one open app row by its recorded handle or session id. Never by slug, never the
@@ -10,10 +10,10 @@
  *
  * Pure decisions with one thin shell over injected effects, so a test drives it with plain functions.
  */
-import { APP_SESSION_HANDLE_PREFIX as APP_PREFIX } from "../../../sessionHarness/appProtocol.js";
-import type { SessionHarnessError } from "../../../sessionHarness/errors.js";
-import type { HarnessName } from "../../../sessionHarness/harnessChoice.js";
-import type { SessionEvent, SessionItem } from "../../../sessions/session.js";
+import type { SessionEvent, SessionItem } from "../sessions/session.js";
+import { APP_SESSION_HANDLE_PREFIX as APP_PREFIX } from "./appProtocol.js";
+import type { SessionHarnessError } from "./errors.js";
+import type { HarnessName } from "./harnessChoice.js";
 
 /**
  * The handle an app row is addressed by: `app:` and its recorded session id, else the handle it recorded.
@@ -82,7 +82,7 @@ export function absentAppCloseTarget({
 /**
  * The `closed` event that ends an absent app session's row, and the line the verb prints for it — shaped as the
  * recording harness's own close of a parked session, naming both the session id and the handle so the fold lands
- * on exactly that row (`../../../sessions/session.ts`'s `closedTargets`).
+ * on exactly that row (`../sessions/session.ts`'s `closedTargets`).
  *
  * @param row the row {@link absentAppCloseTarget} chose
  * @param tsIso when the close is recorded

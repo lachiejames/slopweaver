@@ -38,7 +38,7 @@ export interface HarnessLaunchSpec {
   readonly baseBranch: string | undefined;
   /** The directory the session runs in. */
   readonly directory: string;
-  /** Whether {@link directory} already exists as a worktree. */
+  /** Whether {@link directory} already exists, as a worktree or as a directory of the session's own. */
   readonly directoryExists: boolean;
   /** The raw id the host keeps the session under. */
   readonly launchKey: string;

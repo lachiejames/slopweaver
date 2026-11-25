@@ -347,6 +347,7 @@ describe("sessionsStateHomePaths", () => {
       "intakeMarksJsonl",
       "orchestration",
       "reachGrantsJsonl",
+      "recoveryScratch",
       "runs",
       "sessions",
       "skillRemindersJson",

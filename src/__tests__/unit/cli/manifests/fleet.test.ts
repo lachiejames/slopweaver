@@ -2,7 +2,8 @@
  * The `fleet` noun's manifest: the readers (`ceiling`, `history`, `landed`, `why`) are effect-free diagnostics,
  * `status` alone reaches a remote (external-read), `health` is a local-state diagnostic because its console line
  * files a fetch claim under the home, `burn` is a local-state diagnostic because `--record-reading` appends to the
- * readings ledger, `configure` and `resume` write local state, and `restore-policy`
+ * readings ledger, `recover` is a local-state diagnostic because its throwaway sessions write ledger rows and it exits
+ * 3 when a vendor did not answer, `configure` and `resume` write local state, and `restore-policy`
  * is a local-state diagnostic (its read mode exits 3 on a finding). Every verb but `configure` acts on a bare run
  * (a read of the home, a ledger or a remote), so only `configure` is dry-parse safe. That the manifest imports nothing
  * heavier is `../manifestBarrelClosure.test.ts`'s job.
@@ -14,7 +15,7 @@ import { fleetManifest } from "../../../../cli/manifests/fleet.js";
 import { classificationsOf } from "./_classification.js";
 
 describe("fleetManifest", () => {
-  it("declares exactly the ten fleet verbs", () => {
+  it("declares exactly the eleven fleet verbs", () => {
     expect(Object.keys(fleetManifest).toSorted()).toEqual([
       "burn",
       "ceiling",
@@ -22,6 +23,7 @@ describe("fleetManifest", () => {
       "health",
       "history",
       "landed",
+      "recover",
       "restore-policy",
       "resume",
       "status",
@@ -77,6 +79,14 @@ describe("fleetManifest", () => {
         doorRouted: false,
         dryParseSafe: false,
         effect: "none",
+        parseRejectIsIoFree: true,
+      },
+      recover: {
+        createsWorkItem: false,
+        diagnostic: true,
+        doorRouted: false,
+        dryParseSafe: false,
+        effect: "local-state",
         parseRejectIsIoFree: true,
       },
       "restore-policy": {

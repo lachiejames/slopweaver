@@ -8,7 +8,7 @@ app (`--harness app`), which hosts Claude and Codex sessions.
 
 The chosen design is option C from the off-cmux briefing: a session harness per session,
 plus a control plane that picks plans and runs the chair hand-off. The first step is this seam with cmux
-behind it, so nothing changes for the fleet while the verbs stop knowing what cmux is.
+behind it, so nothing changes for the fleet while the verbs stop knowing what cmux is. Its Recovery step, `slopweaver fleet recover`, opens one throwaway app session per vendor through this seam to prove each can still start one, with no cmux connection: [the Recovery check](../skills/fleet/reference/recovery-check.md).
 
 ## The contract
 
@@ -217,7 +217,7 @@ refused inspection or a malformed answer fails the spawn; it never falls back to
 
 **A dead session's row is closed by `cmux close`.** When the app answers `SESSION_NOT_FOUND` and the operand names
 exactly one open app row, `cmux close app:<id> --harness app` writes its `closed` event and prints `cmux close:
-app:<id> is already gone; closed its ledger row` (`src/cli/commands/cmux/closeAbsentApp.ts`). Every other failure
+app:<id> is already gone; closed its ledger row` (`src/sessionHarness/absentAppClose.ts`). Every other failure
 keeps its error; nothing selects by slug or by newest.
 
 **A Codex seat's row records the model it boots**, the repository's Codex pin, never the Claude tier passed on
