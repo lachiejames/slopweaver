@@ -178,6 +178,7 @@ describe("WarningMark", () => {
         '"ml-1 text-[0.78rem] group-data-[sidebar=icons]/console:in-[.sw-sidebar]:hidden"',
       ),
     ).toBe(true);
-    expect(readFileSync(SHELL_PATH, "utf8").match(/className="[^"]*\bsw-sidebar\b/g)).toHaveLength(1);
+    // A whole class token, as the `.sw-sidebar` selector reads it: `sw-sidebar-toggle-inline` is a different class.
+    expect(readFileSync(SHELL_PATH, "utf8").match(/className="(?:[^"]*\s)?sw-sidebar(?=[\s"])/g)).toHaveLength(1);
   });
 });
