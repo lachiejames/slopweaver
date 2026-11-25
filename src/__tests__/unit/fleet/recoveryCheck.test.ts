@@ -86,7 +86,7 @@ describe("judgeRecoverySnapshot", () => {
       deadlinePassed: false,
       expected: EXPECTED,
       prompt: PROMPT,
-      snapshot: { lastAgentText: undefined, lastSubmittedText: PROMPT, state: "idle" },
+      snapshot: { lastSubmittedText: PROMPT, state: "idle" },
     });
     expect(verdict).toEqual({ kind: "failed", reason: "its turn ended and it said nothing" });
   });
@@ -96,7 +96,7 @@ describe("judgeRecoverySnapshot", () => {
       deadlinePassed: false,
       expected: EXPECTED,
       prompt: PROMPT,
-      snapshot: { lastAgentText: EXPECTED, lastSubmittedText: undefined, state: "idle" },
+      snapshot: { lastAgentText: EXPECTED, state: "idle" },
     });
     expect(verdict).toEqual({ kind: "waiting" });
   });
@@ -106,7 +106,7 @@ describe("judgeRecoverySnapshot", () => {
       deadlinePassed: true,
       expected: EXPECTED,
       prompt: PROMPT,
-      snapshot: { lastAgentText: undefined, lastSubmittedText: PROMPT, state: "running" },
+      snapshot: { lastSubmittedText: PROMPT, state: "running" },
     });
     expect(verdict).toEqual({ kind: "deadline", reason: "it was still running when its time ran out" });
   });
