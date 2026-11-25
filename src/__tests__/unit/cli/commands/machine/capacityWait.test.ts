@@ -166,7 +166,7 @@ describe("machine capacity --wait", () => {
 
   it("records once, the reading the wait ended on, never a held poll", async () => {
     const appended: PrintedReadingAppend[] = [];
-    const { exit, out } = await run({
+    const { exit, out, errs } = await run({
       depsFor: machineHoldingFor({ holdReads: 3 }),
       recordReading: (input) => {
         appended.push(input);
@@ -175,17 +175,27 @@ describe("machine capacity --wait", () => {
       tail: ["--home", home, "--json", "--wait", "--record-reading", "tick-12"],
     });
     expect(exit).toBe(EXIT_OK);
+    // The wait polled through three held readings (its status line), yet stdout carries one document and one append.
+    expect(errs).toEqual(["machine capacity: HOLD on memory — waiting for it to clear"]);
+    expect(out).toHaveLength(1);
+    expect(appended).toHaveLength(1);
     expect(appended.map((input) => [input.by, input.document])).toEqual([["tick-12", out[0]]]);
     expect((JSON.parse(out[0]!) as { hold: boolean }).hold).toBe(false);
   });
 
   it("exits EXIT_ERROR, not EXIT_DEFERRED, when a timed-out wait's append is refused", async () => {
-    const { exit } = await run({
+    const refusal = ReadingsErrors.ledgerBusy({ why: "held by pid 4242" });
+    const { exit, errs } = await run({
       depsFor: machineHoldingFor({ holdReads: 99 }),
-      recordReading: () => err(ReadingsErrors.ledgerBusy({ why: "held by pid 4242" })),
+      recordReading: () => err(refusal),
       tail: ["--home", home, "--json", "--wait", "--timeout-seconds", "10", "--record-reading", "tick-12"],
     });
     expect(exit).toBe(EXIT_ERROR);
+    expect(errs).toEqual([
+      "machine capacity: HOLD on memory — waiting for it to clear",
+      "WAIT-TIMEOUT machine capacity HOLD on memory still on after 10s",
+      `machine capacity: the reading was not recorded — ${refusal.message}`,
+    ]);
   });
 
   it("refuses --timeout-seconds without --wait", async () => {
