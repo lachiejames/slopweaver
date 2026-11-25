@@ -3,6 +3,7 @@
  * that workspace closed on the tick ledger. `./read.ts` reads the rest.
  */
 import type { CodexThreadObserver } from "../measurement/codexSessions.js";
+import { supervisorPinLabel } from "../sessions/supervisorPin.js";
 import { readSupervisorPin } from "../sessions/supervisorPinStore.js";
 import { readRecordedChair } from "../supervisor/recordedChairHost.js";
 import { claudeSessionIdOf } from "../supervisor/session.js";
@@ -64,8 +65,11 @@ export function chairEvidenceOf({
   "chairCodex" | "chairPinnedAtIso" | "chairSessionId" | "chairSweep" | "chairUnresolved" | "chairWorkspaceRef"
 > {
   const pin = readSupervisorPin({ home });
+  // The chair names its own seat on each tick (`supervisor tick-draft --workspace`): a cmux ref, or `app:<id>` for a
+  // chair the desktop app hosts, so the pin's label is the key either way.
+  const seatLabel = pin === undefined ? undefined : supervisorPinLabel({ pin });
   const chairSweep: FleetChairSweep =
-    pin === undefined ? { kind: "none" } : chairSweepOf({ home, workspaceRef: pin.workspaceRef });
+    seatLabel === undefined ? { kind: "none" } : chairSweepOf({ home, workspaceRef: seatLabel });
   if (chairSweep.kind === "unreadable") {
     problems.push(`the supervisor's sweeps could not be read: ${chairSweep.why}`);
   }
@@ -83,7 +87,7 @@ export function chairEvidenceOf({
       chairSessionId: undefined,
       chairSweep,
       chairUnresolved: recorded.why,
-      chairWorkspaceRef: pin?.workspaceRef,
+      chairWorkspaceRef: seatLabel,
     };
   }
   // A Codex chair's liveness is the open-file observation, positive only: `not-observed` is carried as it is and
@@ -98,6 +102,6 @@ export function chairEvidenceOf({
     chairPinnedAtIso: pin?.pinnedAtIso,
     chairSessionId: claudeSessionIdOf({ session: pin?.session }),
     chairSweep,
-    chairWorkspaceRef: pin?.workspaceRef,
+    chairWorkspaceRef: seatLabel,
   };
 }

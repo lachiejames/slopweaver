@@ -11,6 +11,7 @@ import type { SessionActivity } from "../../../cmux/sessionActivity.js";
 import { logger } from "../../../lib/logger.js";
 import { type CmuxHostSurface, withCmuxSessionHost } from "../../../sessionHarness/cmuxHost.js";
 import { detectSeatWall, type SeatWall, seatRecoveryScreenTargets } from "../../../sessions/seatRecovery.js";
+import { pinnedCmuxWorkspaceId } from "../../../sessions/supervisorPin.js";
 import { readSupervisorPin } from "../../../sessions/supervisorPinStore.js";
 import { type SessionWatchRow, sessionWatchRows, withWalledSeats } from "../../../sessions/watchReport.js";
 
@@ -117,7 +118,7 @@ export async function watchInventory({
       const rows = sessionWatchRows({ activities, idleAfterMs, nowIso, workspaces });
       const { walls, scanProblems } = await scanSeatWalls({
         client,
-        chairWorkspaceId: readSupervisorPin({ home })?.workspaceId,
+        chairWorkspaceId: pinnedCmuxWorkspaceId({ pin: readSupervisorPin({ home }) }),
         ownWorkspaceId: callerWorkspaceId({ env: process.env }),
         workspaces,
       });

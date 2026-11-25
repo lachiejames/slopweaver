@@ -82,6 +82,7 @@ describe("claudeSdkOptions", () => {
           ...BLANKED,
           CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR: "",
           CLAUDE_SECURESTORAGE_CONFIG_DIR: "/h/claude-two",
+          SLOPWEAVER_APP_SESSION_ID: "0b5e",
         },
       },
       spawnClaudeCodeProcess: spawner,
@@ -103,6 +104,7 @@ describe("claudeSdkOptions", () => {
         ...BLANKED,
         CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR: "3",
         CLAUDE_SECURESTORAGE_CONFIG_DIR: "/h/claude-token",
+        SLOPWEAVER_APP_SESSION_ID: "0b5e",
       },
     });
   });

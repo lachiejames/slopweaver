@@ -95,14 +95,14 @@ export const METERED_READ_DEADLINE_MS = 15_000;
 
 /** One session's prompts, or why none were read. */
 type SessionPrompts =
-  | { readonly sessionId: string; readonly pid: number; readonly prompts: readonly TranscriptPrompt[] }
-  | { readonly sessionId: string; readonly pid: number; readonly why: string };
+  | { readonly sessionId: string; readonly pid: number | undefined; readonly prompts: readonly TranscriptPrompt[] }
+  | { readonly sessionId: string; readonly pid: number | undefined; readonly why: string };
 
 /**
  * Read one session's recent prompts from its transcript tail.
  *
  * @param sessionId the Claude Code session
- * @param pid its process
+ * @param pid its process, or `undefined` for an app-hosted chair
  * @param claudeHome the resolved `~/.claude`
  * @returns its prompts, or why they could not be read
  */
@@ -112,7 +112,7 @@ function sessionPrompts({
   claudeHome,
 }: {
   sessionId: string;
-  pid: number;
+  pid: number | undefined;
   claudeHome: string;
 }): SessionPrompts {
   const path = transcriptPathFor({ projectsDir: join(claudeHome, "projects"), sessionId });

@@ -13,7 +13,7 @@ import { dirname } from "node:path";
 import { defaultSessionsDir } from "../../measurement/sessions.js";
 import { mainCheckoutsFromProfile } from "../../profileStore.js";
 import { scanSessions } from "../../sessions/liveSessionStore.js";
-import { claudeHeldPin } from "../../sessions/supervisorPin.js";
+import { claudeCmuxHeldPin } from "../../sessions/supervisorPin.js";
 import { readSupervisorPin } from "../../sessions/supervisorPinStore.js";
 import { worktreePruneFloorGb } from "../../worktree/pruneFloor.js";
 import { listRepoWorktrees } from "../../worktree/pruneScan.js";
@@ -240,7 +240,7 @@ export function productionMachineCapacityDeps({ topN, home }: { topN: number; ho
       if (pin === undefined) {
         return undefined;
       }
-      return claudeHeldPin({ pin })?.session.id;
+      return claudeCmuxHeldPin({ pin })?.session.id;
     },
     compressorSysctl: () => sysctlText({ args: COMPRESSOR_OIDS }),
     cpuCount: () => {

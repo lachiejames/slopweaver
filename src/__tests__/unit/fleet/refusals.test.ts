@@ -80,6 +80,16 @@ describe("mapFleetRefusal", () => {
     expect(reason.handStep).toBeUndefined();
   });
 
+  it("names an app-hosted chair as the app's, never as a Codex thread", () => {
+    const reason = mapFleetRefusal({
+      accounts: ACCOUNTS,
+      refusal: { code: "CHAIR_IN_APP", message: "the supervisor pin names app session a1" },
+    });
+    expect(reason.headline).toBe("The supervisor runs in the desktop app, which recovery does not resume.");
+    expect(reason.raw).toBe("the supervisor pin names app session a1");
+    expect(reason.handStep).toBeUndefined();
+  });
+
   it("gives every known code a headline and a detail that are not the producer's text, with or without a plan", () => {
     expect(FLEET_REFUSAL_CODES.length).toBeGreaterThan(0);
     const leaked = FLEET_REFUSAL_CODES.flatMap((code) =>

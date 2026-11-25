@@ -28,7 +28,11 @@ import { foldNewestAttempt } from "../../../fleet/journal.js";
 import { crashLoopAction } from "../../../fleet/resumePlan.js";
 import type { CmuxHostReach, CmuxHostSurface } from "../../../sessionHarness/cmuxHost.js";
 import type { ReseatWall } from "../../../sessions/reseat.js";
-import type { ClaudeSupervisorPin, SupervisorPinRecord } from "../../../sessions/supervisorPin.js";
+import {
+  type ClaudeCmuxSupervisorPin,
+  pinnedCmuxWorkspaceId,
+  type SupervisorPinRecord,
+} from "../../../sessions/supervisorPin.js";
 import { chairNudgeLine } from "../../../transcripts/fleetNudge.js";
 import type { ReseatDeps } from "../cmux/reseatPass.js";
 import { chairStanding } from "./resumeChairStanding.js";
@@ -50,7 +54,11 @@ export function chairWorkspaceOf({
   pin: SupervisorPinRecord | undefined;
   workspaces: readonly CmuxWorkspaceSummary[];
 }): CmuxWorkspaceSummary | undefined {
-  const byPin = workspaces.find((workspace) => workspace.workspaceId === pin?.workspaceId);
+  // Only a cmux pin names a workspace; an app pin falls through to cmux's own pinned tab, never matched on its id.
+  const pinnedWorkspaceId = pinnedCmuxWorkspaceId({ pin });
+  const byPin = workspaces.find(
+    (workspace) => pinnedWorkspaceId !== undefined && workspace.workspaceId === pinnedWorkspaceId,
+  );
   if (byPin !== undefined) {
     return byPin;
   }
@@ -192,7 +200,7 @@ export async function resumeChair({
   deps: ReseatDeps;
   accounts: readonly ClaudeAccount[];
   signedOut: ReadonlyMap<string, string>;
-  pin: ClaudeSupervisorPin;
+  pin: ClaudeCmuxSupervisorPin;
   workspaces: readonly CmuxWorkspaceSummary[];
   walls: ReadonlyMap<string, ReseatWall>;
   loops: ReadonlyMap<string, FleetCrashLoop>;

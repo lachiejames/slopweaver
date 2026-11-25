@@ -19,6 +19,7 @@ import {
   type SessionControlHost,
   sessionForToken,
 } from "./sessionLaunch";
+import { sessionOriginOf } from "./sessionOrigin";
 import { entryForHandle } from "./sessionRegistryShape";
 import { recordedLaunchSpec } from "./sessionResumeShell";
 import { stoppedWhole } from "./sessionStopRequests";
@@ -129,6 +130,15 @@ async function answer({
         throw new SessionRefusal("SESSION_NOT_FOUND", `no app session ${request.handle}`);
       }
       return { kind: "picture", picture: sessionPictureOf({ entry, readAtIso: new Date().toISOString() }) };
+    }
+    // One registry read: it launches nothing, changes no state, and never answers with the vendor id it compared.
+    case "session.origin": {
+      const { appSessionId, vendor, vendorSessionId } = request;
+      const matched = sessionOriginOf({ appSessionId, registry: hostedSessions(), vendor, vendorSessionId });
+      if (matched.isErr()) {
+        throw new SessionRefusal(matched.error.code, matched.error.message);
+      }
+      return { kind: "session-origin", session: matched.value };
     }
     default: {
       const never: never = request;

@@ -6,6 +6,7 @@
  * scrub again (`codexEnvironmentPolicy.ts`) rather than trusting the worker's mutable `process.env` to still be what
  * was launched; then it adds what the adapter reads and drops the worker's own configuration.
  */
+import { APP_SESSION_ID_ENV } from "../sessionControlProtocol";
 import { codexBrowserOffConfig } from "./codexBrowserOff";
 import { codexSessionEnvironment } from "./codexEnvironmentPolicy";
 import { GUARDIAN_PID_ENV, GUARDIAN_START_ENV, type ProcessGuardian } from "./processGuardian";
@@ -27,6 +28,9 @@ export const ADAPTER_AGENT_MODE = "workspace-write";
  * SLOPWEAVER_SESSION_GUARDIAN_START` prints the stamp, double-spaced day intact. An inherited pair is always dropped
  * first, so the only guardian a session ever carries is the worker that started its adapter.
  *
+ * The session's app id ({@link APP_SESSION_ID_ENV}) rides the same way, so a `slopweaver` verb the model runs can claim
+ * the session it is in; an inherited one is dropped first, so the only id a session carries is its own.
+ *
  * @param inherited the worker's own environment
  * @param config the worker's launch configuration
  * @param guardian the worker's own pid and exact start stamp, read once before the adapter starts, when `ps` gave one
@@ -45,6 +49,8 @@ export function adapterEnvironment({
   delete environment[WORKER_CONFIG_ENV];
   delete environment[GUARDIAN_PID_ENV];
   delete environment[GUARDIAN_START_ENV];
+  delete environment[APP_SESSION_ID_ENV];
+  environment[APP_SESSION_ID_ENV] = config.sessionId;
   if (guardian !== undefined) {
     environment[GUARDIAN_PID_ENV] = String(guardian.pid);
     environment[GUARDIAN_START_ENV] = guardian.start;

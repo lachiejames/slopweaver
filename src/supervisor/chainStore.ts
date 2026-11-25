@@ -11,7 +11,8 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { appendLines } from "#lib/appendSeparator.js";
 import { isAbsentError, nonBlockingFileBytes } from "#lib/presentFile.js";
 import { stateHomePaths } from "../stateHome.js";
-import { orderChain, parseSupervisorChainJournal, parseSupervisorLinkLine, type SupervisorLink } from "./chain.js";
+import { orderChain } from "./chain.js";
+import { parseSupervisorChainJournal, parseSupervisorLinkLine, type SupervisorLink } from "./supervisorLink.js";
 
 /** Owner-only permissions, matching `../sessions/sessionStore.ts`. */
 const DIR_MODE = 0o700;

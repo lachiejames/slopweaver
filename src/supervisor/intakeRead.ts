@@ -43,7 +43,6 @@ import {
   CODEX_CHAIR_UNREAD,
   chainReachesSince,
   chairTenures,
-  linkKey,
   ownerWindow,
   type SupervisorLink,
   unwalkedTenureGaps,
@@ -62,6 +61,7 @@ import {
 } from "./intake.js";
 import { pinAsLink, resolveIntakeScope } from "./intakeScope.js";
 import { supervisorSessionKey, supervisorSessionLabel, type VisibleSupervisorSession } from "./session.js";
+import { linkKey } from "./supervisorLink.js";
 
 /** The pointer-bearing fields of every board row. */
 function rowAnchorsOf({ docs }: { docs: readonly HandoverDoc[] }): readonly RowAnchors[] {

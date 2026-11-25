@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  appPredecessorRunGate,
   closeSiblings,
   predecessorLedgerRow,
   predecessorRunGate,
@@ -52,7 +53,7 @@ describe("recordPredecessorRowClosed", () => {
     recordPredecessorRowClosed({
       home,
       predecessorSlug: "fresh-supervisor-handoff-9290",
-      successorRef: "workspace:137",
+      successorLabel: "workspace:137",
     });
     expect(journalKinds({ slug: "fresh-supervisor-handoff-9290" })).toEqual(["closed"]);
     expect(closedSummary({ slug: "fresh-supervisor-handoff-9290" })).toBe(
@@ -62,15 +63,20 @@ describe("recordPredecessorRowClosed", () => {
 
   it("returns normally on a slug the row writer REFUSES, so a completed pin swap is never undone", () => {
     expect(
-      recordPredecessorRowClosed({ home, predecessorSlug: "../escape", successorRef: "workspace:137" }),
+      recordPredecessorRowClosed({ home, predecessorSlug: "../escape", successorLabel: "workspace:137" }),
     ).toBeUndefined();
   });
 
   it("refuses a SECOND close rather than appending one, and leaves the first standing", () => {
-    recordPredecessorRowClosed({ home, predecessorSlug: "chair-a", successorRef: "workspace:1" });
-    recordPredecessorRowClosed({ home, predecessorSlug: "chair-a", successorRef: "workspace:2" });
+    recordPredecessorRowClosed({ home, predecessorSlug: "chair-a", successorLabel: "workspace:1" });
+    recordPredecessorRowClosed({ home, predecessorSlug: "chair-a", successorLabel: "workspace:2" });
     expect(journalKinds({ slug: "chair-a" })).toEqual(["closed"]);
     expect(closedSummary({ slug: "chair-a" })).toBe("the supervisor pin moved to workspace:1; this chair retired");
+  });
+
+  it("names an app successor by its app handle", () => {
+    recordPredecessorRowClosed({ home, predecessorSlug: "chair-b", successorLabel: "app:5f0c2a1e" });
+    expect(closedSummary({ slug: "chair-b" })).toBe("the supervisor pin moved to app:5f0c2a1e; this chair retired");
   });
 });
 
@@ -317,5 +323,52 @@ describe("predecessorRunGate", () => {
     const predecessor = liveWorkspace({ workspaceRef: "workspace:1" });
     const gate = predecessorRunGate({ home, predecessor, workspaces: [predecessor] });
     expect(gate).toEqual({ refusal: expect.stringContaining("(phase: no run)") });
+  });
+});
+
+const APP_ID = "5f0c2a1e-7d3b-4c8e-9a6f-1b2c3d4e5f60";
+const APP_DIR = "/w/.claude/worktrees/fresh-supervisor-handoff-9291";
+
+/** Record one row the desktop app opened, under its app session id, in its own worktree. */
+function appSpawned({ slug }: { slug: string }): void {
+  appendSessionEvent({
+    event: {
+      branch: slug,
+      cwd: APP_DIR,
+      harness: "app",
+      kind: "spawned",
+      sessionId: APP_ID,
+      sessionKey: slug,
+      slug,
+      surfaceRef: `app:${APP_ID}`,
+      tsIso: "2026-11-05T09:00:00.000Z",
+      workspaceRef: `app:${APP_ID}`,
+    },
+    home,
+  });
+}
+
+describe("appPredecessorRunGate", () => {
+  it("passes a finished app chair, naming its row by its app session id for step 5", () => {
+    appSpawned({ slug: "fresh-supervisor-handoff-9291" });
+    finishedRun({ slug: "fresh-supervisor-handoff-9291" });
+    const gate = appPredecessorRunGate({ appSessionId: APP_ID, directory: APP_DIR, home });
+    expect(gate).toEqual({
+      row: expect.objectContaining({ sessionId: APP_ID, sessionKey: "fresh-supervisor-handoff-9291" }),
+      slug: "fresh-supervisor-handoff-9291",
+    });
+  });
+
+  it("refuses an app chair whose row was never run", () => {
+    appSpawned({ slug: "fresh-supervisor-handoff-9291" });
+    const gate = appPredecessorRunGate({ appSessionId: APP_ID, directory: APP_DIR, home });
+    expect(gate).toEqual({ refusal: expect.stringContaining("(phase: no run)") });
+  });
+
+  it("refuses an app session with no ledger row, before anything moves", () => {
+    const gate = appPredecessorRunGate({ appSessionId: APP_ID, directory: APP_DIR, home });
+    expect(gate).toEqual({
+      refusal: `app:${APP_ID} answers to no single ledger row (0 open rows carry its id), so its run cannot be confirmed finished — confirm by hand before closing it`,
+    });
   });
 });

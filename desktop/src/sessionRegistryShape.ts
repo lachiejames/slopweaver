@@ -22,6 +22,12 @@ export interface RegistryEntry {
   readonly usage: SessionUsageState;
   /** Which tools the session has called in this run of the app, as a `picture.read` answers them. */
   readonly facts: AppSessionFacts;
+  /**
+   * The vendor's own id for the session, from its worker's `ready` report; `undefined` until it reports one. Held off
+   * the snapshot on purpose: it is what a `session.origin` claim is compared against, so no list, card, picture, usage
+   * report or log line the app renders may carry it (`sessionOrigin.ts`).
+   */
+  readonly vendorSessionId: string | undefined;
 }
 
 /** Every hosted session, by the control plane's id. */

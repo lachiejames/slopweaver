@@ -35,6 +35,7 @@ import {
   type ReseatStoreRefusalKind,
   type ReseatStoreRefusedError,
 } from "../../../sessions/reseatErrors.js";
+import { pinnedCmuxWorkspaceId } from "../../../sessions/supervisorPin.js";
 import { readSupervisorPin } from "../../../sessions/supervisorPinStore.js";
 import { claudeHomeDir } from "../../../supervisor/chairRead.js";
 import { claudeSessionIdOf } from "../../../supervisor/session.js";
@@ -319,7 +320,8 @@ export function reseatProductionDeps({
     awaitBootSlot: () => awaitBootSlotFor({ home, seconds: timeoutSeconds }),
     callerAncestry: readCallerAncestry,
     chairSessionId: claudeSessionIdOf({ session: pin?.session }),
-    chairWorkspaceId: pin?.workspaceId,
+    // An app-hosted chair sits in no cmux workspace, so no workspace is the chair's to protect here.
+    chairWorkspaceId: pinnedCmuxWorkspaceId({ pin }),
     client,
     coldShellPolls: COLD_SHELL_WAIT_SECONDS,
     confirmPolls: RESEAT_CONFIRM_SECONDS,

@@ -23,14 +23,14 @@ import { parseProcessRowsWhole } from "../../../../../live/standing/processes.js
 import type { SessionRecord } from "../../../../../sessions/liveSessions.js";
 import type { ReseatWall } from "../../../../../sessions/reseat.js";
 import { ReseatErrors } from "../../../../../sessions/reseatErrors.js";
-import type { ClaudeSupervisorPin } from "../../../../../sessions/supervisorPin.js";
+import type { ClaudeCmuxSupervisorPin } from "../../../../../sessions/supervisorPin.js";
 import { memoryFleetPort } from "../../../../fleetStoreFixture.js";
 import { fakeClient, fakeDeps, makeHome, memoryReseatLock, passState, workspace } from "./fleetKit.js";
 
 /** A session id no live process on any machine carries. */
 const UNUSED_SESSION = "00000000-0000-4000-8000-00000000dead";
 
-const PIN: ClaudeSupervisorPin = {
+const PIN: ClaudeCmuxSupervisorPin = {
   session: { host: "claude-code", id: UNUSED_SESSION },
   pinnedAtIso: "2026-10-04T05:00:00.000Z",
   workspaceId: "chair-id",

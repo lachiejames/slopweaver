@@ -31,7 +31,11 @@ describe("claudeSpawnPlanOf", () => {
       args: ["--output-format", "stream-json"],
       claudePath: "/app/claude",
       cwd: "/work/acme",
-      environment: { CLAUDE_SECURESTORAGE_CONFIG_DIR: "/h/claude-two", PATH: "/usr/bin" },
+      environment: {
+        CLAUDE_SECURESTORAGE_CONFIG_DIR: "/h/claude-two",
+        PATH: "/usr/bin",
+        SLOPWEAVER_APP_SESSION_ID: "0b5e",
+      },
     });
   });
 

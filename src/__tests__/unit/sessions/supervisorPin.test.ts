@@ -5,17 +5,25 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  claudeHeldPin,
+  type AppSupervisorPinRecord,
+  appHeldPin,
+  type CmuxSupervisorPinRecord,
+  claudeCmuxHeldPin,
+  cmuxHeldPin,
   isRegisteredSupervisor,
   parseSupervisorPin,
-  type SupervisorPinRecord,
+  supervisorPinLabel,
+  supervisorPinTarget,
 } from "../../../sessions/supervisorPin.js";
 
 /** The Claude Code session the default record names. */
 const SUPER = { host: "claude-code", id: "sess-super" } as const;
 
-/** One record, overridable field by field. */
-function record(over: Partial<SupervisorPinRecord> = {}): SupervisorPinRecord {
+/** The desktop control plane's id for the hosted session the default app record names. */
+const APP_ID = "5f0c2a1e-7d3b-4c8e-9a6f-1b2c3d4e5f60";
+
+/** One cmux record, overridable field by field. */
+function record(over: Partial<CmuxSupervisorPinRecord> = {}): CmuxSupervisorPinRecord {
   return {
     pinnedAtIso: "2026-09-02T04:47:00.000Z",
     session: SUPER,
@@ -23,6 +31,11 @@ function record(over: Partial<SupervisorPinRecord> = {}): SupervisorPinRecord {
     workspaceRef: "workspace:936",
     ...over,
   };
+}
+
+/** One app record, overridable field by field. */
+function appRecord(over: Partial<AppSupervisorPinRecord> = {}): AppSupervisorPinRecord {
+  return { appSessionId: APP_ID, pinnedAtIso: "2026-09-02T04:47:00.000Z", session: SUPER, ...over };
 }
 
 /** The record as a pin written before the chair could be Codex: `claudeSessionId`, no `session`. */
@@ -73,12 +86,84 @@ describe("parseSupervisorPin", () => {
   it("refuses a blank workspace id, the key a pin move forgets the record by", () => {
     expect(parseSupervisorPin({ text: JSON.stringify(record({ workspaceId: "" })) })).toBeUndefined();
   });
+
+  it("refuses a partial cmux arm, either workspace field missing", () => {
+    const { workspaceRef, ...noRef } = record();
+    const { workspaceId, ...noId } = record();
+    expect([workspaceRef, workspaceId]).toStrictEqual(["workspace:936", "03A2AD7A"]);
+
+    expect(parseSupervisorPin({ text: JSON.stringify(noRef) })).toBeUndefined();
+    expect(parseSupervisorPin({ text: JSON.stringify(noId) })).toBeUndefined();
+  });
+
+  it("round-trips an app record, a Claude holder and a Codex holder", () => {
+    const codex = appRecord({ session: { host: "codex", id: "thread-1" } });
+
+    expect(parseSupervisorPin({ text: JSON.stringify(appRecord()) })).toStrictEqual(appRecord());
+    expect(parseSupervisorPin({ text: JSON.stringify(codex) })).toStrictEqual(codex);
+  });
+
+  it("refuses a blank or path-shaped app session id", () => {
+    expect(parseSupervisorPin({ text: JSON.stringify(appRecord({ appSessionId: "" })) })).toBeUndefined();
+    expect(parseSupervisorPin({ text: JSON.stringify(appRecord({ appSessionId: "  " })) })).toBeUndefined();
+    expect(parseSupervisorPin({ text: JSON.stringify(appRecord({ appSessionId: "../x" })) })).toBeUndefined();
+  });
+
+  it("refuses an app session id beside either or both workspace fields rather than choosing an arm", () => {
+    const withId = { ...appRecord(), workspaceId: "03A2AD7A" };
+    const withRef = { ...appRecord(), workspaceRef: "workspace:936" };
+    const withBoth = { ...appRecord(), workspaceId: "03A2AD7A", workspaceRef: "workspace:936" };
+
+    expect(parseSupervisorPin({ text: JSON.stringify(withId) })).toBeUndefined();
+    expect(parseSupervisorPin({ text: JSON.stringify(withRef) })).toBeUndefined();
+    expect(parseSupervisorPin({ text: JSON.stringify(withBoth) })).toBeUndefined();
+  });
+
+  it("refuses an app arm naming its holder by the legacy `claudeSessionId`", () => {
+    const { session, ...rest } = appRecord();
+    expect(session).toStrictEqual(SUPER);
+
+    expect(parseSupervisorPin({ text: JSON.stringify({ ...rest, claudeSessionId: "sess-super" }) })).toBeUndefined();
+  });
+
+  it("refuses an app arm with no session or no instant", () => {
+    const { session, ...noSession } = appRecord();
+    const { pinnedAtIso, ...noInstant } = appRecord();
+    expect([session, pinnedAtIso]).toStrictEqual([SUPER, "2026-09-02T04:47:00.000Z"]);
+
+    expect(parseSupervisorPin({ text: JSON.stringify(noSession) })).toBeUndefined();
+    expect(parseSupervisorPin({ text: JSON.stringify(noInstant) })).toBeUndefined();
+  });
 });
 
-describe("claudeHeldPin", () => {
-  it("keeps a pin a Claude session holds and refuses one a Codex thread holds", () => {
-    expect(claudeHeldPin({ pin: record() })).toStrictEqual(record());
-    expect(claudeHeldPin({ pin: record({ session: { host: "codex", id: "sess-super" } }) })).toBeUndefined();
+describe("supervisorPinTarget and supervisorPinLabel", () => {
+  it("names the cmux workspace for a cmux pin", () => {
+    expect(supervisorPinTarget({ pin: record() })).toStrictEqual({
+      kind: "cmux",
+      workspaceId: "03A2AD7A",
+      workspaceRef: "workspace:936",
+    });
+    expect(supervisorPinLabel({ pin: record() })).toBe("workspace:936");
+  });
+
+  it("names the app session for an app pin, its label the harness handle", () => {
+    expect(supervisorPinTarget({ pin: appRecord() })).toStrictEqual({ appSessionId: APP_ID, kind: "app" });
+    expect(supervisorPinLabel({ pin: appRecord() })).toBe(`app:${APP_ID}`);
+  });
+});
+
+describe("cmuxHeldPin, appHeldPin and claudeCmuxHeldPin", () => {
+  it("narrows each arm to itself and never to the other", () => {
+    expect(cmuxHeldPin({ pin: record() })).toStrictEqual(record());
+    expect(cmuxHeldPin({ pin: appRecord() })).toBeUndefined();
+    expect(appHeldPin({ pin: appRecord() })).toStrictEqual(appRecord());
+    expect(appHeldPin({ pin: record() })).toBeUndefined();
+  });
+
+  it("keeps a cmux pin a Claude session holds and refuses a Codex holder or an app-hosted Claude", () => {
+    expect(claudeCmuxHeldPin({ pin: record() })).toStrictEqual(record());
+    expect(claudeCmuxHeldPin({ pin: record({ session: { host: "codex", id: "sess-super" } }) })).toBeUndefined();
+    expect(claudeCmuxHeldPin({ pin: appRecord() })).toBeUndefined();
   });
 });
 
@@ -92,6 +177,11 @@ describe("isRegisteredSupervisor", () => {
       false,
     );
     expect(isRegisteredSupervisor({ record: record(), session: { host: "codex", id: "sess-super" } })).toBe(false);
+  });
+
+  it("matches on host and id alone across both arms, location never part of it", () => {
+    expect(isRegisteredSupervisor({ record: appRecord(), session: SUPER })).toBe(true);
+    expect(isRegisteredSupervisor({ record: appRecord(), session: { host: "codex", id: "sess-super" } })).toBe(false);
   });
 
   it("is inert when nothing is registered at all", () => {

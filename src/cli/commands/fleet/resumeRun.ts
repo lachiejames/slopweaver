@@ -71,7 +71,7 @@ import type { CmuxHostReach, CmuxHostSurface } from "../../../sessionHarness/cmu
 import { pinnedModelsByWorkspace, type ReseatWall } from "../../../sessions/reseat.js";
 import { foldSessions, parseSessionLog, type SessionItem } from "../../../sessions/session.js";
 import { readSessionLogText } from "../../../sessions/sessionStore.js";
-import { type ClaudeSupervisorPin, claudeHeldPin } from "../../../sessions/supervisorPin.js";
+import { appHeldPin, type ClaudeCmuxSupervisorPin, claudeCmuxHeldPin } from "../../../sessions/supervisorPin.js";
 import { readSupervisorPin } from "../../../sessions/supervisorPinStore.js";
 import { reseatProductionDeps } from "../cmux/reseatEffects.js";
 import type { ReseatDeps } from "../cmux/reseatPass.js";
@@ -407,13 +407,25 @@ async function awaitStandingChair({
  * The supervisor pin, with its absence recorded — never a stop: the workers are recovered without a chair. A Codex
  * chair is recorded the same way: recovery resumes a Claude session by its id, which a Codex thread is not.
  */
-function readPinOrRecord({ home, state }: { home: string; state: PassState }): ClaudeSupervisorPin | undefined {
+function readPinOrRecord({ home, state }: { home: string; state: PassState }): ClaudeCmuxSupervisorPin | undefined {
   const pin = readSupervisorPin({ home });
   if (pin === undefined) {
     refusePass({ refusal: { code: "NO_CHAIR_PIN", message: "no supervisor pin is recorded under this home" }, state });
     return undefined;
   }
-  const held = claudeHeldPin({ pin });
+  // An app-hosted chair has no cmux tab to type a resume line into, whichever vendor runs it.
+  const app = appHeldPin({ pin });
+  if (app !== undefined) {
+    refusePass({
+      refusal: {
+        code: "CHAIR_IN_APP",
+        message: `the supervisor pin names app session ${app.appSessionId}, and recovery resumes only a chair in a cmux tab`,
+      },
+      state,
+    });
+    return undefined;
+  }
+  const held = claudeCmuxHeldPin({ pin });
   if (held === undefined) {
     refusePass({
       refusal: {

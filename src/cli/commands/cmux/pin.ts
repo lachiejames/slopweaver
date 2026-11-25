@@ -11,13 +11,26 @@ import type { CmuxError } from "../../../cmux/errors.js";
 import { listedPinTarget, type PinRefusal, pinCollisionRefusal } from "../../../cmux/pin.js";
 import { logger } from "../../../lib/logger.js";
 import { err, type Result } from "../../../lib/result.js";
-import { listCmuxWorkspacesThrough, withCmuxSessionHost } from "../../../sessionHarness/cmuxHost.js";
+import { type AppSessionClaim, appSessionClaim } from "../../../sessionHarness/appSessionOrigin.js";
+import { APP_SOCKET_ROOT, socketAppTransport } from "../../../sessionHarness/appSocketTransport.js";
+import {
+  listCmuxWorkspacesThrough,
+  listLiveCmuxWorkspaces,
+  withCmuxSessionHost,
+} from "../../../sessionHarness/cmuxHost.js";
 import type { SessionHarnessError } from "../../../sessionHarness/errors.js";
+import { readSupervisorPinDisposition } from "../../../sessions/supervisorPinStore.js";
 import { detectSupervisorSession } from "../../../supervisor/session.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
 import { parseCmuxVerb, stringFlag } from "./core.js";
-import { forgetUnpinnedSupervisor, recordSupervisorPin, type StaleRecordOutcome } from "./recordPin.js";
+import { pinAppSession } from "./pinApp.js";
+import {
+  forgetUnpinnedSupervisor,
+  recordAppSupervisorPin,
+  recordSupervisorPin,
+  type StaleRecordOutcome,
+} from "./recordPin.js";
 import { targetWorkspaceId } from "./run.js";
 
 /**
@@ -31,6 +44,28 @@ export async function runCmuxPin(argv: readonly string[]): Promise<number> {
   if (typeof parsed === "number") {
     return parsed;
   }
+  const workspaceRef = stringFlag({ name: "workspace", parsed });
+  // A bare pin from inside an app-hosted session records that session; `--workspace` always names a cmux workspace.
+  if (workspaceRef === undefined) {
+    const claim = appSessionClaim({ detection: detectSupervisorSession({ env: process.env }), env: process.env });
+    if (claim.isErr()) {
+      logger.error({ msg: `cmux pin: ${claim.error.message}` });
+      return EXIT_ERROR;
+    }
+    if (claim.value !== undefined) {
+      return runAppPin({ claim: claim.value });
+    }
+  }
+  return runCmuxWorkspacePin({ workspaceRef });
+}
+
+/**
+ * The cmux arm of `cmux pin`: pin the named workspace, or this process's own, refusing a second pinned workspace.
+ *
+ * @param workspaceRef the `--workspace` value, or `undefined` to pin this process's own workspace
+ * @returns the process exit code
+ */
+async function runCmuxWorkspacePin({ workspaceRef }: { workspaceRef: string | undefined }): Promise<number> {
   const pinned = await withCmuxSessionHost({
     // Every failure stays its own typed value until the one line below that prints it.
     body: async ({
@@ -39,11 +74,7 @@ export async function runCmuxPin(argv: readonly string[]): Promise<number> {
     }): Promise<
       Result<{ readonly ref: string; readonly self: boolean }, CmuxError | PinRefusal | SessionHarnessError>
     > => {
-      const target = await targetWorkspaceId({
-        env: process.env,
-        harness,
-        workspaceRef: stringFlag({ name: "workspace", parsed }),
-      });
+      const target = await targetWorkspaceId({ env: process.env, harness, workspaceRef });
       if (target.isErr()) {
         return err(target.error);
       }
@@ -81,6 +112,40 @@ export async function runCmuxPin(argv: readonly string[]): Promise<number> {
   if (pinned.value.self) {
     logger.out({ line: "cmux pin: recorded this session as the supervisor for the depth guard" });
   }
+  return EXIT_OK;
+}
+
+/**
+ * The app arm of `cmux pin`, over the production seams: the app's socket, one cmux listing, the strict pin record.
+ *
+ * @param claim the app session this process claims
+ * @returns the process exit code
+ */
+async function runAppPin({ claim }: { claim: AppSessionClaim }): Promise<number> {
+  const pinned = await pinAppSession({
+    claim,
+    deps: {
+      nowIso: () => new Date().toISOString(),
+      pinnedWorkspaceRefs: async () =>
+        (await listLiveCmuxWorkspaces())
+          .map((workspaces) =>
+            workspaces.filter((workspace) => workspace.pinned).map((workspace) => workspace.workspaceRef),
+          )
+          .mapErr((error) => ({ message: error.message })),
+      readDisposition: () => readSupervisorPinDisposition(),
+      record: ({ appSessionId, session, nowIso }) => recordAppSupervisorPin({ appSessionId, nowIso, session }),
+      transport: socketAppTransport({ root: APP_SOCKET_ROOT }),
+    },
+  });
+  if (pinned.isErr()) {
+    logger.error({ msg: `cmux pin: ${pinned.error.message}` });
+    return EXIT_ERROR;
+  }
+  if (!pinned.value.wrote) {
+    logger.out({ line: `cmux pin: ${pinned.value.label} is already recorded as the supervisor` });
+    return EXIT_OK;
+  }
+  logger.out({ line: `cmux pin: recorded ${pinned.value.label}, the app session this runs in, as the supervisor` });
   return EXIT_OK;
 }
 

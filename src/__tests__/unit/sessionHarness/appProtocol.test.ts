@@ -299,11 +299,40 @@ describe("isAppSessionSnapshot", () => {
 });
 
 describe("appHarnessSocketPath", () => {
-  it("puts the version-2 socket in one owner directory per user, under the root it is given", () => {
-    expect(APP_HARNESS_PROTOCOL_VERSION).toBe(2);
+  it("puts the version-3 socket in one owner directory per user, under the root it is given", () => {
+    expect(APP_HARNESS_PROTOCOL_VERSION).toBe(3);
     expect(appHarnessSocketPath({ root: "/tmp", uid: 501 })).toEqual({
       directory: "/tmp/slopweaver-501",
-      socket: "/tmp/slopweaver-501/session-harness-v2.sock",
+      socket: "/tmp/slopweaver-501/session-harness-v3.sock",
     });
+  });
+});
+
+describe("the origin claim", () => {
+  const CLAIM = { appSessionId: "0b5e", kind: "session.origin", vendor: "claude", vendorSessionId: "a0000107" };
+
+  it("accepts a claim with every field, and refuses one with a blank, missing or unknown one", () => {
+    const { appSessionId: _unnamed, ...unnamed } = CLAIM;
+    const requests = [
+      CLAIM,
+      { ...CLAIM, vendor: "codex" },
+      unnamed,
+      { ...CLAIM, vendorSessionId: "" },
+      { ...CLAIM, vendorSessionId: 7 },
+      { ...CLAIM, vendor: "claude-code" },
+    ];
+    expect(requests.map((request) => isAppHarnessRequestEnvelope(requestOf({ request })))).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  it("accepts an answer carrying the matched snapshot, and refuses one carrying none", () => {
+    const responses = [{ kind: "session-origin", session: SNAPSHOT }, { kind: "session-origin" }];
+    expect(responses.map((response) => isAppHarnessResponseEnvelope(answerOf({ response })))).toEqual([true, false]);
   });
 });

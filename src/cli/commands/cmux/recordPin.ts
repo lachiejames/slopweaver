@@ -17,11 +17,18 @@
  * (`../../../supervisor/chain.ts` carries the measurement that forced it).
  */
 import { logger } from "../../../lib/logger.js";
-import type { SupervisorPinRecord } from "../../../sessions/supervisorPin.js";
+import {
+  type AppSupervisorPinRecord,
+  appHeldPin,
+  type CmuxSupervisorPinRecord,
+  cmuxHeldPin,
+  type SupervisorPinRecord,
+  type SupervisorPinTarget,
+} from "../../../sessions/supervisorPin.js";
 import { forgetSupervisorPin, supervisorPinPath, writeSupervisorPin } from "../../../sessions/supervisorPinStore.js";
-import { buildSupervisorLink } from "../../../supervisor/chain.js";
 import { appendSupervisorLink } from "../../../supervisor/chainStore.js";
 import type { SupervisorSessionDetection, VisibleSupervisorSession } from "../../../supervisor/session.js";
+import { buildSupervisorLink } from "../../../supervisor/supervisorLink.js";
 
 /**
  * Write the supervisor-pin record when the workspace just pinned is the caller's own.
@@ -55,23 +62,84 @@ export function recordSupervisorPin({
   if (detection.kind !== "active" || ownWorkspaceId !== pinnedWorkspaceId) {
     // The pin moved to a workspace whose session this process cannot name, so a record naming any OTHER
     // workspace now names a session the pin has left.
-    forgetLoudly({ home, when: (record) => record.workspaceId !== pinnedWorkspaceId });
+    // Only a cmux record can name a workspace; an app record is never read as one.
+    forgetLoudly({ home, when: (record) => cmuxRecordNames({ record, workspaceId: pinnedWorkspaceId }) === false });
     return false;
   }
   const { session } = detection;
+  const record: CmuxSupervisorPinRecord = {
+    pinnedAtIso: nowIso,
+    session,
+    workspaceId: pinnedWorkspaceId,
+    workspaceRef,
+  };
+  if (!writeLoudly({ home, record })) {
+    return false;
+  }
+  appendChainLink({
+    home,
+    nowIso,
+    session,
+    target: { kind: "cmux", workspaceId: pinnedWorkspaceId, workspaceRef },
+  });
+  return true;
+}
+
+/**
+ * Write the supervisor-pin record naming the calling session the desktop app hosts.
+ *
+ * The caller must have verified the app session id is its own first (`verifyAppSessionOrigin`), because this
+ * write is what the depth guard and the chair gate then read as the chair. It moves no cmux pin, launches
+ * nothing and renames nothing: an app-hosted chair has no workspace to pin.
+ *
+ * @param appSessionId the desktop control plane's id for the caller's own hosted session, origin-verified
+ * @param session the vendor session inside it, as detected at the verb's boundary
+ * @param nowIso the instant to stamp the record with
+ * @param home the state home (defaults to the resolved home)
+ * @returns true when a record was written
+ */
+export function recordAppSupervisorPin({
+  appSessionId,
+  session,
+  nowIso,
+  home,
+}: {
+  appSessionId: string;
+  session: VisibleSupervisorSession;
+  nowIso: string;
+  home?: string;
+}): boolean {
+  const record: AppSupervisorPinRecord = { appSessionId, pinnedAtIso: nowIso, session };
+  if (!writeLoudly({ home, record })) {
+    return false;
+  }
+  appendChainLink({ home, nowIso, session, target: { appSessionId, kind: "app" } });
+  return true;
+}
+
+/** Whether a record is the cmux arm naming this workspace; `undefined` for an app record, which names none. */
+function cmuxRecordNames({
+  record,
+  workspaceId,
+}: {
+  record: SupervisorPinRecord;
+  workspaceId: string;
+}): boolean | undefined {
+  const cmux = cmuxHeldPin({ pin: record });
+  return cmux === undefined ? undefined : cmux.workspaceId === workspaceId;
+}
+
+/** Replace the pin record, logging rather than throwing: the pin move it records cannot be rolled back. */
+function writeLoudly({ home, record }: { home: string | undefined; record: SupervisorPinRecord }): boolean {
   try {
-    writeSupervisorPin({
-      record: { pinnedAtIso: nowIso, session, workspaceId: pinnedWorkspaceId, workspaceRef },
-      ...(home === undefined ? {} : { home }),
-    });
+    writeSupervisorPin({ record, ...(home === undefined ? {} : { home }) });
+    return true;
   } catch (error: unknown) {
     logger.error({
       msg: `cmux pin: the pin succeeded, but recording it for the supervisor depth guard failed — ${String(error)}`,
     });
     return false;
   }
-  appendChainLink({ home, nowIso, pinnedWorkspaceId, session, workspaceRef });
-  return true;
 }
 
 /**
@@ -88,7 +156,29 @@ export function forgetUnpinnedSupervisor({
   unpinnedWorkspaceId: string;
   home?: string;
 }): StaleRecordOutcome {
-  return forgetLoudly({ home, when: (record) => record.workspaceId === unpinnedWorkspaceId });
+  return forgetLoudly({
+    home,
+    when: (record) => cmuxRecordNames({ record, workspaceId: unpinnedWorkspaceId }) === true,
+  });
+}
+
+/**
+ * Take the supervisor seat off an app session: remove the pin record when, and only when, it is the app arm naming
+ * exactly that session. The app session's counterpart of a cmux unpin, which cmux cannot do for a session it never
+ * hosted.
+ *
+ * @param appSessionId the app session the seat is being taken from
+ * @param home the state home (defaults to the resolved home)
+ * @returns removed, absent when no record named that session, or failed when one did and would not go
+ */
+export function forgetAppSupervisor({
+  appSessionId,
+  home,
+}: {
+  appSessionId: string;
+  home?: string;
+}): StaleRecordOutcome {
+  return forgetLoudly({ home, when: (record) => appHeldPin({ pin: record })?.appSessionId === appSessionId });
 }
 
 /** What removing a stale supervisor-pin record came to. */
@@ -132,37 +222,28 @@ function forgetLoudly({
  * out loud — and `slopweaver supervisor chain --rescan` recovers it from the transcript.
  *
  * @param session the visible session that just took the pin
- * @param pinnedWorkspaceId cmux's id for its workspace
- * @param workspaceRef the addressable ref a human can open
+ * @param target where it is hosted: its cmux workspace or its desktop-app session
  * @param nowIso the instant the pin moved
  * @param home the state home (defaults to the resolved home)
  */
 function appendChainLink({
   session,
-  pinnedWorkspaceId,
-  workspaceRef,
+  target,
   nowIso,
   home,
 }: {
   session: VisibleSupervisorSession;
-  pinnedWorkspaceId: string;
-  workspaceRef: string;
+  target: SupervisorPinTarget;
   nowIso: string;
   home: string | undefined;
 }): void {
-  const built = buildSupervisorLink({
-    pinnedAtIso: nowIso,
-    session,
-    source: "pin",
-    workspaceId: pinnedWorkspaceId,
-    workspaceRef,
-  });
-  if ("refusal" in built) {
-    logger.error({ msg: `cmux pin: the supervisor chain was not extended — ${built.refusal}` });
+  const built = buildSupervisorLink({ pinnedAtIso: nowIso, session, source: "pin", target });
+  if (built.isErr()) {
+    logger.error({ msg: `cmux pin: the supervisor chain was not extended — ${built.error.message}` });
     return;
   }
   try {
-    appendSupervisorLink({ link: built.link, ...(home === undefined ? {} : { home }) });
+    appendSupervisorLink({ link: built.value, ...(home === undefined ? {} : { home }) });
   } catch (error: unknown) {
     logger.error({
       msg: `cmux pin: the pin succeeded, but extending the supervisor chain failed — ${String(error)}`,

@@ -4,10 +4,13 @@
  *
  * The answer is mapped into the seam's own errors HERE, once, so `./appHarness.ts` and `./appLaunch.ts` see only
  * the session vocabulary: no socket, no envelope. A missing or refusing socket is `HARNESS_UNAVAILABLE` naming the
- * app, never a silent fall back to cmux — `--harness app` asked for the app.
+ * app, never a silent fall back to cmux — `--harness app` asked for the app. An app speaking another protocol version
+ * (its socket under another name, or an answer this version cannot read) is said in words: rebuild the app.
  */
 import { randomUUID } from "node:crypto";
+import { readdirSync } from "node:fs";
 import { connect } from "node:net";
+import { basename } from "node:path";
 
 import { err, ok, type Result } from "#lib/result.js";
 import {
@@ -32,6 +35,42 @@ export type AppTransportFailure =
   | { readonly kind: "refused"; readonly code: string; readonly message: string }
   | { readonly kind: "malformed"; readonly message: string };
 
+/**
+ * What a verb prints when the desktop app speaks another session protocol than this checkout: in words, never a bare
+ * version number, because the one thing the reader can do about it is rebuild the app.
+ */
+export const APP_PROTOCOL_MISMATCH_MESSAGE =
+  "the Slopweaver desktop app speaks a different session protocol from this checkout, so the desktop app must be " +
+  "rebuilt: run `slopweaver desktop install` from this checkout, then try again";
+
+/** The name every protocol version's socket takes inside the per-user directory. */
+const PROTOCOL_SOCKET_NAME = /^session-harness-v\d+\.sock$/u;
+
+/**
+ * Whether the per-user directory holds another protocol version's socket and not this one's: an app built before
+ * or after this checkout, listening where a verb of its own version would look.
+ *
+ * @param names the entries of the per-user socket directory
+ * @param socketName the file name this checkout's protocol version listens on
+ * @returns true when some other version's socket is there
+ */
+export function holdsOtherProtocolSocket({
+  names,
+  socketName,
+}: {
+  names: readonly string[];
+  socketName: string;
+}): boolean {
+  return names.some((name) => name !== socketName && PROTOCOL_SOCKET_NAME.test(name));
+}
+
+/** The app is up, but on another protocol version's socket, so this checkout's verbs cannot reach it until rebuilt. */
+const PROTOCOL_MISMATCH: AppTransportFailure = {
+  causeCode: "PROTOCOL_MISMATCH",
+  kind: "unreachable",
+  message: APP_PROTOCOL_MISMATCH_MESSAGE,
+};
+
 /** The control plane wrote more than one protocol line's worth with no newline. */
 const ANSWER_TOO_LONG: AppTransportFailure = {
   kind: "malformed",
@@ -55,6 +94,24 @@ function notServing({ code, socket }: { code: string | undefined; socket: string
     kind: "unreachable",
     message: `the Slopweaver desktop app is not serving sessions at ${socket} (${causeCode}) — open the app, or use --harness cmux`,
   };
+}
+
+/**
+ * Whether another protocol version's socket sits beside the one this checkout looked for. A directory that cannot
+ * be read answers false, so the failure stays the plain not-serving one rather than a guess.
+ *
+ * @param directory the per-user socket directory
+ * @param socket the full path this checkout's protocol version listens on
+ * @returns true when an app of another version is listening there
+ */
+function otherProtocolListening({ directory, socket }: { directory: string; socket: string }): boolean {
+  let names: readonly string[];
+  try {
+    names = readdirSync(directory);
+  } catch {
+    return false;
+  }
+  return holdsOtherProtocolSocket({ names, socketName: basename(socket) });
 }
 
 /** Sends one request and reads its answer; a fake in a test, the socket in production. */
@@ -84,10 +141,7 @@ export function readResponseLine({
     return err({ kind: "malformed", message: "the desktop app answered a line that is not JSON" });
   }
   if (!isAppHarnessResponseEnvelope(value)) {
-    return err({
-      kind: "malformed",
-      message: `the desktop app answered outside protocol v${String(APP_HARNESS_PROTOCOL_VERSION)} — is it older than this checkout?`,
-    });
+    return err({ kind: "malformed", message: APP_PROTOCOL_MISMATCH_MESSAGE });
   }
   const envelope: AppHarnessResponseEnvelope = value;
   if (envelope.requestId !== requestId) {
@@ -114,7 +168,7 @@ export function socketAppTransport({ root }: { root: string }): AppTransport {
         message: "this platform has no user id to find the app's socket by",
       });
     }
-    const { socket } = appHarnessSocketPath({ root, uid: process.getuid() });
+    const { directory, socket } = appHarnessSocketPath({ root, uid: process.getuid() });
     const requestId = randomUUID();
     const line = `${JSON.stringify({ protocolVersion: APP_HARNESS_PROTOCOL_VERSION, request, requestId })}\n`;
     return new Promise((resolve) => {
@@ -148,7 +202,8 @@ export function socketAppTransport({ root }: { root: string }): AppTransport {
         }
       });
       connection.once("error", (cause: NodeJS.ErrnoException) => {
-        settle({ outcome: err(notServing({ code: cause.code, socket })) });
+        const mismatched = cause.code === "ENOENT" && otherProtocolListening({ directory, socket });
+        settle({ outcome: err(mismatched ? PROTOCOL_MISMATCH : notServing({ code: cause.code, socket })) });
       });
       connection.once("end", () => {
         settle({ outcome: err(HUNG_UP) });

@@ -7,12 +7,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { unwrap } from "#lib/result.js";
 import type { HandoverDoc } from "../../../handover/doc.js";
-import { buildSupervisorLink, type SupervisorLink } from "../../../supervisor/chain.js";
 import { appendSupervisorLink } from "../../../supervisor/chainStore.js";
 import type { InboundFinding } from "../../../supervisor/inbound.js";
 import type { IntakeFinding, IntakeReport } from "../../../supervisor/intake.js";
 import type { VisibleSupervisorSession } from "../../../supervisor/session.js";
+import { buildSupervisorLink, type SupervisorLink } from "../../../supervisor/supervisorLink.js";
 
 export const OLD = "a0000013-0000-4000-8000-000000000014";
 export const NEW = "b3f532df-83e5-495b-b5b8-8b8c3e54d512";
@@ -201,17 +202,14 @@ export function linkFor({ session, at }: { session: string; at: string }): Super
  * @returns the link
  */
 export function unwrapLink({ session, at }: { session: VisibleSupervisorSession; at: string }): SupervisorLink {
-  const built = buildSupervisorLink({
-    session,
-    pinnedAtIso: at,
-    source: "pin",
-    workspaceId: "W",
-    workspaceRef: "workspace:1",
-  });
-  if ("refusal" in built) {
-    throw new Error(built.refusal);
-  }
-  return built.link;
+  return unwrap(
+    buildSupervisorLink({
+      pinnedAtIso: at,
+      session,
+      source: "pin",
+      target: { kind: "cmux", workspaceId: "W", workspaceRef: "workspace:1" },
+    }),
+  );
 }
 
 export const CHAIN = [linkFor({ at: OLD_PINNED, session: OLD }), linkFor({ at: NEW_PINNED, session: NEW })];

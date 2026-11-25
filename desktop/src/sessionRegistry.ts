@@ -167,9 +167,11 @@ function onWorker({
   switch (report.kind) {
     // A message that arrived while the session was starting was held, and goes now, exactly as at a turn's end. Only a
     // STARTING session is released by ready: a repeated one must never release what a running turn holds.
+    // The vendor's own id is kept beside the snapshot, never on it, for a `session.origin` claim to be compared with.
     case "ready": {
+      const { vendorSessionId } = report;
       const up = withEntry({
-        change: (held) => ({ ...held, usage: usageOnReady({ atIso, usage: held.usage }) }),
+        change: (held) => ({ ...held, usage: usageOnReady({ atIso, usage: held.usage }), vendorSessionId }),
         registry,
         sessionId,
       });
@@ -291,6 +293,7 @@ export function reduceRegistry({ registry, event }: { registry: SessionRegistry;
         facts: EMPTY_SESSION_FACTS,
         urgent: 0,
         usage: usageOfSpec({ spec }),
+        vendorSessionId: undefined,
       });
       return { registry: next, sends: [] };
     }

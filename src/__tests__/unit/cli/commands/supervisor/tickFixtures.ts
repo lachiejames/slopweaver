@@ -170,8 +170,8 @@ export const READ_CHAIR: Extract<ChairGateEvidence, { kind: "read" }> = {
     sessions: [
       { pid: 75277, sessionId: "a0000049", verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } },
     ],
-    workspaceCwd: "/wt/chair",
-    workspaceId: "WS",
+    directory: "/wt/chair",
+    location: { kind: "cmux", workspaceId: "WS" },
   },
   kind: "read",
   lanes: FILL_LANES,

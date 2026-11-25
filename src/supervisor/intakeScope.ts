@@ -8,10 +8,10 @@ import { err, ok, type Result } from "../lib/result.js";
 import { scanSessions } from "../sessions/liveSessionStore.js";
 import { readSupervisorPin } from "../sessions/supervisorPinStore.js";
 import { findTranscript } from "../transcripts/source.js";
-import type { SupervisorLink } from "./chain.js";
 import { readSupervisorChainEvents } from "./chainStore.js";
 import { type SupervisorCoreError, SupervisorCoreErrors } from "./errors.js";
 import { readRecordedChair } from "./recordedChairHost.js";
+import { linkFromPin, type SupervisorLink } from "./supervisorLink.js";
 
 /**
  * Which transcript the check reads when a caller names ONE session, and why that one.
@@ -41,8 +41,7 @@ export function pinAsLink({ home }: { home: string }): readonly SupervisorLink[]
   if (pin === undefined) {
     return [];
   }
-  const { pinnedAtIso, session, workspaceId, workspaceRef } = pin;
-  return [{ pinnedAtIso, session, source: "pin", workspaceId, workspaceRef }];
+  return [linkFromPin({ pin })];
 }
 
 /**

@@ -14,7 +14,7 @@ import { LEAN_LANES } from "../plans/laneFixtures.js";
 
 /** A chair read standing on one Claude plan, so no timer sweep is armed. */
 const LEAN_EVIDENCE = {
-  chair: { kind: "resolved", sessions: [], workspaceCwd: "/wt/chair", workspaceId: "WS" },
+  chair: { directory: "/wt/chair", kind: "resolved", location: { kind: "cmux", workspaceId: "WS" }, sessions: [] },
   kind: "read",
   lanes: LEAN_LANES,
 } as const;

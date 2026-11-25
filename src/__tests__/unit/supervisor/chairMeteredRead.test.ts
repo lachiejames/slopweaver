@@ -31,8 +31,8 @@ const NOW_MS = Date.parse("2026-09-17T13:45:00Z");
 const READ: ChairRead = {
   kind: "resolved",
   sessions: [{ pid: 222, sessionId: SESSION, verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } }],
-  workspaceCwd: "/wt/fresh-supervisor-handoff-9283",
-  workspaceId: "WS-PINNED",
+  directory: "/wt/fresh-supervisor-handoff-9283",
+  location: { kind: "cmux", workspaceId: "WS-PINNED" },
 };
 
 /** A deadline that never passes. */

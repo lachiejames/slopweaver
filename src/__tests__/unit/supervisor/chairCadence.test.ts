@@ -592,8 +592,8 @@ describe("chairCadenceSessions", () => {
       { pid: 1, sessionId: "s1", verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } },
       { pid: 2, sessionId: "s2", verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } },
     ],
-    workspaceCwd: "/wt/chair",
-    workspaceId: "WS",
+    directory: "/wt/chair",
+    location: { kind: "cmux", workspaceId: "WS" },
   };
   /** No session's transcript, boot or auto-compactions read. */
   const nothingRead = { autoCompactions: new Map(), canon: new Map(), versions: new Map() };
@@ -651,8 +651,8 @@ describe("chairCadenceSessions", () => {
           { pid: 202, sessionId: "same", verdict: shared },
           { pid: 101, sessionId: "same", verdict: shared },
         ],
-        workspaceCwd: "/wt/chair",
-        workspaceId: "WS",
+        directory: "/wt/chair",
+        location: { kind: "cmux", workspaceId: "WS" },
       },
       plans,
       ...nothingRead,

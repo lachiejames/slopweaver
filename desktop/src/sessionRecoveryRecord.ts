@@ -9,7 +9,7 @@
  */
 import { err, ok, type Result } from "neverthrow";
 
-import { type AppLaunchSpec, isAppLaunchSpec } from "./sessionControlProtocol";
+import { type AppLaunchSpec, isAppLaunchSpec } from "./launchSpecWire";
 import type { WorkerLaunchConfig } from "./sessionWorker/workerWire";
 
 /** A session came up: the vendor's transcript id and the launch it was opened with. */

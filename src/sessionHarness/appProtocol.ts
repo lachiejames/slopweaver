@@ -7,30 +7,47 @@
  * imports none of it. `desktop/__tests__/unit/sessionControlProtocolMirror.test.ts` fails the moment the two differ.
  * So this file imports only its mirrored siblings, `wireBasics.ts` (the words and shape checks every wire shares),
  * `usageWire.ts` (what a `usage` answer carries), `pictureWire.ts` (what a `picture` answer carries) and
- * `credentialRouteWire.ts` (the login a Claude launch presents), under the one specifier both trees resolve; every
- * check in it is a type predicate either side wraps in its own `Result`.
+ * `launchSpecWire.ts` (what a launch asks for, and the login a Claude launch presents through `credentialRouteWire.ts`),
+ * under the one specifier both trees resolve; every check in it is a type predicate either side wraps in its own
+ * `Result`.
  *
  * The vocabulary is the session harness's (`src/sessionHarness/sessionHarness.ts`): a session, a handle, a delivery.
- * The vendor's own session id never crosses this wire; the control plane keeps it.
+ * The vendor's own session id the control plane holds never crosses this wire: a `session.origin` request carries the
+ * id the CALLER claims, for the control plane to compare, and no answer ever carries the one it holds.
  */
-import { type ClaudeCredentialRoute, isClaudeCredentialRoute } from "./credentialRouteWire.js";
+import { type AppLaunchSpec, isAppLaunchSpec } from "./launchSpecWire.js";
 import { type AppSessionPicture, isAppSessionPicture } from "./pictureWire.js";
 import { type AppUsageReport, isAppUsageReport } from "./usageWire.js";
 import {
   APP_SESSION_STATES,
   type AppHarnessVendor,
   type AppSessionState,
-  hasOnlyKeys,
   hasOptionalStrings,
   hasStrings,
   isObject,
 } from "./wireBasics.js";
 
+export {
+  APP_CLAUDE_EFFORTS,
+  type AppClaudeEffort,
+  type AppLaunchSpec,
+  type ClaudeAppLaunchSpec,
+  type CodexAppLaunchSpec,
+} from "./launchSpecWire.js";
+
 /**
  * The one protocol version both sides speak; a request or response carrying any other is refused. The socket's name
- * carries it too, so a verb from one version never reaches an app speaking another and reads its answer as malformed.
+ * carries it too, so a verb from one version never reaches an app speaking another and reads its answer as malformed:
+ * an app built before a bump is unreachable to the verbs after it until the app is rebuilt.
  */
-export const APP_HARNESS_PROTOCOL_VERSION = 2;
+export const APP_HARNESS_PROTOCOL_VERSION = 3;
+
+/**
+ * The environment variable naming the control plane's own id for the session a model process runs in. The app sets it
+ * on every model child it starts, over any value inherited, so a `slopweaver` verb run from inside a hosted session can
+ * claim that session with `session.origin`; it is the one variable the app adds to a model child for this.
+ */
+export const APP_SESSION_ID_ENV = "SLOPWEAVER_APP_SESSION_ID";
 
 /** The longest line either side accepts, in bytes, newline excluded. A longer one is refused, never truncated. */
 export const APP_HARNESS_MAX_LINE_BYTES = 1_048_576;
@@ -46,65 +63,6 @@ export const APP_SESSION_HANDLE_PREFIX = "app:";
  * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
  */
 export type AppHarnessDelivery = "now" | "turn" | "later";
-
-/**
- * How hard a Claude session thinks, in the Agent SDK's own levels; an unknown level is refused, never passed on.
- * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
- */
-export type AppClaudeEffort = "low" | "medium" | "high" | "xhigh" | "max";
-
-/** Every {@link AppClaudeEffort}, which the CLI checks a seat's effort against before it asks for a launch. */
-export const APP_CLAUDE_EFFORTS: readonly AppClaudeEffort[] = ["low", "medium", "high", "xhigh", "max"];
-
-/** What every launch carries, whichever vendor runs it. */
-interface AppLaunchCommon {
-  /** The short human title the card shows. */
-  readonly title: string;
-  /** The directory the session runs in; it exists before the launch is asked for. */
-  readonly directory: string;
-  /** The ledger's label for the session, shown on the card. */
-  readonly ledgerKey: string;
-  /** The model asked for, when one was pinned. */
-  readonly model?: string;
-  /**
-   * The state home the spawn recorded the session's ledger row under, when it named one: the card's Stop closes
-   * through the verb under the same home, so the close lands on that row.
-   */
-  readonly ledgerHome?: string;
-}
-
-/**
- * A Codex launch.
- * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
- */
-export interface CodexAppLaunchSpec extends AppLaunchCommon {
-  readonly vendor: "codex";
-  /** The `$CODEX_HOME` the session's plan routes it to. */
-  readonly codexHome: string;
-  /**
-   * The `instanceId` of the app whose `pong` named the binary the spawn's browser door judged. Each request is its own
-   * connection, so another run of the app (a reinstall, a relaunch) can hold the socket by the launch; it refuses a
-   * launch naming any instance but its own, so a judgment is never spent on an app it was not made against.
-   */
-  readonly judgedInstanceId: string;
-}
-
-/**
- * A Claude launch: the login it presents, and what it loads.
- * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
- */
-export interface ClaudeAppLaunchSpec extends AppLaunchCommon {
-  readonly vendor: "claude";
-  readonly credential: ClaudeCredentialRoute;
-  /** The rule files the seat's template leaves out, by absolute path (`src/cmux/launchTemplate.ts`). */
-  readonly claudeMdExcludes: readonly string[];
-  readonly effort?: AppClaudeEffort;
-  /** The Slopweaver plugin directory the seat loads, when the spawn resolved one. */
-  readonly pluginDir?: string;
-}
-
-/** What the control plane needs to open one session — never a credential, never the ledger. */
-export type AppLaunchSpec = CodexAppLaunchSpec | ClaudeAppLaunchSpec;
 
 /** One session as the control plane reports it. */
 export interface AppSessionSnapshot {
@@ -163,7 +121,18 @@ export type AppHarnessRequest =
   /** Every hosted session's usage, answered `usage`. An app from before it refuses it as `BAD_REQUEST`. */
   | { readonly kind: "usage.read" }
   /** One hosted session's facts picture, answered `picture`. An app from before it refuses it as `BAD_REQUEST`. */
-  | { readonly kind: "picture.read"; readonly handle: string };
+  | { readonly kind: "picture.read"; readonly handle: string }
+  /**
+   * Whether the caller runs inside the hosted session `appSessionId` names: answered `session-origin` only when that
+   * session is reachable, is `vendor`'s, and the vendor session id the control plane holds for it is exactly
+   * `vendorSessionId`; refused `ORIGIN_REFUSED` otherwise, never saying which id the control plane holds.
+   */
+  | {
+      readonly kind: "session.origin";
+      readonly appSessionId: string;
+      readonly vendor: AppHarnessVendor;
+      readonly vendorSessionId: string;
+    };
 
 /** One answer the control plane sends back to a request it carried out. */
 export type AppHarnessResponse =
@@ -193,14 +162,21 @@ export type AppHarnessResponse =
   /** The card's Stop was pressed and its stop finished: `session` is the session as that stop left it. */
   | { readonly kind: "stop-pressed"; readonly session: AppSessionSnapshot }
   | { readonly kind: "usage"; readonly report: AppUsageReport }
-  | { readonly kind: "picture"; readonly picture: AppSessionPicture };
+  | { readonly kind: "picture"; readonly picture: AppSessionPicture }
+  /** The session a `session.origin` claim named, which the claim matched. */
+  | { readonly kind: "session-origin"; readonly session: AppSessionSnapshot };
 
 /**
  * Why the control plane did not carry a request out.
  * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
  */
 export type AppHarnessRefusalCode =
-  "BAD_REQUEST" | "SESSION_NOT_FOUND" | "DELIVERY_UNSUPPORTED" | "LAUNCH_FAILED" | "OPERATION_FAILED";
+  | "BAD_REQUEST"
+  | "SESSION_NOT_FOUND"
+  | "DELIVERY_UNSUPPORTED"
+  | "LAUNCH_FAILED"
+  | "OPERATION_FAILED"
+  | "ORIGIN_REFUSED";
 
 /**
  * A request on the wire.
@@ -235,47 +211,8 @@ const REFUSALS: ReadonlySet<string> = new Set([
   "DELIVERY_UNSUPPORTED",
   "LAUNCH_FAILED",
   "OPERATION_FAILED",
+  "ORIGIN_REFUSED",
 ]);
-
-const COMMON_LAUNCH_KEYS: readonly string[] = ["vendor", "title", "directory", "ledgerKey", "model", "ledgerHome"];
-
-function isClaudeLaunchSpec(value: Readonly<Record<string, unknown>>): boolean {
-  const excludes = value["claudeMdExcludes"];
-  const effort = value["effort"];
-  return (
-    hasOnlyKeys({ keys: [...COMMON_LAUNCH_KEYS, "credential", "claudeMdExcludes", "effort", "pluginDir"], value }) &&
-    isClaudeCredentialRoute(value["credential"]) &&
-    Array.isArray(excludes) &&
-    excludes.every((path) => typeof path === "string") &&
-    (effort === undefined || APP_CLAUDE_EFFORTS.some((level) => level === effort)) &&
-    hasOptionalStrings({ keys: ["pluginDir"], value })
-  );
-}
-
-/**
- * Whether a value is one launch spec, each vendor's arm carrying only its own keys.
- *
- * @param value anything parsed off the wire, or out of the app's recovery journal
- * @returns true when it is a Codex or a Claude launch with every field the shape the protocol declares
- * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
- */
-export function isAppLaunchSpec(value: unknown): value is AppLaunchSpec {
-  if (
-    !isObject(value) ||
-    !hasStrings({ keys: ["title", "directory", "ledgerKey"], value }) ||
-    !hasOptionalStrings({ keys: ["model", "ledgerHome"], value })
-  ) {
-    return false;
-  }
-  if (value["vendor"] === "claude") {
-    return isClaudeLaunchSpec(value);
-  }
-  return (
-    value["vendor"] === "codex" &&
-    hasStrings({ keys: ["codexHome", "judgedInstanceId"], value }) &&
-    hasOnlyKeys({ keys: [...COMMON_LAUNCH_KEYS, "codexHome", "judgedInstanceId"], value })
-  );
-}
 
 /**
  * Whether a value is one session snapshot.
@@ -336,6 +273,14 @@ function isRequest(value: unknown): value is AppHarnessRequest {
     case "stop.press": {
       return hasStrings({ keys: ["sessionId"], value });
     }
+    case "session.origin": {
+      return (
+        hasStrings({ keys: ["appSessionId", "vendorSessionId"], value }) &&
+        value["appSessionId"] !== "" &&
+        value["vendorSessionId"] !== "" &&
+        (value["vendor"] === "codex" || value["vendor"] === "claude")
+      );
+    }
     default: {
       return false;
     }
@@ -362,7 +307,8 @@ function isResponse(value: unknown): value is AppHarnessResponse {
     }
     case "delivered":
     case "resolved":
-    case "stop-pressed": {
+    case "stop-pressed":
+    case "session-origin": {
       return isAppSessionSnapshot(value["session"]);
     }
     case "aborted":

@@ -10,6 +10,7 @@ import { errorMessage } from "#lib/errorMessage.js";
 import { isRecord } from "#lib/parsers.js";
 
 import { readSessionLogText } from "../sessions/sessionStore.js";
+import { cmuxHeldPin, supervisorPinLabel } from "../sessions/supervisorPin.js";
 import { readSupervisorPin } from "../sessions/supervisorPinStore.js";
 import { readRecordedChair } from "../supervisor/recordedChairHost.js";
 
@@ -110,7 +111,16 @@ export function readChairOffFable({ home }: { home: string }): MonitorReading {
   }
   if (pin.session.host === "codex") {
     return {
-      because: `the supervisor pin names a Codex thread in ${pin.workspaceRef}, which has no Fable requirement and no Claude boot model to read`,
+      because: `the supervisor pin names a Codex thread in ${supervisorPinLabel({ pin })}, which has no Fable requirement and no Claude boot model to read`,
+      monitorId: "chair-off-fable",
+      state: "unmeasurable",
+    };
+  }
+  // The session ledger's boot rows are keyed by cmux workspace; an app-hosted chair was never booted into one.
+  const cmux = cmuxHeldPin({ pin });
+  if (cmux === undefined) {
+    return {
+      because: `the supervisor pin names ${supervisorPinLabel({ pin })}, a session the desktop app hosts, and the session ledger records boot models only for cmux workspaces`,
       monitorId: "chair-off-fable",
       state: "unmeasurable",
     };
@@ -127,8 +137,8 @@ export function readChairOffFable({ home }: { home: string }): MonitorReading {
   }
   return evaluateChairOffFable({
     chair: {
-      bootModel: bootModelForWorkspace({ logText, workspaceRef: pin.workspaceRef }),
-      workspaceRef: pin.workspaceRef,
+      bootModel: bootModelForWorkspace({ logText, workspaceRef: cmux.workspaceRef }),
+      workspaceRef: cmux.workspaceRef,
     },
   });
 }

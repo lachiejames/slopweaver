@@ -93,13 +93,13 @@ points the verb at the desktop app's control plane, never at cmux as a fallback:
 is `HARNESS_UNAVAILABLE` naming the app (`src/sessionHarness/harnessChoice.ts`). `picture` reads what one session has
 DONE, never its words or a tool's input, output or title: [the facts picture](session-harness/facts-picture.md).
 
-- **The wire.** One owner-only Unix socket, `/tmp/slopweaver-<uid>/session-harness-v2.sock` (directory `0700`,
+- **The wire.** One owner-only Unix socket, `/tmp/slopweaver-<uid>/session-harness-v3.sock` (directory `0700`,
   socket `0600`, the directory checked as a real one however its path is spelled, and nothing served until the
   socket is `0600`), one JSON line each way. The boundary is another
   local user: an ACL the owner's own uid put on its own directory is out of scope, since nobody else can. `desktop/src/sessionControlProtocol.ts` is the protocol and
-  `src/sessionHarness/appProtocol.ts` its byte-for-byte copy, because neither tree imports the other; its four siblings,
-  `wireBasics.ts` (vendor, state, shape checks), `usageWire.ts` and `pictureWire.ts` (what a `usage` and a `picture` answer carry) and `credentialRouteWire.ts`
-  (a Claude login's route) keep one name in both trees, and a mirror test holds every pair equal. The CLI half is `appSocketTransport.ts`, `appHarness.ts` and `appLaunch.ts`.
+  `src/sessionHarness/appProtocol.ts` its byte-for-byte copy, because neither tree imports the other; its five siblings,
+  `wireBasics.ts` (vendor, state, shape checks), `usageWire.ts` and `pictureWire.ts` (what a `usage` and a `picture` answer carry), `credentialRouteWire.ts`
+  (a Claude login's route) and `launchSpecWire.ts` (what a launch asks for) keep one name in both trees, and a mirror test holds every pair equal. The CLI half is `appSocketTransport.ts`, `appHarness.ts` and `appLaunch.ts`.
 - **Rule 2, as an order.** `launch.prepare` opens the session's card window (JavaScript off, a Stop link), and
   only a card that is visible, loaded and showing THIS session mints the lease the worker is started from
   (`desktop/src/visibleSessionLease.ts`). The card's Stop closes through `cmux close --harness app`, under the
@@ -292,9 +292,7 @@ or resume, so every verb that seats through it, `handover wake` included), the d
 across it (`accessDenied` on `HARNESS_UNAVAILABLE`). A launch's spawn deps come from `productionSpawnDeps`
 (`src/sessionHarness/recordedSpawn.ts`), the one other place a connection is opened.
 
-**Stage-2 debt, named.** The host surface forwards cmux's raw operations unchanged (`CmuxHostRawOperations`):
-screen reads and grids, the process tree and `workspaceTop`, a raw `sendLine` and `submitComposer`, pin, rename,
-close and the strict listings; beside it, `CmuxHostReach`'s `reachSession`, which never interrupts and keeps cmux's own
-error so a talk delivery can still tell a keystroke that may have landed from one that did not. Each is
-cmux-only, reachable only over a connection the seam opened, and is what a second implementation has to answer
-before it can stand behind these verbs. Stage 1 is done: no caller outside the seam constructs a client.
+**Stage-2 debt**, the cmux-only raw operations a second implementation has to answer, and how an app-hosted chair
+is pinned and taken over with no cmux pin: [stage-2 debt](session-harness/stage-2-debt.md). The supervisor pin's app
+arm and the host-neutral takeover land before any change lets the desktop app start the chair; the app must be able
+to register, hand over, and retire that chair before it is allowed to create one.

@@ -63,6 +63,20 @@ describe("reportsOf", () => {
     ]);
   });
 
+  it("keeps the bare name of the tool that arms a supervisor's sweep, which a takeover reads off the picture", () => {
+    const message = assistant({
+      content: [{ id: "w", input: { delaySeconds: 1200 }, name: "ScheduleWakeup", type: "tool_use" }],
+      parent: null,
+    });
+    expect(reportsOf({ message, sessionId: ID })).toEqual([
+      {
+        activity: { name: "ScheduleWakeup", status: "in_progress", toolCallId: d({ id: "w" }), toolKind: "other" },
+        kind: "tool-activity",
+        sessionId: ID,
+      },
+    ]);
+  });
+
   it("reports nothing a subagent says", () => {
     const message = assistant({ content: [{ text: "inner", type: "text" }], parent: "toolu_1" });
     expect(reportsOf({ message, sessionId: ID })).toEqual([]);

@@ -1,14 +1,15 @@
-/** The successor-takeover sequence's pure checks — cmux itself enforces none of them. */
+/**
+ * The successor-takeover sequence's pure checks — cmux itself enforces none of them.
+ *
+ * deleted-with-code: resolvePredecessor
+ */
 import { describe, expect, it } from "vitest";
 
-import type { CmuxWorkspaceSummary } from "../../../cmux/client.js";
 import type { CmuxEvent } from "../../../cmux/events.js";
 import {
   type HookLeg,
   hookLegOfDrain,
-  type PredecessorResolution,
   predecessorRunNotFinishedRefusal,
-  resolvePredecessor,
   retainedWindowCursor,
   SWEEP_ARM_TOOL_NAME,
   sweepArmedInEvents,
@@ -17,40 +18,6 @@ import {
   type TranscriptLeg,
 } from "../../../cmux/takeover.js";
 import type { ToolUseBlock, TranscriptRecord, TranscriptRole } from "../../../transcripts/record.js";
-
-/** Unwrap a {@link PredecessorResolution}'s refusal, THROWING if it resolved a predecessor instead. */
-function refusalOf(resolution: PredecessorResolution): string {
-  if (!("refusal" in resolution)) {
-    throw new Error("resolvePredecessor resolved a predecessor instead of refusing");
-  }
-  return resolution.refusal;
-}
-
-/** Unwrap a {@link PredecessorResolution}'s predecessor, THROWING if it refused instead. */
-function predecessorOf(resolution: PredecessorResolution): CmuxWorkspaceSummary {
-  if (!("predecessor" in resolution)) {
-    throw new Error("resolvePredecessor refused instead of resolving a predecessor");
-  }
-  return resolution.predecessor;
-}
-
-/** One workspace row with just the fields these decisions read. */
-function workspace(
-  over: Partial<CmuxWorkspaceSummary> & { workspaceId: string; workspaceRef: string },
-): CmuxWorkspaceSummary {
-  return {
-    currentDirectory: "/repo",
-    description: undefined,
-    latestConversationMessage: undefined,
-    latestSubmittedAtIso: undefined,
-    latestSubmittedMessage: undefined,
-    pinned: false,
-    selected: false,
-    title: undefined,
-    windowId: "window:1",
-    ...over,
-  };
-}
 
 /** One event, with everything but the fields under test defaulted. */
 function event(over: Partial<CmuxEvent> & { name: string; seq: number }): CmuxEvent {
@@ -372,46 +339,6 @@ describe("sweepGateOutcome", () => {
       armed: false,
       refusal: `${NOT_ARMED} — hook events: ${WINDOW_NO_TEXT}; transcript: no ScheduleWakeup tool_use, read incomplete: short read at 4096; invalid UTF-8 at 8192`,
     });
-  });
-});
-
-describe("resolvePredecessor", () => {
-  it("refuses when nothing is pinned", () => {
-    const workspaces = [workspace({ workspaceId: "own", workspaceRef: "workspace:1" })];
-
-    const resolved = resolvePredecessor({ ownWorkspaceId: "own", workspaces });
-
-    expect(refusalOf(resolved)).toContain("no workspace is currently pinned");
-  });
-
-  it("refuses when more than one workspace is pinned, naming both refs", () => {
-    const workspaces = [
-      workspace({ pinned: true, workspaceId: "own", workspaceRef: "workspace:1" }),
-      workspace({ pinned: true, workspaceId: "other", workspaceRef: "workspace:2" }),
-    ];
-
-    const resolved = resolvePredecessor({ ownWorkspaceId: "own", workspaces });
-
-    expect(refusalOf(resolved)).toContain("workspace:1, workspace:2");
-  });
-
-  it("refuses when the one pinned workspace is this session's own", () => {
-    const workspaces = [workspace({ pinned: true, workspaceId: "own", workspaceRef: "workspace:1" })];
-
-    const resolved = resolvePredecessor({ ownWorkspaceId: "own", workspaces });
-
-    expect(refusalOf(resolved)).toContain("nothing to take over");
-  });
-
-  it("resolves the one pinned workspace that is not this session's own", () => {
-    const workspaces = [
-      workspace({ pinned: false, workspaceId: "own", workspaceRef: "workspace:1" }),
-      workspace({ pinned: true, workspaceId: "predecessor", workspaceRef: "workspace:2" }),
-    ];
-
-    const resolved = resolvePredecessor({ ownWorkspaceId: "own", workspaces });
-
-    expect(predecessorOf(resolved).workspaceRef).toBe("workspace:2");
   });
 });
 

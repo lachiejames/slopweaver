@@ -62,7 +62,8 @@ export function liveChairBootPlanRead({ port }: { port: PlanRegisterPort }): Cha
     return readChairPlansForPids({
       accounts: accounts.value,
       claudeHome: claudeHomeDir(),
-      pids: chair.sessions.map(({ pid }) => pid),
+      // An app-hosted chair has no pid to bind a boot credential to, so its plan stays unread rather than guessed.
+      pids: chair.sessions.flatMap(({ pid }) => (pid === undefined ? [] : [pid])),
     });
   };
 }

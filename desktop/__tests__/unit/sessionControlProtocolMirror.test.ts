@@ -1,8 +1,8 @@
 /*
  * The app session harness's wire is written once and copied: the desktop's canonical
  * `desktop/src/sessionControlProtocol.ts` and the CLI's `src/sessionHarness/appProtocol.ts` must stay byte for byte
- * the same file, because neither tree can import the other — and so must its four siblings, `wireBasics.ts`,
- * `usageWire.ts`, `pictureWire.ts` and `credentialRouteWire.ts`, which share one name in both trees so the specifier
+ * the same file, because neither tree can import the other — and so must its five siblings, `wireBasics.ts`,
+ * `usageWire.ts`, `pictureWire.ts`, `credentialRouteWire.ts` and `launchSpecWire.ts`, which share one name in both trees so the specifier
  * importing them is the same bytes. This lane reaches both roots, so it holds every pair to one.
  */
 import { readFileSync } from "node:fs";
@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   APP_HARNESS_PROTOCOL_VERSION,
+  APP_SESSION_ID_ENV,
   appHarnessSocketPath,
   isAppHarnessRequestEnvelope,
   isAppHarnessResponseEnvelope,
@@ -37,6 +38,7 @@ const MIRRORED: readonly { readonly canonical: string; readonly mirror: string }
   { canonical: "usageWire.ts", mirror: "usageWire.ts" },
   { canonical: "pictureWire.ts", mirror: "pictureWire.ts" },
   { canonical: "credentialRouteWire.ts", mirror: "credentialRouteWire.ts" },
+  { canonical: "launchSpecWire.ts", mirror: "launchSpecWire.ts" },
 ];
 
 describe("the app harness protocol", () => {
@@ -48,6 +50,7 @@ describe("the app harness protocol", () => {
       "usageWire.ts",
       "pictureWire.ts",
       "credentialRouteWire.ts",
+      "launchSpecWire.ts",
     ]);
   });
 
@@ -156,10 +159,54 @@ describe("the app harness protocol", () => {
     );
   });
 
-  it("puts the socket in one owner directory per user, under the root it is given", () => {
+  it("puts the version-3 socket in one owner directory per user, under the root it is given", () => {
+    expect(APP_HARNESS_PROTOCOL_VERSION).toBe(3);
     expect(appHarnessSocketPath({ root: "/tmp", uid: 501 })).toEqual({
       directory: "/tmp/slopweaver-501",
-      socket: "/tmp/slopweaver-501/session-harness-v2.sock",
+      socket: "/tmp/slopweaver-501/session-harness-v3.sock",
     });
+  });
+
+  it("names the app session's environment variable once, in the file both trees hold", () => {
+    expect(APP_SESSION_ID_ENV).toBe("SLOPWEAVER_APP_SESSION_ID");
+  });
+
+  it("accepts an origin claim naming an app session, a vendor and a vendor session, and refuses one short of any", () => {
+    const claim = { appSessionId: "0b5e", kind: "session.origin", vendor: "codex", vendorSessionId: "thread-1" };
+    const envelope = (request: Record<string, unknown>) => ({
+      protocolVersion: APP_HARNESS_PROTOCOL_VERSION,
+      request,
+      requestId: "r5",
+    });
+    const { vendorSessionId: _unclaimed, ...unclaimed } = claim;
+    expect(
+      [
+        claim,
+        { ...claim, vendor: "claude" },
+        { ...claim, vendor: "gemini" },
+        { ...claim, appSessionId: "" },
+        { ...claim, vendorSessionId: "" },
+        unclaimed,
+      ].map((request) => isAppHarnessRequestEnvelope(envelope(request))),
+    ).toEqual([true, true, false, false, false, false]);
+  });
+
+  it("accepts an origin answer carrying a snapshot and an origin refusal, and refuses an answer with no session", () => {
+    const answered = {
+      outcome: "answered",
+      protocolVersion: APP_HARNESS_PROTOCOL_VERSION,
+      requestId: "r6",
+      response: { kind: "session-origin", session: SNAPSHOT },
+    };
+    expect(isAppHarnessResponseEnvelope(answered)).toBe(true);
+    expect(isAppHarnessResponseEnvelope({ ...answered, response: { kind: "session-origin" } })).toBe(false);
+    const refused = {
+      code: "ORIGIN_REFUSED",
+      message: "app session 0b5e does not run the vendor session this caller is in",
+      outcome: "refused",
+      protocolVersion: APP_HARNESS_PROTOCOL_VERSION,
+      requestId: "r6",
+    };
+    expect(isAppHarnessResponseEnvelope(refused)).toBe(true);
   });
 });

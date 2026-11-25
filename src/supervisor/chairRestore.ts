@@ -42,7 +42,7 @@
  *
  * Pure: a read and a count in, a decision and lines out. The send is `cli/commands/supervisor/chairGateRun.ts`.
  */
-import { type ChairRead, chairHandoffRemedyLines } from "./chairGate.js";
+import { type ChairLocation, type ChairRead, chairHandoffRemedyLines } from "./chairGate.js";
 import {
   type ChairModelFamily,
   type ChairRequirement,
@@ -122,27 +122,41 @@ export function chairRestoreKey({
 }
 
 /**
- * Why this process may not type into the pinned chair's workspace, when it may not: a chair restores only its own seat.
+ * Whether this process may type into the chair: a chair restores only its own cmux seat, and an app-hosted chair has
+ * no way to take a typed model switch at all.
  *
  * @param callerWorkspaceId this process's own `CMUX_WORKSPACE_ID`, or `undefined` outside cmux
- * @param workspaceId the pinned supervisor workspace the chair read resolved
- * @returns the reason, or undefined when this process IS that workspace
+ * @param location where the chair read resolved the chair
+ * @returns the workspace to type into when this process IS the chair's, else why not
  */
-function notSelfReason({
+function restoreSeat({
   callerWorkspaceId,
-  workspaceId,
+  location,
 }: {
   callerWorkspaceId: string | undefined;
-  workspaceId: string;
-}): string | undefined {
+  location: ChairLocation;
+}): { readonly kind: "self"; readonly workspaceId: string } | { readonly kind: "not-self"; readonly why: string } {
+  if (location.kind === "app") {
+    return {
+      kind: "not-self",
+      why: "the chair is a session the desktop app hosts, and the app has no way to type a model switch into it — the handoff below is the remedy",
+    };
+  }
+  const { workspaceId } = location;
   const caller = callerWorkspaceId === undefined ? "" : callerWorkspaceId.trim();
   if (caller.length === 0) {
-    return "this process is not running inside a cmux workspace (no CMUX_WORKSPACE_ID), so it has no surface of its own to type into";
+    return {
+      kind: "not-self",
+      why: "this process is not running inside a cmux workspace (no CMUX_WORKSPACE_ID), so it has no surface of its own to type into",
+    };
   }
   if (caller !== workspaceId) {
-    return `this process runs in workspace ${caller}, not the pinned supervisor workspace ${workspaceId} — typing into somebody else's chair is the reach cmux/supervisorWorkspace.ts refuses`;
+    return {
+      kind: "not-self",
+      why: `this process runs in workspace ${caller}, not the pinned supervisor workspace ${workspaceId} — typing into somebody else's chair is the reach cmux/supervisorWorkspace.ts refuses`,
+    };
   }
-  return undefined;
+  return { kind: "self", workspaceId };
 }
 
 /**
@@ -186,10 +200,11 @@ export function planChairRestore({
       why: `no session in the pinned workspace is off ${label} — the gate refused over an unread transcript, which a model switch cannot repair`,
     };
   }
-  const notSelf = notSelfReason({ callerWorkspaceId, workspaceId: read.workspaceId });
-  if (notSelf !== undefined) {
-    return { kind: "not-self", why: notSelf };
+  const seat = restoreSeat({ callerWorkspaceId, location: read.location });
+  if (seat.kind === "not-self") {
+    return seat;
   }
+  const { workspaceId } = seat;
   let instant = first.verdict.atIso;
   if (first.verdict.kind === "off-fable" && first.verdict.fallback !== undefined) {
     instant = first.verdict.fallback.atIso;
@@ -209,7 +224,7 @@ export function planChairRestore({
     sessionIds: offModel.map((reading) => reading.sessionId),
     target,
     text: restoreCommandFor({ model: target }),
-    workspaceId: read.workspaceId,
+    workspaceId,
   };
 }
 

@@ -216,3 +216,49 @@ describe("cmuxSendSupervisorRefusal", () => {
     expect(refusal).toBeUndefined();
   });
 });
+
+describe("cmuxSendSupervisorRefusal with an app-hosted chair", () => {
+  const APP_ID = "5f0c2a1e-7d3b-4c8e-9a6f-1b2c3d4e5f60";
+  const APP_PIN: SupervisorPinRecord = {
+    appSessionId: APP_ID,
+    pinnedAtIso: "2026-09-02T04:47:00.000Z",
+    session: { host: "claude-code", id: "sess-super" },
+  };
+
+  it("never reads the app session id as a workspace a cmux send could name", () => {
+    const named = [APP_ID, `app:${APP_ID}`].map((ref) =>
+      cmuxSendSupervisorRefusal({
+        callerSessionId: "sess-worker",
+        command: `slopweaver cmux send --workspace ${ref} 'the report'`,
+        pin: APP_PIN,
+      }),
+    );
+    expect(named).toEqual([undefined, undefined]);
+  });
+
+  it("still refuses a worker's console delivery, naming the chair by its app handle", () => {
+    const refusal = cmuxSendSupervisorRefusal({
+      callerSessionId: "sess-worker",
+      command: "slopweaver talk relay --turn t --say x --deliver-to-supervisor",
+      pin: APP_PIN,
+    });
+    expect(refusal).toBe(talkRelayRefusalMessage({ workspaceRef: `app:${APP_ID}` }));
+  });
+
+  it("leaves the app-hosted chair's own console delivery alone", () => {
+    const refusal = cmuxSendSupervisorRefusal({
+      callerSessionId: "sess-super",
+      command: "slopweaver talk relay --turn t --say x --deliver-to-supervisor",
+      pin: APP_PIN,
+    });
+    expect(refusal).toBeUndefined();
+  });
+
+  it("refuses the same cmux send under a cmux pin that the app pin lets through — the cmux arm is unchanged", () => {
+    const command = "slopweaver cmux send --workspace workspace:936 'the report'";
+    const verdicts = [PIN, APP_PIN].map((pin) =>
+      cmuxSendSupervisorRefusal({ callerSessionId: "sess-worker", command, pin }),
+    );
+    expect(verdicts).toEqual([supervisorSendRefusalMessage({ workspaceRef: "workspace:936" }), undefined]);
+  });
+});

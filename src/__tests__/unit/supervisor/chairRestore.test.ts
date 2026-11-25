@@ -50,8 +50,8 @@ const ON_FABLE: ChairSessionReading = {
 const READ: ChairRead = {
   kind: "resolved",
   sessions: [OFF_FABLE],
-  workspaceCwd: "/wt/fresh-supervisor-handoff-9271",
-  workspaceId: PINNED,
+  directory: "/wt/fresh-supervisor-handoff-9271",
+  location: { kind: "cmux", workspaceId: PINNED },
 };
 
 /** A plan taken with no attempts on record and the caller sitting in the pinned workspace, under today's rule. */
@@ -163,6 +163,18 @@ describe("planChairRestore — when it refuses to type", () => {
 
   it("refuses on a blank workspace id rather than matching one", () => {
     expect(planFresh({ caller: "   " }).kind).toBe("not-self");
+  });
+
+  it("types nothing into a chair the desktop app hosts, whatever workspace this process sits in", () => {
+    const read: ChairRead = {
+      ...READ,
+      location: { appSessionId: "a0000107-0000-4000-8000-0000000000a1", kind: "app" },
+    };
+
+    expect(planFresh({ read })).toStrictEqual({
+      kind: "not-self",
+      why: "the chair is a session the desktop app hosts, and the app has no way to type a model switch into it — the handoff below is the remedy",
+    });
   });
 
   it("refuses when the chair could not be read at all", () => {

@@ -15,6 +15,7 @@
  */
 import { logger } from "../../../lib/logger.js";
 import type { CmuxHostSurface } from "../../../sessionHarness/cmuxHost.js";
+import type { HarnessTarget, SessionHarness } from "../../../sessionHarness/sessionHarness.js";
 import { closeWorkspaceWithBoundedForce } from "../../../sessions/closeForce.js";
 import {
   keepAliveForceNote,
@@ -39,7 +40,7 @@ export type TakeoverCloseOutcome =
  * @param workspaceId the predecessor's workspace, already unpinned
  * @returns closed with how, held with why, or cmux's own failure
  */
-export async function closeTakeoverPredecessor({
+export async function closeCmuxTakeoverPredecessor({
   client,
   processTable,
   workspaceId,
@@ -113,7 +114,7 @@ export async function runTakeoverStep5({
   predecessorRow: SessionItem & { readonly workspaceRef: string };
   processTable: () => WatchTable;
 }): Promise<boolean> {
-  const closed = await closeTakeoverPredecessor({ client, processTable, workspaceId: predecessorId });
+  const closed = await closeCmuxTakeoverPredecessor({ client, processTable, workspaceId: predecessorId });
   if (closed.kind !== "closed") {
     logger.error({ msg: `cmux takeover: step 5/6 — ${predecessorRef} NOT closed: ${step5Failure({ closed })}` });
     return false;
@@ -132,5 +133,73 @@ export async function runTakeoverStep5({
     ...(home === undefined ? {} : { home }),
   });
   logger.out({ line: `cmux takeover: step 5/6 — closed ${predecessorRef} (${closed.how})` });
+  return true;
+}
+
+/**
+ * Close a predecessor the desktop app hosts, through the session harness's own close and nothing else: no pid is
+ * read and nothing is killed. The app holds a session it cannot prove finished, and that hold is step 5's answer.
+ *
+ * @param harness the app session harness, of which only `close` is used
+ * @param target the predecessor as the app resolved it live
+ * @returns closed with how, held with why, or the harness's own failure
+ */
+export async function closeAppTakeoverPredecessor({
+  harness,
+  target,
+}: {
+  harness: Pick<SessionHarness, "close">;
+  target: HarnessTarget;
+}): Promise<TakeoverCloseOutcome> {
+  const closed = await harness.close({ target });
+  if (closed.isErr()) {
+    return { kind: "failed", reason: closed.error.message };
+  }
+  if (closed.value.kind === "held") {
+    return { kind: "held", why: `the desktop app held it (${closed.value.reason})` };
+  }
+  return { how: closed.value.forced ? "the app forced it" : "unforced", kind: "closed" };
+}
+
+/**
+ * Step 5 whole for an app predecessor: close it through the harness, close its ledger row by its app session id and
+ * spawn instant when it closed, and print the step's line.
+ *
+ * @param harness the app session harness, of which only `close` is used
+ * @param home the state home the ledger lives under, or the default one
+ * @param label the predecessor's `app:<id>`, for the printed line
+ * @param row the predecessor's one open ledger row
+ * @param target the predecessor as the app resolved it live
+ * @returns whether the predecessor closed
+ */
+export async function runAppTakeoverStep5({
+  harness,
+  home,
+  label,
+  row,
+  target,
+}: {
+  harness: Pick<SessionHarness, "close">;
+  home: string | undefined;
+  label: string;
+  row: SessionItem & { readonly sessionId: string };
+  target: HarnessTarget;
+}): Promise<boolean> {
+  const closed = await closeAppTakeoverPredecessor({ harness, target });
+  if (closed.kind !== "closed") {
+    logger.error({ msg: `cmux takeover: step 5/6 — ${label} NOT closed: ${step5Failure({ closed })}` });
+    return false;
+  }
+  appendSessionEvent({
+    event: {
+      kind: "closed",
+      sessionId: row.sessionId,
+      sessionKey: row.sessionKey,
+      tsIso: new Date().toISOString(),
+      ...(row.spawnedIso === undefined ? {} : { spawnedIso: row.spawnedIso }),
+    },
+    ...(home === undefined ? {} : { home }),
+  });
+  logger.out({ line: `cmux takeover: step 5/6 — closed ${label} (${closed.how})` });
   return true;
 }

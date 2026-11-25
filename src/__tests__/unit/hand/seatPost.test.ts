@@ -5,9 +5,9 @@
 import { describe, expect, it } from "vitest";
 
 import { SEAT_HAND_POST_HATCH, seatPostVerdict } from "../../../hand/seatPost.js";
-import type { SupervisorPinRecord } from "../../../sessions/supervisorPin.js";
+import type { AppSupervisorPinRecord, CmuxSupervisorPinRecord } from "../../../sessions/supervisorPin.js";
 
-const PIN: SupervisorPinRecord = {
+const PIN: CmuxSupervisorPinRecord = {
   session: { host: "claude-code", id: "4c829e9d-d903-49b4-b446-6bb88b198511" },
   pinnedAtIso: "2026-09-27T01:22:59.139Z",
   workspaceId: "806BA6F7-871B-4A34-97FF-B35915EE6FB7",
@@ -64,5 +64,24 @@ describe("seatPostVerdict", () => {
       kind: "hatched",
       lines: [`admitted past ${SEAT_HAND_POST_HATCH}=1: this session is not the pinned supervisor workspace:374`],
     });
+  });
+});
+
+describe("seatPostVerdict with an app-hosted chair", () => {
+  const APP_ID = "5f0c2a1e-7d3b-4c8e-9a6f-1b2c3d4e5f60";
+  const APP_PIN: AppSupervisorPinRecord = { appSessionId: APP_ID, pinnedAtIso: PIN.pinnedAtIso, session: PIN.session };
+
+  it("admits the app chair by its session", () => {
+    const env = { CLAUDE_CODE_SESSION_ID: PIN.session.id };
+    expect(seatPostVerdict({ command: COMMAND, env, pin: APP_PIN })).toEqual({ kind: "ok" });
+  });
+
+  it("never admits a cmux seat whose workspace id equals the app session id", () => {
+    const env = { ...SEAT, CMUX_WORKSPACE_ID: APP_ID };
+    const verdict = seatPostVerdict({ command: COMMAND, env, pin: APP_PIN });
+    expect(verdict.kind).toBe("refused");
+    expect((verdict as { lines: readonly string[] }).lines.join("\n")).toContain(
+      `the pinned supervisor is app:${APP_ID}`,
+    );
   });
 });

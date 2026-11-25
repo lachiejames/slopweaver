@@ -31,7 +31,7 @@
  */
 import { err, ok, type Result } from "../lib/result.js";
 import { listSessions, transcriptReadings } from "../transcripts/source.js";
-import { buildSupervisorLink, linkKey, type SupervisorLink } from "./chain.js";
+import { buildSupervisorLink, linkKey, type SupervisorLink } from "./supervisorLink.js";
 
 /** The skill whose invocation makes a session the supervisor. */
 const SUPERVISOR_SKILL = "slopweaver:supervisor";
@@ -111,14 +111,13 @@ export function scanSupervisorChain({ projectsDir }: { projectsDir: string }): R
       session: { host: "claude-code", id: session.sessionId },
       pinnedAtIso: scanned.value,
       source: "scan",
-      workspaceId: "",
-      workspaceRef: "",
+      target: { kind: "cmux", workspaceId: "", workspaceRef: "" },
     });
-    if ("refusal" in built) {
-      problems.push(`${session.path}: ${built.refusal}`);
+    if (built.isErr()) {
+      problems.push(`${session.path}: ${built.error.message}`);
       continue;
     }
-    links.push(built.link);
+    links.push(built.value);
   }
   return ok({
     links: links.toSorted((left, right) => Date.parse(left.pinnedAtIso) - Date.parse(right.pinnedAtIso)),

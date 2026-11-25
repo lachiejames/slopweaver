@@ -13,11 +13,13 @@
  * gate. So an unmeasured read prints one line on every gated tick, and only a positive reading refuses.
  */
 import { type MeteredVerdict, renderDollars } from "../claude/meteredSpend.js";
+import { chairSessionName } from "./chairGate.js";
 
 /** One chair session's verdict, or why its telemetry could not be judged. */
 export interface ChairMeteredSession {
   readonly sessionId: string;
-  readonly pid: number;
+  /** Its process, or `undefined` for an app-hosted chair (`./chairGate.ts` § `ChairSessionReading`). */
+  readonly pid: number | undefined;
   readonly verdict: MeteredVerdict | { readonly kind: "unmeasured"; readonly why: string };
 }
 
@@ -65,10 +67,10 @@ function meteredLine({
   }
   const spent = `${amount} across ${String(verdict.requests)} request(s), ${verdict.firstIso}..${verdict.lastIso}`;
   if (verdict.kind === "metered-now") {
-    return `session ${session.sessionId} (pid ${String(session.pid)}): METERED — ${spent}; ${UNRESOLVED_IDENTITY}`;
+    return `${chairSessionName(session)}: METERED — ${spent}; ${UNRESOLVED_IDENTITY}`;
   }
   return (
-    `session ${session.sessionId} (pid ${String(session.pid)}): metered EARLIER — ${spent}; back on a plan ` +
+    `${chairSessionName(session)}: metered EARLIER — ${spent}; back on a plan ` +
     `organisation as of ${verdict.newestIso}`
   );
 }
@@ -80,7 +82,7 @@ function meteredLine({
  * @returns one note line, or undefined for a session on a plan
  */
 function sessionNote({ session }: { session: ChairMeteredSession }): string | undefined {
-  const head = `metered check: session ${session.sessionId} (pid ${String(session.pid)})`;
+  const head = `metered check: ${chairSessionName(session)}`;
   if (session.verdict.kind === "unmeasured") {
     return `${head} UNMEASURED — ${session.verdict.why}`;
   }

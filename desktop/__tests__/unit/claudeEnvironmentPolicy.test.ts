@@ -87,6 +87,7 @@ describe("claudeNativeEnvironment", () => {
       CLAUDE_SECURESTORAGE_CONFIG_DIR: "/h/claude-two",
       HOME: "/home/acme",
       PATH: "/usr/bin",
+      SLOPWEAVER_APP_SESSION_ID: "0b5e",
     });
   });
 
@@ -98,6 +99,7 @@ describe("claudeNativeEnvironment", () => {
       CLAUDE_SECURESTORAGE_CONFIG_DIR: "/h/claude-three",
       HOME: "/home/acme",
       PATH: "/usr/bin",
+      SLOPWEAVER_APP_SESSION_ID: "0b5e",
     });
     expect(Object.values(environment)).not.toContain("/h/three.token");
   });

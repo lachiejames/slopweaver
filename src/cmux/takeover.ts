@@ -4,7 +4,8 @@
  * `docs/cmux-client/verbs-and-events.md` § 3 ("Taking over the pin") already named the five steps a successor supervisor runs
  * to replace a predecessor, and measured that successors were skipping the fifth: `ws:402` stayed open until
  * the owner asked by hand, and a successor did steps 1-4 and had not closed its predecessor minutes
- * later. This module is the checks steps (a)-(c) need before anything destructive happens; the CLI verb
+ * later. This module is the cmux-side checks steps (a) and (c) need before anything destructive happens; which
+ * predecessor gate (b) resolves, on either host, is `../supervisor/takeoverSeat.ts`'s. The CLI verb
  * (`../cli/commands/cmux/takeover.ts`) owns the socket calls, the live event drain that feeds gate (a)'s first
  * witness and the transcript read behind its second.
  *
@@ -51,7 +52,6 @@
  */
 import type { RunPhase } from "../handover/ledger.js";
 import type { TranscriptRecord } from "../transcripts/record.js";
-import type { CmuxWorkspaceSummary } from "./client.js";
 import type { CmuxEvent } from "./events.js";
 
 /** The tool `skills/supervisor/SKILL.md` § 7 arms on a supervisor's first turn, and re-arms every tick. */
@@ -225,8 +225,13 @@ function describeHookLeg({ leg }: { leg: HookLeg }): string {
   }
 }
 
-/** One leg's disposition, as the step line and the refusal print it. */
-function describeTranscriptLeg({ leg }: { leg: TranscriptLeg }): string {
+/**
+ * The transcript leg's disposition, as the step line and the refusal print it — for a cmux caller and an app caller.
+ *
+ * @param leg what the transcript leg found
+ * @returns the disposition in words
+ */
+export function describeTranscriptLeg({ leg }: { leg: TranscriptLeg }): string {
   switch (leg.kind) {
     case "witnessed":
       return `${SWEEP_ARM_TOOL_NAME} tool_use at line ${String(leg.lineNumber)}`;
@@ -276,42 +281,6 @@ export function sweepGateOutcome({ evidence }: { evidence: SweepGateEvidence }):
     return { armed: true, witness: `${transcriptText}; hook events: ${hookText}` };
   }
   return { armed: false, refusal: `${NOT_ARMED_REFUSAL} — hook events: ${hookText}; transcript: ${transcriptText}` };
-}
-
-/** One pinned workspace resolved as the predecessor, or the refusal naming why none could be. */
-export type PredecessorResolution = { readonly predecessor: CmuxWorkspaceSummary } | { readonly refusal: string };
-
-/**
- * Resolve the predecessor to take over from — the currently pinned workspace — refusing on every shape gate
- * (b) names: nothing pinned, more than one pinned, or the one pinned workspace is this session's own.
- *
- * @param workspaces every live workspace, as `cmux list` reads them
- * @param ownWorkspaceId this session's own workspace id (`CMUX_WORKSPACE_ID`)
- * @returns the resolved predecessor, or the refusal
- */
-export function resolvePredecessor({
-  workspaces,
-  ownWorkspaceId,
-}: {
-  workspaces: readonly CmuxWorkspaceSummary[];
-  ownWorkspaceId: string;
-}): PredecessorResolution {
-  const pinned = workspaces.filter((workspace) => workspace.pinned);
-  if (pinned.length === 0) {
-    return { refusal: "no workspace is currently pinned — there is no predecessor to take over from" };
-  }
-  if (pinned.length > 1) {
-    return {
-      refusal:
-        `${String(pinned.length)} workspaces are pinned (${pinned.map((workspace) => workspace.workspaceRef).join(", ")}) ` +
-        "— a fleet with two pinned workspaces already breaks the supervisor check; resolve the collision by hand first",
-    };
-  }
-  const predecessor = pinned[0]!;
-  if (predecessor.workspaceId === ownWorkspaceId) {
-    return { refusal: `${predecessor.workspaceRef} is already this session's own workspace — nothing to take over` };
-  }
-  return { predecessor };
 }
 
 /**

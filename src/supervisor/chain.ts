@@ -36,13 +36,10 @@
 
 import { absentAs } from "#lib/absent.js";
 import { pushInto } from "#lib/collections.js";
-import { isRecord } from "../lib/parsers.js";
-import {
-  recordedSupervisorSession,
-  sameSupervisorSession,
-  supervisorSessionKey,
-  type VisibleSupervisorSession,
-} from "./session.js";
+import { sameSupervisorSession } from "./session.js";
+import { linkKey, type SupervisorLink } from "./supervisorLink.js";
+
+export type { SupervisorLink } from "./supervisorLink.js";
 
 /** The verb that rebuilds the chain from the transcripts — named wherever coverage is short, never implied. */
 export const CHAIN_RESCAN_COMMAND = "slopweaver supervisor chain --rescan";
@@ -53,28 +50,6 @@ export const CHAIN_RESCAN_COMMAND = "slopweaver supervisor chain --rescan";
  */
 export const CODEX_CHAIR_UNREAD =
   "a Codex chair's rollout is not read yet, so its owner turns and peer messages are UNREAD";
-
-/** How a link got into the journal — recorded live by the pin verb, or recovered from the transcripts. */
-export type SupervisorLinkSource = "pin" | "scan";
-
-/** The two link sources, in the order a usage line lists them. */
-const SUPERVISOR_LINK_SOURCES: readonly SupervisorLinkSource[] = ["pin", "scan"];
-
-/** One session that held the supervisor pin. */
-export interface SupervisorLink {
-  /**
-   * The session — a Claude Code session (its transcript's basename) or a Codex thread (its rollout's
-   * `session_meta` id), so the link is checkable. A pre-Codex journal line's `claudeSessionId` reads as Claude.
-   */
-  readonly session: VisibleSupervisorSession;
-  /** cmux's own id for the workspace it ran in, or "" when a scan recovered the link without one. */
-  readonly workspaceId: string;
-  /** The addressable ref (`workspace:936`), or "" when a scan recovered the link without one. */
-  readonly workspaceRef: string;
-  /** When this session took the pin — the floor its own turns are read from. */
-  readonly pinnedAtIso: string;
-  readonly source: SupervisorLinkSource;
-}
 
 /**
  * One link with the window it is responsible for.
@@ -117,100 +92,6 @@ export interface ChainCoverage {
   readonly reachesSince: boolean;
   /** Links whose transcript could not be walked, each with the reason. A gap that is stated, not swallowed. */
   readonly unreadable: readonly UnreadableChair[];
-}
-
-/**
- * Read one journal line, refusing anything that is not completely a link.
- *
- * @param line one line of the journal
- * @returns the link, or `undefined` for a blank, malformed, incomplete or mixed-shape line
- */
-export function parseSupervisorLinkLine({ line }: { line: string }): SupervisorLink | undefined {
-  if (line.trim().length === 0) {
-    return undefined;
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(line);
-  } catch {
-    return undefined;
-  }
-  if (!isRecord(parsed)) {
-    return undefined;
-  }
-  // A pre-Codex line's `claudeSessionId` reads as Claude; a line carrying both shapes is refused.
-  const session = recordedSupervisorSession({ record: parsed });
-  const workspaceId = parsed["workspaceId"];
-  const workspaceRef = parsed["workspaceRef"];
-  const pinnedAtIso = parsed["pinnedAtIso"];
-  const source = SUPERVISOR_LINK_SOURCES.find((known) => known === parsed["source"]);
-  if (
-    session === undefined ||
-    typeof workspaceId !== "string" ||
-    typeof workspaceRef !== "string" ||
-    typeof pinnedAtIso !== "string" ||
-    Number.isNaN(Date.parse(pinnedAtIso)) ||
-    source === undefined
-  ) {
-    return undefined;
-  }
-  return { pinnedAtIso, session, source, workspaceId, workspaceRef };
-}
-
-/**
- * Every decodable link in a journal, in file order.
- *
- * @param text the whole journal
- * @returns the links; a line that will not decode is skipped rather than failing the read
- */
-export function parseSupervisorChainJournal({ text }: { text: string }): readonly SupervisorLink[] {
-  return text
-    .split("\n")
-    .map((line) => parseSupervisorLinkLine({ line }))
-    .filter((link): link is SupervisorLink => link !== undefined);
-}
-
-/**
- * Build one link, refusing a blank session id or an instant that will not parse.
- *
- * @param session the visible session taking the pin — Claude Code or Codex
- * @param workspaceId cmux's id for its workspace
- * @param workspaceRef the addressable ref a human can open
- * @param pinnedAtIso when it took the pin
- * @param source whether the pin verb recorded it or a rescan recovered it
- * @returns the link, or the one-line refusal
- */
-export function buildSupervisorLink({
-  session,
-  workspaceId,
-  workspaceRef,
-  pinnedAtIso,
-  source,
-}: {
-  session: VisibleSupervisorSession;
-  workspaceId: string;
-  workspaceRef: string;
-  pinnedAtIso: string;
-  source: SupervisorLinkSource;
-}): { readonly link: SupervisorLink } | { readonly refusal: string } {
-  const id = session.id.trim();
-  if (id.length === 0) {
-    return { refusal: "a chain link needs a session id — the transcript it names is what makes it checkable" };
-  }
-  if (Number.isNaN(Date.parse(pinnedAtIso))) {
-    return { refusal: `${pinnedAtIso} is not an instant — a link with no readable instant orders nothing` };
-  }
-  return { link: { pinnedAtIso, session: { host: session.host, id }, source, workspaceId, workspaceRef } };
-}
-
-/**
- * The key a link's session is grouped by — host AND id, so a Claude session and a Codex thread sharing an opaque
- * string stay two sessions.
- *
- * @returns its session's reversible key
- */
-export function linkKey({ link }: { link: SupervisorLink }): string {
-  return supervisorSessionKey({ session: link.session });
 }
 
 /**
