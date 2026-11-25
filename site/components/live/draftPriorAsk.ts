@@ -3,10 +3,10 @@
  * never asked before, or the earlier ask — our message, the replies it drew, and what materially changed since.
  *
  * A question the team already answered is not asked again in public unless something changed,
- * and the Queue card must show _"our earlier message, their answer, and charts or proof of what changed"_ — _"you can't
- * just tell me something's changed, I need some charts"_. So the refusal rule is the strictest the reader has: a
+ * and the Queue card must show the earlier message, the answer, and charts or proof of what changed, since a bare
+ * claim that something changed is not enough. So the refusal rule is the strictest the reader has: a
  * PRESENT `priorAsk` that will not read whole takes the whole row down (`./readSlackDrafts.ts`), because a card that
- * quietly dropped the proof, or a reply, would show the owner a re-ask with less than the owner ruled it must carry. An ABSENT one
+ * quietly dropped the proof, or a reply, would show the owner a re-ask with less than it must carry. An ABSENT one
  * is a row recorded before the field, or one that asks nothing.
  *
  * The proof is stored like the draft's own attachments, so it is read by the same reader (`./draftMedia.ts`) and

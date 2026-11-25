@@ -8,8 +8,8 @@
  *  2. **Each message is reserved, sent and CONFIRMED individually.** The reservation is the resume: a
  *     re-run skips what it can prove landed.
  *  3. **Sends are awaited one at a time and paced.** Concurrency would be faster and would also deliver
- *     the sentences out of order, which the owner named as the actual risk — *"if you try and do it too
- *     fast you can end up having things arrive out of order which is worse"*. Pacing goes through the
+ *     the sentences out of order, which is the actual risk: sending too
+ *     fast can leave messages arriving out of order, which is worse. Pacing goes through the
  *     shared `createRateScheduler` (p-throttle), never a hand-rolled sleep (D21).
  *  4. **The loop HALTS at the first thing it cannot resolve** and reports every message's fate.
  *

@@ -29,8 +29,8 @@ than left to be inferred.
 - **The grant can carry two write scopes, and no verb spends them.** `--grant write` adds `drive.file` —
   create a file, and read, edit or delete only files this application created or the owner opened with it — and
   `documents`, Google Docs read and write, which has no delete method at all (`src/live/drive/scopes.ts`).
-  The owner's ruling: write on the owner's own data, never, in the owner's words, stuff that allows the owner
-  and the fleet to wipe company drives — so the full
+  The owner's ruling: write on the owner's own data, never anything that lets the fleet wipe a shared drive,
+  so the full
   `drive` scope, the one that can delete across a shared drive, is not requestable, and
   `actsOnlyAsTheBoundAccount.test.ts` fails if it is added. The write verbs are the named next step.
 - **Nothing is written, and nothing enters the corpus.** `drive read` output is

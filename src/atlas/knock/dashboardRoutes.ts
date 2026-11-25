@@ -12,8 +12,8 @@
  * That is a stronger artifact than the route PROBE the Airtable and Figma atlases use, and worth naming as
  * such: a probe establishes that a path answers, one request at a time, and infers a route table from what
  * did not 404. This is the table itself, declared by the application, including routes the account's own
- * plan would never render. `docs/atlas-intent/06-holdings.md`'s floor — *"we should at least know all the pages that
- * exist"* — is met exactly rather than approximately.
+ * plan would never render. `docs/atlas-intent/06-holdings.md`'s floor — the atlas knows every page that
+ * exists — is met exactly rather than approximately.
  *
  * The build id moves on every deploy, so the manifest's URL is not stable and the pin records the id it was
  * read at. Drift is an OBSERVATION rather than a gate, for the reason `atlas/twilio/specFetch.ts` gives:
@@ -27,9 +27,9 @@
  * visiting it would need this atlas to hold an identifier it has no credential to enumerate.
  *
  * So an unwalkable route is not dropped: it is inventoried with `walkable: false`, which is the difference
- * between a page nobody looked at and a page whose address depends on data. The owner's own steer is the
- * reason the distinction is kept — settings and admin pages get a screenshot, and *"I wouldn't expect it to
- * go and pilot a browser and get a screenshot of every single message that's ever been sent."*
+ * between a page nobody looked at and a page whose address depends on data. The distinction is kept because
+ * settings and admin pages get a screenshot, while a walk never pilots a browser to photograph every
+ * message ever sent.
  */
 
 /**

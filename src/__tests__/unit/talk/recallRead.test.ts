@@ -1,5 +1,5 @@
 /*
- * The disk half of `talk recall`, over a real home in a temp directory: a Xero steer of the owner's (the words of
+ * The disk half of `talk recall`, over a real home in a temp directory: a synthetic Acme steer (the words of
  * a call turn pointer, cut short) is found in a call transcript, a relayed steer, a
  * journalled ruling and an archived ruling row, and each hit's pointer opens the record it names.
  *
@@ -34,7 +34,7 @@ import { claimTurn, markRegistered } from "../../../talk/relayStore.js";
 
 const CALL = "7e0b1556-4864-42a6-bd10-675d331b2942";
 const TURN = "951b9e45-6fc9-45fd-8e25-d04ded7164c9";
-const HIS_WORDS = "I know we talked about making it so that maybe we don't even sync Xero automatically";
+const STEER_WORDS = "I know we said maybe the Acme ledger should not even sync on its own";
 
 let home: string;
 
@@ -52,7 +52,7 @@ const segment = (over: Partial<Extract<CallEntry, { kind: "segment" }>>): CallEn
   final: true,
   id: "turn_000000000000000000014",
   kind: "segment",
-  text: HIS_WORDS,
+  text: STEER_WORDS,
   who: "owner",
   ...over,
 });
@@ -63,11 +63,11 @@ const writeCall = (): void => {
     segment({
       atIso: "2026-10-08T00:06:59.863Z",
       id: "turn_before",
-      text: "Did you mean this Xero request?",
+      text: "Did you mean this Acme request?",
       who: "voice",
     }),
-    segment({ final: false, text: "I know we talked about" }),
-    segment({ open: "hand:mon-signin-go-xero-com.5" }),
+    segment({ final: false, text: "I know we said" }),
+    segment({ open: "hand:mon-signin-go-acme-com.5" }),
     segment({
       atIso: "2026-10-08T00:08:20.435Z",
       id: "turn_after",
@@ -91,10 +91,10 @@ const writeSteer = (): void => {
   const draft = unwrap(
     formRelayDraft({
       about: "",
-      heard: HIS_WORDS,
+      heard: STEER_WORDS,
       picture: { kind: "none", reason: "screen-not-shared" },
       readsAfter: [],
-      say: "Stop the scheduled Xero sync",
+      say: "Stop the scheduled Acme sync",
       turnId: TURN,
       typed: false,
       wordsAlone: false,
@@ -108,15 +108,15 @@ const writeSteer = (): void => {
 const writeRuling = (): void => {
   const runs = stateHomePaths({ home }).runs;
   mkdirSync(runs, { recursive: true });
-  const path = join(runs, "xero-resync-on-demand.jsonl");
-  appendFileSync(path, `${JSON.stringify({ atIso: "2026-10-08T07:30:00.000Z", kind: "abandoned", why: "xero" })}\n`);
+  const path = join(runs, "acme-resync-on-demand.jsonl");
+  appendFileSync(path, `${JSON.stringify({ atIso: "2026-10-08T07:30:00.000Z", kind: "abandoned", why: "acme" })}\n`);
   appendFileSync(
     path,
     `${JSON.stringify({
       anchor: `talk-call:${CALL}#turn_000000000000000000014`,
       atIso: "2026-10-08T07:37:55.355Z",
       kind: "ruling",
-      ruling: "Zero, retired: Xero does not run a scheduled sync.",
+      ruling: "Retired: Acme does not run a scheduled sync.",
     })}\n`,
   );
 };
@@ -127,11 +127,11 @@ const writeArchive = (): void => {
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, "2026-10-08-board.md"),
-    "# Board\n### RULINGS\n- Xero sync is on demand only (https://example.invalid/anchor)\n### NEXT\n- xero later\n",
+    "# Board\n### RULINGS\n- Acme sync is on demand only (https://example.invalid/anchor)\n### NEXT\n- acme later\n",
   );
 };
 
-const ALL_TIME = { home: "", sinceMs: undefined, words: ["xero", "sync"] } as const;
+const ALL_TIME = { home: "", sinceMs: undefined, words: ["acme", "sync"] } as const;
 
 /** The matches of a searched read; a test of an unsearched one asserts that directly. */
 const matchesOf = (read: RecallSourceRead) => {
@@ -143,8 +143,8 @@ describe("searchCalls", () => {
   it("finds the owner's steer in the FOLDED call, once, at its final snapshot, with the card it was said over", () => {
     writeCall();
     const matches = matchesOf(searchCalls({ ...ALL_TIME, home }));
-    expect(matches.map((match) => match.text)).toEqual([HIS_WORDS]);
-    expect(matches[0]!.about).toBe("hand:mon-signin-go-xero-com.5");
+    expect(matches.map((match) => match.text)).toEqual([STEER_WORDS]);
+    expect(matches[0]!.about).toBe("hand:mon-signin-go-acme-com.5");
     expect(matches[0]!.pointer).toBe(`talk-call:${CALL}#turn_000000000000000000014`);
   });
 
@@ -178,26 +178,26 @@ describe("searchCalls", () => {
     writeRuling();
     const before = Date.parse("2026-10-01T00:00:00.000Z") / 1000;
     const callFile = join(callsDir({ home }), `${CALL}.jsonl`);
-    const journal = join(stateHomePaths({ home }).runs, "xero-resync-on-demand.jsonl");
+    const journal = join(stateHomePaths({ home }).runs, "acme-resync-on-demand.jsonl");
     utimesSync(callFile, before, before);
     utimesSync(journal, before, before);
     const window = { ...ALL_TIME, home, sinceMs: Date.parse("2026-10-08T00:00:00.000Z") };
-    expect(matchesOf(searchCalls(window)).map((match) => match.text)).toEqual([HIS_WORDS]);
-    expect(matchesOf(searchRulings(window)).map((match) => match.about)).toEqual(["xero-resync-on-demand"]);
+    expect(matchesOf(searchCalls(window)).map((match) => match.text)).toEqual([STEER_WORDS]);
+    expect(matchesOf(searchRulings(window)).map((match) => match.about)).toEqual(["acme-resync-on-demand"]);
   });
 });
 
 describe("searchCalls over a JSON-escaped letter", () => {
-  it("finds a turn whose raw line spells xero as \\u0078ero, which the decoded text still matches", () => {
+  it("finds a turn whose raw line spells acme as \\u0061cme, which the decoded text still matches", () => {
     writeCall();
     const path = join(callsDir({ home }), `${CALL}.jsonl`);
     const raw = readFileSync(path, "utf8");
-    const escaped = raw.replaceAll("Xero", "\\u0058ero").replaceAll("xero", "\\u0078ero");
-    expect(raw.toLowerCase()).toContain("xero");
-    expect(escaped.toLowerCase()).not.toContain("xero");
+    const escaped = raw.replaceAll("Acme", "\\u0041cme").replaceAll("acme", "\\u0061cme");
+    expect(raw.toLowerCase()).toContain("acme");
+    expect(escaped.toLowerCase()).not.toContain("acme");
     writeFileSync(path, escaped);
     const matches = matchesOf(searchCalls({ ...ALL_TIME, home }));
-    expect(matches.map((match) => match.text)).toEqual([HIS_WORDS]);
+    expect(matches.map((match) => match.text)).toEqual([STEER_WORDS]);
   });
 });
 
@@ -227,7 +227,7 @@ describe("searchRulings", () => {
     const matches = matchesOf(searchRulings({ ...ALL_TIME, home }));
     expect(matches.map((match) => match.pointer).toSorted()).toEqual([
       "ruling-archive:2026-10-08-board.md#L3",
-      "ruling-run:xero-resync-on-demand#L2",
+      "ruling-run:acme-resync-on-demand#L2",
     ]);
   });
 
@@ -238,14 +238,14 @@ describe("searchRulings", () => {
       anchor: `talk-call:${CALL}#turn_000000000000000000014`,
       atIso: "2026-10-08T07:37:55.355Z",
       kind: "ruling",
-      ruling: "Xero does not run a scheduled sync.",
+      ruling: "Acme does not run a scheduled sync.",
     })
       .replace('"ruling":', '"\\u0072uling":')
       .replace('"kind":"ruling"', '"kind": "\\u0072uling"')
-      .replace("Xero does", "\\u0058ero does");
+      .replace("Acme does", "\\u0041cme does");
     writeFileSync(join(runs, "escaped.jsonl"), `${line}\n`);
     expect(matchesOf(searchRulings({ ...ALL_TIME, home })).map((match) => match.text)).toEqual([
-      "Xero does not run a scheduled sync.",
+      "Acme does not run a scheduled sync.",
     ]);
   });
 
@@ -253,10 +253,10 @@ describe("searchRulings", () => {
     writeRuling();
     appendFileSync(
       join(stateHomePaths({ home }).runs, "torn.jsonl"),
-      '{"kind":"ruling","atIso":"2026-10-10T00:00:00.000Z","ruling":"xero sync"\n',
+      '{"kind":"ruling","atIso":"2026-10-10T00:00:00.000Z","ruling":"acme sync"\n',
     );
     const read = searchRulings({ ...ALL_TIME, home });
-    expect(matchesOf(read).map((match) => match.pointer)).toEqual(["ruling-run:xero-resync-on-demand#L2"]);
+    expect(matchesOf(read).map((match) => match.pointer)).toEqual(["ruling-run:acme-resync-on-demand#L2"]);
     expect((read as Extract<RecallSourceRead, { searched: true }>).incomplete).toBe(
       "1 journal line(s) carrying the words did not decode",
     );
@@ -267,7 +267,7 @@ describe("searchRulings", () => {
     mkdirSync(stateHomePaths({ home }).handovers, { recursive: true });
     writeFileSync(rulingArchiveDir({ home }), "not a directory");
     const read = searchRulings({ ...ALL_TIME, home });
-    expect(matchesOf(read).map((match) => match.pointer)).toEqual(["ruling-run:xero-resync-on-demand#L2"]);
+    expect(matchesOf(read).map((match) => match.pointer)).toEqual(["ruling-run:acme-resync-on-demand#L2"]);
     expect((read as Extract<RecallSourceRead, { searched: true }>).incomplete).toContain("ENOTDIR");
   });
 
@@ -277,14 +277,14 @@ describe("searchRulings", () => {
     mkdirSync(dirname(archive), { recursive: true });
     symlinkSync(join(home, "nowhere"), archive);
     const read = searchRulings({ ...ALL_TIME, home });
-    expect(matchesOf(read).map((match) => match.pointer)).toEqual(["ruling-run:xero-resync-on-demand#L2"]);
+    expect(matchesOf(read).map((match) => match.pointer)).toEqual(["ruling-run:acme-resync-on-demand#L2"]);
     expect((read as Extract<RecallSourceRead, { searched: true }>).incomplete).toContain(`${archive}: Error: ENOENT`);
   });
 
   it("names an archived file it would not open rather than skipping it silently", () => {
     writeArchive();
     const outside = mkdtempSync(join(tmpdir(), "talk-recall-outside-"));
-    writeFileSync(join(outside, "elsewhere.md"), "### RULINGS\n- Xero sync elsewhere (https://example.invalid/b)\n");
+    writeFileSync(join(outside, "elsewhere.md"), "### RULINGS\n- Acme sync elsewhere (https://example.invalid/b)\n");
     symlinkSync(join(outside, "elsewhere.md"), join(rulingArchiveDir({ home }), "linked.md"));
     const read = searchRulings({ ...ALL_TIME, home });
     expect(matchesOf(read).map((match) => match.pointer)).toEqual(["ruling-archive:2026-10-08-board.md#L3"]);
@@ -304,28 +304,28 @@ describe("openDiskRecall", () => {
   it("opens a call turn with the turns either side", () => {
     writeCall();
     const record = unwrap(open({ text: `talk-call:${CALL}#turn_000000000000000000014` }));
-    expect(record.text).toBe(HIS_WORDS);
-    expect(record.before.map((turn) => turn.text)).toEqual(["Did you mean this Xero request?"]);
+    expect(record.text).toBe(STEER_WORDS);
+    expect(record.before.map((turn) => turn.text)).toEqual(["Did you mean this Acme request?"]);
     expect(record.after.map((turn) => turn.text)).toEqual(["The sidebar still quotes it."]);
-    expect(record.detail["card"]).toBe("hand:mon-signin-go-xero-com.5");
+    expect(record.detail["card"]).toBe("hand:mon-signin-go-acme-com.5");
   });
 
   it("opens a steer, a journalled ruling and an archived row", () => {
     writeSteer();
     writeRuling();
     writeArchive();
-    expect(unwrap(open({ text: `talk:${TURN}` })).text).toBe(HIS_WORDS);
-    expect(unwrap(open({ text: "ruling-run:xero-resync-on-demand#L2" })).text).toBe(
-      "Zero, retired: Xero does not run a scheduled sync.",
+    expect(unwrap(open({ text: `talk:${TURN}` })).text).toBe(STEER_WORDS);
+    expect(unwrap(open({ text: "ruling-run:acme-resync-on-demand#L2" })).text).toBe(
+      "Retired: Acme does not run a scheduled sync.",
     );
     expect(unwrap(open({ text: "ruling-archive:2026-10-08-board.md#L3" })).text).toBe(
-      "- Xero sync is on demand only (https://example.invalid/anchor)",
+      "- Acme sync is on demand only (https://example.invalid/anchor)",
     );
   });
 
   it("says a pointer names nothing, rather than answering empty", () => {
     writeRuling();
-    expect(unwrapErr(open({ text: "ruling-run:xero-resync-on-demand#L1" })).code).toBe("RECALL_NOT_FOUND");
+    expect(unwrapErr(open({ text: "ruling-run:acme-resync-on-demand#L1" })).code).toBe("RECALL_NOT_FOUND");
     expect(unwrapErr(open({ text: "ruling-run:no-such-run#L1" })).code).toBe("RECALL_NOT_FOUND");
     expect(unwrapErr(open({ text: `talk-call:${CALL}#turn_missing` })).code).toBe("RECALL_NOT_FOUND");
   });

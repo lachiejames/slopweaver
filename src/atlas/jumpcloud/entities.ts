@@ -4,7 +4,7 @@
  * ## `detail` is the provider's own document, and that is the ruling rather than a shortcut
  *
  * The sibling CrowdStrike atlas declares a field-by-field schema per kind. This one deliberately does not:
- * the owner ruled every family in full — _"basically every API response in every attribute"_ — over 74
+ * the ruling is every family in full, every attribute of every API response, over 74
  * kinds and 488 admitted operations, so a hand-written field list would be a second, smaller definition of
  * what the atlas holds, and the first thing to go stale. What keeps a field out is `projection.ts`'s named
  * denial and `sensitivity.ts`'s refusal, both of which act on the bytes rather than on a type. So `detail`

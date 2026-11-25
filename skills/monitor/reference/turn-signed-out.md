@@ -1,8 +1,8 @@
 # `turn-signed-out`: an answer waiting on the owner's sign-in, before it is posted
 
-The owner's ask, after an answer leaned on admin.google.com, which signs out after about an hour, in the owner's words:
-a future improvement is ensuring that anything useful is reachable for the owner and the fleet before the owner and the fleet answer, which might mean
-a floating note, high prio queue card saying 'log into https://admin.google.com/ right now'.
+The owner's ask, after an answer leaned on admin.google.com, which signs out after about an hour: a future
+improvement is ensuring that anything useful is reachable before the fleet answers, which might mean a floating
+note or a high-priority queue card asking for a sign-in to https://admin.google.com/ right now.
 
 ## What fires it
 

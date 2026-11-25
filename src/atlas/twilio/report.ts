@@ -10,8 +10,8 @@
  * question:
  *
  * - **`browser-only`** — an operation the console's own client calls that no published definition declares.
- *   This is the class the both-surfaces ruling exists for: _"there are things via the browser you can't get
- *   by API"_. Each is a LEAD rather than a capability — seeing the client call it says Twilio HOLDS the
+ *   This is the class the both-surfaces ruling exists for: things reachable only via the browser, not the API.
+ *   Each is a LEAD rather than a capability — seeing the client call it says Twilio HOLDS the
  *   data, never that an ordinary API key may ask for it.
  * - **`spec-only`** — an operation the definitions declare that the console never called. Expected in bulk
  *   and reported anyway, because the SHAPE of it is informative: a whole product no console page touches is

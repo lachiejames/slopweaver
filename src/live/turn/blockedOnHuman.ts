@@ -1,7 +1,7 @@
 /**
  * BLOCKED ON THE OWNER — the pure half of a turn that has got as far as it can without the owner.
  *
- * The owner's design: the loop itself never waits on the owner. The listener is always on and the session can
+ * The design: the loop itself never waits on the owner. The listener is always on and the session can
  * generally run autonomously. What waits is a STEP. The worked case is real and daily: someone asks the bot to
  * deploy a Datadog monitor, the deploy needs a local Google Cloud sign-in, and only the owner can do that
  * sign-in.
@@ -13,20 +13,17 @@
  *
  * ## The three rails, stated where the code is rather than in a skill
  *
- * **It never reads as a failure.** _"It should not show that it failed, it should not show that the request
- * is unable to be handled, it should not show something that makes it feel like what I built is broken or
- * trash in any way."_ Nothing this module composes contains the words failed, error, sorry, unable or
- * cannot; `../../outbound/assistant/todoBlock.ts`'s `blocked` glyph is an hourglass rather than a cross for
- * the same reason, and the step keeps its own text rather than being overwritten with a problem report.
+ * **It never reads as a failure.** A blocked card does not present as a failure: it says nothing about the request
+ * failing, being unable to be handled, or the bot being broken. Nothing this module composes contains the words failed,
+ * error, sorry, unable or cannot; `../../outbound/assistant/todoBlock.ts`'s `blocked` glyph is an hourglass rather than
+ * a cross for the same reason, and the step keeps its own text rather than being overwritten with a problem report.
  *
- * **It never states a time.** _"Might be one minute, might be one week, it should not necessarily be
- * constrained on time."_ So no wording here estimates, promises or implies one, and nothing downstream
+ * **It never states a time.** The wait may be short or long, so no wording here estimates, promises or
+ * implies one, and nothing downstream
  * derives an age bound from the event's own `tsIso` — see `../ask/lifecycle.ts`'s `BlockedOnHumanEvent`.
  *
  * **The turn is NOT done.** The ask stays non-terminal in the lifecycle log, and that is the mechanical half
- * of _"I definitely would want to avoid [the bot] treating something as done if it was not really done …
- * the owner is going to come back and look at it and say what the fuck, you just embarrassed me in
- * public."_
+ * of never marking a blocked ask done merely to tick it off a list, which would misrepresent the work.
  *
  * ## The session stands down; it does not sit here holding things
  *

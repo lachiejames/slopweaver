@@ -240,7 +240,7 @@ export function chooseSlot({
  * slack. Its Sunday 09:00 firing was run at **Monday 06:39** local — 21h39m late — and its Monday 09:00
  * firing at **09:20**, 2h41m after it. Both posted, and the two cards were near-identical, because a
  * `perSlot: false` kind reports THE WORLD AS OF ITS RUN rather than the slot it nominally covers. Owner
- * turn 291-8x, on that pair among others: _"This is spam … stop posting shit that no one is asking for."_
+ * turn 291-8x ruled that pair, among others, spam: a post nobody asked for.
  *
  * Per-slot accounting was correct throughout. What was wrong is that nothing asked whether a firing was
  * still worth taking.

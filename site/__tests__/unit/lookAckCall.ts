@@ -37,39 +37,39 @@ const V4 = "turn_voice_4";
 /* The first turn as it grew: its look ask ("take some screenshots") arrives in its third segment. */
 const T1_A = " Okay, right. So, um";
 const T1_B = `${T1_A}, we're gonna take some screenshots now. Here is`;
-const T1_C = `${T1_B} the first of my plans, the work one. You can`;
+const T1_C = `${T1_B} the first Acme plan, the build one. You can`;
 const T1_D = `${T1_C} see it's at twenty two percent used. And it also`;
-const T1_E = `${T1_D} Uh, has no reset left. There is some spare`;
-const T1_F = `${T1_E} credit, but I won't touch that. Uh, all right, take a screenshot of`;
+const T1_E = `${T1_D} Uh, renews next week. There is some spare`;
+const T1_F = `${T1_E} quota, but nobody uses it. Uh, all right, take a screenshot of`;
 const P1 = `${T1_F} this one. I'm going to go through every plan, one at a time, and get you to`;
 const P1_END = `${P1} look at each one, and we'll work out what to do with them`;
 
 /* The second turn: no ask at all until "Look at my screen", which lands after its hand-off. */
 const T2_A = " Um, now I'll show you the second one";
-const T2_B = `${T2_A}. So the first one was the work plan`;
+const T2_B = `${T2_A}. So the first one was the build plan`;
 const T2_C = `${T2_B} and this one is the team plan, at nineteen`;
 const T2_D = `${T2_C} percent used this week. Um`;
 const P2 = `${T2_D}, and it has one full reset available`;
 
 /* The third turn: "Take a look at this" lands before its hand-off. */
-const T3_A = " This one is my personal plan, which";
+const T3_A = " This one is the personal plan, which";
 const T3_B = `${T3_A} has a lot more usage Uh, and`;
 const P3 = `${T3_A} has a lot more usage Uh, and no resets left.`;
 
 /* The fourth turn: a long stretch about the plan, then "look at my screen" well before its hand-off. */
-const T4_A = " Next one is my side project plan";
-const T4_B = `${T4_A}, the spare account. It's actually maxed out`;
-const T4_C = `${T4_B} Fable this week at a hundred percent. Uh yeah, that one`;
-const T4_D = `${T4_C} caused trouble the other day, when uh the supervisor`;
-const T4_E = `${T4_D} did not hand off in time, [laugh] to another`;
-const T4_F = `${T4_E} plan that had plenty of Fable left, so that was a bug I hope is now`;
+const T4_A = " Next one is the sandbox plan";
+const T4_B = `${T4_A}, the spare one. It's actually maxed out`;
+const T4_C = `${T4_B} builds this week at a hundred percent. Uh yeah, that one`;
+const T4_D = `${T4_C} caused trouble the other day, when uh the scheduler`;
+const T4_E = `${T4_D} did not move jobs in time, [laugh] to another`;
+const T4_F = `${T4_E} plan that had plenty of room left, so that was a bug I hope is now`;
 const P4 = `${T4_F} fixed`;
 const P4_A = `${P4} And j-just then I`;
-const P4_B = `${P4_A} expected you to look at my screen and say, okay, having a look`;
-const P4_C = `${P4_B}, but you didn't. So, I'm not sure if there's a bug where`;
-const P4_D = `${P4_C} you can't tell my turn has ended, or you can't tell I'm`;
-const P4_E = `${P4_D} expecting you to look at my screen, Um`;
-const P4_END = `${P4_E}, when my words stop`;
+const P4_B = `${P4_A} wanted you to look at my screen and say, okay, having a look`;
+const P4_C = `${P4_B}, and you did not. So, maybe there is a bug where`;
+const P4_D = `${P4_C} you miss that the turn has ended, or you miss that I'm`;
+const P4_E = `${P4_D} asking you to look at my screen, Um`;
+const P4_END = `${P4_E}, once the words stop`;
 
 /* What the voice said back, each growing the same way. */
 const V1_END = " Captured. This plan shows twenty-two percent below. Next?";

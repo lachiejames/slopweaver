@@ -42,8 +42,8 @@ import type { SlackDripMessagePayload } from "./types.js";
  * The empty citation list handed to the shared run renderer.
  *
  * Not an oversight and not a placeholder: `DripInlineRun` has no `citation` arm, so the branch that would
- * consume this is unreachable from the human lane. Citations are bot-only by owner decision — *"I feel like
- * citations are bot only"* — because a human does not footnote themselves.
+ * consume this is unreachable from the human lane. Citations are available only on bot-authored forms,
+ * because a human does not footnote themselves.
  */
 const NO_CITATIONS: readonly Citation[] = [];
 

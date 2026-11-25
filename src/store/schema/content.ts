@@ -58,10 +58,9 @@
  *
  * ## Why full-text search is a column here rather than an index we maintain
  *
- * Same turn: _"you're saying that for free we get full text search in Postgres. I love free stuff … And
- * you're right, it's not a third place."_ `searchable` is a STORED generated column, so it cannot drift
- * from the text it summarises — there is no rebuild step that can be skipped and no second artefact that
- * can go stale, which is the whole failure of the hand-built index this replaces.
+ * Same turn's conclusion: Postgres gives full text search for free, and it is not a third place. `searchable` is a
+ * STORED generated column, so it cannot drift from the text it summarises — there is no rebuild step that can be
+ * skipped and no second artefact that can go stale, which is the whole failure of the hand-built index this replaces.
  */
 import { sql } from "drizzle-orm";
 import {

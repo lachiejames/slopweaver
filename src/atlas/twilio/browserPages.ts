@@ -27,12 +27,11 @@
  *
  * ## What is declared, and what deliberately is not
  *
- * `docs/atlas-intent/05-browser-proof.md` and `docs/atlas-intent/06-holdings.md` draw the line and it is the owner's own: every settings and admin page
- * is declared and photographed, every list surface is declared as ONE page rather than one page per row,
- * and no record gets a route of its own. _"I wouldn't expect it to go and pilot a browser and get a
- * screenshot of every single message that's ever been sent"_ is the Slack form of the same rule; a Twilio
- * message log entry is that message, and the two harvested routes naming one marketplace add-on by SID are
- * dropped for the same reason.
+ * `docs/atlas-intent/05-browser-proof.md` and `docs/atlas-intent/06-holdings.md` draw the line: every settings and
+ * admin page is declared and photographed, every list surface is declared as ONE page rather than one page per row, and
+ * no record gets a route of its own. A walk never pilots a browser to photograph every message ever sent; that is the
+ * Slack form of the same rule; a Twilio message log entry is that message, and the two harvested routes naming one
+ * marketplace add-on by SID are dropped for the same reason.
  */
 import { TWILIO_CONSOLE_ROUTES } from "./generated/consoleRoutes.js";
 

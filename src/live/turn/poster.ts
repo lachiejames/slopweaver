@@ -155,7 +155,7 @@ export function liveTurnPoster({
    * none reached it.
    *
    * `undefined` is not "skip the check" — the gate refuses on it, and that is the ruling rather than a
-   * default: _"I would rather give no answer than a bad answer."_ It is a poster-level input rather than a
+   * default: no answer is better than a bad answer. It is a poster-level input rather than a
    * `postAnswer` argument so the worker composing the answer never holds it: the loop supplies it when it
    * builds the poster, which is the same reason the worker does not spawn its own reviewer.
    */

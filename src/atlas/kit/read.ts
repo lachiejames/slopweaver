@@ -3,11 +3,10 @@
  *
  * ## Why a normalized view rather than each platform's own shape
  *
- * `docs/atlas-intent/settled-decisions.md` records the requirement in the owner's words — _"Turning it into verbs so it's easy for
- * the AI to call"_ — and a verb that answers "what does this atlas hold" cannot switch on Cloudflare kinds,
- * Vanta channels and Slack methods and still be one verb. So each platform contributes an ADAPTER that
- * projects its own strict store into the shapes below, and the CLI never learns a platform's vocabulary.
- * Adding an atlas is one adapter plus one registry row.
+ * `docs/atlas-intent/settled-decisions.md` records the requirement: turn it into verbs the AI can call easily — and a
+ * verb that answers "what does this atlas hold" cannot switch on Cloudflare kinds, Vanta channels and Slack methods and
+ * still be one verb. So each platform contributes an ADAPTER that projects its own strict store into the shapes below,
+ * and the CLI never learns a platform's vocabulary. Adding an atlas is one adapter plus one registry row.
  *
  * The view is deliberately the INTERSECTION of what the existing stores can answer, not a superset anybody
  * has to grow into. Cloudflare's entity carries one `source`; Vanta's carries two nullable channels; both

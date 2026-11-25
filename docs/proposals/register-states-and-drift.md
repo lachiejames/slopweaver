@@ -30,8 +30,8 @@ slopweaver proposal sync --source <notion-page-id-or-url>[,<id-or-url>,...]
 
 The states come from backfilling the owner's real proposals. The owner's own list: strawman/open,
 approved-not-started, partially implemented, implemented, superseded, rejected, stale — plus, separately,
-that the owner liked `shared / discussed / decided` as, in the owner's words, a ledger showing what decisions
-were made, with whom, when and why.
+that the owner liked `shared / discussed / decided` as a ledger showing what decisions were made, with whom,
+when and why.
 
 | Status                  | What it means                                                                    |
 | ----------------------- | -------------------------------------------------------------------------------- |

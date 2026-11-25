@@ -46,8 +46,8 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * The window width a COUNT-ONLY build records.
  *
  * Ten years, which is past the oldest record any connector here has ever written, so the cap is the only
- * thing that binds. It exists because `--limit 100` has to mean what the owner meant by it — _"the most
- * recent 100 records from each corpus"_ — rather than "the most recent 100 that also fall inside a 7-day
+ * thing that binds. It exists because `--limit 100` has to mean the most
+ * recent 100 records from each corpus rather than "the most recent 100 that also fall inside a 7-day
  * window", which would quietly return fewer than 100 and read as a broken cap.
  *
  * A sentinel rather than an optional `days`, deliberately: every subset then has ONE description of what it

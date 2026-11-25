@@ -6,10 +6,10 @@
  *
  * The owner sometimes just wants to wait before saying the next thing. Measured over two calls, every silence of 12s or
  * more that met no answer and that the owner ended themselves: four followed a steer the voice should have taken on,
- * and two were the owner's own pause — "Moving on to the next thing. Umm" (24s, then they shared their screen) and "I
- * might just handle this one by hand actually. One sec" (24s). Both are caught here, by words alone, and none of the
- * four steers is. Repro: each owner segment with `final: true` in `$SLOPWEAVER_HOME/talk/calls/{<call-a>,<call-b>}-*.jsonl` followed by
- * 12s with no voice segment and no tool line.
+ * and two were the owner's own pause — naming the next topic, then trailing off on a filler (24s, then they shared
+ * their screen), and choosing to do a step by hand, then "one sec" (24s). Both are caught here, by words alone, and
+ * none of the four steers is. Repro: each owner segment with `final: true` in
+ * `$SLOPWEAVER_HOME/talk/calls/{<call-a>,<call-b>}-*.jsonl` followed by 12s with no voice segment and no tool line.
  *
  * Words alone, not the voice's judgement: told in one sentence to answer a steer AND stay quiet on a wait, the live
  * voice answered a steer with only "Got it.", where the plain sentence carried it on to the next thing.

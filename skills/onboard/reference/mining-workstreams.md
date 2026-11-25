@@ -31,8 +31,8 @@ answers. Read every unread proposal (`workstreams candidates --json`, `proposalO
 
 ## What to write, per candidate
 
-- **Evidence: the person's own words, verbatim, dated, linked.** Two or three quotes. Never a paraphrase — _"I
-  really like seeing stuff quoted back … I remember being there, saying that"_. A Notion quote links its page.
+- **Evidence: the person's own words, verbatim, dated, linked.** Two or three quotes. Never a paraphrase: seeing
+  the words quoted back is what makes the person remember saying them. A Notion quote links its page.
 - **Two or three definitions of done**, each with its trade-off and, where there is one, a **stretch** rung beyond
   the floor (often a public sentence from someone else). At least one judged by its **people** — the team across
   it and owning it; offer **adoption** (teammates reaching for it unprompted), a measured **sentiment** in the

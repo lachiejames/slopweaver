@@ -21,13 +21,13 @@
  * `api` is everything reached over HTTP with no browser: both published OpenAPI documents, and what an
  * unauthenticated probe established about them. `browser` is `dashboard.knock.app`.
  *
- * The line between them is not a matter of degree here. MEASURED from the dashboard's own route
- * table: **19 of the 57 pages a walk visits display something no declared operation reads at all**, and
- * they are not marginal pages — the Agents workspace is the first item in the product's own navigation, and
- * the audit log, the API keys and the service tokens are the three surfaces a security question reaches for
- * first. `docs/atlas-intent/02-both-surfaces.md`'s *"things via the browser you can't get by API"* is a third of this
- * platform's product surfaces rather than an edge case, which is why the browser channel is modelled as an
- * independent, equal peer rather than as a corroboration pass.
+ * The line between them is not a matter of degree here. MEASURED from the dashboard's own route table: **19 of the 57
+ * pages a walk visits display something no declared operation reads at all**, and they are not marginal pages — the
+ * Agents workspace is the first item in the product's own navigation, and the audit log, the API keys and the service
+ * tokens are the three surfaces a security question reaches for first. `docs/atlas-intent/02-both-surfaces.md`'s class
+ * of things reachable only via the browser, not the API, is a third of this platform's product surfaces rather than an
+ * edge case, which is why the browser channel is modelled as an independent, equal peer rather than as a corroboration
+ * pass.
  *
  * ## The two ceilings are unrelated, so a coverage cell carries whichever one produced it
  *

@@ -178,8 +178,8 @@ function shapeEntities({ kind, at }: { kind: GoogleAdminAtlasKind; at: string })
  * actually opened.
  *
  * Both halves matter and they are deliberately not the same set. A route the console linked is a page this
- * atlas can now say EXISTS, which is `docs/atlas-intent/05-browser-proof.md`'s floor — "we should at least know all the
- * pages that exist". A route it opened is a page it has looked at. An entity whose channel is null says
+ * atlas can now say EXISTS, which is `docs/atlas-intent/05-browser-proof.md`'s floor — the atlas knows every page that
+ * exists. A route it opened is a page it has looked at. An entity whose channel is null says
  * the first without claiming the second, which is the whole reason a channel is nullable.
  *
  * Every timestamp on a page entity is the WALK's own instant rather than this publish's, so republishing

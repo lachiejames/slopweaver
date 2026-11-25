@@ -19,8 +19,8 @@
  *
  * 1. **Only routes whose parameters the session already answers.** `[slug]` is the account and
  *    `[environment]` is the environment, both resolved once from where the dashboard sends the bare origin.
- *    Every other parameter names one of the organisation's own records, and the owner's ruling is explicit
- *    that a walk must not *"get a screenshot of every single message that's ever been sent."*
+ *    Every other parameter names one of the organisation's own records, and a walk
+ *    never pilots a browser to photograph every message ever sent.
  * 2. **Only `account` and `environment` scopes.** The auth routes are reached signed OUT and would
  *    photograph a redirect; the integration routes are OAuth and install callbacks, and visiting
  *    `/slack/install` would START an authorisation flow. This atlas's write policy is `refuse-every-write`,
@@ -51,10 +51,9 @@ export interface KnockBrowserPage {
 /**
  * The kinds whose index page renders the organisation's own RECIPIENTS or their delivered messages.
  *
- * A page displaying one of these is reached, recorded and never photographed. The owner's ruling names
- * settings and admin pages as what a walk photographs, and is explicit that it must not *"get a screenshot
- * of every single message that's ever been sent."* A Knock recipient list is a page of real people's names,
- * email addresses and phone numbers, and a delivered message carries the notification's rendered body.
+ * A page displaying one of these is reached, recorded and never photographed. A walk photographs settings and admin
+ * pages, and never pilots a browser to photograph every message ever sent. A Knock recipient list is a page of real
+ * people's names, email addresses and phone numbers, and a delivered message carries the notification's rendered body.
  *
  * The refusal is enforced BEFORE the write rather than by clearing the reference afterwards — see
  * `kit/pageWalk.ts`'s `photographPolicy`, which exists because clearing a reference left the bytes on disk

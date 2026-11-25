@@ -47,9 +47,9 @@ WHO a parked draft goes to is the owner's review-asks preference row, never a na
 knowledge recall review ask reviewer --domain review`): the owner's newest word on routing replaces the row, so a
 name in canon is the stale copy. The owner overrules a draft in the queue. The owner's marks still shape the chase ([what they
 established](../../../docs/doctrine-rationale/rule-10.md#reeled-in-a-message-to-a-person-waits-for-the-owners-yes-the-owners-own-pull-request-never-does)).
-Rosa and Tobias got a longer clock than the day. Reusing the thread of the owner's earlier ask matched the owner. After one
+Some reviewers got a longer clock than the day. Reusing the thread of the owner's earlier ask matched the owner. After one
 public chase drew no reaction the owner would probably have gone to a DM rather than bump in public again, and that bump's
-broken link looked crap. Every other thread
+broken link looked poor. Every other thread
 quiet on the owner's ask two business days is `thread-chase`'s, which leaves a review of the owner's own pull request to this `bump`
 ([thread-chase](../../automation/reference/thread-chase.md)).
 

@@ -1,17 +1,16 @@
 # Blocked on the owner — the third ending, and the only resumable one
 
 Bundled reference for the `loop-bot` skill, linked from SKILL.md § Step 4. Read it before you use
-`turn block`, and read it in full the first time — the rails here are the owner's own words, and two of them
-will be judged on the rendered surface rather than on the code.
+`turn block`, and read it in full the first time — two of the rails here will be judged on the rendered surface rather than on the code.
 
-The owner's design. The owner rejected the premise that the bot loop waits on the owner: the listener is
-always on and the session can generally run autonomously. **What waits is a STEP.** The owner's worked case is
+The design: the bot loop never waits on the owner; the listener is
+always on and the session can generally run autonomously. **What waits is a STEP.** The worked case is
 real and daily — someone asks the bot to deploy a Datadog monitor, the deploy needs a local Google Cloud
 sign-in, and only the owner can do that sign-in.
 
 ## When it fires — three cases, and they are the whole set
 
-> _"Signing into stuff or approving risky stuff is pretty much the only cases that will come up."_
+> Signing in and approving something risky are nearly the only cases that arise.
 
 The third arrived with the tag decision tree (`src/live/turn/tagDecisionTree.ts`): an ask no
 general ruling of the owner's covers, from an asker not on the trusted tier.
@@ -35,8 +34,7 @@ general ruling of the owner's covers, from an asker not on the trusted tier.
 
 ## Reach the page BEFORE the answer leans on it
 
-The owner's ask, after an answer that leaned on admin.google.com, which signs out after about an hour: a
-future improvement is ensuring that anything useful is reachable for the fleet before it answers, which might mean a
+An answer that leaned on admin.google.com, which signs out after about an hour, showed the need: anything useful must be reachable for the fleet before it answers, which can mean a
 floating note and a high-priority Queue card saying to log into https://admin.google.com/ right now.
 
 ```bash
@@ -75,28 +73,23 @@ belonging in a visible session.
 
 ## Four rails, and each one is the owner's
 
-**1 · Never a failure look.** _"It should not show that it failed, it should not show that the request is
-unable to be handled, it should not show something that makes it feel like what I built is broken or trash in
-any way."_ The card's blocked step wears `⏳`, never `✗`; the step keeps its own text; nothing in the thread
+**1 · Never a failure look.** A blocked card does not present as a failure: it says nothing about the
+request failing, being unable to be handled, or the bot being broken. The card's blocked step wears `⏳`, never `✗`; the step keeps its own text; nothing in the thread
 tag says failed, sorry, unable or cannot. Write `--what` in the same voice — it is rendered verbatim on a
 card a colleague reads, so no gate names, no file paths and no environment variables.
 
-**2 · No clock, anywhere.** _"Might be one minute, might be one week, it should not necessarily be
-constrained on time."_ Never state, estimate or imply when the owner will get to it, never chase, and never let a
+**2 · No clock, anywhere.** The wait may be short or long. Never state, estimate or imply when the owner will get to it, never chase, and never let a
 sweep decide a block has waited long enough. The board and the briefing remember; a countdown does not exist.
 
-**3 · The ask is NOT done.** _"I definitely would want to avoid [the bot] treating something as done if it
-was not really done, and it was actually only being marked as done as a cheap way for the bot to tick
-something off a list … the owner is going to come back and look at it and say what the fuck, you just
-embarrassed me in public."_ `blocked-on-human` is non-terminal in the ask-lifecycle log, and `turn answer`
+**3 · The ask is NOT done.** A blocked ask is never marked done merely to tick it off a list, because that
+would misrepresent the work. `blocked-on-human` is non-terminal in the ask-lifecycle log, and `turn answer`
 REFUSES to post a final answer over an ask still waiting on the owner. Do not look for a way past that refusal:
 `turn unblock` is the only thing that lifts it, and it is the truthful one.
 
-**4 · Surfaced on the fleet briefing, never the bot DM.** _"Maybe on my react now in the fleet briefing,
-because that is one of the most common places I look lately … probably not in the bot DM because there
-is so much stuff in that DM that I never really look at it ever."_ `turn blocked` posts nowhere at all; the
+**4 · Surfaced on the fleet briefing, never the bot DM.** The fleet briefing's react-now block is where the owner
+looks most; the bot DM holds too much to be read reliably. `turn blocked` posts nowhere at all; the
 briefing sweep reads it and `briefing check` refuses a page whose react-now block does not link every waiting
-thread. **A sign-in block with a page goes further** (the owner's ask above): the `turn-signed-out`
+thread. **A sign-in block with a page goes further** (the ask above): the `turn-signed-out`
 monitor opens the page in the owner's work Chrome, floats the note and puts a top-tier Queue card up — one per origin, saying
 to log in now — at the block itself and on every supervisor tick; `turn unblock` settles it. The note is the
 monitor's, posted through the chair's lane, never by your session.

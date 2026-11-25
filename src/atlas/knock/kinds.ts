@@ -152,11 +152,11 @@ export function knockKindForPath({ path }: { path: string }): KnockAtlasKind | n
 /**
  * Which atlas kind one dashboard route displays, or `null` when it displays something no kind covers.
  *
- * `null` is the interesting answer and the reason this function exists. A dashboard page whose subject no
- * declared operation reads is `docs/atlas-intent/02-both-surfaces.md`'s *"things via the browser you can't get by API"*
- * arriving as a measured fact about Knock rather than as a principle — so the mapping is deliberately
- * written to return `null` rather than to reach for the nearest plausible kind. Three of those absences are
- * worth naming here because a reader will otherwise assume a mistake:
+ * `null` is the interesting answer and the reason this function exists. A dashboard page whose subject no declared
+ * operation reads is `docs/atlas-intent/02-both-surfaces.md`'s class of things reachable only via the browser, not the
+ * API, arriving as a measured fact about Knock rather than as a principle — so the mapping is deliberately written to
+ * return `null` rather than to reach for the nearest plausible kind. Three of those absences are worth naming here
+ * because a reader will otherwise assume a mistake:
  *
  * - **`/[slug]/agents`, `/agents/skills` and `/agents/sessions/[sessionId]`** — the Agents workspace, and
  *   the first item in the dashboard's own navigation. NEITHER published document declares an Agents tag,

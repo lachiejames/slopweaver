@@ -45,7 +45,7 @@ function placing({
     decidedIso: atIso,
     gate: { subjects, ...(untilIso === undefined ? {} : { untilIso }), verbs },
     kind: "ruling",
-    ruling: "stop posting shit that no one is asking for",
+    ruling: "post only what someone has asked for",
   };
 }
 
@@ -55,7 +55,7 @@ describe("standingGatesOf", () => {
 
     expect(gates.length).toBe(1);
     expect(gates[0]!.id).toBe(`${SLUG}#${PLACED}`);
-    expect(gates[0]!.words).toBe("stop posting shit that no one is asking for");
+    expect(gates[0]!.words).toBe("post only what someone has asked for");
     expect(gates[0]!.verbs).toEqual([{ noun: "slack", verb: "post" }]);
   });
 
@@ -334,7 +334,7 @@ describe("rulingGateRefusalLines", () => {
   it("carries the owner's own words and the anchor, so the reader can go and check", () => {
     const lines = rulingGateRefusalLines({ action: "slopweaver slack post", gates }).join("\n");
 
-    expect(lines).toContain("stop posting shit that no one is asking for");
+    expect(lines).toContain("post only what someone has asked for");
     expect(lines).toContain("transcript:a0000036#a0000064");
     expect(lines).toContain(rulingGateId({ atIso: PLACED, slug: SLUG }));
   });

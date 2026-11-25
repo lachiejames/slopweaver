@@ -4,9 +4,8 @@
  * ## The friction this exists for
  *
  * Planning a hard piece of work is not the part that fails. Landing it is. A doc gets written, a dependency
- * means it cannot run yet, days pass, and the work is forgotten — or worse, run out of order. The owner's
- * words: *"sometimes I end up not executing an orchestration doc because I've forgotten about it, because I
- * had to wait for a different one first."*
+ * means it cannot run yet, days pass, and the work is forgotten — or worse, run out of order. The friction:
+ * an orchestration doc goes unexecuted because it was forgotten, or because a different one had to run first.
  *
  * So the board answers one question — **what can I start right now?** — and states the rest as blocked, with
  * the reason. Everything else here serves that sentence.

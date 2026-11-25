@@ -5,10 +5,9 @@
  *
  * ## Why it exists
  *
- * The fleet cannot just take a hundred percent of a plan: a user says it can have fifty percent and no more, and
- * without that the product is dead on arrival. A limit a user sets is respected even if it means taking the fleet
- * down. So the limit is a CEILING: a routing gate stops at it,
- * and no `--force` or escape hatch crosses it.
+ * The fleet cannot just take a hundred percent of a plan: a user sets a share, such as fifty percent, as the most it
+ * may take, and without that the product is dead on arrival. A limit a user sets is respected even if it means taking
+ * the fleet down. So the limit is a CEILING: a routing gate stops at it, and no `--force` or escape hatch crosses it.
  *
  * ## One concept, one name
  *

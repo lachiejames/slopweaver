@@ -1,8 +1,7 @@
 /**
  * `slopweaver knowledge remember` — write ONE memory into the retrieved table.
  *
- * The other half of `./recall.ts`, and the writer the owner's steer asks for: _"Most things will be going
- * into something more retrieval based"_.
+ * The other half of `./recall.ts`, and the writer the steer asks for: most memories go into something retrieval based.
  *
  * ## Why this is a second verb and not a change to `knowledge record`
  *

@@ -18,7 +18,7 @@ re-ran>"` journals a `question-reconfirmed` event bound to the open question. Th
 become the row's `stillRealIso` and `stillReal`, even on a row recorded before stakes existed. The question's
 text, its shape and its asked instant stay as they were, and nothing is posted. It needs no claim on the
 run, like `handover rule`, because it moves no phase. A later offer replaces it, a correction keeps it, and a
-new question never inherits it. Everything on the local console stays up to date, to minimise the stale stuff the owner wades through. Before this verb, every ask a pass
+new question never inherits it. Everything on the local console stays up to date, to minimise stale items the owner reads through. Before this verb, every ask a pass
 had re-verified still read "never re-confirmed".
 
 **A correction restates the check with the text.** `handover correct` keeps the shape, so the still-real line

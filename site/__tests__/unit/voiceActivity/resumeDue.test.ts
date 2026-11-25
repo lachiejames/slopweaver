@@ -30,7 +30,7 @@ describe("resumeDueOf", () => {
   const over = play({
     script: [
       [1_000, { kind: "spoke" }],
-      [2_000, { kind: "heard", text: " Okay, um, well, I'm very irritated so I'm probably gonna drop now. Over" }],
+      [2_000, { kind: "heard", text: " Okay, um, well, ABC-1 is all set so I'm probably gonna drop now. Over" }],
     ],
   });
 
@@ -272,7 +272,7 @@ describe("resumeDueOf", () => {
   // The owner may carry on unprompted 24s after a wait, so a later steer talks past it.
   it("is not due when the owner's words end on a wait, and is when a later steer talks past it", () => {
     const waiting = play({
-      script: [[2_000, { kind: "heard", text: "I might just handle this one by hand actually. One sec" }]],
+      script: [[2_000, { kind: "heard", text: "I could do the ABC-1 step myself, actually. One sec" }]],
     });
     expect(dueAt({ activity: waiting, nowMs: 2_000 + RESUME_MS })).toBe(false);
     const steer = " Okay, never mind. Send it in drip feed style and tag Ari when you post it.";
@@ -283,7 +283,7 @@ describe("resumeDueOf", () => {
   // A wait the voice has since answered says nothing of the owner's next words.
   it("is due for a short steer after the voice answered the owner's wait", () => {
     const waiting = play({
-      script: [[2_000, { kind: "heard", text: "I might just handle this one by hand actually. One sec" }]],
+      script: [[2_000, { kind: "heard", text: "I could do the ABC-1 step myself, actually. One sec" }]],
     });
     const answered = foldActivity({ activity: waiting, input: { kind: "spoke" }, nowMs: 3_000 });
     const steer = foldActivity({

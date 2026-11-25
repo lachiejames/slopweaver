@@ -15,8 +15,8 @@
  * **The row's declared effect must cover the verb's.** `kinds.ts` already refuses a row claiming more than
  * its KIND can do; that check is toothless for `verb-run` on its own, because the kind is `read-write` and
  * so covers everything. The check that bites is against the VERB: a row declaring `effect: "read"` may not
- * run a verb whose manifest declares `external-write`. That is the owner's own reason for the field —
- * *"certain recipes do both and some should only read"* — applied where it is actually decidable, and it
+ * run a verb whose manifest declares `external-write`. That is the reason for the field: some recipes
+ * both read and write, and some should only read. It is applied where it is actually decidable, and it
  * is one-directional exactly as the kind check is: declaring less than the verb needs is refused, declaring
  * more than it needs is a row kept deliberately narrow and always safe.
  *

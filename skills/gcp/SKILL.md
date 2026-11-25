@@ -8,8 +8,8 @@ Run `"${CLAUDE_PLUGIN_ROOT}/bin/slopweaver" gcp $ARGUMENTS` and report the resul
 
 ## The one rule this skill exists to hold
 
-**The door is additive by default.** Avoid editing existing
-stuff in GCP, since that is where the main risk lies; expect the work to be almost entirely additive.
+**The door is additive by default.** Existing
+resources in GCP are not edited, since that is where the main risk lies; the work is almost entirely additive.
 So every planned step is classified, and the class is printed beside it:
 
 - **additive** — a new service, secret, service account or repository; a first secret version; enabling an

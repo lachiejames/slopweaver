@@ -35,7 +35,7 @@ describe("copyVoiceVerdict", () => {
   // A talk opening the owner will SAY goes to the tray, and the check judges its words alone.
   it("judges a spoken script by its wording like any message, accepting one that keeps every rule", () => {
     const opening =
-      "Yo, what's up guys. I wanted to show you how I'm using AI day to day.\n\nI think of it as a mecha-suit: I'm inside it.";
+      "Hi all, quick one. Here is how the Acme team uses AI day to day.\n\nThink of it as power steering: the engineer still drives.";
     expect(copyVoiceVerdict({ rules: [EM_DASH], slackDraft: false, text: opening })).toEqual({ kind: "accepted" });
   });
 

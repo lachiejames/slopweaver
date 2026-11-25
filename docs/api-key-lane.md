@@ -1,7 +1,7 @@
 # API keys are not a second set of plans
 
-Scoping answer for the ask _"hold API keys from each account in the secrets store and auto-switch to the
-next key when one is exhausted"_. Everything below was measured against Claude Code **v2.1.261** on this machine, and every claim carries the command that reproduces it.
+Scoping answer for the ask to hold API keys from each account in the secrets store and auto-switch to the
+next key when one is exhausted. Everything below was measured against Claude Code **v2.1.261** on this machine, and every claim carries the command that reproduces it.
 
 The short version: **Claude Code fully supports API-key auth, and using it would take the fleet OFF the three
 Max plans rather than rotate between them.** The rotation this repository ships (`slopweaver claude gauge` /

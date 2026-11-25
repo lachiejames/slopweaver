@@ -9,8 +9,8 @@
  * list; the short of it is that a dependency only one branch declares gets silently unlinked by anything that
  * installs the shared tree from a checkout without it.
  *
- * The owner's rule, from the v1 system that already hit this: *"each worktree auto-install yarn as part of our
- * worktree creation command and never symlinking node_modules across worktrees."* So the install is part of
+ * The rule, from the v1 system that already hit this: each worktree auto-installs yarn as part of worktree
+ * creation, and `node_modules` is never symlinked across worktrees. So the install is part of
  * creation here, exactly like `checkout sync`'s post-pull install — a remembered second step is a step that
  * gets skipped, and when it is skipped the symptom appears somewhere else entirely.
  *

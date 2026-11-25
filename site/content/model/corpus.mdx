@@ -41,9 +41,9 @@ silver.
 ## Bronze keeps everything, on purpose
 
 Bronze stores the record as the provider gave it, fields included, rather than a projection of the fields
-somebody thought would be needed. The reason is a cost asymmetry rather than tidiness: _"I'd probably want
-all the raw data and all the fields in the bronze corpus just to minimize the risk of ever having to bin it
-and re-download everything from scratch due to us projecting away some stuff."_
+somebody thought would be needed. The reason is a cost asymmetry rather than tidiness: keeping every raw field
+minimizes the risk of ever discarding the corpus and re-downloading everything from scratch
+because a projection dropped something.
 
 It is also **append-only**: a refresh writes a new window file rather than editing an old one, so an
 ingest that goes wrong is recoverable by reading around it instead of by re-downloading. The cost is

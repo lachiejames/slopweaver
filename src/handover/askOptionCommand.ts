@@ -5,8 +5,8 @@
  * ## Why this exists
  *
  * A Queue card asked "Will you sign plan-3 back in?" with option A "sign plan-3 in again", and its `what` said the
- * command would come as a hand step once the owner said yes. The owner's word on it: "whats the command? dont show me
- * this without the command to copy/paste into my terminal". So an option the owner would take at a terminal carries
+ * command would come as a hand step once the owner said yes. The rule that followed: a card never shows such an ask
+ * without the command to copy and paste into a terminal. So an option the owner would take at a terminal carries
  * that command as {@link AskOption.command}, the card draws it as a copy block under its own letter, and
  * {@link askOptionsCommandProblems} refuses the option that names such a step and carries none (`AGENTS.md` rule 7:
  * refused, never truncated).

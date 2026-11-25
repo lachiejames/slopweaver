@@ -1,8 +1,7 @@
 # `profile-unloaded`: a running session that lost the owner's profile, reported as a reload in flight
 
-The owner's words: a session can only act as the owner if it can load the owner's profile. Then, to the
-chair, in the owner's words: the owner would rather the chair do nothing than act misaligned for the owner, and the recovery
-really needs to be automatic, none of this more floating notes and the owner having to explicitly tell the chair every
+A session can only act as the owner if it can load the owner's profile, and doing nothing beats acting
+misaligned. The recovery must be automatic, never more floating notes or the owner telling the chair every
 time. So the session recovers itself: the PreToolUse `profile-held` check (`src/admit/profileHeld.ts`) holds its
 next guarded call and delivers the profile in the refusal, and the door holds an external write
 (`src/admit/profileLoadGate.ts`). This monitor only REPORTS that, quietly.

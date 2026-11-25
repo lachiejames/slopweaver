@@ -21,7 +21,7 @@ const SLUG = "acme-admin-17564-gets-before-and-after-proof";
 const ANCHOR = "transcript:a0000032-0000-4000-8000-000000000035#0633bdef-34d9-48a7-92cf-8e02bd019433";
 const PR = "https://github.com/acme/acme-admin/pull/17564";
 const WORDS =
-  "it needs before and after proof: screenshots, plus links to the CI runs in github, and it should carry links and screenshots from datadog CI, since that shows the test logs";
+  "it needs before and after proof: screenshots, plus links to the CI runs in github, and it should carry links and screenshots from datadog CI, where the Acme test logs are";
 
 /** A body carrying a before and an after of each item the owner's words ask for. */
 const FULL_BODY = [

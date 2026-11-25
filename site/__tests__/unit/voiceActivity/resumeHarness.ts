@@ -38,8 +38,7 @@ export const SPOKEN_RMS = 0.042;
 export const QUIET_ROOM = { micLevel: 0.311, micRms: 0.004 } as const;
 
 // A steer that was met with 60s of nothing until the owner spoke again.
-export const STEER =
-  "Cool, that's perfect. I'm going to pre-approve you sending that, tagging Ari in the launch channel.";
+export const STEER = "Great, that works. You can go ahead and send that one, tagging the Acme launch channel.";
 
 /** The activity after the owner spoke that steer at 2s, with the voice having spoken at 1s. */
 export const steered = play({

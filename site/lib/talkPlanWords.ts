@@ -139,11 +139,10 @@ export function nudgeTextOf({
  * itself ({@link RESUME_TURN_TEXT}, `./talkPlanOwedTurn.ts`), after `PLAN_CALL_LIMITS.owedTurnStartMs` so the words this
  * closed reach its spoken record, and nothing the voice says here is relied on for content.
  *
- * Why it is still written at all — MEASURED on a live v3 session (headless Playwright peer with a
- * fake-microphone steer over `openPlanCall`): after "Cool, that's perfect.
- * I'm going to pre-approve you sending that, tagging Ari in the compliance channel" the voice left the owner's turn open and
- * said nothing for 120s. A developer message appended 12s into that silence closed the turn within 0.8s. A variant that
- * told it to stay silent drew only "Got it." — the shape this sentence asks for.
+ * Why it is still written at all — MEASURED on a live v3 session (headless Playwright peer with a fake-microphone steer
+ * over `openPlanCall`): after a steer approving a send, tagging a colleague in a channel, the voice left the owner's
+ * turn open and said nothing for 120s. A developer message appended 12s into that silence closed the turn within 0.8s.
+ * A variant that told it to stay silent drew only "Got it." — the shape this sentence asks for.
  *
  * Why it does not give the voice a turn of its own: three times that turn named a card that does not exist ("Next, this P1 asks how
  * the supervisor is doing on free-text replies"; "Next is the missing NPM token: the card says we're waiting on another

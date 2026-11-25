@@ -1,6 +1,6 @@
 # The fleet-wide spawn backoff
 
-The owner's ask, in the owner's words: when hook latency or load is over the line the fleet backs off spawns exponentially
+The ask: when hook latency or load is over the line the fleet backs off spawns exponentially
 rather than every seat contending. Code: `src/live/machine/spawnBackoff.ts` (pure),
 `src/live/machine/spawnBackoffStore.ts` (the state file and its lock), `src/cli/commands/cmux/spawnCapacityWait.ts`
 (the door every `cmux spawn` passes).

@@ -1,10 +1,10 @@
 /**
- * Xero's business-object families, and the one bound the owner put on "everything reachable".
+ * Xero's business-object families, and the one bound on "everything reachable".
  *
  * ## What this file is FOR
  *
- * `docs/atlas-intent/06-holdings.md`: an atlas holding everything reachable holds it *"with the only exception really
- * being stuff that is like highly voluminous such as audit logs"*, and such a surface is **enumerated and
+ * `docs/atlas-intent/06-holdings.md`: an atlas holds everything reachable except highly voluminous
+ * surfaces such as audit logs, and such a surface is **enumerated and
  * declared rather than stored whole**. This file is that enumeration. A family row says the surface exists,
  * which operations reach it, what shape its records are, and — where this atlas will never hold its rows —
  * that it will never hold them and why. An atlas that simply omitted its voluminous families would answer

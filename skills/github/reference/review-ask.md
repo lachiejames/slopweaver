@@ -80,8 +80,8 @@ ask carries four replies in bronze and none links it. A reply reaching no pull r
 or a forward, across every COPY of it, matched by `channel:ts` so a reply also sent to the channel is one
 message — joins the pull request as an `association: "thread"` mention (`src/review/reviewConversation.ts`),
 and inherits it only from a root THE OWNER WROTE that reaches that one pull request alone. Under somebody else's
-announcement the owner is a participant, not an asker: _"<@them> pls confirm the follow, and then I'm happy to
-approve"_ on THEIR pull request certified as the owner's ask until a fallback review found it on two real threads.
+announcement the owner is a participant, not an asker: a reply promising approval once the author confirms a fix,
+on THEIR pull request, certified as the owner's ask until a fallback review found it on two real threads.
 
 **A message reaching its pull request INDIRECTLY has to ask in its own words**, because its pull request is implicit and the lexicon reads
 a report exactly as well as a request. **Both indirect routes run the same gates** — a quote decides before a
@@ -93,8 +93,8 @@ and the quote route certified exactly that. A message that reaches its pull requ
 somebody and asks in a form the LEXICON has no word for — _"Thanks <@…>, ready for round 2 :pray:"_ — abstains
 rather than certifying a non-ask, which is what three real re-review asks of the owner's read as. A NEED it names (`tick(s)`,
 `code-owner`, `approval`, `sign-off`, `blocked`, `waiting on`), in its words or the labels of the groups it
-tags, withholds certification when the only marker is a bump: _"I've been bumping this since August, but stays
-blocked on @platform codeowner tick"_ is what the owner has been doing, while _"mind taking this one … just needs your
+tags, withholds certification when the only marker is a bump: a reply reporting weeks of bumping that stays
+blocked on a codeowner tick is what the owner has been doing, while _"mind taking this one … just needs your
 codeowner pass"_ is what the owner wants.
 
 MEASURED over the owner's whole Slack bronze, by a fallback review sweeping every linkless thread
@@ -111,7 +111,7 @@ Over every pull request the bronze names, that sweep read a few hundred replies 
 
 **An indirect direct message abstains rather than answering never-asked.** A direct message addresses its
 counterpart with no tag, so a pull request reaching one through an unfurl, with no request this read knows, is
-not evidence the owner did not ask: the owner's real _"in the meantime, got a big stack for ya"_ above a nine-pull-request
+not evidence the owner did not ask: one casual handover line in a real DM, above a nine-pull-request
 board answered a confident **never asked** on six of them. The cost is stated rather than hidden — dozens of real
 messages of the owner's, _":thinking_face:"_ and _"Good catch, will fix the comment then merge"_ among them, move from
 a correct certified non-ask to `undecided`, and 4 pull requests' `asked` move from `no` to `unknown`.

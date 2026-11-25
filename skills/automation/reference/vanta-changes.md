@@ -3,10 +3,9 @@
 Every `atlas vanta sync` writes what it changed against the generation it replaced to
 `$SLOPWEAVER_HOME/vanta/changes/<at>.json` and prints one `changes:` line naming it. Nothing decides what
 matters. The session running the `vanta` resync reads the change and judges it, the same way the Datadog
-detective findings reach the owner, in the owner's words: surface stuff to the owner on the queue sometimes and
-say X happened in Vanta, want to post Y to #Z? … am not sure about creating rules for this kind of thing, given
-the diff is usually small … use good judgement to figure what would ada want to see vs what would ada not care
-about.
+detective findings reach the owner: now and then a Queue card says that something happened in Vanta and asks
+whether to post a line to a channel. No rules are written for this, since the diff is usually small; judge what
+the owner would want to see and what the owner would not care about.
 
 Without it, a Vanta email is the only signal: a weekly summary, a compliance framework reactivated, seven vendors
 discovered, a risk scenario assigned to the owner. The atlas held three of those four, and nothing read it.

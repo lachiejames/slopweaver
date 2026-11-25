@@ -1,11 +1,11 @@
 /**
  * Folding cmux's event stream into per-session state — the supervisor's second prong.
  *
- * The 20-minute sweep reads screens, and a screen read is a snapshot: anything that scrolled past between two
- * sweeps is simply gone, which is the owner's own complaint about it ("you can miss events higher up the
- * screen"). An event fold has the opposite failure mode — it sees every transition and none of the prose. The
- * two are complementary rather than competing, and this module is deliberately only the first half: it
- * answers *finished / waiting / churning / silent*, never *what did it decide*.
+ * The 20-minute sweep reads screens, and a screen read is a snapshot: anything that scrolled past between two sweeps is
+ * simply gone, which is a known weakness of it: events higher up the screen can be missed. An event fold has the
+ * opposite failure mode — it sees every transition and none of the prose. The two are complementary rather than
+ * competing, and this module is deliberately only the first half: it answers *finished / waiting / churning / silent*,
+ * never *what did it decide*.
  *
  * Every function here is pure. The subscription that feeds it lives in `eventStream.ts`, and the cursor that
  * makes a restart resume rather than replay is committed with the fold, in one store row, by `eventState/`.

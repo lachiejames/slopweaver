@@ -102,7 +102,7 @@ Seven more things a row's own shape tells the owner — why it never truncates, 
 
 ## Every row says where it already STANDS — ruled, in flight, or untouched
 
-The owner's words: the first few items the owner sees on there are things the owner already answered in the
+The first items on the page were once things the owner had already answered in the
 previous supervisor. Every row in `--json` carries a `standing`, judged after the ranking against the
 lock-in ledger (by identity OR anchor URL) and the board's open runs plus the live session ledger. A ruled
 row is demoted and labelled `you already answered this: ruled <date>`; an in-flight row is held back with the

@@ -1,7 +1,6 @@
 # Read before and after every send
 
-In the owner's words: read before and after the fleet acts, like the owner and the fleet's Playwright does. Five
-checks, each in code and
+The rule: read before and after the fleet acts, the way Playwright does. Five checks, each in code and
 each held down by a replay-lane test. Four run without you; the fifth is a verb you run.
 
 ## 1. Before a release: the thread is re-read since the draft's own read
@@ -30,9 +29,9 @@ one remedy — never "re-record it for approval":
 | It is no longer needed (someone else did it) | `--thanks-instead "<one line>"` — sends only thanks, closes the row |
 | It is wrong now, and thanks would be odd     | `slopweaver slack draft drop <id>` — withdraws it                   |
 
-`--thanks-instead` is the owner's own shape, in the owner's words: the fleet checks just in time before sending and
-sees it is actually no longer needed, the fleet changes the message into thanks for the review, and the fleet takes
-it off the owner's board. That would be it; the owner wouldn't hear any more about it. It releases an `--as me` row only; a bot row is dropped. Thanks re-reads too, so pass the set you judged beside it
+`--thanks-instead` is the owner's own shape: the fleet checks just in time before sending, sees the message is
+no longer needed, turns it into thanks for the review and takes it off the owner's board, with nothing further
+for the owner to hear. It releases an `--as me` row only; a bot row is dropped. Thanks re-reads too, so pass the set you judged beside it
 (`--thanks-instead "<line>" --thread-moved-cleared <ts,...>`). A cleared set is compared exactly: a newer reply
 refuses again. Code: `src/outbound/slack/releaseFreshness.ts`.
 
@@ -49,9 +48,9 @@ Slack answered with. A failed read acts on nothing, and its journal row keeps th
 
 ## 3. A misplaced post is repaired, automatically and journalled
 
-The owner's ruling, in the owner's words: delete it and put it in the right place, automated, without even asking
-the owner. The exception is if people have already started engaging … If it is just a reaction, the owner would move
-it automatically.
+The owner's ruling: delete it and put it in the right place, automatically, without asking the owner. The
+exception is when people have already started engaging; a mere reaction does not count, and the post is moved
+automatically.
 
 - **Nobody replied after it** → repost the same arguments where they were addressed, read that back, THEN delete
   the misplaced one. Repost first: every failure leaves the original standing. The conversation is read once more
@@ -89,9 +88,9 @@ slopweaver slack correct --channel <id> --ts <ts> --wrong "<the claim's exact wo
   themselves has no row and is
   refused, and so is a row parked before the register named its user (`src/outbound/slack/asMeAuthorship.ts`). `--wrong` must occur exactly once; the result is read back and a second run is a no-op.
   `chat.update` has no edit-version precondition, so an edit landing between the read and the update is the residue.
-- **The owner's magnitude line**, in the owner's words: ten and thirty is the same order of magnitude, not a
-  meaningful difference. If it was an order of magnitude difference, that materially changes the impact and severity
-  of the incident and the owner might want to know before the fleet sends. The verb computes the numeric half: any figure moved by
+- **The owner's magnitude line**: ten and thirty are the same order of magnitude, not a meaningful difference. A
+  difference of an order of magnitude materially changes an incident's impact and severity, and the owner
+  may want to know before the fleet sends. The verb computes the numeric half: any figure moved by
   10× or more against the same position in the correction (a version is not a figure), zero against non-zero, or
   a figure count that differs so no pairing is computable, is HELD until you `handover ask` the owner on the Queue and re-run with
   `--magnitude-seen <the owner's answer's anchor>`. A worded change it cannot measure stays your judgement, on the same line.

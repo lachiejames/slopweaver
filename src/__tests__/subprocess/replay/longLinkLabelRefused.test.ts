@@ -25,7 +25,7 @@ const SLUG = "long-link-label-refused-24sep";
 
 /** What the owner tagged, as the socket path normalised it — redacted out of the fixture itself. */
 const NORMALISED_QUESTION =
-  "@(U1) • close <https://linear.app/acme/issue/HELP-2878/vanta-remediate-cloudflare-ip-access-rules-enabled-for-no-active|HELP-2878> • we definitely want uploads to happen properly inside of Vanta, so if that's a feature that doesn't work, then I want you to build it as a new slopweaver PR and use it here to upload the files properly (as well as dogfood).";
+  "@(U1) • close <https://linear.app/acme/issue/HELP-2878/vanta-remediate-cloudflare-ip-access-rules-enabled-for-no-active|HELP-2878> • the Acme audit needs files to upload properly inside of Vanta, so if that's a feature that doesn't work, then it gets built as a new slopweaver PR and used here to upload the files properly (as well as dogfood).";
 
 /** The wire guard's verdict on a card wearing `frame`, rendered exactly as the checklist post renders it. */
 function wireViolations({
@@ -80,7 +80,7 @@ describe("replay: long-link-label-refused-24sep", () => {
 
   it("labels the incident's own question with the link's label, and both cards pass the wire guard", () => {
     const captured = firstCardFrame({ question: NORMALISED_QUESTION });
-    expect(captured.task).toBe("answering: • close HELP-2878 • we definitely want uploads …");
+    expect(captured.task).toBe("answering: • close HELP-2878 • the Acme audit needs files …");
     expect(wireViolations({ frame: captured })).toEqual([]);
     expect(wireViolations({ frame: dispatchedCardFrame({ question: NORMALISED_QUESTION, timeline: [] }) })).toEqual([]);
   });

@@ -40,7 +40,7 @@ const row = ({ words }: { words: string }) =>
   });
 
 const WORDS =
-  "it needs before and after proof: screenshots, plus links to the CI runs in github, and it should carry links and screenshots from datadog CI, since that shows the test logs";
+  "it needs before and after proof: screenshots, plus links to the CI runs in github, and it should carry links and screenshots from datadog CI, where the Acme test logs are";
 
 /** A body read that answers `body` and records each address it was asked for. */
 const bodyOf = ({ body, asked }: { body: string; asked: string[] }): PullBodyRead => {

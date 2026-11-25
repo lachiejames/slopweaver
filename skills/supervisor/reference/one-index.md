@@ -5,9 +5,9 @@ form's other fields and their caps are in [fleet-briefing-shape.md](fleet-briefi
 
 ## The ruling, and what it does NOT mean
 
-The owner's design ruling, from the owner's own thinking-out-loud, in the owner's words: ideally the owner only has to look one place
-generally. Maybe a couple different artifacts is okay, but the fleet briefing should definitely be directing
-the owner to those artifacts and saying react now when there's something to be done on another artifact.
+The owner's design ruling: ideally the owner looks in one place generally. A couple of different artifacts is
+acceptable, but the fleet briefing directs the owner to them and says react now when something is to be done
+on another artifact.
 
 The answer is **ONE VIEW over the existing registers, never one merged register.** `slopweaver session-start`
 is the OWNER's action queue across the team surfaces; the handover board is the FLEET's queue, with unanswered Slack

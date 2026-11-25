@@ -300,7 +300,7 @@ describe("a relay naming #dev-alerts against a draft held for the launch channel
       draft: {
         about: `ask:${slug}`,
         anchor: "talk:talk-60b2496c0000",
-        heard: "Public fuck up. I said this needs to go into Dev alerts, but it's gone into the launch channel",
+        heard: "Public mix-up. This was meant to go into Dev alerts, but it's gone into the launch channel",
         words: "",
       },
       home,

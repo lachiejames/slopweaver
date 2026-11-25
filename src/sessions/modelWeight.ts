@@ -13,9 +13,8 @@
  * slopweaver session depth --json
  * ```
  *
- * The owner's ruling of the same day asked for exactly this and named it: _"of course it's going to be model
- * weighted... generally we probably use a mix of like sonnet, opus, fable... it's mainly around using the
- * right tool for the job."_
+ * The owner's ruling of the same day asked for exactly this: usage is model weighted, because the fleet mixes
+ * Sonnet, Opus and Fable and the point is using the right tool for the job.
  *
  * ## It is an INDEX, and that word is load-bearing
  *

@@ -1,8 +1,8 @@
 /**
  * The query the typed client takes, and the schema that refuses a malformed one before it reaches SQL.
  *
- * Owner turn 99 asked for a client "like a TypeScript SDK exposing list, filter, facets, retrieve-detail
- * … never a blind grep, fail loudly, fast feedback". The failing-loudly half is this module: a query is
+ * The requirement is a client shaped like a TypeScript SDK exposing list, filter, facets and retrieve-detail,
+ * never a blind grep, failing loudly with fast feedback. The failing-loudly half is this module: a query is
  * parsed against a closed vocabulary FIRST, so `--source slak` is a named refusal listing the seven real
  * sources rather than an empty result set that reads exactly like "we have no Slack".
  *

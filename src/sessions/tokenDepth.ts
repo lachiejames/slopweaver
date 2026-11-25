@@ -87,9 +87,8 @@ export function latestContextDepth({
 /**
  * The depth at which a session earns a supervisor's REVIEW — never an automatic respawn.
  *
- * A policy number rather than a measurement, and the owner named it while declining to treat
- * it as anything sharper: _"is 500-600k tokens something special? I mean, I guess it's a good enough
- * heuristic at the moment."_ It sits one band above the fleet-wide advisory line
+ * A policy number rather than a measurement: 500-600k tokens is a good-enough heuristic at the moment,
+ * not a threshold with any special property. It sits one band above the fleet-wide advisory line
  * (`./sessionDepthAwareness.ts`, 500k) on purpose: every session is TOLD at 500k, and a supervisor is asked
  * to LOOK at 600k.
  *

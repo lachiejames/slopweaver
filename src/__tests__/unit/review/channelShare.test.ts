@@ -11,9 +11,9 @@ import type { SlackMention } from "../../../review/slackEvidenceTypes.js";
 
 /** An #dev-team post made on a Sunday night in Melbourne. */
 const HEADS_UP =
-  "hey all, heads up that the local E2Es are about to run on every PR (customer, session and billing lanes, in parallel, about 5 min each)\n\n" +
-  "not a required check yet. I want a day or two of flake and speed data from real PRs first, then I'll probably ask platform about making it required\n\n" +
-  "if a lane goes red on your PR and it looks unrelated to your change, pls ping me with the link. I'd much rather hear about flakes now than once it's blocking merges\n\n" +
+  "hey all, heads up that the Acme smoke suite is about to run on every PR (checkout, search and billing lanes, in parallel, about 5 min each)\n\n" +
+  "not a required check yet. the plan is a day or two of flake and speed data from real PRs first, then platform gets asked about making it required\n\n" +
+  "if a lane goes red on your PR and it looks unrelated to your change, pls reply here with the link. a flake is cheaper to hear about now than once it blocks merges\n\n" +
   "<https://github.com/acme/acme-admin/pull/17941|ci(QQQQ-178): run the advisory local E2E suite on every PR #17941>";
 
 const POSTED = "2026-09-27T11:30:21.000Z";

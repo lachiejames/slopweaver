@@ -9,8 +9,8 @@
  *
  * ## Filtered, and emphatically not exhaustive
  *
- * The owner's framing: *"i want to handle dropped tags. not all dropped tags — like ignore shit sent to the
- * bot that we already replied to, or came in weeks ago, or was not an appropriate place to respond."* So a
+ * The aim is to handle dropped tags, but not all of them: ignore messages to the
+ * bot that were already replied to, came in weeks ago, or were not in an appropriate place to respond. So a
  * recovery pass that answered everything it found would be worse than one that answered nothing: it would
  * reply to week-old questions people have long since resolved, in channels the bot has no business in.
  *

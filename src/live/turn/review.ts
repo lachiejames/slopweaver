@@ -6,9 +6,9 @@
  * ## The reviewer is briefed by CODE, and that is the whole property
  *
  * The answer-quality gate (`admit/answerQualityGate.ts`) refuses a send whose verdict is missing, stale or
- * self-issued, and the owner's rule behind it is exact: _"you can grade your own homework using another
- * session if you wrote its instructions."_ While the LOOP opened every reviewer, the worker that composed
- * the answer never touched the reviewer's prompt. Once the worker owns its ask to the terminal outcome — it
+ * self-issued, and the rule behind it is exact: another session's grade counts only when the author did not
+ * write that session's instructions. While the LOOP opened every reviewer, the worker that composed the
+ * answer never touched the reviewer's prompt. Once the worker owns its ask to the terminal outcome — it
  * posts, so it must be the one that gets the answer reviewed — the same rule has to be kept by a different
  * mechanism, and this module is it: the reviewer's packet is a deterministic function of the answer's own
  * bytes, the decision that dispatched it and the brief it answers. The worker presses the button; it does
@@ -423,15 +423,15 @@ function packetVoiceSection({ voicePrinciples }: { voicePrinciples: readonly str
     "earlier messages in the same thread, since two consecutive bot messages in different registers read as",
     "two authors. A generic politeness pass is not this check.",
     "",
-    "**A correct answer is NEVER `broken` for what it is ABOUT.** Standing owner rule: an answer that",
-    "ranks, compares or names colleagues — who has been slowest to close out their assigned tickets is the",
-    "owner's worked example — is the bot working as intended, and tact is the ASKER's onus rather than the",
+    "**A correct answer is NEVER `broken` for what it is ABOUT.** A standing rule: an answer that",
+    "ranks, compares or names colleagues — who has been slowest to close out their assigned tickets, for",
+    "example — is the bot working as intended, and tact is the ASKER's onus rather than the",
     "answer's. No voice rule above is ever read to mean otherwise, and `subject is unkind`, `this ranks",
     "people` or `this could put someone down` is not a violation, not an unresolved claim, and not grounds",
     "for any verdict but the one the evidence earns. Judge whether the ranking is TRUE and cited; never",
     "whether it should have been asked for.",
     "",
-    "**Who may SEE a fact is a different question, and it CAN be `broken`** (owner rulings): hinting at",
+    "**Who may SEE a fact is a different question, and it CAN be `broken`**: hinting at",
     'a confidence (someone resigning, a "keep it to yourself", why they are away), showing a reader access-controlled',
     "data they could not already reach without the owner's yes on THIS reply, or a partial answer the owner's decision would",
     "materially change, is a `high`-impact defect; unchecked access is not permission. The owner's own privately made",

@@ -4,9 +4,10 @@
  *
  * ## The arithmetic, and why it is a product rather than a quotient
  *
- * A plan is at its limit when `used × 100 ≥ limit × usageLimitPercent` — both sides in the provider's own minor
- * units, so no division rounds a plan one cent under its limit into "open". Equality is AT the limit: the owner said
- * _"you can have fifty percent and no more"_ (`../plans/usageLimit.ts`), so the fleet stops at it, not past it.
+ * A plan is at its limit when `used × 100 ≥ limit × usageLimitPercent` — both sides in the provider's own minor units,
+ * so no division rounds a plan one cent under its limit into "open". Equality is AT the limit: the rule is that the
+ * fleet may take up to a set share, such as fifty percent, and no more (`../plans/usageLimit.ts`), so the fleet stops
+ * at it, not past it.
  *
  * ## Freshness
  *

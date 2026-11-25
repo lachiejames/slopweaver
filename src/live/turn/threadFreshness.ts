@@ -15,8 +15,8 @@
  * ## A moved thread is a NOTE, not a round — the measured failure
  *
  * Ask `C0SYN000002/1789433376.265259`: a release-incident thread moving at about one human
- * message a minute took FIVE review rounds and 156 minutes, and the owner had to answer a
- * colleague in public with _"Not sure how long until a final answer comes out lol"_. Two mechanisms fed it,
+ * message a minute took FIVE review rounds and 156 minutes, and a colleague in the thread was left
+ * without a time for the final answer. Two mechanisms fed it,
  * and this module owns the second.
  *
  * The check used to run with the ADDRESSING message as its boundary, so on a two-and-a-half-hour thread it

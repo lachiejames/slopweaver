@@ -70,12 +70,12 @@ export const LEAD_MIN_WORDS = 5;
 /**
  * The most words a lead carries. A spoken sentence can run a paragraph with no full stop in it, so the lead is a run
  * of clauses within it bounded here; the cut edges are marked, and the whole turn is one click away. Fifty holds the
- * knip turn's whole "add that to an exclusion list in the nip dot json" thought, and stays under the sixty words the
- * fold's opening was allowed (`./queueCard.ts` `WHAT_MAX_WORDS`).
+ * test tidy turn's whole "appends that package to the ignore list in the tidy dot yaml" thought, and stays under
+ * the sixty words the fold's opening was allowed (`./queueCard.ts` `WHAT_MAX_WORDS`).
  */
 export const LEAD_MAX_WORDS = 50;
 
-/** The fewest distinct content words a lead carries, so "hang on I'm talking, hang on" is never one. */
+/** The fewest distinct content words a lead carries, so "hold on a sec, hold on" is never one. */
 export const LEAD_MIN_CONTENT = 3;
 
 /** The stretch a folded quote leads with, and whether more of the owner's words stand either side of it. */
@@ -279,8 +279,7 @@ export function quoteLead({
   const readingTurn = READING_TURN.test(words);
   const taken = ranked.find((candidate) => {
     // A turn where the owner reads aloud admits one clause of their stance opening its sentence and nothing more: read text
-    // and reaction run together across a pause ("I think it's a good opener... And then two settings look wrong"),
-    // and a colleague's message says "And I think" too.
+    // and reaction run together across a pause, and text read aloud says "And I think" too.
     const reaction =
       OWN_STANCE.test(candidate.text) &&
       !/^and\b/iu.test(candidate.head) &&

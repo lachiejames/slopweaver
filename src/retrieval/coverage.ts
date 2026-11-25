@@ -53,8 +53,8 @@ export const STALE_AFTER_DAYS = 7;
  * skip is the same as no signal for the one question it exists to guard — "do we have the last couple of
  * weeks?" — so past this line the query refuses and names the command.
  *
- * Fourteen days, from the owner's own framing of the gap ("I don't really know if we even have the last
- * couple of weeks of activity"). It is twice the reporting threshold on purpose: a source that is merely
+ * Fourteen days, from the framing of the gap: whether the last couple of weeks of
+ * activity are held at all is unknown. It is twice the reporting threshold on purpose: a source that is merely
  * quiet for a week is annotated, and one that has gone dark for a fortnight stops answering. `--stale-ok`
  * waives it for the deliberate historical question, which is the case where old is the point.
  */

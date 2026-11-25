@@ -11,8 +11,8 @@ So before `slack draft record` parks anything aimed at a team that is not the ow
 - **Who will see it.** The person or team that would know is tagged. A reply under a bot alert tagging nobody
   is not a shape: nobody started that thread and nobody is notified by it.
 - **What was seen, the impact with one hedge**, and the receipts (the link and its picture), never a verdict.
-- **The confirming and the decision stay with them**: _"I'm just asking for a little bit of attention, you decide
-  whether this turns into work."_ No fix prescribed, no "we should", no owner assigned. End on one question they
+- **The confirming and the decision stay with them**: the ask is only for a little attention, and the team decides
+  whether this turns into work. No fix prescribed, no "we should", no owner assigned. End on one question they
   can answer.
 
 A review ask or bump on the owner's own pull request, and a proposal to the owner's own team, are not this: those

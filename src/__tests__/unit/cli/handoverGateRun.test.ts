@@ -52,7 +52,7 @@ function stateHome({ projected }: { projected: boolean }): string {
             slug: "a-row",
             subjects: [],
             verbs: [{ noun: "slack", verb: "post" }],
-            words: "stop posting shit that no one is asking for",
+            words: "post only what someone has asked for",
           },
         ],
       }),

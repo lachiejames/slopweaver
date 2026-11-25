@@ -8,8 +8,8 @@
  * hand: `live/slack/asks.jsonl`, `ledgers/turn-completions.jsonl`, `briefs/`, `live/slack/dispatches/`,
  * `live/slack/progress/` and one `live/slack/reviews/<key>/record.json` plus its verdict files. Nothing in the
  * tree read them together — `turn dispatch --sweep` reads only OPEN dispatches, `turn watch` reads one
- * brief, and `turn-completions.jsonl` had no reader at all. The owner's words on that turn: _"whenever I
- * see that I think okay how could we have you know converted this into something type safe and tested"_.
+ * brief, and `turn-completions.jsonl` had no reader at all. A hand-joined measurement like that belongs in
+ * typed, tested code.
  *
  * So the arithmetic lives here, pure, and `../../cli/commands/turn/ledger.ts` is the shell that reads the
  * files. Nothing below touches the filesystem or the clock, which is what makes every phase boundary

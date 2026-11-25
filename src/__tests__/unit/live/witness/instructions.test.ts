@@ -52,8 +52,8 @@ describe("witnessResumeInstructions", () => {
     expect(TEXT).toContain("RECORDED as unavailable");
   });
 
-  it("states the materiality bar with the owner's ruling verbatim", () => {
-    expect(TEXT).toContain(`"you post in the thread when it's worth posting in the thread"`);
+  it("states the materiality bar with the rule it rests on", () => {
+    expect(TEXT).toContain("The rule: Post in the thread only when the finding is worth adding there.\n");
     expect(TEXT).toContain("- claim-contradicted");
     expect(TEXT).toContain("- wider-impact");
     expect(TEXT).toContain("- missing-fact");

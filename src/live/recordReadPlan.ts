@@ -3,10 +3,9 @@
  *
  * ## Why this exists
  *
- * The owner's ruling on what the world model is for: it is _"one of the tools in the toolkit … the agent
- * would use it and lean on it, but you don't take that at face value — you check, verify."_ Concretely, and
- * in practice: when a search surfaces a Notion doc that is largely about the question, pull the whole doc
- * with the Slopweaver verb, and crawl what it links to.
+ * The ruling on what the world model is for: it is one tool in the toolkit, leaned on but never taken at face value,
+ * always checked. Concretely: when a search surfaces a Notion doc that is largely about the question, pull the whole
+ * doc with the Slopweaver verb, and crawl what it links to.
  *
  * Nothing in the repository could express that. A retrieved record is pinned as a `PinnedRecordRef` —
  * source, container, sourceId — which is enough to CITE it and not enough to go and READ it. So a plan

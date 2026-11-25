@@ -275,7 +275,7 @@ describe("the post's review line, over every tag shape Slack writes", () => {
 });
 
 describe("the post's review line over a link", () => {
-  /** The listed document with its one draft carrying the payload a real parked post carried, tagging Rosa. */
+  /** The listed document with its one draft carrying a payload shaped like a parked post's, tagging Rosa. */
   function carrying({ text }: { text: string }): unknown {
     const [item] = LISTED.items;
     return {
@@ -296,17 +296,17 @@ describe("the post's review line over a link", () => {
 
   it("reads a Vanta document link as its label, never its markup", () => {
     const text =
-      "<@U0SYN000002> i went ahead and updated <https://app.vanta.com/documents/change-management-procedures|Change management procedure documentation>\n\ntldr it walks one real change through approval, review, testing and release, which i reckon an auditor wants more than the spec link on its own. your link's still there, short briefing attached";
+      "<@U0SYN000002> i've now updated <https://app.vanta.com/documents/change-management-procedures|Change management procedure documentation>\n\ntldr it walks one sample change through approval, review, testing and release, so an auditor sees the whole flow, not only the spec link. the spec link is still in there, short briefing attached";
     expect(reviewLineFor({ row: onlyRow({ listed: carrying({ text }) }) })).toBe(
-      "@Rosa Lindqvist i went ahead and updated Change management procedure documentation tldr it walks one real change through approval, review,…",
+      "@Rosa Lindqvist i've now updated Change management procedure documentation tldr it walks one sample change through approval, review,…",
     );
   });
 
   it("reads a pull-request link as its label, never its markup", () => {
     const text =
-      "<@U0SYN000002> bump on <https://github.com/acme/acme-admin/pull/18209|take Morgan off the event-kit alerting codeowners #18209> when you get a sec. should be a quick one i think, 2 lines in CODEOWNERS and it just needs a platform tick";
+      "<@U0SYN000002> bump on <https://github.com/acme/acme-admin/pull/18209|move ABC-1 alerting to the platform codeowners #18209> when you have a minute. it's a small one, 2 lines in CODEOWNERS and it only needs a platform tick";
     expect(reviewLineFor({ row: onlyRow({ listed: carrying({ text }) }) })).toBe(
-      "@Rosa Lindqvist bump on take Morgan off the event-kit alerting codeowners #18209 when you get a sec. should be a quick one i think, 2 lines…",
+      "@Rosa Lindqvist bump on move ABC-1 alerting to the platform codeowners #18209 when you have a minute. it's a small one, 2 lines in…",
     );
   });
 

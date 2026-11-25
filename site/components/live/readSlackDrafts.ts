@@ -7,8 +7,8 @@
  * anywhere else on the page, because what this reads is the exact bytes a release would post — a preview
  * that quietly dropped a run would show the owner something other than what the owner is approving.
  *
- * The runs are parsed rather than flattened to a string on purpose. The owner asked for a *"Slack platform native
- * UI draft in a slide over"*, and bold, a link, a mention and a bullet are what makes one look like Slack
+ * The runs are parsed rather than flattened to a string on purpose. The draft is a Slack-native
+ * preview in a slide-over, and bold, a link, a mention and a bullet are what makes one look like Slack
  * rather than like a paragraph of plain text.
  *
  * Because one unreadable row takes every card's draft down, this reader draws EVERY rich-text element the

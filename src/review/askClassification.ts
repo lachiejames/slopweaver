@@ -146,7 +146,7 @@ function within({ inner, outer }: { inner: TextSpan; outer: readonly TextSpan[] 
 /**
  * Whether a mention run merely COPIES somebody in rather than addressing them.
  *
- * MEASURED: *"once I get a platform tick (CC @Rosa :eyebrows:)"* carries the request word `tick`
+ * MEASURED: a note that a platform tick is still due, with `(CC @…)` beside it, carries the request word `tick`
  * and a mention, and is not an ask — the author is noting what they still need, beside somebody they are
  * keeping in the loop. Without this the message certifies as an ask addressed to a person never asked.
  *
@@ -384,8 +384,8 @@ function withoutRequest({
     }
     // A DIRECT MESSAGE addresses its counterpart with no tag at all, which is why the ask rungs below read one.
     // Reaching pull requests there through an unfurl, with no request this read knows, is not evidence the owner
-    // did not ask: MEASURED on a real DM "in the meantime, got a big stack for ya" above an unfurl of the
-    // owner's own nine-pull-request board, which answered a confident "never asked" on six of them.
+    // did not ask: MEASURED on a real DM of one casual handover line above an unfurl of the owner's
+    // nine-pull-request board, which answered a confident "never asked" on six of them.
     // WHO the counterpart is does not gate this. A corpus record never names one — only the live leg does, and
     // `github landing` runs the corpus leg unconditionally — so a rule asking for one abstains on nothing at
     // all. The owner's own bot DM is vetoed at rung 1 wherever the scan has seen the bot post a link in it,
@@ -432,8 +432,8 @@ const INDIRECT_ROUTES = {
  * live landing read: of four replies the thread route certified, the two on a verb form were real
  * (`Bumpity bump @Arlo`, `@… @… bump`), and one on `tick` was the owner explaining a block — *"stays blocked on
  * @platform codeowner tick"*. Those stay `undecided` for a visible session — and so does a reply carrying one
- * ANYWHERE, not only as its first request word: *"I've been bumping this since August, but stays blocked on
- * @platform codeowner tick"* reads `bump` first and is the same explanation.
+ * ANYWHERE, not only as its first request word: a reply reporting weeks of bumping that still stays blocked
+ * on that codeowner tick reads `bump` first and is the same explanation.
  */
 const NEED_SIGNALS: readonly RegExp[] = [
   /\bticks?\b/i,
@@ -492,7 +492,7 @@ const THREAD_ASK_MARKERS: readonly RegExp[] = [
   /\bre-?review\b/i,
 ];
 
-/** The one marker that is equally an ASK and a report of having asked — "I've been bumping this since August". */
+/** The one marker that is equally an ASK and a report of having asked — weeks of bumping, reported. */
 const BUMP_MARKER = /\bbump(s|ed|ing)?\b/i;
 
 /**

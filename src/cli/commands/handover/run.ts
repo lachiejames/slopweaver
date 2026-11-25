@@ -1,8 +1,8 @@
 /**
  * `slopweaver handover list` — the orchestration-doc board.
  *
- * The friction it removes, in the owner's words: *"sometimes I end up not executing an orchestration doc
- * because I've forgotten about it, because I had to wait for a different one first."* Planning is not what
+ * The friction it removes: an orchestration doc goes unexecuted because it was forgotten, or because a
+ * different one had to run first. Planning is not what
  * fails; landing it in order, days later, is.
  *
  * Read-only over the register, and exits `EXIT_OK` even when nothing is runnable. Refusing is the gate's job

@@ -36,11 +36,9 @@ applies.
 
 ### `owner_profile` — the one table dedicated to the owner
 
-Global rather than per Claude project, in the owner's words: the owner doesn't really like how stuff it knows
-about the owner is per project … the Slopweaver plugin is sort of supposed to be loaded globally. And, like if
-the owner is in ACME admin, Slopweaver plugin should be there … with Claude there is this kind of annoying split
-between like memories in one project like Slopweaver will not be present in another project like ACMEAdmin.
-Claude's own project memories cannot span two projects; one row in one database reached by a globally-installed plugin can.
+Global rather than per Claude project: what is known about the owner should not be split by project, and the
+Slopweaver plugin is loaded globally, so it must be present in every project (a memory held in one project is
+absent from another). Claude's own project memories cannot span two projects; one row in one database reached by a globally-installed plugin can.
 
 A SINGLETON, enforced by the database: the primary key is the literal `owner` and a CHECK refuses anything
 else, the same way each per-source table pins its own `source`. A table that accepted a second row would
@@ -118,8 +116,8 @@ transfer half (`src/profile/standingAskPort.ts`). Witness: `src/__tests__/integr
 
 ### Loading is mechanically enforced
 
-_"To make sure that these things are actually loaded when they need to be loaded, I think there has to be
-some kind of mechanical enforcement on a lot of them."_ `hooks/profile-context.sh` runs on `SessionStart` —
+Mechanical enforcement is the ruling: the things that must be loaded are loaded by a mechanism, never by
+a session remembering. `hooks/profile-context.sh` runs on `SessionStart` —
 which Claude Code re-runs as `SessionStart:compact` after every compaction; a `PostCompact` row reaches no context
 (`src/__tests__/unit/context/hookRegistration.test.ts` carries the measurement) — in every project the plugin
 loads into, and emits the block as the harness's own `additionalContext`. It does NOT inherit `handover-run.sh`'s "no runs directory, exit in shell" fast path:

@@ -44,8 +44,8 @@ would make the very next `notion page update` refuse the page it had just writte
 
 ## The ordering guarantee, and why it needed one
 
-The owner's constraint, verbatim: _"with Notion the ordering of blocks matters — you don't want all the
-images appended to the end; you need to insert them into whichever block you want."_
+The constraint: in Notion the ordering of blocks matters, so images are inserted after the block they belong
+to, never all appended to the end.
 
 `blocks.children.append` appends by default. The `after_block` position is what makes it insert instead, and
 it was measured against a real page before this was built: the image lands immediately after the named
