@@ -15,7 +15,12 @@
  * The vendor's own session id the control plane holds never crosses this wire: a `session.origin` request carries the
  * id the CALLER claims, for the control plane to compare, and no answer ever carries the one it holds.
  */
-import { type AppLaunchSpec, isAppLaunchSpec } from "./launchSpecWire.js";
+import {
+  APP_SESSION_TITLE_MAX_CHARS,
+  type AppLaunchSpec,
+  isAppLaunchSpec,
+  overlongLaunchField,
+} from "./launchSpecWire.js";
 import { type AppSessionPicture, isAppSessionPicture } from "./pictureWire.js";
 import { type AppUsageReport, isAppUsageReport } from "./usageWire.js";
 import {
@@ -29,6 +34,7 @@ import {
 
 export {
   APP_CLAUDE_EFFORTS,
+  APP_SESSION_TITLE_MAX_CHARS,
   type AppClaudeEffort,
   type AppLaunchSpec,
   type ClaudeAppLaunchSpec,
@@ -230,6 +236,24 @@ export function isAppSessionSnapshot(value: unknown): value is AppSessionSnapsho
     APP_SESSION_STATES.has(value["state"]) &&
     hasOptionalStrings({ keys: ["lastSubmittedText", "lastSubmittedAtIso", "lastAgentText"], value })
   );
+}
+
+/**
+ * Why a launch request is refused for a field past {@link APP_SESSION_TITLE_MAX_CHARS}, in the words both sides print:
+ * the app answering a request off the wire, and the CLI before it opens the socket at all.
+ *
+ * @param request anything read as a request, typed or off the wire
+ * @returns the refusal's message, or undefined when it is not a launch, or carries no overlong field
+ */
+export function appLaunchBoundRefusal({ request }: { request: unknown }): string | undefined {
+  if (!isObject(request) || (request["kind"] !== "launch.prepare" && request["kind"] !== "launch.resume")) {
+    return undefined;
+  }
+  const field = overlongLaunchField({ value: request["spec"] });
+  if (field === undefined) {
+    return undefined;
+  }
+  return `${request["kind"]} spec.${field} must be at most ${String(APP_SESSION_TITLE_MAX_CHARS)} characters`;
 }
 
 function isRequest(value: unknown): value is AppHarnessRequest {

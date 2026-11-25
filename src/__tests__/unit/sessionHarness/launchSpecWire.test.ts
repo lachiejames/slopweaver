@@ -4,7 +4,12 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { APP_CLAUDE_EFFORTS, isAppLaunchSpec } from "../../../sessionHarness/launchSpecWire.js";
+import {
+  APP_CLAUDE_EFFORTS,
+  APP_SESSION_TITLE_MAX_CHARS,
+  isAppLaunchSpec,
+  overlongLaunchField,
+} from "../../../sessionHarness/launchSpecWire.js";
 
 const COMMON = { directory: "/work/acme", ledgerKey: "abc-1", title: "abc-1" } as const;
 
@@ -46,6 +51,46 @@ describe("isAppLaunchSpec", () => {
     ).toEqual([false, false, false, false]);
   });
 
+  it("accepts a title and a ledger key of exactly 200 code units on either vendor's arm", () => {
+    expect(APP_SESSION_TITLE_MAX_CHARS).toBe(200);
+    const atBound = "a".repeat(200);
+    expect(
+      [
+        { ...CODEX, title: atBound },
+        { ...CODEX, ledgerKey: atBound },
+        { ...CLAUDE, title: atBound },
+        { ...CLAUDE, ledgerKey: atBound },
+      ].map((spec) => isAppLaunchSpec(spec)),
+    ).toEqual([true, true, true, true]);
+  });
+
+  it("refuses a title or a ledger key of 201 code units on either vendor's arm", () => {
+    const pastBound = "a".repeat(201);
+    expect(
+      [
+        { ...CODEX, title: pastBound },
+        { ...CODEX, ledgerKey: pastBound },
+        { ...CLAUDE, title: pastBound },
+        { ...CLAUDE, ledgerKey: pastBound },
+      ].map((spec) => isAppLaunchSpec(spec)),
+    ).toEqual([false, false, false, false]);
+  });
+
+  it("counts UTF-16 code units, so 100 emoji fill the bound and one more character passes it", () => {
+    const emoji = "😀".repeat(100);
+    expect(emoji.length).toBe(200);
+    expect(
+      [
+        { ...CODEX, title: emoji },
+        { ...CODEX, title: `${emoji}a` },
+      ].map((spec) => isAppLaunchSpec(spec)),
+    ).toEqual([true, false]);
+  });
+
+  it("leaves the directory unbounded", () => {
+    expect(isAppLaunchSpec({ ...CODEX, directory: `/${"d".repeat(1000)}` })).toBe(true);
+  });
+
   it("refuses a launch short of a field its arm requires, or one that is not an object", () => {
     const { judgedInstanceId: _unjudged, ...unjudged } = CODEX;
     const { credential: _anonymous, ...anonymous } = CLAUDE;
@@ -57,5 +102,20 @@ describe("isAppLaunchSpec", () => {
       false,
       false,
     ]);
+  });
+});
+
+describe("overlongLaunchField", () => {
+  it("names the title first, then the ledger key, and nothing for a spec within the bound or no object", () => {
+    const pastBound = "a".repeat(201);
+    expect(
+      [
+        { ...CODEX, ledgerKey: pastBound, title: pastBound },
+        { ...CODEX, ledgerKey: pastBound },
+        { ...CODEX, title: "a".repeat(200) },
+        { ...CODEX, title: 7 },
+        "codex",
+      ].map((value) => overlongLaunchField({ value })),
+    ).toEqual(["title", "ledgerKey", undefined, undefined, undefined]);
   });
 });

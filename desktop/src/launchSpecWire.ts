@@ -15,13 +15,31 @@ export type AppClaudeEffort = "low" | "medium" | "high" | "xhigh" | "max";
 /** Every {@link AppClaudeEffort}, which the CLI checks a seat's effort against before it asks for a launch. */
 export const APP_CLAUDE_EFFORTS: readonly AppClaudeEffort[] = ["low", "medium", "high", "xhigh", "max"];
 
+/**
+ * The longest `title` or `ledgerKey` a launch may carry, in UTF-16 code units (a string's `.length`). Both are echoed
+ * in every session snapshot and usage answer, and the title in every picture, for the session's whole life, so an
+ * unbounded one could push each of those answers past `APP_HARNESS_MAX_LINE_BYTES` and poison it. Every title the CLI makes today is a handover
+ * slug or one capped at 60 (`src/cmux/planNames.ts`), and 200 leaves room above that. Counted in code units rather
+ * than bytes so this file stays free of a byte encoder: at the worst JSON escape (six bytes a unit) a bounded field
+ * is still 1,200 bytes. `directory` is not bounded: an existing directory is already bound by the OS's path limit.
+ */
+export const APP_SESSION_TITLE_MAX_CHARS = 200;
+
+/**
+ * A launch field {@link APP_SESSION_TITLE_MAX_CHARS} bounds.
+ * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
+ */
+export type AppLaunchBoundedField = "title" | "ledgerKey";
+
+const BOUNDED_FIELDS: readonly AppLaunchBoundedField[] = ["title", "ledgerKey"];
+
 /** What every launch carries, whichever vendor runs it. */
 interface AppLaunchCommon {
-  /** The short human title the card shows. */
+  /** The short human title the card shows, at most {@link APP_SESSION_TITLE_MAX_CHARS} long. */
   readonly title: string;
   /** The directory the session runs in; it exists before the launch is asked for. */
   readonly directory: string;
-  /** The ledger's label for the session, shown on the card. */
+  /** The ledger's label for the session, shown on the card, at most {@link APP_SESSION_TITLE_MAX_CHARS} long. */
   readonly ledgerKey: string;
   /** The model asked for, when one was pinned. */
   readonly model?: string;
@@ -81,17 +99,36 @@ function isClaudeLaunchSpec(value: Readonly<Record<string, unknown>>): boolean {
 }
 
 /**
+ * The first field, `title` then `ledgerKey`, that a value holds as a string longer than
+ * {@link APP_SESSION_TITLE_MAX_CHARS}: what a refusal names when a launch spec is too long.
+ *
+ * @param value anything parsed off the wire, or a spec the CLI is about to send
+ * @returns the overlong field, or undefined when neither is a string past the bound
+ */
+export function overlongLaunchField({ value }: { value: unknown }): AppLaunchBoundedField | undefined {
+  if (!isObject(value)) {
+    return undefined;
+  }
+  return BOUNDED_FIELDS.find((field) => {
+    const held = value[field];
+    return typeof held === "string" && held.length > APP_SESSION_TITLE_MAX_CHARS;
+  });
+}
+
+/**
  * Whether a value is one launch spec, each vendor's arm carrying only its own keys.
  *
  * @param value anything parsed off the wire, or out of the app's recovery journal
- * @returns true when it is a Codex or a Claude launch with every field the shape the protocol declares
+ * @returns true when it is a Codex or a Claude launch with every field the shape the protocol declares, and its title
+ * and ledger key within {@link APP_SESSION_TITLE_MAX_CHARS}
  * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
  */
 export function isAppLaunchSpec(value: unknown): value is AppLaunchSpec {
   if (
     !isObject(value) ||
     !hasStrings({ keys: ["title", "directory", "ledgerKey"], value }) ||
-    !hasOptionalStrings({ keys: ["model", "ledgerHome"], value })
+    !hasOptionalStrings({ keys: ["model", "ledgerHome"], value }) ||
+    overlongLaunchField({ value }) !== undefined
   ) {
     return false;
   }

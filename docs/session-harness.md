@@ -100,6 +100,8 @@ DONE, never its words or a tool's input, output or title: [the facts picture](se
   `src/sessionHarness/appProtocol.ts` its byte-for-byte copy, because neither tree imports the other; its five siblings,
   `wireBasics.ts` (vendor, state, shape checks), `usageWire.ts` and `pictureWire.ts` (what a `usage` and a `picture` answer carry), `credentialRouteWire.ts`
   (a Claude login's route) and `launchSpecWire.ts` (what a launch asks for) keep one name in both trees, and a mirror test holds every pair equal. The CLI half is `appSocketTransport.ts`, `appHarness.ts` and `appLaunch.ts`.
+- **A launch's title and ledger key are bounded** at 200 characters, refused `BAD_REQUEST` by the app and by the CLI
+  before the socket: [the launch bound](session-harness/launch-bound.md).
 - **Rule 2, as an order.** `launch.prepare` opens the session's card window (JavaScript off, a Stop link), and
   only a card that is visible, loaded and showing THIS session mints the lease the worker is started from
   (`desktop/src/visibleSessionLease.ts`). The card's Stop closes through `cmux close --harness app`, under the

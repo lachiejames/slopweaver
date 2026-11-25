@@ -202,6 +202,13 @@ describe("foldRecoveryJournal", () => {
     expect(journal.sessions.size).toBe(1);
   });
 
+  it("numbers an opened row written before the title bound whose title is past it, and never opens that session", () => {
+    const overlong = { ...OPENED, spec: { ...SPEC, title: "a".repeat(201) } };
+    const journal = foldRecoveryJournal({ lines: [GROUP, overlong].map((row) => lineOf(row)) });
+    expect(journal.malformedLines).toEqual([2]);
+    expect(journal.sessions.get("0b5e")!.opened).toBeUndefined();
+  });
+
   it("is empty for no lines", () => {
     const journal = foldRecoveryJournal({ lines: [] });
     expect(journal.sessions.size).toBe(0);

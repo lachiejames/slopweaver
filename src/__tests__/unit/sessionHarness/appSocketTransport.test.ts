@@ -13,7 +13,9 @@ import { unwrap, unwrapErr } from "../../../lib/result.js";
 import {
   APP_HARNESS_MAX_LINE_BYTES,
   APP_HARNESS_PROTOCOL_VERSION,
+  type AppHarnessRequest,
   appHarnessSocketPath,
+  type CodexAppLaunchSpec,
 } from "../../../sessionHarness/appProtocol.js";
 import {
   APP_PROTOCOL_MISMATCH_MESSAGE,
@@ -27,6 +29,16 @@ type Behaviour =
   | { readonly kind: "hang-up" }
   | { readonly kind: "hold" }
   | { readonly kind: "flood" };
+
+/** A Codex launch within the bound, which a case lengthens one field of. */
+const LAUNCH: CodexAppLaunchSpec = {
+  codexHome: "/h/codex-one",
+  directory: "/work/acme",
+  judgedInstanceId: "instance-a",
+  ledgerKey: "abc-1",
+  title: "abc-1",
+  vendor: "codex",
+};
 
 let root = "";
 let server: Server | undefined;
@@ -143,6 +155,32 @@ describe("socketAppTransport", () => {
       kind: "refused",
       message: "no app session app:0b5e",
     });
+  });
+
+  it("refuses a launch whose title or ledger key is past the bound before reaching for the socket", async () => {
+    const pastBound = "a".repeat(201);
+    const requests: readonly AppHarnessRequest[] = [
+      { kind: "launch.prepare", spec: { ...LAUNCH, title: pastBound } },
+      { kind: "launch.resume", sessionId: "0b5e", spec: { ...LAUNCH, ledgerKey: pastBound } },
+    ];
+    const failures = await Promise.all(
+      requests.map(async (request) => unwrapErr(await socketAppTransport({ root })({ request, timeoutMs: 5000 }))),
+    );
+    expect(failures).toEqual([
+      { code: "BAD_REQUEST", kind: "refused", message: "launch.prepare spec.title must be at most 200 characters" },
+      { code: "BAD_REQUEST", kind: "refused", message: "launch.resume spec.ledgerKey must be at most 200 characters" },
+    ]);
+  });
+
+  it("sends a launch whose title and ledger key are at the bound on to the socket", async () => {
+    const atBound = "a".repeat(200);
+    const failed = unwrapErr(
+      await socketAppTransport({ root })({
+        request: { kind: "launch.prepare", spec: { ...LAUNCH, ledgerKey: atBound, title: atBound } },
+        timeoutMs: 5000,
+      }),
+    );
+    expect(failed).toMatchObject({ causeCode: "ENOENT", kind: "unreachable" });
   });
 
   it("names the app as not serving when no socket is there", async () => {
