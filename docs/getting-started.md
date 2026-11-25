@@ -172,7 +172,7 @@ or a file it cannot parse, nor one holding a number JSON would write back differ
 path that reaches the marketplace file itself, a linked parent included, is refused. It then installs into **every Codex home**: each one the
 plan register names (paused plans included) and the ambient `$CODEX_HOME`, since a seat boots with
 `CODEX_HOME` set to its plan's home and loads only what is installed there. Each home gets its own line and its
-own hook-trust pass; a registered home with no directory is that home's failure, judged before any write, and nothing is installed into it; an
+own hook-trust pass; a registered home with no directory is that home's failure, judged before the marketplace write, and nothing is installed into it; an
 absent ambient home is left alone. A home that is the export's cache directory, holds it or sits in it, compared
 through every link, fails the run before anything is written. With a clone on another branch, or one missing `origin/HEAD` (restore it with
 `git remote set-head origin --auto`), the sync prints `skipped` and installs nothing.
