@@ -54,13 +54,19 @@ const FRESH = ok({
 });
 
 describe("privateTermsPermit", () => {
-  it("proceeds on a clean change set", () => {
-    expect(privateTermsPermit({ acknowledgement: NONE, verdict: CLEAN }).refused).toBe(false);
+  it("proceeds on a clean change set, recording no waiver", () => {
+    const permit = privateTermsPermit({ acknowledgement: NONE, verdict: CLEAN });
+    expect(permit.refused).toBe(false);
+    expect(permit.acknowledgement).toBe(undefined);
   });
 
-  it("refuses a hold under every acknowledgement", () => {
-    expect(privateTermsPermit({ acknowledgement: BLANKET, verdict: HOLD }).refused).toBe(true);
-    expect(privateTermsPermit({ acknowledgement: NAMED, verdict: HOLD }).refused).toBe(true);
+  it("refuses a hold under every acknowledgement, recording no waiver under either", () => {
+    const blanket = privateTermsPermit({ acknowledgement: BLANKET, verdict: HOLD });
+    const named = privateTermsPermit({ acknowledgement: { ...NAMED, reason: "a fork" }, verdict: HOLD });
+    expect(blanket.refused).toBe(true);
+    expect(named.refused).toBe(true);
+    expect(blanket.acknowledgement).toBe(undefined);
+    expect(named.acknowledgement).toBe(undefined);
   });
 
   it("refuses an unacknowledged unchecked set with the four-line refusal carrying its detail", () => {
@@ -92,6 +98,7 @@ describe("privateTermsPermit", () => {
       lines: [UNCHECKED_REFUSAL[0], REASON_NAMES_A_TERM_LINE, ...UNCHECKED_REFUSAL.slice(1)],
       refused: true,
     });
+    expect(permit.lines.filter((line) => line.toLowerCase().includes(SYNTHETIC_VALUE))).toEqual([]);
   });
 
   it("proceeds on an unchecked set named with a reason, handing the waiver to the door", () => {

@@ -73,7 +73,11 @@ export function productionGithubEnqueueDeps(): GithubEnqueueDeps {
         deps: productionBaseFreshnessRunDeps({
           git: {
             ...productionGithubPushDeps(),
-            out: withholdingCredentialWriter({ write: ({ line }) => logger.warn({ msg: line }) }),
+            out: withholdingCredentialWriter({
+              write: ({ line }) => {
+                logger.warn({ msg: line });
+              },
+            }),
           },
         }),
         remote,

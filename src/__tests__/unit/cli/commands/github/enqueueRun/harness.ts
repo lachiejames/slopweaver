@@ -222,6 +222,28 @@ function holdDepsFor({ holds }: { holds: readonly MergeHold[] }): MergeHoldDeps 
   };
 }
 
+/** The private-terms preflight's two reads, each recorded into `sweeps` in the order the verb asked. */
+function preflightDepsFor({
+  measurement,
+  sweeps,
+  terms,
+}: {
+  measurement: GithubVerbResult<BaseFreshness>;
+  sweeps: unknown[];
+  terms: ChangeSetPrivateTermsVerdict;
+}): Pick<GithubEnqueueDeps, "measureBaseFreshness" | "sweepPrivateTerms"> {
+  return {
+    measureBaseFreshness: (args) => {
+      sweeps.push({ measure: args });
+      return measurement;
+    },
+    sweepPrivateTerms: (args) => {
+      sweeps.push({ sweep: args });
+      return terms;
+    },
+  };
+}
+
 /**
  * The deps one run of the verb is driven over, every line it writes recorded into `out` and `diagnostic`.
  *
@@ -266,14 +288,7 @@ export function depsFor({
 }): GithubEnqueueDeps {
   return {
     cwd: () => "/w/repo",
-    measureBaseFreshness: (args) => {
-      sweeps.push({ measure: args });
-      return measurement;
-    },
-    sweepPrivateTerms: (args) => {
-      sweeps.push({ sweep: args });
-      return terms;
-    },
+    ...preflightDepsFor({ measurement, sweeps, terms }),
     doorLedger: door,
     hold: holdDepsFor({ holds }),
     wait: () => Promise.resolve(),
