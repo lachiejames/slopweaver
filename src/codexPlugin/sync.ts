@@ -212,18 +212,22 @@ export function performFleetSync({
     if ("skip" in published.value) {
       return { did: "skipped", why: published.value.skip };
     }
-    if (scope === "install-every-home") {
-      const ensured = ensurePersonalMarketplace({ userHome: paths.userHome });
-      if (ensured.isErr()) {
-        return { did: "failed", error: ensured.error };
-      }
-    }
+    // Each home is judged before the marketplace write, which can create a directory a missing home names.
     const plan = planFleetSync({ homes, mainCheckouts, paths, scope });
     if (plan.isErr()) {
       return { did: "failed", error: plan.error };
     }
     if ("skip" in plan.value) {
       return { did: "skipped", why: plan.value.skip };
+    }
+    if (scope === "install-every-home") {
+      const ensured = ensurePersonalMarketplace({ userHome: paths.userHome });
+      if (ensured.isErr()) {
+        return { did: "failed", error: ensured.error };
+      }
+      if ("skip" in ensured.value) {
+        return { did: "skipped", why: ensured.value.skip };
+      }
     }
     return syncHomes({ deps, paths, plan: plan.value, scope });
   } finally {

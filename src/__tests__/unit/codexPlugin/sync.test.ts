@@ -158,6 +158,31 @@ describe("codex plugin-sync, a foreground run", () => {
     expect(existsSync(fleet.registered)).toBe(false);
   });
 
+  it("judges a missing home before the marketplace write creates the directory it names, so nothing is added there", () => {
+    const adds: string[] = [];
+    const codexHome = dirname(marketplacePath({ userHome: fleet.paths.userHome }));
+
+    const outcome = performFleetSync({
+      deps: fleetDeps({ codexAdd: copyingAdd({ adds, userHome: fleet.paths.userHome }) }),
+      homes: [
+        { codexHome, registered: true },
+        { codexHome: fleet.ambient, registered: false },
+      ],
+      mainCheckouts: [fleet.paths.checkout],
+      paths: fleet.paths,
+      scope: "install-every-home",
+    });
+
+    expect(outcome).toEqual({
+      did: "synced",
+      homes: [
+        { codexHome, did: "failed", error: CodexPluginSyncErrors.codexHomeMissing({ codexHome }) },
+        firstInstall({ codexHome: fleet.ambient }),
+      ],
+    });
+    expect(adds).toEqual([fleet.ambient]);
+  });
+
   it.each([
     ["is", (): string => fleet.paths.exportRoot],
     ["holds", (): string => dirname(fleet.paths.exportRoot)],
