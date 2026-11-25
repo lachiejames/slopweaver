@@ -11,6 +11,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "cmux dialog": CMUX_FLAG_NAMES["dialog"]!,
   "cmux events": CMUX_FLAG_NAMES["events"]!,
   "cmux list": CMUX_FLAG_NAMES["list"]!,
+  "cmux picture": CMUX_FLAG_NAMES["picture"]!,
   "cmux pin": CMUX_FLAG_NAMES["pin"]!,
   "cmux processes": CMUX_FLAG_NAMES["processes"]!,
   "cmux read-screen": CMUX_FLAG_NAMES["read-screen"]!,
@@ -52,6 +53,10 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
   },
   "cmux list": {
     "--full": ["--full"],
+    "--harness": ["--harness", "app"],
+    "--json": ["--json"],
+  },
+  "cmux picture": {
     "--harness": ["--harness", "app"],
     "--json": ["--json"],
   },
@@ -152,6 +157,7 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
   "cmux dialog": ({ fragment }) => parseCmuxArgs({ rest: [...fragment], verb: "dialog" }),
   "cmux events": ({ fragment }) => parseCmuxArgs({ rest: [...fragment], verb: "events" }),
   "cmux list": ({ fragment }) => parseCmuxArgs({ rest: [...fragment], verb: "list" }),
+  "cmux picture": ({ fragment }) => parseCmuxArgs({ rest: ["app:0b5e", ...fragment], verb: "picture" }),
   "cmux pin": ({ fragment }) => parseCmuxArgs({ rest: [...fragment], verb: "pin" }),
   "cmux processes": ({ fragment }) => parseCmuxArgs({ rest: [...fragment], verb: "processes" }),
   "cmux read-screen": ({ fragment }) => parseCmuxArgs({ rest: [...fragment], verb: "read-screen" }),

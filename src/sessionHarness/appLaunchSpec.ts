@@ -15,9 +15,9 @@ import {
   APP_CLAUDE_EFFORTS,
   type AppClaudeEffort,
   type ClaudeAppLaunchSpec,
-  type ClaudeCredentialRoute,
   type CodexAppLaunchSpec,
 } from "./appProtocol.js";
+import type { ClaudeCredentialRoute } from "./credentialRouteWire.js";
 import { type HarnessLaunchOperation, SessionHarnessErrors, type SessionLaunchFailedError } from "./errors.js";
 import type { HarnessLaunchSpec } from "./launch.js";
 

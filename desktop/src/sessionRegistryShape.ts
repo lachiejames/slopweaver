@@ -3,6 +3,7 @@
  * takes and the step it answers, and how a handle addresses an entry. The reducer that moves it is
  * `sessionRegistry.ts`; this module holds no delivery rule.
  */
+import type { AppSessionFacts } from "./pictureWire";
 import type { AppHarnessDelivery, AppLaunchSpec, AppSessionSnapshot } from "./sessionControlProtocol";
 import { APP_SESSION_HANDLE_PREFIX } from "./sessionControlProtocol";
 import type { SessionUsageState } from "./sessionUsage";
@@ -19,6 +20,8 @@ export interface RegistryEntry {
   readonly urgent: number;
   /** What the session has spent in this run of the app, beside the card rather than on it. */
   readonly usage: SessionUsageState;
+  /** Which tools the session has called in this run of the app, as a `picture.read` answers them. */
+  readonly facts: AppSessionFacts;
 }
 
 /** Every hosted session, by the control plane's id. */

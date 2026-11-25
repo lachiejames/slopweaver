@@ -84,6 +84,19 @@ export const cmuxManifest: Readonly<Record<string, VerbManifestEntry>> = {
       usage: "usage: slopweaver cmux pin [--workspace <value>]",
     },
   }),
+  picture: lazy({
+    load: () => import("../commands/cmux/picture.js").then((m) => m.cmuxPictureCommand),
+    meta: {
+      ...readMeta,
+      // A run asks the app's socket, so it acts rather than printing usage.
+      dryParseSafe: false,
+      example: "slopweaver cmux picture app:0b5e --harness app --json",
+      summary:
+        "What one app-hosted session has done this run of the app: its tool calls counted by kind, the ones in " +
+        "flight and the last ended, never a tool's input, output or title",
+      usage: "usage: slopweaver cmux picture <handle> --harness <value> [--json]",
+    },
+  }),
   processes: lazy({
     load: () => import("../commands/cmux/processes.js").then((m) => m.cmuxProcessesCommand),
     meta: {

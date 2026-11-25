@@ -1,9 +1,10 @@
 /**
  * The `cmux` noun's manifest in `cli/manifests/cmux.ts`: pins the verb set and each verb's six classification fields.
- * Most verbs act on a local application and are `local-state`; `list`, `processes`, `read-screen` and `usage` are
- * diagnostic `external-read`s, `templates` is a diagnostic `none`, and `events` and `spawn` are the diagnostic
- * `local-state`s — `events` because each drain files its cursor. `dialog`, `events`, `list`, `pin`, `revive`, `status`,
- * `strands`, `takeover`, `templates`, `todo`, `unpin` and `usage` act on a bare run, so none of them is dry-parse safe,
+ * Most verbs act on a local application and are `local-state`; `list`, `picture`, `processes`, `read-screen` and
+ * `usage` are diagnostic `external-read`s, `templates` is a diagnostic `none`, and `events` and `spawn` are the
+ * diagnostic `local-state`s — `events` because each drain files its cursor. `dialog`, `events`, `list`, `picture`,
+ * `pin`, `revive`, `status`, `strands`, `takeover`, `templates`, `todo`, `unpin` and `usage` act on a bare run, so none
+ * of them is dry-parse safe,
  * and `spawn` is the one row whose parse refusals are not I/O-free.
  * Usage strings are inline and not copied here.
  */
@@ -19,6 +20,7 @@ describe("cmuxManifest", () => {
       "dialog",
       "events",
       "list",
+      "picture",
       "pin",
       "processes",
       "read-screen",
@@ -64,6 +66,14 @@ describe("cmuxManifest", () => {
         parseRejectIsIoFree: true,
       },
       list: {
+        createsWorkItem: false,
+        diagnostic: true,
+        doorRouted: false,
+        dryParseSafe: false,
+        effect: "external-read",
+        parseRejectIsIoFree: true,
+      },
+      picture: {
         createsWorkItem: false,
         diagnostic: true,
         doorRouted: false,

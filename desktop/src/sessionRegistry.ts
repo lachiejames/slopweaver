@@ -13,6 +13,7 @@
  *   is wired, per the seam's rule that an implementation refuses a delivery it cannot honour rather than degrading
  *   it.
  */
+import { EMPTY_SESSION_FACTS, withToolActivity } from "./sessionFacts";
 import {
   appHandleOf,
   type RegistryEntry,
@@ -174,7 +175,7 @@ function onWorker({
       });
       return state === "starting" ? onTurnEnded({ atIso, registry: up, sessionId }) : { registry: up, sends: [] };
     }
-    // The three usage reports are observations: none moves a turn or releases a held message.
+    // The three usage reports and a tool activity are observations: none moves a turn or releases a held message.
     case "model-resolved": {
       const { model } = report;
       return {
@@ -210,6 +211,9 @@ function onWorker({
         }),
         sends: [],
       };
+    }
+    case "tool-activity": {
+      return { registry: withToolActivity({ activity: report.activity, atIso, registry, sessionId }), sends: [] };
     }
     case "agent-text": {
       const tail = (said: string | undefined): string =>
@@ -284,6 +288,7 @@ export function reduceRegistry({ registry, event }: { registry: SessionRegistry;
           title: spec.title,
           vendor: spec.vendor,
         },
+        facts: EMPTY_SESSION_FACTS,
         urgent: 0,
         usage: usageOfSpec({ spec }),
       });

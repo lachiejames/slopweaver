@@ -5,13 +5,16 @@
  * Written ONCE and copied byte for byte: `desktop/src/sessionControlProtocol.ts` is the canonical copy and
  * `src/sessionHarness/appProtocol.ts` the mirror the CLI imports, because the desktop builds apart from `src/` and
  * imports none of it. `desktop/__tests__/unit/sessionControlProtocolMirror.test.ts` fails the moment the two differ.
- * So this file imports only its two mirrored siblings, `wireBasics.ts` (the words and shape checks both wires share)
- * and `usageWire.ts` (what a `usage` answer carries), under the one specifier both trees resolve; every check in it is
- * a type predicate either side wraps in its own `Result`.
+ * So this file imports only its mirrored siblings, `wireBasics.ts` (the words and shape checks every wire shares),
+ * `usageWire.ts` (what a `usage` answer carries), `pictureWire.ts` (what a `picture` answer carries) and
+ * `credentialRouteWire.ts` (the login a Claude launch presents), under the one specifier both trees resolve; every
+ * check in it is a type predicate either side wraps in its own `Result`.
  *
  * The vocabulary is the session harness's (`src/sessionHarness/sessionHarness.ts`): a session, a handle, a delivery.
  * The vendor's own session id never crosses this wire; the control plane keeps it.
  */
+import { type ClaudeCredentialRoute, isClaudeCredentialRoute } from "./credentialRouteWire.js";
+import { type AppSessionPicture, isAppSessionPicture } from "./pictureWire.js";
 import { type AppUsageReport, isAppUsageReport } from "./usageWire.js";
 import {
   APP_SESSION_STATES,
@@ -52,16 +55,6 @@ export type AppClaudeEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 /** Every {@link AppClaudeEffort}, which the CLI checks a seat's effort against before it asks for a launch. */
 export const APP_CLAUDE_EFFORTS: readonly AppClaudeEffort[] = ["low", "medium", "high", "xhigh", "max"];
-
-/**
- * Which login a Claude session presents, by path only — a token never crosses this wire. `store` boots on the routed
- * credential store's own saved login; `setup-token` opens a token file the app hands the session as file descriptor 3,
- * beside an unbound store, exactly as a cmux seat's boot line does (`src/claude/seatPinning.ts`).
- * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
- */
-export type ClaudeCredentialRoute =
-  | { readonly kind: "store"; readonly secureStorageDir: string }
-  | { readonly kind: "setup-token"; readonly secureStorageDir: string; readonly tokenFilePath: string };
 
 /** What every launch carries, whichever vendor runs it. */
 interface AppLaunchCommon {
@@ -168,7 +161,9 @@ export type AppHarnessRequest =
    */
   | { readonly kind: "stop.press"; readonly sessionId: string }
   /** Every hosted session's usage, answered `usage`. An app from before it refuses it as `BAD_REQUEST`. */
-  | { readonly kind: "usage.read" };
+  | { readonly kind: "usage.read" }
+  /** One hosted session's facts picture, answered `picture`. An app from before it refuses it as `BAD_REQUEST`. */
+  | { readonly kind: "picture.read"; readonly handle: string };
 
 /** One answer the control plane sends back to a request it carried out. */
 export type AppHarnessResponse =
@@ -197,7 +192,8 @@ export type AppHarnessResponse =
   | { readonly kind: "closed"; readonly forced: boolean; readonly session: AppSessionSnapshot }
   /** The card's Stop was pressed and its stop finished: `session` is the session as that stop left it. */
   | { readonly kind: "stop-pressed"; readonly session: AppSessionSnapshot }
-  | { readonly kind: "usage"; readonly report: AppUsageReport };
+  | { readonly kind: "usage"; readonly report: AppUsageReport }
+  | { readonly kind: "picture"; readonly picture: AppSessionPicture };
 
 /**
  * Why the control plane did not carry a request out.
@@ -243,28 +239,12 @@ const REFUSALS: ReadonlySet<string> = new Set([
 
 const COMMON_LAUNCH_KEYS: readonly string[] = ["vendor", "title", "directory", "ledgerKey", "model", "ledgerHome"];
 
-function isCredentialRoute(value: unknown): value is ClaudeCredentialRoute {
-  if (!isObject(value)) {
-    return false;
-  }
-  if (value["kind"] === "store") {
-    return (
-      hasStrings({ keys: ["secureStorageDir"], value }) && hasOnlyKeys({ keys: ["kind", "secureStorageDir"], value })
-    );
-  }
-  return (
-    value["kind"] === "setup-token" &&
-    hasStrings({ keys: ["secureStorageDir", "tokenFilePath"], value }) &&
-    hasOnlyKeys({ keys: ["kind", "secureStorageDir", "tokenFilePath"], value })
-  );
-}
-
 function isClaudeLaunchSpec(value: Readonly<Record<string, unknown>>): boolean {
   const excludes = value["claudeMdExcludes"];
   const effort = value["effort"];
   return (
     hasOnlyKeys({ keys: [...COMMON_LAUNCH_KEYS, "credential", "claudeMdExcludes", "effort", "pluginDir"], value }) &&
-    isCredentialRoute(value["credential"]) &&
+    isClaudeCredentialRoute(value["credential"]) &&
     Array.isArray(excludes) &&
     excludes.every((path) => typeof path === "string") &&
     (effort === undefined || APP_CLAUDE_EFFORTS.some((level) => level === effort)) &&
@@ -340,7 +320,8 @@ function isRequest(value: unknown): value is AppHarnessRequest {
     case "launch.abort": {
       return hasStrings({ keys: ["launchToken"], value });
     }
-    case "resolve": {
+    case "resolve":
+    case "picture.read": {
       return hasStrings({ keys: ["handle"], value });
     }
     case "message": {
@@ -400,6 +381,9 @@ function isResponse(value: unknown): value is AppHarnessResponse {
     }
     case "usage": {
       return isAppUsageReport(value["report"]);
+    }
+    case "picture": {
+      return isAppSessionPicture(value["picture"]);
     }
     default: {
       return false;

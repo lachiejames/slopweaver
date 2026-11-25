@@ -1,9 +1,9 @@
 /*
  * The app session harness's wire is written once and copied: the desktop's canonical
  * `desktop/src/sessionControlProtocol.ts` and the CLI's `src/sessionHarness/appProtocol.ts` must stay byte for byte
- * the same file, because neither tree can import the other — and so must its two siblings, `wireBasics.ts` and
- * `usageWire.ts`, which share one name in both trees so the specifier importing them is the same bytes. This lane
- * reaches both roots, so it holds every pair to one.
+ * the same file, because neither tree can import the other — and so must its four siblings, `wireBasics.ts`,
+ * `usageWire.ts`, `pictureWire.ts` and `credentialRouteWire.ts`, which share one name in both trees so the specifier
+ * importing them is the same bytes. This lane reaches both roots, so it holds every pair to one.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -35,6 +35,8 @@ const MIRRORED: readonly { readonly canonical: string; readonly mirror: string }
   { canonical: "sessionControlProtocol.ts", mirror: "appProtocol.ts" },
   { canonical: "wireBasics.ts", mirror: "wireBasics.ts" },
   { canonical: "usageWire.ts", mirror: "usageWire.ts" },
+  { canonical: "pictureWire.ts", mirror: "pictureWire.ts" },
+  { canonical: "credentialRouteWire.ts", mirror: "credentialRouteWire.ts" },
 ];
 
 describe("the app harness protocol", () => {
@@ -44,6 +46,8 @@ describe("the app harness protocol", () => {
       "sessionControlProtocol.ts",
       "wireBasics.ts",
       "usageWire.ts",
+      "pictureWire.ts",
+      "credentialRouteWire.ts",
     ]);
   });
 
