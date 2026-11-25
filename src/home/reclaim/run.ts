@@ -150,10 +150,12 @@ function keptPathWitness({
  * running as the same user that races the root is out of scope here for the reason
  * `../../codex/artifactStore.ts`'s threat model gives — it can already delete the home outright.
  *
- * @param absolute `$SLOPWEAVER_HOME/<segment>`
+ * `./passScratch.ts` asks the same of a pass's own record and scratch directories.
+ *
+ * @param absolute `$SLOPWEAVER_HOME/<segment>`, or one directory directly below it
  * @returns true when the root is a real directory, or the refusal naming it
  */
-function rootIsRealDirectory({ absolute }: { absolute: string }): Result<true, HomeReclaimError> {
+export function rootIsRealDirectory({ absolute }: { absolute: string }): Result<true, HomeReclaimError> {
   const stats = safeFs({ execute: () => lstatSync(absolute), operation: "home.reclaim.root", path: absolute });
   if (stats.isErr()) {
     return err(HomeReclaimErrors.scanFailed({ cause: stats.error.cause, path: absolute }));
@@ -263,7 +265,7 @@ function findSpentScratch({
  * @param directory the absolute candidate
  * @returns whether a `record.json` or an `artifact.md` stands directly inside it
  */
-function isRecordShaped({ directory }: { directory: string }): boolean {
+export function isRecordShaped({ directory }: { directory: string }): boolean {
   return stillExists({ path: join(directory, "record.json") }) || stillExists({ path: join(directory, "artifact.md") });
 }
 
@@ -294,7 +296,7 @@ function topLevelNames({ absolute }: { absolute: string }): Result<readonly stri
  * @param relativePath the `<passId>.scratch` directory's name
  * @returns the workspace with its real size, or the io failure that stopped the walk
  */
-function sizeScratch({
+export function sizeScratch({
   absolute,
   relativePath,
 }: {

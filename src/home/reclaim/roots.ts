@@ -43,7 +43,13 @@
  * `../../cli/commands/store/codexPassDirs.ts`), and `<passId>.scratch/`, the working directory its sandbox
  * may write. The scratch is a WORKSPACE, not an output: once the artifact exists the pass is over, and nothing
  * opens its scratch again — the store import, the pass ledger (`../../codex/ledgerStore.ts`) and this verb
- * all skip `.scratch` by name, and the record already names every file the pass wrote there.
+ * all skip `.scratch` by name, and the pass's conclusion is its artifact, never a file left on the bench.
+ *
+ * Two entry points take this one class. The pass itself, the moment its artifact is written, removes its OWN
+ * scratch and nothing else (`./passScratch.ts`, called from `../../codex/passPersist.ts`), so a finished pass
+ * no longer waits for somebody to run a verb. `home reclaim --root codex-scratch` stays the bulk and fallback
+ * path: a pass that crashed before persisting, a self-reclaim that was refused, and every scratch from before
+ * the pass did this. Both write the same ledger row; the pass's carries `pass:<passId>` as its session.
  *
  * MEASURED, and why taking only package trees stopped being enough: `orchestration` stood at 56 GB
  * (28 GB earlier), and a reclaim that took only `node_modules`, `dist`, `.next` and the Yarn caches would

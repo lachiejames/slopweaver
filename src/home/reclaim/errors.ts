@@ -50,9 +50,36 @@ export interface WitnessFailedError {
   readonly lostPaths: readonly string[];
 }
 
+/** Why a finished pass's own scratch was refused before anything was removed. */
+export type PassScratchRefusal = "workspace-mismatch" | "record-missing" | "artifact-missing" | "record-shaped-scratch";
+
+/**
+ * A pass asked to reclaim its own scratch and a check refused it BEFORE any removal, so the scratch is still
+ * there. `home reclaim --root codex-scratch` applies the same checks later, so a refusal here is one to inspect.
+ */
+export interface PassScratchNotReclaimableError {
+  readonly code: "PASS_SCRATCH_NOT_RECLAIMABLE";
+  readonly message: string;
+  readonly artifactId: string;
+  readonly reason: PassScratchRefusal;
+}
+
 /** Every way `home reclaim` fails. */
 export type HomeReclaimError =
-  RootNotDeclaredError | RootNotDirectoryError | ScanFailedError | ApplyFailedError | WitnessFailedError;
+  | RootNotDeclaredError
+  | RootNotDirectoryError
+  | ScanFailedError
+  | ApplyFailedError
+  | WitnessFailedError
+  | PassScratchNotReclaimableError;
+
+/** What each refusal means, in the words the message carries. */
+const PASS_SCRATCH_REFUSAL_WHY: Readonly<Record<PassScratchRefusal, string>> = {
+  "artifact-missing": "its artifact.md is not there, so the pass is not finished",
+  "record-missing": "its record.json is not there, so the record the witness checks is incomplete",
+  "record-shaped-scratch": "the scratch holds a record.json or artifact.md at its top, so it may be a record",
+  "workspace-mismatch": "the path is not the one this pass's own scratch was created at",
+};
 
 /** Construct one `HomeReclaimError`. The factory the real code calls, so a test fixture is built the same way. */
 export const HomeReclaimErrors = {
@@ -61,6 +88,18 @@ export const HomeReclaimErrors = {
     code: "APPLY_FAILED",
     message: `could not remove ${path}: ${cause instanceof Error ? cause.message : "unknown failure"}`,
     path,
+  }),
+  passScratchNotReclaimable: ({
+    artifactId,
+    reason,
+  }: {
+    artifactId: string;
+    reason: PassScratchRefusal;
+  }): PassScratchNotReclaimableError => ({
+    artifactId,
+    code: "PASS_SCRATCH_NOT_RECLAIMABLE",
+    message: `pass ${artifactId}'s scratch was left in place: ${PASS_SCRATCH_REFUSAL_WHY[reason]}`,
+    reason,
   }),
   rootNotDeclared: ({ named, declared }: { named: string; declared: readonly string[] }): RootNotDeclaredError => ({
     code: "ROOT_NOT_DECLARED",

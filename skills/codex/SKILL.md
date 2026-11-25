@@ -183,8 +183,8 @@ Stated plainly so you do not over-trust it:
   restated after it, and the response must echo the exact property id — so an answer to a different
   question is rejected. No prompt can prove an answer was uninfluenced by text inside the diff.
 - **The sandbox bounds WRITES, not reads.** Codex can read files anywhere it has permission, well outside
-  its workspace. What it cannot do is write into the repository — its workspace is a per-pass scratch
-  directory and the repo is not an additional writable root.
+  its workspace, but writes only its per-pass scratch, never the repo. That scratch is **not output**: the
+  pass removes it once the artifact is written (stdout `scratchReclaim`; a failure never moves the verdict).
 - **A globally configured MCP server is still started** by Codex. Tool dispatch is blocked, but the server
   process runs. See `docs/security/codex-boundary.md`.
 - **A pass cannot open a window.** An app it launches aborts with a crash alert in front of the owner: Electron runs as

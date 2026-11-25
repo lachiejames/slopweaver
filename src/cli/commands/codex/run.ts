@@ -159,7 +159,7 @@ export async function runCodexPlanWithDeps({
   }
   const { bound, options, profile, repo, task } = checked;
   const home = resolveHome({ named: options.home });
-  const orchestrationRoot = stateHomePaths({ home }).orchestration;
+  const { homeReclaimLedgerJsonl: reclaimLedgerPath, orchestration: orchestrationRoot } = stateHomePaths({ home });
   // Every argument the pass needs bar admission's proof and the client is read BEFORE admission, as main read
   // them, so no seam of this verb's own — the watcher, a getter on `deps` — runs between the last admission and
   // the pass's tree freeze (a Codex review found each one could move the tree there).
@@ -167,6 +167,7 @@ export async function runCodexPlanWithDeps({
     bound,
     orchestrationRoot,
     profile,
+    reclaimLedgerPath,
     repoRoot: repo,
     runtime: deps.runtime,
     task,
@@ -306,7 +307,7 @@ export async function runCodexReviewWithDeps({
     properties,
     route: { bound, deps, home, model: options.model },
     run: ({ admitted, client, property }) =>
-      runOneProperty({ admitted, bound, client, deps, options, orchestrationRoot, profile, property, scoped }),
+      runOneProperty({ admitted, bound, client, deps, home, options, profile, property, scoped }),
   });
   return reportInvocations({ invocations: passes });
 }
@@ -366,8 +367,8 @@ async function runOneProperty({
   bound,
   client,
   deps,
+  home,
   options,
-  orchestrationRoot,
   profile,
   property,
   scoped: { diff, tree },
@@ -376,12 +377,13 @@ async function runOneProperty({
   bound: PassBound;
   client: LockedCodexClient;
   deps: CodexDeps;
+  home: string;
   options: CodexReviewOptions;
-  orchestrationRoot: string;
   profile: PassProfile & { readonly mode: "review" };
   property: ReviewProperty;
   scoped: ScopedDiff;
 }): Promise<CompletedPass> {
+  const paths = stateHomePaths({ home });
   return runReviewProperty({
     admitted,
     baseRef: options.base,
@@ -389,9 +391,10 @@ async function runOneProperty({
     client,
     diff,
     diffTree: tree,
-    orchestrationRoot,
+    orchestrationRoot: paths.orchestration,
     profile,
     property,
+    reclaimLedgerPath: paths.homeReclaimLedgerJsonl,
     runtime: deps.runtime,
     ...(deps.newId !== undefined ? { newId: deps.newId } : {}),
     ...watchFor({ boundMs: bound.totalMs, deps, pass: options.pass }),

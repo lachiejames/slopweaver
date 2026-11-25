@@ -74,6 +74,10 @@ export interface ArtifactLocation {
  * the artifact directory with `recursive: false` as a collision guard, and pre-creating it here would disarm
  * that guard.
  *
+ * The scratch does not outlive the pass that made it: once {@link writeCodexArtifact} has published the
+ * record, `./passPersist.ts` removes this exact directory (`../home/reclaim/passScratch.ts`), so nothing a pass
+ * leaves here is durable output — what it showed belongs in the artifact.
+ *
  * Created EXCLUSIVELY too, and refused when the sibling `<id>/` already exists, because `home reclaim`
  * (`../home/reclaim/roots.ts`) removes a whole scratch once its sibling `artifact.md` is there. A scratch
  * recreated beside an old record — an id reused after its workspace was reclaimed — would read as finished

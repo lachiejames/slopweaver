@@ -10,6 +10,7 @@ import {
 import { CodexCommandErrors } from "../../../../../cli/commands/codex/errors.js";
 import type { CompletedPass } from "../../../../../codex/orchestrate.js";
 import type { CodexArtifactRecord, CodexPassOutcome } from "../../../../../codex/types.js";
+import { HomeReclaimErrors } from "../../../../../home/reclaim/errors.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 
 const PLAN_ARGV = ["node", "cli", "plan", "--pass", "p1", "--task-file", "./t.md", "--bound-seconds", "1800"];
@@ -278,6 +279,7 @@ function passWith({
     location: artifactPath === undefined ? undefined : { artifactPath, runDir: "/dir" },
     persistError: artifactPath === undefined ? "disk full" : undefined,
     record,
+    scratchReclaim: { freedBytes: 4096, kind: "reclaimed" },
   };
   return pass;
 }
@@ -345,6 +347,37 @@ describe("codexResultJson", () => {
     expect(json.passes[0].artifactPath).toBe("/x/artifact.md");
     expect(json.passes[0].property).toBe("r1-01");
     expect(json.passes[0].persistError).toBe(null);
+    expect(json.passes[0].scratchReclaim).toEqual({ freedBytes: 4096, status: "reclaimed" });
+  });
+
+  it("reports a failed scratch reclaim by code and message only, beside an unchanged verdict", () => {
+    const failed: CompletedPass = {
+      ...passWith({ artifactPath: "/x/artifact.md", outcome: CLEAN }),
+      scratchReclaim: {
+        error: HomeReclaimErrors.passScratchNotReclaimable({ artifactId: "abc", reason: "workspace-mismatch" }),
+        kind: "failed",
+      },
+    };
+    const json = JSON.parse(codexResultJson({ passes: [failed] }));
+    expect(json.passes[0].verdict).toBe("CLEAN");
+    expect(json.passes[0].scratchReclaim).toEqual({
+      error: {
+        code: "PASS_SCRATCH_NOT_RECLAIMABLE",
+        message: "pass abc's scratch was left in place: the path is not the one this pass's own scratch was created at",
+      },
+      status: "failed",
+    });
+  });
+
+  it("reports a scratch the pass never reclaimed, with why", () => {
+    const unpersisted: CompletedPass = {
+      ...passWith({ artifactPath: undefined, outcome: CLEAN }),
+      scratchReclaim: { kind: "not-attempted", reason: "artifact-not-persisted" },
+    };
+    expect(JSON.parse(codexResultJson({ passes: [unpersisted] })).passes[0].scratchReclaim).toEqual({
+      reason: "artifact-not-persisted",
+      status: "not-attempted",
+    });
   });
 
   it("reports a null artifact path and the persist error when the write failed", () => {

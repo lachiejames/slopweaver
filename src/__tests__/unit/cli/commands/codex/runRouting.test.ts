@@ -142,6 +142,7 @@ function loggedPass({ label, log }: { label: string; log: string[] }): Promise<C
     location: undefined,
     persistError: undefined,
     record: planRecord({ pass: "p2", tree: undefined }),
+    scratchReclaim: { kind: "not-attempted", reason: "workspace-unavailable" },
   });
 }
 
