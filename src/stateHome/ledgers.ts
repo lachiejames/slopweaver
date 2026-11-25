@@ -65,6 +65,9 @@ export interface LedgersStateHomePaths {
    * and the session are on the record, so a reader who was not there can name what a run did without
    * having to trust the run that took it. That is not hypothetical: one row is
    * how the reclaim that deleted live supervisor-chair state was anchored (`../home/reclaim/roots.ts`).
+   *
+   * Its appender refuses a symlink at this filename (`appendLines`' `noFollow`), so a link planted here cannot
+   * steer a reclaim's row into another file in the home; a linked `ledgers/` or home directory is still followed.
    */
   readonly homeReclaimLedgerJsonl: string;
   /**

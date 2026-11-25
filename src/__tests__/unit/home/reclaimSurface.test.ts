@@ -1,11 +1,10 @@
-// The respell verb's registration assertion went out with the verb.
-// deleted-with-code: homeRespellCommand
 import {
   chmodSync,
   linkSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   truncateSync,
@@ -151,6 +150,23 @@ describe("the reclaim ledger", () => {
     const after = readReclaimLedger({ path });
     expect(after.isOk()).toBe(true);
     expect(after._unsafeUnwrap()).toEqual([row]);
+  });
+
+  it("refuses a symlink planted at the ledger's path, so a row never lands in the file it points at", () => {
+    const root = freshHome();
+    const path = reclaimLedgerPath({ home: root });
+    const artifact = join(root, "orchestration", "pass-1", "artifact.md");
+    put({ path: artifact, text: "# a pass's answer of record\nwritten once\n" });
+    const before = readFileSync(artifact);
+    mkdirSync(join(path, ".."), { recursive: true });
+    symlinkSync(artifact, path);
+    const appended = appendReclaimRow({ path, row });
+    expect(appended.isErr()).toBe(true);
+    const failure = appended._unsafeUnwrapErr();
+    expect(failure.code).toBe("APPLY_FAILED");
+    expect(failure.message).toContain("ELOOP");
+    expect(readFileSync(artifact).equals(before)).toBe(true);
+    expect(lstatSync(path).isSymbolicLink()).toBe(true);
   });
 
   it("refuses a corrupt row rather than reading past it", () => {
