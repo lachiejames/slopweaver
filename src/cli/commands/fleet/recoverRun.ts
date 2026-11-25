@@ -1,8 +1,8 @@
 /**
  * `slopweaver fleet recover` — whether each vendor can start a session in the desktop app, the plan it worked on and why
- * not otherwise. The app runs it as a bounded child and draws its answer; it works with no model running, because
- * nothing in it is one. What a pass does lives in `../../../fleet/recoveryPass.ts`; this file is the flag, the lock, the
- * real effects and the exit code.
+ * not otherwise. It is run from the command line; the desktop app does not run it. It works with no model running,
+ * because nothing in it is one. What a pass does lives in `../../../fleet/recoveryPass.ts`; this file is the flag, the
+ * lock, the real effects and the exit code.
  *
  * Exactly one JSON line goes to stdout; every diagnostic, the gates' own included, goes to stderr.
  */

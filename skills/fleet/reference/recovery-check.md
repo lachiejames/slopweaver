@@ -23,6 +23,10 @@ slopweaver fleet recover [--home <dir>]   # one JSON line; exit 0 both vendors, 
   sweep and the ranker (`src/fleet/recoveryClaude.ts`). For Codex it is the fleet read, the ranker and the seat
   preflight (`src/fleet/recoveryCodex.ts`). A plan the gate would refuse is listed as not tried, with its reason. The
   session still passes the credential gate, or the Codex browser door, as it opens, and no hatch is read.
+- **Reading the Claude plans can refresh a token.** The probe sweep, and the credential gate each Claude launch
+  passes, probe every plan and file the probe register under the home. A plan whose token has merely expired gets
+  one `claude` refresh run under its own store, which rewrites that plan's keychain credential, exactly as a spawn's
+  gate does.
 - **A failing plan falls back to the next one, then the pass moves to the other vendor.** If no vendor starts and a
   plan was left out because it is signed out, the result names that plan's one sign-in command
   (`recoverySignInStep`).

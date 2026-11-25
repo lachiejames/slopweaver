@@ -130,7 +130,10 @@ export const fleetManifest: Readonly<Record<string, VerbManifestEntry>> = {
       // A bare run opens sessions, so it acts rather than printing usage.
       dryParseSafe: false,
       // Opens and closes visible sessions in the desktop app, one at a time, spending one short turn on each plan it
-      // tries; writes their ledger rows and an empty scratch directory under the home.
+      // tries; writes their ledger rows and an empty scratch directory under the home. Reading the Claude plans, and
+      // the credential gate each Claude launch passes, probe every plan and file the probe register under the home,
+      // and a plan whose token merely expired gets one `claude` refresh run under its own store, which rewrites that
+      // plan's keychain credential, as a spawn's gate does.
       effect: "local-state",
       example: "slopweaver fleet recover",
       parseRejectIsIoFree: true,

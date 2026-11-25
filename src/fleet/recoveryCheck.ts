@@ -21,7 +21,7 @@ export const RECOVERY_VENDORS: readonly RecoveryVendor[] = ["claude", "codex"];
 /** The longest reason a result carries, in code points: one line a reader takes in at a glance. */
 export const RECOVERY_REASON_MAX = 240;
 
-/** How long one pass may go on opening sessions. The app kills the verb two minutes later. */
+/** How long one pass may take: an attempt starts only while a whole one still fits inside it. */
 export const RECOVERY_PASS_MS = 12 * 60_000;
 
 /** How long one throwaway session has to answer once its message is sent. */
