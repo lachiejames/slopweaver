@@ -3,10 +3,12 @@
  * touches git or cmux. The real spawn path needs a live `cmux` binary and a real worktree, which is not what a
  * unit test does — see the doc's own proof section for that.
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { collectOutput } from "#lib/outputCollect.js";
 
 import { runCmuxClose } from "../../../../../cli/commands/cmux/close.js";
 import { runCmuxReadScreen } from "../../../../../cli/commands/cmux/readScreen.js";
@@ -21,10 +23,14 @@ import {
 import { EXIT_DEFERRED, EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
 import type { CmuxClient } from "../../../../../cmux/client.js";
 import { CmuxErrors } from "../../../../../cmux/errors.js";
+import { ALLOW_RERUN } from "../../../../../handover/boardRefusal.js";
+import { ledgerLine, type RunEvent } from "../../../../../handover/ledger.js";
+import { runJournalPath } from "../../../../../handover/runStore.js";
 import { err, ok, unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { cmuxSessionHarnessOver } from "../../../../../sessionHarness/cmuxHarness.js";
 import type { SessionHarness } from "../../../../../sessionHarness/sessionHarness.js";
 import { appendSessionEvent } from "../../../../../sessions/sessionStore.js";
+import { stateHomePaths } from "../../../../../stateHome.js";
 import { INSTANT_WAITS } from "../../../sessionHarness/fakeCmux.js";
 
 // Every fixture directory this file has minted, so `afterEach` can remove them.
@@ -133,6 +139,107 @@ describe("cmux spawn", () => {
         argv({ rest: ["a-doc", "--dir", dir, "--driver", "gemini", "--model", "sonnet"], verb: "spawn" }),
       ),
     ).toBe(EXIT_USAGE);
+  });
+});
+
+const STARTED: RunEvent = {
+  atIso: "2026-10-01T00:00:00.000Z",
+  branch: "ended-doc",
+  docHash: "abc123",
+  kind: "started",
+};
+
+/**
+ * Run `cmux spawn` on a row only its JOURNAL calls ended, over a throwaway home. The doc names no `repo:`, so the
+ * check after the terminal gates stops a spawn they let through before any worktree or workspace.
+ */
+async function spawnOnJournal({ events }: { events: readonly RunEvent[] }): Promise<{
+  printed: { err: string; out: string; value: number };
+  home: { after: readonly string[]; before: readonly string[] };
+  journal: { after: string; before: string };
+}> {
+  const root = mkdtempSync(join(tmpdir(), "cmux-cli-ended-"));
+  fixtureDirs.push(root);
+  const dir = join(root, "board");
+  const home = join(root, "home");
+  const runsDir = stateHomePaths({ home }).runs;
+  mkdirSync(dir);
+  mkdirSync(runsDir, { recursive: true });
+  writeFileSync(
+    join(dir, "ended-doc.md"),
+    ["---", "slug: ended-doc", "summary: a thing", "status: ready", "---", "", "body"].join("\n"),
+    "utf8",
+  );
+  const journal = runJournalPath({ runsDir, slug: "ended-doc" });
+  writeFileSync(journal, events.map((event) => ledgerLine({ event })).join(""), "utf8");
+  const read = (): { files: readonly string[]; text: string } => ({
+    files: readdirSync(home, { recursive: true }).map(String).toSorted(),
+    text: readFileSync(journal, "utf8"),
+  });
+
+  const before = read();
+  const printed = await collectOutput({
+    keepErrChars: 4096,
+    run: () =>
+      runCmuxSpawn(argv({ rest: ["ended-doc", "--dir", dir, "--home", home, "--model", "sonnet"], verb: "spawn" })),
+  });
+  const after = read();
+  return {
+    home: { after: after.files, before: before.files },
+    journal: { after: after.text, before: before.text },
+    printed,
+  };
+}
+
+describe("cmux spawn on a row its journal ended", () => {
+  // The door reads the break-glass from the environment, so one a shell exported would change which step refuses.
+  let savedRerun: string | undefined;
+
+  beforeEach(() => {
+    savedRerun = process.env[ALLOW_RERUN];
+    delete process.env[ALLOW_RERUN];
+  });
+
+  afterEach(() => {
+    if (savedRerun !== undefined) {
+      process.env[ALLOW_RERUN] = savedRerun;
+    }
+  });
+
+  it("refuses an abandoned run by its derived status, leaving the journal and the home as they were", async () => {
+    const abandoned: RunEvent = { atIso: "2026-10-01T01:00:00.000Z", kind: "abandoned", why: "not pursuing this work" };
+
+    const { home, journal, printed } = await spawnOnJournal({ events: [STARTED, abandoned] });
+
+    expect(printed).toEqual({
+      err:
+        "cmux spawn: ended-doc is cancelled — refusing to spawn a session on closed work\n" +
+        "  not pursuing this work\n",
+      out: "",
+      value: EXIT_ERROR,
+    });
+    expect(journal.after).toBe(journal.before);
+    expect(home.after).toEqual(home.before);
+    expect(home.before).toEqual(["runs", join("runs", "ended-doc.jsonl")]);
+  });
+
+  it("refuses a closed row by its recorded shipment, leaving the journal and the home as they were", async () => {
+    const closed: RunEvent = { atIso: "2026-10-01T01:00:00.000Z", kind: "closed", residue: [], summary: "landed" };
+
+    const { home, journal, printed } = await spawnOnJournal({ events: [closed] });
+
+    expect(printed).toEqual({
+      err:
+        "cmux spawn: ended-doc recorded that its work SHIPPED at 2026-10-01T01:00:00.000Z: landed — a closed row is " +
+        "not work to pick up, whatever `status:` still says. Read what it did: `slopweaver handover resume " +
+        "ended-doc`. If there is genuinely more to do, register a new row; to re-open THIS one deliberately, " +
+        "`SLOPWEAVER_ALLOW_RERUN=1` on the same command.\n",
+      out: "",
+      value: EXIT_ERROR,
+    });
+    expect(journal.after).toBe(journal.before);
+    expect(home.after).toEqual(home.before);
+    expect(home.before).toEqual(["runs", join("runs", "ended-doc.jsonl")]);
   });
 });
 

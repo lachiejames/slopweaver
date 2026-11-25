@@ -64,6 +64,15 @@ describe("permanentRefusalOf", () => {
     ]);
   });
 
+  // The break-glass skips only the finished-cycle step: the shipment still derives `done`, which refuses on its own.
+  it("still refuses a recorded shipment while the finished-run break-glass is open", () => {
+    const closed: RunEvent = { atIso: "2026-10-16T02:00:00.000Z", kind: "closed", residue: [], summary: "landed" };
+    expect(refusalOf({ events: [closed], front: ["status: ready"], rerunAllowed: true })).toEqual([
+      "terminal-status",
+      "the row is done",
+    ]);
+  });
+
   it("refuses an authored terminal status, and one an abandoned cycle derives", () => {
     const abandoned: RunEvent = { atIso: "2026-10-16T02:00:00.000Z", kind: "abandoned", why: "dropped" };
     expect([
