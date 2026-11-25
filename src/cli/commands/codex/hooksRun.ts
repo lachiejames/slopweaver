@@ -30,8 +30,8 @@ import {
   trustWriteFailure,
   trustWriteRequests,
 } from "../../../codex/hookTrust.js";
+import { personalMarketplaceEntry } from "../../../codexPlugin/marketplaceStore.js";
 import { CODEX_PLUGIN_NAME } from "../../../codexPlugin/plan.js";
-import { personalMarketplaceEntry } from "../../../codexPlugin/sync.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { booleanFlagsOf, type FlagSpec, parseFlags, stringFlagsOf } from "../../parseFlags.js";

@@ -196,5 +196,5 @@ Stated plainly so you do not over-trust it:
 
 In Claude Code, `${CLAUDE_PLUGIN_ROOT}` above is substituted. In Codex, take the plugin root two directories
 above this `SKILL.md` and invoke `<plugin-root>/bin/slopweaver` by absolute path, never bare `slopweaver`.
-That root is Codex's COPY, re-added from main's HEAD on every landing by `codex plugin-sync`, which then trusts
-every Slopweaver hook; `codex hooks [--trust]` reads or trusts them, never the owner's ([getting started](../../docs/getting-started.md#codex)).
+That root is Codex's COPY per Codex home, re-added from HEAD on each landing by `codex plugin-sync` (a FIRST install is a foreground run's), which then
+trusts every Slopweaver hook; `codex hooks [--trust]` reads or trusts them, never the owner's ([getting started](../../docs/getting-started.md#codex)).

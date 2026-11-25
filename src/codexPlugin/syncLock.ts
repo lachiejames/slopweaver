@@ -1,5 +1,5 @@
 /**
- * The plugin-sync lock `./sync.ts`'s `performSync` holds while it exports and re-adds: an operation lock in the
+ * The plugin-sync lock `./sync.ts`'s `performFleetSync` holds while it exports and re-adds into every home: an operation lock in the
  * export root, plus the empty `sync.lock` directory an earlier build took, honoured only while it may still be live.
  */
 import { lstatSync, readdirSync } from "node:fs";

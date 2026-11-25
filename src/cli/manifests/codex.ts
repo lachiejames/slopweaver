@@ -87,8 +87,8 @@ const pluginSyncMeta = {
   dryParseSafe: false,
   example: "slopweaver codex plugin-sync",
   summary:
-    "Keep the Codex install of Slopweaver on the main checkout's commit: export HEAD, point the personal " +
-    "marketplace at it, re-run `codex plugin add`",
+    "Keep every Codex home's install of Slopweaver on the main checkout's commit: export HEAD, add the personal " +
+    "marketplace entry when it has none, run `codex plugin add` into each registered home and the ambient one",
   usage: "usage: slopweaver codex plugin-sync [--decide | --log] [--home <dir>]",
 } as const;
 

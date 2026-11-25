@@ -15,7 +15,8 @@ in a throwaway `CLAUDE_CONFIG_DIR`, a clone's install landed as a full copy keye
 commit, and one more commit there plus `claude plugin update` moved it to a second copy keyed by the new one.
 
 The second and third are the same tree; the first and fourth are snapshots, and the snapshot is the problem.
-The Codex copy is re-taken by `slopweaver codex plugin-sync` on every fast-forward of the main checkout — no
+The Codex copy in every Codex home that carries one is re-taken by `slopweaver codex plugin-sync` on every
+fast-forward of the main checkout — no
 live route exists there, because Codex refuses a symlinked cache and drops symlinks from the copy
 ([getting started § Codex](../getting-started.md#codex)).
 
