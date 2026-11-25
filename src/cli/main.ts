@@ -6,9 +6,10 @@
  * Thin dispatcher: resolve the noun/verb route against the registry, answer `--help` from the verb's
  * metadata without loading its module, then hand off to the verb's run function (fetched lazily).
  */
-import { builtRootOf } from "../builtCli/guard.js";
+import { builtRootOf, runsFromSource } from "../builtCli/guard.js";
 import { guardInvocation, type InvocationGuard, productionWaitSeams } from "../builtCli/invocationGuard.js";
 import { restartOnFreshBuild } from "../builtCli/restart.js";
+import { productionSourceLaunch, restartOnSource } from "../builtCli/sourceRestart.js";
 import { slopweaverHome } from "../config.js";
 import { drainStdio } from "../lib/drainStdio.js";
 import { errorMessage } from "../lib/errorMessage.js";
@@ -116,8 +117,9 @@ function printUsage(): void {
  * streams drain, then the process exits. Effects come first because one may still parse; the close sits HERE,
  * at the process boundary, and never in `main`, which other verbs call in-process (`../lib/tsLifecycle.ts`). The
  * staleness refusal closes too: it loads no verb, but a module imported before it may have registered a closer.
- * So does a RESTART on a fresh build (`../builtCli/restart.ts`): it closes and drains like an exit, then replaces
- * the process, and only an exit that could not be attempted reaches `exit`, with 1.
+ * So does a RESTART, on a fresh build (`../builtCli/restart.ts`) or on the checkout's source
+ * (`../builtCli/sourceRestart.ts`): it closes and drains like an exit, then replaces the process, and only an exec
+ * that could not be attempted reaches `exit`, with 1.
  *
  * The exit itself first waits for the thread-pool requests in flight when it began to finish, because
  * `process.exit` JOINS libuv's pool and a request blocked without end there holds the process forever after its
@@ -128,8 +130,9 @@ function printUsage(): void {
  * @param close closes every TypeScript client (defaults to {@link closeTypeScript})
  * @param drain waits until stdout and stderr have flushed (defaults to {@link drainStdio})
  * @param exit ends the process with the code (defaults to {@link exitWhenThreadPoolQuiet})
- * @param guard decides run, refuse or restart before any verb (defaults to the built-CLI staleness guard)
+ * @param guard decides run, source, restart or refuse before any verb (defaults to the built-CLI staleness guard)
  * @param restart replaces the process with the fresh build, returning only why it could not
+ * @param source replaces the process with the named checkout's source, returning only why it could not
  * @param run resolves and runs the invocation to an exit code (defaults to {@link main})
  */
 export async function runCliProcess({
@@ -137,8 +140,9 @@ export async function runCliProcess({
   close = closeTypeScript,
   drain = drainStdio,
   exit = (code) => exitWhenThreadPoolQuiet({ code }),
-  guard = productionGuard,
+  guard = () => productionGuard({ argv }),
   restart = () => restartOnFreshBuild({ argv, env: process.env }),
+  source = ({ root }) => restartOnSource({ argv, env: process.env, root }),
   run = main,
 }: {
   argv?: readonly string[];
@@ -147,47 +151,59 @@ export async function runCliProcess({
   exit?: (code: number) => void | Promise<void>;
   guard?: () => Promise<InvocationGuard>;
   restart?: () => string;
+  source?: (options: { root: string }) => string;
   run?: (argv: readonly string[]) => Promise<number>;
 } = {}): Promise<void> {
   let code = 1;
-  let restarting = false;
+  let replacement: (() => string) | undefined;
   try {
-    // The staleness guard, ahead of every verb: a built CLI that no longer describes its source REFUSES
-    // rather than answering. Running from source finds no manifest and this is a no-op.
-    // A console child that meets a rebuild in flight waits it out and restarts on the fresh build instead —
-    // never dispatching a verb from this, the stale, process (`../builtCli/invocationGuard.ts`).
+    // The staleness guard, ahead of every verb: a built CLI that no longer describes its source never answers.
+    // Running from source finds no manifest and this is a no-op. A stale build restarts on its checkout's source,
+    // and a console child that meets a rebuild in flight waits it out and restarts on the fresh build — neither
+    // dispatching a verb from this, the stale, process (`../builtCli/invocationGuard.ts`).
     const guarded = await guard();
     for (const line of guarded.lines) {
       logger.error({ msg: line });
     }
     if (guarded.disposition === "run") {
       code = await runCliInvocation({ argv, run });
+    } else if (guarded.disposition === "restart") {
+      replacement = restart;
+    } else if (guarded.disposition === "source") {
+      const root = guarded.source.root;
+      replacement = () => source({ root });
     }
-    restarting = guarded.disposition === "restart";
   } finally {
     close();
   }
   await drain();
-  if (restarting) {
-    logger.error({ msg: restart() });
+  if (replacement !== undefined) {
+    logger.error({ msg: replacement() });
     await drain();
   }
   await exit(code);
 }
 
 /**
- * The guard a real process runs: the built tree this module was loaded from, the real environment, the real clock.
+ * The guard a real process runs: the built tree this module was loaded from, the real environment, the real clock,
+ * and the real file system's answer on whether the stale manifest's checkout can run its own source.
  *
+ * The argv is canonicalised first, so an old noun name is judged by the verb it now names.
+ *
+ * @param argv the process argv
  * @returns the invocation's disposition
  */
-async function productionGuard(): Promise<InvocationGuard> {
+async function productionGuard({ argv }: { argv: readonly string[] }): Promise<InvocationGuard> {
   const builtRoot = builtRootOf({ moduleUrl: import.meta.url });
   return guardInvocation({
     announce: (line) => {
       logger.error({ msg: line });
     },
+    argv: canonicalArgv({ argv }),
     builtRoot,
     env: process.env,
+    fromSource: runsFromSource({ moduleUrl: import.meta.url }),
+    sourceLaunch: productionSourceLaunch,
     waitSeams: productionWaitSeams({ builtRoot }),
   });
 }

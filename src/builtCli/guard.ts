@@ -1,6 +1,5 @@
 /**
- * The staleness guard: a built CLI refuses to answer as soon as it stops describing the source it was
- * built from.
+ * The staleness guard: a built CLI never answers once it stops describing the source it was built from.
  *
  * A built CLI is rebuilt on pull with a staleness guard that makes it impossible for an agent to test a stale
  * build. Two things follow from IMPOSSIBLE rather than unlikely, and they are the whole design:
@@ -9,17 +8,22 @@
  *    reaches it exactly as the launcher does. A check in `bin/slopweaver` is one `node` away from being
  *    skipped, and it would cost a second process start to make — the emit exists to save ~640 ms per
  *    invocation, not to spend it twice.
- * 2. A stale tree REFUSES; it never quietly falls back to running the source under `tsx`. That silent
- *    substitution is exactly what the no-silent-fallback rule bans, and it is also the defect
- *    itself: an agent who asked for the built CLI and got something else has still not tested what it
- *    thought it tested.
+ * 2. A stale tree never answers from its older JavaScript, and never hands the invocation anywhere silently.
+ *    What it hands to is the EDITED code: the source of the very checkout its manifest names, under tsx's loader,
+ *    announced by one stderr line naming that checkout (`./sourceRestart.ts`). The defect this guard exists for is
+ *    old code answering as if it were the code being edited; the source is the code being edited, and the line
+ *    says it is what ran.
  *
- * The invariant is exactly that: no verb is DISPATCHED from a stale build. One caller, a child the console launched,
- * waits out a rebuild in flight and restarts on the fresh build rather than refusing at once — still dispatching
- * nothing stale (`./consoleRebuildWait.ts`, wired by `./invocationGuard.ts`). Every other caller refuses at once.
+ * The invariant is exactly that: no verb is DISPATCHED from a stale build. `./invocationGuard.ts` decides which of
+ * four things a stale invocation does instead. An ordinary caller restarts on its checkout's source. A child the
+ * console launched waits out a rebuild in flight and restarts on the fresh build (`./consoleRebuildWait.ts`). A verb
+ * that needs the built tree itself (`./sourceFallbackPolicy.ts`), or a checkout that cannot run its source, refuses
+ * at once with the remedy. The `SLOPWEAVER_ALLOW_STALE_BUILD` hatch runs the stale build deliberately, and says so.
+ * A manifest that is unreadable, or whose checkout is gone, refuses: nothing names a source to run.
  *
  * Running from SOURCE reaches none of this. There is no manifest beside `src/cli/`, so the guard answers
- * `ran: false` and the process continues — a checkout that has never built has no build to be stale.
+ * `ran: false` and the process continues — a checkout that has never built has no build to be stale, and a source
+ * restart never re-enters the stale arm.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -49,6 +53,19 @@ export function hatchIsOpen({ value }: { value: string | undefined }): boolean {
   return value !== undefined && value !== "";
 }
 
+/**
+ * @internal — a valid manifest whose checkout is there and whose source has moved, the one stale shape with somewhere
+ * to go; named outside this file only as {@link GuardOutcome}'s `staleSource` field.
+ */
+export interface StaleSource {
+  /** The manifest's text, which a console child's rebuild wait judges replacements against. */
+  readonly manifestText: string;
+  /** The checkout the manifest names, absolute — the only source a restart may run. */
+  readonly root: string;
+  /** The first difference, as {@link stalenessOf} words it. */
+  readonly why: string;
+}
+
 /** What the guard did, so a caller can act on it and a test can assert on it. */
 export interface GuardOutcome {
   /** Whether a built tree was found at all — false when running from source. */
@@ -58,11 +75,12 @@ export interface GuardOutcome {
   /** The lines to print. Empty on the ordinary fresh path, which says nothing. */
   readonly lines: readonly string[];
   /**
-   * The manifest's text, set on ONE arm only: a refusal of a valid manifest whose checkout is there and whose
-   * source has moved — the shape a rebuild in flight leaves, and so the one a console child may wait out
-   * (`./consoleRebuildWait.ts`). An unreadable manifest or a vanished checkout proves no rebuild, and carries none.
+   * Set on ONE arm only: a refusal of a valid manifest whose checkout is there and whose source has moved — the
+   * shape a rebuild in flight leaves, so the one a console child may wait out (`./consoleRebuildWait.ts`), and the
+   * one an ordinary caller may restart on source from (`./sourceRestart.ts`). An unreadable manifest or a vanished
+   * checkout proves no rebuild and names no source, and carries none.
    */
-  readonly staleManifestText?: string;
+  readonly staleSource?: StaleSource;
 }
 
 /**
@@ -113,7 +131,12 @@ export function guardBuiltTree({ builtRoot, hatchOpen }: { builtRoot: string; ha
     };
   }
   const detail = `${staleness.why} — rebuild with \`slopweaver dev build\``;
-  return { lines: hatchRefusalLines({ detail, hatch }), ran: true, refuse: true, staleManifestText: manifestText };
+  return {
+    lines: hatchRefusalLines({ detail, hatch }),
+    ran: true,
+    refuse: true,
+    staleSource: { manifestText, root, why: staleness.why },
+  };
 }
 
 /**
@@ -127,4 +150,16 @@ export function guardBuiltTree({ builtRoot, hatchOpen }: { builtRoot: string; ha
  */
 export function builtRootOf({ moduleUrl }: { moduleUrl: string }): string {
   return dirname(dirname(fileURLToPath(moduleUrl)));
+}
+
+/**
+ * Whether a module is loaded from TypeScript source rather than the emit. The emit only ever writes `.js`, so a `.ts`
+ * module URL is a tsx run — the one a stale build's source restart lands in, and the one that must never restart on
+ * source again, whatever manifest sits beside `src/`.
+ *
+ * @param moduleUrl `import.meta.url` of the calling module
+ * @returns true when that module is a `.ts` file
+ */
+export function runsFromSource({ moduleUrl }: { moduleUrl: string }): boolean {
+  return fileURLToPath(moduleUrl).endsWith(".ts");
 }

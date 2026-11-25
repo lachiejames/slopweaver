@@ -76,8 +76,9 @@ src/browser/            # `browser` — the Playwright verbs that drive the owne
                         #   interaction at a time with a screenshot of its result, cookies, downloads,
                         #   break-glass
 src/builtCli/           # the built CLI's stamp and staleness guard: a `dist-cli` tree that no longer
-                        #   matches its source refuses to answer rather than falling back to tsx, unless the
-                        #   stale-build hatch is open
+                        #   matches its source never answers — it restarts on that checkout's source with
+                        #   one stderr line, a console child waits for the rebuild, a verb needing the
+                        #   built tree refuses, and the stale-build hatch runs it anyway
 src/canon/              # the canon gates: stale references, doc coverage, moved headings, diagram
                         #   references, the always-on documentation budget
 src/capacity/           # what is unused on every ceiling a seat spends (machine load, Claude and Codex

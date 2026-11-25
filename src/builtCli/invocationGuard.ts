@@ -1,16 +1,25 @@
 /**
- * What one invocation of a built CLI does before any verb: run, refuse, or — for a console child that met a rebuild
- * in flight — restart on the fresh build. The staleness judgement is `./guard.ts`'s; the wait is
- * `./consoleRebuildWait.ts`'s; this module is the order between them, which is the part a test has to pin.
+ * What one invocation of a built CLI does before any verb: run; restart on its checkout's source; for a console child
+ * that met a rebuild in flight, restart on the fresh build; or refuse. The staleness judgement is `./guard.ts`'s; the
+ * wait is `./consoleRebuildWait.ts`'s; the source restart is `./sourceRestart.ts`'s; this module is the order between
+ * them, which is the part a test has to pin.
  *
- * The order is load-bearing: an open `SLOPWEAVER_ALLOW_STALE_BUILD` is honoured inside `guardBuiltTree`, before
- * anything here can wait, so the console marker can neither close nor delay the hatch. Only a refusal carrying
- * `staleManifestText` — a valid manifest over a checkout that is there — is ever waited out, and only a rebuild of
- * THAT checkout ends the wait.
+ * The order is load-bearing:
+ *
+ * 1. An open `SLOPWEAVER_ALLOW_STALE_BUILD` is honoured inside `guardBuiltTree`, before anything here, so neither the
+ *    console marker nor the source restart can close or delay the hatch.
+ * 2. Only a refusal carrying `staleSource` — a valid manifest over a checkout that is there — goes anywhere but a
+ *    refusal. An unreadable manifest or a vanished checkout refuses as it stands.
+ * 3. A process already running source (`runsFromSource`, `./guard.ts`) refuses as it stands, console child or not:
+ *    it neither restarts on source nor waits to restart on a build, so no restart can loop.
+ * 4. A console child waits that refusal out, exactly as before, and only a rebuild of THAT checkout ends the wait.
+ * 5. A verb that needs the built tree itself (`./sourceFallbackPolicy.ts`) refuses as it stands.
+ * 6. Every other caller restarts on the checkout's source when that source can run there, and refuses as it stands
+ *    when it cannot — the refusal's lines never change, so the remedy it names is the same either way.
  */
 import { closeSync, constants, existsSync, fstatSync, openSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-
+import type { Result } from "#lib/result.js";
 import {
   CONSOLE_CHILD_ENV,
   CONSOLE_REBUILD_WAIT_MS,
@@ -18,6 +27,8 @@ import {
   waitForFreshBuild,
 } from "./consoleRebuildWait.js";
 import { guardBuiltTree, hatchIsOpen, STALE_BUILD_ENV } from "./guard.js";
+import { sourceFallbackAllowed } from "./sourceFallbackPolicy.js";
+import type { SourceLaunch, SourceLaunchError } from "./sourceRestart.js";
 import { scanSourceStamps } from "./sourceScan.js";
 import { BUILD_MANIFEST_FILE, parseBuildManifest, stalenessOf } from "./staleness.js";
 
@@ -27,14 +38,22 @@ import { BUILD_MANIFEST_FILE, parseBuildManifest, stalenessOf } from "./stalenes
  */
 export const WAITING_LINE = `slopweaver: [stale-build] this build is stale; this console read waits up to ${String(CONSOLE_REBUILD_WAIT_MS / 1000)}s for a rebuild to land.`;
 
-/** What the process does next. */
-type GuardDisposition = "run" | "refuse" | "restart";
-
-/** The disposition, and the lines to print before acting on it. */
-export interface InvocationGuard {
-  readonly disposition: GuardDisposition;
-  readonly lines: readonly string[];
+/**
+ * The ONE line a source restart prints, to stderr, every time: which checkout, that its build is behind and why, that
+ * its source is what runs, and what restores the fast path. Stdout is the verb's alone.
+ *
+ * @param root the checkout whose source runs
+ * @param why the first difference, as the staleness judgement words it
+ * @returns the line
+ */
+export function sourceFallbackLine({ root, why }: { root: string; why: string }): string {
+  return `slopweaver: [stale-build] ${root}: the build is behind (${why}); running this checkout's source; \`slopweaver dev build\` restores the fast path.`;
 }
+
+/** The disposition, and the lines to print before acting on it. A source restart carries the checkout it runs. */
+export type InvocationGuard =
+  | { readonly disposition: "run" | "refuse" | "restart"; readonly lines: readonly string[] }
+  | { readonly disposition: "source"; readonly lines: readonly [string]; readonly source: SourceLaunch };
 
 /**
  * Wait seams that judge a replacement fresh only when it names the checkout the stale manifest named — one the
@@ -60,34 +79,64 @@ export function pinnedToJudgedRoot({
 }
 
 /**
- * Judge one invocation, waiting out a rebuild in flight when, and only when, a console child met one.
+ * Judge one invocation: run a fresh build, restart a stale one on its checkout's source, wait out a rebuild in flight
+ * when, and only when, a console child met one, or refuse.
  *
- * @param builtRoot the built tree's own directory, absolute
- * @param env the process environment — the hatch and the console marker are both read from it
- * @param waitSeams the wait's clock, pause, manifest read and judgement
  * @param announce prints {@link WAITING_LINE} BEFORE a console child waits, so a wait of up to 30s is never silent
  *   and a watcher can tell a wait from a hang
- * @returns run, refuse or restart, with the lines that say so
+ * @param argv the canonical process argv, whose noun and verb say whether the verb needs the built tree itself
+ * @param builtRoot the built tree's own directory, absolute
+ * @param env the process environment — the hatch and the console marker are both read from it
+ * @param fromSource whether THIS process already runs TypeScript source (`runsFromSource`, `./guard.ts`); a source run never
+ *   restarts on source again nor waits to restart on a build, whatever manifest sits where it looks, so no restart
+ *   can loop
+ * @param sourceLaunch whether the stale manifest's checkout can run its own source; production passes
+ *   `productionSourceLaunch`
+ * @param waitSeams the wait's clock, pause, manifest read and judgement
+ * @returns run, source, restart or refuse, with the lines that say so
  */
 export async function guardInvocation({
   announce,
+  argv,
   builtRoot,
   env,
+  fromSource,
+  sourceLaunch,
   waitSeams,
 }: {
   announce: (line: string) => void;
+  argv: readonly string[];
   builtRoot: string;
   env: NodeJS.ProcessEnv;
+  fromSource: boolean;
+  sourceLaunch: (options: { root: string }) => Result<SourceLaunch, SourceLaunchError>;
   waitSeams: RebuildWaitSeams;
 }): Promise<InvocationGuard> {
   const outcome = guardBuiltTree({ builtRoot, hatchOpen: hatchIsOpen({ value: env[STALE_BUILD_ENV] }) });
   if (!outcome.refuse) {
     return { disposition: "run", lines: outcome.lines };
   }
-  const judgedText = outcome.staleManifestText;
-  if (judgedText === undefined || !hatchIsOpen({ value: env[CONSOLE_CHILD_ENV] })) {
+  const stale = outcome.staleSource;
+  // A source run neither restarts on source nor waits to restart on a build: a stale manifest where it looks (beside
+  // `src/`, only ever written by an `--out` naming that directory) draws the plain refusal, console child or not.
+  if (stale === undefined || fromSource) {
     return { disposition: "refuse", lines: outcome.lines };
   }
+  if (!hatchIsOpen({ value: env[CONSOLE_CHILD_ENV] })) {
+    if (!sourceFallbackAllowed({ argv })) {
+      return { disposition: "refuse", lines: outcome.lines };
+    }
+    const launch = sourceLaunch({ root: stale.root });
+    if (launch.isErr()) {
+      return { disposition: "refuse", lines: outcome.lines };
+    }
+    return {
+      disposition: "source",
+      lines: [sourceFallbackLine({ root: stale.root, why: stale.why })],
+      source: launch.value,
+    };
+  }
+  const judgedText = stale.manifestText;
   announce(WAITING_LINE);
   const waited = await waitForFreshBuild({ judgedText, seams: pinnedToJudgedRoot({ judgedText, seams: waitSeams }) });
   if (waited.kind === "fresh") {
