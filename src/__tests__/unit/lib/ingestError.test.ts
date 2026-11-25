@@ -11,6 +11,22 @@ import {
   toIngestError,
 } from "../../../lib/ingestError.js";
 
+/**
+ * The shape `@octokit/request` throws when a provider answers with an EMPTY body: `RequestError("", status, …)`,
+ * an `Error` whose message is `""`, carrying the status and the received response's lower-cased headers.
+ */
+class EmptyBodyHttpError extends Error {
+  readonly status: number;
+  readonly response: { readonly headers: Readonly<Record<string, string>> } | undefined;
+
+  constructor({ status, headers, cause }: { status: number; headers?: Record<string, string>; cause?: unknown }) {
+    super("", { cause });
+    this.name = "HttpError";
+    this.status = status;
+    this.response = headers !== undefined ? { headers } : undefined;
+  }
+}
+
 describe("toIngestError", () => {
   it("maps a 429 to a rate-limit error, preserving status/code/retry-after and cause identity", () => {
     const thrown = Object.assign(new Error("rate limited"), { code: "ratelimited", retryAfter: 3, status: 429 });
@@ -159,6 +175,73 @@ describe("toIngestError", () => {
   it("falls back to a readable message for a non-Error thrown value", () => {
     expect(toIngestError({ error: "raw string failure", operation: "x" }).message).toBe("raw string failure");
     expect(toIngestError({ error: undefined, operation: "x" }).message).toBe("unknown error");
+  });
+
+  it("names the status and GitHub's request id when a provider answered with an empty body", () => {
+    const thrown = new EmptyBodyHttpError({ headers: { "x-github-request-id": "0123:ABCD" }, status: 500 });
+    const mapped = toIngestError({ error: thrown, operation: "github.pulls.create", provider: "github" });
+    expect(mapped.kind).toBe("http");
+    expect(mapped.status).toBe(500);
+    expect(mapped.cause).toBe(thrown);
+    expect(mapped.message).toBe("HTTP 500 with no error message from the provider (GitHub request ID: 0123:ABCD)");
+    expect(formatIngestError({ error: mapped })).toBe(
+      "github github.pulls.create HTTP 500: HTTP 500 with no error message from the provider (GitHub request ID: 0123:ABCD)",
+    );
+  });
+
+  it("names only the status when the response carries no GitHub request id, ignoring a generic one", () => {
+    const thrown = new EmptyBodyHttpError({ headers: { "x-request-id": "generic-id" }, status: 500 });
+    const mapped = toIngestError({ error: thrown, operation: "github.pulls.create", provider: "github" });
+    expect(mapped.message).toBe("HTTP 500 with no error message from the provider");
+  });
+
+  it("finds a transport code beneath a wrapper's own non-transport code, and drops the wrapper's status", () => {
+    const thrown = Object.assign(new EmptyBodyHttpError({ cause: { code: "UND_ERR_SOCKET" }, status: 500 }), {
+      code: "WRAPPER_ERROR",
+    });
+    const mapped = toIngestError({ error: thrown, operation: "github.pulls.create", provider: "github" });
+    expect(mapped.kind).toBe("network");
+    expect(mapped.code).toBe("UND_ERR_SOCKET");
+    expect(mapped.status).toBeUndefined();
+    expect(mapped.message).toBe("Transport failure UND_ERR_SOCKET; no HTTP response was received");
+  });
+
+  it("keeps a 429 above a deeper transport code as a rate limit, since a 429 is an answer", () => {
+    const thrown = Object.assign(new EmptyBodyHttpError({ cause: { code: "UND_ERR_SOCKET" }, status: 429 }), {
+      retryAfter: 2,
+    });
+    const mapped = toIngestError({ error: thrown, operation: "github.pulls.create", provider: "github" });
+    expect(mapped.kind).toBe("rate-limit");
+    expect(mapped.status).toBe(429);
+    expect(mapped.retryAfterMs).toBe(2000);
+    expect(mapped.message).toBe("HTTP 429 with no error message from the provider");
+  });
+
+  it("keeps a rate-limit code above a deeper transport code as a rate limit", () => {
+    const thrown = Object.assign(new Error("rate limited"), { cause: { code: "ECONNRESET" }, code: "ratelimited" });
+    const mapped = toIngestError({ error: thrown, operation: "slack.chat.postMessage", provider: "slack" });
+    expect(mapped.kind).toBe("rate-limit");
+    expect(mapped.code).toBe("ratelimited");
+    expect(mapped.message).toBe("rate limited");
+  });
+
+  it("names the status of a plain object thrown with no message", () => {
+    const thrown = { status: 503 };
+    const mapped = toIngestError({ error: thrown, operation: "linear.issues", provider: "linear" });
+    expect(mapped.kind).toBe("http");
+    expect(mapped.status).toBe(503);
+    expect(mapped.cause).toBe(thrown);
+    expect(mapped.message).toBe("HTTP 503 with no error message from the provider");
+  });
+
+  it("names the transport code, never the SDK's synthetic status, when an empty-message failure never got a reply", () => {
+    // `@octokit/request` stamps a synthetic 500 on a `fetch` rejection; undici's real code sits on the cause.
+    const thrown = new EmptyBodyHttpError({ cause: { code: "UND_ERR_SOCKET" }, status: 500 });
+    const mapped = toIngestError({ error: thrown, operation: "github.pulls.create", provider: "github" });
+    expect(mapped.kind).toBe("network");
+    expect(mapped.code).toBe("UND_ERR_SOCKET");
+    expect(mapped.status).toBeUndefined();
+    expect(mapped.message).toBe("Transport failure UND_ERR_SOCKET; no HTTP response was received");
   });
 });
 
