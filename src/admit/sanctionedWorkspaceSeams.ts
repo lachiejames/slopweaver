@@ -146,6 +146,10 @@ export const WORKSPACE_SEAMS = {
   // `fleet health`'s and `fleet resume`'s one `ps -ax -o pid=,lstart=` listing, binding each registry record to the
   // process that wrote it. Read-only local process state, the same class as the chair mark above.
   "src/fleet/processStarts.ts": "local-state",
+  // `fleet recover`'s scratch: `mkdirSync` of one empty directory per throwaway session, and one `rmSync` of the
+  // whole scratch once every session in it is proven closed, all under `$SLOPWEAVER_HOME/sessions`, never a symlink
+  // or a path outside it. Local state of this machine's own sessions; nothing reaches a provider.
+  "src/fleet/recoveryScratch.ts": "local-state",
   // `fleet resume`'s console step: one `docs-site.sh --serve` of the installed checkout, starting the local console
   // server. A local process on this machine, the same class as `checkout sync`'s install below; no provider.
   "src/cli/commands/fleet/resumePassState.ts": "local-state",

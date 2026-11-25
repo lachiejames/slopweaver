@@ -45,6 +45,7 @@
  *   ├── queue/card-deferrals.jsonl # every "Come back to it" press on a Queue card (see queueDefer/cardDeferralStore.ts)
  *   ├── sessions/sessions.jsonl   # the supervisor's session ledger (spawned/noted/closed)
  *   ├── sessions/supervisor-chain.jsonl # every session that has held the supervisor pin, in succession
+ *   ├── sessions/recovery-scratch/<attempt>/ # the empty directory one `fleet recover` session runs in, removed after it
  *   ├── supervisor-scratch/<handoff>/ # a chair's scratch; its owner-turn-*.txt files are imported to owner_turn
  *   ├── handovers/archive/        # archived board docs, plus owner-turn-*.txt records (also into owner_turn)
  *   ├── identity.json             # RETIRED identity roster: imported into the store once, then inert

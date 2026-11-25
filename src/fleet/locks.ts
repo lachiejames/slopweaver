@@ -1,5 +1,6 @@
 /**
- * The locks that keep two recovery passes from relaunching the same seat, and two revives from restarting cmux twice.
+ * The locks that keep two recovery passes from relaunching the same seat, two revives from restarting cmux twice, and
+ * two Recovery checks from opening throwaway sessions beside each other.
  *
  * Each is the repository's operation lock (`../admit/operationLock.ts`): a lock renamed into place, so two passes
  * taking over one left by a dead pass seat exactly one, and a holder known by its pid AND its process start, so a dead
@@ -20,6 +21,9 @@ const FLEET_LOCK_KEY = "fleet-resume";
 
 /** The revive verb's key in the runtime lock directory: two callers never restart cmux twice. */
 const REVIVE_LOCK_KEY = "cmux-revive";
+
+/** The Recovery check's key: its throwaway sessions are opened and closed one at a time. */
+const RECOVER_LOCK_KEY = "fleet-recover";
 
 /**
  * Take one process-lifetime lock in a home's runtime directory, or say why not.
@@ -83,4 +87,21 @@ export function acquireCmuxReviveLock({
   nowIso: string;
 }): Result<OperationLockHandle, FleetError> {
   return acquireRuntimeLock({ home, key: REVIVE_LOCK_KEY, nowIso });
+}
+
+/**
+ * Take the Recovery check's lock, or say why not — a third key, so a running `fleet resume` never holds it off.
+ *
+ * @param home the Slopweaver home
+ * @param nowIso the instant of the attempt
+ * @returns the handle that releases it, or the lock's own refusal
+ */
+export function acquireFleetRecoverLock({
+  home,
+  nowIso,
+}: {
+  home: string;
+  nowIso: string;
+}): Result<OperationLockHandle, FleetError> {
+  return acquireRuntimeLock({ home, key: RECOVER_LOCK_KEY, nowIso });
 }

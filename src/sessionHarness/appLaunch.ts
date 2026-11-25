@@ -41,10 +41,12 @@ function failed({
   operation,
   message,
   opened,
+  prepareUnanswered,
 }: {
   operation: HarnessLaunchOperation;
   message: string;
   opened?: { handle: string; sessionId: string };
+  prepareUnanswered?: true;
 }): SessionLaunchFailedError {
   return SessionHarnessErrors.launchFailed({
     message: `app harness: ${message}`,
@@ -53,6 +55,7 @@ function failed({
         ? undefined
         : { endpointHandle: opened.handle, handle: opened.handle, sessionId: opened.sessionId },
     operation,
+    prepareUnanswered,
   });
 }
 
@@ -202,8 +205,14 @@ async function prepareSession({
       : { kind: "launch.resume", sessionId: continuing, spec: appSpec };
   const prepared = await transport({ request, timeoutMs: PREPARE_TIMEOUT_MS });
   if (prepared.isErr()) {
+    // Only the app's own refusal settles it. With no readable answer the app may still be preparing, and open the
+    // card after this caller gave up.
     const which = continuing === undefined ? "" : ` (resuming app session ${continuing})`;
-    return err(failed({ message: `${prepared.error.message}${which}`, operation }));
+    const message = `${prepared.error.message}${which}`;
+    if (prepared.error.kind === "refused") {
+      return err(failed({ message, operation }));
+    }
+    return err(failed({ message, operation, prepareUnanswered: true }));
   }
   if (prepared.value.kind !== "prepared") {
     return err(failed({ message: `the app answered ${request.kind} with ${prepared.value.kind}`, operation }));

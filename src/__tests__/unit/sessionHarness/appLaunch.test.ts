@@ -203,6 +203,28 @@ describe("appSessionLauncherOver", () => {
     });
   });
 
+  it("says the prepare went unanswered when the app never answered it, so a card may still open", async () => {
+    const transport: AppTransport = async ({ request }) => {
+      if (request.kind === "ping") {
+        return ok(PONG);
+      }
+      return err({
+        causeCode: "TIMEOUT",
+        kind: "unreachable",
+        message: "the desktop app did not answer launch.prepare within 180s",
+      });
+    };
+    const failed = unwrapErr(
+      await appSessionLauncherOver({ deps: NO_WORKTREE, ledgerHome: undefined, transport }).open({ spec: CODEX_SPEC }),
+    );
+    expect(failed).toEqual({
+      code: "SESSION_LAUNCH_FAILED",
+      message: "app harness: the desktop app did not answer launch.prepare within 180s",
+      operation: "open",
+      prepareUnanswered: true,
+    });
+  });
+
   it("refuses a prepare the app answered with another kind", async () => {
     const { transport } = scripted({ answers: { "launch.prepare": { kind: "aborted" } } });
     const failed = unwrapErr(

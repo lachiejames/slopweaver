@@ -5,13 +5,9 @@
  */
 import { describe, expect, it } from "vitest";
 
-import {
-  absentAppClose,
-  absentAppCloseTarget,
-  closeAbsentAppRow,
-} from "../../../../../cli/commands/cmux/closeAbsentApp.js";
-import { SessionHarnessErrors } from "../../../../../sessionHarness/errors.js";
-import { foldSessions, type SessionEvent } from "../../../../../sessions/session.js";
+import { absentAppClose, absentAppCloseTarget, closeAbsentAppRow } from "../../../sessionHarness/absentAppClose.js";
+import { SessionHarnessErrors } from "../../../sessionHarness/errors.js";
+import { foldSessions, type SessionEvent } from "../../../sessions/session.js";
 
 const NOW = "2026-11-25T06:00:00.000Z";
 

@@ -41,6 +41,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "fleet health": FLEET_FLAG_NAMES["health"]!,
   "fleet history": FLEET_HISTORY_FLAG_NAMES,
   "fleet landed": FLEET_LANDED_FLAG_NAMES,
+  "fleet recover": FLEET_FLAG_NAMES["recover"]!,
   "fleet restore-policy": FLEET_FLAG_NAMES["restore-policy"]!,
   "fleet resume": FLEET_FLAG_NAMES["resume"]!,
   "fleet status": FLEET_FLAG_NAMES["status"]!,
@@ -92,6 +93,9 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
   "fleet health": {
     "--home": ["--home", "/tmp"],
     "--json": ["--json"],
+  },
+  "fleet recover": {
+    "--home": ["--home", "/tmp"],
   },
   "fleet restore-policy": {
     "--apply": ["--apply"],
@@ -213,6 +217,7 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
   "fleet health": ({ fragment }) => parseFleetArgs({ rest: [...fragment], verb: "health" }),
   "fleet history": ({ fragment }) => parseFleetHistoryArgs({ rest: [...fragment] }),
   "fleet landed": ({ fragment }) => parseFleetLandedArgs({ rest: [...fragment] }),
+  "fleet recover": ({ fragment }) => parseFleetArgs({ rest: [...fragment], verb: "recover" }),
   "fleet restore-policy": ({ fragment }) => parseFleetArgs({ rest: [...fragment], verb: "restore-policy" }),
   "fleet resume": ({ fragment }) => parseFleetArgs({ rest: [...fragment], verb: "resume" }),
   "fleet status": ({ fragment }) => parseFleetArgs({ rest: [...fragment], verb: "status" }),

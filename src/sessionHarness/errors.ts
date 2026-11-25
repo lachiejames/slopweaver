@@ -75,6 +75,8 @@ export interface SessionLaunchFailedError {
   readonly initialMessageUnproven?: true;
   /** What it left open is the session its open ledger row already records, continued, so that row moves. */
   readonly resumed?: true;
+  /** The app was asked to open a card and never answered, so a card may still open after this failure. */
+  readonly prepareUnanswered?: true;
 }
 
 /** Every way a session-harness operation can fail. */
@@ -108,6 +110,7 @@ export const SessionHarnessErrors = {
     initialMessageStranded,
     initialMessageUnproven,
     resumed,
+    prepareUnanswered,
   }: {
     operation: HarnessLaunchOperation;
     message: string;
@@ -116,6 +119,7 @@ export const SessionHarnessErrors = {
     initialMessageStranded?: true | undefined;
     initialMessageUnproven?: true | undefined;
     resumed?: true | undefined;
+    prepareUnanswered?: true | undefined;
   }): SessionLaunchFailedError => ({
     code: "SESSION_LAUNCH_FAILED",
     message,
@@ -125,6 +129,7 @@ export const SessionHarnessErrors = {
     ...(initialMessageStranded === undefined ? {} : { initialMessageStranded }),
     ...(initialMessageUnproven === undefined ? {} : { initialMessageUnproven }),
     ...(resumed === undefined ? {} : { resumed }),
+    ...(prepareUnanswered === undefined ? {} : { prepareUnanswered }),
   }),
   operationFailed: ({
     operation,

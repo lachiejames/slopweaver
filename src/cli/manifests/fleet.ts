@@ -9,7 +9,8 @@
  * agent — are gone. AGENTS.md rule 2 bans a detached, unwatched agent outright, so there is nothing left for
  * those verbs to do. `status` is a pure read of git, `gh` and the run journal, and it stays. `health`, `resume`
  * and `configure` are the restart recovery the desktop app drives; `resume` relaunches only in visible workspaces.
- * `restore-policy` turns off cmux's own bare relaunch of those seats, so `resume` is the one path back.
+ * `restore-policy` turns off cmux's own bare relaunch of those seats, so `resume` is the one path back. `recover` opens
+ * one visible throwaway app session per plan it tries, closes each, and says whether either vendor answers.
  */
 import { lazy, type VerbManifestEntry } from "../manifest.js";
 
@@ -117,6 +118,25 @@ export const fleetManifest: Readonly<Record<string, VerbManifestEntry>> = {
       summary:
         "The sessions page: every seat red, recovering or green, the fleet healthy, recovering, degraded or down, the capacity line, and the one hand step",
       usage: "usage: slopweaver fleet health [--home <value>] [--json]",
+    },
+  }),
+  recover: lazy({
+    load: () => import("../commands/fleet/recoverRun.js").then((m) => m.fleetRecoverCommand),
+    meta: {
+      createsWorkItem: false,
+      // Exits 3 when a vendor did not answer: a finding, not a broken tool.
+      diagnostic: true,
+      doorRouted: false,
+      // A bare run opens sessions, so it acts rather than printing usage.
+      dryParseSafe: false,
+      // Opens and closes visible sessions in the desktop app, one at a time, spending one short turn on each plan it
+      // tries; writes their ledger rows and an empty scratch directory under the home.
+      effect: "local-state",
+      example: "slopweaver fleet recover",
+      parseRejectIsIoFree: true,
+      summary:
+        "Whether Claude and Codex can each start a session in the desktop app: one visible throwaway turn per vendor, falling back plan by plan, each reason printed as one JSON line",
+      usage: "usage: slopweaver fleet recover [--home <value>]",
     },
   }),
   "restore-policy": lazy({
