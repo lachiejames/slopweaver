@@ -6,11 +6,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { prospectiveTreeLine } from "../../../../../../cli/commands/github/enqueuePrivateTerms.js";
 import { runGithubEnqueue } from "../../../../../../cli/commands/github/enqueueRun.js";
+import type { LocalCodexLoopRead } from "../../../../../../codex/landingGateTypes.js";
 import { hatchFor } from "../../../../../../hatch/lookup.js";
 import { hatchRefusalLines } from "../../../../../../hatch/render.js";
 import type { ChangeSetPrivateTermsVerdict } from "../../../../../../hygiene/changeSetPrivateTerms.js";
 import { memoryDoorLedger } from "../../../../../doorLedgerFixture.js";
-import { pairedCheckout, pr, QUEUED } from "./fixtures.js";
+import { pr, QUEUED } from "./fixtures.js";
 import { api, type Calls, depsFor, FETCHED_BASE_SHA, noCalls, removeHomes, scratchHome } from "./harness.js";
 
 afterEach(() => {
@@ -148,14 +149,25 @@ describe("runGithubEnqueue — the private-terms preflight", () => {
     ]);
   });
 
-  it("records the terms waiver beside a verdict waiver on one press, the verdict's first", async () => {
+  it("records the terms waiver beside the pairing floor's on one press, the floor's re-read last", async () => {
     const calls: Calls = noCalls();
     const door = memoryDoorLedger();
-    const unpaired = pairedCheckout();
+    const unpaired: LocalCodexLoopRead = {
+      evidence: {
+        baseSha: "ba5e0000",
+        branch: "feature",
+        failures: ["no planning pass has run"],
+        headSha: "cafe1234",
+        leftovers: [],
+        repository: "acme/widget",
+        roots: ["/w/repo"],
+      },
+      kind: "read",
+    };
     const queued = pr({ entry: { estimatedSecondsToMerge: 120, position: 1, state: "QUEUED" } });
     const code = await runGithubEnqueue({
       deps: depsFor({
-        codexLoop: { ...unpaired, evidence: { ...unpaired.evidence, failures: ["no planning pass has run"] } },
+        codexLoop: unpaired,
         diagnostic: [],
         door: door.port,
         home: scratchHome({ label: "terms-both" }),
@@ -170,8 +182,8 @@ describe("runGithubEnqueue — the private-terms preflight", () => {
     expect(calls.enqueued).toEqual([{ expectedHeadOid: "cafe1234", nodeId: "PR_kwabc" }]);
     expect(door.records().map((record) => record["acknowledgements"])).toEqual([
       [
-        { reason: "a fork", subject: "codex-loop-incomplete" },
         { reason: "a fork", subject: "private-terms-unchecked" },
+        { reason: "a fork", subject: "codex-loop-incomplete" },
       ],
     ]);
   });
