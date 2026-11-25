@@ -1,12 +1,15 @@
 /**
- * `machine capacity`'s supervisor-stream half: the report as `machine` stream events, and their publication.
- * Its own leaf so `./capacity.ts` stays one a reader can hold; nothing here reads the machine.
+ * `machine capacity`'s supervisor-stream half: the report as `machine` stream events, their publication, and the
+ * `--wait` poll that publishes the first and the last reading. Its own leaf so `./capacity.ts` stays one a reader
+ * can hold; the machine is read only through the seam a caller passes.
  */
 import type { SupervisorEvent } from "../../../events/event.js";
 import { publishSupervisorEvent } from "../../../events/store.js";
 import type { Logger } from "../../../lib/logger.js";
 import type { MachineCapacityReport } from "../../../live/machine/capacity.js";
+import { waitForCapacityClear } from "../../../live/machine/capacityWait.js";
 import { machineHoldStands } from "../../../live/machine/recentBoots.js";
+import type { WaitClock } from "../../../wait/loop.js";
 
 /**
  * The report as `machine` stream events: a `capacity-hold` when the compressor, the swapfile count or the
@@ -82,4 +85,55 @@ export function publishCapacityEvents({
       log.error({ msg: `machine capacity: could not publish its ${event.kind} to the supervisor stream: ${failure}` });
     }
   }
+}
+
+/**
+ * Wait for a HOLD to clear, publishing what a single read would: the FIRST reading's events, and the final
+ * reading's too when the wait took more than one read, so the stream sees the state the wait ended on without a
+ * row per re-read.
+ *
+ * @param read takes one machine reading, once per poll
+ * @param home the state home whose supervisor stream receives the events
+ * @param nowIso the instant each published event carries, read at each publish
+ * @param log where a failed publish is said
+ * @param clock the wait's time source
+ * @param timeoutSeconds how long a standing hold is waited on before the wait gives up
+ * @param emit receives each changed hold line
+ * @returns the wait's outcome, carrying the reading it ended on and how many reads it took
+ */
+export async function waitPublishingCapacityEvents({
+  read,
+  home,
+  nowIso,
+  log,
+  clock,
+  timeoutSeconds,
+  emit,
+}: {
+  read: () => MachineCapacityReport;
+  home: string;
+  nowIso: () => string;
+  log: Pick<Logger, "error">;
+  clock: WaitClock;
+  timeoutSeconds: number;
+  emit: (line: string) => void;
+}): Promise<Awaited<ReturnType<typeof waitForCapacityClear>>> {
+  let published = false;
+  const outcome = await waitForCapacityClear({
+    clock,
+    emit,
+    read: () => {
+      const report = read();
+      if (!published) {
+        publishCapacityEvents({ home, log, nowIso: nowIso(), report });
+        published = true;
+      }
+      return report;
+    },
+    timeoutSeconds,
+  });
+  if (outcome.reads > 1) {
+    publishCapacityEvents({ home, log, nowIso: nowIso(), report: outcome.reading });
+  }
+  return outcome;
 }

@@ -18,10 +18,11 @@ import { ceilingLines } from "../../../capacity/ceilingsRender.js";
 import { readPlanCeilings } from "../../../capacity/readCeilings.js";
 import { slopweaverHome } from "../../../config.js";
 import { type Logger, logger } from "../../../lib/logger.js";
+import { err, ok, type Result } from "../../../lib/result.js";
 import { DEFAULT_TOP_N, type MachineCapacityReport } from "../../../live/machine/capacity.js";
 import { renderBriefMachineCapacityLines } from "../../../live/machine/capacityBrief.js";
 import { renderMachineCapacityLines } from "../../../live/machine/capacityRender.js";
-import { readMachineCapacity, waitForCapacityClear } from "../../../live/machine/capacityWait.js";
+import { readMachineCapacity } from "../../../live/machine/capacityWait.js";
 import { type MachineCapacityDeps, productionMachineCapacityDeps } from "../../../live/machine/read.js";
 import { type SpawnBackoffReport, spawnBackoffLine, spawnBackoffStatus } from "../../../live/machine/spawnBackoff.js";
 import { readSpawnBackoffState } from "../../../live/machine/spawnBackoffStore.js";
@@ -32,7 +33,7 @@ import { realWaitClock, type WaitClock } from "../../../wait/loop.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_DEFERRED, EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { booleanFlagsOf, type FlagSpec, type ParsedFlags, parseFlags, stringFlagsOf } from "../../parseFlags.js";
-import { publishCapacityEvents } from "./capacityEvents.js";
+import { publishCapacityEvents, waitPublishingCapacityEvents } from "./capacityEvents.js";
 import {
   capacityJsonOf,
   exitAfterRecording,
@@ -185,81 +186,92 @@ function writeWaitStatus({
   log.out({ line });
 }
 
+/** The flags one run resolved, shared by the single read and the `--wait` path. */
+interface CapacityRunOptions {
+  brief: boolean;
+  full: boolean;
+  json: boolean;
+  home: string;
+  topN: number;
+  recordBy: string | undefined;
+  wait: WaitOptions;
+}
+
 /**
- * The `--wait` path. The FIRST reading publishes its events exactly as a single read would; the final one
- * publishes too when the wait took more than one read, so the stream sees the state the wait ended on without
- * a row per re-read. Under `--record-reading` only the reading the wait ended on is recorded, once.
+ * The run's flags resolved, or the exit a bad one ends on once its lines are said: a parse error with the usage,
+ * and `--record-reading` without `--json` before any read, since only a `--json` document can be filed.
+ */
+function capacityRunOptions({
+  rest,
+  log,
+}: {
+  rest: readonly string[];
+  log: Pick<Logger, "error">;
+}): Result<CapacityRunOptions, number> {
+  const parsed = parseMachineCapacityArgs({ rest }).andThen((flags) =>
+    parseWaitOptions({ values: flags.values }).map((wait) => ({ values: flags.values, wait })),
+  );
+  if (parsed.isErr()) {
+    [...parsed.error, MACHINE_CAPACITY_USAGE].forEach((error) => {
+      log.error({ msg: error });
+    });
+    return err(EXIT_USAGE);
+  }
+  const { values, wait } = parsed.value;
+  const json = values["json"] === true;
+  const recordBy = typeof values["record-reading"] === "string" ? values["record-reading"] : undefined;
+  if (recordBy !== undefined && !json) {
+    log.error({ msg: RECORD_READING_NEEDS_JSON });
+    return err(EXIT_USAGE);
+  }
+  const { home, topN } = resolvedOptions({ values });
+  return ok({ brief: values["brief"] === true, full: values["full"] === true, home, json, recordBy, topN, wait });
+}
+
+/**
+ * The `--wait` path: the poll publishes as `./capacityEvents.ts` says, and under `--record-reading` only the
+ * reading the wait ended on is recorded, once.
  */
 async function runCapacityWait({
+  options,
   read,
   readPlans,
-  wait,
-  home,
-  json,
-  brief,
-  full,
   log,
   nowIso,
   clock,
-  recordBy,
   recordReading,
 }: {
+  options: CapacityRunOptions;
   read: () => MachineCapacityReport;
   readPlans: PlanReader;
-  wait: WaitOptions;
-  home: string;
-  json: boolean;
-  brief: boolean;
-  full: boolean;
   log: Pick<Logger, "error" | "out">;
   nowIso: () => string;
   clock: WaitClock;
-  recordBy: string | undefined;
   recordReading: RecordCapacityReading;
 }): Promise<number> {
-  const status = ({ line }: { line: string }): void => {
-    writeWaitStatus({ json, line, log });
-  };
-  let published = false;
-  const outcome = await waitForCapacityClear({
+  const { brief, full, home, json, recordBy, wait } = options;
+  const outcome = await waitPublishingCapacityEvents({
     clock,
     emit: (line) => {
-      status({ line });
+      writeWaitStatus({ json, line, log });
     },
-    read: () => {
-      const report = read();
-      if (!published) {
-        publishCapacityEvents({ home, log, nowIso: nowIso(), report });
-        published = true;
-      }
-      return report;
-    },
+    home,
+    log,
+    nowIso,
+    read,
     timeoutSeconds: wait.timeoutSeconds,
   });
-  if (outcome.reads > 1) {
-    publishCapacityEvents({ home, log, nowIso: nowIso(), report: outcome.reading });
-  }
   // The plans are read ONCE, after the machine sample the wait ended on, never inside the poll: a plan read is
   // the slow half, and a ceiling taken at the start of a long wait would print stale beside a fresh machine.
   const finalIso = nowIso();
+  const report = outcome.reading;
   const plans = await readPlans({ home, nowIso: finalIso });
-  const ceilings = ceilingsFor({ nowIso: finalIso, plans, report: outcome.reading });
-  const append = printReport({
-    brief,
-    ceilings,
-    full,
-    home,
-    json,
-    log,
-    nowIso: finalIso,
-    recordBy,
-    report: outcome.reading,
-  });
-  let exit = findingExit({ report: outcome.reading });
+  const ceilings = ceilingsFor({ nowIso: finalIso, plans, report });
+  const append = printReport({ brief, ceilings, full, home, json, log, nowIso: finalIso, recordBy, report });
+  let exit = findingExit({ report });
   if (outcome.kind === "timed-out") {
-    status({
-      line: `WAIT-TIMEOUT machine capacity HOLD on ${outcome.reading.holdSubjects.join(" and ")} still on after ${String(wait.timeoutSeconds)}s`,
-    });
+    const line = `WAIT-TIMEOUT machine capacity HOLD on ${report.holdSubjects.join(" and ")} still on after ${String(wait.timeoutSeconds)}s`;
+    writeWaitStatus({ json, line, log });
     exit = EXIT_DEFERRED;
   }
   return exitAfterRecording({ append, exit, log, recordReading });
@@ -306,48 +318,22 @@ export async function runMachineCapacityWithDeps({
     log.out({ line: MACHINE_CAPACITY_USAGE });
     return EXIT_OK;
   }
-  const parsed = parseMachineCapacityArgs({ rest }).andThen((flags) =>
-    parseWaitOptions({ values: flags.values }).map((wait) => ({ values: flags.values, wait })),
-  );
-  if (parsed.isErr()) {
-    [...parsed.error, MACHINE_CAPACITY_USAGE].forEach((error) => {
-      log.error({ msg: error });
-    });
-    return EXIT_USAGE;
+  const resolved = capacityRunOptions({ log, rest });
+  if (resolved.isErr()) {
+    return resolved.error;
   }
-  const { values, wait } = parsed.value;
-  const json = values["json"] === true;
-  const recordBy = typeof values["record-reading"] === "string" ? values["record-reading"] : undefined;
-  if (recordBy !== undefined && !json) {
-    log.error({ msg: RECORD_READING_NEEDS_JSON });
-    return EXIT_USAGE;
-  }
-  const { home, topN } = resolvedOptions({ values });
+  const options = resolved.value;
+  const { brief, full, home, json, recordBy, topN } = options;
   const deps = depsFor({ home, topN });
-  const brief = values["brief"] === true;
-  const full = values["full"] === true;
-  const recording = { recordBy, recordReading };
-  if (wait.wait) {
-    const read = () => readMachineCapacity({ deps, topN });
-    return runCapacityWait({
-      ...recording,
-      brief,
-      clock,
-      full,
-      home,
-      json,
-      log,
-      nowIso: () => nowIso,
-      read,
-      readPlans,
-      wait,
-    });
+  const read = (): MachineCapacityReport => readMachineCapacity({ deps, topN });
+  if (options.wait.wait) {
+    return runCapacityWait({ clock, log, nowIso: () => nowIso, options, read, readPlans, recordReading });
   }
   // The plans are read to completion BEFORE the machine: the machine read is synchronous and would starve an
   // in-flight Claude probe past its timeout (`../../../capacity/readCeilings.ts`), and read second the machine
   // sample is the fresher of the two, which is the one a hold is judged on.
   const plans = await readPlans({ home, nowIso });
-  const report = readMachineCapacity({ deps, topN });
+  const report = read();
   publishCapacityEvents({ home, log, nowIso, report });
   const ceilings = ceilingsFor({ nowIso, plans, report });
   const append = printReport({ brief, ceilings, full, home, json, log, nowIso, recordBy, report });
