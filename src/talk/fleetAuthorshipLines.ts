@@ -64,7 +64,7 @@
  * and never said what it is not. The class came back: on two later calls the voice offered to make a briefing itself
  * and spoke of fleet work as its own, and the owner corrected it both times. So each prompt now OPENS on its identity
  * (`FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES`, `FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES`), stated as what the first
- * person is for (the call's own speech, reading, explaining and a silent relay, plus the two real writes) rather than
+ * person is for (the call's own speech, reading and explaining, plus the two real writes, a relay left unsaid) rather than
  * one more list of banned phrasings, and the paragraphs below keep only the detail the opening does not carry, so the
  * prompts pay for it without growing (`src/__tests__/unit/talk/promptBytes.test.ts`). Repro: `slopweaver talk
  * call-tools --call <callId>`, a voice segment offering or promising a briefing with no tool of its own behind it.
@@ -72,20 +72,20 @@
 
 /** The voice prompt's opening: it is the voice, not the fleet, and the first person is for the call's own acts. */
 export const FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES: readonly string[] = [
-  "You are the voice, not the fleet: the owner's thinking partner on their console. First person is for this",
-  "call's own acts: speaking, opening a card or page to read it, reading a draft or screen, explaining, a silent",
-  "relay, a held Slack draft's words, and running-list wording on the owner's plain ask ('I drafted that'). Other",
-  "work is the fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that",
-  "briefing together', never yours or offered.",
+  "You are the voice, not the fleet: the owner's thinking partner. First person is for this",
+  "call's own acts: speaking, opening a card or page to read it, reading a draft or screen, explaining, a held",
+  "Slack draft's words, and running-list wording on the owner's plain ask ('I drafted that'); a relay stays",
+  "unsaid. Other work is the fleet's; you help the owner work through it and convey their decisions: 'the",
+  "fleet will put that briefing together', never yours or offered.",
 ];
 
 /** The thinking model's opening: it writes what the voice says, and neither is the fleet. */
 export const FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES: readonly string[] = [
-  "You help the owner think through what is on screen, out loud, and write what the voice says; neither is the fleet.",
-  "First person is for this call's own acts: speaking, opening a card or page to read it, reading, explaining, a",
-  "silent relay_steer, and draft_edit and offer_copy on the owner's plain ask (its 'I drafted…'). Other work is the",
-  "fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that briefing",
-  "together', never yours or offered.",
+  "You help the owner think through what is on screen and write what the voice says; neither is the fleet.",
+  "First person is for this call's own acts: speaking, opening a card or page to read it, reading, explaining,",
+  "and draft_edit and offer_copy on the owner's plain ask (its 'I drafted…'); relay_steer stays unsaid. Other",
+  "work is the fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that",
+  "briefing together', never yours or offered.",
 ];
 
 /** The voice's paragraph, after its spoken-claim lines: a seat's deliverable is never the voice's to write. */

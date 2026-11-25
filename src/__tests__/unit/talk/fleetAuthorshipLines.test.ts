@@ -29,21 +29,21 @@ const FLAT_HANDED = HANDED_BACK_ANSWER_VOICE_LINES.join(" ");
 describe("the fleet-authorship lines, whole", () => {
   it("pins the voice's opening identity exactly", () => {
     expect(FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES).toEqual([
-      "You are the voice, not the fleet: the owner's thinking partner on their console. First person is for this",
-      "call's own acts: speaking, opening a card or page to read it, reading a draft or screen, explaining, a silent",
-      "relay, a held Slack draft's words, and running-list wording on the owner's plain ask ('I drafted that'). Other",
-      "work is the fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that",
-      "briefing together', never yours or offered.",
+      "You are the voice, not the fleet: the owner's thinking partner. First person is for this",
+      "call's own acts: speaking, opening a card or page to read it, reading a draft or screen, explaining, a held",
+      "Slack draft's words, and running-list wording on the owner's plain ask ('I drafted that'); a relay stays",
+      "unsaid. Other work is the fleet's; you help the owner work through it and convey their decisions: 'the",
+      "fleet will put that briefing together', never yours or offered.",
     ]);
   });
 
   it("pins the thinking model's opening identity exactly", () => {
     expect(FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES).toEqual([
-      "You help the owner think through what is on screen, out loud, and write what the voice says; neither is the fleet.",
-      "First person is for this call's own acts: speaking, opening a card or page to read it, reading, explaining, a",
-      "silent relay_steer, and draft_edit and offer_copy on the owner's plain ask (its 'I drafted…'). Other work is the",
-      "fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that briefing",
-      "together', never yours or offered.",
+      "You help the owner think through what is on screen and write what the voice says; neither is the fleet.",
+      "First person is for this call's own acts: speaking, opening a card or page to read it, reading, explaining,",
+      "and draft_edit and offer_copy on the owner's plain ask (its 'I drafted…'); relay_steer stays unsaid. Other",
+      "work is the fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that",
+      "briefing together', never yours or offered.",
     ]);
   });
 
@@ -100,23 +100,25 @@ describe("the fleet-authorship lines, whole", () => {
 // thinking partner" alone. So each prompt opens on whose the work is, said as what the first person is FOR.
 describe("the opening identity", () => {
   it("says the voice is the voice and not the fleet, and the thinking model is neither", () => {
-    expect(FLAT_VOICE_IDENTITY).toContain(
-      "You are the voice, not the fleet: the owner's thinking partner on their console.",
-    );
+    expect(FLAT_VOICE_IDENTITY).toContain("You are the voice, not the fleet: the owner's thinking partner.");
     expect(FLAT_BACKEND_IDENTITY).toContain("and write what the voice says; neither is the fleet.");
   });
 
-  it("keeps the first person for the call's own speech, reading, explaining and a silent relay", () => {
+  it("keeps the first person for the call's own speech, reading and explaining", () => {
     expect(FLAT_VOICE_IDENTITY).toContain(
-      "First person is for this call's own acts: speaking, opening a card or page to read it, reading a draft or screen, explaining, a silent relay,",
+      "First person is for this call's own acts: speaking, opening a card or page to read it, reading a draft or screen, explaining, a held Slack draft's words,",
     );
     expect(FLAT_BACKEND_IDENTITY).toContain(
-      "First person is for this call's own acts: speaking, opening a card or page to read it, reading, explaining, a silent relay_steer,",
+      "First person is for this call's own acts: speaking, opening a card or page to read it, reading, explaining, and draft_edit",
     );
   });
 
-  // A positive "relaying" without "silent" would license "I'm passing that along", which the relay rules ban.
+  // A relay listed among the first person's acts, even "a silent relay", licensed "I silently relayed that" beside
+  // the rule never to mention the relay, so the opening names it only as staying unsaid.
   it("never licenses narrating the relay", () => {
+    expect(FLAT_VOICE_IDENTITY).toContain("('I drafted that'); a relay stays unsaid.");
+    expect(FLAT_BACKEND_IDENTITY).toContain("(its 'I drafted…'); relay_steer stays unsaid.");
+    expect(`${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY}`).not.toContain("silent relay");
     expect(`${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY}`).not.toContain("passing");
     expect(`${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY}`).not.toMatch(/, relaying/);
   });
@@ -309,8 +311,8 @@ describe("what the fleet-authorship lines oblige", () => {
   // Running-list wording the owner plainly asked for keeps its "I drafted…". The carve-out once also covered wording
   // "offered unasked", which licensed listing wording on a yes to the voice's own offer to draft.
   it("leaves only running-list wording the owner plainly asked for its own to call drafted, never one offered unasked", () => {
-    expect(FLAT_VOICE_IDENTITY).toContain("running-list wording on the owner's plain ask ('I drafted that').");
-    expect(FLAT_BACKEND_IDENTITY).toContain("offer_copy on the owner's plain ask (its 'I drafted…').");
+    expect(FLAT_VOICE_IDENTITY).toContain("running-list wording on the owner's plain ask ('I drafted that');");
+    expect(FLAT_BACKEND_IDENTITY).toContain("offer_copy on the owner's plain ask (its 'I drafted…');");
     const all = `${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY} ${FLAT_VOICE} ${FLAT_BACKEND}`;
     expect(all).not.toContain("offered unasked");
     expect(all).not.toContain("a pitch included");
