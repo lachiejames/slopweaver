@@ -42,6 +42,8 @@ const HOUR_MS = 60 * 60 * 1000;
  * - gmail: a median of 0 new rows, and `session-start` reads the mailbox LIVE rather than the corpus, so
  *   twelve hours.
  * - calendar: every calendar verb reads Google live, and the corpus drew 4 reads in fourteen days, so daily.
+ * - outlook: UNMEASURED, given Gmail's twelve hours because its verbs also read the mailbox live; re-measure
+ *   once it has synced a fortnight.
  * - outlook-calendar: UNMEASURED, given the Google diary's day because its verbs also read live; re-measure
  *   once it has synced a fortnight.
  * - fathom: 0 new rows in every captured sync, since a share link arrives by mail, so daily.
@@ -57,6 +59,7 @@ const CORPUS_FRESHNESS_OVERRIDES: Readonly<Partial<Record<CorpusSource, number>>
   fathom: 24 * HOUR_MS,
   gmail: 12 * HOUR_MS,
   notion: 8 * HOUR_MS,
+  outlook: 12 * HOUR_MS,
   "outlook-calendar": 24 * HOUR_MS,
 };
 

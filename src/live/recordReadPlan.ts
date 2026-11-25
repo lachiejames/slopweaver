@@ -126,6 +126,29 @@ function urlAddressedPlan({
 }
 
 /**
+ * The live read for an Outlook record. Both are addressed by `sourceId`, never by `url`: the stored `url` is
+ * Graph's `webLink`, which Microsoft does not promise survives a move. A message's `sourceId` is its IMMUTABLE
+ * id, which survives every move between folders; `outlook-calendar read` takes the event id ALONE, because
+ * Graph reads an event by id from `/me/events/{id}` whichever calendar holds it, and prints that calendar back.
+ *
+ * @param record the retrieved Outlook record
+ * @param source which of the two Microsoft sources it came from
+ * @returns the argv a visible session would run
+ */
+function microsoftPlan({
+  record,
+  source,
+}: {
+  record: CorpusRecord;
+  source: "outlook" | "outlook-calendar";
+}): RecordReadPlan {
+  if (source === "outlook") {
+    return { command: ["slopweaver", "outlook", "read", record.sourceId], kind: "supported" };
+  }
+  return { command: ["slopweaver", "outlook-calendar", "read", outlookEventIdOf({ record })], kind: "supported" };
+}
+
+/**
  * The sanctioned live read for one retrieved record, or why there is none.
  *
  * @param record the retrieved record to verify against its source
@@ -177,10 +200,9 @@ export function recordReadPlan({ record }: { record: CorpusRecord }): RecordRead
         command: ["slopweaver", "calendar", "read", eventIdOf({ record }), "--calendar", record.container],
         kind: "supported",
       };
+    case "outlook":
     case "outlook-calendar":
-      // Addressed by `sourceId` too, but `outlook-calendar read` takes the event id ALONE: Graph reads an
-      // event by id from `/me/events/{id}` whichever calendar holds it, and prints that calendar back.
-      return { command: ["slopweaver", "outlook-calendar", "read", outlookEventIdOf({ record })], kind: "supported" };
+      return microsoftPlan({ record, source: record.source });
     case "chatgpt":
       return chatgptPlan({ record });
     default: {

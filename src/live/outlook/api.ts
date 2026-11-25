@@ -4,6 +4,7 @@
  */
 import { scopeIdForToken } from "#lib/providerCall.js";
 import type { OutlookApi } from "./apiCore.js";
+import { deltaMethods } from "./apiDelta.js";
 import { pagedMethods } from "./apiPaged.js";
 import { readMethods } from "./apiRead.js";
 import { writeMethods } from "./apiWrite.js";
@@ -22,6 +23,7 @@ export function makeOutlookApi({ graph, rateScopeKey }: { graph: GraphClient; ra
   return {
     ...readMethods({ graph, scopeId }),
     ...pagedMethods({ graph, scopeId }),
+    ...deltaMethods({ graph, scopeId }),
     ...writeMethods({ graph, scopeId }),
   };
 }

@@ -41,7 +41,7 @@ describe("onboard plan parsing", () => {
   it("refuses unknown source names and unsafe GitHub slugs", () => {
     const badSource = unwrap(parseOnboardPlanArgs({ rest: ["--sources", "email", "--backfill", "90"] }));
     expect(onboardErrorLines({ error: unwrapErr(onboardPlanOptions({ parsed: badSource })) })).toEqual([
-      "unrecognised source: email (expected github, slack, linear, notion, gmail)",
+      "unrecognised source: email (expected github, slack, linear, notion, gmail, outlook)",
     ]);
     const badRepo = unwrap(
       parseOnboardPlanArgs({
@@ -58,8 +58,8 @@ describe("onboard plan parsing", () => {
     const refused = unwrapErr(onboardPlanOptions({ parsed }));
     expect(refused.code).toBe("PLAN_REFUSED");
     expect(onboardErrorLines({ error: refused })).toEqual([
-      "unrecognised source: email (expected github, slack, linear, notion, gmail)",
-      "unrecognised source: fax (expected github, slack, linear, notion, gmail)",
+      "unrecognised source: email (expected github, slack, linear, notion, gmail, outlook)",
+      "unrecognised source: fax (expected github, slack, linear, notion, gmail, outlook)",
       'unrecognised backfill: forever (expected a day count, a YYYY-MM-DD date, or "all")',
     ]);
   });

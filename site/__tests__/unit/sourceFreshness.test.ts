@@ -70,6 +70,7 @@ function wireRows({ slack = {} }: { slack?: Record<string, unknown> } = {}): Rec
     ["fathom", "Fathom"],
     ["chatgpt", "ChatGPT"],
     ["outlook-calendar", "Outlook Calendar"],
+    ["outlook", "Outlook"],
   ].map(([source, label]) => wireRow({ label, source }));
   return [wireRow(slack), ...others];
 }
@@ -93,6 +94,7 @@ describe("readSourceFreshness", () => {
       "fathom",
       "chatgpt",
       "outlook-calendar",
+      "outlook",
     ]);
     expect(read!.sources[0]).toEqual({
       blocker: undefined,
@@ -160,6 +162,7 @@ describe("readSourceFreshness", () => {
       "Fathom",
       "ChatGPT",
       "Outlook Calendar",
+      "Outlook",
     ]);
   });
 

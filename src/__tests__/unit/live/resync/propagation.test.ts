@@ -41,6 +41,7 @@ describe("PROPAGATION_MAP", () => {
       ["fathom", "live"],
       ["chatgpt", "live"],
       ["outlook-calendar", "live"],
+      ["outlook", "live"],
     ]);
   });
 

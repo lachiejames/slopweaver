@@ -47,6 +47,7 @@ const CORPUS_SOURCES: Readonly<Record<CorpusSource, true>> = {
   gold: true,
   linear: true,
   notion: true,
+  outlook: true,
   "outlook-calendar": true,
   self: true,
   slack: true,

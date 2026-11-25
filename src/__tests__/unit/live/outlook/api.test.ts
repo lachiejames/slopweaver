@@ -29,6 +29,7 @@ describe("makeOutlookApi", () => {
       "listFolders",
       "listMessages",
       "me",
+      "messageDelta",
       "moveMessage",
       "patchDraft",
       "patchMessage",

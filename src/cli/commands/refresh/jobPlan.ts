@@ -19,7 +19,12 @@ import {
   type RefreshJobPlanError,
   type RefreshLaneNotWiredError,
 } from "./errors.js";
-import { buildCalendarSourceJob, buildGmailSourceJob, buildOutlookCalendarSourceJob } from "./grantJobs.js";
+import {
+  buildCalendarSourceJob,
+  buildGmailSourceJob,
+  buildOutlookCalendarSourceJob,
+  buildOutlookMailSourceJob,
+} from "./grantJobs.js";
 import { githubItemProgress, githubRepoProgress } from "./progressAdapters.js";
 import { EPOCH_SINCE, type RefreshWindow, refreshWindowLogLine } from "./windows.js";
 
@@ -72,6 +77,9 @@ function buildOneSourceJob({
   }
   if (source === "outlook-calendar") {
     return buildOutlookCalendarSourceJob({ cursorOverridden, deps, home, options, window });
+  }
+  if (source === "outlook") {
+    return buildOutlookMailSourceJob({ cursorOverridden, deps, home, options, window });
   }
   if (source === "fathom") {
     return buildFathomSourceJob({ deps, home, options, window });

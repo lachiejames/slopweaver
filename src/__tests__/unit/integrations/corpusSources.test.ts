@@ -38,10 +38,11 @@ type HandKeptCorpusSource =
   | "calendar"
   | "fathom"
   | "chatgpt"
-  | "outlook-calendar";
+  | "outlook-calendar"
+  | "outlook";
 /** The literal unions `connect/types.ts`, `refresh/core.ts` and `live/providerRead.ts` spelled by hand. */
-type HandKeptConnectSource = "github" | "slack" | "linear" | "notion" | "gmail";
-type HandKeptConnectTarget = HandKeptConnectSource | "datadog" | "outlook";
+type HandKeptConnectSource = "github" | "slack" | "linear" | "notion" | "gmail" | "outlook";
+type HandKeptConnectTarget = HandKeptConnectSource | "datadog";
 type HandKeptTokenedSource = "slack" | "linear" | "notion";
 type HandKeptProviderReadSource = "github" | "linear" | "notion";
 
@@ -62,7 +63,7 @@ const SWEPT_FIXTURE = {
     containerScoped: true,
     identityRoster: true,
     missingTokenHint: "set ACME_API_KEY",
-    ordinal: 10,
+    ordinal: 12,
     progressPhase: true,
     resyncDemand: true,
     upfrontTokenGate: true,
@@ -84,7 +85,7 @@ const PRIVATE_FIXTURE = {
     alwaysPrivate: true,
     containerScoped: false,
     identityRoster: false,
-    ordinal: 10,
+    ordinal: 12,
     progressPhase: false,
     resyncDemand: false,
     upfrontTokenGate: false,
@@ -115,6 +116,7 @@ describe("the corpus source lists derived from the registry", () => {
       "fathom",
       "chatgpt",
       "outlook-calendar",
+      "outlook",
     ]);
     expect(BRONZE_SOURCES).toEqual([
       "github",
@@ -127,6 +129,7 @@ describe("the corpus source lists derived from the registry", () => {
       "fathom",
       "chatgpt",
       "outlook-calendar",
+      "outlook",
     ]);
     expect(FETCHABLE_SOURCES).toEqual([
       "github",
@@ -138,6 +141,7 @@ describe("the corpus source lists derived from the registry", () => {
       "fathom",
       "chatgpt",
       "outlook-calendar",
+      "outlook",
     ]);
     expect(CORPUS_SOURCES).toEqual(["github", "slack", "linear", "notion"]);
   });
@@ -162,15 +166,15 @@ describe("the corpus source lists derived from the registry", () => {
   });
 
   it("the connect, token-gate and shared-reader lists each equal the hand-kept one, in order", () => {
-    expect(CONNECT_SOURCES).toEqual(["github", "slack", "linear", "notion", "gmail"]);
+    expect(CONNECT_SOURCES).toEqual(["github", "slack", "linear", "notion", "gmail", "outlook"]);
     expect(CONNECT_SOURCES).toEqual(ONBOARD_SOURCES);
-    expect(CONNECT_TARGETS).toEqual(["github", "slack", "linear", "notion", "gmail", "datadog", "outlook"]);
+    expect(CONNECT_TARGETS).toEqual(["github", "slack", "linear", "notion", "gmail", "outlook", "datadog"]);
     expect(TOKENED_SOURCES).toEqual(["slack", "linear", "notion"]);
   });
 
   it("connect's usage line names every derived target, in the order the hand-typed line did", () => {
     expect(CONNECT_USAGE).toBe(
-      "usage: slopweaver connect <github|slack|linear|notion|gmail|datadog|outlook> --check [--json] " +
+      "usage: slopweaver connect <github|slack|linear|notion|gmail|outlook|datadog> --check [--json] " +
         "[--repo owner/repo] [--github-org <org>] [--home <dir>]",
     );
   });
@@ -217,7 +221,7 @@ describe("the corpus source lists derived from the registry", () => {
     expect(swept.fetchable).toEqual([...FETCHABLE_SOURCES, "acme"]);
     expect(swept.allSourcesSweep).toEqual([...CORPUS_SOURCES, "acme"]);
     expect(swept.connectable).toEqual([...CONNECT_SOURCES, "acme"]);
-    expect(swept.connectTargets).toEqual([...CONNECT_SOURCES, "acme", "datadog", "outlook"]);
+    expect(swept.connectTargets).toEqual([...CONNECT_SOURCES, "acme", "datadog"]);
     expect(swept.tokenGated).toEqual([...TOKENED_SOURCES, "acme"]);
 
     const named = corpusSourcesOf({ manifests: [...registeredIntegrations(), PRIVATE_FIXTURE] });
@@ -230,7 +234,7 @@ describe("the corpus source lists derived from the registry", () => {
 
   it("a connect-only fixture joins the connect targets after the corpus ones, by id, and no other list", () => {
     const live = corpusSourcesOf({ manifests: [...registeredIntegrations(), CONNECT_ONLY_FIXTURE] });
-    expect(live.connectTargets).toEqual([...CONNECT_SOURCES, "aaa-acme", "datadog", "outlook"]);
+    expect(live.connectTargets).toEqual([...CONNECT_SOURCES, "aaa-acme", "datadog"]);
     expect([live.all, live.connectable, live.fetchable, live.tokenGated]).toEqual([
       ALL_CORPUS_SOURCES,
       CONNECT_SOURCES,

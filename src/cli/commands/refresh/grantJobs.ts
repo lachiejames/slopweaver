@@ -1,10 +1,11 @@
 /**
  * The `refresh` lanes that ride a stored OAuth GRANT rather than a token — the Gmail mailbox, the Google
- * diary and the Outlook diary.
+ * diary, the Outlook diary and the Outlook mailbox.
  *
  * They sit apart from `./jobPlan.ts`'s tokened path because `deps.resolveTokens()` has no entry for any of
  * them: each authenticates with its own stored grant, crawls its own API and holds a second cursor layer of its
- * own (a `historyId`, a `syncToken` per calendar, a modified-time anchor per calendar) that an explicit window
+ * own (a `historyId`, a `syncToken` per calendar, a modified-time anchor per calendar, a delta link per mail
+ * folder) that an explicit window
  * flag must beat. Each builder is optional in {@link RefreshDeps}, so a build without the lane refuses it by
  * name rather than skipping it.
  */
@@ -111,6 +112,38 @@ export function buildOutlookCalendarSourceJob({
   return ok(
     build({
       api: undefined,
+      cursorOverridden,
+      fetchCap: options.fetchCap,
+      home,
+      nowIso: () => deps.nowDate().toISOString(),
+      sample: options.sample,
+      window,
+    }),
+  );
+}
+
+/**
+ * Build the `outlook` ingest job — the Outlook mailbox, over the one Microsoft grant.
+ *
+ * @param options the parsed refresh options, for the two caps this lane honours itself
+ * @param cursorOverridden whether an explicit window flag beat the stored cursor; for this lane it also beats
+ *   every stored folder delta link, so `--all`/`--since` read every folder from an initial round
+ * @returns the job, or the reason this build cannot make one
+ */
+export function buildOutlookMailSourceJob({
+  options,
+  window,
+  home,
+  deps,
+  cursorOverridden,
+}: GrantLaneArgs): Result<SourceIngestJob, RefreshLaneNotWiredError> {
+  const build = deps.buildOutlookMailJob;
+  if (build === undefined) {
+    return err(RefreshErrors.laneNotWired({ source: "outlook" }));
+  }
+  return ok(
+    build({
+      client: undefined,
       cursorOverridden,
       fetchCap: options.fetchCap,
       home,

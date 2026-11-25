@@ -231,6 +231,16 @@ export function fakeOutlookApi({ mailbox }: { mailbox: FakeMailbox }): OutlookAp
       return ok(onePage({ items }));
     },
     me: async () => ok({ id: "me-1", mail: FAKE_OUTLOOK_ACCOUNT, userPrincipalName: FAKE_OUTLOOK_ACCOUNT }),
+    // An initial round answers the folder whole on one page; a resumed round answers no change. Both end on a
+    // delta link, as Graph's last page of a round does.
+    messageDelta: async ({ start }) => {
+      if ("link" in start) {
+        return ok({ deltaLink: start.link, items: [], nextLink: undefined });
+      }
+      const { folderId } = start.first;
+      const items = [...mailbox.messages.values()].filter((message) => message.parentFolderId === folderId);
+      return ok({ deltaLink: `https://graph.microsoft.com/v1.0/fake-delta/${folderId}`, items, nextLink: undefined });
+    },
     moveMessage: async ({ id, destinationId }) => {
       const message = mailbox.messages.get(id);
       if (message === undefined) {

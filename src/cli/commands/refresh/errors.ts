@@ -52,6 +52,7 @@ const LANE_NOUN = {
   chatgpt: "chat-history",
   fathom: "recorded-call",
   gmail: "mail",
+  outlook: "Outlook mail",
   "outlook-calendar": "Outlook diary",
 } as const;
 

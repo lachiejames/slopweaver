@@ -65,6 +65,7 @@ describe("the two source lists say different things, on purpose", () => {
       "fathom",
       "chatgpt",
       "outlook-calendar",
+      "outlook",
     ]);
   });
 

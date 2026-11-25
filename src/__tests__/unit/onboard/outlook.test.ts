@@ -1,13 +1,15 @@
-/** Unit: the live Outlook connector block `slopweaver onboard` renders beside the five corpus sources. */
+/** Unit: the Outlook mailbox's onboarding spec — one of the corpus sources, connected once by registration and consent. */
 import { describe, expect, it } from "vitest";
 import { OUTLOOK_REGISTRATION_SETTINGS } from "../../../live/outlook/scopes.js";
-import { OUTLOOK_REGISTRATION_PERMISSIONS, outlookConnectorLines } from "../../../onboard/outlook.js";
+import { OUTLOOK_REGISTRATION_PERMISSIONS, OUTLOOK_SOURCE_SPEC } from "../../../onboard/outlook.js";
+import { connectSourceLines } from "../../../onboard/sources.js";
 
-const text = outlookConnectorLines().join("\n");
+const registration = OUTLOOK_SOURCE_SPEC.credentials[0]!;
+const consent = OUTLOOK_SOURCE_SPEC.credentials[1]!;
 
-describe("outlookConnectorLines", () => {
-  it("renders the exact registration settings the preflight's registration row names", () => {
-    expect(text).toContain(OUTLOOK_REGISTRATION_SETTINGS);
+describe("OUTLOOK_SOURCE_SPEC", () => {
+  it("names the exact registration settings the preflight's registration row names", () => {
+    expect(registration.action).toContain(OUTLOOK_REGISTRATION_SETTINGS);
     expect(OUTLOOK_REGISTRATION_SETTINGS).toContain("admits personal Microsoft accounts");
     expect(OUTLOOK_REGISTRATION_SETTINGS).toContain(
       "Mobile and desktop applications platform with redirect `http://localhost`",
@@ -15,7 +17,7 @@ describe("outlookConnectorLines", () => {
     expect(OUTLOOK_REGISTRATION_SETTINGS).toContain("no client secret");
   });
 
-  it("lists every delegated permission the door asks for", () => {
+  it("lists every delegated permission the mail door asks for, and no calendar one", () => {
     expect(OUTLOOK_REGISTRATION_PERMISSIONS).toEqual([
       "User.Read",
       "Mail.Read",
@@ -24,21 +26,26 @@ describe("outlookConnectorLines", () => {
       "Mail.Send",
       "offline_access",
     ]);
-    expect(text).toContain(OUTLOOK_REGISTRATION_PERMISSIONS.join(", "));
+    expect(registration.action).toContain(OUTLOOK_REGISTRATION_PERMISSIONS.join(", "));
   });
 
-  it("says it is live and never crawled, and offers no refresh for it", () => {
-    expect(text).toContain("NEVER crawled");
-    expect(text).not.toContain("refresh --source outlook");
+  it("captures the client id, which is no secret, then takes the one consent", () => {
+    expect(registration.secret).toBe("outlook-client-id");
+    expect(registration.warning).toBeUndefined();
+    expect(consent.secret).toBeUndefined();
+    expect(consent.action).toContain("`slopweaver outlook connect --grant manage`");
   });
 
-  it("names the client id capture and the one consent", () => {
+  it("is refreshed by naming it, never by --all-sources, and proved by its own preflight", () => {
+    expect(OUTLOOK_SOURCE_SPEC.refreshArgv).toEqual(["refresh", "--source", "outlook"]);
+    expect(OUTLOOK_SOURCE_SPEC.inAllSources).toBe(false);
+    expect(OUTLOOK_SOURCE_SPEC.preflight).toBe("slopweaver connect outlook --check --json");
+  });
+
+  it("renders once among the corpus sources, naming the credential without spelling its setter", () => {
+    const text = connectSourceLines({ hasBot: true }).join("\n");
+    expect(text.split("\n").filter((line) => line.startsWith("  outlook")).length).toBe(1);
     expect(text).toContain("capture as: outlook-client-id");
-    expect(text).toContain("`slopweaver outlook connect --grant manage`");
-  });
-
-  it("names the credential without spelling its setter, which the ordered command list owns", () => {
-    expect(text).toContain("outlook-client-id");
-    expect(text).not.toContain("slopweaver secrets set");
+    expect(text).not.toContain("slopweaver secrets set outlook-client-id");
   });
 });

@@ -29,7 +29,7 @@
 
 import type { ConnectSource } from "../connect/types.js";
 import { CONNECT_SOURCES } from "../integrations/corpusSources.js";
-import { outlookConnectorLines } from "./outlook.js";
+import { OUTLOOK_SOURCE_SPEC } from "./outlook.js";
 
 /**
  * The sources `onboard` connects, in the order it presents them: every integration that ingests and has a
@@ -127,7 +127,7 @@ export const GMAIL_REQUIRED_APIS: readonly { readonly name: string; readonly pag
   },
 ];
 
-/** The five source specifications, in presentation order. */
+/** Every source specification, in presentation order. */
 export const SOURCE_SPECS: Readonly<Record<ConnectSource, OnboardSourceSpec>> = {
   github: {
     buys: "pull requests, issues, reviews, discussions and releases — the record of what was built and why",
@@ -231,6 +231,7 @@ export const SOURCE_SPECS: Readonly<Record<ConnectSource, OnboardSourceSpec>> = 
     refreshArgv: ["refresh", "--source", "notion"],
     source: "notion",
   },
+  outlook: OUTLOOK_SOURCE_SPEC,
   slack: {
     buys: "channel and thread history, canvases, pins and bookmarks — the record of what was actually said",
     caveats: [
@@ -293,21 +294,19 @@ export function sourceLines({ source, hasBot }: { source: ConnectSource; hasBot:
 }
 
 /**
- * The whole "connect your sources" block — every corpus source, the live Outlook connector, plus the
- * Google-project steps Gmail alone needs.
+ * The whole "connect your sources" block — every corpus source, plus the Google-project steps Gmail alone needs.
  *
  * @param hasBot whether the chosen Slack tier provisions a bot user
  * @returns the lines to print, in order
  */
 export function connectSourceLines({ hasBot }: { hasBot: boolean }): readonly string[] {
   return [
-    "The five corpus sources plus the live Outlook mailbox, and the credential each one needs",
+    "The corpus sources, and the credential each one needs",
     "  Connect the ones you use. Every one is optional and every one can be added later; `store read` answers from",
     "  whatever is connected. No credential is ever pasted into a chat — `secrets set` reads it with echo off",
     "  and stores it 0600 under $SLOPWEAVER_HOME/secrets.",
     "",
     ...ONBOARD_SOURCES.flatMap((source) => sourceLines({ hasBot, source })),
-    ...outlookConnectorLines(),
     ...gmailProjectLines(),
   ];
 }

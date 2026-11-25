@@ -63,6 +63,7 @@ describe("compactCorpus resume safety", () => {
       "fathom",
       "chatgpt",
       "outlook-calendar",
+      "outlook",
     ]);
     expect(run.plans.find((plan) => plan.source === "github")!.duplicatesCollapsed).toBe(1);
     expect(readFileSync(sourceWatermarkPath({ home, source: "github" }), "utf8")).toBe(cursorBefore);

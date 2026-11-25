@@ -210,6 +210,7 @@ export function witnessMap({
     gold: of("gold"),
     linear: of("linear"),
     notion: of("notion"),
+    outlook: of("outlook"),
     "outlook-calendar": of("outlook-calendar"),
     self: of("self"),
     slack: of("slack"),

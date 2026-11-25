@@ -90,6 +90,12 @@ export const CORPUS_PURPOSES: Readonly<Record<CorpusSource, AutomationPurpose>> 
     name: "Notion history sync",
     whenBroken: "Pages edited since it last ran are missing from the history search.",
   },
+  outlook: {
+    forWhat: "Keeps a local copy of your Outlook mailbox in the history the bot searches.",
+    meanwhile: "Every outlook verb reads the mailbox live, not this copy.",
+    name: "Outlook mail history sync",
+    whenBroken: "Mail that arrived since it last ran is missing from the searchable history.",
+  },
   "outlook-calendar": {
     forWhat: "Keeps a local copy of your Outlook calendar in the history the bot searches.",
     meanwhile: "Every outlook-calendar verb reads Outlook live, not this copy.",

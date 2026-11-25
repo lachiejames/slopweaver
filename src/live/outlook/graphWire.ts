@@ -97,6 +97,9 @@ export type GraphMessage = z.output<typeof messageWire>;
  */
 const deltaMessageWire = messageWire.extend({ "@removed": z.strictObject({ reason: z.string() }).optional() });
 
+/** One delta item as the door reads it: a changed message, or a tombstone when `@removed` is set. */
+export type GraphDeltaMessage = z.output<typeof deltaMessageWire>;
+
 /** `GET /me` — the account the grant is bound to. A personal account's `mail` is often null; its UPN is the address. */
 export const GET_ME = defineBoundary({
   endpoint: "GET /me",

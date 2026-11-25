@@ -89,6 +89,7 @@ const SOURCE_LABELS: Readonly<Record<CorpusSource, string>> = {
   gold: "Gold",
   linear: "Linear",
   notion: "Notion",
+  outlook: "Outlook",
   "outlook-calendar": "Outlook Calendar",
   self: "Self",
   slack: "Slack",

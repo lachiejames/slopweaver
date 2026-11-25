@@ -269,7 +269,7 @@ describe("what the tier enables", () => {
     expect(found.filter((index) => index < 0)).toEqual([]);
   });
 
-  it("orders Outlook's client id, then its one consent, then its preflight, among the commands to run", () => {
+  it("orders Outlook's client id, then its one consent, then its preflight, then its refresh", () => {
     const lines = renderOnboardSession({
       answers: { appName: "Slopweaver", identity: undefined, mailboxZone: undefined, tier: "agent" },
       notes: DEFAULT_NOTES,
@@ -278,6 +278,7 @@ describe("what the tier enables", () => {
       "slopweaver secrets set outlook-client-id",
       "slopweaver outlook connect --grant manage",
       "slopweaver connect outlook --check",
+      "slopweaver refresh --source outlook",
     ];
     // The source block above describes the consent too; the ORDER is the command list's, so read from there.
     const start = lines.findIndex((line) => line.startsWith("Then, in this order"));
@@ -286,7 +287,6 @@ describe("what the tier enables", () => {
     expect(start).toBeGreaterThan(-1);
     expect(found.filter((index) => index < 0)).toEqual([]);
     expect(found).toEqual([...found].toSorted((a, b) => a - b));
-    expect(lines.some((line) => line.includes("refresh --source outlook"))).toBe(false);
   });
 
   it("sends the shown-once Google secret to the reader's own password manager, naming no product", () => {
