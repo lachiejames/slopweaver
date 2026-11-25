@@ -14,7 +14,10 @@
  *
  * Two rules, both structural:
  *
- *  1. Every `operation:` label passed to a `safe*Call` must have an EXACT entry in the registry map.
+ *  1. Every `operation:` label passed to a `safe*Call` must have an EXACT entry in the registry map. A label
+ *     passed BY NAME — `operation,` or `operation: SOME_CONST,` — is checked too, when the name resolves
+ *     through the file's own `const`s to a string literal: a door that binds its label to a `const` gets
+ *     the same check as one that spells it inline.
  *  2. A label must be a static string literal. A template literal (`` `slack.auth.test.write.${lane}` ``)
  *     cannot be checked against a map by any static gate, so it is refused outright rather than waved
  *     through — the one that used to exist is now two literals.
@@ -22,12 +25,22 @@
  * It also polices the two escape hatches, because a hatch nobody counts spreads: `blockWait: false` is legal
  * only in {@link BLOCK_WAIT_EXEMPT}, and `paced: false` only in {@link PACING_EXEMPT}.
  *
+ * **What it does not see.** A line is read as part of a call only inside a fixed window after the
+ * `safe*Call` opener ({@link WINDOW_LINES} lines, no brace matching), so a label written further down is
+ * unchecked, and a matching line in that window after the call has closed is read as if inside it. A label
+ * passed by name is unchecked when the name does not resolve to a same-file `const` string: a parameter a
+ * wrapper forwards (its callers write the label outside any `safe*Call`, where this gate never looks), a
+ * `let`, an import, a ternary, a property read or a call. Those pass silently rather than being refused,
+ * because refusing them would fail every forwarding wrapper with no label at that site to check.
+ *
  * Mirrors the other gates: a PURE {@link scanOperationLabels} over file content (unit-tested with inline
  * fixtures, so this file never scans itself) plus an effectful entry that walks the sources.
  */
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { appendUnder } from "#lib/arrays.js";
+import { forEachChild, isStringLiteralLikeNode, type NodeVisitor, ts, withSourceFile } from "#lib/tsSyntax.js";
 import { OPERATION_ENDPOINT_CLASS } from "../lib/rateLimits.js";
 import { reportScanIntegrity, scanTextFiles } from "../lib/textFileScan.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
@@ -39,6 +52,7 @@ import {
   scopedScanFiles,
   isScannablePath as scopeIsScannablePath,
 } from "./scanScope.js";
+import { type ConstScope, constInitializersOf, MAX_CONST_HOPS, resolvedValue } from "./tornTailAppendValue.js";
 
 /**
  * The files permitted to skip the shared 429 block.
@@ -79,22 +93,149 @@ const STATIC_LABEL = /^\s*operation:\s*"([^"]+)"\s*,\s*$/;
 /** A template-literal operation label — refused: no static gate can resolve it against the map. */
 const DYNAMIC_LABEL = /^\s*operation:\s*`/;
 
+/**
+ * A label that may be passed by name — `operation,` or `operation: SOME_CONST,`. Only a pre-filter for which files to
+ * parse: the value is any one token with no quote, backtick, comma or space, and the syntax tree decides whether it is
+ * an identifier and what it resolves to, so a line this admits that the tree does not resolve yields nothing.
+ */
+const BOUND_LABEL = /^\s*operation(?:\s*:\s*[^\s"'`,]+)?\s*,\s*$/;
+
+/**
+ * How many lines after a `safe*Call` opener are read as part of its argument object. The object is short by
+ * construction (one raw call plus its labels), so a fixed lookahead stands in for a brace-matching parser that
+ * string and comment noise could fool — and a label further down is unchecked, as the header says.
+ */
+const WINDOW_LINES = 24;
+
 /** The preflight escape hatch. */
 const BLOCK_SKIP = /^\s*blockWait:\s*false\s*,\s*$/;
 
 /** The read-lane throttle escape hatch. */
 const PACING_SKIP = /^\s*paced:\s*false\s*,\s*$/;
 
+/** The 0-based index of every line inside a safe-call window: an opener and the {@link WINDOW_LINES} after it. */
+function windowedLineIndexes({ lines }: { lines: readonly string[] }): readonly number[] {
+  const inside: number[] = [];
+  let openAt = -1;
+  lines.forEach((line, index) => {
+    if (SAFE_CALL.test(line)) {
+      openAt = index;
+    }
+    if (openAt >= 0 && index - openAt <= WINDOW_LINES) {
+      inside.push(index);
+    }
+  });
+  return inside;
+}
+
+/** The literal-label, template-label and escape-hatch hits on one line inside a safe-call window. */
+function windowedLineHits({
+  line,
+  lineNumber,
+  path,
+  mapped,
+}: {
+  line: string;
+  lineNumber: number;
+  path: string;
+  mapped: ReadonlySet<string>;
+}): readonly LabelHit[] {
+  if (DYNAMIC_LABEL.test(line)) {
+    return [{ excerpt: line.trim(), line: lineNumber, path, reason: "dynamic-label" }];
+  }
+  const hits: LabelHit[] = [];
+  const stat = STATIC_LABEL.exec(line);
+  if (stat !== null && !mapped.has(stat[1]!)) {
+    hits.push({ excerpt: stat[1]!, line: lineNumber, path, reason: "unmapped-label" });
+  }
+  if (BLOCK_SKIP.test(line) && !BLOCK_WAIT_EXEMPT.has(path)) {
+    hits.push({ excerpt: line.trim(), line: lineNumber, path, reason: "unsanctioned-block-skip" });
+  }
+  if (PACING_SKIP.test(line) && !PACING_EXEMPT.has(path)) {
+    hits.push({ excerpt: line.trim(), line: lineNumber, path, reason: "unsanctioned-pacing-skip" });
+  }
+  return hits;
+}
+
+/** The identifier an `operation` property passes by name — shorthand, or an identifier value — or `undefined`. */
+function operationNameOf({ node }: { node: ts.Node }): ts.Identifier | undefined {
+  if (ts.isShorthandPropertyAssignment(node) && ts.isIdentifier(node.name) && node.name.text === "operation") {
+    return node.name;
+  }
+  if (!ts.isPropertyAssignment(node) || !ts.isIdentifier(node.name) || node.name.text !== "operation") {
+    return undefined;
+  }
+  return ts.isIdentifier(node.initializer) ? node.initializer : undefined;
+}
+
+/**
+ * Every `operation` property in one file passed by a name that resolves, through the `const` its own scope sees, to
+ * a string literal — keyed by the 1-based line the property starts on. A parameter, `let` or import of the name
+ * resolves to nothing, so it is absent here and unchecked.
+ */
+function resolvedLabelsByLine({ path, content }: { path: string; content: string }): ReadonlyMap<number, string[]> {
+  return withSourceFile({
+    fileName: path,
+    text: content,
+    use: (sf): ReadonlyMap<number, string[]> => {
+      const scope: ConstScope = { consts: constInitializersOf({ sf }), hops: MAX_CONST_HOPS };
+      const found = new Map<number, string[]>();
+      const visit: NodeVisitor = (node) => {
+        const name = operationNameOf({ node });
+        const value = name === undefined ? undefined : resolvedValue({ node: name, scope });
+        if (value !== undefined && isStringLiteralLikeNode(value)) {
+          const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+          appendUnder({ into: found, key: line, value: value.text });
+        }
+        forEachChild({ node, visit });
+      };
+      visit(sf);
+      return found;
+    },
+  });
+}
+
+/**
+ * The unmapped-label hits among the labels passed by name on the given lines. A file with none of those lines is
+ * never parsed, so the whole-tree scan parses only the few files that pass a label by name.
+ */
+function boundLabelHits({
+  path,
+  content,
+  lineNumbers,
+  mapped,
+}: {
+  path: string;
+  content: string;
+  lineNumbers: readonly number[];
+  mapped: ReadonlySet<string>;
+}): readonly LabelHit[] {
+  if (lineNumbers.length === 0) {
+    return [];
+  }
+  const resolved = resolvedLabelsByLine({ content, path });
+  return lineNumbers.flatMap((lineNumber): readonly LabelHit[] => {
+    const labels = resolved.get(lineNumber);
+    if (labels === undefined) {
+      return [];
+    }
+    return labels
+      .filter((label) => !mapped.has(label))
+      .map((label): LabelHit => ({ excerpt: label, line: lineNumber, path, reason: "unmapped-label" }));
+  });
+}
+
 /**
  * Pure: every label violation in one file's content.
  *
- * A label is only checked when a `safe*Call` opener is in effect, tracked by brace depth from the opener —
- * that keeps an `operation:` belonging to some other object (a retry policy, a log line) out of scope.
+ * A label is only checked inside a `safe*Call` window ({@link WINDOW_LINES} lines from the opener) — that keeps an
+ * `operation:` belonging to some other object (a retry policy, a log line) out of scope. A label passed by name is
+ * resolved through the file's own `const`s, parsing the file only when one is present.
  *
  * @param path the file's repo-relative path
  * @param content the file's text
  * @param mapped the operation labels the registry knows (injected, so the test is not a copy of the map)
- * @returns each hit (empty when clean)
+ * @returns each hit (empty when clean): the line-level hits in source order, then the by-name ones
  */
 export function scanOperationLabels({
   path,
@@ -105,35 +246,13 @@ export function scanOperationLabels({
   content: string;
   mapped: ReadonlySet<string>;
 }): readonly LabelHit[] {
-  const hits: LabelHit[] = [];
   const lines = content.split("\n");
-  let openAt = -1;
-  lines.forEach((line, index) => {
-    if (SAFE_CALL.test(line)) {
-      openAt = index;
-    }
-    // A `safe*Call` argument object is short by construction (one raw call plus its labels), so a fixed
-    // lookahead is enough and avoids a brace-matching parser that string/comment noise could fool.
-    const inCall = openAt >= 0 && index - openAt <= 24;
-    if (!inCall) {
-      return;
-    }
-    if (DYNAMIC_LABEL.test(line)) {
-      hits.push({ excerpt: line.trim(), line: index + 1, path, reason: "dynamic-label" });
-      return;
-    }
-    const stat = STATIC_LABEL.exec(line);
-    if (stat !== null && !mapped.has(stat[1]!)) {
-      hits.push({ excerpt: stat[1]!, line: index + 1, path, reason: "unmapped-label" });
-    }
-    if (BLOCK_SKIP.test(line) && !BLOCK_WAIT_EXEMPT.has(path)) {
-      hits.push({ excerpt: line.trim(), line: index + 1, path, reason: "unsanctioned-block-skip" });
-    }
-    if (PACING_SKIP.test(line) && !PACING_EXEMPT.has(path)) {
-      hits.push({ excerpt: line.trim(), line: index + 1, path, reason: "unsanctioned-pacing-skip" });
-    }
-  });
-  return hits;
+  const windowed = windowedLineIndexes({ lines });
+  const direct = windowed.flatMap((index) =>
+    windowedLineHits({ line: lines[index]!, lineNumber: index + 1, mapped, path }),
+  );
+  const byName = windowed.filter((index) => BOUND_LABEL.test(lines[index]!)).map((index) => index + 1);
+  return [...direct, ...boundLabelHits({ content, lineNumbers: byName, mapped, path })];
 }
 
 /**
@@ -147,7 +266,7 @@ export function labelMessage({ hit }: { hit: LabelHit }): string {
     case "unmapped-label":
       return (
         `${hit.path}:${String(hit.line)}: operation "${hit.excerpt}" is absent from OPERATION_ENDPOINT_CLASS ` +
-        "(src/lib/rateLimits.ts). It would fall back to the provider's TIGHTEST class — for Slack that is " +
+        "(src/lib/operationEndpointClass.ts). It would fall back to the provider's TIGHTEST class — for Slack that is " +
         "tier1, a 75-SECOND interval once that class is paced. Add an explicit entry"
       );
     case "dynamic-label":

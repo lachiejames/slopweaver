@@ -3,7 +3,8 @@
  * declaration of the same name has shadowed it — for the torn-tail-append criterion (`./tornTailAppendShape.ts`).
  * Syntax only, so it reads lexical scope by walking up from the use: a parameter, a `const`/`let`/`var` (a `var`
  * hoisted to its whole function, from whatever block it is written in), a function,
- * class or enum declaration, a catch binding, a loop's own declaration, or a named function expression's own name.
+ * class, enum or namespace declaration, an `import X = …` alias, a catch binding, a loop's own declaration, or a named
+ * function expression's own name.
  *
  * It exists because a block-local `appendFileSync` arrow that logs and never writes was flagged
  * when the first cut keyed every binding by its text alone. A declaration that is itself an fs alias the criterion
@@ -59,6 +60,13 @@ function namesDeclaredBy({
   const isNamedDeclaration =
     ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement) || ts.isEnumDeclaration(statement);
   if (isNamedDeclaration && statement.name !== undefined) {
+    return [statement.name.text];
+  }
+  // A namespace-local `import X = Other.X` alias, or a nested `namespace X`, shadows an outer `X` just as a `const` does.
+  if (ts.isImportEqualsDeclaration(statement)) {
+    return [statement.name.text];
+  }
+  if (ts.isModuleDeclaration(statement) && ts.isIdentifier(statement.name)) {
     return [statement.name.text];
   }
   return [];
