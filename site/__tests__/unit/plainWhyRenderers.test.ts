@@ -303,10 +303,12 @@ describe("a failure on any other surface", () => {
       use: (file) => textsUnder({ node: file, test: ts.isJsxElement }).filter((text) => text.startsWith("<summary")),
     });
 
-    // The not-read fold is its own `<details>` beside the line, so its summary is a second one, never a nested one.
+    // The not-read fold is its own `<details>` beside the line, so its summary is a second one, never a nested one. The
+    // third is the panel's own closed line, which holds the count alone and none of the lines' folds.
     expect(summaries).toEqual([
       '<summary className="cursor-pointer">why it was not read</summary>',
       '<summary className="list-none">{sentence}</summary>',
+      '<summary className="text-muted-foreground">{doctrineAlertSummary({ lines: doctrine.lines })}</summary>',
     ]);
   });
 

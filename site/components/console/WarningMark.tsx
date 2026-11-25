@@ -16,7 +16,7 @@ import {
 import { ageOf } from "../../lib/ageOf";
 import { describedByWith, describedByWithout } from "../../lib/describedBy";
 import { type NestedCardFrom, nestedCardMove } from "../../lib/nestedCardFocus";
-import { type StalenessFact, stalenessLabel, stalenessRaw } from "../../lib/stalenessLabel";
+import { type StalenessFact, stalenessLabel, stalenessRaw, stalenessShortWords } from "../../lib/stalenessLabel";
 import { cn } from "../../lib/utils";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../ui/hover-card";
 import { RawFold } from "./RawFold";
@@ -126,6 +126,8 @@ function routeTab({
 /**
  * The warning glyph a failed read draws: its hover — or keyboard focus — says what could not be read, why in plain
  * words, and how old the data still drawn beside it is, with the raw message folded under them. Never a sentence in the data's place: raw text at the top of the Queue reads as broken.
+ * Where a page supplied a fact's two or three short words ("burn not read"), they sit beside the glyph, so its reason
+ * shows without a hover; the full words stay on the hover.
  *
  * On a failed refresh the two-hour stale queue stays readable and the staleness indicator shows beside it. So the data stays where it was (`../../lib/liveState.ts`) and this sits beside it.
  *
@@ -148,6 +150,7 @@ export function WarningMark({
 }): ReactElement {
   const label = stalenessLabel({ age: (iso) => ageOf({ iso }), facts });
   const raw = stalenessRaw({ facts });
+  const shortWords = <ShortWords words={stalenessShortWords({ facts })} />;
   const nested = useContext(InsideControl);
   const describedBy = useId();
   const anchor = useRef<HTMLSpanElement>(null);
@@ -247,6 +250,7 @@ export function WarningMark({
           <span ref={anchor} className={frame} data-warning-mark={describedBy}>
             {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a lucide <svg>, not HTML: role="img" with a label is how a drawing announces itself */}
             <TriangleAlert className={size} role="img" aria-label={label} />
+            {shortWords}
             {described ? (
               <span id={describedBy} hidden>
                 Full message: {raw.join("\n\n")}
@@ -272,6 +276,7 @@ export function WarningMark({
           className={cn(frame, "cursor-default outline-none focus-visible:ring-2 focus-visible:ring-ring")}
         >
           <TriangleAlert className={size} aria-hidden="true" />
+          {shortWords}
           {raw.length === 0 ? null : (
             <span id={describedBy} className="sr-only">
               Full message: {raw.join("\n\n")}
@@ -281,6 +286,31 @@ export function WarningMark({
       </HoverCardTrigger>
       <WarningCard label={label} raw={raw} card={card} />
     </HoverCard>
+  );
+}
+
+/**
+ * The two or three words a page supplied, drawn beside the glyph so a reader sees why without a hover — "burn not
+ * read", "app build not read". Hidden from assistive technology, because the glyph's label already says the full
+ * words and a Queue row's or sidebar link's name would otherwise carry them twice. Hidden only on a mark inside the
+ * sidebar while it is icons alone, which has room for the glyph only: the icons setting sits on the whole console's
+ * frame, so the `.sw-sidebar` scope is what keeps a mark on the page itself saying its words. A page's own `<aside>`
+ * (a pull request's conversation column, say) is not the sidebar, so a bare `aside` scope would hide them there too.
+ *
+ * @returns the words, or nothing when none was supplied
+ */
+function ShortWords({ words }: { words: readonly string[] }): ReactElement | null {
+  if (words.length === 0) {
+    return null;
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-1 text-[0.78rem] group-data-[sidebar=icons]/console:in-[.sw-sidebar]:hidden"
+      data-short-words
+    >
+      {words.join(" · ")}
+    </span>
   );
 }
 

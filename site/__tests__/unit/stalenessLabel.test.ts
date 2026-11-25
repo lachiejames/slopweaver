@@ -5,10 +5,37 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { stalenessLabel, stalenessRaw } from "../../lib/stalenessLabel";
+import { stalenessLabel, stalenessRaw, stalenessShortWords } from "../../lib/stalenessLabel";
 
 /** The page's own age words, reduced to the instant so each case names exactly which one it aged. */
 const age = (iso: string): string => `at ${iso}`;
+
+describe("stalenessShortWords", () => {
+  it("returns each fact's own short words in order, each once", () => {
+    expect(
+      stalenessShortWords({
+        facts: [
+          { shortWords: "burn not read", subject: "the fleet burn reading", why: "timed out" },
+          { subject: "the week", why: "exited 1" },
+          { shortWords: "app build not read", subject: "the app's own build", why: "no answer" },
+          { shortWords: "burn not read", subject: "Codex's sessions in the fleet burn reading", why: "timed out" },
+        ],
+      }),
+    ).toStrictEqual(["burn not read", "app build not read"]);
+  });
+
+  it("returns nothing when no fact supplied any, so the mark stays a glyph alone", () => {
+    expect(stalenessShortWords({ facts: [{ subject: "your hands", why: "exited 1" }] })).toStrictEqual([]);
+    expect(stalenessShortWords({ facts: [] })).toStrictEqual([]);
+  });
+
+  it("leaves the hover's words unchanged by a fact's short words", () => {
+    const fact = { subject: "the fleet burn reading", why: "timed out" };
+    expect(stalenessLabel({ age, facts: [{ ...fact, shortWords: "burn not read" }] })).toBe(
+      stalenessLabel({ age, facts: [fact] }),
+    );
+  });
+});
 
 describe("stalenessLabel", () => {
   it("says what could not be read, why in plain words, and the age of the reading still shown", () => {

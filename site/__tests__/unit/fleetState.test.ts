@@ -314,17 +314,62 @@ describe("fleetStateOf", () => {
       "2 working",
       "There is room for more within the plans' week.",
     ]);
-    expect(of({ over: { binding: "not known", ceiling: undefined, verdict: "not measured" } })).toStrictEqual([
+  });
+
+  it("says a not-measured state once, as its reason, with no sentence lines to repeat it", () => {
+    const of = ({ over }: { over: Partial<FleetGlance> }): readonly (string | undefined)[] => {
+      const state = fleetStateOf({
+        capacity: undefined,
+        glance: glance(over),
+        order: undefined,
+        readAtIso: undefined,
+        view: joined({ signal: "working" }),
+      });
+      return [state.badge, state.sentence.lead, ...state.sentence.lines, state.notMeasuredReason];
+    };
+
+    expect(
+      of({
+        over: {
+          binding: "not known",
+          ceiling: undefined,
+          verdict: "not measured",
+          why: "How many seats the plans carry is not measured: the week did not read.",
+        },
+      }),
+    ).toStrictEqual([
       "not measured",
       "6 working",
-      "How many more the plans can carry is not measured right now.",
+      "How many seats the plans carry is not measured: the week did not read.",
     ]);
-    expect(of({ over: { binding: "board", verdict: "not measured", working: 2 } })).toStrictEqual([
+    expect(
+      of({
+        over: {
+          binding: "board",
+          verdict: "not measured",
+          why: "2 more working seats fit the plans' week, but whether a ready row has nobody on it was not read.",
+          working: 2,
+        },
+      }),
+    ).toStrictEqual([
       "not measured",
       "2 working",
-      "The plans' week has room for more.",
-      "Whether a ready row has nobody on it was not read.",
+      "2 more working seats fit the plans' week, but whether a ready row has nobody on it was not read.",
     ]);
+  });
+
+  it("carries no not-measured line in any measured state", () => {
+    const reasons = (["held", "burst unused", "capacity maxed", "seats free"] as const).map(
+      (verdict) =>
+        fleetStateOf({
+          capacity: undefined,
+          glance: glance({ binding: "plan week", verdict }),
+          order: undefined,
+          readAtIso: undefined,
+          view: joined({ signal: "working" }),
+        }).notMeasuredReason,
+    );
+    expect(reasons).toStrictEqual([undefined, undefined, undefined, undefined]);
   });
 
   it("words a machine hold that names no subject, and one on memory", () => {

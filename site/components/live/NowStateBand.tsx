@@ -213,7 +213,8 @@ function ParkedBand({ parked }: { parked: ParkedBandState }): ReactNode {
 
 /**
  * The top of the page: the state badge, the working count with one sentence per line under it, the defence under that,
- * its history folded, then the plans' usage lines. Every word is `lib/fleetState.ts`'s, which words
+ * its history folded, then the plans' usage lines. A not-measured state is the one exception: its badge and reason on
+ * a single line, and no defence. Every word is `lib/fleetState.ts`'s, which words
  * `lib/fleetGlance.ts`'s judgement.
  *
  * @returns the band
@@ -252,6 +253,30 @@ export function StateBand({
     return (
       <div className="flex flex-col gap-[0.5rem]" data-state="unread">
         <div>{unread}</div>
+        <div className="flex flex-col gap-[0.25rem] text-[1rem] leading-[1.45]">
+          <p className="m-0">
+            <strong className="text-[1.15rem] font-semibold">{state.sentence.lead}</strong>
+          </p>
+          <ParkedBand parked={parked} />
+        </div>
+        <HistoryFold badgeReadAtIso={badgeReadAtIso} history={history} />
+        <PlanUsage usage={usage} record={raises} readAtIso={usageReadAtIso} />
+      </div>
+    );
+  }
+  // Every reading answered and the judgement still could not be made: the badge and its reason on one line, said once.
+  // The sentence lines, "why not more" and the `fleet why` lines each said it again, so none is drawn here.
+  if (state.notMeasuredReason !== undefined) {
+    return (
+      <div className="flex flex-col gap-[0.5rem]" data-state={state.kind}>
+        <p className="m-0 flex flex-wrap items-baseline gap-x-[0.5rem] text-[0.95rem]" data-not-measured>
+          <strong
+            className={cn("rounded-[6px] px-[0.5rem] py-[0.1rem] text-[0.95rem] font-semibold", STATE_TONE[state.kind])}
+          >
+            {state.badge}
+          </strong>
+          <span>{state.notMeasuredReason}</span>
+        </p>
         <div className="flex flex-col gap-[0.25rem] text-[1rem] leading-[1.45]">
           <p className="m-0">
             <strong className="text-[1.15rem] font-semibold">{state.sentence.lead}</strong>

@@ -84,7 +84,13 @@ export type UsageRead<T> =
 export type HostFigure =
   | { readonly kind: "words"; readonly words: string }
   | { readonly kind: "reading"; readonly subject: string }
-  | { readonly kind: "unread"; readonly subject: string; readonly why: string };
+  | {
+      readonly kind: "unread";
+      readonly subject: string;
+      readonly why: string;
+      /** The two or three words drawn beside the mark, so it says why without a hover; absent draws the glyph alone. */
+      readonly shortWords?: string;
+    };
 
 /** One host's line and what it opens onto. */
 export interface HostUsage {
@@ -197,6 +203,12 @@ function averageOf({ host, name, plans }: { host: "claude" | "codex"; name: stri
 /** What a burn figure's spinner or staleness mark names. */
 const BURN_SUBJECT = "the fleet burn reading";
 
+/** The words beside a burn figure's staleness mark. */
+const BURN_NOT_READ = "burn not read";
+
+/** The words beside Codex's session count's staleness mark, which comes off the same reading. */
+const SESSIONS_NOT_READ = "sessions not read";
+
 /**
  * A host's burn as one line, and its problems when it is a lower bound.
  *
@@ -210,11 +222,17 @@ function burnOf({ host, burn }: { host: "claude" | "codex"; burn: UsageRead<Flee
     return { burn: { kind: "reading", subject: BURN_SUBJECT }, burnProblems: [] };
   }
   if (burn.phase === "not-measured") {
-    return { burn: { kind: "unread", subject: BURN_SUBJECT, why: burn.why }, burnProblems: [] };
+    return {
+      burn: { kind: "unread", shortWords: BURN_NOT_READ, subject: BURN_SUBJECT, why: burn.why },
+      burnProblems: [],
+    };
   }
   const own = burn.value[host];
   if (own.kind === "unavailable") {
-    return { burn: { kind: "unread", subject: `this host's burn in ${BURN_SUBJECT}`, why: own.why }, burnProblems: [] };
+    return {
+      burn: { kind: "unread", shortWords: BURN_NOT_READ, subject: `this host's burn in ${BURN_SUBJECT}`, why: own.why },
+      burnProblems: [],
+    };
   }
   const burned = `${tokenWords({ count: own.totalTokens })} tokens burned in the last ${String(burn.value.windowHours)}h`;
   if (own.kind === "partial") {
@@ -243,11 +261,16 @@ function codexSessionsOf({ burn }: { burn: UsageRead<FleetBurn> }): HostFigure {
     return { kind: "reading", subject: BURN_SUBJECT };
   }
   if (burn.phase === "not-measured") {
-    return { kind: "unread", subject: BURN_SUBJECT, why: burn.why };
+    return { kind: "unread", shortWords: SESSIONS_NOT_READ, subject: BURN_SUBJECT, why: burn.why };
   }
   const codex = burn.value.codex;
   if (codex.kind === "unavailable") {
-    return { kind: "unread", subject: `Codex's sessions in ${BURN_SUBJECT}`, why: codex.why };
+    return {
+      kind: "unread",
+      shortWords: SESSIONS_NOT_READ,
+      subject: `Codex's sessions in ${BURN_SUBJECT}`,
+      why: codex.why,
+    };
   }
   let floor = "";
   if (codex.kind === "partial") {

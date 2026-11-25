@@ -179,6 +179,7 @@ describe("fleetUsageOf, each host's line", () => {
     expect([claude.burn, codex.burn, codex.burnProblems, codex.sessions]).toEqual([
       {
         kind: "unread",
+        shortWords: "burn not read",
         subject: "this host's burn in the fleet burn reading",
         why: "the projects directory could not be listed",
       },
@@ -207,8 +208,8 @@ describe("fleetUsageOf, each host's line", () => {
     expect([loading[0].burn, loading[1].sessions, failed[0].burn, failed[1].sessions]).toEqual([
       { kind: "reading", subject: "the fleet burn reading" },
       { kind: "reading", subject: "the fleet burn reading" },
-      { kind: "unread", subject: "the fleet burn reading", why: "exit 1" },
-      { kind: "unread", subject: "the fleet burn reading", why: "exit 1" },
+      { kind: "unread", shortWords: "burn not read", subject: "the fleet burn reading", why: "exit 1" },
+      { kind: "unread", shortWords: "sessions not read", subject: "the fleet burn reading", why: "exit 1" },
     ]);
   });
 });

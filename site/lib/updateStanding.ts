@@ -177,10 +177,14 @@ function failedReadsOf({
   const facts: StalenessFact[] = [];
   const fetch = upstreamUnreadOf({ app, page });
   if (fetch !== undefined) {
-    facts.push({ subject: `whether ${fetch.ref} has moved past what you run`, why: fetch.why });
+    facts.push({
+      shortWords: "upstream not read",
+      subject: `whether ${fetch.ref} has moved past what you run`,
+      why: fetch.why,
+    });
   }
   if (app?.shellUnread !== undefined) {
-    facts.push({ subject: "the app's own build", why: app.shellUnread.why });
+    facts.push({ shortWords: "app build not read", subject: "the app's own build", why: app.shellUnread.why });
   }
   return facts;
 }

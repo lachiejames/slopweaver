@@ -184,7 +184,11 @@ function Figure({ figure, className }: { figure: HostFigure; className: string }
     return <ReadingIndicator label={`Reading ${figure.subject}`} />;
   }
   if (figure.kind === "unread") {
-    return <StaleMark facts={[{ subject: figure.subject, why: figure.why }]} />;
+    const fact = { subject: figure.subject, why: figure.why };
+    if (figure.shortWords === undefined) {
+      return <StaleMark facts={[fact]} />;
+    }
+    return <StaleMark facts={[{ ...fact, shortWords: figure.shortWords }]} />;
   }
   return <span className={className}>{figure.words}</span>;
 }

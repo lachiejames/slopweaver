@@ -152,7 +152,12 @@ They change no badge and are never a session: `site/lib/parkedWaits.ts` writes e
 while the rest of the tile polls, so the lines carry **board read** and that reading's own age, which keeps counting,
 rather than the tile's fresher stamp.
 
-**Why not more** sits under it like a Queue card's quote: the figures and when they were read, and on a machine hold
+**Not measured** is one line: the badge with its reason beside it, said once, then the working count. It carries no
+sentence lines, no **why not more** and no machine lines, because each only said the same thing again; a state that
+was measured draws no not-measured line at all (`notMeasuredReason`, `site/lib/fleetState.ts`). A reading not yet in
+hand still draws a spinner or a staleness mark in the judgement's place instead.
+
+In every measured state, **why not more** sits under it like a Queue card's quote: the figures and when they were read, and on a machine hold
 the three heaviest processes by cpu (a one-second sample) and by memory, and whether a load investigation is running
 — since when, and which working session has it. The rest is under **more**. The heaviest processes are what was
 running at the reading, not proof of the cause.
@@ -205,7 +210,7 @@ derives every word from the readings, and its header states the rules so you can
 <details>
 <summary>The doctrine panel: is the fleet running the way the doctrine says</summary>
 
-First on the Agents tile, under the live Machine tile, sit five lines, one sentence each, every item they count folded behind the sentence (so you can see whether the fleet is actually running the way the doctrine says it should, and a board is never called quiet while two supervisor workspaces are open or red drafts are unseated). A dot marks each:
+Under the sessions on the Agents tile sits one closed line, **Doctrine: 1 red, 2 amber**, that says only how many of its five lines are red or amber; a line not read is neither, so it counts and never says clear (`doctrineAlertSummary`). Opening it shows the five lines, one sentence each, every item they count folded behind the sentence (so you can see whether the fleet is actually running the way the doctrine says it should, and a board is never called quiet while two supervisor workspaces are open or red drafts are unseated). A dot marks each:
 green the doctrine kept, amber work left on the table, red a breach, grey not read. `site/lib/fleetDoctrine.ts`
 writes every word, and a reading that did not arrive (loading, failed, or drawn over a read that failed since) makes its
 line say not read and why, never a zero. The line itself reads only "&lt;subject&gt;: not read."; the console's own
@@ -333,7 +338,7 @@ would go, and the health line, which carries no age, opens with **FIXTURE** and 
 No reconcile capture is committed, so the fixture page never joins its frozen seats to the live board (whose `reconcile-reading`
 channel the page still polls, and sets aside while the seats are frozen): its cards take their cmux titles, under a staleness mark whose hover says "no board capture is committed beside a fixture's seats". That is
 the fallback working, not a gap in the capture. No `fleet burn` capture is committed either, so the usage lines'
-burns and Codex's sessions draw a staleness mark on a fixture page, and a seat captured before the host field
+burns and Codex's sessions draw a staleness mark on a fixture page, **burn not read** and **sessions not read** beside it, and a seat captured before the host field
 counts as unnamed rather than as Claude's.
 
 Each frozen file is in exactly the shape the command on its row in `site/lib/liveFixtures.ts` prints, recorded

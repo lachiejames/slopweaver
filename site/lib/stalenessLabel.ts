@@ -33,6 +33,12 @@ export interface StalenessFact {
    * actual problem is and what is being done about it.
    */
   readonly after?: string;
+  /**
+   * Two or three words drawn beside the glyph, such as "burn not read", so the mark says why without a hover. Never a
+   * sentence: the full words stay on the hover. Absent keeps the mark a glyph alone; a page supplies it where a bare
+   * triangle left the owner guessing.
+   */
+  readonly shortWords?: string;
 }
 
 /** A subject opened in capitals, so one named mid-sentence ("your hands") still opens a sentence. */
@@ -88,6 +94,22 @@ export function stalenessLabel({
       return `${line} ${closed({ text: fact.after })}`;
     })
     .join("\n");
+}
+
+/**
+ * The short words a mark draws beside its glyph: each fact's own, in order, each said once.
+ *
+ * @param facts every subject the mark stands for
+ * @returns the words, empty when no fact supplied any
+ */
+export function stalenessShortWords({ facts }: { facts: readonly StalenessFact[] }): readonly string[] {
+  const words = facts.flatMap((fact) => {
+    if (fact.shortWords === undefined) {
+      return [];
+    }
+    return [fact.shortWords];
+  });
+  return [...new Set(words)];
 }
 
 /**
