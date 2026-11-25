@@ -31,10 +31,12 @@ import type { OwnerTurn } from "../supervisor/intake.js";
 import { CALL_TEXT_CHARS, type CallRecord } from "../talk/callRecord.js";
 import type { CallsRead } from "../talk/callStore.js";
 import { isChairPointerLine } from "../talk/chairWake.js";
+import { heardEdges } from "../talk/relayHeardCut.js";
 import { unwrapPaste } from "../talk/relayLine.js";
 import type { TurnRecord } from "../talk/relayStore.js";
 import { containsWord, phraseWords } from "../talk/supervisorHistory.js";
 import { formatCallPointer } from "../talk/unreadWords.js";
+import { type OwnerWordsEdges, ownerWordsEdge } from "./ownerWordsEdges.js";
 
 /** How the conversation carried the owner's words. */
 export type OwnerWordsHow = "spoken" | "written";
@@ -46,12 +48,6 @@ export type OwnerWordsHow = "spoken" | "written";
 export type OwnerWordsWhere =
   "console-call" | "console-relay" | "console-typed" | "supervisor" | "claude-session" | "call-landing";
 
-/**
- * Whether the record holds all of what the owner said, lost its start or its end, or does not say — a relay written before
- * it stored whether it kept only the tail.
- */
-export type OwnerWordsCut = "none" | "start" | "end" | "unknown";
-
 /** One thing the owner said, verbatim, and where to read it again. */
 export interface OwnerUtterance {
   readonly anchor: string;
@@ -61,7 +57,11 @@ export interface OwnerUtterance {
   readonly text: string;
   /** The text's length in UTF-16 units, the measure a Queue card's fold uses. */
   readonly chars: number;
-  readonly cut: OwnerWordsCut;
+  /**
+   * Whether the record holds all of what the owner said, read at each end on its own: a record can lose its start, its
+   * end or both, and one written before it stored a fact about an end does not say.
+   */
+  readonly cut: OwnerWordsEdges;
 }
 
 /** A record the read could not take whole — so a match missing from the answer may be there. */
@@ -149,15 +149,13 @@ export function utterancesFromCalls({ read }: { read: CallsRead }): {
     return call.segments
       .filter((segment) => segment.who === "owner" && segment.text.trim() !== "")
       .map((segment) => {
-        // A stretch the call dropped mid-speech, or one at the file's cap, holds less than the owner said.
-        let cut: OwnerWordsCut = "none";
-        if (!segment.final || segment.text.length >= CALL_TEXT_CHARS) {
-          cut = "end";
-        }
+        // A stretch the call dropped mid-speech, or one at the file's cap, holds less than the owner said; it always
+        // holds the stretch's opening.
+        const endLost = !segment.final || segment.text.length >= CALL_TEXT_CHARS;
         return utterance({
           anchor: formatCallPointer({ callId: call.callId, segmentId: segment.id }),
           atIso: segment.atIso,
-          cut,
+          cut: { end: ownerWordsEdge({ known: true, lost: endLost }), start: "kept" },
           how: "spoken",
           text: segment.text,
           where: "console-call",
@@ -168,29 +166,9 @@ export function utterancesFromCalls({ read }: { read: CallsRead }): {
 }
 
 /**
- * Whether a relay kept all of what the owner said, at both ends: it kept only the tail, it was made mid-sentence, or
- * it predates saying either — the same reading `utteranceFromRaw` gives the same record by anchor.
- */
-function relayCut({ turn }: { turn: TurnRecord }): OwnerWordsCut {
-  if (turn.heardTruncated === true) {
-    return "start";
-  }
-  if (turn.heardTruncated === undefined) {
-    return "unknown";
-  }
-  if (turn.heardTailCut === true) {
-    return "end";
-  }
-  // A typed steer is whole by construction; a voice relay that never said whether it was made mid-sentence is unknown.
-  if (turn.heardTailCut === undefined && !turn.typed) {
-    return "unknown";
-  }
-  return "none";
-}
-
-/**
  * The steers the owner gave the console — written when typed, spoken when the voice relayed it. A relay carrying
  * no words of the owner's (one written before they were stored) is a gap, never the voice's paraphrase passed off as theirs.
+ * Each end's cut is read on its own (`heardEdges`), the same reading `utteranceFromRaw` gives the same record by anchor.
  *
  * @param turns every relay turn read, registered or not
  * @param unreadable why each turn file that would not read did not
@@ -224,7 +202,7 @@ export function utterancesFromConsoleTurns({
         where = "console-typed";
       }
       const text = turn.heard;
-      return utterance({ anchor: turn.anchor, atIso: turn.stagedAtIso, cut: relayCut({ turn }), how, text, where });
+      return utterance({ anchor: turn.anchor, atIso: turn.stagedAtIso, cut: heardEdges({ turn }), how, text, where });
     });
   return { gaps, utterances };
 }
@@ -267,14 +245,10 @@ export function utterancesFromSupervisorTurns({
   const utterances = kept
     .filter((turn) => turn.spliced !== true && turn.text.trim() !== "")
     .map((turn) => {
-      let cut: OwnerWordsCut = "none";
-      if (turn.tailCut === true) {
-        cut = "end";
-      }
       return utterance({
         anchor: turn.pointer,
         atIso: turn.timestamp,
-        cut,
+        cut: { end: ownerWordsEdge({ known: true, lost: turn.tailCut === true }), start: "kept" },
         how: "written",
         text: turn.text,
         where: "supervisor",
@@ -301,16 +275,10 @@ const RAW_PLACE: Readonly<Record<RawWords["where"], { readonly how: OwnerWordsHo
  * @returns the utterance
  */
 export function utteranceFromRaw({ anchor, raw }: { anchor: string; raw: RawWords }): OwnerUtterance {
-  let cut: OwnerWordsCut = "none";
-  if (raw.headLost) {
-    cut = "start";
-  } else if (!raw.headKnown) {
-    cut = "unknown";
-  } else if (raw.tailLost) {
-    cut = "end";
-  } else if (!raw.tailKnown) {
-    cut = "unknown";
-  }
+  const cut: OwnerWordsEdges = {
+    end: ownerWordsEdge({ known: raw.tailKnown, lost: raw.tailLost }),
+    start: ownerWordsEdge({ known: raw.headKnown, lost: raw.headLost }),
+  };
   return utterance({ anchor, atIso: raw.atIso, cut, text: raw.text, ...RAW_PLACE[raw.where] });
 }
 

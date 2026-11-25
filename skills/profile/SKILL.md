@@ -35,8 +35,8 @@ chair turn with no `promptSource` saying the owner typed or queued it: it is nam
 "${CLAUDE_PLUGIN_ROOT}/bin/slopweaver" profile words talk:<turn>                             # one whole
 ```
 
-Each line carries the minute, **spoken** or **written**, where, its length, any cut, and the anchor that reads it
-whole; `--full` prints every turn whole, `--json` one document. Two caveats are the reading rule, not footnotes:
+Each line carries the minute, **spoken** or **written**, where, its length, what the record says about its start and
+its end, each read on its own (lost, or not said; a record that lost both says both), and the anchor that reads it whole; `--full` prints every turn whole, `--json` one document. Two caveats are the reading rule, not footnotes:
 spoken or written is how the conversation CARRIED it, so a turn the owner dictated into the supervisor reads written;
 and a spoken steer can list twice, as the call stretch and as the relay that reached a row. Every record that
 would not read is named under the list — a call the call index names whose file is gone or holds no line, and a steer
