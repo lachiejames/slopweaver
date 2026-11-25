@@ -16,10 +16,10 @@ import { join } from "node:path";
 
 import { logger } from "../../../lib/logger.js";
 import { err, ok, type Result } from "../../../lib/result.js";
-import { type SupervisorLink } from "../../../supervisor/chain.js";
 import { missingLinks, scanSupervisorChain } from "../../../supervisor/chainScan.js";
 import { appendSupervisorLink, readSupervisorChain } from "../../../supervisor/chainStore.js";
 import { supervisorSessionLabel } from "../../../supervisor/session.js";
+import { type SupervisorLink, supervisorLinkLabel } from "../../../supervisor/supervisorLink.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { parseFlagTail, resolveHome, verbTail } from "../../optionParsers.js";
@@ -63,7 +63,8 @@ export function parseChainOptions({ rest }: { rest: readonly string[] }): Result
 
 /** One link as a report line: when it took the pin, where the link came from, and the session it names. */
 function linkLine({ link }: { link: SupervisorLink }): string {
-  const ref = link.workspaceRef === "" ? "" : `  ${link.workspaceRef}`;
+  const label = supervisorLinkLabel({ link });
+  const ref = label === "" ? "" : `  ${label}`;
   return `  ${link.pinnedAtIso}  [${link.source}]  ${supervisorSessionLabel({ session: link.session })}${ref}`;
 }
 

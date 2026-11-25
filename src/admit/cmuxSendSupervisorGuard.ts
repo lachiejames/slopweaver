@@ -20,7 +20,12 @@
  * classifier blocks every raw `cmux` subcommand by default, targeted or not.
  */
 import { supervisorSendRefusalMessage } from "../cmux/supervisorWorkspace.js";
-import { isRegisteredSupervisor, type SupervisorPinRecord } from "../sessions/supervisorPin.js";
+import {
+  cmuxHeldPin,
+  isRegisteredSupervisor,
+  type SupervisorPinRecord,
+  supervisorPinLabel,
+} from "../sessions/supervisorPin.js";
 import { stripEnvPrefix, toolName } from "./commandTokens.js";
 import { shellSegments } from "./shellSegments.js";
 
@@ -193,14 +198,20 @@ function workspaceFlagValue({ tokens }: { tokens: readonly string[] }): string |
 
 /**
  * Whether a ref/id names the recorded supervisor pin's own workspace — matched against BOTH the ref
- * (`workspace:936`) and the raw id, since a caller may spell either.
+ * (`workspace:936`) and the raw id, since a caller may spell either. Only the cmux arm has a workspace; an
+ * app-hosted chair is never reached by `cmux send`, so an app pin names none and the comparison is never made
+ * against its app session id.
  *
  * @param ref the `--workspace` value a command named
  * @param pin the recorded supervisor pin
  * @returns whether `ref` names the pinned workspace
  */
 function namesSupervisorWorkspace({ ref, pin }: { ref: string; pin: SupervisorPinRecord }): boolean {
-  return ref === pin.workspaceRef || ref === pin.workspaceId;
+  const cmux = cmuxHeldPin({ pin });
+  if (cmux === undefined) {
+    return false;
+  }
+  return ref === cmux.workspaceRef || ref === cmux.workspaceId;
 }
 
 /**
@@ -236,7 +247,7 @@ export function cmuxSendSupervisorRefusal({
         .split(/\s+/)
         .filter((token) => token.length > 0),
     });
-    const consoleRefusal = consoleVerbRefusal({ text: segment.command, workspaceRef: pin.workspaceRef });
+    const consoleRefusal = consoleVerbRefusal({ text: segment.command, workspaceRef: supervisorPinLabel({ pin }) });
     if (consoleRefusal !== undefined && !callerIsPinned) {
       return consoleRefusal;
     }
@@ -247,7 +258,7 @@ export function cmuxSendSupervisorRefusal({
     if (ref === undefined || !namesSupervisorWorkspace({ pin, ref }) || callerIsPinned) {
       continue;
     }
-    return supervisorSendRefusalMessage({ workspaceRef: pin.workspaceRef });
+    return supervisorSendRefusalMessage({ workspaceRef: supervisorPinLabel({ pin }) });
   }
   return undefined;
 }

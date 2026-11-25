@@ -187,6 +187,13 @@ function readChairCanon({
       });
       continue;
     }
+    if (pid === undefined) {
+      readings.set(sessionId, {
+        kind: "unmeasured",
+        why: "an app-hosted chair names no pid, so its boot is not in the Claude session registry to read",
+      });
+      continue;
+    }
     const record = scan.records.find((entry) => entry.pid === pid && entry.sessionId === sessionId);
     if (record === undefined) {
       readings.set(sessionId, { kind: "unmeasured", why: "the Claude session registry holds no file for its pid" });
@@ -195,7 +202,7 @@ function readChairCanon({
     readings.set(
       sessionId,
       readChairCanonFor({
-        runLog: ({ sinceIso }) => runGit({ args: canonLogArgs({ cwd: read.workspaceCwd, sinceIso }) }),
+        runLog: ({ sinceIso }) => runGit({ args: canonLogArgs({ cwd: read.directory, sinceIso }) }),
         startedAtMs: record.startedAtMs,
       }),
     );

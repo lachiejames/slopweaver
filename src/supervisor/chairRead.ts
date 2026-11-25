@@ -16,11 +16,19 @@ import { join } from "node:path";
 import type { CmuxError } from "../cmux/errors.js";
 import { readProcessStarts } from "../fleet/processStarts.js";
 import { resolveSupervisorWorkspace } from "../live/standing/supervisor.js";
+import { verifyAppSessionOrigin } from "../sessionHarness/appSessionOrigin.js";
+import { APP_SOCKET_ROOT, type AppTransport, socketAppTransport } from "../sessionHarness/appSocketTransport.js";
 import { type CmuxHostSurface, withCmuxSessionHost } from "../sessionHarness/cmuxHost.js";
 import type { SessionHarnessError } from "../sessionHarness/errors.js";
 import { reportedTabPids } from "../sessions/liveInTab.js";
 import { readTail, transcriptPathFor } from "../sessions/liveSessionStore.js";
-import { isRegisteredSupervisor, type SupervisorPinRecord } from "../sessions/supervisorPin.js";
+import {
+  type AppSupervisorPinRecord,
+  appHeldPin,
+  isRegisteredSupervisor,
+  type SupervisorPinRecord,
+  supervisorPinLabel,
+} from "../sessions/supervisorPin.js";
 import { DEPTH_TAIL_BYTES } from "../sessions/tokenDepth.js";
 import type { CallerChairReading, CallerPinBinding, ChairRead, ChairUnresolvedCause } from "./chairGate.js";
 import { judgeChairTranscript } from "./chairModel.js";
@@ -124,7 +132,7 @@ function callerPinBinding({
   return {
     holderSessionId: supervisorSessionLabel({ session: pin.session }),
     kind: "other",
-    workspaceRef: pin.workspaceRef,
+    seatLabel: supervisorPinLabel({ pin }),
   };
 }
 
@@ -235,10 +243,10 @@ export async function readChairThrough({
     return judged;
   }
   return {
+    directory: pinned.workspaceCwd,
     kind: "resolved",
+    location: { kind: "cmux", workspaceId: pinned.workspaceId },
     sessions: judged.sessions,
-    workspaceCwd: pinned.workspaceCwd,
-    workspaceId: pinned.workspaceId,
   };
 }
 
@@ -284,12 +292,88 @@ export async function readPinnedChairSessionIds({
 }
 
 /**
+ * Read a chair the desktop app hosts: the app vouches that the pinned app session is live, is Claude's, and runs
+ * exactly the vendor session the pin names (`session.origin`, the same binding `cmux pin` checks), and then that
+ * session's own transcript is judged. One app session is one vendor session, so the cmux rule of judging every tab in
+ * the workspace has nothing to apply to here.
+ *
+ * Every way this cannot see is `app-chair-unread` and refuses. It is never `cmux-unanswered`: that cause alone opens
+ * the caller-only pass, and an app that does not answer must not open it.
+ *
+ * @param pin the app arm of the supervisor-pin record
+ * @param claudeHome the resolved `~/.claude`
+ * @param transport the app's control-plane channel: the socket in production, a plain fake in a test
+ * @returns the one session and its verdict, or why the app chair could not be read
+ */
+export async function readAppChairThrough({
+  pin,
+  claudeHome,
+  transport,
+}: {
+  pin: AppSupervisorPinRecord;
+  claudeHome: string;
+  transport: AppTransport;
+}): Promise<ChairRead> {
+  const label = supervisorPinLabel({ pin });
+  if (pin.session.host !== "claude-code") {
+    return { cause: "codex-chair", kind: "unresolved", why: `${label}: ${CODEX_PIN_HAS_NO_CLAUDE_CHAIR}` };
+  }
+  const vouched = await verifyAppSessionOrigin({
+    claim: { appSessionId: pin.appSessionId, session: pin.session },
+    transport,
+  });
+  if (vouched.isErr()) {
+    return {
+      cause: "app-chair-unread",
+      kind: "unresolved",
+      why: `the desktop app did not vouch for the pinned chair ${label} (${vouched.error.message})`,
+    };
+  }
+  const caller = readCallerChairSession({ claudeHome, pin, sessionId: pin.session.id });
+  if (caller.verdict.kind === "unreadable") {
+    return {
+      cause: "app-chair-unread",
+      kind: "unresolved",
+      why: `the pinned chair ${label} is live, but ${caller.verdict.why}`,
+    };
+  }
+  return {
+    directory: vouched.value.session.directory,
+    kind: "resolved",
+    location: { appSessionId: pin.appSessionId, kind: "app" },
+    sessions: [{ pid: undefined, sessionId: pin.session.id, verdict: caller.verdict }],
+  };
+}
+
+/**
+ * Read the chair wherever the supervisor-pin record says it is hosted: the app arm through the desktop app, anything
+ * else — a cmux pin, or no record at all — through the cmux walk exactly as before the app arm existed.
+ *
+ * @param claudeHome the resolved `~/.claude`
+ * @param pin the supervisor-pin record, `undefined` when none is recorded or it would not read
+ * @returns the chair read
+ */
+export async function readChairForPin({
+  claudeHome,
+  pin,
+}: {
+  claudeHome: string;
+  pin: SupervisorPinRecord | undefined;
+}): Promise<ChairRead> {
+  const app = pin === undefined ? undefined : appHeldPin({ pin });
+  if (app === undefined) {
+    return readPinnedChair({ claudeHome });
+  }
+  return readAppChairThrough({ claudeHome, pin: app, transport: socketAppTransport({ root: APP_SOCKET_ROOT }) });
+}
+
+/**
  * Read the pinned supervisor chair over one cmux connection.
  *
  * @param claudeHome the resolved `~/.claude`
  * @returns the pinned workspace's sessions and their verdicts, or why there was no workspace to read
  */
-export async function readPinnedChair({ claudeHome }: { claudeHome: string }): Promise<ChairRead> {
+async function readPinnedChair({ claudeHome }: { claudeHome: string }): Promise<ChairRead> {
   try {
     return await withCmuxSessionHost<ChairRead>({
       body: ({ host }) => readChairThrough({ claudeHome, client: host, readStarts: readProcessStarts }),

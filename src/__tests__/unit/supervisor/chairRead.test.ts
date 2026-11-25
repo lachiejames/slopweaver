@@ -232,7 +232,7 @@ describe("readChairThrough", () => {
     });
 
     expect(asked).toStrictEqual(["177"]);
-    expect(read).toMatchObject({ kind: "resolved", workspaceCwd: "/wt/177" });
+    expect(read).toMatchObject({ directory: "/wt/177", kind: "resolved" });
     expect(judgeChair({ read, requirement: FABLE_CHAIR_REQUIREMENT }).kind).toBe("refused");
   });
 
@@ -258,9 +258,9 @@ describe("readChairThrough", () => {
     });
 
     expect(read).toMatchObject({
+      directory: "/wt/177",
       kind: "resolved",
       sessions: [{ pid: 19207, sessionId: "a0000023-0000-4000-8000-000000000026", verdict: { kind: "off-fable" } }],
-      workspaceCwd: "/wt/177",
     });
   });
 
@@ -434,7 +434,7 @@ describe("readCallerChairSession", () => {
     expect(reading.pin).toStrictEqual({
       holderSessionId: "a0000014-0000-4000-8000-000000000015",
       kind: "other",
-      workspaceRef: "workspace:936",
+      seatLabel: "workspace:936",
     });
   });
 });

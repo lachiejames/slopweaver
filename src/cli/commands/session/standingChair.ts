@@ -82,7 +82,12 @@ export function standingChairRead({
   if (workspaces.supervisorWorkspaceId !== undefined) {
     workspaceId = workspaces.supervisorWorkspaceId;
   }
-  return { kind: "resolved", sessions: judged.sessions, workspaceCwd: workspaces.supervisorCwd, workspaceId };
+  return {
+    directory: workspaces.supervisorCwd,
+    kind: "resolved",
+    location: { kind: "cmux", workspaceId },
+    sessions: judged.sessions,
+  };
 }
 
 /**

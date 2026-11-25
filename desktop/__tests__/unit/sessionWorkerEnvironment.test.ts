@@ -72,6 +72,7 @@ describe("codexSessionEnvironment", () => {
       "ELECTRON_RUN_AS_NODE",
       "INITIAL_AGENT_MODE",
       "PATH",
+      "SLOPWEAVER_APP_SESSION_ID",
     ]);
   });
 
@@ -98,6 +99,7 @@ describe("adapterEnvironment", () => {
       ELECTRON_RUN_AS_NODE: "1",
       HOME: "/home",
       INITIAL_AGENT_MODE: ADAPTER_AGENT_MODE,
+      SLOPWEAVER_APP_SESSION_ID: "0b5e",
     });
   });
 
@@ -118,6 +120,7 @@ describe("adapterEnvironment", () => {
       CODEX_PATH: "/bin/codex",
       ELECTRON_RUN_AS_NODE: "1",
       INITIAL_AGENT_MODE: ADAPTER_AGENT_MODE,
+      SLOPWEAVER_APP_SESSION_ID: "0b5e",
     });
   });
 
@@ -151,6 +154,7 @@ describe("adapterEnvironment's guardian", () => {
       ELECTRON_RUN_AS_NODE: "1",
       INITIAL_AGENT_MODE: ADAPTER_AGENT_MODE,
       PATH: "/usr/bin",
+      SLOPWEAVER_APP_SESSION_ID: "0b5e",
       SLOPWEAVER_SESSION_GUARDIAN_PID: "5151",
       SLOPWEAVER_SESSION_GUARDIAN_START: "Wed Nov  5 09:01:02 2026",
     });
@@ -174,6 +178,7 @@ describe("adapterEnvironment's guardian", () => {
       "CODEX_PATH",
       "ELECTRON_RUN_AS_NODE",
       "INITIAL_AGENT_MODE",
+      "SLOPWEAVER_APP_SESSION_ID",
     ]);
     const guarded = adapterEnvironment({ config: CONFIG, guardian: GUARDIAN, inherited });
     expect([guarded[GUARDIAN_PID_ENV], guarded[GUARDIAN_START_ENV]]).toEqual(["5151", "Wed Nov  5 09:01:02 2026"]);

@@ -23,6 +23,8 @@ import { pairRowsToWorkspaces } from "../../../sessions/closeDone.js";
 import { foldSessions, parseSessionLog, type SessionItem } from "../../../sessions/session.js";
 import { readSessionLogText } from "../../../sessions/sessionStore.js";
 import { stateHomePaths } from "../../../stateHome.js";
+import { appPinLabel } from "../../../supervisor/appPin.js";
+import { appPredecessorLedgerRow } from "../../../supervisor/takeoverSeat.js";
 
 /**
  * The predecessor's run phase for a resolved slug.
@@ -251,6 +253,55 @@ export function predecessorRunGate({
   return { row: { ...row, workspaceRef: recordedRef }, slug };
 }
 
+/** Gate (c)'s passing arm for an app predecessor: the slug step 6 closes, and the row step 5's close names by id. */
+export interface AppPredecessorRun {
+  readonly slug: string;
+  readonly row: SessionItem & { readonly sessionId: string };
+}
+
+/**
+ * Gate (c) for a predecessor the desktop app hosts: its one open ledger row, found by its exact app session id in
+ * the directory the app reports it in now (`../../../supervisor/takeoverSeat.ts`'s `appPredecessorLedgerRow`),
+ * then the same terminal-phase check a cmux predecessor's run passes.
+ *
+ * @param home the state home the ledger and journals live under
+ * @param appSessionId the predecessor's app session id, from the pin record
+ * @param directory the predecessor's working directory, as the app resolved it live
+ * @returns the predecessor's slug and ledger row, or the refusal that stops the takeover
+ */
+export function appPredecessorRunGate({
+  home,
+  appSessionId,
+  directory,
+}: {
+  home: string | undefined;
+  appSessionId: string;
+  directory: string;
+}): { readonly refusal: string } | AppPredecessorRun {
+  const { events } = parseSessionLog({ text: readSessionLogText(home === undefined ? {} : { home }) });
+  const found = appPredecessorLedgerRow({
+    appSessionId,
+    canonicalDir: realDirOrLiteral,
+    directory,
+    rows: foldSessions({ events }),
+  });
+  if (found.isErr()) {
+    return { refusal: found.error.message };
+  }
+  const label = appPinLabel({ appSessionId });
+  const { slug } = found.value;
+  if (slug === undefined) {
+    return { refusal: `${label}'s ledger row names no handover slug, so its run cannot be confirmed finished` };
+  }
+  const runPhase = predecessorRunPhase({ home, slug });
+  logger.out({ line: `cmux takeover: step 3/6 — predecessor run: ${runNote({ runPhase, slug })}` });
+  const refusal = predecessorRunNotFinishedRefusal({ predecessorRef: label, runPhase, slug });
+  if (refusal !== undefined) {
+    return { refusal };
+  }
+  return { row: found.value, slug };
+}
+
 /**
  * How many OTHER open rows step 5's `closed` event would also close: the fold targets every row under the key
  * whose recorded ref and `spawnedIso` both equal the event's (`../../../sessions/session.ts`'s `applyClosed`),
@@ -282,23 +333,24 @@ export function closeSiblings({ row, rows }: { row: SessionItem; rows: readonly 
  *
  * @param home the state home holding the run journals
  * @param predecessorSlug the retiring chair's handover slug
- * @param successorRef the workspace that now holds the pin, recorded as the witness
+ * @param successorLabel the seat that now holds the pin, recorded as the witness: a cmux `workspace:<n>` or an
+ *   `app:<id>`
  */
 export function recordPredecessorRowClosed({
   home,
   predecessorSlug,
-  successorRef,
+  successorLabel,
 }: {
   home: string | undefined;
   predecessorSlug: string;
-  successorRef: string;
+  successorLabel: string;
 }): void {
   const written = applyRowEvent({
     event: {
       atIso: new Date().toISOString(),
       kind: "closed",
       residue: [],
-      summary: `the supervisor pin moved to ${successorRef}; this chair retired`,
+      summary: `the supervisor pin moved to ${successorLabel}; this chair retired`,
     },
     runsDir: stateHomePaths(home === undefined ? {} : { home }).runs,
     slug: predecessorSlug,
@@ -308,11 +360,11 @@ export function recordPredecessorRowClosed({
       msg:
         `cmux takeover: step 6/6 — the pin moved, but ${predecessorSlug}'s board row was NOT closed: ` +
         `${written.error.message}. Repair it with \`slopweaver handover close ${predecessorSlug} --summary ` +
-        `"the supervisor pin moved to ${successorRef}; this chair retired"\``,
+        `"the supervisor pin moved to ${successorLabel}; this chair retired"\``,
     });
     return;
   }
   logger.out({
-    line: `cmux takeover: step 6/6 — closed ${predecessorSlug}'s board row (witness: the pin now on ${successorRef})`,
+    line: `cmux takeover: step 6/6 — closed ${predecessorSlug}'s board row (witness: the pin now on ${successorLabel})`,
   });
 }

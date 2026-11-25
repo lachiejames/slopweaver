@@ -7,8 +7,14 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { forgetUnpinnedSupervisor, recordSupervisorPin } from "../../../../../cli/commands/cmux/recordPin.js";
+import {
+  forgetUnpinnedSupervisor,
+  recordAppSupervisorPin,
+  recordSupervisorPin,
+} from "../../../../../cli/commands/cmux/recordPin.js";
+import { pinnedCmuxWorkspaceId } from "../../../../../sessions/supervisorPin.js";
 import { readSupervisorPin, supervisorPinPath } from "../../../../../sessions/supervisorPinStore.js";
+import { readSupervisorChain } from "../../../../../supervisor/chainStore.js";
 import type { SupervisorSessionDetection } from "../../../../../supervisor/session.js";
 
 // Every fixture directory this file has minted, so `afterEach` can remove them.
@@ -192,6 +198,58 @@ describe("recordSupervisorPin", () => {
   });
 });
 
+describe("recordAppSupervisorPin", () => {
+  const APP_ID = "5f0c2a1e-7d3b-4c8e-9a6f-1b2c3d4e5f60";
+
+  it("writes the app arm and appends an app link to the chain", () => {
+    const dir = home();
+    const wrote = recordAppSupervisorPin({
+      appSessionId: APP_ID,
+      home: dir,
+      nowIso: "2026-09-02T04:47:00.000Z",
+      session: { host: "codex", id: "thread-1" },
+    });
+
+    expect(wrote).toBe(true);
+    expect(readSupervisorPin({ home: dir })).toStrictEqual({
+      appSessionId: APP_ID,
+      pinnedAtIso: "2026-09-02T04:47:00.000Z",
+      session: { host: "codex", id: "thread-1" },
+    });
+    expect(readSupervisorChain({ home: dir })).toStrictEqual([
+      {
+        appSessionId: APP_ID,
+        pinnedAtIso: "2026-09-02T04:47:00.000Z",
+        session: { host: "codex", id: "thread-1" },
+        source: "pin",
+      },
+    ]);
+  });
+
+  it("is never forgotten by a cmux unpin or by a cmux pin of somebody else's workspace", () => {
+    const dir = home();
+    recordAppSupervisorPin({
+      appSessionId: APP_ID,
+      home: dir,
+      nowIso: "2026-09-02T04:47:00.000Z",
+      session: { host: "claude-code", id: "sess-super" },
+    });
+
+    expect(forgetUnpinnedSupervisor({ home: dir, unpinnedWorkspaceId: APP_ID })).toBe("absent");
+    expect(
+      recordSupervisorPin({
+        detection: active({ id: "sess-other" }),
+        home: dir,
+        nowIso: "2026-09-02T05:00:00.000Z",
+        ownWorkspaceId: "ws-1",
+        pinnedWorkspaceId: "ws-2",
+        workspaceRef: "workspace:940",
+      }),
+    ).toBe(false);
+    expect(readSupervisorPin({ home: dir })!.session.id).toBe("sess-super");
+  });
+});
+
 describe("forgetUnpinnedSupervisor", () => {
   it("removes the record naming the workspace just unpinned, and leaves one naming another", () => {
     const dir = home();
@@ -228,7 +286,7 @@ describe("forgetUnpinnedSupervisor", () => {
     chmodSync(sessions, 0o500);
     try {
       expect(forgetUnpinnedSupervisor({ home: dir, unpinnedWorkspaceId: "ws-1" })).toBe("failed");
-      expect(readSupervisorPin({ home: dir })!.workspaceId).toBe("ws-1");
+      expect(pinnedCmuxWorkspaceId({ pin: readSupervisorPin({ home: dir }) })).toBe("ws-1");
     } finally {
       chmodSync(sessions, 0o700);
     }

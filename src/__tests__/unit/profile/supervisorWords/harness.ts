@@ -12,6 +12,9 @@ import { writeSupervisorPin } from "../../../../sessions/supervisorPinStore.js";
 import type { SupervisorLink } from "../../../../supervisor/chain.js";
 import { appendSupervisorLink } from "../../../../supervisor/chainStore.js";
 
+/** The cmux arm of a chain link, the only one these cases seat: its workspace fields are what the pin record copies. */
+type CmuxLink = Extract<SupervisorLink, { readonly workspaceId: string }>;
+
 export const A = "a0000013-0000-4000-8000-000000000014";
 export const B = "b3f532df-83e5-495b-b5b8-8b8c3e54d512";
 export const GONE = "ffffffff-ffff-4fff-8fff-ffffffffffff";
@@ -47,7 +50,7 @@ export function temp({ prefix }: { prefix: string }): string {
  *
  * @returns the link `cmux takeover` journals when that session takes the pin at that instant
  */
-export function pin({ session, at }: { session: string; at: string }): SupervisorLink {
+export function pin({ session, at }: { session: string; at: string }): CmuxLink {
   return {
     pinnedAtIso: at,
     session: { host: "claude-code", id: session },
@@ -58,7 +61,7 @@ export function pin({ session, at }: { session: string; at: string }): Superviso
 }
 
 /** Journal every link and record the last as the live pin, the two writes `cmux takeover` makes. */
-export function seat({ home, links }: { home: string; links: readonly SupervisorLink[] }): void {
+export function seat({ home, links }: { home: string; links: readonly CmuxLink[] }): void {
   links.forEach((link) => {
     appendSupervisorLink({ home, link });
   });

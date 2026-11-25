@@ -1,8 +1,6 @@
 /**
  * The cadence's version and auto-compaction reads over injected seams and a throwaway `~/.claude` — plain
  * functions, no mock.
- *
- * deleted-with-code: readChairContextFill
  */
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -89,8 +87,8 @@ describe("readChairClaudeCodeVersions", () => {
           { pid: 1, sessionId: "s1", verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } },
           { pid: 2, sessionId: "s2", verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } },
         ],
-        workspaceCwd: "/wt/chair",
-        workspaceId: "WS",
+        directory: "/wt/chair",
+        location: { kind: "cmux", workspaceId: "WS" },
       },
     });
 
@@ -116,8 +114,8 @@ describe("readChairAutoCompactions", () => {
       { pid: 1, sessionId: "s1", verdict },
       { pid: 2, sessionId: "s2", verdict },
     ],
-    workspaceCwd: "/wt/chair",
-    workspaceId: "WS",
+    directory: "/wt/chair",
+    location: { kind: "cmux", workspaceId: "WS" },
   } as const;
 
   /**

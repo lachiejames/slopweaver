@@ -52,12 +52,36 @@ import {
   verdictAgainst,
 } from "./chairPolicy.js";
 
-/** One Claude session live in the pinned supervisor workspace, and what its transcript says. */
+/** One Claude session live in the pinned supervisor chair, and what its transcript says. */
 export interface ChairSessionReading {
   readonly sessionId: string;
-  readonly pid: number;
+  /**
+   * Its process, as the cmux walk joined it through Claude Code's registry; `undefined` for an app-hosted chair,
+   * which the app names by session id and never by a pid this process could read.
+   */
+  readonly pid: number | undefined;
   readonly verdict: ChairVerdict;
 }
+
+/**
+ * How a line names one chair session: by its pid when the cmux walk found one, else as app-hosted, never a made-up pid.
+ *
+ * @param sessionId the Claude Code session
+ * @param pid its process, or `undefined` for an app-hosted chair
+ * @returns `session <id> (pid <n>)` or `session <id> (app-hosted)`
+ */
+export function chairSessionName({ sessionId, pid }: { sessionId: string; pid: number | undefined }): string {
+  return pid === undefined ? `session ${sessionId} (app-hosted)` : `session ${sessionId} (pid ${String(pid)})`;
+}
+
+/** Where a resolved chair was read: the pinned cmux workspace, or the session the desktop app hosts. */
+export type ChairLocation =
+  | {
+      readonly kind: "cmux";
+      /** The pinned workspace's own cmux id — what `./chairRestore.ts` compares this process's own against. */
+      readonly workspaceId: string;
+    }
+  | { readonly kind: "app"; readonly appSessionId: string };
 
 /**
  * Why a chair read is unresolved: cmux did not answer one of the two calls the walk needs (a timeout, or no
@@ -65,7 +89,9 @@ export interface ChairSessionReading {
  * to read, the process table that binds a registry record to its running process could not be read, or the Claude
  * session registry could not say which sessions sit on the chair's pids, or the supervisor pin names a Codex thread,
  * so no Claude session in the pinned workspace is the chair, or no pin record or chain link names the chair's host at
- * all. Only the first lets the gate judge the caller instead.
+ * all, or the pin names a session the desktop app hosts and the app could not vouch for it as a live Claude session
+ * with a readable transcript. Only the first lets the gate judge the caller instead: an app that does not answer is
+ * `app-chair-unread`, never `cmux-unanswered`, so a silent app opens no caller-only pass.
  */
 export type ChairUnresolvedCause =
   | "cmux-unanswered"
@@ -75,15 +101,16 @@ export type ChairUnresolvedCause =
   | "registry-unread"
   | "codex-chair"
   | "chair-record-unread"
-  | "chair-host-unmeasured";
+  | "chair-host-unmeasured"
+  | "app-chair-unread";
 
-/** What the chair read found: the pinned workspace's sessions, or why there was no workspace to read. */
+/** What the chair read found: the chair's sessions and where it was read, or why there was no chair to read. */
 export type ChairRead =
   | {
       readonly kind: "resolved";
-      /** The pinned workspace's own cmux id — what `./chairRestore.ts` compares this process's own against. */
-      readonly workspaceId: string;
-      readonly workspaceCwd: string;
+      readonly location: ChairLocation;
+      /** The directory the chair runs in: the pinned workspace's cwd, or the app session's directory. */
+      readonly directory: string;
       readonly sessions: readonly ChairSessionReading[];
     }
   | { readonly kind: "unresolved"; readonly cause: ChairUnresolvedCause; readonly why: string };
@@ -94,7 +121,12 @@ export type ChairRead =
  */
 export type CallerPinBinding =
   | { readonly kind: "holder" }
-  | { readonly kind: "other"; readonly holderSessionId: string; readonly workspaceRef: string }
+  | {
+      readonly kind: "other";
+      readonly holderSessionId: string;
+      /** Where the recorded holder sits: its workspace ref, or `app:<id>` for an app-hosted one. */
+      readonly seatLabel: string;
+    }
   | { readonly kind: "unrecorded" };
 
 /** The session RUNNING the gated verb, read by its own id with no cmux call — what the gate judges when cmux is silent. */
@@ -152,7 +184,7 @@ export function chairSessionLine({
   reading: ChairSessionReading;
   required: ChairModelFamily;
 }): string {
-  return `session ${reading.sessionId} (pid ${String(reading.pid)}): ${verdictClause({ required, verdict: reading.verdict })}`;
+  return `${chairSessionName({ pid: reading.pid, sessionId: reading.sessionId })}: ${verdictClause({ required, verdict: reading.verdict })}`;
 }
 
 /**
@@ -202,7 +234,7 @@ function judgeCallerOnly({
   if (caller.pin.kind !== "holder") {
     const record =
       caller.pin.kind === "other"
-        ? `the supervisor-pin record names session ${caller.pin.holderSessionId} (${caller.pin.workspaceRef})`
+        ? `the supervisor-pin record names session ${caller.pin.holderSessionId} (${caller.pin.seatLabel})`
         : "no supervisor pin is recorded";
     return {
       detail: `cmux did not answer (${read.why}), and nothing outside cmux binds this session to the chair: ${record}`,
@@ -262,7 +294,7 @@ export function judgeChair({
   }
   if (read.sessions.length === 0) {
     return {
-      detail: `no Claude session was found live in the pinned supervisor workspace (${read.workspaceCwd}), so which model is in the chair is unknown`,
+      detail: `no Claude session was found live in the pinned supervisor workspace (${read.directory}), so which model is in the chair is unknown`,
       kind: "refused",
       lines: [],
     };

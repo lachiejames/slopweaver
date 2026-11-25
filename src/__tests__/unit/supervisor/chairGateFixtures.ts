@@ -55,8 +55,8 @@ export const BOTH_TABS: ResolvedChairRead = {
     { pid: 111, sessionId: "a0000023-0000-4000-8000-000000000026", verdict: OPUS_TAB },
     { pid: 222, sessionId: "a0000078-0000-4000-8000-000000000085", verdict: FABLE_TAB },
   ],
-  workspaceCwd: "/wt/fresh-supervisor-handoff-9271",
-  workspaceId: PINNED_WORKSPACE,
+  directory: "/wt/fresh-supervisor-handoff-9271",
+  location: { kind: "cmux", workspaceId: PINNED_WORKSPACE },
 };
 
 /** Only the Fable tab. */
@@ -81,7 +81,7 @@ export const FABLE_CALLER: CallerChairReading = {
 
 /** A Fable worker in another workspace — on Fable, but not the session the supervisor-pin record names. */
 export const FABLE_WORKER: CallerChairReading = {
-  pin: { holderSessionId: "a0000023-0000-4000-8000-000000000026", kind: "other", workspaceRef: "workspace:936" },
+  pin: { holderSessionId: "a0000023-0000-4000-8000-000000000026", kind: "other", seatLabel: "workspace:936" },
   sessionId: "9d1e0c55-0000-4000-8000-000000000001",
   verdict: FABLE_TAB,
 };

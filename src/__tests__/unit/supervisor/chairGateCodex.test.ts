@@ -22,8 +22,8 @@ const CLAUDE_TAB_BESIDE: ChairRead = {
   sessions: [
     { pid: 333, sessionId: "8f0e2a41-0000-4000-8000-000000000002", verdict: { kind: "unreadable", why: "x" } },
   ],
-  workspaceCwd: "/wt/codex-chair",
-  workspaceId: "WS-PINNED",
+  directory: "/wt/codex-chair",
+  location: { kind: "cmux", workspaceId: "WS-PINNED" },
 };
 
 /** What the gate did over its fakes. */

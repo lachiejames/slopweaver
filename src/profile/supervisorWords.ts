@@ -28,13 +28,13 @@ import {
   CHAIN_RESCAN_COMMAND,
   CODEX_CHAIR_UNREAD,
   chainReachesSince,
-  linkKey,
   type SupervisorLink,
 } from "../supervisor/chain.js";
 import { readSupervisorChainJournal } from "../supervisor/chainStore.js";
 import { readChairTranscript } from "../supervisor/chairTranscript.js";
 import type { OwnerTurn } from "../supervisor/intake.js";
 import { sameSupervisorSession, supervisorSessionLabel, type VisibleSupervisorSession } from "../supervisor/session.js";
+import { linkFromPin, linkKey } from "../supervisor/supervisorLink.js";
 import { parseTurnPointer } from "../transcripts/pointer.js";
 
 /** One interval one session held the pin. */
@@ -203,14 +203,7 @@ function pinLink({ home }: { home: string }): {
     const codex = `chair ${supervisorSessionLabel({ session: pin.session })} would not read: ${CODEX_CHAIR_UNREAD}`;
     return { links: [], problems: [problem, codex] };
   }
-  const link: SupervisorLink = {
-    pinnedAtIso: pin.pinnedAtIso,
-    session: pin.session,
-    source: "pin",
-    workspaceId: pin.workspaceId,
-    workspaceRef: pin.workspaceRef,
-  };
-  return { links: [link], problems: [] };
+  return { links: [linkFromPin({ pin })], problems: [] };
 }
 
 /**

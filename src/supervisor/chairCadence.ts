@@ -101,7 +101,8 @@ import type { ChairRead } from "./chairGate.js";
 /** One Claude session in the pinned chair: the Claude Code it runs, and the plan it spends. */
 export interface ChairCadenceSession {
   readonly sessionId: string;
-  readonly pid: number;
+  /** Its process, or `undefined` for an app-hosted chair (`./chairGate.ts` § `ChairSessionReading`). */
+  readonly pid: number | undefined;
   readonly claudeCode: ClaudeCodeVersionReading;
   /** The plan its boot credential names — the file on descriptor 3, else its declared store. */
   readonly plan: SeatBootPlan;

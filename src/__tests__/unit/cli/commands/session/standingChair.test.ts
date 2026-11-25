@@ -35,8 +35,8 @@ describe("standingChairRead", () => {
     expect(read).toEqual({
       kind: "resolved",
       sessions: [CHAIR_SESSION],
-      workspaceCwd: "/work/chair",
-      workspaceId: "workspace:1",
+      directory: "/work/chair",
+      location: { kind: "cmux", workspaceId: "workspace:1" },
     });
   });
 
@@ -79,8 +79,8 @@ describe("standingChairRead", () => {
     expect(read).toEqual({
       kind: "resolved",
       sessions: [CHAIR_SESSION],
-      workspaceCwd: "/work/chair",
-      workspaceId: "",
+      directory: "/work/chair",
+      location: { kind: "cmux", workspaceId: "" },
     });
   });
 

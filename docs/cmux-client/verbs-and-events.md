@@ -97,6 +97,17 @@ every time:
    `handover close` line that repairs it and still exits 0, because a non-zero exit would invite a re-run of a
    verb whose own gates now read a world that has already moved.
 
+**Either side may be a session the desktop app hosts** (`src/cli/commands/cmux/takeoverHosts.ts`; the pure
+resolution and witnesses in `src/supervisor/takeoverSeat.ts`). An app caller is vouched for by the app first
+(`session.origin`), and its step 1 witness is the app's picture of this session, a `ScheduleWakeup` call in flight or
+among the last ended ones, else its transcript. Step 2 takes the predecessor from cmux's `pinned: true` row when one
+stands, else from the supervisor pin record's app arm, and refuses a cmux pin and an app record standing at once.
+Step 3 pairs an app predecessor to the one open ledger row carrying its id under the app host, in the directory the
+app reports for it now. Step 4 removes an app predecessor's record instead of unpinning, and records an app
+successor in the pin record instead of pinning. Step 5 closes an app predecessor through the harness alone
+(`SessionHarness.close`), never through cmux and never by a kill. cmux must still answer for an app caller, since
+step 2 reads its pins.
+
 `slopweaver cmux takeover --dry-run` runs steps 1-3 and reports what steps 4-6 would do, without touching
 anything — the check to run before trusting the real one.
 

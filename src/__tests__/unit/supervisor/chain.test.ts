@@ -1,17 +1,25 @@
 import { describe, expect, it } from "vitest";
 
+import { unwrap } from "#lib/result.js";
+import type { SupervisorPinTarget } from "../../../sessions/supervisorPin.js";
 import {
-  buildSupervisorLink,
   type ChainCoverage,
   chainReachesSince,
   chainSpans,
   coverageClause,
   orderChain,
-  parseSupervisorChainJournal,
-  parseSupervisorLinkLine,
-  type SupervisorLink,
   spansSince,
 } from "../../../supervisor/chain.js";
+import {
+  buildSupervisorLink,
+  linkFromPin,
+  parseSupervisorChainJournal,
+  parseSupervisorLinkLine,
+  type SupervisorChainError,
+  type SupervisorLink,
+  supervisorLinkLabel,
+  supervisorLinkTarget,
+} from "../../../supervisor/supervisorLink.js";
 
 const S1 = "a0000013-0000-4000-8000-000000000014";
 const S2 = "b3f532df-83e5-495b-b5b8-8b8c3e54d512";
@@ -27,33 +35,34 @@ function built({
   pinnedAtIso: string;
   source: SupervisorLink["source"];
 }): SupervisorLink {
-  const result = buildSupervisorLink({
-    pinnedAtIso,
-    session: { host: "codex", id },
-    source,
-    workspaceId: "B731E026",
-    workspaceRef: "workspace:266",
-  });
-  if ("refusal" in result) {
-    throw new Error(result.refusal);
-  }
-  return result.link;
+  return unwrap(
+    buildSupervisorLink({
+      pinnedAtIso,
+      session: { host: "codex", id },
+      source,
+      target: { kind: "cmux", workspaceId: "B731E026", workspaceRef: "workspace:266" },
+    }),
+  );
 }
 
 /** The refusal, or a throw when the build unexpectedly succeeded. */
-function refusalOf({ id, pinnedAtIso }: { id: string; pinnedAtIso: string }): string {
-  const result = buildSupervisorLink({
-    pinnedAtIso,
-    session: { host: "claude-code", id },
-    source: "scan",
-    workspaceId: "",
-    workspaceRef: "",
-  });
-  if ("link" in result) {
+function refusalOf({
+  id,
+  pinnedAtIso,
+  target = { kind: "cmux", workspaceId: "", workspaceRef: "" },
+}: {
+  id: string;
+  pinnedAtIso: string;
+  target?: SupervisorPinTarget;
+}): SupervisorChainError {
+  const result = buildSupervisorLink({ pinnedAtIso, session: { host: "claude-code", id }, source: "scan", target });
+  if (result.isOk()) {
     throw new Error("expected a refusal, got a link");
   }
-  return result.refusal;
+  return result.error;
 }
+
+const APP_ID = "5f0c2a1e-7d3b-4c8e-9a6f-1b2c3d4e5f60";
 
 /** One Claude Code link, overridable field by field; `host` names the other host when a case needs it. */
 const link = ({
@@ -129,6 +138,47 @@ describe("parsing a chain journal", () => {
 
     expect(parseSupervisorChainJournal({ text }).map((item) => item.session.id)).toEqual([S1]);
   });
+
+  it("round-trips an app-hosted link, and reads its target and label off the app arm", () => {
+    const line = JSON.stringify({
+      appSessionId: APP_ID,
+      pinnedAtIso: "2026-09-05T10:12:46.544Z",
+      session: { host: "codex", id: S2 },
+      source: "pin",
+    });
+    const parsed = parseSupervisorLinkLine({ line })!;
+
+    expect(parsed).toStrictEqual({
+      appSessionId: APP_ID,
+      pinnedAtIso: "2026-09-05T10:12:46.544Z",
+      session: { host: "codex", id: S2 },
+      source: "pin",
+    });
+    expect(supervisorLinkTarget({ link: parsed })).toStrictEqual({ appSessionId: APP_ID, kind: "app" });
+    expect(supervisorLinkLabel({ link: parsed })).toBe(`app:${APP_ID}`);
+  });
+
+  it("refuses an app line that also names a workspace, a legacy session field, or an id that is not bare", () => {
+    const base = { pinnedAtIso: "2026-09-05T10:12:46.544Z", session: { host: "claude-code", id: S1 }, source: "pin" };
+
+    expect(parseSupervisorLinkLine({ line: JSON.stringify({ ...base, appSessionId: APP_ID, workspaceId: "W" }) })).toBe(
+      undefined,
+    );
+    expect(
+      parseSupervisorLinkLine({ line: JSON.stringify({ ...base, appSessionId: APP_ID, workspaceRef: "workspace:1" }) }),
+    ).toBe(undefined);
+    expect(
+      parseSupervisorLinkLine({
+        line: JSON.stringify({
+          appSessionId: APP_ID,
+          claudeSessionId: S1,
+          pinnedAtIso: base.pinnedAtIso,
+          source: "pin",
+        }),
+      }),
+    ).toBe(undefined);
+    expect(parseSupervisorLinkLine({ line: JSON.stringify({ ...base, appSessionId: "../x" }) })).toBe(undefined);
+  });
 });
 
 describe("buildSupervisorLink", () => {
@@ -136,17 +186,72 @@ describe("buildSupervisorLink", () => {
     const made = built({ id: `  ${S1}  `, pinnedAtIso: "2026-09-05T10:12:46.544Z", source: "pin" });
 
     expect(made.session).toStrictEqual({ host: "codex", id: S1 });
-    expect(made.workspaceRef).toBe("workspace:266");
+    expect(supervisorLinkLabel({ link: made })).toBe("workspace:266");
   });
 
   it("refuses a blank session id with a reason naming what makes a link checkable", () => {
-    expect(refusalOf({ id: "", pinnedAtIso: "2026-09-05T10:12:46.544Z" })).toBe(
-      "a chain link needs a session id — the transcript it names is what makes it checkable",
-    );
+    expect(refusalOf({ id: "", pinnedAtIso: "2026-09-05T10:12:46.544Z" })).toStrictEqual({
+      code: "SESSION_ID_INVALID",
+      message: "a chain link needs a session id — the transcript it names is what makes it checkable",
+    });
   });
 
   it("refuses an instant that will not parse", () => {
-    expect(refusalOf({ id: S1, pinnedAtIso: "not-a-time" })).toContain("is not an instant");
+    const refusal = refusalOf({ id: S1, pinnedAtIso: "not-a-time" });
+
+    expect(refusal.code).toBe("PIN_INSTANT_INVALID");
+    expect(refusal.message).toContain("is not an instant");
+  });
+
+  it("builds an app link carrying only the app session id", () => {
+    const made = unwrap(
+      buildSupervisorLink({
+        pinnedAtIso: "2026-09-05T10:12:46.544Z",
+        session: { host: "claude-code", id: S1 },
+        source: "pin",
+        target: { appSessionId: APP_ID, kind: "app" },
+      }),
+    );
+
+    expect(made).toStrictEqual({
+      appSessionId: APP_ID,
+      pinnedAtIso: "2026-09-05T10:12:46.544Z",
+      session: { host: "claude-code", id: S1 },
+      source: "pin",
+    });
+  });
+
+  it("refuses an app session id that is not a bare id", () => {
+    expect(
+      refusalOf({ id: S1, pinnedAtIso: "2026-09-05T10:12:46.544Z", target: { appSessionId: "../x", kind: "app" } })
+        .code,
+    ).toBe("TARGET_INVALID");
+  });
+});
+
+describe("linkFromPin", () => {
+  it("keeps a cmux pin's workspace and an app pin's session id, never mixing the two", () => {
+    const at = "2026-09-05T10:12:46.544Z";
+
+    expect(
+      linkFromPin({
+        pin: {
+          pinnedAtIso: at,
+          session: { host: "claude-code", id: S1 },
+          workspaceId: "W",
+          workspaceRef: "workspace:1",
+        },
+      }),
+    ).toStrictEqual({
+      pinnedAtIso: at,
+      session: { host: "claude-code", id: S1 },
+      source: "pin",
+      workspaceId: "W",
+      workspaceRef: "workspace:1",
+    });
+    expect(
+      linkFromPin({ pin: { appSessionId: APP_ID, pinnedAtIso: at, session: { host: "codex", id: S2 } } }),
+    ).toStrictEqual({ appSessionId: APP_ID, pinnedAtIso: at, session: { host: "codex", id: S2 }, source: "pin" });
   });
 });
 
@@ -204,7 +309,7 @@ describe("orderChain", () => {
     });
 
     expect(ordered[0]!.source).toBe("pin");
-    expect(ordered[0]!.workspaceRef).toBe("workspace:266");
+    expect(supervisorLinkLabel({ link: ordered[0]! })).toBe("workspace:266");
     expect(ordered[0]!.pinnedAtIso).toBe("2026-09-05T01:00:00.000Z");
   });
 });

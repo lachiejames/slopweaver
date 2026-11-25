@@ -1,7 +1,9 @@
 /**
  * `slopweaver cmux takeover` — `docs/cmux-client/verbs-and-events.md` § 3's successor handoff as one verb: verify this session
  * is genuinely sweeping (its own hook events, else its own transcript — `./takeoverTranscript.ts`), resolve the
- * predecessor from cmux's own pin, confirm its run has actually finished, then unpin/pin/title/close in that order. Refuses loudly (no `--force`) on any check failing — unpinning,
+ * predecessor from cmux's own pin, confirm its run has actually finished, then unpin/pin/title/close in that order.
+ * Either side may be a session the desktop app hosts instead of a cmux workspace; `./takeoverHosts.ts` holds those
+ * steps for every pairing of hosts, and the name stays `cmux takeover` so every caller keeps working. Refuses loudly (no `--force`) on any check failing — unpinning,
  * pinning and closing are the same destructive triad `docs/cmux-client/socket-and-measured-facts.md` § 2(e) already warns cmux enforces
  * no safety net over, and the whole point of this verb is that a successor stops skipping the last of those
  * steps (measured twice: `ws:402`, `ws:459`).
@@ -19,13 +21,10 @@
  * unforced, so that file decides when force is safe. When it is not, the tab stays open with its ledger row for
  * `session close-done`, and step 6 still runs — the chair is retired either way.
  */
-import type { CmuxWorkspaceSummary } from "../../../cmux/client.js";
 import { drainUntil, readCmuxEventAck } from "../../../cmux/eventStream.js";
-import { SUPERVISOR_WORKSPACE_TITLE } from "../../../cmux/supervisorWorkspace.js";
 import {
   type HookLeg,
   hookLegOfDrain,
-  resolvePredecessor,
   retainedWindowCursor,
   sweepArmedInEvents,
   sweepGateOutcome,
@@ -35,24 +34,24 @@ import { hatchFor } from "../../../hatch/lookup.js";
 import { hatchOpen } from "../../../hatch/open.js";
 import { hatchRefusalLines } from "../../../hatch/render.js";
 import { logger } from "../../../lib/logger.js";
-import { readProcessTableWhole } from "../../../live/standing/inspect.js";
-import { type CmuxHostSurface, withCmuxSessionHost } from "../../../sessionHarness/cmuxHost.js";
+import { appSessionHarnessOver } from "../../../sessionHarness/appHarness.js";
+import { type AppSessionClaim, appSessionClaim } from "../../../sessionHarness/appSessionOrigin.js";
+import { APP_SOCKET_ROOT, type AppTransport, socketAppTransport } from "../../../sessionHarness/appSocketTransport.js";
+import { withCmuxSessionHost } from "../../../sessionHarness/cmuxHost.js";
 import type { SessionHarness } from "../../../sessionHarness/sessionHarness.js";
-import type { SessionItem } from "../../../sessions/session.js";
 import {
   detectSupervisorSession,
   supervisorSessionProblem,
   type VisibleSupervisorSession,
 } from "../../../supervisor/session.js";
+import type { TakeoverCaller } from "../../../supervisor/takeoverSeat.js";
 import { claudeProjectsDir } from "../../../transcripts/source.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
 import { OWNER_TURN_WINDOW_DAYS, unreadOwnerTurns } from "../supervisor/ownerTurnsRun.js";
 import { parseCmuxVerb, stringFlag } from "./core.js";
-import { forgetUnpinnedSupervisor, recordSupervisorPin } from "./recordPin.js";
 import { targetWorkspaceId } from "./run.js";
-import { runTakeoverStep5 } from "./takeoverClose.js";
-import { predecessorRunGate, recordPredecessorRowClosed } from "./takeoverRow.js";
+import { appCallerSweepGate, performTakeover, predecessorGates, takeoverDryRunLine } from "./takeoverHosts.js";
 import { readTranscriptLeg } from "./takeoverTranscript.js";
 
 /** How long with no new frame before gate (a)'s drain decides nothing else is coming. */
@@ -211,128 +210,25 @@ function resolvedHome({ home }: { home: string | undefined }): string {
 }
 
 /**
- * Gate (b): resolve the predecessor from cmux's own pin, refusing on every ambiguous shape. The inventory comes
- * back beside it because gate (c) pairs the ledger against the same listing, never against a ref alone.
+ * Gate (a) for whichever host this session runs in: a cmux workspace's own hook events then transcript, unchanged,
+ * or an app session the app vouches for, its picture then transcript (`./takeoverHosts.ts`).
  */
-async function predecessorGate({
-  client,
-  ownWorkspaceId,
-}: {
-  client: CmuxHostSurface;
-  ownWorkspaceId: string;
-}): Promise<
-  { readonly predecessor: CmuxWorkspaceSummary; readonly workspaces: readonly CmuxWorkspaceSummary[] } | number
-> {
-  const workspaces = await client.listWorkspaces();
-  if (workspaces.isErr()) {
-    logger.error({ msg: `cmux takeover: ${workspaces.error.message}` });
-    return EXIT_ERROR;
-  }
-  const resolved = resolvePredecessor({ ownWorkspaceId, workspaces: workspaces.value });
-  if ("refusal" in resolved) {
-    logger.error({ msg: `cmux takeover: refusing — ${resolved.refusal}` });
-    return EXIT_ERROR;
-  }
-  logger.out({ line: `cmux takeover: step 2/6 — predecessor resolved: ${resolved.predecessor.workspaceRef}` });
-  return { predecessor: resolved.predecessor, workspaces: workspaces.value };
-}
-
-/**
- * Step 4's second half: pin and title THIS session, then scope the supervisor depth guard to it.
- *
- * It answers with the workspace ref the successor is really known by, because two later steps need it — the
- * depth-guard record and step 6's witness — and `resolveWorkspace` failing is not a reason to stop a handoff
- * whose pin has already moved: the id is a usable name for the same workspace.
- *
- * @param client the connected cmux client
- * @param home the state home the pin record is written under
- * @param ownWorkspaceId this session's workspace
- * @param session the visible session the pin record names
- * @returns this session's resolved ref, or the message that stops the takeover
- */
-async function seatThisSession({
-  client,
-  home,
-  ownWorkspaceId,
+async function callerGate({
+  claim,
+  harness,
   session,
+  transport,
 }: {
-  client: CmuxHostSurface;
-  home: string | undefined;
-  ownWorkspaceId: string;
+  claim: AppSessionClaim | undefined;
+  harness: Pick<SessionHarness, "resolve">;
   session: VisibleSupervisorSession;
-}): Promise<{ readonly failure: string } | { readonly ownRef: string }> {
-  const pinned = await client.pinWorkspace({ workspaceId: ownWorkspaceId });
-  if (pinned.isErr()) {
-    return { failure: pinned.error.message };
+  transport: AppTransport;
+}): Promise<TakeoverCaller | number> {
+  if (claim !== undefined) {
+    return appCallerSweepGate({ claim, session, transport });
   }
-  const renamed = await client.renameWorkspace({ title: SUPERVISOR_WORKSPACE_TITLE, workspaceId: ownWorkspaceId });
-  if (renamed.isErr()) {
-    return { failure: renamed.error.message };
-  }
-  logger.out({ line: `cmux takeover: step 4/6 — pinned and titled this session (${SUPERVISOR_WORKSPACE_TITLE})` });
-  const resolved = await client.resolveWorkspace({ ref: ownWorkspaceId });
-  const ownRef = resolved.isOk() ? resolved.value.workspaceRef : ownWorkspaceId;
-  const recorded = recordSupervisorPin({
-    detection: { kind: "active", session },
-    nowIso: new Date().toISOString(),
-    ownWorkspaceId,
-    ...(home === undefined ? {} : { home }),
-    pinnedWorkspaceId: ownWorkspaceId,
-    workspaceRef: ownRef,
-  });
-  logger.out({
-    line: `cmux takeover: step 4/6 — supervisor depth guard ${recorded ? "now scoped to this session" : "NOT recorded (the write failed, see above) — this session is unguarded"}`,
-  });
-  return { ownRef };
-}
-
-/**
- * Steps (d)-(f): unpin the predecessor, pin and title this session, close the predecessor, and record its
- * board row closed.
- */
-async function performTakeover({
-  client,
-  home,
-  ownWorkspaceId,
-  predecessorId,
-  predecessorRef,
-  predecessorRow,
-  predecessorSlug,
-  session,
-}: {
-  client: CmuxHostSurface;
-  home: string | undefined;
-  ownWorkspaceId: string;
-  predecessorId: string;
-  predecessorRef: string;
-  predecessorRow: SessionItem & { readonly workspaceRef: string };
-  predecessorSlug: string;
-  session: VisibleSupervisorSession;
-}): Promise<number> {
-  const unpinned = await client.unpinWorkspace({ workspaceId: predecessorId });
-  if (unpinned.isErr()) {
-    logger.error({ msg: `cmux takeover: ${unpinned.error.message}` });
-    return EXIT_ERROR;
-  }
-  forgetUnpinnedSupervisor({ unpinnedWorkspaceId: predecessorId, ...(home === undefined ? {} : { home }) });
-  logger.out({ line: `cmux takeover: step 4/6 — unpinned ${predecessorRef}` });
-  const seated = await seatThisSession({ client, home, ownWorkspaceId, session });
-  if ("failure" in seated) {
-    logger.error({ msg: `cmux takeover: ${seated.failure}` });
-    return EXIT_ERROR;
-  }
-  const closed = await runTakeoverStep5({
-    client,
-    home,
-    predecessorId,
-    predecessorRef,
-    predecessorRow,
-    processTable: readProcessTableWhole,
-  });
-  // Step 6 runs whatever step 5 did: the pin has moved and gate (c) read the run finished, so the chair is retired
-  // whether or not its tab closed. Skipping it left every such chair's row in RUN NOW (`./takeoverRow.ts`).
-  recordPredecessorRowClosed({ home, predecessorSlug, successorRef: seated.ownRef });
-  return closed ? EXIT_OK : EXIT_ERROR;
+  const sweep = await ownSweepGate({ harness, session });
+  return typeof sweep === "number" ? sweep : { kind: "cmux", workspaceId: sweep.ownWorkspaceId };
 }
 
 /**
@@ -355,11 +251,18 @@ export async function runCmuxTakeover(argv: readonly string[]): Promise<number> 
     logger.error({ msg: `cmux takeover: refusing — ${supervisorSessionProblem({ detection })}` });
     return EXIT_ERROR;
   }
+  const claim = appSessionClaim({ detection, env: process.env });
+  if (claim.isErr()) {
+    logger.error({ msg: `cmux takeover: refusing — ${claim.error.message}` });
+    return EXIT_ERROR;
+  }
+  const transport = socketAppTransport({ root: APP_SOCKET_ROOT });
+  const appHarness = appSessionHarnessOver({ transport });
   return withCmuxSessionHost({
     body: async ({ harness, host: client }): Promise<number> => {
-      const sweep = await ownSweepGate({ harness, session: detection.session });
-      if (typeof sweep === "number") {
-        return sweep;
+      const caller = await callerGate({ claim: claim.value, harness, session: detection.session, transport });
+      if (typeof caller === "number") {
+        return caller;
       }
       const unread = ownerTurnGate({ home, session: detection.session });
       if (unread !== undefined) {
@@ -368,35 +271,15 @@ export async function runCmuxTakeover(argv: readonly string[]): Promise<number> 
         }
         return EXIT_ERROR;
       }
-      const resolved = await predecessorGate({ client, ownWorkspaceId: sweep.ownWorkspaceId });
-      if (typeof resolved === "number") {
-        return resolved;
-      }
-      const { predecessor, workspaces } = resolved;
-      const run = predecessorRunGate({ home, predecessor, workspaces });
-      if ("refusal" in run) {
-        logger.error({ msg: `cmux takeover: refusing — ${run.refusal}` });
-        return EXIT_ERROR;
+      const predecessor = await predecessorGates({ appHarness, caller, client, home });
+      if (typeof predecessor === "number") {
+        return predecessor;
       }
       if (dryRun) {
-        logger.out({
-          line:
-            `cmux takeover: --dry-run — would unpin ${predecessor.workspaceRef}, pin+title this session, close ` +
-            `${predecessor.workspaceRef} (forced only when its screen proves it idle, or its one background work is a ` +
-            `keep-alive another watch covers), then close ${run.slug}'s board row either way`,
-        });
+        logger.out({ line: takeoverDryRunLine({ caller, predecessor }) });
         return EXIT_OK;
       }
-      return performTakeover({
-        client,
-        home,
-        ownWorkspaceId: sweep.ownWorkspaceId,
-        predecessorId: predecessor.workspaceId,
-        predecessorRef: predecessor.workspaceRef,
-        predecessorRow: run.row,
-        predecessorSlug: run.slug,
-        session: detection.session,
-      });
+      return performTakeover({ appHarness, caller, client, home, predecessor, session: detection.session });
     },
   });
 }

@@ -27,7 +27,12 @@
 
 import { hatchFor } from "../hatch/lookup.js";
 import { hatchRefusal } from "../hatch/render.js";
-import { isRegisteredSupervisor, type SupervisorPinRecord } from "../sessions/supervisorPin.js";
+import {
+  cmuxHeldPin,
+  isRegisteredSupervisor,
+  type SupervisorPinRecord,
+  supervisorPinLabel,
+} from "../sessions/supervisorPin.js";
 import { detectSupervisorSession } from "../supervisor/session.js";
 
 /**
@@ -89,20 +94,23 @@ export function seatPostVerdict({
     return { kind: "ok" };
   }
   const holdsPin = detection.kind === "active" && isRegisteredSupervisor({ record: pin, session: detection.session });
-  if (holdsPin || workspace === pin.workspaceId) {
+  // Only a cmux pin names a workspace to match the caller's; an app-hosted chair is admitted by its session alone.
+  const pinnedWorkspace = cmuxHeldPin({ pin })?.workspaceId;
+  if (holdsPin || (pinnedWorkspace !== undefined && workspace === pinnedWorkspace)) {
     return { kind: "ok" };
   }
+  const label = supervisorPinLabel({ pin });
   if (env[SEAT_HAND_POST_HATCH] === "1") {
     return {
       kind: "hatched",
-      lines: [`admitted past ${SEAT_HAND_POST_HATCH}=1: this session is not the pinned supervisor ${pin.workspaceRef}`],
+      lines: [`admitted past ${SEAT_HAND_POST_HATCH}=1: this session is not the pinned supervisor ${label}`],
     };
   }
   const hatch = { ...hatchFor({ id: "seat-hand-post" }), command };
   return {
     kind: "refused",
     lines: [
-      hatchRefusal({ detail: `the pinned supervisor is ${pin.workspaceRef}`, hatch }),
+      hatchRefusal({ detail: `the pinned supervisor is ${label}`, hatch }),
       "NOTHING was recorded: send the supervisor one line naming the step with SendMessage (ListAgents resolves its " +
         "name), never cmux send, or record it as a board row with `slopweaver handover ask`. If THIS session is " +
         "the chair, `slopweaver cmux pin` records it and the same command then posts.",

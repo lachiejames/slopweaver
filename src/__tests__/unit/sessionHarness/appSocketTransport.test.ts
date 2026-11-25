@@ -3,7 +3,7 @@
  * refuses, hangs up, holds or floods, and the transport maps each into the seam's failure kinds. No app is involved —
  * the socket is a filesystem fixture in a throwaway directory each test removes.
  */
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:net";
 import { join } from "node:path";
 
@@ -15,7 +15,11 @@ import {
   APP_HARNESS_PROTOCOL_VERSION,
   appHarnessSocketPath,
 } from "../../../sessionHarness/appProtocol.js";
-import { socketAppTransport } from "../../../sessionHarness/appSocketTransport.js";
+import {
+  APP_PROTOCOL_MISMATCH_MESSAGE,
+  holdsOtherProtocolSocket,
+  socketAppTransport,
+} from "../../../sessionHarness/appSocketTransport.js";
 
 /** What the stand-in control plane does with the one request line it reads. */
 type Behaviour =
@@ -151,6 +155,35 @@ describe("socketAppTransport", () => {
     });
   });
 
+  it("says the app must be rebuilt, never a version number, when only another protocol version's socket is there", async () => {
+    const { directory, socket } = appHarnessSocketPath({ root, uid: process.getuid!() });
+    mkdirSync(directory, { mode: 0o700 });
+    writeFileSync(join(directory, "session-harness-v2.sock"), "");
+    expect(socket.endsWith("session-harness-v2.sock")).toBe(false);
+    const failed = unwrapErr(await socketAppTransport({ root })({ request: { kind: "ping" }, timeoutMs: 5000 }));
+    expect(failed).toEqual({
+      causeCode: "PROTOCOL_MISMATCH",
+      kind: "unreachable",
+      message: APP_PROTOCOL_MISMATCH_MESSAGE,
+    });
+  });
+
+  it("says the app must be rebuilt when it answers in a shape this protocol version cannot read", async () => {
+    await serve({
+      behaviour: {
+        envelope: ({ requestId }) => ({
+          outcome: "answered",
+          protocolVersion: APP_HARNESS_PROTOCOL_VERSION - 1,
+          requestId,
+          response: { kind: "interrupted" },
+        }),
+        kind: "answer",
+      },
+    });
+    const failed = unwrapErr(await socketAppTransport({ root })({ request: { kind: "list" }, timeoutMs: 5000 }));
+    expect(failed).toEqual({ kind: "malformed", message: APP_PROTOCOL_MISMATCH_MESSAGE });
+  });
+
   it("calls a connection closed without an answer malformed", async () => {
     await serve({ behaviour: { kind: "hang-up" } });
     const failed = unwrapErr(await socketAppTransport({ root })({ request: { kind: "list" }, timeoutMs: 5000 }));
@@ -174,5 +207,35 @@ describe("socketAppTransport", () => {
       kind: "malformed",
       message: "the desktop app answered a line past the protocol's limit",
     });
+  });
+});
+
+describe("the protocol-mismatch refusal", () => {
+  it("tells the reader in words to rebuild the desktop app, with no version number in it", () => {
+    expect(APP_PROTOCOL_MISMATCH_MESSAGE).toBe(
+      "the Slopweaver desktop app speaks a different session protocol from this checkout, so the desktop app must be " +
+        "rebuilt: run `slopweaver desktop install` from this checkout, then try again",
+    );
+    expect(/\d/u.test(APP_PROTOCOL_MISMATCH_MESSAGE)).toBe(false);
+  });
+});
+
+describe("holdsOtherProtocolSocket", () => {
+  it("sees another version's socket, and neither this version's own nor an unrelated file", () => {
+    const socketName = "session-harness-v3.sock";
+    const directories = [
+      ["session-harness-v2.sock"],
+      ["session-harness-v4.sock", "session-harness-v3.sock"],
+      ["session-harness-v3.sock"],
+      ["session-harness-v2.sock.bak", "notes.txt"],
+      [],
+    ];
+    expect(directories.map((names) => holdsOtherProtocolSocket({ names, socketName }))).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+    ]);
   });
 });

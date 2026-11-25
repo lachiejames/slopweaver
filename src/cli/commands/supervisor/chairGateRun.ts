@@ -48,7 +48,7 @@ import {
 } from "../../../supervisor/chairMetered.js";
 import { readChairMeteredLive } from "../../../supervisor/chairMeteredRead.js";
 import { type ChairRequirement, chairRequirement } from "../../../supervisor/chairPolicy.js";
-import { claudeHomeDir, readCallerChairSession, readPinnedChair } from "../../../supervisor/chairRead.js";
+import { claudeHomeDir, readCallerChairSession, readChairForPin } from "../../../supervisor/chairRead.js";
 import { type ChairRestoreOutcome, chairRestoreLines, planChairRestore } from "../../../supervisor/chairRestore.js";
 import { countChairRestoreAttempts, recordChairRestoreAttempt } from "../../../supervisor/chairRestoreStore.js";
 import { type RecordedChair, readRecordedChair } from "../../../supervisor/recordedChairHost.js";
@@ -388,7 +388,7 @@ export function productionChairGateDeps({ argv }: { argv: readonly string[] }): 
         sessionId: host.session.id,
       });
     },
-    readChair: () => readPinnedChair({ claudeHome: claudeHomeDir() }),
+    readChair: () => readChairForPin({ claudeHome: claudeHomeDir(), pin: readSupervisorPin({ home }) }),
     readLanes: () => readLaneShapes({ home, nowIso: new Date().toISOString(), read: planRegisterPort().read }),
     readRecordedChair: () => readRecordedChair({ home }),
     readMetered: ({ read }) =>

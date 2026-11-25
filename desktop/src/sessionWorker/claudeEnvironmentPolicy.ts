@@ -15,6 +15,7 @@
  * inherited one, and a setup-token seat reads its token from descriptor 3, the descriptor every cmux boot line names
  * (`src/claude/seatToken.ts`). The token itself never enters an environment, an argument or the IPC channel.
  */
+import { APP_SESSION_ID_ENV } from "../sessionControlProtocol";
 import { keptEnvironment } from "./keptEnvironment";
 import { type ClaudeWorkerLaunchConfig, WORKER_CONFIG_ENV } from "./workerWire";
 
@@ -121,8 +122,9 @@ export function claudeWorkerEnvironment({
 }
 
 /**
- * The native Claude Code process's environment: the same scrub again, the worker's config dropped, the plan's store
- * routed, and the token descriptor named only on a setup-token seat.
+ * The native Claude Code process's environment: the same scrub again, the worker's config and any inherited app
+ * session id dropped, the plan's store routed, the token descriptor named only on a setup-token seat, and the
+ * session's own app id set, which the process's tools and hooks inherit.
  *
  * @param inherited the environment the SDK asked to start the process under
  * @param config the worker's launch configuration
@@ -137,10 +139,21 @@ export function claudeNativeEnvironment({
 }): Record<string, string> {
   // The worker runs as Node; the session's own tools must not inherit that, or an Electron they start would too.
   const environment = keptEnvironment({
-    dropped: ["NODE_OPTIONS", WORKER_CONFIG_ENV, "ELECTRON_RUN_AS_NODE"],
+    dropped: ["NODE_OPTIONS", WORKER_CONFIG_ENV, "ELECTRON_RUN_AS_NODE", APP_SESSION_ID_ENV],
     inherited: withoutClaudeNamespaces({ inherited }),
   });
-  return Object.assign(environment, routedEnvironment({ config }));
+  return Object.assign(environment, routedEnvironment({ config }), sessionIdentityEnvironment({ config }));
+}
+
+/**
+ * The session's own app id, as {@link APP_SESSION_ID_ENV}: what a `slopweaver` verb run inside the session claims
+ * the session by (`src/sessionHarness/appSessionOrigin.ts`).
+ *
+ * @param config the worker's launch configuration, whose `sessionId` is the control plane's id
+ * @returns the one variable naming it
+ */
+function sessionIdentityEnvironment({ config }: { config: ClaudeWorkerLaunchConfig }): Record<string, string> {
+  return { [APP_SESSION_ID_ENV]: config.sessionId };
 }
 
 /**
@@ -161,13 +174,15 @@ function routedEnvironment({ config }: { config: ClaudeWorkerLaunchConfig }): Re
  * The `env` the session's flag settings carry. Claude Code applies a settings file's `env` after the process starts,
  * so the scrub above cannot reach it; the flag tier outranks every user, project and local settings file, so this
  * blanks each credential, provider switch and model endpoint and pins the routing to the plan's own values over whatever those set.
+ * It pins the session's own app id too, so no settings file can make a hook claim another session.
  *
  * @param config the worker's launch configuration
- * @returns every credential blanked and every routing variable pinned, the descriptor blanked on a store seat
+ * @returns every credential blanked, every routing variable pinned, the descriptor blanked on a store seat, and the
+ *   session's app id
  */
 export function claudeSettingsEnvironment({ config }: { config: ClaudeWorkerLaunchConfig }): Record<string, string> {
   const blanked = Object.fromEntries(
     [...SETTINGS_BLANKED_KEYS, ...SETTINGS_BLANKED_ENDPOINTS, CLAUDE_TOKEN_FD_ENV].map((key) => [key, ""]),
   );
-  return { ...blanked, ...routedEnvironment({ config }) };
+  return { ...blanked, ...routedEnvironment({ config }), ...sessionIdentityEnvironment({ config }) };
 }

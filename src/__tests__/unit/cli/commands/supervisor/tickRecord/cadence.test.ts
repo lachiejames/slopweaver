@@ -50,8 +50,8 @@ describe("the chair's hand-off cadence, as the recorder prints it", () => {
       sessions: [
         { pid: 38858, sessionId: "a0000032", verdict: { atIso: "", kind: "on-fable", model: "claude-fable-5-1" } },
       ],
-      workspaceCwd: "/wt/chair",
-      workspaceId: "WS",
+      directory: "/wt/chair",
+      location: { kind: "cmux", workspaceId: "WS" },
     },
     kind: "read",
     lanes: FILL_LANES,

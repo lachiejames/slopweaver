@@ -50,6 +50,7 @@ export type FleetRefusalCode =
   | "SEAT_STILL_LIMITED"
   | "NO_CHAIR_PIN"
   | "CHAIR_ON_CODEX"
+  | "CHAIR_IN_APP"
   | "CHAIR_REORIENTATION_TIMEOUT"
   | "CONSOLE_FAILED"
   | "CMUX_ACCESS_DENIED"
@@ -82,6 +83,7 @@ export const FLEET_REFUSAL_CODES: readonly FleetRefusalCode[] = [
   "SEAT_STILL_LIMITED",
   "NO_CHAIR_PIN",
   "CHAIR_ON_CODEX",
+  "CHAIR_IN_APP",
   "CHAIR_REORIENTATION_TIMEOUT",
   "CONSOLE_FAILED",
   "CMUX_ACCESS_DENIED",
@@ -285,6 +287,13 @@ export function mapFleetRefusal({
         detail:
           "The pin names a Codex chair, and recovery resumes only Claude sessions, so it was left alone and no other seat waited on it.",
         headline: "The supervisor runs on Codex, which recovery does not resume.",
+        refusal,
+      });
+    case "CHAIR_IN_APP":
+      return reasonOf({
+        detail:
+          "The pin names a supervisor the desktop app hosts, and recovery resumes only a chair in a cmux tab, so it was left alone and no other seat waited on it.",
+        headline: "The supervisor runs in the desktop app, which recovery does not resume.",
         refusal,
       });
     case "CHAIR_REORIENTATION_TIMEOUT":

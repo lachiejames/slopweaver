@@ -46,6 +46,7 @@ import {
 } from "../../../sessions/seatRecovery.js";
 import { foldSessions, parseSessionLog } from "../../../sessions/session.js";
 import { appendSessionEvent, readSessionLogText } from "../../../sessions/sessionStore.js";
+import { pinnedCmuxWorkspaceId } from "../../../sessions/supervisorPin.js";
 import { readSupervisorPin } from "../../../sessions/supervisorPinStore.js";
 import { DEFAULT_WAIT_TIMEOUT_SECONDS } from "../../../wait/loop.js";
 import { defineCommand } from "../../defineCommand.js";
@@ -305,7 +306,7 @@ export async function runSessionReSeat(argv: readonly string[]): Promise<number>
     body: async ({ host }) =>
       reSeatWithClient({
         deps: {
-          chairWorkspaceId: readSupervisorPin({ home })?.workspaceId,
+          chairWorkspaceId: pinnedCmuxWorkspaceId({ pin: readSupervisorPin({ home }) }),
           client: host,
           dryRun,
           env: process.env,
