@@ -39,7 +39,8 @@ const SIGHT_QUESTIONS: readonly RegExp[] = [
  * A typed ask is held to more than a spoken one. A call's look-ask list (`lookAck.ts`) only picks the voice's
  * acknowledgement, so "I deleted this screenshot" matching it costs a line; here a match lets a frame be taken. So the
  * ask must OPEN a clause, after nothing but softeners: "can you look at my screen" asks, "I'll look at this later",
- * "don't look at my screen" and "I deleted this screenshot" do not.
+ * "don't look at my screen" and "I deleted this screenshot" do not. A blank line opens a clause as a full stop does, so
+ * an ask opening a new paragraph asks; a single line break is a wrap and does not.
  */
 
 /** What may stand before an ask in its clause: the start or a stop, then any run of softeners. */
@@ -55,6 +56,8 @@ const TYPED_ASK_VERBS: readonly string[] = [
   "(?:take|grab|get) (?:a |another |a new |one more )?screenshot",
   "screenshot (?:this|that|it|my screen)\\b",
   "look here\\b",
+  // Pointing at what is on screen names it as surely as "look" does; "open this card's link" points past it.
+  "(?:open|read|start) (?:this|that) (?:card|page)\\b(?!'s\\b)",
   "(?:bring|pull) up (?:my|the) screen\\b",
   "what am i looking at\\b",
 ];
@@ -86,11 +89,17 @@ export const TYPED_LOOK_NOT_ASKED_DETAIL = "not asked for in this message";
  * @returns true for an explicit ask, false for anything else, a question about seeing included
  */
 export function isTypedLookAsk({ text }: { text: string }): boolean {
-  const words = text.toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, " ").trim();
+  const lowered = text.toLowerCase().replace(/[‘’]/g, "'");
+  const words = lowered.replace(/\s+/g, " ").trim();
   if (NEGATION.test(words) || SIGHT_QUESTIONS.some((question) => question.test(words))) {
     return false;
   }
-  return TYPED_LOOK_ASK.test(words);
+  // Only the ask reads a blank line as a stop: a veto split across one ("can you\n\nsee my screen?") still vetoes.
+  const clauses = lowered
+    .replace(/\r?\n[ \t]*\r?\n\s*/g, ". ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return TYPED_LOOK_ASK.test(clauses);
 }
 
 /**

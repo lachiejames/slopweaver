@@ -17,6 +17,14 @@ describe("isTypedLookAsk", () => {
     "Look at that. What's wrong with it?",
     "hey can you just take a screenshot",
     "I zoomed in. Take another look",
+    "open this card",
+    "read that page",
+    "start this page",
+    "Could you please open that card?",
+    "Short note\n\nopen this card",
+    "Short note\n \t\nplease read that page",
+    "Short note\r\n\r\nstart this card",
+    "look at this\n\nmore details",
   ])("takes %s as an ask", (text) => {
     expect(isTypedLookAsk({ text })).toBe(true);
   });
@@ -42,6 +50,18 @@ describe("isTypedLookAsk", () => {
     "Don't, please, look at my screen.",
     "Don’t. Look at my screen later",
     "no need, look at this tomorrow instead? not now",
+    "I'll read that page tomorrow",
+    "why did you open this card?",
+    "should I open this card?",
+    "open the card",
+    "open these cards",
+    "Short note\nopen this card",
+    "don't open this card",
+    "Short note\n\nopen this card, but don't take a screenshot",
+    "open this card's link in a new tab",
+    "open this card’s link in a new tab",
+    "Short note\n\ncan you see my screen?",
+    "can you\n\nsee my screen? look at my screen",
   ])("does not take %s as an ask", (text) => {
     expect(isTypedLookAsk({ text })).toBe(false);
   });
