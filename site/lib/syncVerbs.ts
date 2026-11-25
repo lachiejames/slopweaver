@@ -3,16 +3,21 @@
  *
  * `liveVerbs.ts` is what a page reads; a row here is what a page's own refresh runs to put a fresher reading in the
  * ledger for that page to read next. The two are separate lists on purpose: a verb that reads the
- * machine in 20 seconds belongs on the live list, and a verb that reads GitHub or Slack for a minute and appends
- * to the readings ledger belongs here, never on a free-running timer. Two owners take one each:
+ * machine in 20 seconds belongs on the live list, and a verb that reads GitHub or Slack for a minute, or drains a
+ * stream another actor also drains, and appends to the readings ledger belongs here, never on a free-running timer.
+ * Three owners take them:
  *
  * - the landing reading: the shell, on every page while the console is in view, when the one shown cannot be counted as
  *   the owner's whole open population, drafts included, and when it is due against the landing cadence — woken at that
  *   instant, never on a free clock (`landingFreshness.ts`, `landingAutoRefresh.ts`) — so the row carries `--include-drafts`;
  * - the Queue takes its own currency check once per opening, when the one it shows is ten minutes old or missing
- *   (opening a page refreshes its cards; `currencyOpeningRefresh.ts`).
+ *   (opening a page refreshes its cards; `currencyOpeningRefresh.ts`);
+ * - the Fleet page's Now view takes its own session watch and fleet burn readings once per opening each, on the same
+ *   rule (`../components/live/useFleetOpeningRefresh.ts`), so it never depends on a supervisor tick having run.
+ *   `machine capacity` is deliberately NOT a row: it reads each Claude plan's ceiling through a probe that spends a
+ *   token at Anthropic, so it stays the supervisor's reading.
  *
- * Both share one automatic run per reading per ten minutes and one run at a time (`syncFreshness.ts`).
+ * All share one automatic run per reading per ten minutes and one run at a time (`syncFreshness.ts`).
  *
  * What a row may never carry, and the reason this file is short: `--press`, `--register`, or any flag
  * that acts on the world. The console is READ-ONLY. A sync row reads a provider and
@@ -52,6 +57,20 @@ const LANDING_TIMEOUT_MS = 240_000;
  */
 const CURRENCY_TIMEOUT_MS = 120_000;
 
+/**
+ * Sixty seconds. A BUDGET, not a measurement: twice `DRAIN_DEADLINE_MS` (30s, `src/cli/commands/session/watch.ts`),
+ * the hard bound on one plain drain however busy the fleet is, leaving the rest for the cmux inventory and title
+ * reads the report makes after it and the ledger append.
+ */
+const SESSION_WATCH_TIMEOUT_MS = 60_000;
+
+/**
+ * Twenty seconds. A BUDGET grounded in a measurement: about four times the 5.1s wall `fleet burn` took over a
+ * full install's transcripts and rollouts, as `src/supervisor/scratch/fleetReadings.ts` records it with its
+ * reproduction command.
+ */
+const FLEET_BURN_TIMEOUT_MS = 20_000;
+
 /** Every reading a page's own refresh may take. */
 export const SYNC_VERBS: readonly SyncVerb[] = [
   {
@@ -69,6 +88,24 @@ export const SYNC_VERBS: readonly SyncVerb[] = [
     slug: "currency",
     timeoutMs: CURRENCY_TIMEOUT_MS,
     title: "slopweaver handover currency --json --record-reading sync-now",
+  },
+  {
+    // Drains cmux's hook stream into the local store's fold (the cursor and fold commit together under one
+    // compare-and-set, so a drain racing the tick's loses visibly and appends nothing) and writes only that row and
+    // the readings ledger; a refused append exits non-zero.
+    argv: ["session", "watch", "--json-report", "--record-reading", "sync-now"],
+    readsSlug: "watch-reading",
+    slug: "session-watch",
+    timeoutMs: SESSION_WATCH_TIMEOUT_MS,
+    title: "slopweaver session watch --json-report --record-reading sync-now",
+  },
+  {
+    // Reads the local transcripts and rollouts only — no probe, no network — and writes only the readings ledger.
+    argv: ["fleet", "burn", "--json", "--record-reading", "sync-now"],
+    readsSlug: "burn-reading",
+    slug: "fleet-burn",
+    timeoutMs: FLEET_BURN_TIMEOUT_MS,
+    title: "slopweaver fleet burn --json --record-reading sync-now",
   },
 ];
 

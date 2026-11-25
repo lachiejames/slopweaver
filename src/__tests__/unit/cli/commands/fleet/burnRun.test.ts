@@ -12,9 +12,12 @@ import {
   runFleetBurn,
 } from "../../../../../cli/commands/fleet/burnRun.js";
 import { fleetCommandErrorLines } from "../../../../../cli/commands/fleet/errors.js";
-import { EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
+import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
 import type { FleetBurnReport } from "../../../../../fleet/hostBurn.js";
-import { unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { err, ok, type Result, unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { type ReadingsError, ReadingsErrors } from "../../../../../readings/errors.js";
+import type { PrintedReadingAppend } from "../../../../../readings/printedReading.js";
+import type { ReadingReceipt } from "../../../../../readings/types.js";
 
 /** A report with one measured host and one unavailable one. */
 const REPORT: FleetBurnReport = {
@@ -35,22 +38,48 @@ const REPORT: FleetBurnReport = {
   windowHours: 24,
 };
 
-/** Fake seams that record every request and line. */
-function fakeDeps(): {
+/** A receipt for whatever append arrives, as the ledger would answer one it took. */
+function receiptOf({ append }: { append: PrintedReadingAppend }): ReadingReceipt {
+  return {
+    documentPath: "/default/home/readings/fleet-burn/doc.json",
+    indexPath: "/default/home/readings/index.jsonl",
+    record: {
+      by: append.by,
+      bytes: append.document.length,
+      file: "fleet-burn/doc.json",
+      observedAtIso: append.observedAtIso,
+      producer: append.producer,
+      readingId: `${append.nowIso}-fleet-burn`,
+      recordedAtIso: append.nowIso,
+    },
+  };
+}
+
+/** Fake seams that record every request, append and line; `refuse` makes the ledger refuse the append. */
+function fakeDeps({ refuse }: { refuse?: ReadingsError } = {}): {
   deps: FleetBurnDeps;
   requests: { home: string; nowIso: string }[];
+  appends: PrintedReadingAppend[];
   out: string[];
   diagnostics: string[];
 } {
   const requests: { home: string; nowIso: string }[] = [];
+  const appends: PrintedReadingAppend[] = [];
   const out: string[] = [];
   const diagnostics: string[] = [];
   const deps: FleetBurnDeps = {
     defaultHome: () => "/default/home",
-    now: () => "2026-10-08T09:00:00.000Z",
+    now: () => "2026-10-08T09:00:05.000Z",
     readReport: async (request) => {
       requests.push(request);
       return REPORT;
+    },
+    recordReading: (append): Result<ReadingReceipt, ReadingsError> => {
+      appends.push(append);
+      if (refuse !== undefined) {
+        return err(refuse);
+      }
+      return ok(receiptOf({ append }));
     },
     writeDiagnostic: (line) => {
       diagnostics.push(line);
@@ -59,12 +88,12 @@ function fakeDeps(): {
       out.push(line);
     },
   };
-  return { deps, diagnostics, out, requests };
+  return { appends, deps, diagnostics, out, requests };
 }
 
 describe("FLEET_BURN_FLAG_NAMES", () => {
   it("names every flag the parser accepts", () => {
-    expect(FLEET_BURN_FLAG_NAMES).toEqual(["--home", "--now", "--json"]);
+    expect(FLEET_BURN_FLAG_NAMES).toEqual(["--home", "--now", "--record-reading", "--json"]);
   });
 });
 
@@ -74,7 +103,22 @@ describe("parseFleetBurnArgs", () => {
       home: "/h",
       json: true,
       nowIso: "2026-10-08T01:00:00.000Z",
+      recordReadingBy: undefined,
     });
+  });
+
+  it("reads who takes the reading under --record-reading beside --json", () => {
+    expect(unwrap(parseFleetBurnArgs({ rest: ["--json", "--record-reading", "sync-now"] })).recordReadingBy).toBe(
+      "sync-now",
+    );
+  });
+
+  it("refuses --record-reading without --json, since the document recorded is the --json one", () => {
+    const error = unwrapErr(parseFleetBurnArgs({ rest: ["--record-reading", "sync-now"] }));
+    expect(error.code).toBe("ARGUMENTS_REFUSED");
+    expect(fleetCommandErrorLines({ error })).toEqual([
+      "--record-reading records the --json document, so it needs --json",
+    ]);
   });
 
   it("refuses a --now that is not an instant", () => {
@@ -114,10 +158,44 @@ describe("runFleetBurn", () => {
   it("prints the report as one JSON document, measured at the clock's instant under the default home", async () => {
     const fake = fakeDeps();
     expect(await runFleetBurn({ deps: fake.deps, rest: ["--json"] })).toBe(EXIT_OK);
-    expect([fake.requests, fake.out.map((line) => JSON.parse(line) as unknown)]).toEqual([
-      [{ home: "/default/home", nowIso: "2026-10-08T09:00:00.000Z" }],
+    expect([fake.requests, fake.out.map((line) => JSON.parse(line) as unknown), fake.appends]).toEqual([
+      [{ home: "/default/home", nowIso: "2026-10-08T09:00:05.000Z" }],
       [REPORT],
+      [],
     ]);
+  });
+
+  it("records exactly the printed text under --record-reading, observed at the report's own instant", async () => {
+    const fake = fakeDeps();
+    expect(await runFleetBurn({ deps: fake.deps, rest: ["--json", "--record-reading", "sync-now"] })).toBe(EXIT_OK);
+    expect(fake.appends).toEqual([
+      {
+        by: "sync-now",
+        document: fake.out[0],
+        home: "/default/home",
+        nowIso: "2026-10-08T09:00:05.000Z",
+        observedAtIso: "2026-10-08T09:00:00.000Z",
+        producer: "fleet burn",
+      },
+    ]);
+    expect([fake.out.length, fake.diagnostics]).toEqual([1, []]);
+  });
+
+  it("prints the document, then exits non-zero naming the refusal when the ledger will not take it", async () => {
+    const fake = fakeDeps({ refuse: ReadingsErrors.ledgerBusy({ why: "a fixture holds the lock" }) });
+    expect(await runFleetBurn({ deps: fake.deps, rest: ["--json", "--record-reading", "sync-now"] })).toBe(EXIT_ERROR);
+    expect([fake.out.map((line) => JSON.parse(line) as unknown), fake.diagnostics]).toEqual([
+      [REPORT],
+      [
+        "fleet burn: the reading was not recorded — another session is writing the readings ledger right now (a fixture holds the lock) — nothing was written; try again",
+      ],
+    ]);
+  });
+
+  it("refuses --record-reading without --json before anything is read", async () => {
+    const fake = fakeDeps();
+    expect(await runFleetBurn({ deps: fake.deps, rest: ["--record-reading", "sync-now"] })).toBe(EXIT_USAGE);
+    expect([fake.requests.length, fake.appends.length]).toEqual([0, 0]);
   });
 
   it("prints the window and one line per host for a human", async () => {

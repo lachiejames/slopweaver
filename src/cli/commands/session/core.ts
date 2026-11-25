@@ -30,7 +30,7 @@ const SPECS = {
   standing: { boolean: ["json"], string: ["home", "loop-session-key"] },
   watch: {
     boolean: ["follow", "include-stale", "json", "json-report", "reset-state"],
-    string: ["home", "idle-minutes", "since"],
+    string: ["home", "idle-minutes", "record-reading", "since"],
   },
 } satisfies Readonly<Record<string, FlagSpec>>;
 

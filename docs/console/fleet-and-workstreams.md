@@ -66,9 +66,15 @@ HOLD, ALERT or clear with its load, one line drawn by `site/components/live/Mach
 contract as `read.ts`.
 
 **Why it reads the ledger and never the verb.** The verb is a cursor DRAIN — it reads the cmux events after
-its stored cursor and advances it (the `session-watch` row of `cmux_event_state`) — so a page draining it on a timer would starve
-the supervisor tick's own drain of the events it judges. So the rows come from the tick's own gauges, which `supervisor tick-capture` records as readings —
-`machine capacity`'s exit-1 document included, so the page never reasons about a diagnostic exit. The
+its stored cursor and advances it (the `session-watch` row of `cmux_event_state`) — so its stdout is only what arrived
+since the last drain, and a page polling it on a timer would draw an empty list most of the time. So the rows come from
+the readings ledger: `supervisor tick-capture` records every gauge as a reading while a tick runs —
+`machine capacity`'s exit-1 document included, so the page never reasons about a diagnostic exit — and opening the
+page records its own `session watch` and `fleet burn` readings through the sync route once per opening, when the one
+shown is missing or ten minutes old (`site/components/live/useFleetOpeningRefresh.ts`). A drain commits its fold and
+cursor under one compare-and-set before it records, so one racing the tick's loses and records nothing. `machine
+capacity` is never taken from the page, since its plan-ceiling read spends a token. The cards' heading reads
+**Working now** only over a seat reading under ten minutes old, and the reading's age otherwise. The
 route's not-JSON reason says what the verb DID print — "nothing at all", or the first 120 characters —
 because "not json" alone hid the runs that printed nothing on exit 0 — the shape of cmux hanging up mid-replay, which the drain now resumes past (`src/cmux/resumingDrain.ts`).
 The board half has a cost of its own: `handover reconcile --json` walks the whole board, every live cmux workspace

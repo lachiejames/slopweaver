@@ -62,6 +62,7 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--home": ["--home", "/tmp"],
     "--json": ["--json"],
     "--now": ["--now", "2026-10-08T01:00:00Z"],
+    "--record-reading": ["--json", "--record-reading", "sync-now"],
   },
   "fleet ceiling": {
     "--days": ["--days", "14"],

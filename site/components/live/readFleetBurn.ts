@@ -1,5 +1,6 @@
 /**
- * The narrow reader for the supervisor tick's recorded `fleet burn --json` (`src/fleet/hostBurn.ts`'s
+ * The narrow reader for the recorded `fleet burn --json` — the supervisor tick's, or the Fleet page's own opening
+ * refresh (`useFleetOpeningRefresh.ts`) — (`src/fleet/hostBurn.ts`'s
  * `FleetBurnReport`): each host's tokens over the last 24 hours, the seven-day amount at that rate, and the sessions
  * drawing now. Same contract as every reader beside it: a shape it does not recognise is `undefined`, never a
  * plausible substitute, and one host that will not read refuses the whole report.

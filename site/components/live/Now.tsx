@@ -35,16 +35,19 @@ import { readCapacityReading, readSeatsReading, type Seats } from "./readNow";
 import { readWakeReading, type WakeCiReading } from "./readWakeReading";
 import { type Reconcile, readReconcileReading } from "./readWorkstreams";
 import { TILE_LIST, TILES, Tile } from "./Tile";
+import { useFleetOpeningRefresh } from "./useFleetOpeningRefresh";
 import { type LiveState, readyValueOf, useLive } from "./useLive";
 import { WorkingSessions } from "./WorkingSessions";
 
 /**
  * The fast lane's poll interval, the same twenty seconds the console uses.
  *
- * Every reading here but one comes off the readings ledger, never the verb: `reading last` is a file read, and the
- * documents it carries were taken by the supervisor tick (`liveVerbs.ts` says why a drain must not be run
- * from a page). Twenty seconds is therefore a cadence for noticing a NEW tick, not a cost the machine pays. The live
- * machine and the `machine series` sample Now keeps asking for are `NowLiveMachine`'s own.
+ * Every reading here but one comes off the readings ledger, never the verb: `reading last` is a file read. The
+ * documents it carries were taken by the supervisor tick, or — for the seats and the burn — by this page's own
+ * opening refresh through the sync route (`useFleetOpeningRefresh.ts`), once per opening and never on this poll
+ * (`liveVerbs.ts` says why a drain must not run on a page's timer). Twenty seconds is therefore a cadence for noticing
+ * a NEW reading, not a cost the machine pays. The live machine and the `machine series` sample Now keeps asking for
+ * are `NowLiveMachine`'s own.
  */
 const FAST_POLL_MS = 20_000;
 
@@ -168,6 +171,8 @@ function SeatsTile({
     read: readFleetBurnReading,
     slug: "burn-reading",
   });
+  // Opening the page takes its own seat and burn readings when the ones shown are missing or ten minutes old.
+  useFleetOpeningRefresh({ burn: burnState, seats: state });
   // Why the fleet is not running more, as the same tick judged it. No fixture capture is committed for it either.
   const whyState = useLive({
     everyMs: FAST_POLL_MS,
@@ -328,6 +333,7 @@ function SeatsTile({
                   setOpenedId(card.key);
                 }}
                 latestReadCurrent={latestReadCurrent}
+                observedAtIso={reading.observedAtIso}
                 openedKey={openedId}
                 view={sessions}
               />

@@ -3,8 +3,11 @@
  * that rate would burn, and how many sessions drew any in the last few minutes (`../../../fleet/hostBurn.ts`).
  *
  * Reads the local Claude transcripts and every registered Codex home's rollouts, and nothing else: no probe, no
- * network, no model. `--now` replays a past instant. The supervisor tick records `--json`, and the Fleet page's
- * per-host usage line reads it with `reading last --producer "fleet burn"`.
+ * network, no model. `--now` replays a past instant. The Fleet page's per-host usage line reads the `--json` document
+ * with `reading last --producer "fleet burn"`. Two actors record it: the supervisor tick, which ledgers the child's
+ * stdout itself, and the Fleet page's own opening refresh, whose sync row runs `--json --record-reading sync-now`
+ * (`site/lib/syncVerbs.ts`). A refused append exits non-zero after the document printed, because the sync route
+ * reads exit 0 as "the reading was taken".
  */
 import { type FleetBurnReport, type HostBurn } from "../../../fleet/hostBurn.js";
 import { scanFleetBurn } from "../../../fleet/hostBurnStore.js";
@@ -13,15 +16,22 @@ import { parseIsoMs } from "../../../lib/date.js";
 import { logger } from "../../../lib/logger.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { planRegisterPort } from "../../../plans/port.js";
+import type { ReadingsError } from "../../../readings/errors.js";
+import { type PrintedReadingAppend, printedReadingOutputOf } from "../../../readings/printedReading.js";
+import { recordReading } from "../../../readings/store.js";
+import type { ReadingReceipt } from "../../../readings/types.js";
 import { compactTokens } from "../../../sessions/sessionCost.js";
 import { claudeProjectsDir } from "../../../transcripts/source.js";
 import { defineCommand } from "../../defineCommand.js";
-import { EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
+import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { parseFlags } from "../../parseFlags.js";
 import { type FleetCommandError, FleetCommandErrors, fleetCommandErrorLines } from "./errors.js";
 
+/** The producer the reading files under — the verb words `reading last --producer "fleet burn"` reads. */
+export const FLEET_BURN_PRODUCER = "fleet burn";
+
 /** The flags `fleet burn` accepts, and the ONLY place they are named. */
-const BURN_FLAG_SPEC = { boolean: ["json"], string: ["home", "now"] } as const;
+const BURN_FLAG_SPEC = { boolean: ["json"], string: ["home", "now", "record-reading"] } as const;
 
 /** Where a verb's own arguments start in `process.argv`: `[node, cli, fleet, burn, …]`. */
 const VERB_ARG_OFFSET = 4;
@@ -40,6 +50,8 @@ export interface FleetBurnArgs {
   readonly json: boolean;
   readonly home: string | undefined;
   readonly nowIso: string | undefined;
+  /** Who takes the reading under `--record-reading`; `undefined` when the flag is absent. */
+  readonly recordReadingBy: string | undefined;
 }
 
 /** A string flag's value, or `undefined` when it was not supplied. */
@@ -76,7 +88,16 @@ export function parseFleetBurnArgs({
     }
     nowIso = new Date(nowMs).toISOString();
   }
-  return ok({ home: stringFlag({ name: "home", values }), json: values["json"] === true, nowIso });
+  const json = values["json"] === true;
+  const recordReadingBy = stringFlag({ name: "record-reading", values });
+  if (recordReadingBy !== undefined && !json) {
+    return err(
+      FleetCommandErrors.argumentsRefused({
+        problems: [FleetCommandErrors.recordReadingNeedsJson({ got: recordReadingBy })],
+      }),
+    );
+  }
+  return ok({ home: stringFlag({ name: "home", values }), json, nowIso, recordReadingBy });
 }
 
 /**
@@ -116,6 +137,7 @@ export interface FleetBurnDeps {
   readonly now: () => string;
   readonly defaultHome: () => string;
   readonly readReport: (request: { home: string; nowIso: string }) => Promise<FleetBurnReport>;
+  readonly recordReading: (input: PrintedReadingAppend) => Result<ReadingReceipt, ReadingsError>;
   readonly writeOut: (line: string) => void;
   readonly writeDiagnostic: (line: string) => void;
 }
@@ -123,8 +145,11 @@ export interface FleetBurnDeps {
 /**
  * Run `fleet burn` against injected seams.
  *
+ * Under `--json --record-reading <by>` the document prints first and is appended second, so a completed scan is never
+ * hidden; a refused append then exits non-zero, because the console's sync route reads exit 0 as a reading taken.
+ *
  * @param rest the argv tail after `fleet burn`
- * @param deps the clock, the default home, the scanner and the two output channels
+ * @param deps the clock, the default home, the scanner, the ledger append and the two output channels
  * @returns the process exit code
  */
 export async function runFleetBurn({ rest, deps }: { rest: readonly string[]; deps: FleetBurnDeps }): Promise<number> {
@@ -136,7 +161,23 @@ export async function runFleetBurn({ rest, deps }: { rest: readonly string[]; de
   const { home = deps.defaultHome(), nowIso = deps.now() } = args.value;
   const report = await deps.readReport({ home, nowIso });
   if (args.value.json) {
-    deps.writeOut(JSON.stringify(report));
+    const output = printedReadingOutputOf({
+      by: args.value.recordReadingBy,
+      document: report,
+      home,
+      observedAtIso: report.observedAtIso,
+      producer: FLEET_BURN_PRODUCER,
+      recordedAtIso: deps.now(),
+    });
+    deps.writeOut(output.text);
+    if (output.append === undefined) {
+      return EXIT_OK;
+    }
+    const recorded = deps.recordReading(output.append);
+    if (recorded.isErr()) {
+      deps.writeDiagnostic(`fleet burn: the reading was not recorded — ${recorded.error.message}`);
+      return EXIT_ERROR;
+    }
     return EXIT_OK;
   }
   renderFleetBurnLines({ report }).forEach((line) => {
@@ -154,6 +195,7 @@ export const fleetBurnCommand = defineCommand({
         now: () => new Date().toISOString(),
         readReport: ({ home, nowIso }) =>
           scanFleetBurn({ home, nowIso, port: planRegisterPort(), projectsDir: claudeProjectsDir() }),
+        recordReading: (input) => recordReading({ ...input }),
         writeDiagnostic: (line) => {
           logger.error({ msg: line });
         },

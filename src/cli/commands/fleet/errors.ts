@@ -123,6 +123,12 @@ export const FleetCommandErrors = {
     got,
     message: `--now ${got} is not an ISO-8601 instant`,
   }),
+  recordReadingNeedsJson: ({ got }: { got: string }): FleetFlagValueInvalidError => ({
+    code: "FLAG_VALUE_INVALID",
+    flag: "--record-reading",
+    got,
+    message: "--record-reading records the --json document, so it needs --json",
+  }),
   resumeJournalReadFailed: ({ cause }: { cause: { readonly message: string } }): FleetResumeJournalReadFailedError => ({
     cause,
     code: "RESUME_JOURNAL_READ_FAILED",

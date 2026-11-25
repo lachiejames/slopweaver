@@ -132,6 +132,27 @@ describe("session watch", () => {
     expect(store.opened).toBe(0);
   });
 
+  it("refuses --record-reading without --json-report, before the store opens", async () => {
+    const store = memoryCmuxEventStateStore();
+
+    expect(await run({ port: memoryCmuxEventStatePort({ store }), rest: ["--record-reading", "sync-now"] })).toBe(
+      EXIT_USAGE,
+    );
+    expect(store.opened).toBe(0);
+  });
+
+  it("refuses --record-reading beside --follow, before the store opens", async () => {
+    const store = memoryCmuxEventStateStore();
+
+    expect(
+      await run({
+        port: memoryCmuxEventStatePort({ store }),
+        rest: ["--json-report", "--follow", "--record-reading", "sync-now"],
+      }),
+    ).toBe(EXIT_USAGE);
+    expect(store.opened).toBe(0);
+  });
+
   it("exits non-zero, before subscribing, when the store cannot be reached — never falling back to a file", async () => {
     expect(await run({ rest: [] })).toBe(EXIT_ERROR);
   });

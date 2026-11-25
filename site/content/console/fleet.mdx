@@ -289,7 +289,7 @@ and as far as the transcript's last 8 MiB holds. Close and reopen the card to re
 | Doctrine       | `slopweaver github landing --json`       | the `census` of open pull requests per repository, its `viewer`, and each landing row's `ci` and board row                |
 
 Each row is read with `slopweaver reading last --producer "<verb>" --json` on the fast lane: a file read of
-the readings ledger, polled every twenty seconds to notice a new tick. The line under each title says who
+the readings ledger, polled every twenty seconds to notice a new reading. The line under each title says who
 took the reading and how long ago it was true; the stamp ages the reading, never the fetch. The health line
 has no title and no stamp: until a reading arrives each half is a spinner after its name, then the verb's word,
 or a staleness mark whose hover carries the route's reason.
@@ -301,20 +301,26 @@ or a staleness mark whose hover carries the route's reason.
 
 MEASURED: `session watch --json-report` spawned from the live route printed **nothing at all**
 on exit 0, twice, while the same command from a shell had printed 6,141 bytes minutes earlier. The verb is
-a cursor **drain** — it reads the cmux events after a shared cursor and advances it — so a second drain
-inside the same quiet window has nothing to print, and a page draining it on a timer would starve the
-supervisor tick's own drain of the very events it judges. Reproduce it:
+a cursor **drain** — it reads the cmux events after a shared cursor and advances it — so its stdout is only what
+arrived since the last drain, and a page polling it on a timer would draw an empty list most of the time. Reproduce it:
 
 ```bash
 slopweaver session watch --json-report; slopweaver session watch --json-report   # the second prints nothing
-slopweaver reading list                                                            # what the tick recorded, and when
+slopweaver reading list                                                            # what was recorded, by whom, and when
 ```
 
-That is the mechanism: the rows come from the supervisor tick's own
-gauges. `supervisor tick-capture` records every one of these verbs' documents as readings, so the page reads
-what the tick saw — `machine capacity`'s exit-1 document included, verdict and all — without running a
-gauge of its own. When a producer has no reading yet, the Agents tile and the health line both print the verb's own exit-3
-sentence rather than an empty list.
+So every tile reads the readings ledger, never a verb's stdout. `supervisor tick-capture` records every one of these
+verbs' documents as readings while a tick runs — `machine capacity`'s exit-1 document included, verdict and all.
+The page no longer depends on that alone: opening it takes its own `session watch` and `fleet burn` readings, once
+per opening each, when the one shown is missing or ten minutes old, through the sync route's
+`session watch --json-report --record-reading sync-now` and `fleet burn --json --record-reading sync-now` rows. A
+drain commits its fold and cursor together under one compare-and-set before it records, so a drain racing the tick's
+loses visibly and records nothing, and the events it does take are in the fold the tick reads next. `machine
+capacity` is never taken from the page: its plan-ceiling read spends a token at Anthropic, so it stays the tick's.
+
+Until a fresh seat reading lands, the cards' heading says how old the one drawn is — **Working as of 2.3h ago** —
+and reads **Working now** only over a reading under ten minutes old. When a producer has no reading yet, the Agents
+tile and the health line both print the verb's own exit-3 sentence rather than an empty list.
 
 </details>
 
