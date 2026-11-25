@@ -3,15 +3,26 @@
  * prints once while it stands, the report prints when it clears, and a hold that outlives the timeout exits 4
  * — with the stream seeing the first and the last reading, never one row per re-read.
  */
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { runMachineCapacityWithDeps } from "../../../../../cli/commands/machine/capacity.js";
-import { EXIT_DEFERRED, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
+import { waitPublishingCapacityEvents } from "../../../../../cli/commands/machine/capacityEvents.js";
+import {
+  MACHINE_CAPACITY_PRODUCER,
+  RECORD_READING_NEEDS_JSON,
+  type RecordCapacityReading,
+} from "../../../../../cli/commands/machine/capacityReading.js";
+import { EXIT_DEFERRED, EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
+import { err, unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { readMachineCapacity } from "../../../../../live/machine/capacityWait.js";
 import type { MachineCapacityDeps } from "../../../../../live/machine/read.js";
 import { DEFAULT_THRESHOLDS } from "../../../../../plans/thresholds.js";
+import { ReadingsErrors } from "../../../../../readings/errors.js";
+import type { PrintedReadingAppend } from "../../../../../readings/printedReading.js";
+import { lastReading, recordReading as recordReadingInStore } from "../../../../../readings/store.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import type { WaitClock } from "../../../../../wait/loop.js";
 
@@ -59,9 +70,12 @@ function fakeClock(): WaitClock {
 async function run({
   tail,
   depsFor,
+  recordReading,
 }: {
   tail: readonly string[];
   depsFor: () => MachineCapacityDeps;
+  /** The ledger append; absent, the real store under the test's own `--home`. */
+  recordReading?: RecordCapacityReading;
 }): Promise<{ exit: number; out: string[]; errs: string[]; planReads: number }> {
   const out: string[] = [];
   const errs: string[] = [];
@@ -89,6 +103,7 @@ async function run({
         problems: [],
       });
     },
+    ...(recordReading === undefined ? {} : { recordReading }),
   });
   return { errs, exit, out, planReads };
 }
@@ -151,6 +166,40 @@ describe("machine capacity --wait", () => {
     ]);
   });
 
+  it("records once, the reading the wait ended on, never a held poll", async () => {
+    const appended: PrintedReadingAppend[] = [];
+    const { exit, out, errs } = await run({
+      depsFor: machineHoldingFor({ holdReads: 3 }),
+      recordReading: (input) => {
+        appended.push(input);
+        return recordReadingInStore({ ...input });
+      },
+      tail: ["--home", home, "--json", "--wait", "--record-reading", "tick-12"],
+    });
+    expect(exit).toBe(EXIT_OK);
+    // The wait polled through three held readings (its status line), yet stdout carries one document and one append.
+    expect(errs).toEqual(["machine capacity: HOLD on memory — waiting for it to clear"]);
+    expect(out).toHaveLength(1);
+    expect(appended).toHaveLength(1);
+    expect(appended.map((input) => [input.by, input.document])).toEqual([["tick-12", out[0]]]);
+    expect((JSON.parse(out[0]!) as { hold: boolean }).hold).toBe(false);
+  });
+
+  it("exits EXIT_ERROR, not EXIT_DEFERRED, when a timed-out wait's append is refused", async () => {
+    const refusal = ReadingsErrors.ledgerBusy({ why: "held by pid 4242" });
+    const { exit, errs } = await run({
+      depsFor: machineHoldingFor({ holdReads: 99 }),
+      recordReading: () => err(refusal),
+      tail: ["--home", home, "--json", "--wait", "--timeout-seconds", "10", "--record-reading", "tick-12"],
+    });
+    expect(exit).toBe(EXIT_ERROR);
+    expect(errs).toEqual([
+      "machine capacity: HOLD on memory — waiting for it to clear",
+      "WAIT-TIMEOUT machine capacity HOLD on memory still on after 10s",
+      `machine capacity: the reading was not recorded — ${refusal.message}`,
+    ]);
+  });
+
   it("refuses --timeout-seconds without --wait", async () => {
     const { exit, errs } = await run({
       depsFor: machineHoldingFor({ holdReads: 0 }),
@@ -158,5 +207,106 @@ describe("machine capacity --wait", () => {
     });
     expect(exit).toBe(EXIT_USAGE);
     expect(errs[0]).toBe("--timeout-seconds only means something with --wait");
+  });
+});
+
+describe("machine capacity --record-reading", () => {
+  it("refuses --record-reading without --json before reading anything", async () => {
+    const { exit, errs, out, planReads } = await run({
+      depsFor: machineHoldingFor({ holdReads: 0 }),
+      tail: ["--home", home, "--record-reading", "tick-12"],
+    });
+    expect([exit, errs, out, planReads]).toEqual([EXIT_USAGE, [RECORD_READING_NEEDS_JSON], [], 0]);
+  });
+
+  it("appends exactly the printed document under --json, observed at the reading's instant, by the flag's value", async () => {
+    const { exit, out } = await run({
+      depsFor: machineHoldingFor({ holdReads: 0 }),
+      tail: ["--home", home, "--json", "--record-reading", "tick-12"],
+    });
+    const { record, document } = unwrap(lastReading({ home, producer: MACHINE_CAPACITY_PRODUCER }));
+    expect([exit, record.by, record.observedAtIso, JSON.stringify(document)]).toEqual([
+      EXIT_OK,
+      "tick-12",
+      "2026-09-16T00:00:00.000Z",
+      out[0],
+    ]);
+  });
+
+  it("prints the brief document under --brief but appends the full one, off one plan read", async () => {
+    const brief = await run({
+      depsFor: machineHoldingFor({ holdReads: 0 }),
+      tail: ["--home", home, "--brief", "--json", "--record-reading", "tick-12"],
+    });
+    const full = await run({ depsFor: machineHoldingFor({ holdReads: 0 }), tail: ["--home", home, "--json"] });
+    const stored = JSON.stringify(unwrap(lastReading({ home, producer: MACHINE_CAPACITY_PRODUCER })).document);
+    expect([brief.planReads, stored === brief.out[0], stored]).toEqual([1, false, full.out[0]]);
+  });
+
+  it("records nothing without the flag", async () => {
+    await run({ depsFor: machineHoldingFor({ holdReads: 0 }), tail: ["--home", home, "--json"] });
+    expect(unwrapErr(lastReading({ home, producer: MACHINE_CAPACITY_PRODUCER })).code).toBe("NO_READING");
+  });
+
+  it("exits 1 naming the refusal when the append is refused, after the document already printed", async () => {
+    const refusal = ReadingsErrors.ledgerBusy({ why: "held by pid 4242" });
+    const { exit, out, errs } = await run({
+      depsFor: machineHoldingFor({ holdReads: 0 }),
+      recordReading: () => err(refusal),
+      tail: ["--home", home, "--json", "--record-reading", "tick-12"],
+    });
+    expect([exit, out.length, errs.at(-1)]).toEqual([
+      EXIT_ERROR,
+      1,
+      `machine capacity: the reading was not recorded — ${refusal.message}`,
+    ]);
+  });
+});
+
+describe("waitPublishingCapacityEvents", () => {
+  /** Wait over a machine holding for `holdReads` readings, capturing each changed hold line. */
+  async function waitOver({ holdReads, timeoutSeconds }: { holdReads: number; timeoutSeconds: number }): Promise<{
+    kind: string;
+    reads: number;
+    lines: string[];
+  }> {
+    const deps = machineHoldingFor({ holdReads })();
+    const lines: string[] = [];
+    const outcome = await waitPublishingCapacityEvents({
+      clock: fakeClock(),
+      emit: (line) => {
+        lines.push(line);
+      },
+      home,
+      log: { error: () => undefined },
+      nowIso: () => "2026-09-16T00:00:00.000Z",
+      read: () => readMachineCapacity({ deps, topN: 5 }),
+      timeoutSeconds,
+    });
+    return { kind: outcome.kind, lines, reads: outcome.reads };
+  }
+
+  it("publishes the first reading's hold, and nothing for the clear reading it settled on", async () => {
+    const waited = await waitOver({ holdReads: 3, timeoutSeconds: 600 });
+    expect(waited).toEqual({
+      kind: "settled",
+      lines: ["machine capacity: HOLD on memory — waiting for it to clear"],
+      reads: 4,
+    });
+    expect(streamKinds({ home })).toEqual(["capacity-hold"]);
+  });
+
+  it("publishes the first and the last reading when the hold outlives the timeout, never one per re-read", async () => {
+    // PROVIDER_WAIT_SCHEDULE_MS reads at 0s, 10s, 30s and 60s; the next 45s delay crosses the 60s deadline. Four
+    // reads and two published holds is what separates first-and-last from one per read.
+    const waited = await waitOver({ holdReads: 99, timeoutSeconds: 60 });
+    expect([waited.kind, waited.reads]).toEqual(["timed-out", 4]);
+    expect(streamKinds({ home })).toEqual(["capacity-hold", "capacity-hold"]);
+  });
+
+  it("publishes nothing and reads once when the first reading is already clear", async () => {
+    const waited = await waitOver({ holdReads: 0, timeoutSeconds: 600 });
+    expect(waited).toEqual({ kind: "settled", lines: [], reads: 1 });
+    expect(existsSync(stateHomePaths({ home }).live.events.streamJsonl)).toBe(false);
   });
 });

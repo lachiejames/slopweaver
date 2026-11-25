@@ -21,7 +21,7 @@ const capacityMeta = {
   summary:
     "Top memory footprints (Activity Monitor's Memory column, not ps RSS), swap, load, compressor segments and swapfiles — a HOLD on spawns when the compressor nears its limit — and what is unused now on every Claude, Codex and machine ceiling, naming the lowest; --brief prints only the verdict a tick acts on",
   usage:
-    "usage: slopweaver machine capacity [--top <n>] [--home <dir>] [--json] [--brief] [--full] [--wait] [--timeout-seconds <n>]",
+    "usage: slopweaver machine capacity [--top <n>] [--home <dir>] [--json] [--brief] [--full] [--record-reading <by>] [--wait] [--timeout-seconds <n>]",
 } as const;
 
 const reapMeta = {

@@ -60,7 +60,7 @@ slopweaver reflect grade <id> keep|adjust|drop [--why "<text>"] [--closed-by <pr
 slopweaver cmux pin [--workspace <ws>]                      # take the pin — and, on your own workspace, register for the depth block
 slopweaver cmux takeover                                    # the whole gated successor handoff — pin, depth-block registration, and the predecessor's BOARD ROW closed so a predecessor chair stops reading ready
 slopweaver cmux processes --workspace <ws>                  # the OS process tree under one session
-slopweaver machine capacity --brief                         # the tick's routine read: the unused-now clause, a held backoff, the verdict; `--brief --json` adds every field step 8 acts on
+slopweaver machine capacity --brief                         # the tick's routine read: the unused-now clause, a held backoff, the verdict; `--brief --json` adds every field step 8 acts on, and `--record-reading tick-<n>` files the full document as the pass's capacity reading
 slopweaver machine capacity --full                          # the text read with the fleet's load and one line per ranked process; plain, the table is a count
 slopweaver machine capacity --json                          # memory AND cpu, plus WHICH session or dead seat is burning it — the verdict names a culprit and the kill — and `ceilings`: unused now on the machine and every Claude and Codex plan, and the `lowest` the fill stops at
 slopweaver machine unused [--days <n>] [--json]             # what each of those ceilings left unused over past days, off histories on disk — no probe

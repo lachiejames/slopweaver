@@ -495,8 +495,9 @@ export const LIVE_VERBS: readonly LiveVerb[] = [
     format: "json",
     lane: "fast",
     slug: "capacity-reading",
-    // `machine capacity --json` exits 1 on a finding and prints its document anyway; the tick recorded
-    // that document, so the page reads the verdict without reasoning about the exit at all.
+    // `machine capacity --json` exits 1 on a finding and prints its document anyway; each pass records the full
+    // document off its step-8 read (`--record-reading tick-<n>`), so the page reads the verdict without reasoning
+    // about the exit at all, and never takes a reading of its own.
     stampsItsOwnTime: true,
     timeoutMs: FAST_TIMEOUT_MS,
     title: 'slopweaver reading last --producer "machine capacity" --json',
