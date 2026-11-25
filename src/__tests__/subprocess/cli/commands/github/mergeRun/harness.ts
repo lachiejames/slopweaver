@@ -61,6 +61,9 @@ export const UNREACHABLE_ADMIN_DEPS: GithubMergeDeps["admin"] = {
   releaseOwnHold: () => {
     throw new Error("the report path must never merge, so it never releases a hold");
   },
+  sweepPrivateTerms: () => {
+    throw new Error("the report path must never merge, so it never sweeps the change set for private terms");
+  },
   token: () => undefined,
   walkthrough: {
     now: () => {

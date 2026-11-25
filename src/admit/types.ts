@@ -74,7 +74,12 @@ export interface DoorAcknowledgement {
  * @internal — named only through {@link DoorAcknowledgement}; a caller passes the literal.
  */
 export type AcknowledgeableSubject =
-  "codex-loop-incomplete" | "ci-rollup-superseded" | "unshown-items" | "datadog-iac-managed" | "gcp-edit-existing";
+  | "codex-loop-incomplete"
+  | "ci-rollup-superseded"
+  | "unshown-items"
+  | "datadog-iac-managed"
+  | "gcp-edit-existing"
+  | "private-terms-unchecked";
 
 /** One request through the door. `artifact` is required — pass `{}` when there's nothing to describe. */
 export interface DoorRequest {

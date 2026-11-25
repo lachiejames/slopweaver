@@ -42,6 +42,23 @@ export const GITHUB_MERGE_HATCHES = [
   },
   {
     caught:
+      "the private terms did not check the change set this landing would merge — the terms file is absent here, or the merged tree could not be read whole — so a private word on a changed line would reach the base unseen",
+    command: "slopweaver github merge --admin",
+    exceptions: [
+      "this checkout is a fork or install with no private terms at all, so there is nothing to scan for",
+      "the merge does not apply cleanly here and you have read every changed line for a private word yourself",
+    ],
+    id: "private-terms-unchecked",
+    key: {
+      incantation: 'slopweaver github merge --admin --acknowledge private-terms-unchecked --reason "<why>"',
+      kind: "command",
+    },
+    lane: "ambient",
+    reader: "src/cli/commands/github/privateTermsPermit.ts",
+    standing: "proposed",
+  },
+  {
+    caught:
       "the landing could not see every review thread on the owner's pull request, so it cannot tell whether one of the owner's walkthrough notes holds a colleague's reply collapsed under the owner's own resolve",
     command: "slopweaver github <enqueue|merge --admin>",
     exceptions: [

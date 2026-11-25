@@ -206,7 +206,7 @@ read afresh each time (`src/outbound/writePrivacyPolicy.ts`) from the home the v
   identifier half's own edges), because the owner's handle is in every link to their repository; the bare handle
   elsewhere and another repository's address still refuse.
 - **CI never sees them.** `pr-format` is home-free by design, so they apply only on this machine: the write gates and
-  the pre-push [repository scan](./private-terms.md#the-repository-scan), as with the denylist above.
+  the pre-push [repository scan](./private-terms.md#the-repository-scan) and the [landing sweep](./private-terms.md#the-landing-sweep), as with the denylist above.
 - **ReDoS is a stated residue.** A pattern runs in-process with no timeout, and `redos-check` reads only source
   literals, so a catastrophically backtracking row would stall the write that matches it.
 - **A picture's pixels are read on this machine, and what reading cannot see is a stated residue.** macOS Vision (`src/visualEvidence/imageTextRecognition.ts`, no egress, no model call) reads the text a PNG shows before `github attach` sends it; a failed, timed-out or non-macOS read refuses.

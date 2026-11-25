@@ -334,20 +334,25 @@ export function adminMergeDoorRequest({
   number,
   home,
   acknowledgement,
+  termsAcknowledgement,
 }: {
   repo: string;
   number: number;
   home: string;
   acknowledgement: DoorAcknowledgement | undefined;
+  /** The `private-terms-unchecked` waiver the landing's change-set sweep stood on, when one did. */
+  termsAcknowledgement?: DoorAcknowledgement | undefined;
 }): DoorRequest {
+  // A LIST at the door: `github merge --admin` waives at most the pairing floor and an unchecked change set, while
+  // `github enqueue` judges the CI rollup too. The shape is shared so the ledger records both verbs' waivers alike.
+  const acknowledgements = [acknowledgement, termsAcknowledgement].filter(
+    (waiver): waiver is DoorAcknowledgement => waiver !== undefined,
+  );
   return {
     action: { kind: "verb", noun: "github", verb: "merge" },
     artifact: { id: `${repo}#${String(number)}` },
     meta: { createsWorkItem: false, effect: "external-write", home, requiresApproval: false },
-    // A LIST at the door, and this verb passes at most one into it: `github merge --admin` judges only the
-    // pairing floor, while `github enqueue` judges the CI rollup too. The shape is shared so the ledger
-    // records both verbs' waivers the same way.
-    ...(acknowledgement === undefined ? {} : { acknowledgements: [acknowledgement] }),
+    ...(acknowledgements.length === 0 ? {} : { acknowledgements }),
   };
 }
 

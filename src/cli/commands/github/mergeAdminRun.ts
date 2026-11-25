@@ -4,8 +4,8 @@
  * ## The order is the contract, and blocking Git comes first
  *
  *   [the guard's own verdict, already clean] → resolve the local head → remeasure base freshness against the
- *   REMOTE → token → read the pull request → agree it is the change we measured → admin/protection preflight
- *   → Codex floor re-read → ratchet-bump witness → resolve the author's own walkthrough threads → door →
+ *   REMOTE → private terms over the merged change set, against that fetched base → token → read the pull
+ *   request → agree it is the change we measured → admin/protection preflight → Codex floor re-read → ratchet-bump witness → resolve the author's own walkthrough threads → door →
  *   squash merge → [only once merged] probe the freshly-fetched base's own docs budget
  *
  * `--dry-run` walks that same order through the same functions and stops at the door: the walkthrough step names
@@ -36,6 +36,17 @@
  * a merge verb that silently rewrites the branch it is about to land is a worse failure than the one it
  * would be preventing. The refusal names the remedy and stops.
  *
+ * ## The private terms are read by THIS build, over the tree this merge lands
+ *
+ * A branch cut before the pre-push hook learned the private terms pushes on its own hook, CI holds no terms file,
+ * and this verb does not rebase — so nothing else reads the change set for them. The sweep runs here, in the build
+ * running the verb, over every file the merge of the pinned head into the just-fetched base adds or changes
+ * (`../../../outbound/github/privateTermsSweep.ts`). A hit, or a terms file that will not read, is a hold nothing
+ * acknowledges; an absent terms file is `private-terms-unchecked`, landed only by naming it with a `--reason` the door
+ * ledger records. `--dry-run` runs it too, so `github lap --land` refuses before its first lane. The residue: the base
+ * can still move between this read and GitHub's merge, which pins the head and never the base, and local git is not
+ * GitHub's merge implementation.
+ *
  * ## The post-merge probe is a belt, not the buckle
  *
  * `./mergeRun.ts`'s own report already re-measures the docs budget against the tree THIS merge would produce
@@ -49,7 +60,8 @@
  * published: "the probe didn't run" is not evidence the base is red.
  */
 import { DEFAULT_GATES } from "../../../admit/door.js";
-import { throughDoor } from "../../../admit/effects.js";
+import { type ThroughDoorResult, throughDoor } from "../../../admit/effects.js";
+import type { DoorAcknowledgement, DoorRequest } from "../../../admit/types.js";
 import type { AdminMergePr, GithubAdminMergeApi } from "../../../outbound/github/adminMerge.js";
 import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
 import { printBaseFreshnessPermit } from "./baseFreshnessCore.js";
@@ -68,6 +80,7 @@ import { runPostMergeDocsBudgetProbe } from "./mergeAdminProbe.js";
 import { answerDryRun, recheckBeforeMerge, refuseAdminMerge as refuse } from "./mergeAdminRecheck.js";
 import type { AdminMergeRequest, GithubAdminMergeDeps } from "./mergeAdminTypes.js";
 import { judgeCodexPairingFloor, readAndAgree } from "./mergeAdminVerdicts.js";
+import { landingBaseOf, privateTermsPermit } from "./privateTermsPermit.js";
 
 /** Send the squash merge through the door and report exactly what GitHub did with it. */
 async function mergeThroughDoor({
@@ -81,6 +94,7 @@ async function mergeThroughDoor({
   repoRoot,
   pr,
   request,
+  termsAcknowledgement,
 }: {
   api: GithubAdminMergeApi;
   deps: GithubAdminMergeDeps;
@@ -92,6 +106,7 @@ async function mergeThroughDoor({
   repoRoot: string;
   pr: AdminMergePr;
   request: AdminMergeRequest;
+  termsAcknowledgement: DoorAcknowledgement | undefined;
 }): Promise<number> {
   const recheck = await recheckBeforeMerge({ deps, home, owner, pr, repo, request });
   if (recheck.isErr()) {
@@ -101,11 +116,46 @@ async function mergeThroughDoor({
   // unmet at the second is waived by this invocation's flags, and recording the first read's `undefined`
   // would land the merge with no reason in the ledger — which is exactly what the canon promises it has.
   // A regression introduced by the re-read above and caught by the next Codex review of it.
-  const doorRequest = adminMergeDoorRequest({ acknowledgement: recheck.value, home, number: pr.number, repo: slug });
+  const doorRequest = adminMergeDoorRequest({
+    acknowledgement: recheck.value,
+    home,
+    number: pr.number,
+    repo: slug,
+    termsAcknowledgement,
+  });
   if (request.execution === "dry-run") {
     return answerDryRun({ deps, doorRequest, home, pr });
   }
-  const through = await throughDoor({
+  const through = await squashThroughDoor({ api, deps, doorRequest, home, owner, pr, repo });
+  if (!through.performed) {
+    return refuse({ deps, lines: adminMergeDoorRefusalLines({ through }) });
+  }
+  const { result } = through;
+  if (result.isErr()) {
+    return refuse({ deps, lines: [result.error.message] });
+  }
+  return reportMerge({ deps, home, merged: result.value.merged, pr, remote, repoRoot, sha: result.value.sha, slug });
+}
+
+/** The squash merge itself, pinned to the read head, run through the door under `doorRequest`. */
+async function squashThroughDoor({
+  api,
+  deps,
+  doorRequest,
+  home,
+  owner,
+  pr,
+  repo,
+}: {
+  api: GithubAdminMergeApi;
+  deps: GithubAdminMergeDeps;
+  doorRequest: DoorRequest;
+  home: string;
+  owner: string;
+  pr: AdminMergePr;
+  repo: string;
+}): Promise<ThroughDoorResult<Awaited<ReturnType<GithubAdminMergeApi["merge"]>>>> {
+  return throughDoor({
     gates: DEFAULT_GATES,
     home,
     ledger: deps.doorLedger,
@@ -119,14 +169,6 @@ async function mergeThroughDoor({
       }),
     request: doorRequest,
   });
-  if (!through.performed) {
-    return refuse({ deps, lines: adminMergeDoorRefusalLines({ through }) });
-  }
-  const { result } = through;
-  if (result.isErr()) {
-    return refuse({ deps, lines: [result.error.message] });
-  }
-  return reportMerge({ deps, home, merged: result.value.merged, pr, remote, repoRoot, sha: result.value.sha, slug });
 }
 
 /**
@@ -227,6 +269,7 @@ async function proceedToMerge({
   repoName,
   request,
   deps,
+  termsAcknowledgement,
 }: {
   api: GithubAdminMergeApi;
   baseBranch: string;
@@ -235,6 +278,7 @@ async function proceedToMerge({
   repoName: string;
   request: AdminMergeRequest;
   deps: GithubAdminMergeDeps;
+  termsAcknowledgement: DoorAcknowledgement | undefined;
 }): Promise<number> {
   const pr = await readAndAgree({ api, baseBranch, headSha, owner, repo: repoName, request });
   if (pr.isErr()) {
@@ -259,6 +303,7 @@ async function proceedToMerge({
     repoRoot: request.repoRoot,
     request,
     slug: request.repo,
+    termsAcknowledgement,
   });
 }
 
@@ -289,17 +334,29 @@ export async function performAdminMerge({
     return refuse({ deps, lines: githubVerbErrorLines({ error: headSha.error }) });
   }
   const baseBranch = remoteBaseBranchOf({ base: request.base, remote: request.remote });
-  const stale = printBaseFreshnessPermit({
-    acknowledgement: request.acknowledgement,
-    measurement: deps.measureBaseFreshness({
-      baseBranch,
-      cwd: request.repoRoot,
-      headSha: headSha.value,
-      remote: request.remote,
-    }),
-    out: deps.out,
+  const measurement = deps.measureBaseFreshness({
+    baseBranch,
+    cwd: request.repoRoot,
+    headSha: headSha.value,
+    remote: request.remote,
   });
+  const stale = printBaseFreshnessPermit({ acknowledgement: request.acknowledgement, measurement, out: deps.out });
   if (stale) {
+    return EXIT_ERROR;
+  }
+  const terms = privateTermsPermit({
+    acknowledgement: request.acknowledgement,
+    verdict: deps.sweepPrivateTerms({
+      base: landingBaseOf({ measurement }),
+      headSha: headSha.value,
+      home: request.home,
+      repoRoot: request.repoRoot,
+    }),
+  });
+  for (const line of terms.lines) {
+    deps.out({ line });
+  }
+  if (terms.refused) {
     return EXIT_ERROR;
   }
   const token = deps.token({ home: request.home });
@@ -307,5 +364,14 @@ export async function performAdminMerge({
     return refuse({ deps, lines: ["no GitHub token configured; run `slopweaver connect github`"] });
   }
   const api = deps.makeApi({ home: request.home, token });
-  return proceedToMerge({ api, baseBranch, deps, headSha: headSha.value, owner, repoName, request });
+  return proceedToMerge({
+    api,
+    baseBranch,
+    deps,
+    headSha: headSha.value,
+    owner,
+    repoName,
+    request,
+    termsAcknowledgement: terms.acknowledgement,
+  });
 }

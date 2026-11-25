@@ -11,6 +11,7 @@ import { githubToken } from "../../../config.js";
 import { publishSupervisorEvent } from "../../../events/store.js";
 import { logger } from "../../../lib/logger.js";
 import { makeGithubAdminMergeApi } from "../../../outbound/github/adminMerge.js";
+import { sweepMergePrivateTerms } from "../../../outbound/github/privateTermsSweep.js";
 import { githubWritePrivacy } from "../../../outbound/github/writePrivacy.js";
 import { measureRequiredBaseFreshness, productionBaseFreshnessRunDeps } from "./baseFreshnessRun.js";
 import { resolveCommitSha } from "./gitAncestry.js";
@@ -55,6 +56,8 @@ export function productionGithubAdminMergeDeps(): GithubAdminMergeDeps {
     releaseOwnHold: ({ home, pr, repo, sha }) => {
       releaseHeldPullRequest({ deps: productionMergeHoldDeps(), home, pr, repo, sha });
     },
+    sweepPrivateTerms: ({ repoRoot, base, headSha, home }) =>
+      sweepMergePrivateTerms({ base, headRef: headSha, home, repo: repoRoot }),
     token: ({ home }) => githubToken({ home }),
     walkthrough: productionWalkthroughStepDeps(),
   };

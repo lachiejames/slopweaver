@@ -171,7 +171,9 @@ describe("performAdminMerge", () => {
     await performAdminMerge({ deps: h.deps, request: request() });
     // `readCodexLoop` TWICE is the design, not a slip: once before the privileged reads and once immediately
     // before the mutation, because the preflight between them is awaited. See the re-read case below.
-    expect(h.order).toEqual(["localSha", "measureBaseFreshness", "token", "makeApi", "readCodexLoop", "readCodexLoop"]);
+    expect(h.order.join(" ")).toBe(
+      "localSha measureBaseFreshness sweepPrivateTerms token makeApi readCodexLoop readCodexLoop",
+    );
   });
 
   it("refuses a base that moved since the last push, and never merges", async () => {
@@ -276,7 +278,7 @@ describe("performAdminMerge", () => {
       request: request(),
     });
     expect(code).toBe(EXIT_ERROR);
-    expect(h.order).toEqual(["localSha", "measureBaseFreshness"]);
+    expect(h.order).toEqual(["localSha", "measureBaseFreshness", "sweepPrivateTerms"]);
     expect(h.lines.at(-1)).toContain("no GitHub token configured");
   });
 

@@ -69,3 +69,21 @@ The pre-push `hygiene` gate (`src/hygiene/repoScan.ts`) runs the same rows over 
   [fresh-cut residue](./fresh-cut-residue.md) binds it, owner-anchored ones included:
   what the repository held at its public cut is accepted, so only a new line fails. An unreadable list sets nothing
   aside.
+
+## The landing sweep
+
+The pre-push scan runs the BRANCH's own hook, so a branch cut before that scan learned the terms pushes unscanned,
+and CI holds no terms file. `github merge --admin` (`github lap --land` lands through it) therefore runs the rows
+itself, in the build running the verb (`src/outbound/github/privateTermsSweep.ts`): over every file the merge of the
+pinned head into the base it just fetched would add or change, as the merged tree's exact bytes, before any GitHub
+request and on `--dry-run` too.
+
+- **A match, or a terms file that will not read, is a hold.** Path, line and class only, a path a term matches as
+  `(changed file N)`; `--acknowledge` and `--acknowledge-all` do not reach it. Reword, push, land again.
+- **Absent, or a change set that cannot be read whole** (no fetched base, a merge that does not apply, a submodule
+  entry) is `private-terms-unchecked`, landed only by naming it with `--acknowledge` and a `--reason`, which the door
+  ledger records.
+- **The reviewed-residue list sets a line aside** exactly as in the repository scan.
+- **The residue, stated:** the base can still move between the sweep and GitHub's merge, which pins the head and
+  never the base; and local git is not GitHub's merge implementation, so a custom merge driver could make the two
+  trees differ. `github enqueue` does not sweep yet.
