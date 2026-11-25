@@ -85,6 +85,12 @@ export interface FleetState {
   readonly badge: string;
   readonly sentence: FleetSentence;
   readonly defence: FleetDefence;
+  /**
+   * The one line a not-measured state is drawn as, beside its badge: the judgement's own reason, said once. The
+   * sentence lines, the defence and the `fleet why` lines all said the same thing again, so the owner cut it to one line.
+   * `undefined` in every measured state, which draws no not-measured line at all.
+   */
+  readonly notMeasuredReason: string | undefined;
 }
 
 /**
@@ -161,8 +167,9 @@ function linesOf({
     }
     return ["There is room for more within the plans' week."];
   }
-  if (kind === "not-measured" && glance.binding === "board") {
-    return ["The plans' week has room for more.", "Whether a ready row has nobody on it was not read."];
+  // A not-measured state says its reason once, as `notMeasuredReason`, so it carries no sentence lines of its own.
+  if (kind === "not-measured") {
+    return [];
   }
   if (kind === "at-capacity") {
     if (glance.burst.kind === "read" && glance.burst.taken && glance.ceiling !== undefined) {
@@ -342,6 +349,7 @@ export function fleetStateOf({
       readAtIso,
     },
     kind,
+    notMeasuredReason: kind === "not-measured" ? glance.why : undefined,
     sentence: { lead: `${String(glance.working)} working`, lines: linesOf({ capacity, glance, kind, order }) },
   };
 }

@@ -289,15 +289,6 @@ function SeatsTile({
                 ]}
                 row
               />
-              {/* First on the tile: whether the fleet runs the way the doctrine says is the question the owner opens it with. */}
-              <FleetDoctrinePanel
-                board={boardState}
-                frozen={seatsFrozen}
-                glance={doctrineGlanceOf({ capacity: capacityState, ceiling: ceilingState, glance })}
-                reconcile={reconcile}
-                // The tile's own narrowed reading, the one the glance above counts, so the two are never different readings.
-                seats={doctrineInputOf({ pick: () => seats, state, subject: "session watch" })}
-              />
               <StateBand
                 badgeReadAtIso={badgeReadAtOf({
                   otherReadAtIsos: [capacity?.observedAtIso, ceiling?.observedAtIso, reconcileReading?.observedAtIso],
@@ -336,6 +327,15 @@ function SeatsTile({
                 observedAtIso={reading.observedAtIso}
                 openedKey={openedId}
                 view={sessions}
+              />
+              {/* Under the sessions, one closed line: how many doctrine lines are red or amber, the five inside it. */}
+              <FleetDoctrinePanel
+                board={boardState}
+                frozen={seatsFrozen}
+                glance={doctrineGlanceOf({ capacity: capacityState, ceiling: ceilingState, glance })}
+                reconcile={reconcile}
+                // The tile's own narrowed reading, the one the glance above counts, so the two are never different readings.
+                seats={doctrineInputOf({ pick: () => seats, state, subject: "session watch" })}
               />
               {seats.diagnostics.length > 0 && (
                 <ul className={TILE_LIST}>

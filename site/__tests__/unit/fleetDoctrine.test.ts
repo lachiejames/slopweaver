@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { fleetDoctrineOf } from "../../lib/fleetDoctrine";
+import { doctrineAlertSummary, fleetDoctrineOf } from "../../lib/fleetDoctrine";
 import type { DoctrineSeats } from "../../lib/fleetDoctrineSeats";
+import type { DoctrineLine, DoctrineTone } from "../../lib/fleetDoctrineTypes";
 import { boardOf, landingOf, lineOf, reconcileOf, seat } from "./fleetDoctrineFixture";
 
 describe("fleetDoctrineOf", () => {
@@ -223,5 +224,36 @@ describe("fleetDoctrineOf", () => {
       ],
       ["headroom", "unread", "Plan headroom unused: not read (the latest read of session watch failed: timed out)."],
     ]);
+  });
+});
+
+describe("doctrineAlertSummary", () => {
+  const toned = ({ key, tone }: { key: DoctrineLine["key"]; tone: DoctrineTone }): DoctrineLine => ({
+    groups: [],
+    key,
+    quoted: [],
+    sentence: `${key} line`,
+    tone,
+  });
+
+  it("counts danger as red and attention as amber", () => {
+    const lines = [
+      toned({ key: "seats", tone: "attention" }),
+      toned({ key: "unseatable", tone: "attention" }),
+      toned({ key: "pull-requests", tone: "ok" }),
+      toned({ key: "supervisors", tone: "danger" }),
+      toned({ key: "headroom", tone: "unread" }),
+    ];
+    expect(doctrineAlertSummary({ lines })).toBe("Doctrine: 1 red, 2 amber");
+  });
+
+  it("says a count, never clear, when every line is ok", () => {
+    const lines = [toned({ key: "seats", tone: "ok" }), toned({ key: "headroom", tone: "ok" })];
+    expect(doctrineAlertSummary({ lines })).toBe("Doctrine: 0 red, 0 amber");
+  });
+
+  it("counts a line not read as neither colour", () => {
+    const lines = [toned({ key: "seats", tone: "unread" }), toned({ key: "supervisors", tone: "unread" })];
+    expect(doctrineAlertSummary({ lines })).toBe("Doctrine: 0 red, 0 amber");
   });
 });

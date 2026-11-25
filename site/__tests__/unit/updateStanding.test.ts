@@ -255,7 +255,13 @@ describe("updateStanding", () => {
       "unknown",
       "Up to date",
       [],
-      [{ subject: "whether origin/main has moved past what you run", why: "origin/main last fetched 3.0h ago" }],
+      [
+        {
+          shortWords: "upstream not read",
+          subject: "whether origin/main has moved past what you run",
+          why: "origin/main last fetched 3.0h ago",
+        },
+      ],
     ]);
     expect(
       updateStanding({
@@ -290,7 +296,13 @@ describe("updateStanding", () => {
     expect([standing.line, standing.notes, standing.unread]).toEqual([
       "Update status not known",
       ["App run from source"],
-      [{ subject: "whether origin/main has moved past what you run", why: "origin/main last fetched 3.0h ago" }],
+      [
+        {
+          shortWords: "upstream not read",
+          subject: "whether origin/main has moved past what you run",
+          why: "origin/main last fetched 3.0h ago",
+        },
+      ],
     ]);
   });
 
@@ -312,7 +324,7 @@ describe("updateStanding", () => {
       "unknown",
       "",
       [],
-      [{ subject: "the app's own build", why: "the app did not answer: gone" }],
+      [{ shortWords: "app build not read", subject: "the app's own build", why: "the app did not answer: gone" }],
     ]);
   });
 
@@ -327,7 +339,7 @@ describe("updateStanding", () => {
     expect([standing.kind, standing.line, standing.unread]).toEqual([
       "current",
       "Up to date",
-      [{ subject: "the app's own build", why: "the app did not answer: gone" }],
+      [{ shortWords: "app build not read", subject: "the app's own build", why: "the app did not answer: gone" }],
     ]);
   });
 });

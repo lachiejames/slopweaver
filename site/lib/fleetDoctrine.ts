@@ -300,6 +300,19 @@ function headroomLineOf({ glance, seats }: { glance: DoctrineGlance; seats: Doct
 }
 
 /**
+ * The one closed line the panel folds its five lines behind: how many are red and how many amber, and nothing else.
+ * A line not read is neither, so five unread lines read `0 red, 0 amber` — a count, never a word that calls it clear.
+ *
+ * @param lines the panel's lines
+ * @returns the summary, such as `Doctrine: 1 red, 2 amber`
+ */
+export function doctrineAlertSummary({ lines }: { lines: readonly DoctrineLine[] }): string {
+  const red = lines.filter((line) => line.tone === "danger").length;
+  const amber = lines.filter((line) => line.tone === "attention").length;
+  return `Doctrine: ${String(red)} red, ${String(amber)} amber`;
+}
+
+/**
  * The doctrine panel: its five lines, in the order the owner reads them.
  *
  * @param glance the Fleet page's glance, the one derivation of working seats, their ceiling and the burst

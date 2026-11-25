@@ -145,4 +145,34 @@ describe("WarningMark", () => {
       ].map((fragment) => source.includes(fragment)),
     ).toEqual([true, true, true, true, true, true, true, true, true, true, true, true, true]);
   });
+
+  it("draws a page's short words beside the glyph in both drawings, hidden from the name the glyph's label already gives", () => {
+    const drawn = readMark({
+      use: (file): readonly number[] =>
+        returnsOf({ fn: functionNamed({ file, name: "WarningMark" }) }).map((statement) => {
+          let count = 0;
+          const walk = (child: ts.Node): void => {
+            if (ts.isJsxExpression(child) && child.expression?.getText() === "shortWords") {
+              count += 1;
+            }
+            forEachChild({ node: child, visit: walk });
+          };
+          walk(statement);
+          return count;
+        }),
+    });
+    const words = readMark({
+      use: (file): readonly (readonly string[])[] => {
+        const fn = functionNamed({ file, name: "ShortWords" });
+        return [tagsUnder({ node: fn }), attributesUnder({ node: fn })];
+      },
+    });
+
+    expect(drawn).toEqual([1, 1]);
+    expect(words).toEqual([["span"], ["aria-hidden", "className", "data-short-words"]]);
+    // The icons setting sits on the whole console frame, so only a mark inside the sidebar drops its words.
+    expect(
+      readFileSync(PATH, "utf8").includes('"ml-1 text-[0.78rem] group-data-[sidebar=icons]/console:in-[aside]:hidden"'),
+    ).toBe(true);
+  });
 });

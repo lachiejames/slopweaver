@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * The Fleet page's doctrine panel: five lines, each one sentence with every item it counts folded behind it, that say
+ * The Fleet page's doctrine panel: one closed line under the sessions saying how many of its five lines are red or
+ * amber, and behind it the five lines, each one sentence with every item it counts folded behind it, that say
  * whether the fleet is running the way the owner's doctrine says. Every word is the projection's (`../../lib/fleetDoctrine.ts`);
  * this file reads the one channel the Now view does not already poll — `github landing`'s reading, for the owner's open pull
  * requests — and lays the lines out.
  */
 import { type ReactElement, useEffect, useState } from "react";
-import { fleetDoctrineOf } from "../../lib/fleetDoctrine";
+import { doctrineAlertSummary, fleetDoctrineOf } from "../../lib/fleetDoctrine";
 import { doctrineInputOf, doctrinePendingOf } from "../../lib/fleetDoctrineInput";
 import { landingInCadenceOf, landingStaleAtOf } from "../../lib/fleetDoctrinePulls";
 import type { DoctrineGlance, DoctrineSeats } from "../../lib/fleetDoctrineSeats";
@@ -249,19 +250,20 @@ export function FleetDoctrinePanel({
     seats,
   });
   const pending = doctrinePendingOf({ glance, inputs: [seats, boardInput, landingInput, reconcileInput] });
+  // One closed line saying only how many lines are red or amber; the five lines sit inside it (the owner's call).
   return (
-    <section
+    <details
       aria-busy={pending}
       aria-label="Is the fleet running the way the doctrine says"
-      className="grid gap-1.5 rounded-md border border-border px-3 py-2"
+      className="text-[0.86rem] [&>summary]:cursor-pointer"
       data-doctrine
     >
-      <h4 className="m-0 text-[0.75rem] font-semibold uppercase tracking-wide text-muted-foreground">doctrine</h4>
-      <ul className="m-0 grid list-none gap-1 p-0 text-[0.9rem] leading-[1.45]">
+      <summary className="text-muted-foreground">{doctrineAlertSummary({ lines: doctrine.lines })}</summary>
+      <ul className="m-0 mt-1 grid list-none gap-1 p-0 pl-4 text-[0.9rem] leading-[1.45]">
         {doctrine.lines.map((line) => (
           <Line key={line.key} line={line} />
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
