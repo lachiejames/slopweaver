@@ -117,6 +117,7 @@ function deps({ reading, lines }: { reading: LocalCodexLoopRead; lines: string[]
     readBumpWitness: () => ({ kind: "clear" }),
     readCodexLoop: () => reading,
     releaseOwnHold: () => undefined,
+    sweepPrivateTerms: () => ({ accepted: 0, binaryFiles: 0, kind: "clean", terms: [], textFiles: 0 }),
     token: () => "t",
     walkthrough: noWalkthroughs({ headOid: HEAD_SHA }),
   };

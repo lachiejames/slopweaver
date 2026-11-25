@@ -36,6 +36,10 @@ export const OPERATIONAL_SEAMS = {
   // refs, to read a doc's probe targets AS OF a ref without checking anything out. A read-only tool, exactly
   // like `src/handover/evaluate.ts` above, whose live-tree equivalent this mirrors.
   "src/outbound/github/probeSweep.ts": "read-only-tool",
+  // The landing's private-terms sweep: `git merge-tree --write-tree`/`git diff-tree`/`git cat-file` against two
+  // LOCAL refs, every read passing `--no-replace-objects`, to read the text the merge would add or change. A
+  // read-only tool, exactly like `docsBudgetSweep.ts` above: it moves no ref, index or working tree.
+  "src/outbound/github/privateTermsSweep.ts": "read-only-tool",
   // Inline self-review ownership and in-flight reservations, entirely under
   // $SLOPWEAVER_HOME/ledgers/github-self-reviews. Local state only: provider mutations still route through
   // the door, and this ledger prevents an ambiguous retry from duplicating a review or resolving human work.

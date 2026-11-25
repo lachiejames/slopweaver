@@ -139,6 +139,14 @@ function fakeAdminMergeApi({
   };
 }
 
+/** A zero-argument edge that records its name in `order` each time it runs, then answers `value`. */
+function recorded<T>({ name, order, value }: { name: string; order: string[]; value: T }): () => T {
+  return () => {
+    order.push(name);
+    return value;
+  };
+}
+
 /**
  * Build the injected edges, defaulting every one to the happy path.
  *
@@ -161,22 +169,13 @@ export function adminMergeHarness({
   const api = fakeAdminMergeApi({ merges, over: over.api });
   const deps: GithubAdminMergeDeps = {
     doorLedger: door.port,
-    localSha: () => {
-      order.push("localSha");
-      return ok(HEAD_SHA);
-    },
-    readCodexLoop: () => {
-      order.push("readCodexLoop");
-      return PAIRED_CHECKOUT;
-    },
+    localSha: recorded({ name: "localSha", order, value: ok(HEAD_SHA) }),
+    readCodexLoop: recorded({ name: "readCodexLoop", order, value: PAIRED_CHECKOUT }),
     readBumpWitness: ({ head }) => {
       bumpHeads.push(head);
       return { kind: "clear" };
     },
-    makeApi: () => {
-      order.push("makeApi");
-      return api;
-    },
+    makeApi: recorded({ name: "makeApi", order, value: api }),
     measureBaseFreshness: ({ baseBranch }) => {
       order.push("measureBaseFreshness");
       return ok({
@@ -194,6 +193,10 @@ export function adminMergeHarness({
     publishAlert: () => undefined,
     releaseOwnHold: (args) => {
       released.push({ ...args });
+    },
+    sweepPrivateTerms: () => {
+      order.push("sweepPrivateTerms");
+      return { accepted: 0, binaryFiles: 0, kind: "clean", terms: [], textFiles: 1 };
     },
     token: () => {
       order.push("token");

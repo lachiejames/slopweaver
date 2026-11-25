@@ -73,7 +73,13 @@ const CATEGORIES: readonly {
     after: "voice-rules",
     before: "freeze-opens-new-history",
     hatches: GITHUB_MERGE_HATCHES,
-    ids: ["unobserved-required-context", "reverts-main", "unseen-review-threads", "off-seat-lap"],
+    ids: [
+      "unobserved-required-context",
+      "reverts-main",
+      "private-terms-unchecked",
+      "unseen-review-threads",
+      "off-seat-lap",
+    ],
     name: "GITHUB_MERGE_HATCHES",
   },
   {

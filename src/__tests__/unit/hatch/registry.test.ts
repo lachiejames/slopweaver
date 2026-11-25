@@ -123,6 +123,7 @@ describe("what the owner's ruling settled", () => {
       "restore-overwrites-storage",
       "freeze-opens-new-history",
       "unobserved-required-context",
+      "private-terms-unchecked",
       "unseen-review-threads",
       "off-seat-lap",
       "earns-its-place",

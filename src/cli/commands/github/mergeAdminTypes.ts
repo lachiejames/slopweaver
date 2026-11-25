@@ -7,6 +7,7 @@ import type { DoorLedgerPort } from "../../../admit/doorLedgerPort.js";
 import type { BaselineBumpWitnessReader } from "../../../codex/baselineBumpWitnessRun.js";
 import type { LocalCodexLoopReader } from "../../../codex/landingGateRun.js";
 import type { SupervisorEvent } from "../../../events/event.js";
+import type { ChangeSetPrivateTermsVerdict, LandingBase } from "../../../hygiene/changeSetPrivateTerms.js";
 import type { GithubAdminMergeApi } from "../../../outbound/github/adminMerge.js";
 import type { MergeDocsBudgetSweep } from "../../../outbound/github/docsBudgetSweep.js";
 import type { BaseFreshness, BaseFreshnessAcknowledgement } from "./baseFreshnessCore.js";
@@ -28,6 +29,17 @@ export interface GithubAdminMergeDeps {
     baseBranch: string;
     headSha: string;
   }) => GithubVerbResult<BaseFreshness>;
+  /**
+   * The private terms, loaded by the build running this verb, over every file a merge of `headSha` into the
+   * just-fetched base would add or change (`../../../outbound/github/privateTermsSweep.ts`); with no fetched base the
+   * terms still load, and nothing is read.
+   */
+  readonly sweepPrivateTerms: (args: {
+    repoRoot: string;
+    base: LandingBase;
+    headSha: string;
+    home: string;
+  }) => ChangeSetPrivateTermsVerdict;
   /** The base branch's own docs budget, measured against a fresh fetch — run only AFTER a merge lands. */
   readonly probePostMergeDocsBudget: (args: {
     cwd: string;
