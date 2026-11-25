@@ -1,6 +1,7 @@
 /**
  * `slopweaver github stack push`'s locked write: the door, then amend → push → carry → write preflight → create →
- * register, the report, and the optional walkthrough post.
+ * register (or, on a branch whose pull request is open, that pull request's update), the report, and the optional
+ * walkthrough post.
  *
  * Split out of `./stackPushRun.ts` (the file-size ratchet, step 5), which still resolves the plan this file sends
  * and takes the operation lock; it calls {@link sendStackPush} once that lock is held.
@@ -16,10 +17,10 @@ import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
 import type { PrOutcome } from "./core.js";
 import { applyKindLabels } from "./kindLabelApply.js";
 import { performCreate } from "./performCreate.js";
-import type { DescriptionPullRequest } from "./prDescriptionReviewCore.js";
+import { performUpdate } from "./performWrite.js";
 import type { GithubPushDeps } from "./pushRun.js";
 import { missingWalkthroughLine } from "./selfReviewCore.js";
-import { sendAndReportSelfReview } from "./selfReviewFlow.js";
+import { postSelfReview, sendAndReportSelfReview } from "./selfReviewFlow.js";
 import { runStackCarry, type StackCarryGate } from "./stackCarryRun.js";
 import {
   type GatedStackPushPlan,
@@ -30,19 +31,28 @@ import {
 import { type GithubStackPushDeps, toGithubPrDeps } from "./stackPushDeps.js";
 import { stackPushWriteBlocked } from "./stackPushGates.js";
 import { amendAndPush } from "./stackPushGit.js";
-import { recordRaise, reportStackPush } from "./stackPushReport.js";
+import { recordRaise, reportStackPush, type SucceededWrite, walkthroughAfterReport } from "./stackPushReport.js";
+import { previewedAfterStackPush, type StackPushWrite } from "./stackPushUpdate.js";
 import { type GithubStackRegistrationOutcome, registerStackEntry } from "./stackRegistration.js";
 
 /**
- * The write preflight and the create itself, in the one order they may run in. See `performStackPush`'s own
- * doc for why the retryable GET has to come first.
+ * The write preflight, then the create or the update, in the one order they may run in. See `performStackPush`'s
+ * own doc for why the retryable GET has to come first.
+ *
+ * An update is `pr update`'s own mutation: it re-reads the pull request (a retryable GET, immediately before the
+ * never-retried PATCH), refuses when anything but the head this push moved has changed since the read before the
+ * push, covers the exact bytes and walkthrough with a CLEAN review bound to that pull request, then confirms the
+ * ledger and its kind labels. It never falls back to a create: an open pull request that closed during the push
+ * is a refusal, and a re-run reads the branch again.
  *
  * @param api the client minted after the push
  * @param locus the branch locus the reservation is keyed on
- * @param out where `performCreate` prints its own progress
- * @returns the create outcome, or the preflight's refusal in its place
+ * @param out where the write prints its own progress
+ * @param pushedHeadSha the commit the push landed on the branch, which an update's re-read is expected to report
+ * @param write the create, or the update of the branch's open pull request, as gated before the push
+ * @returns the write's outcome, or the preflight's refusal in its place
  */
-async function preflightThenCreate({
+async function preflightThenWrite({
   api,
   comments,
   deps,
@@ -50,7 +60,8 @@ async function preflightThenCreate({
   locus,
   out,
   plan,
-  pullRequest,
+  pushedHeadSha,
+  write,
 }: {
   api: GithubWriteApi;
   comments: readonly DescriptionReviewComment[];
@@ -59,27 +70,43 @@ async function preflightThenCreate({
   locus: string;
   out: (input: { line: string }) => void;
   plan: GatedStackPushPlan;
-  pullRequest: DescriptionPullRequest;
+  pushedHeadSha: string;
+  write: StackPushWrite;
 }): Promise<PrOutcome> {
   const blocked = await stackPushWriteBlocked({ api, target: plan.form.target });
   if (blocked !== undefined) {
     return { kind: "refused", reason: blocked };
   }
-  const { form: draft, installationIdentifiers } = plan;
+  const { installationIdentifiers } = plan;
+  const prDeps = toGithubPrDeps({ deps, out });
+  if (write.kind === "update") {
+    return performUpdate({
+      api,
+      comments,
+      deps: prDeps,
+      draft: write.draft,
+      home,
+      installationIdentifiers,
+      locus,
+      previewed: previewedAfterStackPush({ previewed: write.previewed, pushedHeadSha }),
+      // A whole form replaces the whole description; the wholesale consent before the push already covered that.
+      trailing: "",
+    });
+  }
   return performCreate({
     api,
     comments,
-    deps: toGithubPrDeps({ deps, out }),
-    draft,
+    deps: prDeps,
+    draft: plan.form,
     home,
     installationIdentifiers,
     locus,
-    pullRequest,
   });
 }
 
 /**
- * The whole write, already inside the door: amend, push, carry, create, then register — locally AND natively.
+ * The whole write, already inside the door: amend, push, carry, then create and register — locally AND natively —
+ * or, on a branch whose pull request is already open, update that pull request.
  *
  * **The write preflight runs HERE, after the push and immediately before the create, and that placement is
  * the fix for a measured data-losing failure.** The push is a synchronous child process streaming this
@@ -104,11 +131,11 @@ async function performStackPush({
   git,
   deps,
   out,
-  pullRequest,
+  write,
 }: {
   plan: GatedStackPushPlan;
-  /** The pull request the early description review bound; the create's review binds the same one. */
-  pullRequest: DescriptionPullRequest;
+  /** The create, or the update of the open pull request the early description review bound. */
+  write: StackPushWrite;
   /** What the carry gate decided BEFORE the door — see `./stackCarryRun.ts` for why that order is the contract. */
   carry: StackCarryGate;
   /** The walkthrough this push posts after the create, exactly as GitHub receives it; the review binds it. */
@@ -121,34 +148,36 @@ async function performStackPush({
   deps: Pick<GithubStackPushDeps, "autonomy" | "cwd" | "descriptionReview" | "doorLedger" | "now" | "sleep">;
   out: (input: { line: string }) => void;
 }): Promise<{
-  readonly create: PrOutcome;
+  /** What the create or the update did. */
+  readonly outcome: PrOutcome;
+  /** The native stack registration a create performs; `undefined` for an update, which registers nothing. */
   readonly registration: GithubStackRegistrationOutcome | undefined;
   readonly carried: boolean;
   /**
-   * The head this push actually put on the remote, absent when the push never landed.
-   *
-   * Read back from the amend rather than taken from `plan.facts.localSha`, which was measured BEFORE any
-   * amend rewrote the commit; HEAD itself when there was nothing to amend. It is what the checks-read register
-   * records the raise against.
+   * The head this push put on the remote, read back from the amend (HEAD when nothing was amended), never the
+   * pre-amend `plan.facts.localSha`; absent when the push never landed. The checks-read register records it.
    */
   readonly headSha: string | undefined;
 }> {
   const pushed = amendAndPush({ git, home, locus, plan, remote });
   if (!pushed.isOk()) {
-    return { carried: true, create: pushed.error, headSha: undefined, registration: undefined };
+    return { carried: true, headSha: undefined, outcome: pushed.error, registration: undefined };
   }
   // An amend above, when one ran, REWROTE this branch's commit, so every entry stacked on it lost its base. The
   // carry runs here — after the branch is on the remote and before anything else — because a rebase onto a
   // base that has not been pushed yet replays onto the old commit.
   const carried = runStackCarry({ gate: carry, git, home, out, remote });
   const api = freshApi();
-  const created = await preflightThenCreate({ api, comments, deps, home, locus, out, plan, pullRequest });
-  if (created.kind !== "created") {
-    return { carried, create: created, headSha: pushed.value, registration: undefined };
+  const request = { api, comments, deps, home, locus, out, plan, pushedHeadSha: pushed.value, write };
+  const outcome = await preflightThenWrite(request);
+  // Only a pull request this push OPENED joins the stack and takes the create's labels; an update registers nothing
+  // new, and `performUpdate` applied its own kind labels.
+  if (outcome.kind !== "created") {
+    return { carried, headSha: pushed.value, outcome, registration: undefined };
   }
-  const registration = await registerCreated({ api, created, deps, home, plan });
-  await labelCreated({ api, number: created.number, out, plan });
-  return { carried, create: created, headSha: pushed.value, registration };
+  const registration = await registerCreated({ api, created: outcome, deps, home, plan });
+  await labelCreated({ api, number: outcome.number, out, plan });
+  return { carried, headSha: pushed.value, outcome, registration };
 }
 
 /**
@@ -213,6 +242,52 @@ async function registerCreated({
   });
 }
 
+/**
+ * After a confirmed write, the walkthrough, if one was given. An update posts it as `pr update --self-review` does:
+ * re-read at the current head and checked against the description now live, then posted. A create posts it once the
+ * new pull request reads back; a create given none says so.
+ *
+ * @param outcome the write's outcome, a create or update that reached the pull request
+ * @returns the process exit code
+ */
+async function postWalkthrough({
+  deps,
+  freshApi,
+  home,
+  outcome,
+  plan,
+  selfReview,
+}: {
+  deps: GithubStackPushDeps;
+  freshApi: () => GithubWriteApi;
+  home: string;
+  outcome: SucceededWrite;
+  plan: GatedStackPushPlan;
+  selfReview: SelfReviewForm | undefined;
+}): Promise<number> {
+  if (outcome.kind !== "created") {
+    if (selfReview === undefined) {
+      return EXIT_OK;
+    }
+    const { owner, repo } = plan.form.target;
+    return postSelfReview({
+      api: freshApi(),
+      command: "slopweaver github stack push",
+      deps: { ...toGithubPrDeps({ deps, out: deps.out }), env: deps.env },
+      form: selfReview,
+      home,
+      number: outcome.number,
+      owner,
+      repo,
+    });
+  }
+  if (selfReview === undefined) {
+    deps.out({ line: missingWalkthroughLine({ number: outcome.number, repoSlug: plan.facts.repo }) });
+    return EXIT_OK;
+  }
+  return postStackSelfReview({ api: freshApi(), create: outcome, deps, form: selfReview, home, plan });
+}
+
 /** Post a walkthrough only after the newly created stack entry reads back from GitHub. */
 async function postStackSelfReview({
   api,
@@ -268,8 +343,8 @@ export async function sendStackPush({
   home,
   locus,
   plan,
-  pullRequest,
   selfReview,
+  write,
 }: {
   carry: StackCarryGate;
   /** Mints a client with an empty connection pool; see `performStackPush`'s own parameter doc for why. */
@@ -279,8 +354,9 @@ export async function sendStackPush({
   home: string;
   locus: string;
   plan: GatedStackPushPlan;
-  pullRequest: DescriptionPullRequest;
   selfReview: SelfReviewForm | undefined;
+  /** The create, or the update of the branch's open pull request, decided and gated before the lock. */
+  write: StackPushWrite;
 }): Promise<number> {
   const routed = await throughDoor({
     gates: DEFAULT_GATES,
@@ -297,21 +373,18 @@ export async function sendStackPush({
         locus,
         out: deps.out,
         plan,
-        pullRequest,
         remote: args.remote,
+        write,
       }),
-    request: githubStackPushDoorRequest({ home, plan }),
+    request: githubStackPushDoorRequest({ createsWorkItem: write.kind === "create", home, plan }),
   });
   const exitCode = reportStackPush({ deps, routed });
   if (routed.performed) {
     recordRaise({ deps, home, plan, result: routed.result });
   }
-  if (exitCode !== EXIT_OK || !routed.performed || routed.result.create.kind !== "created") {
-    return exitCode;
-  }
-  if (selfReview === undefined) {
-    deps.out({ line: missingWalkthroughLine({ number: routed.result.create.number, repoSlug: plan.facts.repo }) });
-    return exitCode;
-  }
-  return postStackSelfReview({ api: freshApi(), create: routed.result.create, deps, form: selfReview, home, plan });
+  return walkthroughAfterReport({
+    outcome: routed.performed ? routed.result.outcome : undefined,
+    reported: exitCode,
+    walk: ({ outcome }) => postWalkthrough({ deps, freshApi, home, outcome, plan, selfReview }),
+  });
 }

@@ -193,6 +193,8 @@ async function roundReviewRefusal({
  * Re-read the current head, post the round, and report only a confirmed outcome as success.
  *
  * @param api the write API
+ * @param command the verb posting the round, which its door entry and any refusal name; `pr update` unless
+ *   `stack push` is updating the branch's open pull request
  * @param deps the output sink
  * @param home the state home the review's own ledger lives under
  * @param form the decoded self-review form
@@ -204,6 +206,7 @@ async function roundReviewRefusal({
  */
 export async function postSelfReview({
   api,
+  command = "slopweaver github pr update",
   deps,
   home,
   form,
@@ -213,6 +216,7 @@ export async function postSelfReview({
   expectHead,
 }: {
   api: GithubWriteApi;
+  command?: string;
   deps: GithubPrDeps;
   home: string;
   form: SelfReviewForm;
@@ -241,7 +245,7 @@ export async function postSelfReview({
     }
     return EXIT_ERROR;
   }
-  return sendAndReportSelfReview({ api, command: "slopweaver github pr update", deps, form, home, pr: current.value });
+  return sendAndReportSelfReview({ api, command, deps, form, home, pr: current.value });
 }
 
 /**

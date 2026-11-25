@@ -382,6 +382,9 @@ export function updateFreshnessFor({ previewed, current }: { previewed: LivePr; 
     { same: previewed.body === current.body, what: "the description" },
     { same: previewed.title === current.title, what: "the title" },
     { same: previewed.head.sha === current.head.sha, what: "the head commit" },
+    // The form, its review and its target check were all derived against the base the first read saw; a retarget
+    // inside the window would otherwise PATCH a description written for another parent.
+    { same: previewed.baseRef === current.baseRef, what: "the base branch" },
     { same: previewed.state.toLowerCase() === current.state.toLowerCase(), what: "the open/closed state" },
     // `draft` is compared even though a PATCH cannot change it, and that is the point: a whole form's draft
     // field is overlaid from the FIRST read, so if another actor flips draft inside the window the recorded

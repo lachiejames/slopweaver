@@ -98,7 +98,6 @@ describe("performCreate", () => {
       home: tempHome(),
       installationIdentifiers: undefined,
       locus: "o/r:feature",
-      pullRequest: { kind: "new" },
     });
     expect(outcome.kind).toBe("refused");
     expect(creates).toStrictEqual([]);
@@ -132,7 +131,6 @@ describe("performCreate", () => {
       home: tempHome(),
       installationIdentifiers: undefined,
       locus: "o/r:feature",
-      pullRequest: { kind: "new" },
     });
     expect(outcome).toStrictEqual({
       kind: "refused",

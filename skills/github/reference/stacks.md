@@ -30,7 +30,7 @@ the fleet-finding ruling ([pull-requests.md](pull-requests.md)). Then the token,
 request (both description reviews name it), the door, the push, and the write-access preflight (`canPush`).
 
 One behavioural difference worth knowing: **`stack push` amends and pushes the branch itself**, so there is
-no separate `github push` beforehand. `github push` is for a branch whose pull request already exists.
+no separate `github push` beforehand; re-run on an open pull request, it updates that one ([pr-forms.md](pr-forms.md)).
 
 ## A chained pull request that is not a native stack is structurally impossible
 

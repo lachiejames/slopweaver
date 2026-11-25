@@ -22,7 +22,9 @@ so the only possible partial outcome is the recoverable one.
 **create** (the half of `stack push` that opens the pull request) — `parse → validate (retired fields refused by
 name) → render + gate → [--dry-run stops here] → token → write preflight → door → reserve → create → read back →
 confirm → kind labels → report`. Ahead of it, `stack push` runs `local gates → token → read the branch's open
-pull request → description review → door → amend → push`, and the create's own review names that same pull request.
+pull request → description review → door → amend → push`. When that read finds the branch's pull request already
+open, the push runs the **update** below instead of a create: everything up to the replacement preview before the
+amend, everything from the door's RE-READ after the push.
 
 **update** — `parse → token → address → identity → authorship → recover the form (or take the whole one) →
 merge → render + gate → re-append any third-party block → replacement preview → [--dry-run stops here] →
@@ -47,14 +49,15 @@ credential, and CI's scan stay refused ([`installationIdentifiers.ts`](../../../
 parse and what a replacement would discard all need a read, and a preview blind to what it previews is worse than none.
 
 The second read, immediately before the PATCH, is not redundant. GitHub offers no conditional update for a body, so
-the window is kept to one round trip and re-checked: description, title, author, state and **head commit**, since
-a force-push inside it would publish proof gathered on a head that is no longer the one under review.
+the window is kept to one round trip and re-checked: description, title, author, state, draft, base branch and
+**head commit**, since a force-push inside it would publish proof gathered on a head no longer under review.
 
 Outcomes worth recognising, because two of them are the verb working rather than failing:
 
 - **`opened #<n>` / `updated #<n>`** — done, and verified by read-back.
 - **`refused: … is already reserved by #<n>`** — the duplicate guard, keyed on the BRANCH LOCUS (repo, base, head),
-  never the content, so a retry whose form changed slightly cannot open a second pull request. It prints the
+  never the content, so a retry whose form changed slightly cannot open a second pull request (a `stack push` re-run
+  on an open one updates it instead). It prints the
   `pr update --repo <owner/name> --number <n> --edit - < edit.json` that brings `#<n>` up to date instead; a
   reservation with no number cites nothing and prints no command.
 - **`UNCONFIRMED: …`** — the reservation is held and this invocation did not retry. **Run it again**, never `rm` the

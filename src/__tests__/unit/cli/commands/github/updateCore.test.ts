@@ -273,6 +273,7 @@ describe("updateFreshnessFor — the second read is what keeps the race one roun
     { overrides: { title: "a human retitled it" }, what: "the title" },
     { overrides: { state: "closed" }, what: "the open/closed state" },
     { overrides: { draft: false }, what: "the draft state" },
+    { overrides: { baseRef: "release" }, what: "the base branch" },
   ];
 
   it.each(moved)("refuses when $what changed, and says which", ({ overrides, what }) => {

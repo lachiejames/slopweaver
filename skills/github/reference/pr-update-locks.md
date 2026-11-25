@@ -1,6 +1,9 @@
 # `github pr update`'s policy locks, and the refusal no key releases
 
-The parent is [pr-forms](pr-forms.md); this page is what `pr update` refuses on POLICY rather than on fact.
+The parent is [pr-forms](pr-forms.md); this page is what `pr update` refuses on POLICY rather than on fact. A `stack
+push` re-run on a branch whose pull request is already open updates it with a whole form, so it meets every lock
+below exactly as `pr update --form` does, before its amend and push (`src/cli/commands/github/stackPushUpdate.ts`);
+it has no `--edit`, so only the key passes a changed description there.
 
 ## Two policy locks, each with a key
 

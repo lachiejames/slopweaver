@@ -1,11 +1,11 @@
 /**
  * Which pull request a `github stack push` describes: the branch's open one, or one not yet opened.
  *
- * Re-run on a branch that already has an open pull request, a stack push is an update: it amends, pushes, and its
- * create step ends at the reservation's duplicate refusal, which names `pr update`. Both description reviews it asks
- * (the early one before the amend, and the create's own) must then describe THAT pull request, existing comments
- * included, or the reviewed packet is one no later write sends. This module makes the ONE read that decides it, and
- * `./stackPushRun.ts` hands the same answer to both checks.
+ * Re-run on a branch that already has an open pull request, a stack push is an update: it amends, pushes, and then
+ * updates THAT pull request through `pr update`'s gates and mutation (`./stackPushUpdate.ts`). Both description reviews
+ * it asks (the early one before the amend, and the update's own before its PATCH) describe that pull request, existing
+ * comments included, or the reviewed packet is one no later write sends. This module makes the ONE read that decides
+ * it, and `./stackPushRun.ts` hands the same answer to the write and to both checks.
  */
 import { err, ok } from "#lib/result.js";
 

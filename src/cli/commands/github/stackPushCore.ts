@@ -311,11 +311,23 @@ export function githubStackRegistrationFor({
 /**
  * Describe the external write to the admit door.
  *
+ * `createsWorkItem` is true only when the push opens a pull request. A re-run on a branch whose pull request is
+ * already open updates that one, which puts nothing new on a human's queue, the judgement `pr update` makes.
+ *
+ * @param createsWorkItem whether this push opens a new pull request rather than updating the branch's open one
  * @param home the state home whose door ledger records the attempt
  * @param plan the exact stack-push plan being admitted
  * @returns the external-write door request
  */
-export function githubStackPushDoorRequest({ home, plan }: { home: string; plan: GithubStackPushPlan }): DoorRequest {
+export function githubStackPushDoorRequest({
+  createsWorkItem,
+  home,
+  plan,
+}: {
+  createsWorkItem: boolean;
+  home: string;
+  plan: GithubStackPushPlan;
+}): DoorRequest {
   return {
     action: { kind: "verb", noun: "github", verb: "stack push" },
     artifact: {
@@ -325,7 +337,7 @@ export function githubStackPushDoorRequest({ home, plan }: { home: string; plan:
       repo: plan.facts.repo,
     },
     meta: {
-      createsWorkItem: true,
+      createsWorkItem,
       effect: "external-write",
       home,
       requiresApproval: false,

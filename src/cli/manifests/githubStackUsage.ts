@@ -15,7 +15,9 @@ export const STACK_USAGE =
   "                     commit, pushes it, opens the pull request from the form, then registers it against\n" +
   "                     the parent named by the form's target.base — GitHub's own computed stack, never a\n" +
   "                     local ledger, is the membership/order authority. A target.base of the repository\n" +
-  "                     default is the bottom of a stack of one and needs no registration\n" +
+  "                     default is the bottom of a stack of one and needs no registration. Re-run on a\n" +
+  "                     branch whose pull request is already open, it UPDATES that pull request instead,\n" +
+  "                     through every gate `pr update --form` applies, each checked before the amend\n" +
   "  push --form <json|-> | --file <path|-> | --form-example | --file-example\n" +
   "       [--self-review <json|->] [--dry-run] [--wait] [--timeout-seconds <n>]\n" +
   "       [--acknowledge <base-moved,base-unmeasurable,already-landed>] [--acknowledge-all --reason <text>]\n" +

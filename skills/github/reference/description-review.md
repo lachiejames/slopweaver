@@ -48,17 +48,17 @@ them again immediately before its mutation. A comment that arrives or is edited 
 write is refused, naming "the pull request's existing comments changed".
 
 **`stack push` reads the branch's open pull request once, before either of its reviews**, and both describe what it
-found (`src/cli/commands/github/stackPushPullRequest.ts`). None open reviews as `--new`, as before. One open onto the
-form's base reviews as `--number <n>` in both checks, so that re-run owes the review `pr update` asks for, not a
-second one. A read that fails, or an open pull request onto another base, refuses before anything is amended or
-pushed; it never falls back to `--new`. A create reviewed against an open pull request never opens another one:
-where the reservation holds no record of it (never recorded here, or closed since the review), the create refuses
-and releases the reservation.
+found (`src/cli/commands/github/stackPushPullRequest.ts`). None open reviews as `--new` and creates, as before. One
+open onto the form's base is UPDATED, never created again: both checks review it as `--number <n>`, over the exact
+bytes `pr update --form` would send, and the update's own check runs at the head the push just landed
+(`src/cli/commands/github/stackPushUpdate.ts`). A read that fails, or an open pull request onto another base, refuses
+before anything is amended or pushed; it never falls back to `--new`.
 
 **Residues, stated.** The read is one GraphQL page of 100 nodes per connection; a pull request past that is refused
 rather than reviewed in part. A review's own summary body is not read, only its inline comments. A comment landing
-between the write's re-read and its mutation is not seen. `stack push` posts its round after the create without a
-second check, so a comment arriving in that gap is the same race. A receipt written before the comments were bound
+between the write's re-read and its mutation is not seen. `stack push` posts a create's round after the create
+without a second check, so a comment arriving in that gap is the same race; an update's round is checked again
+before it posts, as `pr update --self-review`'s is. A receipt written before the comments were bound
 (schema 1) is not decoded: it reads as no review, and the write asks for a new one.
 `--images` is a JSON array of `{ file, url, sha256, proves, receiptId }`, one per image the body shows. The verb
 derives it: each screenshot slot's address must match an upload receipt `github attach upload` wrote
