@@ -46,7 +46,7 @@ entirely. The one form that renders inline everywhere, public or private, for ev
 
 **`attach upload` is CLOSED until the owner's recorded `handover rule … --attach-upload permitted`**, no hatch; closed, the picture stays local and the proof says so ([why](reference/attachments.md#attach-upload-is-closed-until-the-owners-ruling-permits-it)). **An expired session is NEVER a reason to ship less** — never a link for the image. **A
 recording is an `.mp4`, never a GIF**: a GIF loops with no scrubber or duration, so `attach upload` refuses any GIF and any
-file no capture verb wrote (`browser shot|terminal-shot|console-shot|redact`, or `slopweaver proof cassette --tape <t> --out <x>.mp4`), and takes a one-line `--proves`, scanning it and the frame text, then reads the upload back before its `upl-<uuid>` receipt. **Proof lives in the description as a user attachment** — never a release, a PR comment or a
+file `browser console-shot` did not write (every other capture verb is held until a figure check exists), and takes a one-line `--proves`, scanning it and the frame text, then reads the upload back before its `upl-<uuid>` receipt. **Proof lives in the description as a user attachment** — never a release, a PR comment or a
 committed proof folder, and every write door refuses each. **Read
 [reference/attachments.md](reference/attachments.md) before the first `attach` call**: the session source, the separate
 org-SSO grant, the size ceilings and the refusals are there.

@@ -27,7 +27,7 @@ const RECEIPT: GithubUploadReceipt = {
   image: {
     alt: "a terminal pane",
     captureId: "cap-aaaaaaaaaaaaaaaa",
-    captureVerb: "browser terminal-shot",
+    captureVerb: "browser console-shot",
     digest: DIGEST,
     heightPx: 40,
     imageReceiptId: "rec-attachable",

@@ -2,9 +2,10 @@
  * `slopweaver proof cassette` — render a session-authored VHS tape to an `.mp4` a pull-request reader can
  * scrub, typed fast enough that nobody waits on it. What the tape may and may not carry, and why, is
  * `src/proof/cassette/tape.ts`; this module is the CLI edge: parse, refuse an output a checkout could carry,
- * render, confirm the file exists, strip its metadata, and write the capture receipt `github attach` requires —
- * the same version-2 receipt every capture verb writes, with the recording's transcript as its frame text
- * (`src/proof/cassette/receipt.ts`).
+ * render, confirm the file exists, strip its metadata, and write the capture receipt — the same version-2 receipt
+ * every capture verb writes, with the recording's transcript as its frame text (`src/proof/cassette/receipt.ts`).
+ * `github attach` holds a recording on its verb until a figure check exists (`outbound/github/attachCaptureVerb.ts`),
+ * so the video stays local proof.
  */
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -209,7 +210,7 @@ function renderCassette({
 }
 
 /**
- * Strip the rendered video, write its capture receipt, and name the two steps left before it can be attached. A
+ * Strip the rendered video, write its capture receipt, name the record step, and say the video stays local. A
  * receipt that cannot be written removes the video, so no unreceipted recording is left looking finished.
  */
 function recordCassette({
@@ -264,7 +265,9 @@ function recordCassette({
       `--form <form>, citing capture id ${receipt.captureId}`,
   });
   log.out({
-    line: `next: slopweaver github attach upload --file ${absoluteOut} --repo <owner/name> --number <pr> --proves "<one line>"`,
+    line:
+      "the recording stays local: github attach holds every capture verb but browser console-shot until a figure " +
+      "check exists",
   });
   return EXIT_OK;
 }

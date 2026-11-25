@@ -44,19 +44,19 @@ While closed, a picture stays local and its proof says so; `github pr review-pre
 `hold`, which `--acknowledge` cannot waive) unless every check below passes. A renamed or copied file resolves to
 the same receipt; a file edited after capture has new bytes and none.
 
-- **The capture verbs**: `browser shot` (evidence profile), `browser terminal-shot` (terminal text drawn to a PNG),
-  `browser console-shot` (a console walk), `browser redact` (opaque rectangles burned into a captured PNG, written as a
-  NEW file with a child receipt naming its parent; never a blur or an overlay) and `proof cassette` (a VHS recording,
-  `.mp4`). `browser shot --raw`, `slack shot`, `datadog shot`, `atlas vanta shot`, `browser annotate` output and a
-  hand-made picture write no version-2 receipt, so attach refuses them: re-capture through one of the five.
+- **Only `browser console-shot` is admitted** (`src/outbound/github/attachCaptureVerb.ts`): a throwaway store of the
+  synthetic `acme` organisation, so no figure from the operator's own accounts. `browser shot`, `terminal-shot`,
+  `redact` (even over a console-shot parent) and `proof cassette` hold as `attach.capture-verb` until a figure check
+  exists — the text scan sees private words, never a balance or a total — so their proof stays local; the other checks
+  still run beside it. `browser shot --raw`, `slack shot`, `datadog shot`, `atlas vanta shot`, `browser annotate`
+  output and a hand-made picture write no version-2 receipt at all.
 - **`--proves "<line>"` is required**: one line, at most 200 characters, saying what the picture proves.
 - **The scan reads every word a reader meets**: the receipt's frame text (the page's visible text, the terminal's
   drawn lines, or a recording's transcript), the `--proves` line and the alt text, through one injected port
   (`AttachTextScan`, `src/outbound/github/attachEvidence.ts`) whose default is the hygiene leak scan over the
   private denylist and the private terms, forgiving no installation identifier. Both load before the session is read,
   so a policy that did not load (private terms absent included) refuses a dry run or an upload before GitHub is
-  contacted. Frame text the capture could not read whole is
-  `incomplete` and refused. A hit in the pixels is fixed by re-capturing, or by `browser redact` and attaching that file.
+  contacted. Frame text the capture could not read whole is `incomplete` and refused.
 - **A PNG's pixels are read too**, on this machine by macOS Vision (`src/visualEvidence/imageTextRecognition.ts`, no
   egress, no model): once per upload, from the very buffer sent, scanned as the `pixel-text` surface and judged by
   the dead-host check. A hit holds `attach.scan.pixel-text`, naming the class only; a read that failed, timed out or

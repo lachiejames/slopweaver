@@ -1,7 +1,8 @@
 /**
- * The capture receipt a proof cassette writes: the same version-2 shape every capture verb writes, so
- * `github attach` admits a recording through the same checks as a picture — a receipt naming these exact bytes, a
- * frame text to scan, the five image checks and the metadata strip.
+ * The capture receipt a proof cassette writes: the same version-2 shape every capture verb writes, so a recording
+ * meets the same checks as a picture — a receipt naming these exact bytes, a frame text to scan, the five image checks
+ * and the metadata strip. `github attach` still HOLDS it on its verb until a figure check exists
+ * (`outbound/github/attachCaptureVerb.ts`), so the recording stays local proof.
  *
  * The frame is the whole video frame and the crop rectangle is all of it: the recorder drives a terminal of its own
  * that shows only what the tape typed, so there is no larger screen a crop was cut from. The frame text is the

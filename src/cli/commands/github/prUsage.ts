@@ -14,9 +14,9 @@ export const GITHUB_ATTACH_USAGE =
   '[--proves "<line>"] [--alt <text>] [--acknowledge <reason>] [--org <slug>] [--dry-run] [--json] [--home <dir>]\n' +
   "  upload             upload one local image or video to GitHub's own user-attachments host and print\n" +
   "                     the permanent URL, plus the markdown that embeds it. The only URL that renders\n" +
-  "                     inline on a PRIVATE repository — raw.githubusercontent.com does not. Only a file a\n" +
-  "                     capture verb wrote is sent — browser shot, browser terminal-shot, browser redact\n" +
-  "                     or proof cassette — found by its bytes' capture receipt, its frame text scanned,\n" +
+  "                     inline on a PRIVATE repository — raw.githubusercontent.com does not. Only a file\n" +
+  "                     browser console-shot wrote is sent; every other capture verb is held until a\n" +
+  "                     figure check exists. It is found by its bytes' capture receipt, its frame text scanned,\n" +
   "                     its five image checks passed. The asset is then fetched back, and only bytes\n" +
   "                     identical to those checked earn the upload receipt (upl-<id>) a description cites\n" +
   '  --proves "<line>"  upload only, required: one line saying what the picture proves, scanned and\n' +

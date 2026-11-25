@@ -152,9 +152,9 @@ avoid.
   [docs/browser-route/retirement-and-aim.md](../../docs/browser-route/retirement-and-aim.md).
 - One page photographed and nothing else: `slopweaver browser shot --url <url> --out <file.png>` is the
   cheapest thing when all you need is a picture.
-- A picture bound for GitHub needs a capture receipt naming its bytes, frame text included: `browser shot`,
-  `terminal-shot`, `console-shot`, `redact` and `proof cassette` write one, and `--raw`, `annotate` and the provider
-  `shot` verbs do not ([attachments](../github/reference/attachments.md#only-a-file-a-capture-verb-wrote-is-sent)).
+- A picture bound for GitHub is a `console-shot`, the one capture verb `github attach` admits until a figure check
+  exists. `browser shot`, `terminal-shot`, `redact` and `proof cassette` write a receipt too, but attach holds them,
+  so they stay local proof ([attachments](../github/reference/attachments.md#only-a-file-a-capture-verb-wrote-is-sent)).
 - A console change's click-through is `browser console-shot --walk <name>`: it builds this checkout, stands the
   console up headless over a fresh database on the selected store's own local server, seeded with the `acme`
   fixture, never this installation's home, store or credentials; it runs one registered walk

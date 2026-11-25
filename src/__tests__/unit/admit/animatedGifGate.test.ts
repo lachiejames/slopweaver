@@ -14,7 +14,7 @@ describe("animatedGifFindings", () => {
     expect(findings[0]!.summary).toBe(
       "proof.gif is an animated GIF (3 frames): it autoplays and loops with no timeline control",
     );
-    expect(findings[0]!.correction).toContain("slopweaver proof cassette --tape <tape> --out <name>.mp4");
+    expect(findings[0]!.correction).toContain("taken with `slopweaver browser console-shot`");
   });
 
   it("carries the override token the hatch register names", () => {

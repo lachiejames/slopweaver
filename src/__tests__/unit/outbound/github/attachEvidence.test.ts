@@ -6,6 +6,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { parsePrivateTerms } from "../../../../hygiene/privateTerms.js";
 import { err, ok, unwrap } from "../../../../lib/result.js";
+import { attachCaptureVerbFindings } from "../../../../outbound/github/attachCaptureVerb.js";
 import {
   type AttachEvidence,
   type AttachTextScan,
@@ -22,6 +23,7 @@ import { appendImageRecord } from "../../../../visualEvidence/store.js";
 import type { ImageRecord } from "../../../../visualEvidence/types.js";
 import {
   type AttachablePicture,
+  consoleShotPicture,
   fileAttachableEvidence,
   passedRecordFor,
   recordedCassette,
@@ -42,11 +44,32 @@ afterEach(() => {
   }
 });
 
+/** The terminal shot as its own verb wrote it, held on that verb. */
+let TERMINAL: AttachablePicture;
+/** The same bytes under a console-shot receipt: the one verb attach admits, so every other check is tested alone. */
 let PICTURE: AttachablePicture;
 
 beforeAll(async () => {
-  PICTURE = await renderAttachablePicture();
+  TERMINAL = await renderAttachablePicture();
+  PICTURE = consoleShotPicture({ picture: TERMINAL });
 });
+
+/** The hold every capture verb but `browser console-shot` gets, naming the verb and nothing the picture shows. */
+function verbHold({ verb }: { verb: string }): {
+  code: string;
+  correction: string;
+  severity: string;
+  summary: string;
+} {
+  return {
+    code: "attach.capture-verb",
+    correction:
+      "re-capture it with `slopweaver browser console-shot` over its synthetic `acme` fixtures, or keep this proof " +
+      "local until a figure check exists",
+    severity: "hold",
+    summary: `\`${verb}\` can show figures from the operator's own accounts; only \`browser console-shot\` is synthetic by construction`,
+  };
+}
 
 const CLEAN: AttachTextScan = () => [];
 
@@ -161,6 +184,18 @@ describe("resolveAttachEvidence", () => {
   });
 });
 
+describe("attachCaptureVerbFindings", () => {
+  it("admits browser console-shot alone and holds each other capture verb, naming that verb", () => {
+    expect(attachCaptureVerbFindings({ verb: "browser console-shot" })).toStrictEqual([]);
+    expect(attachCaptureVerbFindings({ verb: "browser shot" })).toStrictEqual([verbHold({ verb: "browser shot" })]);
+    expect(attachCaptureVerbFindings({ verb: "browser terminal-shot" })).toStrictEqual([
+      verbHold({ verb: "browser terminal-shot" }),
+    ]);
+    expect(attachCaptureVerbFindings({ verb: "browser redact" })).toStrictEqual([verbHold({ verb: "browser redact" })]);
+    expect(attachCaptureVerbFindings({ verb: "proof cassette" })).toStrictEqual([verbHold({ verb: "proof cassette" })]);
+  });
+});
+
 describe("attachEvidenceFindings", () => {
   const base = {
     alt: "a terminal pane",
@@ -194,7 +229,7 @@ describe("attachEvidenceFindings", () => {
     expect(findings).toStrictEqual([
       {
         code: "attach.scan.pixel-text",
-        correction: "re-capture without it, or burn it out with `slopweaver browser redact` and attach that file",
+        correction: "re-capture it with `slopweaver browser console-shot` so it does not show it",
         severity: "hold",
         summary: "the picture's pixels show pixel-text carries Acme",
       },
@@ -212,7 +247,7 @@ describe("attachEvidenceFindings", () => {
     expect(findings).toStrictEqual([
       {
         code: "attach.scan.pixel-text",
-        correction: "re-capture without it, or burn it out with `slopweaver browser redact` and attach that file",
+        correction: "re-capture it with `slopweaver browser console-shot` so it does not show it",
         severity: "hold",
         summary:
           "the picture's pixels show text read from the picture's pixels line 2: a private organisation term (redacted here) — remove or generalise it, or if it is not private ask the chair to narrow that terms row",
@@ -271,7 +306,7 @@ describe("attachEvidenceFindings", () => {
       scan: CLEAN,
     });
     expect(findings.map((finding) => finding.summary)).toStrictEqual([
-      "the upload would be declared video/mp4, and `browser terminal-shot` wrote an image/png",
+      "the upload would be declared video/mp4, and `browser console-shot` wrote an image/png",
     ]);
   });
 
@@ -290,7 +325,7 @@ describe("attachEvidenceFindings", () => {
     expect(codesFor({ contentType: "video/mp4" })).toStrictEqual(["attach.capture-receipt"]);
   });
 
-  it("admits a recording proof cassette wrote, through the same checks, with no crop or PNG chunk rule", () => {
+  it("holds a recording proof cassette wrote on its verb alone: no crop or PNG chunk rule fires beside it", () => {
     const home = freshHome();
     const cassette = recordedCassette();
     fileAttachableEvidence({ home, picture: cassette });
@@ -303,7 +338,27 @@ describe("attachEvidenceFindings", () => {
       evidence,
       scan: CLEAN,
     });
-    expect(findings).toStrictEqual([]);
+    expect(findings).toStrictEqual([verbHold({ verb: "proof cassette" })]);
+  });
+
+  it("holds the terminal shot its own verb wrote, the bytes the console-shot cases admit", () => {
+    const home = freshHome();
+    fileAttachableEvidence({ home, picture: TERMINAL });
+    const evidence = resolveAttachEvidence({ bytes: TERMINAL.bytes, home });
+    expect(attachEvidenceFindings({ ...base, bytes: TERMINAL.bytes, evidence, scan: CLEAN })).toStrictEqual([
+      verbHold({ verb: "browser terminal-shot" }),
+    ]);
+  });
+
+  it("names the verb and none of the figures the held picture's frame shows", async () => {
+    const home = freshHome();
+    const figures = await renderAttachablePicture({ text: "$ gh repo list\nprivate repositories: 37\nTotal 4182\n$ " });
+    fileAttachableEvidence({ home, picture: figures });
+    const evidence = resolveAttachEvidence({ bytes: figures.bytes, home });
+    const findings = attachEvidenceFindings({ ...base, bytes: figures.bytes, evidence, scan: CLEAN });
+    expect(findings).toStrictEqual([verbHold({ verb: "browser terminal-shot" })]);
+    expect(JSON.stringify(figures.receipt.frameText)).toContain("4182");
+    expect(JSON.stringify(findings)).not.toContain("4182");
   });
 
   it("scans a recording's transcript, and holds one nobody recorded watching", () => {
@@ -319,6 +374,7 @@ describe("attachEvidenceFindings", () => {
       scan: flagging({ word: "TOKEN=" }),
     });
     expect(findings.map((finding) => [finding.code, finding.summary])).toStrictEqual([
+      ["attach.capture-verb", verbHold({ verb: "proof cassette" }).summary],
       ["attach.scan.frame-text", "the recording shows frame-text carries TOKEN="],
       ["attach.image-check.viewed", expect.stringContaining("no record says anybody opened these bytes")],
     ]);
@@ -335,6 +391,7 @@ describe("attachEvidenceFindings", () => {
     const evidence = resolveAttachEvidence({ bytes, home });
     const findings = attachEvidenceFindings({ ...base, bytes, contentType: "video/mp4", evidence, scan: CLEAN });
     expect(findings.map((finding) => finding.summary)).toStrictEqual([
+      verbHold({ verb: "proof cassette" }).summary,
       "the receipt could not record every word in the frame: the recorder wrote no transcript beside the video",
     ]);
   });

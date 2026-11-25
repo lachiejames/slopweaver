@@ -10,6 +10,7 @@ import { ok } from "../../../../../lib/result.js";
 import type { AttachFetch, AttachResponse } from "../../../../../outbound/github/attachClient.js";
 import {
   type AttachablePicture,
+  consoleShotPicture,
   fileAttachableEvidence,
   renderAttachablePicture,
   servingReadBack,
@@ -21,11 +22,12 @@ import { gifWithFrames } from "../../../../gifFixtures.js";
 // Every fixture directory this file has minted, so `afterEach` can remove them.
 const fixtureDirs: string[] = [];
 
-// A real terminal-shot picture whose receipt and passed record every home holds, so a case that should upload can.
+// Real picture bytes under a console-shot receipt, the one verb attach admits, whose receipt and passed record every
+// home holds, so a case that should upload can.
 let PICTURE: AttachablePicture;
 
 beforeAll(async () => {
-  PICTURE = await renderAttachablePicture();
+  PICTURE = consoleShotPicture({ picture: await renderAttachablePicture() });
 });
 
 afterEach(() => {
@@ -240,7 +242,7 @@ describe("github attach upload — the animated-GIF gate", () => {
     expect(await runGithubAttach({ deps, rest: argvFor({ path }) })).toBe(EXIT_ERROR);
     expect(captured.out).toStrictEqual([]);
     expect(captured.diagnostics.some((line) => line.includes("[ANIMATED_GIF]"))).toBe(true);
-    expect(captured.diagnostics.some((line) => line.includes("slopweaver proof cassette"))).toBe(true);
+    expect(captured.diagnostics.some((line) => line.includes("slopweaver browser console-shot"))).toBe(true);
   });
 
   it("refuses a still GIF, which no capture verb writes, so no receipt can describe it", async () => {

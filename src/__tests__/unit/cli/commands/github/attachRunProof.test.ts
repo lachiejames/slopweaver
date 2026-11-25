@@ -36,7 +36,7 @@ describe("runGithubAttach — upload as proof", () => {
     expect(receipt.image).toEqual({
       alt: "shot.png",
       captureId: shot.captureId,
-      captureVerb: "browser terminal-shot",
+      captureVerb: "browser console-shot",
       digest: shot.final.artifact.digest,
       heightPx: shot.final.artifact.heightPx,
       imageReceiptId: "rec-attachable",

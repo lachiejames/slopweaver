@@ -26,7 +26,7 @@ const BRIEF_LINES: readonly string[] = [
   "sentences, why there is no screenshot, then where the proof is instead: the checks or a link, never a test.",
   "Proof of the problem is the product itself failing on screen; a vendor's doc can be linked as cause, not proof.",
   "REFUSED WORDS: a proof reason about a test in its common shapes, the review judging the rest (capture it with",
-  "`slopweaver browser terminal-shot`), CI's work as a check, Slopweaver's own words in the title or explainer, code",
+  "`slopweaver browser console-shot`), CI's work as a check, Slopweaver's own words in the title or explainer, code",
   'as plain text, bold that is not a figure, a bare commit id, and an explainer opening on "Anyone".',
   "ATTRIBUTION (refused by a scan where it can be computed, judged by the description review where it cannot):",
   "  - No first person and no first-person plural in prose, titles, commit messages or captions (code and quotes aside).",

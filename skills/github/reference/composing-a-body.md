@@ -84,8 +84,8 @@ characters, plain text.
 - **A screenshot sits under the one line it proves**, at most 25 words, starting from where it was taken: "On this
   branch, `widgets export` keeps the last row." Proof of the problem is the product itself failing on screen; a
   vendor's doc can be linked as cause, never as proof.
-- **A proof slot holds a capture, never a sentence about a test.** Where a command shows it, capture that command
-  failing on main and passing on the branch with `slopweaver browser terminal-shot`. A reason that talks about a
+- **A proof slot holds a capture, never a sentence about a test.** Where the console shows the change, photograph
+  it with `slopweaver browser console-shot`, the one capture verb attach admits. A reason that talks about a
   test is refused: its common shapes, "the unit cases below" included, before any review (`PROOF_IS_TEST_SENTENCE`),
   and the rest by the review. One reason in both slots is refused too (`REASON_REPEATED`). The sentence about the
   test goes under Checks. A slot with a reason renders its heading as `Proof of the problem: not shown`.

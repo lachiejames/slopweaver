@@ -81,14 +81,16 @@ real person.
 Recorded before/after proofs are wanted more often, and invisibly. One session once showed the owner a region
 picker with the screen dimmed and another raised two Terminal windows over the chat the owner was reading; terminals
 stay in the background. Record a terminal scene with `slopweaver proof cassette`: VHS drives a terminal of its own
-with no window on the owner's screen, and the verb writes the transcript beside the `.mp4` and files the capture
-receipt `github attach` requires. A still of terminal output is `browser terminal-shot`; a console page's
-click-through is `browser console-shot --walk <name>`, headless over a throwaway fixture store. Never an interactive
+with no window on the owner's screen, and the verb writes the transcript beside the `.mp4` and files its capture
+receipt. A still of terminal output is `browser terminal-shot`; a console page's click-through is `browser
+console-shot --walk <name>`, headless over a throwaway fixture store. **Only a console-shot can be attached** until a
+figure check exists; a cassette or a terminal-shot is local proof
+([attachments.md](attachments.md#only-a-file-a-capture-verb-wrote-is-sent)). Never an interactive
 `screencapture -i`, never `activate` an app or open a Terminal window; a `screencapture` recording has no receipt,
 so attach refuses it anyway. The capture lands under `$SLOPWEAVER_HOME/proof/<slug>/`, never the checkout
 ([pull-requests.md](pull-requests.md)). Where a recording cannot be invisible, ship a text transcript and say
 why rather than interrupt the owner.
 
-Before attaching either, read it back and record what it shows with `slopweaver browser image-record` (for a
+Before attaching a console-shot, read it back and record what it shows with `slopweaver browser image-record` (for a
 cassette, read its transcript); `--proves "<one line>"` then names what it proves
 ([attachments.md](attachments.md#only-a-file-a-capture-verb-wrote-is-sent)).
