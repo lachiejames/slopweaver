@@ -14,6 +14,7 @@ import {
 } from "../../../../../cli/commands/github/enqueueAcknowledgements.js";
 import type { GithubEnqueueArgs } from "../../../../../cli/commands/github/enqueueArgs.js";
 import type { EnqueueFinding } from "../../../../../cli/commands/github/enqueueFindings.js";
+import { PRIVATE_TERMS_UNCHECKED_ACK } from "../../../../../cli/commands/github/privateTermsPermit.js";
 import { CODEX_LOOP_SUBJECT } from "../../../../../codex/landingGate.js";
 
 /** One finding of the named subject; only the subject is read by anything here. */
@@ -75,8 +76,12 @@ describe("enqueueAcknowledgements", () => {
     );
   });
 
-  it("declares both reason-requiring subjects, and nothing else", () => {
+  it("declares the three reason-requiring subjects, the private-terms waiver included, and nothing else", () => {
     expect(REASON_REQUIRED_SUBJECTS.length).toBeGreaterThan(0);
-    expect([...REASON_REQUIRED_SUBJECTS]).toEqual([CODEX_LOOP_SUBJECT, ROLLUP_SUPERSEDED_SUBJECT]);
+    expect([...REASON_REQUIRED_SUBJECTS]).toEqual([
+      CODEX_LOOP_SUBJECT,
+      ROLLUP_SUPERSEDED_SUBJECT,
+      PRIVATE_TERMS_UNCHECKED_ACK,
+    ]);
   });
 });

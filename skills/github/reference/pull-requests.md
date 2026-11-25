@@ -71,7 +71,7 @@ Bundled reference for the `github` skill, loaded when the body links here: the p
   tested. That, `base-unresolved`, and the non-blocking `⚠ this branch is N commits behind <remote>/<base>`
   every git-reading verb prints: [base-freshness.md](base-freshness.md).
 - **A head or base that disagrees with GitHub** — a report measured from local refs that describe a different merge is refused, never warned about.
-- **A private term on a line the merge lands**, `--dry-run` included — a hit or an unreadable terms file holds with no acknowledgement; an absent one is `private-terms-unchecked`, named with a `--reason` ([the landing sweep](../../../docs/security/private-terms.md#the-landing-sweep)).
+- **A private term on a line the merge lands**, `--dry-run` included (enqueue too, over the prospective tree) — a hit or an unreadable terms file holds with no acknowledgement; an absent one is `private-terms-unchecked`, named with a `--reason` ([the landing sweep](../../../docs/security/private-terms.md#the-landing-sweep)).
 
 **The docs budget is re-measured on the MERGED tree, not either branch's tip.** `github merge` runs the
 always-on documentation set and every skill body through `git merge-tree`, so a `docs-budget` finding names the

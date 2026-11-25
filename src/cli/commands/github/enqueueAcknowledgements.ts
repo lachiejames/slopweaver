@@ -17,6 +17,7 @@ import { CODEX_LOOP_SUBJECT } from "../../../codex/landingGate.js";
 import type { GithubEnqueueArgs } from "./enqueueArgs.js";
 import { codexLoopAcknowledgement } from "./enqueueCodexLoop.js";
 import type { EnqueueFinding } from "./enqueueFindings.js";
+import { PRIVATE_TERMS_UNCHECKED_ACK } from "./privateTermsPermit.js";
 
 /**
  * The rollup subject a press may answer for itself, named once so the guard, the press and the door agree.
@@ -121,4 +122,5 @@ export function enqueueAcknowledgements({
 export const REASON_REQUIRED_SUBJECTS: readonly AcknowledgeableSubject[] = [
   CODEX_LOOP_SUBJECT,
   ROLLUP_SUPERSEDED_SUBJECT,
+  PRIVATE_TERMS_UNCHECKED_ACK,
 ];

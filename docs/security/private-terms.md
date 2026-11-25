@@ -82,8 +82,17 @@ request and on `--dry-run` too.
   `(changed file N)`; `--acknowledge` and `--acknowledge-all` do not reach it. Reword, push, land again.
 - **Absent, or a change set that cannot be read whole** (no fetched base, a merge that does not apply, a submodule
   entry) is `private-terms-unchecked`, landed only by naming it with `--acknowledge` and a `--reason`, which the door
-  ledger records.
+  ledger records. `--acknowledge-all` never reaches it: that flag waives findings a caller has read, and this one
+  says no read happened. A reason a loaded term matches waives nothing, since the ledger keeps it verbatim.
 - **The reviewed-residue list sets a line aside** exactly as in the repository scan.
 - **The residue, stated:** the base can still move between the sweep and GitHub's merge, which pins the head and
   never the base; and local git is not GitHub's merge implementation, so a custom merge driver could make the two
-  trees differ. `github enqueue` does not sweep yet.
+  trees differ.
+
+`github enqueue` runs the same sweep as a **prospective-tree preflight** (`src/cli/commands/github/enqueuePrivateTerms.ts`):
+the pinned head merged into the landing branch as just fetched, once the queue verdict would press, on `--dry-run`
+too, and never for `--dequeue` or a pull request already queued. Same hold, same own-name-only waiver. Every arm that
+fetched no landing base is unchecked, never clean: a fork head, no checkout of the repository, no local branch, a
+failed fetch, and a fetched branch that is not the landing branch (the fetch follows the remote's default). The
+queue adds a residue on top of merge's: the merge group GitHub builds later carries every entry ahead of this one
+and a base that moved since the fetch, and that tree is never swept.

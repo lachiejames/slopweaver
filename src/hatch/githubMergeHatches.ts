@@ -42,15 +42,17 @@ export const GITHUB_MERGE_HATCHES = [
   },
   {
     caught:
-      "the private terms did not check the change set this landing would merge — the terms file is absent here, or the merged tree could not be read whole — so a private word on a changed line would reach the base unseen",
-    command: "slopweaver github merge --admin",
+      "the private terms did not check the change set this landing would merge — the terms file is absent here, or the merged tree could not be read whole — so a private word on a changed line would reach the base unseen; --acknowledge-all does not reach this subject",
+    command: "slopweaver github <enqueue|merge --admin>",
     exceptions: [
       "this checkout is a fork or install with no private terms at all, so there is nothing to scan for",
-      "the merge does not apply cleanly here and you have read every changed line for a private word yourself",
+      "the change set could not be read here (the merge does not apply cleanly, or the base could not be fetched) and you have read every changed line for a private word yourself",
     ],
     id: "private-terms-unchecked",
     key: {
-      incantation: 'slopweaver github merge --admin --acknowledge private-terms-unchecked --reason "<why>"',
+      // The waiver's flag leads: `escape-hatch` checks the reader for the FIRST flag, and `--admin` is not the waiver.
+      incantation:
+        'slopweaver github <enqueue|merge> --acknowledge private-terms-unchecked --reason "<why>" (merge with --admin)',
       kind: "command",
     },
     lane: "ambient",

@@ -4,9 +4,10 @@
  * ## The order is the contract
  *
  *   parse → merge hold → token → read the pull request → resolve its LANDING branch → read that branch's
- *   queue and required contexts → verdict → [refused or already stops here] → [dry run stops here] →
- *   Codex floor re-read → ratchet-bump witness (a hold: no acknowledgement reaches it) → resolve the author's
- *   own walkthrough threads → door → write → confirm → report
+ *   queue and required contexts → verdict → [refused or already stops here] → private-terms sweep of the
+ *   prospective tree (`./enqueuePrivateTerms.ts`; a hold or an unwaived unchecked stops here) → [dry run stops
+ *   here] → Codex floor re-read → ratchet-bump witness (a hold: no acknowledgement reaches it) → resolve the
+ *   author's own walkthrough threads → door → write → confirm → report
  *
  * Four points are load-bearing rather than incidental:
  *
@@ -57,6 +58,7 @@ import { readFloorFor, recheckedFloorWaivers, refusedByBump } from "./enqueueCod
 import { enqueueDoorRequest, enqueueJsonDocument, enqueueVerdict, enqueueWitnessOutcome } from "./enqueueCore.js";
 import { type GithubEnqueueDeps, productionGithubEnqueueDeps } from "./enqueueDeps.js";
 import { mutateAndConfirm } from "./enqueueMutate.js";
+import { enqueuePrivateTermsStep } from "./enqueuePrivateTerms.js";
 import { type EnqueueState, readEnqueueState } from "./enqueueRead.js";
 import type { EnqueueTarget } from "./enqueueTarget.js";
 import { noteStaleHolds } from "./holdDeps.js";
@@ -327,22 +329,30 @@ async function judgeAndAct({
     requiresCodeOwnerReviews,
     target,
   });
-  if (verdict.disposition !== "proceed" || args.dryRun) {
+  const proceeds = verdict.disposition === "proceed";
+  // A private-terms refusal prints only its own lines: the verdict's would announce a press that will not happen.
+  const terms = enqueuePrivateTermsStep({ args, deps, home, pr, proceeds, target });
+  if (terms.refused) {
+    report({ args, deps, lines: terms.lines, outcome: "refused", pr });
+    return EXIT_ERROR;
+  }
+  const lines = [...terms.lines, ...verdict.lines];
+  if (!proceeds || args.dryRun) {
     // A dry run that hides a write the real run would make is a lie about what the press is going to do, and
     // one the real run would refuse on is a lie about whether it will.
-    const lands =
-      verdict.disposition !== "proceed" || (await clearWalkthroughs({ args, deps, dryRun: true, home, pr }));
-    report({ args, deps, lines: verdict.lines, outcome: verdict.disposition, pr });
+    const lands = !proceeds || (await clearWalkthroughs({ args, deps, dryRun: true, home, pr }));
+    report({ args, deps, lines, outcome: verdict.disposition, pr });
     return verdict.disposition === "refused" || !lands ? EXIT_ERROR : EXIT_OK;
   }
   if (!args.json) {
     // Under --json the whole invocation answers with ONE object, so the verdict's prose would corrupt it.
     // The findings are not lost: what refuses a write is reported through the refused path above.
-    for (const line of verdict.lines) {
+    for (const line of lines) {
       deps.out(line);
     }
   }
-  return press({ acknowledgements: verdict.acknowledgements, api, args, deps, home, pr, target });
+  const acknowledgements = [...verdict.acknowledgements, ...terms.acknowledgements];
+  return press({ acknowledgements, api, args, deps, home, pr, target });
 }
 
 /**
