@@ -122,6 +122,11 @@ export function readReclaimLedger({ path }: { path: string }): Result<readonly R
 /**
  * Append one act to the ledger, creating `ledgers/` when this is the first.
  *
+ * The append never follows a symlink at the ledger's own name: one planted there could point at any other file in
+ * the home — a pass's artifact, written once and meant to stay that way — and a reclaim's row would land inside it.
+ * A link there fails the append (`ELOOP`) as `APPLY_FAILED`, its target untouched; a linked `ledgers/` or home
+ * directory is still followed.
+ *
  * @param path the ledger file
  * @param row what the run did
  * @returns nothing on success, or the typed failure
@@ -135,7 +140,11 @@ export function appendReclaimRow({
 }): Result<true, HomeReclaimError> {
   try {
     mkdirSync(dirname(path), { recursive: true });
-    appendLines({ path, text: `${safeJsonStringify({ label: "a reclaim ledger row", value: row })}\n` });
+    appendLines({
+      noFollow: true,
+      path,
+      text: `${safeJsonStringify({ label: "a reclaim ledger row", value: row })}\n`,
+    });
     return ok(true);
   } catch (error: unknown) {
     return err(HomeReclaimErrors.applyFailed({ cause: error, path }));

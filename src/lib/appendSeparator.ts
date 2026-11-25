@@ -24,6 +24,9 @@
  * lands before the record, where answering it whole would risk fusing the record onto a fragment (this holds for both the held-descriptor and the path-based case). Where neither its bytes nor its size can be
  * read — a sandbox denying the data and the metadata both — an EMPTY file cannot be told from a torn one, and gets
  * that same empty line.
+ *
+ * **What it follows**: by default a symlink at the appended path, into whatever file it reaches. A caller whose file
+ * must never be reached through a link at its own name passes `noFollow`, and a link there is refused instead.
  */
 import { appendFileSync, closeSync, constants, fstatSync, fsyncSync, openSync, readSync, statSync } from "node:fs";
 
@@ -51,6 +54,18 @@ function lastByteUnterminated({ fd, size }: { fd: number; size: number }): boole
  */
 function isUnreadable({ error }: { error: unknown }): boolean {
   return isRecord(error) && (error["code"] === "EACCES" || error["code"] === "EPERM");
+}
+
+/**
+ * The platform's `O_NOFOLLOW`, or a throw where it has none (Node leaves it undefined on Windows): OR-ing an absent
+ * flag into an open would quietly follow the very link a `noFollow` caller asked to refuse.
+ */
+function noFollowFlag(): number {
+  const flag: unknown = constants.O_NOFOLLOW;
+  if (typeof flag !== "number" || flag === 0) {
+    throw new Error("this platform has no O_NOFOLLOW, so a noFollow open cannot refuse a symlink");
+  }
+  return flag;
 }
 
 /**
@@ -139,25 +154,36 @@ export function needsSeparator({ path }: { path: string }): boolean {
  * descriptor across a check and the write (a symlink-refusing open pinned with `fchmod`, a FIFO-refusing non-blocking
  * one). The tail is read through a SECOND, read-only descriptor on `path`, so the held one keeps the write-only open
  * it always had and needs no read permission (a read-write open refused a mode-0200 journal the
- * write-only open had opened and repaired). That second open never blocks and follows a symlink exactly as the held
- * open did (refusing one dropped a launch log reached through a link), and it must reach the very file the
+ * write-only open had opened and repaired). That second open never blocks and, by default, follows a symlink exactly
+ * as the held open did (refusing one dropped a launch log reached through a link); with `noFollow` it refuses a
+ * symlink at the name instead (`ELOOP`), for a held open that refused one too ({@link appendLines}' `noFollow`). Either
+ * way it must reach the very file the
  * held descriptor is on, by device and inode: a path swapped between the two opens throws rather than judging the
  * wrong tail, as does a process with no descriptor left for that second open (`EMFILE`). A tail this process may not READ is one it cannot judge, so it is answered as torn: at worst one empty line
- * lands before the record, where a wrong "whole" would fuse the record onto a fragment. Of today's two callers only
+ * lands before the record, where a wrong "whole" would fuse the record onto a fragment. Of today's two outside callers only
  * the launch log can reach that case — the standing-ask journal is `fchmod`ed to 0600 by its owner before it probes.
  *
  * @param fd the held append descriptor on the file about to be appended to
  * @param path the name `fd` was opened by, which the tail is read back through
+ * @param noFollow refuse a symlink at `path` for the read-back open instead of following it
  * @returns true when it is a non-empty regular file whose last byte is not `\n` or cannot be read
  */
-export function descriptorNeedsSeparator({ fd, path }: { fd: number; path: string }): boolean {
+export function descriptorNeedsSeparator({
+  fd,
+  path,
+  noFollow = false,
+}: {
+  fd: number;
+  path: string;
+  noFollow?: boolean;
+}): boolean {
   const held = fstatSync(fd);
   if (!held.isFile() || held.size === 0) {
     return false;
   }
   let reader: number;
   try {
-    reader = openSync(path, constants.O_RDONLY | constants.O_NONBLOCK);
+    reader = openSync(path, constants.O_RDONLY | constants.O_NONBLOCK | (noFollow ? noFollowFlag() : 0));
   } catch (error: unknown) {
     if (isUnreadable({ error })) {
       return true;
@@ -189,14 +215,60 @@ function terminated({ text }: { text: string }): string {
 /**
  * The bytes one append writes: nothing for an empty `text`, which has no line to separate (the
  * open still happens, as `appendFileSync(path, "")` did, so an absent file is still created and a missing directory
- * still throws); otherwise a `\n` after a torn tail, then `text`, terminated.
+ * still throws); otherwise a `\n` after a torn tail, then `text`, terminated. `tornTail` is asked only for a
+ * non-empty `text`, so an empty append never probes a tail at all.
  */
-function payloadFor({ path, text }: { path: string; text: string }): string {
+function payloadFor({ text, tornTail }: { text: string; tornTail: () => boolean }): string {
   if (text.length === 0) {
     return "";
   }
-  const lead = tailIsTorn({ path, unreadable: true }) ? "\n" : "";
+  const lead = tornTail() ? "\n" : "";
   return `${lead}${terminated({ text })}`;
+}
+
+/**
+ * The flags a `noFollow` append opens with: append-only, created when absent, a symlink at the final component refused
+ * at the open (`ELOOP`), and a FIFO never waited on.
+ */
+function noFollowAppendFlags(): number {
+  return constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT | noFollowFlag() | constants.O_NONBLOCK;
+}
+
+/**
+ * The `noFollow` append: one held descriptor, opened without following a final symlink and refused unless it is a
+ * regular file, whose tail is probed through a second no-follow descriptor on the same inode, then written whole.
+ */
+function appendNoFollow({
+  durable,
+  mode,
+  path,
+  text,
+}: {
+  durable: boolean;
+  mode: number | undefined;
+  path: string;
+  text: string;
+}): void {
+  const flags = noFollowAppendFlags();
+  const handle = mode === undefined ? openSync(path, flags) : openSync(path, flags, mode);
+  try {
+    if (!fstatSync(handle).isFile()) {
+      throw new Error(`${path} is not a regular file, so a noFollow append refuses it`);
+    }
+    const payload = payloadFor({
+      text,
+      tornTail: () => descriptorNeedsSeparator({ fd: handle, noFollow: true, path }),
+    });
+    writeAll({ handle, text: payload });
+    if (durable) {
+      fsyncSync(handle);
+    }
+  } finally {
+    closeSync(handle);
+  }
+  if (durable) {
+    fsyncDirectories({ paths: [path] });
+  }
 }
 
 /**
@@ -211,23 +283,37 @@ function payloadFor({ path, text }: { path: string; text: string }): string {
  * file fsynced, then its directory, so the append cannot vanish in a crash behind a record that survives it
  * (`handover settle`'s card effect). Without it the append is one buffered `appendFileSync`.
  *
+ * By default the append follows a symlink at `path` and writes into whatever file it reaches, because a caller may
+ * legitimately reach its file through a link (see {@link descriptorNeedsSeparator}). `noFollow` is for a file nothing
+ * should ever reach through a link at its own name — a home ledger whose link could point at any other file in the
+ * home: the append opens without following the final component, so a symlink there throws `ELOOP` and nothing is
+ * written to its target; anything that opens but is not a regular file throws too. Linked ancestor directories are
+ * still followed, and a hard link is not refused.
+ *
  * @param path the file to append to; its directory must already exist
  * @param text one or more lines, the last newline optional
  * @param mode the permission bits a file this append creates gets (an existing file keeps its own)
  * @param durable fsync the file and its directory before returning
+ * @param noFollow refuse a symlink at the final component of `path` rather than append into its target
  */
 export function appendLines({
   path,
   text,
   mode,
   durable = false,
+  noFollow = false,
 }: {
   path: string;
   text: string;
   mode?: number;
   durable?: boolean;
+  noFollow?: boolean;
 }): void {
-  const payload = payloadFor({ path, text });
+  if (noFollow) {
+    appendNoFollow({ durable, mode, path, text });
+    return;
+  }
+  const payload = payloadFor({ text, tornTail: () => tailIsTorn({ path, unreadable: true }) });
   if (!durable) {
     appendFileSync(path, payload, mode === undefined ? { encoding: "utf8" } : { encoding: "utf8", mode });
     return;

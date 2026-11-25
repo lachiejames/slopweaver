@@ -1,11 +1,13 @@
 /**
  * `needsSeparator` is true only for an existing, non-empty file whose LAST BYTE is not LF. A missing or empty
  * file needs none; CRLF ends in LF, so it needs none either; a lone CR does. `appendLines` is the append every
- * line-oriented file goes through: it puts a record on a fresh line after a torn tail, buffered or durable.
+ * line-oriented file goes through: it puts a record on a fresh line after a torn tail, buffered or durable, and
+ * with `noFollow` refuses a symlink at its path rather than appending into the link's target.
  */
 import {
   chmodSync,
   closeSync,
+  lstatSync,
   mkdtempSync,
   openSync,
   readFileSync,
@@ -113,6 +115,20 @@ describe("descriptorNeedsSeparator", () => {
     expect(probeAt({ path: link })).toBe(true);
   });
 
+  it("refuses with noFollow a name swapped for a link to the held file, which the default probe follows", () => {
+    const path = journalWith({ content: '{"a":1}\n{"b":' });
+    const fd = openSync(path, "a");
+    try {
+      const moved = join(dir, "moved.jsonl");
+      renameSync(path, moved);
+      symlinkSync(moved, path);
+      expect(descriptorNeedsSeparator({ fd, path })).toBe(true);
+      expect(() => descriptorNeedsSeparator({ fd, noFollow: true, path })).toThrow(/ELOOP/u);
+    } finally {
+      closeSync(fd);
+    }
+  });
+
   it("throws when the name now reaches a different file than the held descriptor", () => {
     const path = journalWith({ content: '{"a":1}\n{"b":' });
     const fd = openSync(path, "a");
@@ -128,39 +144,41 @@ describe("descriptorNeedsSeparator", () => {
 
 describe("appendLines", () => {
   describe.each([
-    { durable: false, name: "buffered" },
-    { durable: true, name: "durable" },
-  ])("$name", ({ durable }) => {
+    { durable: false, name: "buffered", noFollow: false },
+    { durable: true, name: "durable", noFollow: false },
+    { durable: false, name: "buffered, noFollow", noFollow: true },
+    { durable: true, name: "durable, noFollow", noFollow: true },
+  ])("$name", ({ durable, noFollow }) => {
     it("starts the record on a fresh line on a file it may append to but not read, rather than throwing", () => {
       const path = journalWith({ content: '{"a":1}\n{"b":' });
       chmodSync(path, 0o200);
-      appendLines({ durable, path, text: '{"c":3}\n' });
+      appendLines({ durable, noFollow, path, text: '{"c":3}\n' });
       chmodSync(path, 0o600);
       expect(readFileSync(path, "utf8")).toBe('{"a":1}\n{"b":\n{"c":3}\n');
     });
 
     it("starts the record on a fresh line after a torn tail, so both lines survive apart", () => {
       const path = journalWith({ content: '{"a":1}\n{"b":' });
-      appendLines({ durable, path, text: '{"c":3}\n' });
+      appendLines({ durable, noFollow, path, text: '{"c":3}\n' });
       expect(readFileSync(path, "utf8")).toBe('{"a":1}\n{"b":\n{"c":3}\n');
     });
 
     it("adds nothing before the record when the tail is whole", () => {
       const path = journalWith({ content: '{"a":1}\n' });
-      appendLines({ durable, path, text: '{"c":3}\n' });
+      appendLines({ durable, noFollow, path, text: '{"c":3}\n' });
       expect(readFileSync(path, "utf8")).toBe('{"a":1}\n{"c":3}\n');
     });
 
     it("terminates a record written without its newline, so the next append cannot fuse with it", () => {
       const path = journalWith({ content: "" });
-      appendLines({ durable, path, text: '{"c":3}' });
-      appendLines({ durable, path, text: '{"d":4}' });
+      appendLines({ durable, noFollow, path, text: '{"c":3}' });
+      appendLines({ durable, noFollow, path, text: '{"d":4}' });
       expect(readFileSync(path, "utf8")).toBe('{"c":3}\n{"d":4}\n');
     });
 
     it("creates an absent file with the mode it is given", () => {
       const path = join(dir, "created.jsonl");
-      appendLines({ durable, mode: 0o600, path, text: "one\ntwo\n" });
+      appendLines({ durable, mode: 0o600, noFollow, path, text: "one\ntwo\n" });
       expect(readFileSync(path, "utf8")).toBe("one\ntwo\n");
       expect(statSync(path).mode & 0o777).toBe(0o600);
     });
@@ -168,33 +186,64 @@ describe("appendLines", () => {
     it("leaves an existing file's mode as it was", () => {
       const path = journalWith({ content: "one\n" });
       chmodSync(path, 0o644);
-      appendLines({ durable, mode: 0o600, path, text: "two\n" });
+      appendLines({ durable, mode: 0o600, noFollow, path, text: "two\n" });
       expect(statSync(path).mode & 0o777).toBe(0o644);
     });
 
     it("writes nothing at all for empty text, not even a separator onto a torn tail", () => {
       const path = journalWith({ content: '{"b":' });
-      appendLines({ durable, path, text: "" });
+      appendLines({ durable, noFollow, path, text: "" });
       expect(readFileSync(path, "utf8")).toBe('{"b":');
     });
 
     it("still creates an absent file for empty text, with its mode, as an empty appendFileSync did", () => {
       const path = join(dir, "empty.jsonl");
-      appendLines({ durable, mode: 0o600, path, text: "" });
+      appendLines({ durable, mode: 0o600, noFollow, path, text: "" });
       expect(readFileSync(path, "utf8")).toBe("");
       expect(statSync(path).mode & 0o777).toBe(0o600);
     });
 
     it("still throws for empty text when the file's directory is missing", () => {
       expect(() => {
-        appendLines({ durable, path: join(dir, "missing", "x.jsonl"), text: "" });
+        appendLines({ durable, noFollow, path: join(dir, "missing", "x.jsonl"), text: "" });
       }).toThrow(/ENOENT/u);
+    });
+
+    it("throws rather than appending blind when the path is a directory it cannot append to", () => {
+      expect(() => {
+        appendLines({ durable, noFollow, path: dir, text: "x\n" });
+      }).toThrow(/EISDIR/u);
     });
   });
 
-  it("throws rather than appending blind when the path is a directory it cannot append to", () => {
-    expect(() => {
-      appendLines({ path: dir, text: "x\n" });
-    }).toThrow(/EISDIR/u);
+  describe.each([
+    { durable: false, name: "buffered" },
+    { durable: true, name: "durable" },
+  ])("a symlink at the path, $name", ({ durable }) => {
+    /** A target file carrying distinctive bytes, and a link to it at the path an append is aimed at. */
+    function linkedTarget(): { link: string; target: string } {
+      const target = join(dir, "artifact.md");
+      writeFileSync(target, "# written once\nthe witness\n", "utf8");
+      const link = join(dir, "ledger.jsonl");
+      symlinkSync(target, link);
+      return { link, target };
+    }
+
+    it("is refused with noFollow, leaving its target byte-for-byte as it was and the link in place", () => {
+      const { link, target } = linkedTarget();
+      const before = readFileSync(target);
+      expect(() => {
+        appendLines({ durable, noFollow: true, path: link, text: '{"row":1}\n' });
+      }).toThrow(/ELOOP/u);
+      expect(readFileSync(target).equals(before)).toBe(true);
+      expect(lstatSync(link).isSymbolicLink()).toBe(true);
+    });
+
+    it("is still followed by default, appending into its target, for a caller that reaches its file through a link", () => {
+      const { link, target } = linkedTarget();
+      appendLines({ durable, path: link, text: '{"row":1}\n' });
+      expect(readFileSync(target, "utf8")).toBe('# written once\nthe witness\n{"row":1}\n');
+      expect(lstatSync(link).isSymbolicLink()).toBe(true);
+    });
   });
 });
