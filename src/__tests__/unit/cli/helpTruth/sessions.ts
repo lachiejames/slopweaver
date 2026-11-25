@@ -197,6 +197,7 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--full": ["--full"],
     "--home": ["--home", "/tmp"],
     "--json": ["--json"],
+    "--record-reading": ["--json", "--record-reading", "tick-12"],
     "--timeout-seconds": ["--wait", "--timeout-seconds", "60"],
     "--top": ["--top", "5"],
     "--wait": ["--wait"],

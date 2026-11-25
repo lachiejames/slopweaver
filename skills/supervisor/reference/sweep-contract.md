@@ -84,7 +84,7 @@ a verb takes is standing procedure, held here, in [derived-narrative.md](derived
    about and one with NO gate running is the defect — nudge, then release only your own. A queue entry is
    GitHub's, so a session that dies after queueing stalls nobody — the 41%-idle failure a seat lane causes
    ([merge-queue.md](../../github/reference/merge-queue.md)).
-8. **`slopweaver machine capacity --brief --json`** (every field below, no process table; drill down with plain `--json`), then **`slopweaver machine reap`** — both every tick. Fold the top
+8. **`slopweaver machine capacity --brief --json --record-reading tick-<n>`** (every field below, no process table; drill down with plain `--json`), then **`slopweaver machine reap`** — both every tick. `--record-reading` files the FULL document off that same read as the pass's one capacity reading, which the Fleet page shows with its age; no second read, no page-open read. Fold the top
    foreign hog's GB, `segmentsPct`, `swapfileCount`, `load` and `dispatch.covering`. **`hold: true` holds every FILL spawn
    this tick — never a live bot tag's worker, which outranks every capacity line and the loop dispatches through any hold ([fleet-capacity.md](fleet-capacity.md)) — and goes in react-now with its verdict line, which NAMES the subject that held** (`holdSubjects`:
    any of `memory`, `cpu`, `boots`, `disk`) **and the CULPRIT** — `culprit` in the JSON, and `SUBJECT …; end it with

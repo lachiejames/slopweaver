@@ -6,7 +6,7 @@ import { IDLE_HOLD_FLOOR_PCT, SEAT_TREE_GB } from "../../../live/machine/capacit
 import { BOOT_WINDOW_SECONDS, DEFAULT_RECENT_BOOTS_HOLD } from "../../../live/machine/recentBoots.js";
 
 export const MACHINE_CAPACITY_USAGE =
-  "usage: slopweaver machine capacity [--top <n>] [--home <dir>] [--json] [--brief] [--full] [--wait] [--timeout-seconds <n>]\n" +
+  "usage: slopweaver machine capacity [--top <n>] [--home <dir>] [--json] [--brief] [--full] [--record-reading <by>] [--wait] [--timeout-seconds <n>]\n" +
   "  Top-N processes by memory footprint (Activity Monitor's Memory column — top's `mem` stat, NOT ps RSS),\n" +
   "  swap used, load average, the VM compressor's segments-limit percentage and the swapfile count, each\n" +
   "  process classified fleet (this checkout's own claude/node/cmux, or anything a live Claude Code session\n" +
@@ -37,6 +37,9 @@ export const MACHINE_CAPACITY_USAGE =
   "  verdict; with --json, one small document of the hold, its subjects and culprit, the gauges the briefing\n" +
   "  folds, the dispatch standing without its investigation list and the ceilings reduced to the lowest, the\n" +
   "  route and that clause. Exit code, published events and --wait are unchanged; drop --brief for the gauges.\n" +
+  "  --record-reading <by> (needs --json) appends the reading to the readings ledger as <by> after printing it,\n" +
+  '  so `reading last --producer "machine capacity"` serves it: the FULL document always, under --brief too, from\n' +
+  "  the same single read. A refused append exits 1; under --wait only the reading the wait ended on is recorded.\n" +
   "  The text read counts the ranked processes and the fleet's live sessions on one line, and still prints every\n" +
   "  orphan group `machine reap` would act on; --full prints the fleet's load breakdown and one line per\n" +
   "  process. --json always carries every process.\n" +
