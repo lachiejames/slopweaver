@@ -51,7 +51,8 @@ export const plansManifest: Readonly<Record<string, VerbManifestEntry>> = {
       summary:
         "Register one more destination — the provider that serves it, a neutral local alias, the store " +
         "directory its own CLI is signed into, and optionally the usage limit (--percent) bound from the start. " +
-        "Prints the sign-in line; never performs one",
+        "Prints the sign-in line; never performs one. A Codex add then installs Slopweaver into that home, and a " +
+        "failed install keeps the row and exits non-zero",
       usage: plansUsage({ verb: "add" }),
     },
   }),

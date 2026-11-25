@@ -26,6 +26,7 @@ import type { Result } from "#lib/result.js";
 
 import { type ReadCodexAccountsLive, readCodexAccountsLive } from "../../../codex/accountLive.js";
 import { readCodexSubscriptionDates } from "../../../codex/subscriptionDates.js";
+import { renderSyncOutcome, type SyncOutcome, syncFailed } from "../../../codexPlugin/plan.js";
 import { slopweaverHome } from "../../../homeDir.js";
 import type { PlanRegisterError } from "../../../plans/errors.js";
 import { laneShapeReadOf } from "../../../plans/laneShape.js";
@@ -36,6 +37,7 @@ import type { PlanMutation, PlanProvider, PlanRegisterSnapshot } from "../../../
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 
+import { syncCodexPluginHomeLive } from "./codexPluginSyncLive.js";
 import { type PlansInvocation, parsePlansArgs, VERB_ARG_OFFSET } from "./core.js";
 import {
   codexPaidThrough,
@@ -79,6 +81,57 @@ export interface PlansDeps {
    * (`codex/subscriptionDates.ts`). `list` only, once per Codex row it prints.
    */
   readonly readPaidThrough: (input: { readonly codexHome: string }) => PlanPaidThrough;
+  /**
+   * Install Slopweaver into the one Codex home `add` has just registered, after the row is published — the
+   * foreground plugin-sync core over that home alone (`./codexPluginSyncLive.ts`). `add` only.
+   */
+  readonly syncCodexPluginHome: (input: {
+    readonly codexHome: string;
+    readonly home: string | undefined;
+  }) => SyncOutcome;
+}
+
+/**
+ * Install Slopweaver into the Codex home `add` just published, and print what happened on its own line.
+ *
+ * The row is already published and STAYS on a failure: registering the account and installing into it are two
+ * acts, and a later `codex plugin-sync` repairs the second without losing the first. So a failure prints and
+ * exits non-zero, and nothing is rolled back. Under `--json`, or once the verb has already failed, every sync
+ * line goes to the diagnostic channel, so stdout stays the one snapshot document.
+ *
+ * @param deps the injected seams
+ * @param codexHome the home the published row names
+ * @param home the `--home` the register lives under, whose profile declares the main checkouts
+ * @param diagnosticsOnly send even a success line to diagnostics: stdout is a JSON document, or carries nothing
+ * @returns `EXIT_ERROR` when the install failed, else `EXIT_OK` — a `skipped` checkout included
+ */
+function syncAddedCodexHome({
+  codexHome,
+  deps,
+  diagnosticsOnly,
+  home,
+}: {
+  codexHome: string;
+  deps: PlansDeps;
+  diagnosticsOnly: boolean;
+  home: string | undefined;
+}): number {
+  const outcome = deps.syncCodexPluginHome({ codexHome, home });
+  const failed = syncFailed({ outcome });
+  const lines = renderSyncOutcome({ outcome });
+  if (failed || diagnosticsOnly) {
+    lines.forEach((line) => {
+      deps.writeDiagnostic(line);
+    });
+  } else {
+    lines.forEach((line) => {
+      deps.writeOut(line);
+    });
+  }
+  if (failed) {
+    return EXIT_ERROR;
+  }
+  return EXIT_OK;
 }
 
 /**
@@ -243,22 +296,30 @@ async function runChange({
   const published = await deps.writeRegister({ home: invocation.home, judgedAtRevision, mutation });
   if (published.isErr()) {
     deps.writeDiagnostic(`plans: ${published.error.message}`);
+    // A failed projection write is reported AFTER the row committed, so the Codex row is registered and its
+    // home still gets the install; the verb exits non-zero for the projection either way.
+    if (codexHome !== undefined && published.error.code === "PROJECTION_WRITE_FAILED") {
+      syncAddedCodexHome({ codexHome, deps, diagnosticsOnly: true, home: invocation.home });
+    }
     return EXIT_ERROR;
   }
   if (invocation.json) {
     emitJson({ deps, snapshot: published.value });
+  } else {
+    const added = invocation.request.verb === "add" ? { added: invocation.request.row } : {};
+    if (ensured?.isOk() === true) {
+      deps.writeOut(`plans: ${ensured.value} the Codex home ${codexHome!}`);
+    }
+    planChangeLines({ ...added, did: didWord({ request: invocation.request }), snapshot: published.value }).forEach(
+      (line) => {
+        deps.writeOut(line);
+      },
+    );
+  }
+  if (codexHome === undefined) {
     return EXIT_OK;
   }
-  const added = invocation.request.verb === "add" ? { added: invocation.request.row } : {};
-  if (ensured?.isOk() === true) {
-    deps.writeOut(`plans: ${ensured.value} the Codex home ${codexHome!}`);
-  }
-  planChangeLines({ ...added, did: didWord({ request: invocation.request }), snapshot: published.value }).forEach(
-    (line) => {
-      deps.writeOut(line);
-    },
-  );
-  return EXIT_OK;
+  return syncAddedCodexHome({ codexHome, deps, diagnosticsOnly: invocation.json, home: invocation.home });
 }
 
 /**
@@ -391,6 +452,7 @@ export function plansDepsOver({ port }: { port: PlanRegisterPort }): PlansDeps {
     readPaidThrough: ({ codexHome }) => codexPaidThrough({ read: readCodexSubscriptionDates({ codexHome }) }),
     readRegister: ({ home }) => port.read({ home: resolved({ home }) }),
     resolveStore: resolveStoreLive,
+    syncCodexPluginHome: ({ codexHome, home }) => syncCodexPluginHomeLive({ codexHome, stateHome: resolved({ home }) }),
     writeDiagnostic: (line) => {
       logger.error({ msg: line });
     },

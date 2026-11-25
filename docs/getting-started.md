@@ -147,7 +147,9 @@ bin/slopweaver claude signin --status
 A **Codex** plan connects from the console with no terminal: **Settings → Models → Connect** runs `plans connect
 --provider codex`, which opens Codex's own sign-in page in your browser and registers the plan once you sign in there
 (`plans connections` reports the attempt; `plans connect-cancel --id <id>` ends one). By hand, `plans add --provider
-codex --plan <alias> --store-dir <absolute dir>` prints the `codex login` line to run. To give the fleet only part of
+codex --plan <alias> --store-dir <absolute dir>` prints the `codex login` line to run, then installs Slopweaver
+into that one home as a foreground `codex plugin-sync` would ([Codex](#codex)); a failed install keeps the row,
+prints its own line and exits non-zero, so rerun `codex plugin-sync`. To give the fleet only part of
 a plan, record a usage limit on its row, such as `plans set-usage-limit --provider claude --plan plan-one --percent
 50 --allowance weekly-window`, or pick its percentage in Settings → Models, one drop-down per plan; routing stops at
 it. The house bars every plan is routed against (95% by default for Claude, 99% for Codex) are the
@@ -176,6 +178,13 @@ own hook-trust pass; a registered home with no directory is that home's failure,
 absent ambient home is left alone. A home that is the export's cache directory, holds it or sits in it, compared
 through every link, fails the run before anything is written. With a clone on another branch, or one missing `origin/HEAD` (restore it with
 `git remote set-head origin --auto`), the sync prints `skipped` and installs nothing.
+
+`plans add --provider codex` runs the same install over the one home it has just registered, after the row is
+published: from a clone that is not a declared main checkout it prints that `skipped` line and exits zero. `cmux
+spawn` checks the routed home before it provisions anything, and **refuses a seat whose home carries no
+Slopweaver install** under any marketplace directory of its plugin cache (it never reads the marketplace file), naming `slopweaver codex plugin-sync` as the fix, a continuing app session included. A
+stale install boots: one behind HEAD, or one whose stamp will not parse, is the refresh's to repair, never the
+spawn's to refuse.
 
 **Codex installs a COPY, and re-copies only on `codex plugin add`** — never at a session start (measured on
 codex 0.157.1). `codex plugin-sync` exports the declared main checkout's HEAD (`git archive`, tracked files

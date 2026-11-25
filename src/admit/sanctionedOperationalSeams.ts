@@ -136,7 +136,8 @@ export const OPERATIONAL_SEAMS = {
   // the original (the partial copy removed on failure), then one `ffprobe` read of its frame size. Local disk and
   // local tools only, same class as `cassette.ts` above.
   "src/proof/cassette/finalise.ts": "local-state",
-  // `codex plugin-sync`: `git archive` of the main checkout's own HEAD into the cache root's `codex-plugin`,
+  // `codex plugin-sync`, and the one-home install `plans add --provider codex` runs on the home it just
+  // registered: `git archive` of the main checkout's own HEAD into the cache root's `codex-plugin`,
   // a lock and a staged rename there, the personal Codex marketplace's source symlink under the user's home,
   // and `codex plugin add`, which copies that export into the local Codex cache. Every write is a file on
   // this machine; no provider is reached, same class as `checkout/syncRun.ts`.

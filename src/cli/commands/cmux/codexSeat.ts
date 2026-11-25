@@ -6,6 +6,9 @@
  * voice; this file is the CLI edge that translates `--plan` and `--force`, prints the verdict and turns a
  * refusal into an exit code. A sibling of `./codexQuotaSeat.ts`, which owns the cap record a booted seat writes.
  *
+ * A routed seat whose home carries no Slopweaver install is refused before it is announced or provisioned, in
+ * both resolvers; an install behind HEAD boots (`../../../codexPlugin/seatPreflight.ts`).
+ *
  * Both exports take `home: string | undefined` and resolve it through {@link seatStateHome}, never a
  * coalesce: `--home` is a real flag every test passes, and a silent substitution here would send a cap
  * record to the operator's own state home from a test that thought it had a sandbox.
@@ -23,8 +26,9 @@ import {
   decideContinuingCodexSeat,
 } from "../../../codex/seatDecision.js";
 import type { CodexSignInPort } from "../../../codex/signInPort.js";
+import { preflightCodexPluginSeat } from "../../../codexPlugin/seatPreflight.js";
 import { slopweaverHome } from "../../../config.js";
-import { logger } from "../../../lib/logger.js";
+import { type Logger, logger } from "../../../lib/logger.js";
 import type { PlanRegisterPort } from "../../../plans/port.js";
 import type { AppContinuationPlan } from "../../../sessionHarness/appContinuation.js";
 import { EXIT_ERROR } from "../../exitCodes.js";
@@ -51,9 +55,12 @@ function seatStateHome({ home }: { home: string | undefined }): string {
   return home;
 }
 
+/** Where a seat resolver prints: the real logger in production, a recording one in a test. */
+type SeatLog = Pick<Logger, "error" | "out">;
+
 /** Print which account the seat took and why, plus the note when `--model` named a tier Codex cannot take. */
-function reportCodexSeat({ parsed, route }: { parsed: ParsedFlags; route: CodexSeatRoute }): void {
-  logger.out({
+function reportCodexSeat({ log, parsed, route }: { log: SeatLog; parsed: ParsedFlags; route: CodexSeatRoute }): void {
+  log.out({
     line: `cmux spawn: codex seat on ${route.destination.alias} (CODEX_HOME=${route.destination.codexHome}) — ${route.why}`,
   });
   const requestedModel = stringFlag({ name: "model", parsed });
@@ -62,8 +69,23 @@ function reportCodexSeat({ parsed, route }: { parsed: ParsedFlags; route: CodexS
   }
   const note = codexSeatModelNote({ requestedModel });
   if (note !== undefined) {
-    logger.error({ msg: `cmux spawn: ${note}` });
+    log.error({ msg: `cmux spawn: ${note}` });
   }
+}
+
+/**
+ * Refuse a routed seat whose home carries no Slopweaver install, BEFORE it is announced or provisioned — the one
+ * check both resolvers share, so a continuing seat cannot route around it (`../../../codexPlugin/seatPreflight.ts`).
+ *
+ * @returns undefined when the seat may boot, else the exit code to stop on
+ */
+function refuseUninstalledHome({ codexHome, log }: { codexHome: string; log: SeatLog }): number | undefined {
+  const plugin = preflightCodexPluginSeat({ codexHome });
+  if (plugin.isErr()) {
+    log.error({ msg: `cmux spawn: ${plugin.error.message}` });
+    return EXIT_ERROR;
+  }
+  return undefined;
 }
 
 /**
@@ -81,12 +103,14 @@ function reportCodexSeat({ parsed, route }: { parsed: ParsedFlags; route: CodexS
  *   any worktree or tab exists
  * @param fleetCap where the seat's fleet read files its conclusion, so the monitor lane reads what the spawn saw
  * @param signInPort where the fleet read files each store's sign-in observation
+ * @param log where the route, the model note and any refusal are printed
  * @returns the routed seat, undefined for a Claude spawn, or the exit code to stop on
  */
 export async function resolveCodexSeat({
   driver,
   fleetCap,
   home,
+  log,
   parsed,
   port,
   signInPort,
@@ -94,6 +118,7 @@ export async function resolveCodexSeat({
   driver: CmuxDriver;
   fleetCap: CodexFleetCapPort;
   home: string | undefined;
+  log: SeatLog;
   parsed: ParsedFlags;
   port: PlanRegisterPort;
   signInPort: CodexSignInPort;
@@ -112,10 +137,14 @@ export async function resolveCodexSeat({
     signInPort,
   });
   if (decided.isErr()) {
-    logger.error({ msg: `cmux spawn: ${decided.error.message}` });
+    log.error({ msg: `cmux spawn: ${decided.error.message}` });
     return EXIT_ERROR;
   }
-  reportCodexSeat({ parsed, route: decided.value });
+  const refused = refuseUninstalledHome({ codexHome: decided.value.destination.codexHome, log });
+  if (refused !== undefined) {
+    return refused;
+  }
+  reportCodexSeat({ log, parsed, route: decided.value });
   return decided.value;
 }
 
@@ -132,12 +161,14 @@ export async function resolveCodexSeat({
  * @param parsed the verb's parsed flags, for `--plan`, `--force` and `--model`
  * @param port where the plan register is read
  * @param signInPort where the fleet read files each store's sign-in observation
+ * @param log where the continuation line, the route and any refusal are printed
  * @returns the routed seat and the continuation it carries, or the exit code to stop on
  */
 export async function resolveContinuingCodexSeat({
   continuing,
   fleetCap,
   home,
+  log,
   parsed,
   port,
   signInPort,
@@ -145,6 +176,7 @@ export async function resolveContinuingCodexSeat({
   continuing: { readonly sessionId: string; readonly codexHome: string };
   fleetCap: CodexFleetCapPort;
   home: string | undefined;
+  log: SeatLog;
   parsed: ParsedFlags;
   port: PlanRegisterPort;
   signInPort: CodexSignInPort;
@@ -161,15 +193,19 @@ export async function resolveContinuingCodexSeat({
     signInPort,
   });
   if (decided.isErr()) {
-    logger.error({ msg: `cmux spawn: ${decided.error.message}` });
+    log.error({ msg: `cmux spawn: ${decided.error.message}` });
     return EXIT_ERROR;
+  }
+  const refused = refuseUninstalledHome({ codexHome: decided.value.route.destination.codexHome, log });
+  if (refused !== undefined) {
+    return refused;
   }
   const continuation = continuationOfDecision({ continuing, decision: decided.value });
   const announced = appContinuationLine({ continuation });
   if (announced !== undefined) {
-    logger.out({ line: announced });
+    log.out({ line: announced });
   }
-  reportCodexSeat({ parsed, route: decided.value.route });
+  reportCodexSeat({ log, parsed, route: decided.value.route });
   return { continuation, seat: decided.value.route };
 }
 

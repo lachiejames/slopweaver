@@ -14,7 +14,7 @@ import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js
 import { unwrap } from "../../../../../lib/result.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { memoryPlanRegisterPort } from "../../../../planRegisterFixture.js";
-import { fresh, NOW, recordingDeps } from "./plansRunFixtures.js";
+import { fakeCodexSync, fresh, NOW, recordingDeps } from "./plansRunFixtures.js";
 
 const homes: string[] = [];
 
@@ -108,6 +108,8 @@ describe("plans remove, then add — over the store-backed port", () => {
     const errors: string[] = [];
     const deps: PlansDeps = {
       ...plansDepsOver({ port }),
+      // A Codex add installs into its home after publishing; faked, so this case writes no real cache root.
+      syncCodexPluginHome: fakeCodexSync(),
       writeDiagnostic: (line) => {
         errors.push(line);
       },
