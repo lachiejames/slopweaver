@@ -58,7 +58,8 @@ another's progress. Never append to bronze any other way.
 - **Control bytes are the structural half** (`sanitise.ts`): bronze's one invariant is a record per line, and
   an embedded control byte can split a record into two unparseable halves or rewrite a terminal.
 - **Dedup is per `sourceId`**: a record is written only when its content fingerprint is new for that id AND its
-  `tsIso` is at least the newest stored, so a refresh is idempotent and update-aware. The fingerprint
+  version is at least the newest stored, so a refresh is idempotent and update-aware. The version is `tsIso`,
+  bar the two diaries, whose `tsIso` is a start: `recordVersion.ts` orders them by `updatedIso`. The fingerprint
   (`recordContentFingerprint`) blanks `tsIso` and drops `raw` on purpose, and `compact` reuses that one
   function. The one exception is `bronzeFreshness.ts`'s revertible set, `chatgpt` alone: a seen fingerprint
   that is not the one written last for its id is written again, so a chat renamed back serves the revert.

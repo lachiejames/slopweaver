@@ -69,8 +69,13 @@ function corpusDedupKey({ record }: { record: CorpusRecord }): string {
 export interface BronzeDedupIndex {
   /** {@link recordDedupDigest} for every record already stored, and every one accepted since. */
   readonly seen: Set<string>;
-  /** The newest `tsIso` stored per `sourceId`. */
+  /** The time of the newest version stamp stored per `sourceId` (`./recordVersion.ts`): a diary's modification time. */
   readonly newestTs: Map<string, string>;
+  /**
+   * The `sourceId`s whose newest stored stamp is a FALLBACK — a diary row with no modification time, ordered by
+   * its start. A set of the exceptions rather than a basis per entry, so a source with none pays one empty set.
+   */
+  readonly fallbackVersion: Set<string>;
   /** For a source whose records can revert (`bronzeFreshness.ts`), the digest written LAST per `sourceId`. */
   readonly latestDigest: Map<string, string>;
 }
@@ -144,7 +149,12 @@ export function recordDedupDigest({ record }: { record: CorpusRecord }): string 
  * @returns the empty index
  */
 export function emptyBronzeDedupIndex(): BronzeDedupIndex {
-  return { latestDigest: new Map<string, string>(), newestTs: new Map<string, string>(), seen: new Set<string>() };
+  return {
+    fallbackVersion: new Set<string>(),
+    latestDigest: new Map<string, string>(),
+    newestTs: new Map<string, string>(),
+    seen: new Set<string>(),
+  };
 }
 
 /**
