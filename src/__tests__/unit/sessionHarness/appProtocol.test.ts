@@ -7,7 +7,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   APP_HARNESS_PROTOCOL_VERSION,
+  APP_SESSION_TITLE_MAX_CHARS,
   appHarnessSocketPath,
+  appLaunchBoundRefusal,
   isAppHarnessRequestEnvelope,
   isAppHarnessResponseEnvelope,
   isAppSessionSnapshot,
@@ -334,5 +336,54 @@ describe("the origin claim", () => {
   it("accepts an answer carrying the matched snapshot, and refuses one carrying none", () => {
     const responses = [{ kind: "session-origin", session: SNAPSHOT }, { kind: "session-origin" }];
     expect(responses.map((response) => isAppHarnessResponseEnvelope(answerOf({ response })))).toEqual([true, false]);
+  });
+});
+
+/** Each launch request kind carrying `spec` with one bounded field set to `length` code units. */
+function launchesWith({ length }: { length: number }): readonly unknown[] {
+  const text = "a".repeat(length);
+  return [
+    { kind: "launch.prepare", spec: { ...SPEC, title: text } },
+    { kind: "launch.prepare", spec: { ...SPEC, ledgerKey: text } },
+    { kind: "launch.resume", sessionId: "0b5e", spec: { ...CLAUDE_SPEC, title: text } },
+    { kind: "launch.resume", sessionId: "0b5e", spec: { ...CLAUDE_SPEC, ledgerKey: text } },
+  ];
+}
+
+describe("the launch bound on title and ledgerKey", () => {
+  it("re-exports the bound the launch spec holds", () => {
+    expect(APP_SESSION_TITLE_MAX_CHARS).toBe(200);
+  });
+
+  it("accepts each launch kind with either field at exactly the bound", () => {
+    expect(launchesWith({ length: 200 }).map((request) => isAppHarnessRequestEnvelope(requestOf({ request })))).toEqual(
+      [true, true, true, true],
+    );
+  });
+
+  it("refuses each launch kind with either field one past the bound", () => {
+    expect(launchesWith({ length: 201 }).map((request) => isAppHarnessRequestEnvelope(requestOf({ request })))).toEqual(
+      [false, false, false, false],
+    );
+  });
+
+  it("names the request kind, the field and the limit in the refusal", () => {
+    expect(launchesWith({ length: 201 }).map((request) => appLaunchBoundRefusal({ request }))).toEqual([
+      "launch.prepare spec.title must be at most 200 characters",
+      "launch.prepare spec.ledgerKey must be at most 200 characters",
+      "launch.resume spec.title must be at most 200 characters",
+      "launch.resume spec.ledgerKey must be at most 200 characters",
+    ]);
+  });
+
+  it("explains nothing for a launch within the bound or a request that is not a launch", () => {
+    expect(
+      [
+        ...launchesWith({ length: 200 }),
+        { kind: "resolve", spec: { ...SPEC, title: "a".repeat(201) } },
+        { kind: "list" },
+        "launch.prepare",
+      ].map((request) => appLaunchBoundRefusal({ request })),
+    ).toEqual([undefined, undefined, undefined, undefined, undefined, undefined, undefined]);
   });
 });

@@ -19,6 +19,7 @@ import {
   APP_HARNESS_PROTOCOL_VERSION,
   type AppHarnessRequestEnvelope,
   type AppHarnessResponseEnvelope,
+  appLaunchBoundRefusal,
   isAppHarnessRequestEnvelope,
 } from "./sessionControlProtocol";
 
@@ -58,11 +59,32 @@ export function parseRequestLine({
       typeof value === "object" && value !== null && "requestId" in value && typeof value.requestId === "string"
         ? value.requestId
         : "";
+    const overlong = currentVersionBoundRefusal({ value });
+    if (overlong !== undefined) {
+      return err(badRequest({ message: overlong, requestId: id }));
+    }
     return err(
       badRequest({ message: `not a protocol v${String(APP_HARNESS_PROTOCOL_VERSION)} request`, requestId: id }),
     );
   }
   return ok(value);
+}
+
+/**
+ * Why a line at this protocol version was refused for a launch field past the bound, so the refusal names the field
+ * and the limit rather than only saying the request is malformed. Another version's line keeps the version refusal.
+ */
+function currentVersionBoundRefusal({ value }: { value: unknown }): string | undefined {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("protocolVersion" in value) ||
+    value.protocolVersion !== APP_HARNESS_PROTOCOL_VERSION ||
+    !("request" in value)
+  ) {
+    return undefined;
+  }
+  return appLaunchBoundRefusal({ request: value.request });
 }
 
 /**

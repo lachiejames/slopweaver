@@ -20,6 +20,7 @@ import {
   type AppHarnessResponse,
   type AppHarnessResponseEnvelope,
   appHarnessSocketPath,
+  appLaunchBoundRefusal,
   isAppHarnessResponseEnvelope,
 } from "./appProtocol.js";
 
@@ -161,6 +162,12 @@ export function readResponseLine({
  */
 export function socketAppTransport({ root }: { root: string }): AppTransport {
   return async ({ request, timeoutMs }) => {
+    // Refused here, before the socket: an app from before the bound would host the session, and its overlong title
+    // would then poison every list, picture and usage answer for the session's life.
+    const overlong = appLaunchBoundRefusal({ request });
+    if (overlong !== undefined) {
+      return err({ code: "BAD_REQUEST", kind: "refused", message: overlong });
+    }
     if (process.getuid === undefined) {
       return err({
         causeCode: "NO_UID",
