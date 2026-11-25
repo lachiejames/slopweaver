@@ -17,8 +17,21 @@ truncated, so one overlong title would poison each of those answers for as long 
 - **The recovery journal reads the same check.** An `opened` row written before the bound with a longer title or
   ledger key is a malformed line, and the app refuses every resume and inspect from a journal holding one.
 
+## The submitted-text echo
+
+A message is bounded only by the 1 MiB request line, and every snapshot echoes the last one submitted, so a snapshot
+keeps at most `APP_SESSION_SUBMITTED_TEXT_MAX_CHARS`, 2,000 code units, of it (`lastSubmittedText`). A longer message
+is echoed as its first 1,999 units and `…` (`boundedSubmittedText`, in the mirrored protocol file; 1,998 when unit
+1,999 opens a surrogate pair), written once at `desktop/src/sessionEcho.ts` beside the agent text's tail. The
+worker is sent the whole text.
+
+- **A head, never a tail.** `fleet recover` compares the echo whole against the prompt it sent, which fits, and
+  `submittedMessageConfirmsSend` (`src/cmux/sendEvidence.ts`) reads it as a prefix once the `…` is dropped, cmux's own
+  shape; a tail fails both.
+- **A snapshot check does not enforce it.** An app from before the bound still echoes the whole text, and a CLI that
+  refused that snapshot would refuse a protocol it speaks, so the version is unchanged.
+
 ## What it does not bound
 
-One session's fields, not a whole answer. A list's session count is unbounded, with no paging, and every snapshot
-still echoes the last message submitted in full (`lastSubmittedText`, `desktop/src/sessionRegistry.ts`), so
-`session.list` can still pass the cap.
+One session's fields, not a whole answer. A list's session count is unbounded, with no paging, so `session.list` is
+smaller per session but can still pass the cap.

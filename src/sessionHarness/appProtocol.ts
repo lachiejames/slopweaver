@@ -70,6 +70,45 @@ export const APP_SESSION_HANDLE_PREFIX = "app:";
  */
 export type AppHarnessDelivery = "now" | "turn" | "later";
 
+/**
+ * The longest `lastSubmittedText` a snapshot carries, in UTF-16 code units (a string's `.length`). A message is bounded
+ * only by {@link APP_HARNESS_MAX_LINE_BYTES} on its way in, and every snapshot echoes the last one for the session's
+ * life, so an echo kept whole could push each answer carrying it past that cap. A HEAD, never a tail: a reader compares
+ * it whole against a short prompt it sent, or as a prefix once the trailing `…` is dropped (`src/cmux/sendEvidence.ts`),
+ * and a tail would fail both. 2,000 matches the agent text's tail; at the worst JSON escape (six bytes a unit) the echo
+ * is at most 12,000 bytes.
+ * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
+ */
+export const APP_SESSION_SUBMITTED_TEXT_MAX_CHARS = 2_000;
+
+/** The marker a cut echo ends in: the single character cmux appends to its own cut submitted message. */
+const SUBMITTED_TEXT_CUT_MARKER = "…";
+
+/** Whether a string's last code unit is the first half of a surrogate pair, its second half cut away. */
+function endsInLoneHighSurrogate({ text }: { text: string }): boolean {
+  const last = text.charCodeAt(text.length - 1);
+  return last >= 0xd800 && last <= 0xdbff;
+}
+
+/**
+ * What a snapshot echoes of a submitted message: the whole text within {@link APP_SESSION_SUBMITTED_TEXT_MAX_CHARS},
+ * otherwise its head ending in `…`, never longer than the bound and never splitting a surrogate pair. The session's
+ * worker is sent the whole text; only the echo is cut.
+ * @internal to the CLI's copy: the desktop's copy of this mirrored file is its consumer
+ *
+ * @param text the message as it was submitted
+ * @returns the text whole when it fits, else its first 1,999 code units (1,998 when the 1,999th opens a surrogate pair)
+ * and `…`
+ */
+export function boundedSubmittedText({ text }: { text: string }): string {
+  if (text.length <= APP_SESSION_SUBMITTED_TEXT_MAX_CHARS) {
+    return text;
+  }
+  const head = text.slice(0, APP_SESSION_SUBMITTED_TEXT_MAX_CHARS - SUBMITTED_TEXT_CUT_MARKER.length);
+  const whole = endsInLoneHighSurrogate({ text: head }) ? head.slice(0, -1) : head;
+  return `${whole}${SUBMITTED_TEXT_CUT_MARKER}`;
+}
+
 /** One session as the control plane reports it. */
 export interface AppSessionSnapshot {
   /** The control plane's own id for the session, stable for its life. */
@@ -82,7 +121,10 @@ export interface AppSessionSnapshot {
   readonly ledgerKey: string;
   readonly state: AppSessionState;
   readonly openedAtIso: string;
-  /** The last text a message delivered, when one was. */
+  /**
+   * The last text a message delivered, when one was: whole within {@link APP_SESSION_SUBMITTED_TEXT_MAX_CHARS},
+   * otherwise its head ending in `…` ({@link boundedSubmittedText}).
+   */
   readonly lastSubmittedText?: string;
   readonly lastSubmittedAtIso?: string;
   /** The tail of what the agent last said, when it said anything. */
