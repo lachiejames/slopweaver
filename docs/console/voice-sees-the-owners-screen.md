@@ -15,9 +15,12 @@ a failure class measured on a day's calls:
 questions. The authority is the owner's words, never the model's choice to call the tool
 (`site/lib/typedLookGate.ts`): a message that asks gets one frame through `read_screen`, spent before the capture starts
 so two calls in a turn take one, while _"are you looking at my screen?"_ is answered in words and takes none, whatever
-the tool attempted. Closing the messenger forgets an ask not yet taken, and the shell refuses a typed look with the
-messenger closed (`lookRefusal`, `desktop/src/nativeCapture.ts`). The band credits a look to an application only when
-that application stayed in front on both sides of the capture (`site/components/voice/screenLooks.ts`).
+the tool attempted. An ask opens its clause: _"look at my screen"_ and its close variants, or a phrase pointing at what
+is on screen, _"open this card"_ or _"read that page"_. A blank line opens a clause as a full stop does, so an ask
+starting a new paragraph counts. A negation anywhere in the message still vetoes the look. Closing the messenger
+forgets an ask not yet taken, and the shell refuses a typed look with the messenger closed (`lookRefusal`,
+`desktop/src/nativeCapture.ts`). The band credits a look to an application only when that application stayed in front
+on both sides of the capture (`site/components/voice/screenLooks.ts`).
 
 ## What was measured
 
