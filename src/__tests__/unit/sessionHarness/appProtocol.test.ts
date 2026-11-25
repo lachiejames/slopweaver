@@ -7,9 +7,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   APP_HARNESS_PROTOCOL_VERSION,
+  APP_SESSION_SUBMITTED_TEXT_MAX_CHARS,
   APP_SESSION_TITLE_MAX_CHARS,
   appHarnessSocketPath,
   appLaunchBoundRefusal,
+  boundedSubmittedText,
   isAppHarnessRequestEnvelope,
   isAppHarnessResponseEnvelope,
   isAppSessionSnapshot,
@@ -349,6 +351,29 @@ function launchesWith({ length }: { length: number }): readonly unknown[] {
     { kind: "launch.resume", sessionId: "0b5e", spec: { ...CLAUDE_SPEC, ledgerKey: text } },
   ];
 }
+
+describe("the submitted-text bound on a snapshot's echo", () => {
+  it("is 2,000 code units", () => {
+    expect(APP_SESSION_SUBMITTED_TEXT_MAX_CHARS).toBe(2_000);
+  });
+
+  it("keeps a text exactly at the bound whole", () => {
+    const text = "x".repeat(2_000);
+    expect(boundedSubmittedText({ text })).toBe(text);
+  });
+
+  it("cuts a text one past the bound to its first 1,999 units and the marker", () => {
+    expect(boundedSubmittedText({ text: "x".repeat(2_001) })).toBe(`${"x".repeat(1_999)}…`);
+  });
+
+  it("drops a surrogate pair the cut would split rather than leave half of it", () => {
+    expect(boundedSubmittedText({ text: `${"x".repeat(1_998)}😀z` })).toBe(`${"x".repeat(1_998)}…`);
+  });
+
+  it("keeps a surrogate pair the cut lands just after", () => {
+    expect(boundedSubmittedText({ text: `${"x".repeat(1_997)}😀zz` })).toBe(`${"x".repeat(1_997)}😀…`);
+  });
+});
 
 describe("the launch bound on title and ledgerKey", () => {
   it("re-exports the bound the launch spec holds", () => {

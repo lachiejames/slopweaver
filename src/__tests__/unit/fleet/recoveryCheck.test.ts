@@ -18,6 +18,7 @@ import {
   recoveryResultOf,
   recoverySignInStep,
 } from "../../../fleet/recoveryCheck.js";
+import { boundedSubmittedText } from "../../../sessionHarness/appProtocol.js";
 
 /** A byte source that hands out 0x01…, then 0x02…, so each half is known. */
 function countingBytes(): (size: number) => Buffer {
@@ -67,6 +68,19 @@ describe("judgeRecoverySnapshot", () => {
       expected: EXPECTED,
       prompt: PROMPT,
       snapshot: { lastAgentText: ` ${EXPECTED}\n`, lastSubmittedText: PROMPT, state: "idle" },
+    });
+    expect(verdict).toEqual({ kind: "passed" });
+  });
+
+  it("still passes its own real prompt as the app echoes it, whole under the submitted-text bound", () => {
+    const { expected, prompt } = recoveryChallenge({ randomBytes: countingBytes() });
+    const echoed = boundedSubmittedText({ text: prompt });
+    expect(echoed).toBe(prompt);
+    const verdict = judgeRecoverySnapshot({
+      deadlinePassed: false,
+      expected,
+      prompt,
+      snapshot: { lastAgentText: expected, lastSubmittedText: echoed, state: "idle" },
     });
     expect(verdict).toEqual({ kind: "passed" });
   });

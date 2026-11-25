@@ -4,7 +4,9 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { AGENT_TEXT_TAIL, reduceRegistry } from "../../src/sessionRegistry";
+import { APP_SESSION_SUBMITTED_TEXT_MAX_CHARS } from "../../src/sessionControlProtocol";
+import { AGENT_TEXT_TAIL } from "../../src/sessionEcho";
+import { reduceRegistry } from "../../src/sessionRegistry";
 import {
   appHandleOf,
   EMPTY_REGISTRY,
@@ -199,6 +201,41 @@ describe("reduceRegistry", () => {
     const text = said.get(ID)!.snapshot.lastAgentText!;
     expect(text.length).toBe(AGENT_TEXT_TAIL);
     expect(text.endsWith("xEND")).toBe(true);
+  });
+
+  it("echoes a message exactly at the submitted-text bound whole, and sends it whole", () => {
+    const text = "x".repeat(APP_SESSION_SUBMITTED_TEXT_MAX_CHARS);
+    const step = reduceRegistry({
+      event: { atIso: AT, delivery: "now", kind: "message", sessionId: ID, text },
+      registry: idle,
+    });
+    expect(step.registry.get(ID)!.snapshot.lastSubmittedText).toBe(text);
+    expect(step.sends).toEqual([{ instruction: { kind: "prompt", text }, sessionId: ID }]);
+  });
+
+  it("echoes only the head of a message one past the bound, ending in the marker, and still sends it whole", () => {
+    const text = "x".repeat(APP_SESSION_SUBMITTED_TEXT_MAX_CHARS + 1);
+    const step = reduceRegistry({
+      event: { atIso: AT, delivery: "now", kind: "message", sessionId: ID, text },
+      registry: idle,
+    });
+    const echoed = step.registry.get(ID)!.snapshot.lastSubmittedText!;
+    expect(echoed).toBe(`${"x".repeat(1_999)}…`);
+    expect(echoed.length).toBe(2_000);
+    expect(step.sends).toEqual([{ instruction: { kind: "prompt", text }, sessionId: ID }]);
+  });
+
+  it("never splits a surrogate pair at the cut: unit 1,999 opening a pair drops the pair", () => {
+    const text = `${"x".repeat(1_998)}😀z`;
+    expect(text.length).toBe(2_001);
+    const step = reduceRegistry({
+      event: { atIso: AT, delivery: "now", kind: "message", sessionId: ID, text },
+      registry: idle,
+    });
+    const echoed = step.registry.get(ID)!.snapshot.lastSubmittedText!;
+    expect(echoed).toBe(`${"x".repeat(1_998)}…`);
+    expect(echoed.length).toBe(1_999);
+    expect(step.sends).toEqual([{ instruction: { kind: "prompt", text }, sessionId: ID }]);
   });
 
   it("cancels only a running turn on an interrupt", () => {

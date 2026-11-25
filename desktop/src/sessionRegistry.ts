@@ -1,7 +1,8 @@
 /**
  * The control plane's memory of the sessions it hosts, as a pure reducer: an event in, the next registry and the
  * instructions to send each worker out. No Electron, no process, no clock — `sessionControl.ts` applies the effects.
- * The registry's types and its addressing are `sessionRegistryShape.ts`.
+ * The registry's types and its addressing are `sessionRegistryShape.ts`, and what a snapshot keeps of the words is
+ * `sessionEcho.ts`.
  *
  * Delivery is decided here, because it is the one place that knows whether a turn is running:
  *
@@ -13,6 +14,7 @@
  *   is wired, per the seam's rule that an implementation refuses a delivery it cannot honour rather than degrading
  *   it.
  */
+import { echoOnAgentText, echoOnSubmitted } from "./sessionEcho";
 import { EMPTY_SESSION_FACTS, withToolActivity } from "./sessionFacts";
 import {
   appHandleOf,
@@ -26,9 +28,6 @@ import { usageOfSpec, usageOnPrompt, usageOnReady, usageOnTurn, usageOnTurnClose
 import type { FromWorker } from "./sessionWorker/workerWire";
 import type { AppSessionState } from "./wireBasics";
 
-/** How much of the agent's last words a snapshot keeps, in characters: the card shows a tail, never a transcript. */
-export const AGENT_TEXT_TAIL = 2_000;
-
 /** States a message can no longer reach: ended, or on the way out. */
 const ENDED: ReadonlySet<AppSessionState> = new Set(["closed", "failed", "stopping"]);
 
@@ -36,14 +35,10 @@ function withState({ entry, state }: { entry: RegistryEntry; state: AppSessionSt
   return { ...entry, snapshot: { ...entry.snapshot, state } };
 }
 
-/** A message sent opens a new turn, so the agent text shown starts again: the card shows this turn's words alone. */
+/** A message sent opens a new turn; the worker is sent the whole text by the caller, the snapshot only its head. */
 function submitted({ entry, text, atIso }: { entry: RegistryEntry; text: string; atIso: string }): RegistryEntry {
-  const { lastAgentText: _previousTurn, ...snapshot } = entry.snapshot;
-  return {
-    ...entry,
-    snapshot: { ...snapshot, lastSubmittedAtIso: atIso, lastSubmittedText: text, state: "running" },
-    usage: usageOnPrompt({ usage: entry.usage }),
-  };
+  const snapshot = echoOnSubmitted({ atIso, snapshot: entry.snapshot, text });
+  return { ...entry, snapshot, usage: usageOnPrompt({ usage: entry.usage }) };
 }
 
 /** A turn is over, however it ended: one that never reported its usage is counted missing. */
@@ -218,14 +213,9 @@ function onWorker({
       return { registry: withToolActivity({ activity: report.activity, atIso, registry, sessionId }), sends: [] };
     }
     case "agent-text": {
-      const tail = (said: string | undefined): string =>
-        (said === undefined ? report.text : `${said}${report.text}`).slice(-AGENT_TEXT_TAIL);
       return {
         registry: withEntry({
-          change: (held) => ({
-            ...held,
-            snapshot: { ...held.snapshot, lastAgentText: tail(held.snapshot.lastAgentText) },
-          }),
+          change: (held) => ({ ...held, snapshot: echoOnAgentText({ snapshot: held.snapshot, text: report.text }) }),
           registry,
           sessionId,
         }),

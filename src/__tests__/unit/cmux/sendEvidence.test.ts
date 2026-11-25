@@ -9,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CMUX_SUBMITTED_MESSAGE_MAX_CHARS, submittedMessageConfirmsSend } from "../../../cmux/sendEvidence.js";
+import { APP_SESSION_SUBMITTED_TEXT_MAX_CHARS, boundedSubmittedText } from "../../../sessionHarness/appProtocol.js";
 
 const PICKUP =
   "You are the visible agent picking up one dispatched recipe investigation. Run " +
@@ -21,6 +22,13 @@ const PICKUP =
 const CMUX_TRUNCATED_PICKUP = `${PICKUP.slice(0, CMUX_SUBMITTED_MESSAGE_MAX_CHARS - 1)}…`;
 
 describe("submittedMessageConfirmsSend", () => {
+  it("confirms the app's own bounded head of a message longer than its submitted-text bound", () => {
+    const sentText = `${PICKUP} ${"x".repeat(APP_SESSION_SUBMITTED_TEXT_MAX_CHARS)}`;
+    const echoed = boundedSubmittedText({ text: sentText });
+    expect(echoed.length).toBe(APP_SESSION_SUBMITTED_TEXT_MAX_CHARS);
+    expect(submittedMessageConfirmsSend({ latestSubmittedMessage: echoed, sentText })).toBe(true);
+  });
+
   it("confirms cmux's own 240-character truncation of a long pickup line", () => {
     expect(CMUX_TRUNCATED_PICKUP.length).toBe(CMUX_SUBMITTED_MESSAGE_MAX_CHARS);
     expect(submittedMessageConfirmsSend({ latestSubmittedMessage: CMUX_TRUNCATED_PICKUP, sentText: PICKUP })).toBe(
