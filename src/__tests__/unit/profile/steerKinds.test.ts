@@ -27,7 +27,15 @@ const OWN = ["acme-bot"];
 
 /** One turn of the owner's. */
 function turn({ anchor, atIso, text }: { anchor: string; atIso: string; text: string }): OwnerUtterance {
-  return { anchor, atIso, chars: text.length, cut: "none", how: "spoken", text, where: "console-call" };
+  return {
+    anchor,
+    atIso,
+    chars: text.length,
+    cut: { end: "kept", start: "kept" },
+    how: "spoken",
+    text,
+    where: "console-call",
+  };
 }
 
 const DUMP = turn({

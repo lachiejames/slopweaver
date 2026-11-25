@@ -3,7 +3,8 @@
  * turn whole), then how to read one whole and every record that would not read. What the report holds is
  * `./ownerWords.ts`; this only says it.
  */
-import type { OwnerUtterance, OwnerWordsCut, OwnerWordsReport, OwnerWordsWhere } from "./ownerWords.js";
+import type { OwnerUtterance, OwnerWordsReport, OwnerWordsWhere } from "./ownerWords.js";
+import type { OwnerWordsEdge, OwnerWordsEdges } from "./ownerWordsEdges.js";
 
 /** How much of a turn one list line previews. */
 const PREVIEW_CHARS = 140;
@@ -18,13 +19,40 @@ const WHERE_PHRASE: Readonly<Record<OwnerWordsWhere, string>> = {
   supervisor: "the supervisor chat",
 };
 
-/** What a cut record says beside its words. */
-const CUT_PHRASE: Readonly<Record<OwnerWordsCut, string>> = {
-  end: " · the record kept only the start",
-  none: "",
-  start: " · the record kept only the end",
-  unknown: " · the record does not say whether it kept all of it",
-};
+/** The ends in one state, named as a reader says them: `its start`, `its end`, or both joined by the word given. */
+function endsNamed({ cut, edge, join }: { cut: OwnerWordsEdges; edge: OwnerWordsEdge; join: string }): string {
+  const ends: string[] = [];
+  if (cut.start === edge) {
+    ends.push("its start");
+  }
+  if (cut.end === edge) {
+    ends.push("its end");
+  }
+  return ends.join(` ${join} `);
+}
+
+/**
+ * What a record says beside its words about each end on its own: the ends it lost, then the ends it does not say it kept.
+ * A kept end says nothing, and an end the record never recorded is never said to be kept.
+ *
+ * @param cut what the record says about its start and its end
+ * @returns the phrase, opening ` · `, or empty for a record that kept both ends
+ */
+export function cutPhrase({ cut }: { cut: OwnerWordsEdges }): string {
+  const clauses: string[] = [];
+  const lost = endsNamed({ cut, edge: "lost", join: "and" });
+  if (lost !== "") {
+    clauses.push(`lost ${lost}`);
+  }
+  const unknown = endsNamed({ cut, edge: "unknown", join: "or" });
+  if (unknown !== "") {
+    clauses.push(`does not say whether it kept ${unknown}`);
+  }
+  if (clauses.length === 0) {
+    return "";
+  }
+  return ` · the record ${clauses.join(" and ")}`;
+}
 
 /**
  * An instant as a line prints it, to the minute in UTC.
@@ -49,7 +77,7 @@ export function minuteOf({ iso }: { iso: string }): string {
 export function utteranceHead({ one }: { one: OwnerUtterance }): string {
   return (
     `${minuteOf({ iso: one.atIso })} · ${one.how} · ${WHERE_PHRASE[one.where]} · ` +
-    `${one.chars.toLocaleString("en-US")} chars${CUT_PHRASE[one.cut]} · ${one.anchor}`
+    `${one.chars.toLocaleString("en-US")} chars${cutPhrase({ cut: one.cut })} · ${one.anchor}`
   );
 }
 

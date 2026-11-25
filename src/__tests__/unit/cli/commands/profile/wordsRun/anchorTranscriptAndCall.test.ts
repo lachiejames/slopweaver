@@ -94,10 +94,11 @@ describe("profile words — one anchor", () => {
       "utf8",
     );
 
-    const list = JSON.parse(run({ rest: ["--json"] }).lines.join("\n")) as { shown: readonly { cut: string }[] };
-    const one = JSON.parse(run({ rest: [`talk-call:${call}#s-1`, "--json"] }).lines.join("\n")) as { cut: string };
+    const list = JSON.parse(run({ rest: ["--json"] }).lines.join("\n")) as { shown: readonly { cut: unknown }[] };
+    const one = JSON.parse(run({ rest: [`talk-call:${call}#s-1`, "--json"] }).lines.join("\n")) as { cut: unknown };
 
-    expect([list.shown.map((shown) => shown.cut), one.cut]).toEqual([["end"], "end"]);
+    const endLost = { end: "lost", start: "kept" };
+    expect([list.shown.map((shown) => shown.cut), one.cut]).toEqual([[endLost], endLost]);
   });
 
   it("refuses the console's relay line typed into a chair, as the list leaves it out", () => {

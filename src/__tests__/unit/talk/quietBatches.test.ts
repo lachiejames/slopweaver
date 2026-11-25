@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { OwnerWordsEdges } from "../../../profile/ownerWordsEdges.js";
 import { type HeldRelay, QUIET_BEFORE_DELIVERY_MS } from "../../../talk/chairWake.js";
 import {
   fittedHeard,
@@ -8,14 +9,13 @@ import {
   quietBatches,
   quietBatchLine,
 } from "../../../talk/quietBatches.js";
-import type { HeardEdges } from "../../../talk/relayHeardCut.js";
 import { RELAY_ROW_QUOTE_LIMIT } from "../../../talk/relayRowQuote.js";
 import type { UnreadWord } from "../../../talk/unreadWords.js";
 
 const START = "2026-10-27T09:00:00.000Z";
 
 /** A turn record that says it kept every word at both ends. */
-const WHOLE: HeardEdges = { end: "kept", start: "kept" };
+const WHOLE: OwnerWordsEdges = { end: "kept", start: "kept" };
 
 /** The bytes the flag on a record that never said takes: " (maybe not all their words)". */
 const FLAG_BYTES = 28;
@@ -48,7 +48,7 @@ const relay = ({
   slug: string;
   ms: number;
   heard?: string;
-  heardEdges?: HeardEdges;
+  heardEdges?: OwnerWordsEdges;
 }): HeldRelay => ({
   heard,
   heardEdges,
@@ -137,7 +137,7 @@ describe("quietBatches", () => {
   });
 
   it("holds back each record mark's bytes, and the flag's, so the whole phrase still fits the share", () => {
-    const kept = ({ heardEdges }: { heardEdges: HeardEdges }): number =>
+    const kept = ({ heardEdges }: { heardEdges: OwnerWordsEdges }): number =>
       quietBatches({
         nowIso: START,
         relays: [relay({ heard: "w".repeat(RELAY_ROW_QUOTE_LIMIT), heardEdges, ms: 0, slug: "talk-eee" })],
@@ -159,7 +159,7 @@ describe("quietBatches", () => {
   });
 
   it("keeps every relay's whole phrase inside its share, however its record reads", () => {
-    const edges: readonly HeardEdges[] = [
+    const edges: readonly OwnerWordsEdges[] = [
       WHOLE,
       { end: "lost", start: "lost" },
       { end: "unknown", start: "unknown" },
@@ -254,7 +254,7 @@ describe("heldRelayPhrase", () => {
   });
 
   it("marks each end the record lost on its own, both together, and flags an end it never said about", () => {
-    const phrase = ({ cut, heardEdges }: { cut: boolean; heardEdges: HeardEdges }): string =>
+    const phrase = ({ cut, heardEdges }: { cut: boolean; heardEdges: OwnerWordsEdges }): string =>
       heldRelayPhrase({ relay: { cut, heardEdges, slug: "talk-ggg", words: "take the set" } });
     expect([
       phrase({ cut: false, heardEdges: { end: "kept", start: "lost" } }),

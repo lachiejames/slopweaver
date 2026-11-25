@@ -21,8 +21,8 @@
  *
  * Pure: no filesystem, no clock.
  */
+import type { OwnerWordsEdges } from "../profile/ownerWordsEdges.js";
 import { type HeldRelay, QUIET_BEFORE_DELIVERY_MS } from "./chairWake.js";
-import type { HeardEdges } from "./relayHeardCut.js";
 import { RELAY_ROW_QUOTE_LIMIT } from "./relayRowQuote.js";
 import { UNREAD_BATCH_BYTES } from "./unreadBatch.js";
 import type { UnreadWord } from "./unreadWords.js";
@@ -51,7 +51,7 @@ export interface QuietBatchRelay {
   /** Whether fitting to the share kept only the TAIL of {@link words}: the steer is what they said last. */
   readonly cut: boolean;
   /** Whether the turn record itself kept each end of the owner's words, before any fitting (`./relayHeardCut.ts`). */
-  readonly heardEdges: HeardEdges;
+  readonly heardEdges: OwnerWordsEdges;
 }
 
 /** One quiet stretch of the owner's, as `talk unread` heads it. */
@@ -118,7 +118,7 @@ export function fittedHeard({ heard, bytes, opened = false }: { heard: string; b
 }
 
 /** Whether a record never said whether it kept one of its ends. */
-function unsaid({ heardEdges }: { heardEdges: HeardEdges }): boolean {
+function unsaid({ heardEdges }: { heardEdges: OwnerWordsEdges }): boolean {
   return heardEdges.start === "unknown" || heardEdges.end === "unknown";
 }
 
@@ -130,7 +130,7 @@ function unsaid({ heardEdges }: { heardEdges: HeardEdges }): boolean {
  * @param heardEdges what the turn record says about each end
  * @returns the bytes to hold back
  */
-function recordMarkBytes({ heardEdges }: { heardEdges: HeardEdges }): number {
+function recordMarkBytes({ heardEdges }: { heardEdges: OwnerWordsEdges }): number {
   const closing = heardEdges.end === "lost" ? quotedBytes({ text: CUT_MARK }) : 0;
   const flag = unsaid({ heardEdges }) ? Buffer.byteLength(UNSAID_FLAG, "utf8") : 0;
   return closing + flag;

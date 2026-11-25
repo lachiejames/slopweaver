@@ -14,7 +14,8 @@ import {
   utterancesFromConsoleTurns,
   utterancesFromSupervisorTurns,
 } from "../../../profile/ownerWords.js";
-import { minuteOf, ownerWordsLines, utteranceHead } from "../../../profile/ownerWordsLines.js";
+import type { OwnerWordsEdges } from "../../../profile/ownerWordsEdges.js";
+import { cutPhrase, minuteOf, ownerWordsLines, utteranceHead } from "../../../profile/ownerWordsLines.js";
 import type { OwnerTurn } from "../../../supervisor/intake.js";
 import { CALL_TEXT_CHARS, type CallRecord, type CallSegment } from "../../../talk/callRecord.js";
 import { chairBatchLine } from "../../../talk/chairBatchLine.js";
@@ -24,6 +25,13 @@ import type { TurnRecord } from "../../../talk/relayStore.js";
 const CALL = "c0ffee00-1111-4222-8333-444455556666";
 const TURN = "a0000017-0000-4000-8000-000000000019";
 const SESSION = "a0000013-0000-4000-8000-000000000014";
+
+/** Each pair of end states a record can carry, named for the assertions. */
+const WHOLE: OwnerWordsEdges = { end: "kept", start: "kept" };
+const END_LOST: OwnerWordsEdges = { end: "lost", start: "kept" };
+const START_LOST: OwnerWordsEdges = { end: "kept", start: "lost" };
+const BOTH_LOST: OwnerWordsEdges = { end: "lost", start: "lost" };
+const UNSAID: OwnerWordsEdges = { end: "unknown", start: "unknown" };
 
 /** One stretch of a call. */
 function segment(over: Partial<CallSegment>): CallSegment {
@@ -100,7 +108,7 @@ function said(over: Partial<OwnerUtterance>): OwnerUtterance {
   const one = {
     anchor: `talk:${TURN}`,
     atIso: "2026-10-04T12:00:00.000Z",
-    cut: "none" as const,
+    cut: WHOLE,
     how: "written" as const,
     text: "ship it",
     where: "console-typed" as const,
@@ -139,9 +147,9 @@ describe("utterancesFromCalls", () => {
     });
 
     expect(read.utterances.map((one) => [one.anchor, one.how, one.where, one.cut])).toEqual([
-      [`talk-call:${CALL}#s1`, "spoken", "console-call", "none"],
-      [`talk-call:${CALL}#s3`, "spoken", "console-call", "end"],
-      [`talk-call:${CALL}#s4`, "spoken", "console-call", "end"],
+      [`talk-call:${CALL}#s1`, "spoken", "console-call", WHOLE],
+      [`talk-call:${CALL}#s3`, "spoken", "console-call", END_LOST],
+      [`talk-call:${CALL}#s4`, "spoken", "console-call", END_LOST],
     ]);
     expect(read.gaps).toEqual([
       { source: "console-calls", why: "call-x.jsonl: EACCES" },
@@ -162,11 +170,33 @@ describe("utterancesFromConsoleTurns", () => {
     });
 
     expect(read.utterances.map((one) => [one.text, one.how, one.where, one.cut])).toEqual([
-      ["hold the merge", "written", "console-typed", "none"],
-      ["…the tail of what I said", "spoken", "console-relay", "start"],
-      ["an older relay", "spoken", "console-relay", "unknown"],
+      ["hold the merge", "written", "console-typed", WHOLE],
+      ["…the tail of what I said", "spoken", "console-relay", { end: "unknown", start: "lost" }],
+      ["an older relay", "spoken", "console-relay", UNSAID],
     ]);
     expect(read.gaps).toEqual([]);
+  });
+
+  // A relay that lost both ends read as start-cut only, and one that lost its start dropped its unrecorded end.
+  it("reads each end of a relay on its own, so both lost and lost-plus-unrecorded each say both ends", () => {
+    const read = utterancesFromConsoleTurns({
+      turns: [
+        relay({ heard: "…middle of it and", heardTailCut: true, heardTruncated: true }),
+        relay({ heard: "…the rest of it", heardTailCut: false, heardTruncated: true }),
+        relay({ heard: "…and then", heardTruncated: true }),
+        relay({ heard: "so I said", heardTailCut: true }),
+        relay({ heard: "typed, no facts", typed: true }),
+      ],
+      unreadable: [],
+    });
+
+    expect(read.utterances.map((one) => [one.text, one.cut])).toEqual([
+      ["…middle of it and", BOTH_LOST],
+      ["…the rest of it", START_LOST],
+      ["…and then", { end: "unknown", start: "lost" }],
+      ["so I said", { end: "lost", start: "unknown" }],
+      ["typed, no facts", { end: "kept", start: "unknown" }],
+    ]);
   });
 
   // A relay made mid-stretch was listed as whole.
@@ -181,9 +211,9 @@ describe("utterancesFromConsoleTurns", () => {
     });
 
     expect(read.utterances.map((one) => [one.text, one.cut])).toEqual([
-      ["yes send it but", "end"],
-      ["yes send it", "none"],
-      ["before the flag", "unknown"],
+      ["yes send it but", END_LOST],
+      ["yes send it", WHOLE],
+      ["before the flag", { end: "unknown", start: "kept" }],
     ]);
   });
 
@@ -215,8 +245,8 @@ describe("utterancesFromSupervisorTurns", () => {
     });
 
     expect(read.utterances.map((one) => [one.text, one.how, one.where, one.cut])).toEqual([
-      ["why is staging red", "written", "supervisor", "none"],
-      ["and then", "written", "supervisor", "end"],
+      ["why is staging red", "written", "supervisor", WHOLE],
+      ["and then", "written", "supervisor", END_LOST],
     ]);
     expect(read.gaps).toEqual([]);
   });
@@ -257,11 +287,26 @@ describe("utteranceFromRaw", () => {
     ];
 
     expect(placed.map((one) => [one.how, one.where, one.cut, one.chars])).toEqual([
-      ["spoken", "console-relay", "unknown", 5],
-      ["written", "console-typed", "start", 5],
-      ["spoken", "console-call", "end", 5],
-      ["spoken", "call-landing", "none", 5],
-      ["written", "claude-session", "none", 5],
+      ["spoken", "console-relay", { end: "kept", start: "unknown" }, 5],
+      ["written", "console-typed", START_LOST, 5],
+      ["spoken", "console-call", END_LOST, 5],
+      ["spoken", "call-landing", WHOLE, 5],
+      ["written", "claude-session", WHOLE, 5],
+    ]);
+  });
+
+  // The one-anchor read collapsed the same way: a lost start hid a lost or unrecorded end.
+  it("says both ends of a record an anchor names when it lost both, or lost one and does not say the other", () => {
+    const placed = [
+      utteranceFromRaw({ anchor: "talk:a", raw: { ...raw, headLost: true, tailLost: true, where: "console-voice" } }),
+      utteranceFromRaw({ anchor: "talk:b", raw: { ...raw, headLost: true, tailKnown: false, where: "console-voice" } }),
+      utteranceFromRaw({ anchor: "talk:c", raw: { ...raw, headKnown: false, tailLost: true, where: "console-voice" } }),
+    ];
+
+    expect(placed.map((one) => one.cut)).toEqual([
+      BOTH_LOST,
+      { end: "unknown", start: "lost" },
+      { end: "lost", start: "unknown" },
     ]);
   });
 
@@ -341,11 +386,45 @@ describe("the lines", () => {
   });
 
   it("names when, how, where, length, cut and anchor on one head line", () => {
-    const one = said({ atIso: "2026-10-04T12:31:43.000Z", cut: "unknown", how: "spoken", where: "console-relay" });
+    const one = said({ atIso: "2026-10-04T12:31:43.000Z", cut: UNSAID, how: "spoken", where: "console-relay" });
 
     expect(utteranceHead({ one })).toBe(
-      `2026-10-04 12:31Z · spoken · relayed from the console voice · 7 chars · the record does not say whether it kept all of it · talk:${TURN}`,
+      `2026-10-04 12:31Z · spoken · relayed from the console voice · 7 chars · the record does not say whether it kept its start or its end · talk:${TURN}`,
     );
+  });
+
+  it("says a record that lost both ends lost both, on the head line", () => {
+    const one = said({ atIso: "2026-10-04T12:31:43.000Z", cut: BOTH_LOST, how: "spoken", where: "console-relay" });
+
+    expect(utteranceHead({ one })).toBe(
+      `2026-10-04 12:31Z · spoken · relayed from the console voice · 7 chars · the record lost its start and its end · talk:${TURN}`,
+    );
+  });
+
+  it("names each end by its own state, and says nothing of a record that kept both", () => {
+    expect(
+      [
+        WHOLE,
+        START_LOST,
+        END_LOST,
+        BOTH_LOST,
+        { end: "kept", start: "unknown" } as const,
+        { end: "unknown", start: "kept" } as const,
+        UNSAID,
+        { end: "unknown", start: "lost" } as const,
+        { end: "lost", start: "unknown" } as const,
+      ].map((cut) => cutPhrase({ cut })),
+    ).toEqual([
+      "",
+      " · the record lost its start",
+      " · the record lost its end",
+      " · the record lost its start and its end",
+      " · the record does not say whether it kept its start",
+      " · the record does not say whether it kept its end",
+      " · the record does not say whether it kept its start or its end",
+      " · the record lost its start and does not say whether it kept its end",
+      " · the record lost its end and does not say whether it kept its start",
+    ]);
   });
 
   it("previews each turn on one line, then says how to read one whole and what was not read", () => {

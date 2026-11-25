@@ -47,9 +47,9 @@
  *
  * Pure: the read, the store and the typing are `./chairWakeShell.ts`'s.
  */
+import type { OwnerWordsEdges } from "../profile/ownerWordsEdges.js";
 import { type BatchAnchor, chairBatch, chairBatchMembers } from "./chairBatchLine.js";
 import type { DeliveryKind } from "./deliveryOutcome.js";
-import type { HeardEdges } from "./relayHeardCut.js";
 import type { LeaseHolder } from "./relayLease.js";
 import { unwrapPaste } from "./relayLine.js";
 import type { UnreadCursor, UnreadRead, UnreadWord } from "./unreadWords.js";
@@ -124,7 +124,7 @@ export interface HeldRelay {
    * Whether the turn record kept each end of {@link heard} (`./relayHeardCut.ts`): a quote of a record that lost its
    * start or end, or never said, is marked so, never printed as the whole steer.
    */
-  readonly heardEdges: HeardEdges;
+  readonly heardEdges: OwnerWordsEdges;
 }
 
 /** Whether the process an `attempting` wake names is provably still the one typing it, provably gone, or untellable. */

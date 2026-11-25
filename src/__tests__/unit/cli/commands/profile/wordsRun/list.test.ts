@@ -32,7 +32,7 @@ describe("profile words — a list", () => {
     expect(code).toBe(EXIT_OK);
     expect(lines).toEqual([
       "profile words: 2 turn(s) of the owner's from 2026-09-27 12:00Z to 2026-10-04 12:00Z — 1 spoken, 1 written",
-      `  2026-10-04 10:00Z · spoken · relayed from the console voice · 14 chars · the record does not say whether it kept all of it · talk:${OTHER_TURN}`,
+      `  2026-10-04 10:00Z · spoken · relayed from the console voice · 14 chars · the record does not say whether it kept its end · talk:${OTHER_TURN}`,
       "      hold the atlas",
       `  2026-10-04 09:00Z · written · typed on the console · 14 chars · talk:${TURN}`,
       "      ship the atlas",
