@@ -44,6 +44,10 @@
  * rule decides whether a `BROKEN` row still refuses, so a rebase cannot bury a finding over the same patch either.
  * The ledger itself is untouched: the row still reads STALE everywhere else.
  *
+ * A row is joined to its record by artifact id alone, and the verdict comes from the row while the patch comes
+ * from the record. So an id two records share joins to neither: otherwise a row could take its verdict from one
+ * review and its patch from another. That row reads as having no record, which never witnesses.
+ *
  * What the two checks do NOT prove: that main left alone everything the claim's reasoning leaned on. A change to
  * comparator code, or to a source file a row's entry names, passes both while leaving the baseline bytes as they
  * were. The landing comparison still re-measures every row's exact `from -> to`, so a changed measure is refused
@@ -259,6 +263,32 @@ function entryRejections({
 }
 
 /**
+ * Every pass record keyed by its artifact id, leaving out any id more than one record carries. Pure. Whichever
+ * order the records arrive in, a shared id joins to nothing rather than to the last record read.
+ *
+ * @param records every pass record read
+ * @returns each record whose artifact id no other record carries, keyed by that id
+ */
+function recordsByUniqueId({
+  records,
+}: {
+  records: readonly CodexArtifactRecord[];
+}): ReadonlyMap<string, CodexArtifactRecord> {
+  const byId = new Map<string, CodexArtifactRecord>();
+  const shared = new Set<string>();
+  for (const record of records) {
+    if (byId.has(record.artifactId)) {
+      shared.add(record.artifactId);
+    }
+    byId.set(record.artifactId, record);
+  }
+  for (const artifactId of shared) {
+    byId.delete(artifactId);
+  }
+  return byId;
+}
+
+/**
  * The manifests no review witnesses, each with what was found instead. Pure — the property the landing
  * verbs refuse on.
  *
@@ -282,7 +312,7 @@ export function unwitnessedManifests({
   baseSha: string;
   evidence: BaselineBumpCarryEvidence;
 }): readonly UnwitnessedManifest[] {
-  const byId = new Map(records.map((record) => [record.artifactId, record]));
+  const byId = recordsByUniqueId({ records });
   const out: UnwitnessedManifest[] = [];
   for (const { path, manifest } of manifests) {
     const propertyId = witnessPropertyId({ digest: manifest.digest });

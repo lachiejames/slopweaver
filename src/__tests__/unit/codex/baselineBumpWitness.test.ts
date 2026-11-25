@@ -463,6 +463,19 @@ describe("unwitnessedManifests carrying a stale review", () => {
     expect(found).toEqual([]);
   });
 
+  it("never joins a row to a record whose artifact id another record shares, in either order", () => {
+    const stale = { baseSha: BASE, entries: [entry({ freshness: STALE })], evidence: CARRY_EVIDENCE, manifests };
+    // Both records carry the row's id: one read a different patch, the other the landing patch.
+    const own = record({ diffSha256: OTHER_DIFF });
+    const landing = record();
+    const found = [
+      [own, landing],
+      [landing, own],
+    ].map((records) => unwitnessedManifests({ ...stale, records }));
+    const candidates = [{ artifactId: "witness-1", rejections: ["not-current", "record-missing"] }];
+    expect(found.map((each) => each.map((one) => one.candidates))).toEqual([[candidates], [candidates]]);
+  });
+
   it("lets a retired stale BROKEN review over the same patch and floor stand aside", () => {
     const retired = entry({
       artifactId: "broken-1",
