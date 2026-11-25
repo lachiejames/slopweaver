@@ -11,18 +11,83 @@
 import { errAsync, okAsync } from "neverthrow";
 import { describe, expect, it } from "vitest";
 
+import { liveLocusFor } from "../../../../../../cli/commands/github/addressRun.js";
 import type { DescriptionWrite } from "../../../../../../cli/commands/github/descriptionReviewCheck.js";
 import { GithubVerbErrors } from "../../../../../../cli/commands/github/errors.js";
 import type { GithubStackPushDeps } from "../../../../../../cli/commands/github/stackPushDeps.js";
 import { runGithubStackPush } from "../../../../../../cli/commands/github/stackPushRun.js";
-import { ALLOW_PR_REPLACE } from "../../../../../../cli/commands/github/updateCore.js";
+import { OWN_WRITE_NOTICE } from "../../../../../../cli/commands/github/updateConsent.js";
+import { ALLOW_FOREIGN_PR, ALLOW_PR_REPLACE } from "../../../../../../cli/commands/github/updateCore.js";
 import { EXIT_ERROR, EXIT_OK } from "../../../../../../cli/exitCodes.js";
 import type { GithubWriteApi, WrittenPr } from "../../../../../../corpus/github/write.js";
+import { unwrap } from "../../../../../../lib/result.js";
+import { confirmPr } from "../../../../../../outbound/github/prLedger.js";
+import { stampForWrite } from "../../../../../../outbound/github/stamp.js";
 import { fakeApi } from "../../../../../githubPrHarness.js";
-import { AMENDED_SHA, baseForm, PREFIX, pr } from "./fixtures.js";
+import { AMENDED_SHA, baseDraft, baseForm, PREFIX, pr } from "./fixtures.js";
 import { harness, tempHome, useTempHomes } from "./harness.js";
 
 useTempHomes();
+
+/** The target and explainer every push in this file renders: `top` into `main`, the fixture's default text. */
+const TOP_INTO_MAIN = { base: "main", explainerText: "An export dropped an entry. This keeps it.", head: "top" };
+
+/** When the door last confirmed a write in a ledger record this file writes. */
+const NOW = "2026-08-15T00:00:00.000Z";
+
+/** The line a keyed whole-form replacement prints in place of a refusal. */
+const OVERRIDDEN = `OVERRIDDEN via ${ALLOW_PR_REPLACE}=1 — replacing the whole description. Say so in the pull request.`;
+
+/** The refusal a pull request another account opened meets, before any review, amend or push. */
+const FOREIGN_REFUSED =
+  "refused: this pull request was opened by a different GitHub account from the one this token belongs to, and " +
+  `editing other people's descriptions is not what this verb is for. Re-run with ${ALLOW_FOREIGN_PR}=1 if ` +
+  "you really mean to";
+
+/**
+ * Leave the record this door's own last write to `pr` would leave: the rendered form's title, the live body.
+ *
+ * @param pr the open pull request whose locus, node id, number and body the record carries
+ */
+function recordOwnWrite({ home, pr: live }: { home: string; pr: WrittenPr }): void {
+  const written = unwrap(stampForWrite({ draft: baseDraft({ ...TOP_INTO_MAIN }), today: "2026-08-15" }));
+  const locus = liveLocusFor({ pr: live });
+  confirmPr({
+    form: written,
+    home,
+    locus,
+    nodeId: live.nodeId,
+    number: live.number,
+    nowIso: NOW,
+    storedBody: live.body,
+  });
+}
+
+/**
+ * A stack push re-run of `top` onto its open pull request, with every review clearing.
+ *
+ * @param replaceKey whether the environment carries the wholesale-replacement key
+ * @returns the exit, the pull requests updated, and every line printed
+ */
+async function reRun({
+  home,
+  replaceKey,
+}: {
+  home: string;
+  replaceKey: boolean;
+}): Promise<{ code: number; lines: string[]; updates: number[] }> {
+  const updates: number[] = [];
+  const api = fakeApi({
+    getPr: () => okAsync(openPr()),
+    updatePr: ({ number }) => {
+      updates.push(number);
+      return okAsync(openPr());
+    },
+  });
+  const run = recordingRun({ api, clears: 2, openPullRequest: () => okAsync(openPr()), replaceKey });
+  const code = await runGithubStackPush({ argv: argvFor({ home }), deps: run.deps });
+  return { code, lines: run.lines, updates };
+}
 
 /** The fields of one description review this file asserts on. */
 type Asked = Pick<DescriptionWrite, "headRef" | "pullRequest">;
@@ -172,7 +237,47 @@ describe("runGithubStackPush — a branch whose pull request is already open", (
     expect(run.asked).toStrictEqual([]);
     expect(run.writes).toStrictEqual([]);
     expect(updates).toStrictEqual([]);
-    expect(run.lines.at(-1)).toContain(ALLOW_PR_REPLACE);
+    expect(run.lines.at(-1)).toBe(
+      "refused: --form REPLACES the whole description, so anything in the live one that a form cannot carry is " +
+        "discarded and GitHub keeps no history of it. The diff above is what would change. To change only some " +
+        `fields and keep the rest, use --edit instead. Re-run with ${ALLOW_PR_REPLACE}=1 if a whole replacement is ` +
+        "what you want",
+    );
+  });
+
+  it("updates without the replacement key when the live title and body are this door's last confirmed write", async () => {
+    // The same re-run twice: once over this door's own confirmed write with no key, once with no record and the key.
+    // Every line the two print must agree but the one consent line, so the whole output is pinned against a run
+    // the key already allowed rather than against a transcription of it.
+    const confirmedHome = tempHome();
+    recordOwnWrite({ home: confirmedHome, pr: openPr() });
+    const confirmed = await reRun({ home: confirmedHome, replaceKey: false });
+    const keyed = await reRun({ home: tempHome(), replaceKey: true });
+    expect([confirmed.code, keyed.code]).toStrictEqual([EXIT_OK, EXIT_OK]);
+    expect([confirmed.updates, keyed.updates]).toStrictEqual([[42], [42]]);
+    expect(keyed.lines.filter((line) => line === OVERRIDDEN)).toStrictEqual([OVERRIDDEN]);
+    // Pinned on their own too, so both paths regressing together cannot keep the comparison below agreeing.
+    expect(confirmed.lines.filter((line) => line === OWN_WRITE_NOTICE)).toStrictEqual([OWN_WRITE_NOTICE]);
+    expect(confirmed.lines.filter((line) => line === OVERRIDDEN)).toStrictEqual([]);
+    expect(confirmed.lines).toStrictEqual(keyed.lines.with(keyed.lines.indexOf(OVERRIDDEN), OWN_WRITE_NOTICE));
+  });
+
+  it("still refuses a pull request somebody else opened when its record matches all three fields", async () => {
+    const home = tempHome();
+    recordOwnWrite({ home, pr: openPr({ authorId: 7 }) });
+    const updates: number[] = [];
+    const api = fakeApi({
+      getPr: () => okAsync(openPr({ authorId: 7 })),
+      updatePr: ({ number }) => {
+        updates.push(number);
+        return okAsync(openPr());
+      },
+    });
+    const run = recordingRun({ api, clears: 2, openPullRequest: () => okAsync(openPr({ authorId: 7 })) });
+    const code = await runGithubStackPush({ argv: argvFor({ home }), deps: run.deps });
+    expect(code).toBe(EXIT_ERROR);
+    expect([run.asked, run.writes, updates]).toStrictEqual([[], [], []]);
+    expect(run.lines.at(-1)).toBe(FOREIGN_REFUSED);
   });
 
   it("refuses before any review, amend or push when somebody else opened the pull request", async () => {
@@ -191,7 +296,7 @@ describe("runGithubStackPush — a branch whose pull request is already open", (
     expect(run.asked).toStrictEqual([]);
     expect(run.writes).toStrictEqual([]);
     expect(updates).toStrictEqual([]);
-    expect(run.lines.at(-1)).toContain("refused: ");
+    expect(run.lines.at(-1)).toBe(FOREIGN_REFUSED);
   });
 
   it("reads the pull request before the push, and the retryable preflight still runs between push and update", async () => {

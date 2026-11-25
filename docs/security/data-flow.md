@@ -129,10 +129,10 @@ reads: two indexes to read beside this list, neither of them the whole of it on 
    verbatim, so nobody else's content is destroyed by an edit that was never about it; a trailing region
    carrying slopweaver's own markup is refused instead of preserved, because two proof anchors in one body
    is a gold-comparison failure.
-   A complete `--form` may replace any description you authored, house-format or not; it prints the diff of
-   what would be discarded and takes `SLOPWEAVER_ALLOW_PR_REPLACE=1`, because GitHub keeps no history of a
-   pull-request body. That key never releases a screenshot or run link a settled ask of the owner's named the pull
-   request for: dropping one takes the journalled `pr-evidence-loss` grant, on every update mode.
+   A complete `--form` may replace any description you authored; it prints the diff of what would be discarded
+   and takes `SLOPWEAVER_ALLOW_PR_REPLACE=1`, as GitHub keeps no body history — unless the local ledger proves the
+   live title and body are this door's last confirmed write. That key never releases a screenshot or run link a
+   settled ask of the owner's named the pull request for: dropping one takes the journalled `pr-evidence-loss` grant, on every update mode.
    The ledger under `$SLOPWEAVER_HOME/ledgers/github-prs` has two jobs: at-most-once on CREATE, and the stored form as a cache. Unlike
    Linear, GitHub assigns the id only AFTER creation, so that duplicate guard keys on the branch locus (base
    repository + base ref + head ref, with a fork's head qualified as `owner:ref` so it cannot share a key with

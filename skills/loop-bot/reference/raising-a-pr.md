@@ -90,7 +90,7 @@ Two policy locks you should expect, each with a key, and neither worth fighting 
   it in a bot turn; log it and say whose it is.
 - **`--form REPLACES the whole description`** → a turn changing only some fields takes `--edit`, as the refusal
   says. Re-run with `SLOPWEAVER_ALLOW_PR_REPLACE=1` only when a whole-form write is genuinely what the turn
-  needs, and say so in the pull request. It never releases
+  needs, and say so in the pull request; a whole form over this door's own last write asks for no key. It never releases
   `pr-evidence-loss`: a write dropping a screenshot or run link a settled ask of the owner's named is refused on every
   mode ([pr-update-locks](../../github/reference/pr-update-locks.md)).
 
