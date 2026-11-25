@@ -5,10 +5,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DATA_IMAGE,
   DROPPED_ELEMENTS,
   ELEMENT_ATTRIBUTES,
   GLOBAL_ATTRIBUTES,
+  isKeptDataImage,
   KEPT_ELEMENTS,
   REMOTE_SOURCE,
   VOID_ELEMENTS,
@@ -44,9 +44,32 @@ describe("mail HTML allowlist", () => {
   });
 
   it("keeps a base64 raster data image and nothing that can carry script", () => {
-    expect(DATA_IMAGE.test("data:image/png;base64,iVBORw0KGgo=")).toBe(true);
-    expect(DATA_IMAGE.test("data:image/svg+xml;base64,PHN2Zz4=")).toBe(false);
-    expect(DATA_IMAGE.test("data:text/html;base64,PHA+")).toBe(false);
+    expect(isKeptDataImage({ source: "data:image/png;base64,iVBORw0KGgo=" })).toBe(true);
+    expect(isKeptDataImage({ source: "data:image/svg+xml;base64,PHN2Zz4=" })).toBe(false);
+    expect(isKeptDataImage({ source: "data:text/html;base64,PHA+" })).toBe(false);
+  });
+
+  it("refuses an empty body, as the quantified regex it replaces did", () => {
+    expect(isKeptDataImage({ source: "data:image/png;base64," })).toBe(false);
+  });
+
+  it("keeps a body ending in a newline, whitespace being in the body's class", () => {
+    expect(isKeptDataImage({ source: "data:image/png;base64,AAAA\n" })).toBe(true);
+  });
+
+  it("refuses one character outside the alphabet in the middle of the body", () => {
+    expect(isKeptDataImage({ source: "data:image/png;base64,AA!AA" })).toBe(false);
+  });
+
+  it("reads the header without regard to case and walks every header's own length", () => {
+    expect(isKeptDataImage({ source: "DATA:IMAGE/PNG;BASE64,AAAA" })).toBe(true);
+    expect(isKeptDataImage({ source: "data:image/jpeg;base64,AAAA" })).toBe(true);
+    expect(isKeptDataImage({ source: "data:image/webp;base64,AAAA" })).toBe(true);
+  });
+
+  it("folds no non-ASCII letter into the alphabet", () => {
+    expect(isKeptDataImage({ source: "data:image/png;base64,AAſ" })).toBe(false);
+    expect(isKeptDataImage({ source: "data:image/png;base64,AAK" })).toBe(false);
   });
 
   it("reads http, https and protocol-relative sources as remote", () => {

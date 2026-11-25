@@ -4,6 +4,7 @@
  * text kept and its tag dropped, an element in {@link DROPPED_ELEMENTS} is dropped with everything inside it, and an
  * attribute not named is never written at all.
  */
+import { characterRunEnd } from "#lib/base64Run.js";
 
 /** Elements written out, with their allowlisted attributes. */
 export const KEPT_ELEMENTS: ReadonlySet<string> = new Set([
@@ -147,8 +148,34 @@ export const ELEMENT_ATTRIBUTES: Readonly<Record<string, ReadonlySet<string>>> =
   ul: new Set(["type"]),
 };
 
-/** The only image source kept: a base64 raster `data:` URL. SVG is not a raster and can carry script. */
-export const DATA_IMAGE = /^data:image\/(?:png|gif|jpeg|webp);base64,[a-z0-9+/=\s]+$/i;
+/** The header of a kept image source. Every quantifier in it is bounded, so a long source cannot overflow it. */
+const DATA_IMAGE_HEADER = /^data:image\/(?:png|gif|jpeg|webp);base64,/i;
+
+/** One character outside a kept image's body: base64, padding or whitespace. Both cases spelled, since no flag survives. */
+const OUTSIDE_DATA_IMAGE_BODY = /[^A-Za-z0-9+/=\s]/;
+
+/**
+ * Whether an image source is the only kind kept: a base64 raster `data:` URL. SVG is not a raster and can carry script.
+ *
+ * The body is walked with `characterRunEnd` rather than matched by a regex quantified over it: an inline image runs to
+ * millions of characters, and such a regex throws `RangeError: Maximum call stack size exceeded` once V8 compiles it
+ * unoptimised (`src/lib/base64Run.ts` carries the mechanism and its reproduction). It accepts exactly what
+ * `/^data:image\/(?:png|gif|jpeg|webp);base64,[a-z0-9+/=\s]+$/i` did.
+ *
+ * @param source the `src` attribute's value, already trimmed by the caller
+ * @returns true when the source is a non-empty base64 png, gif, jpeg or webp data URL
+ */
+export function isKeptDataImage({ source }: { source: string }): boolean {
+  const header = DATA_IMAGE_HEADER.exec(source);
+  if (header === null) {
+    return false;
+  }
+  const bodyStart = header[0].length;
+  if (bodyStart === source.length) {
+    return false;
+  }
+  return characterRunEnd({ from: bodyStart, outside: OUTSIDE_DATA_IMAGE_BODY, text: source }) === source.length;
+}
 
 /** A source that would reach a remote host: `http:`, `https:` or protocol-relative. */
 export const REMOTE_SOURCE = /^\s*(?:https?:)?\/\//i;
