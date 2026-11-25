@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
-import { SLOPWEAVER_MARKETPLACE_ENTRY } from "../../../codexPlugin/marketplacePlan.js";
 import {
   ensurePersonalMarketplace,
   personalMarketplaceEntry,
@@ -81,6 +80,7 @@ describe("ensurePersonalMarketplace", () => {
     ["an overflowing number", '{"name":"mine","plugins":[],"extra":1e400}'],
     ["negative zero", '{"name":"mine","plugins":[],"extra":-0}'],
     ["an integer past 2^53, which parses already rounded", '{"name":"mine","plugins":[],"extra":9007199254740993}'],
+    ["a number spelled 1.0, which writes back as 1", '{"name":"mine","plugins":[],"extra":1.0}'],
   ])("never rewrites a file holding %s, which JSON would write back differently", (_label, raw) => {
     writeMarketplace({ raw, userHome });
     const path = marketplacePath({ userHome });
@@ -99,11 +99,24 @@ describe("ensurePersonalMarketplace", () => {
       marketplace: "mine",
       sourcePath: join(userHome, "plugins", "slopweaver"),
     });
-    expect(JSON.parse(readFileSync(marketplacePath({ userHome }), "utf8"))).toEqual({
-      extra: 9007199254740991,
-      name: "mine",
-      plugins: [SLOPWEAVER_MARKETPLACE_ENTRY],
-    });
+    expect(readFileSync(marketplacePath({ userHome }), "utf8")).toBe(
+      [
+        "{",
+        '  "name": "mine",',
+        '  "plugins": [',
+        "    {",
+        '      "name": "slopweaver",',
+        '      "source": {',
+        '        "path": "./plugins/slopweaver",',
+        '        "source": "local"',
+        "      }",
+        "    }",
+        "  ],",
+        '  "extra": 9007199254740991',
+        "}",
+        "",
+      ].join("\n"),
+    );
   });
 
   it.each([
