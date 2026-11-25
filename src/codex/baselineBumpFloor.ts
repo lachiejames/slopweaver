@@ -70,7 +70,9 @@ function reviewBasesById({
  * a pinned review base and the landing base. The base itself holds reflexively; anything else asks
  * `git diff --quiet`, whose every non-zero outcome — a difference, a bad object, a timeout — reads as not held.
  * Each row file is a name, never a pathspec: `--literal-pathspecs` stops a file named like pathspec magic, such as
- * `:(exclude,glob)**`, from excluding every path and reading a changed floor as held. IO edge.
+ * `:(exclude,glob)**`, from excluding every path and reading a changed floor as held. `--no-ext-diff` and
+ * `--no-textconv` stop an external diff helper or a conversion filter, from config or the environment, from
+ * answering for git. IO edge.
  *
  * @param base the pinned review base
  * @param baseSha the landing base
@@ -92,7 +94,8 @@ function floorHeld({
   if (base === baseSha) {
     return true;
   }
-  return gitSucceeds({ args: ["--literal-pathspecs", "diff", "--quiet", base, baseSha, "--", ...files], root });
+  const args = ["--literal-pathspecs", "diff", "--quiet", "--no-ext-diff", "--no-textconv", base, baseSha, "--"];
+  return gitSucceeds({ args: [...args, ...files], root });
 }
 
 /**

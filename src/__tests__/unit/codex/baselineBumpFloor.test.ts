@@ -166,6 +166,26 @@ describe("readBaselineBumpCarryEvidence", { timeout: REAL_GIT_TIMEOUT_MS }, () =
     expect([...evidence.floorHeldBasesByDigest.entries()]).toEqual([[magic.digest, new Set()]]);
   });
 
+  it("reads a changed floor as not held even when a trusted external diff helper says no difference", () => {
+    const git = (...args: readonly string[]): string => gitInTemp({ args, cwd: root });
+    git("config", "diff.external", "true");
+    git("config", "diff.trustExitCode", "true");
+    try {
+      const records = [review({ baseRef: older })];
+      const evidence = readBaselineBumpCarryEvidence({
+        baseSha: movedFloor,
+        headSha: feature,
+        manifests,
+        records,
+        root,
+      });
+      expect([...evidence.floorHeldBasesByDigest.entries()]).toEqual([[FLOOR.digest, new Set()]]);
+    } finally {
+      git("config", "--unset", "diff.external");
+      git("config", "--unset", "diff.trustExitCode");
+    }
+  });
+
   it("asks nothing of a plan, or of a review under another property id, and takes no landing patch", () => {
     const records = [
       recordWith({ scope: { mode: "plan", pass: "p1", promptBytes: 1, promptSha256: "b".repeat(64) } }),
