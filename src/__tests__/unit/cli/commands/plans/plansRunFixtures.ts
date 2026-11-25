@@ -75,7 +75,7 @@ export interface Recording {
  *
  * @returns that outcome, naming the home it was handed
  */
-export const installedSync = ({ codexHome }: { codexHome: string }): SyncOutcome => ({
+const installedSync = ({ codexHome }: { codexHome: string }): SyncOutcome => ({
   did: "synced",
   homes: [
     {

@@ -26,7 +26,7 @@ import type { Result } from "#lib/result.js";
 
 import { type ReadCodexAccountsLive, readCodexAccountsLive } from "../../../codex/accountLive.js";
 import { readCodexSubscriptionDates } from "../../../codex/subscriptionDates.js";
-import { renderSyncOutcome, type SyncOutcome, syncFailed } from "../../../codexPlugin/plan.js";
+import type { SyncOutcome } from "../../../codexPlugin/plan.js";
 import { slopweaverHome } from "../../../homeDir.js";
 import type { PlanRegisterError } from "../../../plans/errors.js";
 import { laneShapeReadOf } from "../../../plans/laneShape.js";
@@ -37,6 +37,7 @@ import type { PlanMutation, PlanProvider, PlanRegisterSnapshot } from "../../../
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 
+import { addedCodexHome, ensureCodexHome, syncAddedCodexHome, syncIfRowCommitted } from "./codexAdd.js";
 import { syncCodexPluginHomeLive } from "./codexPluginSyncLive.js";
 import { type PlansInvocation, parsePlansArgs, VERB_ARG_OFFSET } from "./core.js";
 import {
@@ -89,78 +90,6 @@ export interface PlansDeps {
     readonly codexHome: string;
     readonly home: string | undefined;
   }) => SyncOutcome;
-}
-
-/**
- * Install Slopweaver into the Codex home `add` just published, and print what happened on its own line.
- *
- * The row is already published and STAYS on a failure: registering the account and installing into it are two
- * acts, and a later `codex plugin-sync` repairs the second without losing the first. So a failure prints and
- * exits non-zero, and nothing is rolled back. Under `--json`, or once the verb has already failed, every sync
- * line goes to the diagnostic channel, so stdout stays the one snapshot document.
- *
- * @param deps the injected seams
- * @param codexHome the home the published row names
- * @param home the `--home` the register lives under, whose profile declares the main checkouts
- * @param diagnosticsOnly send even a success line to diagnostics: stdout is a JSON document, or carries nothing
- * @returns `EXIT_ERROR` when the install failed, else `EXIT_OK` — a `skipped` checkout included
- */
-function syncAddedCodexHome({
-  codexHome,
-  deps,
-  diagnosticsOnly,
-  home,
-}: {
-  codexHome: string;
-  deps: PlansDeps;
-  diagnosticsOnly: boolean;
-  home: string | undefined;
-}): number {
-  const outcome = deps.syncCodexPluginHome({ codexHome, home });
-  const failed = syncFailed({ outcome });
-  const lines = renderSyncOutcome({ outcome });
-  if (failed || diagnosticsOnly) {
-    lines.forEach((line) => {
-      deps.writeDiagnostic(line);
-    });
-  } else {
-    lines.forEach((line) => {
-      deps.writeOut(line);
-    });
-  }
-  if (failed) {
-    return EXIT_ERROR;
-  }
-  return EXIT_OK;
-}
-
-/**
- * The lines `add` prints about the Codex home it just registered, after making sure the directory exists.
- *
- * Registering a directory that is not there handed the owner a sign-in line that failed on its first run
- * (`src/plans/login.ts` carries the measurement). It runs BEFORE the row is written, so a home that cannot
- * be created — a path under a regular file, a directory they cannot write — refuses the add instead of
- * registering a destination whose sign-in line would fail at its own `mkdir -p`; a Codex review found that
- * shape. The one residue is the reverse order's: a row the register then refuses leaves an empty directory.
- *
- * @param deps the injected seams
- * @param storeDir the Codex home about to be registered, created here when it is absent
- * @returns whether it was created or already there, or the refusal line
- */
-function ensureCodexHome({
-  deps,
-  storeDir,
-}: {
-  deps: PlansDeps;
-  storeDir: string;
-}): Result<"created" | "found", string> {
-  return deps
-    .ensureStoreDir({ storeDir })
-    .map((ensured) => (ensured === "created" ? ("created" as const) : ("found" as const)))
-    .mapErr(
-      (cause) =>
-        `plans: ${storeDir} could not be created (${cause}), so no row was added — a Codex home nobody can sign into takes no work. Fix the path, then add again`,
-    );
 }
 
 /** The one diagnostic `validate` does not treat as a finding — see this module's header. */
@@ -277,10 +206,7 @@ async function runChange({
   invocation: PlansInvocation;
   mutation: PlanMutation;
 }): Promise<number> {
-  const codexHome =
-    invocation.request.verb === "add" && invocation.request.row.provider === "codex"
-      ? invocation.request.row.storeDir
-      : undefined;
+  const codexHome = addedCodexHome({ request: invocation.request });
   const ensured = codexHome === undefined ? undefined : ensureCodexHome({ deps, storeDir: codexHome });
   if (ensured?.isErr() === true) {
     deps.writeDiagnostic(ensured.error);
@@ -296,11 +222,7 @@ async function runChange({
   const published = await deps.writeRegister({ home: invocation.home, judgedAtRevision, mutation });
   if (published.isErr()) {
     deps.writeDiagnostic(`plans: ${published.error.message}`);
-    // A failed projection write is reported AFTER the row committed, so the Codex row is registered and its
-    // home still gets the install; the verb exits non-zero for the projection either way.
-    if (codexHome !== undefined && published.error.code === "PROJECTION_WRITE_FAILED") {
-      syncAddedCodexHome({ codexHome, deps, diagnosticsOnly: true, home: invocation.home });
-    }
+    syncIfRowCommitted({ codexHome, deps, error: published.error, home: invocation.home });
     return EXIT_ERROR;
   }
   if (invocation.json) {
