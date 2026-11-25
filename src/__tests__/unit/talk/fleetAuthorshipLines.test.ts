@@ -1,15 +1,20 @@
 /**
  * The fleet-authorship lines, asserted as the prompt data they are. The voice must not speak as if it were the
- * fleet: briefings come back from the fleet, not from the voice. The wording is the behaviour, so both halves are pinned whole,
- * each obligation is named by its own case (over the text with its line wrapping removed, so a reflow is not a
- * failure), and the placement beside the spoken-claim lines is pinned exactly.
+ * fleet: briefings come back from the fleet, not from the voice. The wording is the behaviour, so each prompt's
+ * opening identity and its later detail are pinned whole, each obligation is named by its own case (over the text
+ * with its line wrapping removed, so a reflow is not a failure), and where each block sits is pinned exactly.
  */
 import { describe, expect, it } from "vitest";
 
 import { DELIVERABLE_FIND_VOICE_LINES } from "../../../talk/deliverableFindLines.js";
-import { FLEET_AUTHORSHIP_BACKEND_LINES, FLEET_AUTHORSHIP_VOICE_LINES } from "../../../talk/fleetAuthorshipLines.js";
+import {
+  FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES,
+  FLEET_AUTHORSHIP_BACKEND_LINES,
+  FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES,
+  FLEET_AUTHORSHIP_VOICE_LINES,
+} from "../../../talk/fleetAuthorshipLines.js";
 import { HANDED_BACK_ANSWER_VOICE_LINES } from "../../../talk/handedBackAnswerLines.js";
-import { TALK_BACKEND_INSTRUCTIONS, TALK_VOICE_INSTRUCTIONS } from "../../../talk/sessionConfig.js";
+import { OWNER_SCOPE_LINE, TALK_BACKEND_INSTRUCTIONS, TALK_VOICE_INSTRUCTIONS } from "../../../talk/sessionConfig.js";
 import { SPOKEN_CLAIM_BACKEND_LINES, SPOKEN_CLAIM_VOICE_LINES } from "../../../talk/spokenClaimLines.js";
 import { STEER_TOOLS } from "../../../talk/steerToolSchemas.js";
 
@@ -17,61 +22,125 @@ const VOICE = FLEET_AUTHORSHIP_VOICE_LINES.join("\n");
 const BACKEND = FLEET_AUTHORSHIP_BACKEND_LINES.join("\n");
 const FLAT_VOICE = VOICE.replace(/\n/g, " ");
 const FLAT_BACKEND = BACKEND.replace(/\n {2}/g, " ");
+const FLAT_VOICE_IDENTITY = FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES.join(" ");
+const FLAT_BACKEND_IDENTITY = FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES.join(" ");
 const FLAT_HANDED = HANDED_BACK_ANSWER_VOICE_LINES.join(" ");
 
 describe("the fleet-authorship lines, whole", () => {
+  it("pins the voice's opening identity exactly", () => {
+    expect(FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES).toEqual([
+      "You are the voice, not the fleet: the owner's thinking partner. First person is for this",
+      "call's own acts: speaking, opening a card or page to read it, reading a draft or screen, explaining, a held",
+      "Slack draft's words, and running-list wording on the owner's plain ask ('I drafted that'); a relay stays",
+      "unsaid. Other work is the fleet's; you help the owner work through it and convey their decisions: 'the",
+      "fleet will put that briefing together', never yours or offered.",
+    ]);
+  });
+
+  it("pins the thinking model's opening identity exactly", () => {
+    expect(FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES).toEqual([
+      "You help the owner think through what is on screen and write what the voice says; neither is the fleet.",
+      "First person is for this call's own acts: speaking, opening a card or page to read it, reading, explaining,",
+      "and draft_edit and offer_copy on the owner's plain ask (its 'I drafted…'); relay_steer stays unsaid. Other",
+      "work is the fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that",
+      "briefing together', never yours or offered.",
+    ]);
+  });
+
   it("pins the voice's paragraph exactly", () => {
     expect(FLEET_AUTHORSHIP_VOICE_LINES).toEqual([
-      "You are not the fleet. Anything the owner asked the fleet for, or a seat produces — a briefing or its next cut, a",
-      "plan, a proposal, a report, a page, a pull request, an issue, a doc or a draft of any of them — is a fleet",
-      "seat's to write, never yours, bar the acts below: in any words, never say you will make, change or deliver",
-      "one, or put something in one — write, draft, prepare, produce, open, raise, add, include, revise and every",
-      "other way of saying it ('I'll write that into the revised briefing', 'I'll open a PR', 'before I draft them')",
-      "— and never offer to ('want me to draft it?', 'want that added?'). What the owner wants in one is a steer: never ask",
+      "Anything the owner asked the fleet for, or a seat produces (a briefing or its next cut, a",
+      "plan, a proposal, a report, a page, a pull request, an issue, a doc or a draft of any of them), is a fleet",
+      "seat's to write, never yours, bar the call's own acts: in any words, never say you will make, change or deliver",
+      "one, or put something in one (write, draft, prepare, produce, open, raise, add, include, revise and every",
+      "other way of saying it: 'I'll write that into the revised briefing', 'I'll open a PR', 'before I draft them'),",
+      "and never offer to ('want me to draft it?', 'want that added?'). What the owner wants in one is a steer: never ask",
       "whether to add it. Whether a page already covers something, or it waits for a next cut, is only what the",
-      "thinking model says from reading the page: never say it yourself. Asked your part: you help the owner work",
-      "through it and convey their decisions, and the fleet produces it. What you really do here stays first person:",
-      "opening a card or page to read it, changing a held Slack draft's words, and wording the answer put on the",
-      "running list on the owner's plain ask: that wording is yours ('I drafted that').",
+      "thinking model says from reading the page: never say it yourself.",
       "Wording the owner asked the fleet for is the fleet's, never yours; wording for a seat's deliverable is wording you",
       "drafted, never the deliverable. Owning a line as 'I said that' is owning the speech, never the authorship of",
       "a seat's deliverable.",
-      "Work that outlives this turn — a briefing, an investigation, a sweep, a fix, a rule enforced, a requirement",
-      "carried into a next cut — is never yours: never 'I'll keep digging', 'I'll look into it', 'I'll get you that",
+      "Work that outlives this turn (a briefing, an investigation, a sweep, a fix, a rule enforced, a requirement",
+      "carried into a next cut) is never yours: never 'I'll keep digging', 'I'll look into it', 'I'll get you that",
       "briefing', 'I'll come back with…', 'I'll bring that back', 'I'll take it from there', 'I'll make sure that goes",
       "in', 'I'll get that sorted' or 'I'll treat that as a rule'. Work the answer says someone else does, or still",
       "needs doing ('the fleet needs to check …'), keeps the answer's subject or is left out: never turn it into",
       "'I'll …', and never end a turn on work nothing is doing.",
       "A steer the owner gives is acknowledged in the present tense ('that's a firm requirement for the next cut'), never",
-      "as a promise of yours. 'I' with a future is only for the next card, a reflect-back, or a look you start by a",
-      "tool or hand-off; say you're checking only as it runs: a relay runs none.",
+      "as a promise of yours. 'I' with a future is only for the next card, a reflect-back, a send's outcome, or a",
+      "look you start by a tool or hand-off; say you're checking only as it runs: a relay runs none.",
     ]);
   });
 
   it("pins the thinking model's bullets exactly", () => {
     expect(FLEET_AUTHORSHIP_BACKEND_LINES).toEqual([
-      "- You and the voice are not the fleet. Anything the owner asked the fleet for, or a seat produces — a briefing or its",
-      "  next cut, a plan, a proposal, a report, a page, a pull request, an issue, a doc or a draft of any of them — is",
-      "  a fleet seat's to write, never yours, bar the acts in the third bullet: in any words, never write that you",
+      "- Anything the owner asked the fleet for, or a seat produces (a briefing or its",
+      "  next cut, a plan, a proposal, a report, a page, a pull request, an issue, a doc or a draft of any of them), is",
+      "  a fleet seat's to write, never yours, bar the call's own acts: in any words, never write that you",
       "  will make, change or deliver one, or put something in one — write, draft, prepare, produce, open, raise, add,",
       "  include, revise and every other way of saying it ('I'll write that into the revised briefing', 'I'll open a",
       "  PR', 'before I draft them') — and never offer to ('want me to draft that revision?', 'want that added to the",
       "  revised briefing?').",
       "- What the owner wants in one is a steer: relay_steer it as the relay bullet below says, never asking first, and",
-      "  never mention the relay in what you answer. Asked who writes it: the fleet does, and you help the owner work",
-      "  through it and convey their decisions.",
-      "- What you really do here stays first person: opening a card or page to read it, draft_edit on a held Slack",
-      "  draft, and wording offer_copy put on the running list on the owner's plain ask: that wording is yours",
-      "  (the offer_copy bullet's 'I drafted…'). Wording the owner asks the fleet for ('ask the fleet to",
-      "  draft …') is the fleet's: relay_steer it, never offer_copy it. Wording for a seat's deliverable is wording you",
-      "  drafted, never the deliverable. Owning a line as 'I said that' is owning the speech, never the authorship of",
-      "  a seat's deliverable.",
+      "  never mention the relay in what you answer.",
+      "- Wording the owner asks the fleet for ('ask the fleet to draft …') is the fleet's: relay_steer it, never",
+      "  offer_copy it. Wording for a seat's deliverable is wording you drafted, never the deliverable. Owning a line",
+      "  as 'I said that' is owning the speech, never the authorship of a seat's deliverable.",
       "- Never end an answer on work still to do, by anyone ('the fleet needs to check …', 'that goes into the next",
       "  cut'): the voice says it as its own promise ('I'll keep digging') and nothing runs. Leave it out; a steer you",
       "  relayed is acknowledged in the present tense, never as work that will be done.",
       "- 'Checking …' or 'one moment' belongs only in commentary while this turn does that work, never in the answer",
       "  that ends it: that answer is what the turn found.",
     ]);
+  });
+});
+
+// Synthetic words for a measured shape: the voice offered "want me to put a briefing together?" and spoke of fleet
+// work as its own, though the rule against it already stood fifteen blocks into a prompt that opened on "the owner's
+// thinking partner" alone. So each prompt opens on whose the work is, said as what the first person is FOR.
+describe("the opening identity", () => {
+  it("says the voice is the voice and not the fleet, and the thinking model is neither", () => {
+    expect(FLAT_VOICE_IDENTITY).toContain("You are the voice, not the fleet: the owner's thinking partner.");
+    expect(FLAT_BACKEND_IDENTITY).toContain("and write what the voice says; neither is the fleet.");
+  });
+
+  it("keeps the first person for the call's own speech, reading and explaining", () => {
+    expect(FLAT_VOICE_IDENTITY).toContain(
+      "First person is for this call's own acts: speaking, opening a card or page to read it, reading a draft or screen, explaining, a held Slack draft's words,",
+    );
+    expect(FLAT_BACKEND_IDENTITY).toContain(
+      "First person is for this call's own acts: speaking, opening a card or page to read it, reading, explaining, and draft_edit",
+    );
+  });
+
+  // A relay listed among the first person's acts, even "a silent relay", licensed "I silently relayed that" beside
+  // the rule never to mention the relay, so the opening names it only as staying unsaid.
+  it("never licenses narrating the relay", () => {
+    expect(FLAT_VOICE_IDENTITY).toContain("('I drafted that'); a relay stays unsaid.");
+    expect(FLAT_BACKEND_IDENTITY).toContain("(its 'I drafted…'); relay_steer stays unsaid.");
+    expect(`${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY}`).not.toContain("silent relay");
+    expect(`${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY}`).not.toContain("passing");
+    expect(`${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY}`).not.toMatch(/, relaying/);
+  });
+
+  it("says other work with the fleet as its subject, and never offers it as the voice's", () => {
+    expect(FLAT_VOICE_IDENTITY).toContain(
+      "Other work is the fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that briefing together', never yours or offered.",
+    );
+    expect(FLAT_BACKEND_IDENTITY).toContain(
+      "Other work is the fleet's; you help the owner work through it and convey their decisions: 'the fleet will put that briefing together', never yours or offered.",
+    );
+  });
+
+  it("opens each prompt, the owner-scope line straight after it", () => {
+    expect(
+      TALK_VOICE_INSTRUCTIONS.startsWith(`${FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES.join("\n")}\n${OWNER_SCOPE_LINE}\n`),
+    ).toBe(true);
+    expect(
+      TALK_BACKEND_INSTRUCTIONS.startsWith(
+        `${FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES.join("\n")}\n${OWNER_SCOPE_LINE}\n`,
+      ),
+    ).toBe(true);
   });
 });
 
@@ -88,7 +157,7 @@ describe("a check said with nothing in flight", () => {
 
   it("binds a look the voice may announce to the tool call or hand-off that starts it, so a real hand-off is still acknowledged", () => {
     expect(FLAT_VOICE).toContain(
-      "'I' with a future is only for the next card, a reflect-back, or a look you start by a tool or hand-off;",
+      "'I' with a future is only for the next card, a reflect-back, a send's outcome, or a look you start by a tool or hand-off;",
     );
   });
 
@@ -115,7 +184,7 @@ describe("a check said with nothing in flight", () => {
 describe("what the fleet-work subject lines oblige", () => {
   it("never lets work that outlives the turn be the voice's, nor an answer end on it", () => {
     expect(FLAT_VOICE).toContain(
-      "Work that outlives this turn — a briefing, an investigation, a sweep, a fix, a rule enforced, a requirement carried into a next cut — is never yours:",
+      "Work that outlives this turn (a briefing, an investigation, a sweep, a fix, a rule enforced, a requirement carried into a next cut) is never yours:",
     );
     expect(FLAT_BACKEND).toContain(
       "Never end an answer on work still to do, by anyone ('the fleet needs to check …', 'that goes into the next cut'): the voice says it as its own promise ('I'll keep digging') and nothing runs.",
@@ -160,15 +229,22 @@ describe("what the fleet-work subject lines oblige", () => {
       "A steer the owner gives is acknowledged in the present tense ('that's a firm requirement for the next cut'), never as a promise of yours.",
     );
     expect(FLAT_VOICE).toContain(
-      "'I' with a future is only for the next card, a reflect-back, or a look you start by a tool or hand-off;",
+      "'I' with a future is only for the next card, a reflect-back, a send's outcome, or a look you start by a tool or hand-off;",
     );
   });
 
-  it("points the backend's carve-out at the bullet that holds the call's real acts", () => {
-    expect(FLAT_BACKEND).toContain("never yours, bar the acts in the third bullet:");
-    expect(FLEET_AUTHORSHIP_BACKEND_LINES.filter((line) => line.startsWith("- "))[2]).toBe(
-      "- What you really do here stays first person: opening a card or page to read it, draft_edit on a held Slack",
-    );
+  // The act-pending line has the voice say "I'll tell you if it doesn't go" on a relayed Slack send, which the
+  // future-'I' carve-out once left outside its list, so the same prompt required and forbade it.
+  it("lets the act-pending line's promise about a send stand inside the future-'I' carve-out", () => {
+    expect(TALK_VOICE_INSTRUCTIONS).toContain("'On it — I'll tell you if it doesn't go.'");
+    expect(FLAT_VOICE).toContain("a send's outcome,");
+  });
+
+  it("points each detail's carve-out at the call's own acts its opening names", () => {
+    expect(FLAT_VOICE).toContain("never yours, bar the call's own acts:");
+    expect(FLAT_BACKEND).toContain("never yours, bar the call's own acts:");
+    expect(FLAT_VOICE_IDENTITY).toContain("First person is for this call's own acts:");
+    expect(FLAT_BACKEND_IDENTITY).toContain("First person is for this call's own acts:");
   });
 });
 
@@ -177,7 +253,7 @@ describe("what the fleet-authorship lines oblige", () => {
   // so the scope is anything the owner asked the fleet for or a seat produces, the nouns only examples.
   it("scopes the rule to anything the owner asked the fleet for or a seat produces, the nouns only examples", () => {
     const scope =
-      "Anything the owner asked the fleet for, or a seat produces — a briefing or its next cut, a plan, a proposal, a report, a page, a pull request, an issue, a doc or a draft of any of them —";
+      "Anything the owner asked the fleet for, or a seat produces (a briefing or its next cut, a plan, a proposal, a report, a page, a pull request, an issue, a doc or a draft of any of them), is";
     expect(FLAT_VOICE).toContain(scope);
     expect(FLAT_BACKEND).toContain(scope);
   });
@@ -186,7 +262,7 @@ describe("what the fleet-authorship lines oblige", () => {
   // is by any words, its verbs only examples, and the first-person opening is only a card or page opened to read.
   it("bans authorship in any words, its verbs only examples", () => {
     expect(FLAT_VOICE).toContain(
-      "in any words, never say you will make, change or deliver one, or put something in one — write, draft, prepare, produce, open, raise, add, include, revise and every other way of saying it",
+      "in any words, never say you will make, change or deliver one, or put something in one (write, draft, prepare, produce, open, raise, add, include, revise and every other way of saying it",
     );
     expect(FLAT_BACKEND).toContain(
       "in any words, never write that you will make, change or deliver one, or put something in one — write, draft, prepare, produce, open, raise, add, include, revise and every other way of saying it",
@@ -195,8 +271,9 @@ describe("what the fleet-authorship lines oblige", () => {
 
   it("refuses the call's own offending lines by their words", () => {
     expect(FLAT_VOICE).toContain(
-      "('I'll write that into the revised briefing', 'I'll open a PR', 'before I draft them')",
+      "'I'll write that into the revised briefing', 'I'll open a PR', 'before I draft them'",
     );
+    expect(FLAT_VOICE).toContain("never offer to ('want me to draft it?', 'want that added?')");
     expect(FLAT_BACKEND).toContain("('want me to draft that revision?', 'want that added to the revised briefing?')");
   });
 
@@ -215,36 +292,30 @@ describe("what the fleet-authorship lines oblige", () => {
   });
 
   it("says its role as its own good line on that call did", () => {
-    expect(FLAT_VOICE).toContain(
-      "Asked your part: you help the owner work through it and convey their decisions, and the fleet produces it.",
-    );
-    expect(FLAT_BACKEND).toContain(
-      "the fleet does, and you help the owner work through it and convey their decisions.",
-    );
+    expect(FLAT_VOICE_IDENTITY).toContain("you help the owner work through it and convey their decisions");
+    expect(FLAT_BACKEND_IDENTITY).toContain("you help the owner work through it and convey their decisions");
   });
 
   // A parked Slack draft is seat-produced and draft_edit really changes it, so the ban carves the real acts out, and
   // the "opening … something" carve-out is narrowed to a card or page opened to read.
-  it("carves the call's real acts out of the ban, opening only a card or page to read", () => {
-    expect(FLAT_VOICE).toContain("never yours, bar the acts below:");
-    expect(FLAT_BACKEND).toContain("never yours, bar the acts in the third bullet:");
-    expect(FLAT_VOICE).toContain("opening a card or page to read it, changing a held Slack draft's words,");
-    expect(FLAT_BACKEND).toContain("opening a card or page to read it, draft_edit on a held Slack draft,");
-    expect(`${FLAT_VOICE} ${FLAT_BACKEND}`).not.toContain("opening or reading something");
-    expect(`${FLAT_VOICE} ${FLAT_BACKEND}`).not.toContain("clipboard");
+  it("carves the call's real acts out of the ban, opening only to read", () => {
+    expect(FLAT_VOICE_IDENTITY).toContain("opening a card or page to read it, reading a draft or screen,");
+    expect(FLAT_BACKEND_IDENTITY).toContain("opening a card or page to read it, reading,");
+    expect(FLAT_VOICE_IDENTITY).toContain("a held Slack draft's words,");
+    expect(FLAT_BACKEND_IDENTITY).toContain("draft_edit and offer_copy on the owner's plain ask");
+    const all = `${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY} ${FLAT_VOICE} ${FLAT_BACKEND}`;
+    expect(all).not.toContain("opening or reading something");
+    expect(all).not.toContain("clipboard");
   });
 
   // Running-list wording the owner plainly asked for keeps its "I drafted…". The carve-out once also covered wording
   // "offered unasked", which licensed listing wording on a yes to the voice's own offer to draft.
   it("leaves only running-list wording the owner plainly asked for its own to call drafted, never one offered unasked", () => {
-    expect(FLAT_VOICE).toContain(
-      "wording the answer put on the running list on the owner's plain ask: that wording is yours ('I drafted that').",
-    );
-    expect(FLAT_BACKEND).toContain(
-      "wording offer_copy put on the running list on the owner's plain ask: that wording is yours (the offer_copy bullet's 'I drafted…').",
-    );
-    expect(`${FLAT_VOICE} ${FLAT_BACKEND}`).not.toContain("offered unasked");
-    expect(`${FLAT_VOICE} ${FLAT_BACKEND}`).not.toContain("a pitch included");
+    expect(FLAT_VOICE_IDENTITY).toContain("running-list wording on the owner's plain ask ('I drafted that');");
+    expect(FLAT_BACKEND_IDENTITY).toContain("offer_copy on the owner's plain ask (its 'I drafted…');");
+    const all = `${FLAT_VOICE_IDENTITY} ${FLAT_BACKEND_IDENTITY} ${FLAT_VOICE} ${FLAT_BACKEND}`;
+    expect(all).not.toContain("offered unasked");
+    expect(all).not.toContain("a pitch included");
   });
 
   // "ask the fleet to draft a pitch" made offer_copy wording claimable though the owner asked the fleet for it.
@@ -294,5 +365,7 @@ describe("where the fleet-authorship lines sit", () => {
   it("keeps each half in its own prompt", () => {
     expect(TALK_VOICE_INSTRUCTIONS).not.toContain(FLEET_AUTHORSHIP_BACKEND_LINES[0]!);
     expect(TALK_BACKEND_INSTRUCTIONS).not.toContain(FLEET_AUTHORSHIP_VOICE_LINES[0]!);
+    expect(TALK_VOICE_INSTRUCTIONS).not.toContain(FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES[0]!);
+    expect(TALK_BACKEND_INSTRUCTIONS).not.toContain(FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES[0]!);
   });
 });

@@ -22,12 +22,18 @@ describe("the two prompts", () => {
   // A sweep of the whole diff: a per-rule exemption ("unless a rule names someone else") let off every rule naming
   // "you" or the supervisor, so the line binds each unnamed person instead: a list of acts always missed one ("a
   // named cause"), and a console notice stays the console's.
-  it("makes every person a rule leaves unnamed the owner, second line of both prompts", () => {
+  // Each prompt opens on its identity block (`fleetAuthorshipLines.test.ts`), five lines in each, so the
+  // owner-scope line is the sixth line of both prompts.
+  it("makes every person a rule leaves unnamed the owner, straight after both prompts' identity", () => {
     expect(OWNER_SCOPE_LINE).toBe("Any person a rule leaves unnamed is the owner, never another voice on the call.");
-    expect([TALK_VOICE_INSTRUCTIONS.split("\n")[1], TALK_BACKEND_INSTRUCTIONS.split("\n")[1]]).toEqual([
+    expect([TALK_VOICE_INSTRUCTIONS.split("\n")[5], TALK_BACKEND_INSTRUCTIONS.split("\n")[5]]).toEqual([
       OWNER_SCOPE_LINE,
       OWNER_SCOPE_LINE,
     ]);
+    expect([
+      TALK_VOICE_INSTRUCTIONS.split("\n").indexOf(OWNER_SCOPE_LINE),
+      TALK_BACKEND_INSTRUCTIONS.split("\n").indexOf(OWNER_SCOPE_LINE),
+    ]).toEqual([5, 5]);
     // The two where a colleague's word would do the most harm name the owner outright: a yes ruling a triage card,
     // and a change editing the owner's held draft.
     expect(TALK_VOICE_INSTRUCTIONS).toContain("and the owner's yes to your suggestion is their word.");
