@@ -108,14 +108,14 @@ It reads the committed rules only; the private denylist and the bronze credentia
 
 ## Where the private denylist actually applies
 
-The two halves of this gate do NOT run in the same places, and treating them as one gate is how a green CI
-badge gets read as "checked against the local secret strings".
+The halves of this gate run in different places: a green CI badge never means "checked against the local strings".
 
 | half                                          | pre-push on the author's machine | CI `lint` | CI `dev-gate` | merge queue | any other machine |
 | --------------------------------------------- | -------------------------------- | --------- | ------------- | ----------- | ----------------- |
 | public leak CLASSES (`src/hygiene/scan.ts`)   | yes                              | yes       | yes           | yes         | yes               |
 | `forbidden-identifiers` (committed rules)     | no                               | yes       | PR text only  | yes         | yes               |
 | the private denylist (`hygiene-denylist.txt`) | **yes — and only here**          | no        | no            | no          | no                |
+| the private terms (`private-terms.tsv`)       | **yes — and only here**          | no        | no            | no          | no                |
 
 The mechanics, since the table is the conclusion rather than the reason. The denylist lives at
 `$SLOPWEAVER_HOME/hygiene-denylist.txt` and is never committed, so a machine that does not already have it
@@ -205,8 +205,8 @@ read afresh each time (`src/outbound/writePrivacyPolicy.ts`) from the home the v
   wholly inside the exact `owner/repo` address of the write's own target repository (`ownAddressRanges`, the
   identifier half's own edges), because the owner's handle is in every link to their repository; the bare handle
   elsewhere and another repository's address still refuse.
-- **CI never sees them.** `pr-format`'s `scanPrMetadataLeaks` (`src/devGate/devGate.ts`) is home-free by design,
-  so the local write gates are the only place the terms apply, exactly as with the denylist above.
+- **CI never sees them.** `pr-format` is home-free by design, so they apply only on this machine: the write gates and
+  the pre-push [repository scan](./private-terms.md#the-repository-scan), as with the denylist above.
 - **ReDoS is a stated residue.** A pattern runs in-process with no timeout, and `redos-check` reads only source
   literals, so a catastrophically backtracking row would stall the write that matches it.
 - **A picture's pixels are read on this machine, and what reading cannot see is a stated residue.** macOS Vision (`src/visualEvidence/imageTextRecognition.ts`, no egress, no model call) reads the text a PNG shows before `github attach` sends it; a failed, timed-out or non-macOS read refuses.
