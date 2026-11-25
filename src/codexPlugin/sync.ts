@@ -1,333 +1,235 @@
 /**
- * The effectful half of `codex plugin-sync`: export the checkout's HEAD with `git archive`, point the personal
- * Codex marketplace's `slopweaver` source at the export, re-run `codex plugin add`, and read the commit back
- * out of the tree Codex installed. `./plan.ts` carries every decision and the measurements behind the route;
- * `./checkout.ts` which checkout may publish; `./syncLock.ts` the lock one run holds while it writes.
+ * The writing half of `codex plugin-sync`: from a declared main checkout, export HEAD ONCE and bring every Codex
+ * home the fleet runs in onto it — each registered home, paused ones included, and the ambient one
+ * (`./homes.ts`). `./fleetPlan.ts` decides what each home needs and which writes a {@link SyncScope} allows,
+ * `./plan.ts` carries the pure decisions and the measurements behind the route, `./syncEffects.ts` each
+ * effect, `./marketplaceStore.ts` the personal marketplace, and `./syncLock.ts` the lock.
  *
- * Two windows, and only one of them is ours. The export is swapped in by rename, so the marketplace path only
- * ever names a complete tree. Codex's own copy into its cache is Codex's code and is NOT atomic: a Codex
- * session invoking `bin/slopweaver` during the add (about 6 s, measured on this tree) can miss a file. The
- * stable `local` cache key keeps that to seconds rather than deleting every running session's directory.
+ * ## One lock, one export, every home
+ *
+ * The export and the marketplace source are shared by every home, so the lock is the existing machine-wide one,
+ * held from the marketplace write through the last home's read-back, and every decision is re-read under it. A
+ * lock per home would let a second run replace the export while the first run's `codex plugin add` copies it.
+ * One home's failure is recorded on its own line and the run goes on to the next.
  */
-import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, renameSync, rmSync, symlinkSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 
-import { z } from "zod";
+import { readJsonFile } from "#lib/jsonFile.js";
+import type { Result } from "#lib/result.js";
 
-import { errorMessage } from "#lib/errorMessage.js";
-import { readJsonFile, writeJsonFile } from "#lib/jsonFile.js";
-import { isRecord } from "#lib/parsers.js";
-import { err, ok, type Result } from "#lib/result.js";
-
-import { git, isDeclaredMain, publishableHead, STEP_TIMEOUT_MS } from "./checkout.js";
 import { type CodexPluginSyncError, CodexPluginSyncErrors } from "./errors.js";
 import {
+  type FleetSyncPlan,
+  type HomeDecision,
+  planFleetSync,
+  publishableCheckout,
+  type SyncPaths,
+  type SyncScope,
+} from "./fleetPlan.js";
+import { type CodexPluginHome, homeOverlappingExport } from "./homes.js";
+import { ensurePersonalMarketplace } from "./marketplaceStore.js";
+import {
   CODEX_PLUGIN_NAME,
-  CODEX_UNVERSIONED_CACHE_KEY,
-  marketplaceEntryOf,
-  PERSONAL_MARKETPLACE_RELATIVE,
+  type HomeSyncOutcome,
   SOURCE_STAMP_RELATIVE,
-  type SyncDecision,
   type SyncOutcome,
   stampCommitOf,
-  syncDecision,
 } from "./plan.js";
+import { type CodexAdd, exportHead, installedPathOf, pointSourceAt } from "./syncEffects.js";
 import { takeSyncLock } from "./syncLock.js";
 
-/** Slopweaver's own Codex manifest, relative to a checkout — what marks a checkout as publishable. */
-const CODEX_MANIFEST_RELATIVE = ".codex-plugin/plugin.json";
-
-/** The directories this run reads and writes. */
-export interface SyncPaths {
-  /** The checkout whose HEAD is exported — the git toplevel the verb runs in. */
-  readonly checkout: string;
-  /**
-   * `codex-plugin/` under the cache root (`src/cacheHome.ts`), holding the export, the lock and the background log.
-   * A move of this root needs no migration: the next sync re-exports and `pointSourceAt` repoints the marketplace.
-   */
-  readonly exportRoot: string;
-  /** The user's home, which Codex treats as the personal marketplace's root. */
-  readonly userHome: string;
-  /** `$CODEX_HOME`, under which Codex keeps its plugin cache. */
+/** Have one home's Codex trust every Slopweaver hook of `pluginId`, failing unless all of them then run. */
+export type TrustHooks = (input: {
   readonly codexHome: string;
-}
-
-/** What one `codex plugin add` spawn returned. */
-export interface CodexAddRun {
-  readonly status: number | null;
-  readonly stdout: string;
-  readonly stderr: string;
-}
+  readonly cwd: string;
+  readonly pluginId: string;
+}) => Result<{ readonly trusted: number }, CodexPluginSyncError>;
 
 /** The seams a test replaces with plain fakes. */
 export interface SyncDeps {
-  /** Run `codex plugin add <pluginId> --json`. */
-  readonly codexAdd: (args: { pluginId: string }) => CodexAddRun;
+  readonly codexAdd: CodexAdd;
   /** The wall clock, for the lock's acquired instant and the age of an earlier build's lock. */
   readonly nowMs: () => number;
+  readonly trustHooks: TrustHooks;
 }
 
-/**
- * The production seams: the real `codex plugin add`, bounded, and the wall clock.
- *
- * @returns the deps a real run uses
- */
-export function productionSyncDeps(): SyncDeps {
-  return { codexAdd: spawnCodexAdd, nowMs: () => Date.now() };
-}
-
-/** Spawn `codex plugin add`, narrowing what came back to the three fields the reading needs. */
-function spawnCodexAdd({ pluginId }: { pluginId: string }): CodexAddRun {
-  try {
-    const stdout = execFileSync("codex", ["plugin", "add", pluginId, "--json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: STEP_TIMEOUT_MS,
-    });
-    return { status: 0, stderr: "", stdout };
-  } catch (error: unknown) {
-    if (!isRecord(error)) {
-      return { status: null, stderr: errorMessage({ error }), stdout: "" };
-    }
-    const { status, stderr, stdout } = error;
-    return {
-      status: typeof status === "number" ? status : null,
-      stderr: typeof stderr === "string" ? stderr : errorMessage({ error }),
-      stdout: typeof stdout === "string" ? stdout : "",
-    };
+/** Add the plugin into one home, prove the tree Codex installed carries HEAD, then trust its hooks. */
+function installHome({
+  decision,
+  plan,
+  paths,
+  deps,
+}: {
+  decision: HomeDecision;
+  plan: FleetSyncPlan;
+  paths: SyncPaths;
+  deps: SyncDeps;
+}): HomeSyncOutcome {
+  const { codexHome } = decision.home;
+  const pluginId = `${CODEX_PLUGIN_NAME}@${plan.entry.marketplace}`;
+  const installed = installedPathOf({ run: deps.codexAdd({ codexHome, pluginId }) });
+  if (installed.isErr()) {
+    return { codexHome, did: "failed", error: installed.error };
   }
+  const found = stampCommitOf({ document: readJsonFile({ path: join(installed.value, SOURCE_STAMP_RELATIVE) }) });
+  if (found !== plan.head) {
+    return { codexHome, did: "failed", error: CodexPluginSyncErrors.stampMismatch({ expected: plan.head, found }) };
+  }
+  const trusted = deps.trustHooks({ codexHome, cwd: paths.checkout, pluginId });
+  if (trusted.isErr()) {
+    return { codexHome, did: "failed", error: trusted.error };
+  }
+  return {
+    codexHome,
+    did: "refreshed",
+    installedPath: installed.value,
+    trusted: trusted.value.trusted,
+    why: decision.why,
+  };
 }
 
-/** Everything a refresh needs, resolved and decided, before anything is written. */
-export interface SyncTarget {
-  readonly head: string;
-  readonly marketplace: string;
-  readonly sourcePath: string;
-  readonly exportDir: string;
-  readonly decision: SyncDecision;
+/** A home already on HEAD: in a foreground run its hook trust is re-checked, so a rerun can repair a failed pass. */
+function currentHome({
+  decision,
+  plan,
+  paths,
+  deps,
+  scope,
+}: {
+  decision: HomeDecision;
+  plan: FleetSyncPlan;
+  paths: SyncPaths;
+  deps: SyncDeps;
+  scope: SyncScope;
+}): HomeSyncOutcome {
+  const { codexHome } = decision.home;
+  if (scope === "update-installed") {
+    return { codexHome, did: "current", trusted: undefined, why: decision.why };
+  }
+  const pluginId = `${CODEX_PLUGIN_NAME}@${plan.entry.marketplace}`;
+  const trusted = deps.trustHooks({ codexHome, cwd: paths.checkout, pluginId });
+  if (trusted.isErr()) {
+    return { codexHome, did: "failed", error: trusted.error };
+  }
+  return { codexHome, did: "current", trusted: trusted.value.trusted, why: decision.why };
 }
 
-/** The commit a tree's source stamp names, or undefined when it has none. */
-function stampedCommit({ root }: { root: string }): string | undefined {
-  return stampCommitOf({ document: readJsonFile({ path: join(root, SOURCE_STAMP_RELATIVE) }) });
+/** Export once when any home is due, then bring each home along in order, one outcome each. */
+function syncHomes({
+  plan,
+  paths,
+  deps,
+  scope,
+}: {
+  plan: FleetSyncPlan;
+  paths: SyncPaths;
+  deps: SyncDeps;
+  scope: SyncScope;
+}): SyncOutcome {
+  if (plan.homes.some((decision) => decision.action === "refresh")) {
+    const exported = exportHead({
+      checkout: paths.checkout,
+      exportDir: plan.exportDir,
+      exportRoot: paths.exportRoot,
+      head: plan.head,
+    }).andThen(() => pointSourceAt({ exportDir: plan.exportDir, sourcePath: plan.entry.sourcePath }));
+    if (exported.isErr()) {
+      return { did: "failed", error: exported.error };
+    }
+  }
+  const homes = plan.homes.map((decision): HomeSyncOutcome => {
+    const { codexHome } = decision.home;
+    if (decision.action === "missing") {
+      return { codexHome, did: "failed", error: CodexPluginSyncErrors.codexHomeMissing({ codexHome }) };
+    }
+    if (decision.action === "untouched") {
+      return { codexHome, did: "untouched", why: decision.why };
+    }
+    if (decision.action === "refresh") {
+      return installHome({ decision, deps, paths, plan });
+    }
+    return currentHome({ decision, deps, paths, plan, scope });
+  });
+  return { did: "synced", homes };
+}
+
+/** A failed run when a home overlaps the export root, refused before that root exists: creating it is the write. */
+function overlapRefusal({
+  exportRoot,
+  homes,
+}: {
+  exportRoot: string;
+  homes: readonly CodexPluginHome[];
+}): SyncOutcome | undefined {
+  const overlapping = homeOverlappingExport({ exportRoot, homes });
+  if (overlapping === undefined) {
+    return undefined;
+  }
+  const error = CodexPluginSyncErrors.codexHomeOverlapsExport({ codexHome: overlapping.codexHome, exportRoot });
+  return { did: "failed", error };
 }
 
 /**
- * Resolve what this checkout would publish and whether the Codex install is behind it — reads only.
- *
- * Only a DECLARED main checkout of Slopweaver itself publishes: a feature branch in a worktree must never
- * become the fleet's Codex install, and another declared main checkout (a different repository) carries no
- * Slopweaver manifest at all.
+ * Under the fleet-wide lock: re-decide, seed the marketplace when the scope allows, export once, and bring every
+ * home onto HEAD — each home's failure its own outcome, never a reason to stop before the next.
  *
  * @param paths the directories involved
  * @param mainCheckouts the profile's declared main checkout paths
- * @returns the target to refresh, a skip with its reason, or why it could not be resolved
+ * @param homes every Codex home to keep
+ * @param scope which writes this run may make
+ * @param deps the `codex`, trust and clock seams
+ * @returns the run's outcome; a failure is a `failed` arm, never a throw
  */
-export function resolveSyncTarget({
+export function performFleetSync({
   paths,
   mainCheckouts,
-}: {
-  paths: SyncPaths;
-  mainCheckouts: readonly string[];
-}): Result<SyncTarget | { readonly skip: string }, CodexPluginSyncError> {
-  if (!isDeclaredMain({ checkout: paths.checkout, mainCheckouts })) {
-    return ok({ skip: `${paths.checkout} is not a declared main checkout, and only one publishes the Codex install` });
-  }
-  const manifest = readJsonFile({ path: join(paths.checkout, CODEX_MANIFEST_RELATIVE) });
-  if (!isRecord(manifest) || manifest["name"] !== CODEX_PLUGIN_NAME) {
-    return ok({ skip: `${paths.checkout} carries no ${CODEX_PLUGIN_NAME} Codex manifest` });
-  }
-  const entry = personalMarketplaceEntry({ userHome: paths.userHome });
-  if (entry.isErr()) {
-    return err(entry.error);
-  }
-  if ("skip" in entry.value) {
-    return ok({ skip: entry.value.skip });
-  }
-  const published = publishableHead({ checkout: paths.checkout });
-  if (published.isErr()) {
-    return err(published.error);
-  }
-  if ("skip" in published.value) {
-    return ok({ skip: published.value.skip });
-  }
-  const { head } = published.value;
-  const exportDir = join(paths.exportRoot, CODEX_PLUGIN_NAME);
-  const cacheDir = join(
-    paths.codexHome,
-    "plugins",
-    "cache",
-    entry.value.marketplace,
-    CODEX_PLUGIN_NAME,
-    CODEX_UNVERSIONED_CACHE_KEY,
-  );
-  const decision = syncDecision({
-    exported: stampedCommit({ root: exportDir }),
-    head,
-    installed: stampedCommit({ root: cacheDir }),
-  });
-  return ok({ decision, exportDir, head, marketplace: entry.value.marketplace, sourcePath: entry.value.sourcePath });
-}
-
-/**
- * Slopweaver's LOCAL entry in the personal Codex marketplace — the one `codex plugin-sync` points at the main
- * checkout's export — or why there is none.
- *
- * @param userHome the user's home, which Codex treats as the personal marketplace's root
- * @returns the marketplace name and source path, a skip with its reason, or why the document is unreadable
- */
-export function personalMarketplaceEntry({
-  userHome,
-}: {
-  userHome: string;
-}): Result<
-  { readonly marketplace: string; readonly sourcePath: string } | { readonly skip: string },
-  CodexPluginSyncError
-> {
-  const marketplacePath = join(userHome, PERSONAL_MARKETPLACE_RELATIVE);
-  if (!existsSync(marketplacePath)) {
-    return ok({ skip: `no personal Codex marketplace at ${marketplacePath}` });
-  }
-  let document: unknown;
-  try {
-    document = JSON.parse(readFileSync(marketplacePath, "utf8"));
-  } catch (error: unknown) {
-    return err(CodexPluginSyncErrors.marketplaceUnreadable({ detail: errorMessage({ error }), path: marketplacePath }));
-  }
-  const entry = marketplaceEntryOf({ document, home: userHome, path: marketplacePath });
-  if (entry.isErr()) {
-    return err(entry.error);
-  }
-  if (entry.value.kind === "absent") {
-    return ok({ skip: entry.value.why });
-  }
-  return ok({ marketplace: entry.value.marketplace, sourcePath: entry.value.sourcePath });
-}
-
-/**
- * Export `head` into `exportDir` as a whole tree swapped in by directory rename, stamped with its commit.
- *
- * A directory swap, not a file write: `writeFileAtomic` cannot express one, and the tree is not fsynced. That
- * is deliberate — a crash in the seconds after the swap can leave a short file in a tree that is re-derived
- * from git on the next landing, while fsyncing some thousand files would add the cost to every landing.
- */
-function exportHead({ paths, head, exportDir }: { paths: SyncPaths; head: string; exportDir: string }): void {
-  const nextTree = `${exportDir}.next-${String(process.pid)}`;
-  const retired = `${exportDir}.old-${String(process.pid)}`;
-  const tarball = join(paths.exportRoot, `export-${String(process.pid)}.tar`);
-  rmSync(nextTree, { force: true, recursive: true });
-  mkdirSync(nextTree, { recursive: true });
-  try {
-    git({ args: ["archive", "--format=tar", "-o", tarball, head], cwd: paths.checkout });
-    execFileSync("tar", ["-xf", tarball, "-C", nextTree], { timeout: STEP_TIMEOUT_MS });
-  } finally {
-    rmSync(tarball, { force: true });
-  }
-  writeJsonFile({ path: join(nextTree, SOURCE_STAMP_RELATIVE), value: { commit: head } });
-  if (existsSync(exportDir)) {
-    renameSync(exportDir, retired);
-  }
-  renameSync(nextTree, exportDir);
-  rmSync(retired, { force: true, recursive: true });
-}
-
-/** Point the marketplace's source path at the export, replacing only a symlink, never a real tree. */
-function pointSourceAt({
-  sourcePath,
-  exportDir,
-}: {
-  sourcePath: string;
-  exportDir: string;
-}): Result<void, CodexPluginSyncError> {
-  const found = lstatSync(sourcePath, { throwIfNoEntry: false });
-  if (found !== undefined && !found.isSymbolicLink()) {
-    return err(CodexPluginSyncErrors.sourceNotSymlink({ path: sourcePath }));
-  }
-  if (found !== undefined && readlinkSync(sourcePath) === exportDir) {
-    return ok(undefined);
-  }
-  try {
-    mkdirSync(dirname(sourcePath), { recursive: true });
-    // A symlink swapped over the old one by rename: no bytes of ours to fsync, so no atomic-write helper.
-    const nextLink = `${sourcePath}.next-${String(process.pid)}`;
-    rmSync(nextLink, { force: true });
-    symlinkSync(exportDir, nextLink);
-    renameSync(nextLink, sourcePath);
-  } catch (error: unknown) {
-    return err(CodexPluginSyncErrors.repointFailed({ detail: errorMessage({ error }), path: sourcePath }));
-  }
-  return ok(undefined);
-}
-
-const addOutputSchema = z.object({ installedPath: z.string().min(1) });
-
-/** Where `codex plugin add --json` says it installed the plugin. */
-function installedPathOf({ run }: { run: CodexAddRun }): Result<string, CodexPluginSyncError> {
-  if (run.status !== 0) {
-    const detail = run.stderr.trim().split("\n")[0];
-    return err(
-      CodexPluginSyncErrors.addFailed({
-        detail: detail === undefined || detail === "" ? `exit ${String(run.status)}` : detail,
-      }),
-    );
-  }
-  let document: unknown;
-  try {
-    document = JSON.parse(run.stdout);
-  } catch (error: unknown) {
-    return err(CodexPluginSyncErrors.addFailed({ detail: `unparseable --json output: ${errorMessage({ error })}` }));
-  }
-  const parsed = addOutputSchema.safeParse(document);
-  if (!parsed.success) {
-    return err(CodexPluginSyncErrors.addFailed({ detail: "the --json output names no installedPath" }));
-  }
-  return ok(parsed.data.installedPath);
-}
-
-/**
- * Export HEAD, re-add the plugin, and prove the installed tree carries HEAD — under a lock.
- *
- * @param paths the directories involved
- * @param target what {@link resolveSyncTarget} decided must be refreshed
- * @param deps the `codex` and clock seams
- * @returns the run's outcome; a failure is the `failed` arm, never a throw
- */
-export function performSync({
-  paths,
-  target,
+  homes,
+  scope,
   deps,
 }: {
   paths: SyncPaths;
-  target: SyncTarget;
+  mainCheckouts: readonly string[];
+  homes: readonly CodexPluginHome[];
+  scope: SyncScope;
   deps: SyncDeps;
 }): SyncOutcome {
+  const overlap = overlapRefusal({ exportRoot: paths.exportRoot, homes });
+  if (overlap !== undefined) {
+    return overlap;
+  }
   mkdirSync(paths.exportRoot, { recursive: true });
   const lock = takeSyncLock({ nowMs: deps.nowMs(), paths });
   if (lock.isErr()) {
     return lock.error;
   }
   try {
-    try {
-      exportHead({ exportDir: target.exportDir, head: target.head, paths });
-    } catch (error: unknown) {
-      return { did: "failed", error: CodexPluginSyncErrors.exportFailed({ detail: errorMessage({ error }) }) };
+    // A checkout that may not publish writes nothing, the marketplace seed included.
+    const published = publishableCheckout({ mainCheckouts, paths });
+    if (published.isErr()) {
+      return { did: "failed", error: published.error };
     }
-    const pointed = pointSourceAt({ exportDir: target.exportDir, sourcePath: target.sourcePath });
-    if (pointed.isErr()) {
-      return { did: "failed", error: pointed.error };
+    if ("skip" in published.value) {
+      return { did: "skipped", why: published.value.skip };
     }
-    const installed = installedPathOf({
-      run: deps.codexAdd({ pluginId: `${CODEX_PLUGIN_NAME}@${target.marketplace}` }),
-    });
-    if (installed.isErr()) {
-      return { did: "failed", error: installed.error };
+    // Each home is judged before the marketplace write, which can create a directory a missing home names.
+    const plan = planFleetSync({ homes, mainCheckouts, paths, scope });
+    if (plan.isErr()) {
+      return { did: "failed", error: plan.error };
     }
-    const found = stampedCommit({ root: installed.value });
-    if (found !== target.head) {
-      return { did: "failed", error: CodexPluginSyncErrors.stampMismatch({ expected: target.head, found }) };
+    if ("skip" in plan.value) {
+      return { did: "skipped", why: plan.value.skip };
     }
-    return { did: "refreshed", installedPath: installed.value, why: target.decision.why };
+    if (scope === "install-every-home") {
+      const ensured = ensurePersonalMarketplace({ userHome: paths.userHome });
+      if (ensured.isErr()) {
+        return { did: "failed", error: ensured.error };
+      }
+      if ("skip" in ensured.value) {
+        return { did: "skipped", why: ensured.value.skip };
+      }
+    }
+    return syncHomes({ deps, paths, plan: plan.value, scope });
   } finally {
     lock.value.release();
   }

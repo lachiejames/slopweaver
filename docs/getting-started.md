@@ -158,32 +158,35 @@ limits, thresholds and routing:
 ## Codex
 
 The Codex manifest and skills are checked in under `.codex-plugin/` and `skills/`. Codex installs from a
-personal marketplace, `~/.agents/plugins/marketplace.json`; when you have none, create it with one local
-`slopweaver` entry (the path is relative to your home; the sync makes it a symlink to its export, and refuses
-a real directory there):
-
-```json
-{
-  "name": "personal",
-  "plugins": [{ "name": "slopweaver", "source": { "source": "local", "path": "./plugins/slopweaver" } }]
-}
-```
-
-When you already have one, add that `plugins` entry to it. Then, with the clone declared (step 3) and checked
-out on the remote's default branch, from inside it:
+personal marketplace, `~/.agents/plugins/marketplace.json`. With the clone declared (step 3) and checked out on
+the remote's default branch, from inside it:
 
 ```bash
 bin/slopweaver codex plugin-sync
 ```
 
-With no personal marketplace, one listing no local `slopweaver`, a clone on another branch, or one missing `origin/HEAD` (restore it with `git remote set-head origin --auto`), the sync prints
-`skipped` and installs nothing.
+It adds a local `slopweaver` entry to that marketplace when it has none — creating the file with the `personal`
+marketplace when there is no file, appending to `plugins` when there is one, and never touching another entry
+or a file it cannot parse, nor one holding a number JSON would write back differently. The entry's path,
+`$HOME/plugins/slopweaver`, becomes a symlink to the sync's export; a real directory there, or a
+path that reaches the marketplace file itself, a linked parent included, is refused. It then installs into **every Codex home**: each one the
+plan register names (paused plans included) and the ambient `$CODEX_HOME`, since a seat boots with
+`CODEX_HOME` set to its plan's home and loads only what is installed there. Each home gets its own line and its
+own hook-trust pass; a registered home with no directory is that home's failure, judged before the marketplace write, and nothing is installed into it; an
+absent ambient home is left alone. A home that is the export's cache directory, holds it or sits in it, compared
+through every link, fails the run before anything is written. With a clone on another branch, or one missing `origin/HEAD` (restore it with
+`git remote set-head origin --auto`), the sync prints `skipped` and installs nothing.
 
 **Codex installs a COPY, and re-copies only on `codex plugin add`** — never at a session start (measured on
 codex 0.157.1). `codex plugin-sync` exports the declared main checkout's HEAD (`git archive`, tracked files
-only) into the cache root's `codex-plugin/slopweaver` (`src/cacheHome.ts`; `slopweaver doctor` prints it), points the personal marketplace's `slopweaver` entry
-(`~/.agents/plugins/marketplace.json`) at it, and runs the add. The main checkout's `post-merge` hook runs it
-in the background on every merge or fast-forward, so such a pull reaches the next Codex thread; a `git pull --rebase` runs no `post-merge`, so run `bin/slopweaver codex plugin-sync` after one. `.codex-plugin/plugin.json`
+only) into the cache root's `codex-plugin/slopweaver` (`src/cacheHome.ts`; `slopweaver doctor` prints it) once,
+points the marketplace entry at it, and runs the add into each home with `CODEX_HOME` set to it. The main
+checkout's `post-merge` hook runs it in the background on every merge or fast-forward, so such a pull reaches
+the next Codex thread in every home. **The hook only UPDATES a home that already carries a Slopweaver install
+stamp**: it never makes a first install and never writes the marketplace, so a home with no install, or a
+machine with no marketplace entry, gets a `not installed here — run slopweaver codex plugin-sync` line and no
+failure. Only the foreground run seeds the marketplace and makes the first install. A `git pull --rebase` runs
+no `post-merge`, so run `bin/slopweaver codex plugin-sync` after one. `.codex-plugin/plugin.json`
 carries no `version`, so the cache key is a stable `local` and a running thread's `bin/slopweaver` path
 survives a refresh. In a Codex thread, `slopweaver doctor` prints `v<release>+<commit>`; that commit equals the
 main checkout's HEAD. Why no live route works: `src/codexPlugin/plan.ts`.

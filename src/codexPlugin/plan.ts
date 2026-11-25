@@ -1,6 +1,6 @@
 /**
  * The pure half of `codex plugin-sync`: which marketplace entry is Slopweaver's, what commit a tree carries,
- * whether the Codex install is behind, and the one line every run prints.
+ * whether a Codex home's install is behind, and the lines every run prints — one per Codex home it looked at.
  *
  * Why the verb exists, measured on codex 0.157.1 (a throwaway `HOME` + `CODEX_HOME`): Codex copies
  * a local-marketplace plugin into `$CODEX_HOME/plugins/cache/<marketplace>/<plugin>/<version>` ONLY on
@@ -141,55 +141,101 @@ export function syncDecision({
   return { refresh: true, why: `the Codex install is ${installed.slice(0, 12)}; HEAD is ${short}` };
 }
 
-/** What one run ended up doing, ready to render as its single line. */
-export type SyncOutcome =
-  /** Nothing to do here: no Codex install to keep, or not a checkout that may publish one. */
-  | { readonly did: "skipped"; readonly why: string }
-  /** Looked, and the Codex install already carries HEAD. */
-  | { readonly did: "current"; readonly why: string }
-  /** Exported, re-added, and read the stamp back from the tree Codex installed. */
-  | { readonly did: "refreshed"; readonly why: string; readonly installedPath: string }
-  /** Another run holds the lock; it will leave the install on a commit at least as new. */
-  | { readonly did: "busy"; readonly why: string }
-  /** Handed to a background run; its line lands in the log. */
-  | { readonly did: "backgrounded"; readonly why: string; readonly log: string }
-  /** Tried and failed; the Codex install is NOT on HEAD. */
-  | { readonly did: "failed"; readonly error: CodexPluginSyncError };
+/** The command that makes a FIRST install, which the post-merge hook never does — printed wherever it stood down. */
+export const FOREGROUND_SYNC_COMMAND = "slopweaver codex plugin-sync";
 
-/**
- * Render one run as the ONE line it always prints — "did not look" and "looked, and it was fine" differ.
- *
- * @param outcome what the run did
- * @returns the line, prefixed so a hook's output names its source
- */
-export function renderSyncOutcome({ outcome }: { outcome: SyncOutcome }): string {
-  const prefix = "codex plugin-sync:";
+/** What one Codex home ended up as. */
+export type HomeSyncOutcome =
+  /** Already on HEAD; `trusted` is the hooks a foreground re-check trusted, undefined when none ran. */
+  | { readonly codexHome: string; readonly did: "current"; readonly why: string; readonly trusted: number | undefined }
+  /** Re-added, the stamp read back from the tree Codex installed, and every hook trusted. */
+  | {
+      readonly codexHome: string;
+      readonly did: "refreshed";
+      readonly why: string;
+      readonly installedPath: string;
+      readonly trusted: number;
+    }
+  /** Not written, by design: no home here, or the hook's scope never makes a first install. */
+  | { readonly codexHome: string; readonly did: "untouched"; readonly why: string }
+  /** Tried and failed; this home is NOT on HEAD, or not all its hooks run. */
+  | { readonly codexHome: string; readonly did: "failed"; readonly error: CodexPluginSyncError };
+
+/** What one run ended up doing, across the fleet. */
+export type SyncOutcome =
+  /** Nothing to do here: not a checkout that may publish, or no marketplace entry this scope may use. */
+  | { readonly did: "skipped"; readonly why: string }
+  /** Another run holds the lock; it will leave every home on a commit at least as new. */
+  | { readonly did: "busy"; readonly why: string }
+  /** Handed to a background run; its lines land in the log. */
+  | { readonly did: "backgrounded"; readonly why: string; readonly log: string }
+  /** Failed before any home was touched — the register, the marketplace, the export or the lock. */
+  | { readonly did: "failed"; readonly error: CodexPluginSyncError }
+  /** Looked at every home: one outcome each, in order. */
+  | { readonly did: "synced"; readonly homes: readonly HomeSyncOutcome[] };
+
+const LINE_PREFIX = "codex plugin-sync:";
+
+/** One home's line — "did not look" and "looked, and it was fine" differ, and the home is always named. */
+function renderHomeOutcome({ outcome }: { outcome: HomeSyncOutcome }): string {
+  const lead = `${LINE_PREFIX} ${outcome.codexHome}`;
   if (outcome.did === "failed") {
-    return `${prefix} FAILED [${outcome.error.code}] — ${outcome.error.message}`;
+    return `${lead} FAILED [${outcome.error.code}] — ${outcome.error.message}`;
   }
   if (outcome.did === "refreshed") {
-    return `${prefix} refreshed — ${outcome.why}; installed at ${outcome.installedPath}`;
+    return `${lead} refreshed — ${outcome.why}; installed at ${outcome.installedPath}; trusted ${String(outcome.trusted)} hook(s)`;
   }
-  if (outcome.did === "backgrounded") {
-    return `${prefix} refreshing in the background — ${outcome.why}; log ${outcome.log}`;
+  if (outcome.did === "current" && outcome.trusted !== undefined) {
+    return `${lead} current — ${outcome.why}; trusted ${String(outcome.trusted)} hook(s)`;
   }
-  return `${prefix} ${outcome.did} — ${outcome.why}`;
+  return `${lead} ${outcome.did} — ${outcome.why}`;
 }
 
 /**
- * What the LAST background run left in its log, when that was a failure — so the next run's foreground line,
- * which a landing session reads in its hook output, says so. The background run writes exactly one outcome
- * line, atomically, and records a throw as a `CRASHED` failure, so the log's last outcome line is the whole
- * story.
+ * Render one run as its lines: one per home when it looked at the fleet, one otherwise.
+ *
+ * @param outcome what the run did
+ * @returns the lines, each prefixed so a hook's output names its source
+ */
+export function renderSyncOutcome({ outcome }: { outcome: SyncOutcome }): readonly string[] {
+  if (outcome.did === "synced") {
+    return outcome.homes.map((home) => renderHomeOutcome({ outcome: home }));
+  }
+  if (outcome.did === "failed") {
+    return [`${LINE_PREFIX} FAILED [${outcome.error.code}] — ${outcome.error.message}`];
+  }
+  if (outcome.did === "backgrounded") {
+    return [`${LINE_PREFIX} refreshing in the background — ${outcome.why}; log ${outcome.log}`];
+  }
+  return [`${LINE_PREFIX} ${outcome.did} — ${outcome.why}`];
+}
+
+/**
+ * Whether a run failed anywhere — before any home, or at any one of them.
+ *
+ * @param outcome what the run did
+ * @returns true when the verb must exit non-zero
+ */
+export function syncFailed({ outcome }: { outcome: SyncOutcome }): boolean {
+  if (outcome.did === "failed") {
+    return true;
+  }
+  return outcome.did === "synced" && outcome.homes.some((home) => home.did === "failed");
+}
+
+/**
+ * Every failure the LAST background run left in its log — so the next run's foreground output, which a landing
+ * session reads in its hook output, says so. The background run writes all its lines at once, atomically, one
+ * per home, and records a throw as a `CRASHED` failure, so the log is the whole of one run; a home that failed
+ * is reported even when a later home succeeded.
  *
  * @param log the whole of the previous background run's log
- * @returns one line naming the failure, or undefined when the last run succeeded or wrote nothing yet
+ * @returns one line per failure, empty when the last run failed nowhere or wrote nothing yet
  */
-export function lastBackgroundFailure({ log }: { log: string }): string | undefined {
-  const prefix = "codex plugin-sync: ";
-  const last = log.split("\n").findLast((line) => line.startsWith(prefix));
-  if (last === undefined || !last.startsWith(`${prefix}FAILED`)) {
-    return undefined;
-  }
-  return `the last background run ${last.slice(prefix.length)}`;
+export function backgroundFailures({ log }: { log: string }): readonly string[] {
+  const prefix = `${LINE_PREFIX} `;
+  return log
+    .split("\n")
+    .filter((line) => line.startsWith(prefix) && line.includes("FAILED ["))
+    .map((line) => `the last background run: ${line.slice(prefix.length)}`);
 }

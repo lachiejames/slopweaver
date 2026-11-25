@@ -1,16 +1,25 @@
 /**
- * `slopweaver codex plugin-sync` — keep the Codex install of Slopweaver on the main checkout's commit.
+ * `slopweaver codex plugin-sync` — keep every Codex home's install of Slopweaver on the main checkout's commit.
+ *
+ * Every Codex home: each one the plan register names, paused rows included, and the ambient `$CODEX_HOME`
+ * (`src/codexPlugin/homes.ts`), because a seat boots with `CODEX_HOME` set to its plan's home and loads only
+ * what is installed THERE. The export is cut once; each home gets its own add, read-back, hook-trust pass and line.
  *
  * `lefthook.yml`'s `post-merge` runs it in every checkout, and every landing reaches this machine as a
- * fast-forward of the main checkout, so that is when the install moves. The hook runs two halves. `--decide`
- * answers the do-nothing cases (not a main checkout, no Codex install, already current) in the foreground and
- * exits 3 unless a refresh is due. Only then does the hook's own shell background `--log`, which runs the
- * export plus `codex plugin add` — about 13 s measured on this tree — then has Codex trust every hook the refresh
- * installed, and writes its outcome line and the trust line to `codex-plugin/sync.log` under the cache root
- * (`src/cacheHome.ts`), which is rebuildable and so outside the home. The shell does the backgrounding, never this process: `no-headless`
- * refuses an async child process anywhere in `src/`, and `scripts/docs-site.sh --refresh --background` hands
- * the console's rebuild off the same way. A session-start fast-forward runs inside a 60 s hook budget and
- * must not hold it. The route and its measurements: `src/codexPlugin/plan.ts`.
+ * fast-forward of the main checkout, so that is when an install moves. The hook runs two halves. `--decide`
+ * answers the do-nothing cases (not a main checkout, no marketplace entry, every home current or never
+ * installed) in the foreground and exits 3 unless a refresh is due. Only then does the hook's own shell
+ * background `--log`, which exports and runs `codex plugin add` into each due home — about 13 s per home,
+ * measured on this tree — then has Codex trust every hook it installed there, and writes one line per home to
+ * `codex-plugin/sync.log` under the cache root (`src/cacheHome.ts`), which is rebuildable and so outside the home.
+ * The shell does the backgrounding, never this process: `no-headless` refuses an async child process anywhere in
+ * `src/`, and `scripts/docs-site.sh --refresh --background` hands the console's rebuild off the same way. A
+ * session-start fast-forward runs inside a 60 s hook budget and must not hold it.
+ *
+ * **The hook only UPDATES a home that already carries an install stamp.** It never seeds the personal
+ * marketplace and never makes a first install; those are a foreground run's, so the first write into each real
+ * Codex home is one somebody started and watched (`src/codexPlugin/fleetPlan.ts` § Two scopes). The route and
+ * its measurements: `src/codexPlugin/plan.ts`.
  */
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -22,16 +31,19 @@ import { logger } from "#lib/logger.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { writeFileAtomic } from "#lib/writeAtomic.js";
 import { cachePaths } from "../../../cacheHome.js";
+import { codexDestinations } from "../../../codex/destinations.js";
 import { renderHookTrust } from "../../../codex/hookTrust.js";
-import { CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
-import { lastBackgroundFailure, renderSyncOutcome, type SyncOutcome } from "../../../codexPlugin/plan.js";
-import { performSync, productionSyncDeps, resolveSyncTarget, type SyncPaths } from "../../../codexPlugin/sync.js";
+import { type CodexPluginSyncError, CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
+import type { SyncPaths } from "../../../codexPlugin/fleetPlan.js";
+import { backgroundFailures, renderSyncOutcome, syncFailed } from "../../../codexPlugin/plan.js";
+import { pluginSyncOutcome, productionPluginSyncDeps, type SyncMode } from "../../../codexPlugin/run.js";
+import { planRegisterPort } from "../../../plans/port.js";
 import { mainCheckoutsFromProfile } from "../../../profileStore.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { resolveHome } from "../../optionParsers.js";
 import { booleanFlagsOf, type FlagSpec, parseFlags, stringFlagsOf } from "../../parseFlags.js";
-import { installedPluginId, renderTrustPass, trustCodexHooks } from "./hooksRun.js";
+import { trustCodexHooks } from "./hooksRun.js";
 
 /** Where a `codex <verb>` flag tail begins in `process.argv`: `[node, cli, codex, plugin-sync, ...]`. */
 const VERB_ARG_OFFSET = 4;
@@ -61,19 +73,24 @@ export function parseCodexPluginSyncArgs({ rest }: { rest: readonly string[] }):
 export const CODEX_PLUGIN_SYNC_USAGE =
   "usage: slopweaver codex plugin-sync [--decide | --log] [--home <dir>]\n" +
   "\n" +
-  "Export this main checkout's HEAD into <cache>/codex-plugin/slopweaver (`doctor` prints <cache>), point the personal Codex\n" +
-  "marketplace's slopweaver entry at it, re-run `codex plugin add`, and have Codex trust every hook it\n" +
-  "installed, so a new Codex session runs HEAD and every one of its hooks.\n" +
-  "Skips a checkout that is not a declared main checkout of Slopweaver, and a machine with no Codex entry.\n" +
+  "Export this main checkout's HEAD into <cache>/codex-plugin/slopweaver (`doctor` prints <cache>), add a local\n" +
+  "slopweaver entry to the personal Codex marketplace (~/.agents/plugins/marketplace.json) when it has none, and\n" +
+  "run `codex plugin add` into EVERY Codex home: each one the plan register names, paused ones included, and the\n" +
+  "ambient $CODEX_HOME. Each home gets its own line and its own hook-trust pass; a registered home with no\n" +
+  "directory is that home's failure. Skips a checkout that is not a declared main checkout of Slopweaver.\n" +
   "\n" +
-  "  --decide  the post-merge hook's foreground half: re-state a failed last run and print the decision,\n" +
-  "            exiting 3 when there is nothing to refresh, so the hook backgrounds --log only when one is due\n" +
-  "  --log     the hook's background half: refresh, writing the one outcome line (a crash included) to\n" +
+  "  --decide  the post-merge hook's foreground half: re-state the last background run's failures and print the\n" +
+  "            decision, exiting 3 when no home is due, so the hook backgrounds --log only when one is\n" +
+  "  --log     the hook's background half: refresh, writing one line per home (a crash included) to\n" +
   "            <cache>/codex-plugin/sync.log instead of stdout\n" +
-  "  --home    the home whose profile declares the main checkouts; the export itself is the machine's";
+  "  --home    the Slopweaver home whose profile declares the main checkouts and whose plan register names the\n" +
+  "            Codex homes\n" +
+  "\n" +
+  "--decide and --log only UPDATE a home that already carries an install; they never edit the marketplace and\n" +
+  "never make a first install. A plain run does both.";
 
 /** `$CODEX_HOME` when set, else Codex's own default under the user's home. */
-function codexHome(): string {
+function ambientCodexHome(): string {
   const named = process.env["CODEX_HOME"];
   if (named !== undefined && named.length > 0) {
     return named;
@@ -81,61 +98,32 @@ function codexHome(): string {
   return join(homedir(), ".codex");
 }
 
-/** Resolve, decide and — unless only deciding — refresh; a due refresh while deciding is `backgrounded`. */
-function syncOutcome({
-  paths,
-  mainCheckouts,
-  log,
-  decideOnly,
+/**
+ * Have one home's Codex trust every Slopweaver hook it skips, failing that home unless every one then runs — a
+ * re-add that changed a hook's hash turns it off in Codex until its trust record carries the new hash, silently,
+ * so a refresh is the moment to write it, the fleet's act and never a step for the owner's hands
+ * (`src/codex/hookTrust.ts`).
+ */
+function trustHooksIn({
+  codexHome,
+  cwd,
+  pluginId,
 }: {
-  paths: SyncPaths;
-  mainCheckouts: readonly string[];
-  log: string;
-  decideOnly: boolean;
-}): SyncOutcome {
-  const target = resolveSyncTarget({ mainCheckouts, paths });
-  if (target.isErr()) {
-    return { did: "failed", error: target.error };
+  codexHome: string;
+  cwd: string;
+  pluginId: string;
+}): Result<{ readonly trusted: number }, CodexPluginSyncError> {
+  const pass = trustCodexHooks({ codexHome, cwd, pluginId });
+  if (pass.failure !== undefined) {
+    return err(CodexPluginSyncErrors.hookTrustFailed({ codexHome, detail: pass.failure }));
   }
-  if ("skip" in target.value) {
-    return { did: "skipped", why: target.value.skip };
+  const report = renderHookTrust({ codexHome, reading: pass.reading });
+  if (!report.allRun) {
+    const detail = report.lines.map((line) => line.trim()).join(" ");
+    return err(CodexPluginSyncErrors.hookTrustFailed({ codexHome, detail }));
   }
-  if (!target.value.decision.refresh) {
-    return { did: "current", why: target.value.decision.why };
-  }
-  if (decideOnly) {
-    return { did: "backgrounded", log, why: target.value.decision.why };
-  }
-  return performSync({ deps: productionSyncDeps(), paths, target: target.value });
+  return ok({ trusted: pass.trusted });
 }
-
-/** Run the background half, turning anything it throws into a recorded failure, and write the log. */
-function runToLog({
-  paths,
-  mainCheckouts,
-  log,
-}: {
-  paths: SyncPaths;
-  mainCheckouts: readonly string[];
-  log: string;
-}): number {
-  let outcome: SyncOutcome;
-  try {
-    outcome = syncOutcome({ decideOnly: false, log, mainCheckouts, paths });
-  } catch (error: unknown) {
-    outcome = { did: "failed", error: CodexPluginSyncErrors.crashed({ detail: errorMessage({ error }) }) };
-  }
-  const lines = [renderSyncOutcome({ outcome })];
-  if (outcome.did === "refreshed") {
-    lines.push(trustAfterRefresh({ paths }).line);
-  }
-  mkdirSync(paths.exportRoot, { recursive: true });
-  writeFileAtomic({ contents: `${lines.join("\n")}\n`, path: log });
-  return outcome.did === "failed" ? EXIT_ERROR : EXIT_OK;
-}
-
-/** Which half of the verb runs: the hook's two, or a plain run in the foreground. */
-type SyncMode = "decide" | "log" | "foreground";
 
 /** The mode and `--home` the flags name, or the problems to print before the usage. */
 function modeOf({ rest }: { rest: readonly string[] }): Result<{ mode: SyncMode; named: string | undefined }> {
@@ -157,43 +145,52 @@ function modeOf({ rest }: { rest: readonly string[] }): Result<{ mode: SyncMode;
   return ok({ mode, named: typeof named === "string" ? named : undefined });
 }
 
-/** Print the last background run's failure, when the log holds one. */
-function restatePreviousFailure({ log }: { log: string }): void {
+/** Print each failure the last background run left in its log. */
+function restatePreviousFailures({ log }: { log: string }): void {
   if (!existsSync(log)) {
     return;
   }
-  const previous = lastBackgroundFailure({ log: readFileSync(log, "utf8") });
-  if (previous !== undefined) {
-    logger.out({ line: `codex plugin-sync: ${previous} (log ${log})` });
+  for (const failure of backgroundFailures({ log: readFileSync(log, "utf8") })) {
+    logger.out({ line: `codex plugin-sync: ${failure} (log ${log})` });
   }
 }
 
-/**
- * After a refresh, have Codex trust every hook the refresh just installed. A re-add that changed a hook's hash
- * turns that hook off in Codex until its trust record carries the new hash, silently, so the refresh is the
- * moment to write it — the fleet's act, never a step for their hands (`src/codex/hookTrust.ts`).
- * Install and every landing reach this one path, so a new hook rides it too. It never changes the exit code:
- * the refresh succeeded, and a hook still skipped is `slopweaver codex hooks`'s exit 3 to report.
- *
- * @returns the pass line, and the report lines when a hook is still skipped afterwards
- */
-function trustAfterRefresh({ paths }: { paths: SyncPaths }): { line: string; still: readonly string[] } {
-  const plugin = installedPluginId({ userHome: paths.userHome });
-  if ("reason" in plugin) {
-    return { line: `codex hooks: nothing to trust — ${plugin.reason}`, still: [] };
+/** The background half: refresh, turning anything thrown into a recorded failure, and write every line at once. */
+async function runToLog({
+  paths,
+  run,
+  log,
+}: {
+  paths: SyncPaths;
+  run: () => ReturnType<typeof pluginSyncOutcome>;
+  log: string;
+}): Promise<number> {
+  let lines: readonly string[];
+  let failed: boolean;
+  try {
+    const outcome = await run();
+    lines = renderSyncOutcome({ outcome });
+    failed = syncFailed({ outcome });
+  } catch (error: unknown) {
+    const crashed = {
+      did: "failed",
+      error: CodexPluginSyncErrors.crashed({ detail: errorMessage({ error }) }),
+    } as const;
+    lines = renderSyncOutcome({ outcome: crashed });
+    failed = true;
   }
-  const pass = trustCodexHooks({ codexHome: paths.codexHome, cwd: paths.checkout, pluginId: plugin.pluginId });
-  const report = renderHookTrust({ codexHome: paths.codexHome, reading: pass.reading });
-  return { line: renderTrustPass({ codexHome: paths.codexHome, pass }), still: report.allRun ? [] : report.lines };
+  mkdirSync(paths.exportRoot, { recursive: true });
+  writeFileAtomic({ contents: `${lines.join("\n")}\n`, path: log });
+  return failed ? EXIT_ERROR : EXIT_OK;
 }
 
 /**
  * Run the verb.
  *
  * @param argv the whole process argv
- * @returns the process exit code — 3 from `--decide` when no refresh is due, 1 for a failed run
+ * @returns the process exit code — 3 from `--decide` when no home is due, 1 when any home failed
  */
-export function runCodexPluginSync(argv: readonly string[]): number {
+export async function runCodexPluginSync(argv: readonly string[]): Promise<number> {
   const rest = argv.slice(VERB_ARG_OFFSET);
   if (rest.includes("--help") || rest.includes("-h")) {
     logger.out({ line: CODEX_PLUGIN_SYNC_USAGE });
@@ -211,29 +208,30 @@ export function runCodexPluginSync(argv: readonly string[]): number {
   const home = resolveHome({ named });
   const paths: SyncPaths = {
     checkout: runningCheckoutRoot(),
-    codexHome: codexHome(),
     exportRoot: cachePaths().codexPlugin,
     userHome: homedir(),
   };
-  const mainCheckouts = mainCheckoutsFromProfile({ home }).map((config) => config.path);
   const log = join(paths.exportRoot, "sync.log");
+  const deps = productionPluginSyncDeps({
+    ambientCodexHome: ambientCodexHome(),
+    log,
+    mainCheckouts: mainCheckoutsFromProfile({ home }).map((config) => config.path),
+    paths,
+    readDestinations: () => codexDestinations({ home, port: planRegisterPort() }),
+    trustHooks: trustHooksIn,
+  });
   if (mode === "log") {
-    return runToLog({ log, mainCheckouts, paths });
+    return runToLog({ log, paths, run: () => pluginSyncOutcome({ deps, mode }) });
   }
-  restatePreviousFailure({ log });
-  const decideOnly = mode === "decide";
-  const outcome = syncOutcome({ decideOnly, log, mainCheckouts, paths });
-  logger.out({ line: renderSyncOutcome({ outcome }) });
-  if (outcome.did === "failed") {
+  restatePreviousFailures({ log });
+  const outcome = await pluginSyncOutcome({ deps, mode });
+  for (const line of renderSyncOutcome({ outcome })) {
+    logger.out({ line });
+  }
+  if (syncFailed({ outcome })) {
     return EXIT_ERROR;
   }
-  if (outcome.did === "refreshed") {
-    const trusted = trustAfterRefresh({ paths });
-    for (const line of [trusted.line, ...trusted.still]) {
-      logger.out({ line });
-    }
-  }
-  return decideOnly && outcome.did !== "backgrounded" ? EXIT_EXPECTED_EMPTY : EXIT_OK;
+  return mode === "decide" && outcome.did !== "backgrounded" ? EXIT_EXPECTED_EMPTY : EXIT_OK;
 }
 
 export const codexPluginSyncCommand = defineCommand({ run: runCodexPluginSync });

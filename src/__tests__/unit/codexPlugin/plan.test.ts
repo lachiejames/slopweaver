@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
 import {
-  lastBackgroundFailure,
+  backgroundFailures,
   marketplaceEntryOf,
   renderSyncOutcome,
+  type SyncOutcome,
   stampCommitOf,
   syncDecision,
+  syncFailed,
 } from "../../../codexPlugin/plan.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 
@@ -83,46 +85,77 @@ describe("syncDecision", () => {
   });
 });
 
+/** A fleet outcome with one home of each kind, in that order. */
+const FLEET: SyncOutcome = {
+  did: "synced",
+  homes: [
+    { codexHome: "/c/a", did: "refreshed", installedPath: "/c/a/cache", trusted: 3, why: "behind" },
+    { codexHome: "/c/b", did: "current", trusted: undefined, why: "already" },
+    { codexHome: "/c/c", did: "current", trusted: 1, why: "already" },
+    { codexHome: "/c/d", did: "untouched", why: "not installed here" },
+    { codexHome: "/c/e", did: "failed", error: CodexPluginSyncErrors.codexHomeMissing({ codexHome: "/c/e" }) },
+  ],
+};
+
 describe("renderSyncOutcome", () => {
   it("names a failure's code", () => {
-    const line = renderSyncOutcome({
+    const lines = renderSyncOutcome({
       outcome: { did: "failed", error: CodexPluginSyncErrors.addFailed({ detail: "exit 2" }) },
     });
-    expect(line).toBe("codex plugin-sync: FAILED [ADD_FAILED] — codex plugin add failed: exit 2");
+    expect(lines).toEqual(["codex plugin-sync: FAILED [ADD_FAILED] — codex plugin add failed: exit 2"]);
   });
 
   it("names the log a background run writes to", () => {
-    const line = renderSyncOutcome({ outcome: { did: "backgrounded", log: "/h/sync.log", why: "behind" } });
-    expect(line).toBe("codex plugin-sync: refreshing in the background — behind; log /h/sync.log");
+    const lines = renderSyncOutcome({ outcome: { did: "backgrounded", log: "/h/sync.log", why: "behind" } });
+    expect(lines).toEqual(["codex plugin-sync: refreshing in the background — behind; log /h/sync.log"]);
   });
 
-  it("keeps skipped and current distinct", () => {
-    expect(renderSyncOutcome({ outcome: { did: "skipped", why: "x" } })).toBe("codex plugin-sync: skipped — x");
-    expect(renderSyncOutcome({ outcome: { did: "current", why: "x" } })).toBe("codex plugin-sync: current — x");
+  it("prints one line per Codex home, each naming its home, with skipped, current and untouched distinct", () => {
+    expect(renderSyncOutcome({ outcome: { did: "skipped", why: "x" } })).toEqual(["codex plugin-sync: skipped — x"]);
+    expect(renderSyncOutcome({ outcome: FLEET })).toEqual([
+      "codex plugin-sync: /c/a refreshed — behind; installed at /c/a/cache; trusted 3 hook(s)",
+      "codex plugin-sync: /c/b current — already",
+      "codex plugin-sync: /c/c current — already; trusted 1 hook(s)",
+      "codex plugin-sync: /c/d untouched — not installed here",
+      `codex plugin-sync: /c/e FAILED [CODEX_HOME_MISSING] — ${CodexPluginSyncErrors.codexHomeMissing({ codexHome: "/c/e" }).message}`,
+    ]);
   });
 });
 
-describe("lastBackgroundFailure", () => {
-  it("re-states a failed run's own line", () => {
-    const failed = renderSyncOutcome({
-      outcome: { did: "failed", error: CodexPluginSyncErrors.addFailed({ detail: "exit 2" }) },
-    });
-    expect(lastBackgroundFailure({ log: `${failed}\n` })).toBe(
-      "the last background run FAILED [ADD_FAILED] — codex plugin add failed: exit 2",
-    );
+describe("syncFailed", () => {
+  it("is true for a run that failed before any home, and for a fleet with one failed home", () => {
+    const early: SyncOutcome = { did: "failed", error: CodexPluginSyncErrors.crashed({ detail: "x" }) };
+    expect([syncFailed({ outcome: early }), syncFailed({ outcome: FLEET })]).toEqual([true, true]);
+  });
+
+  it("is false for a skip and for a fleet with no failed home", () => {
+    const healthy: SyncOutcome = { did: "synced", homes: [{ codexHome: "/c/a", did: "untouched", why: "x" }] };
+    expect([syncFailed({ outcome: { did: "skipped", why: "x" } }), syncFailed({ outcome: healthy })]).toEqual([
+      false,
+      false,
+    ]);
+  });
+});
+
+describe("backgroundFailures", () => {
+  it("re-states every failed home, even one an earlier home's success follows", () => {
+    const log = `${renderSyncOutcome({ outcome: FLEET }).join("\n")}\n`;
+    expect(backgroundFailures({ log })).toEqual([
+      `the last background run: /c/e FAILED [CODEX_HOME_MISSING] — ${CodexPluginSyncErrors.codexHomeMissing({ codexHome: "/c/e" }).message}`,
+    ]);
   });
 
   it("re-states a run that threw, as the CRASHED line the background half records", () => {
     const crashed = renderSyncOutcome({
       outcome: { did: "failed", error: CodexPluginSyncErrors.crashed({ detail: "EACCES: symlink" }) },
     });
-    expect(lastBackgroundFailure({ log: `${crashed}\n` })).toBe(
-      "the last background run FAILED [CRASHED] — the refresh threw: EACCES: symlink",
-    );
+    expect(backgroundFailures({ log: `${crashed.join("\n")}\n` })).toEqual([
+      "the last background run: FAILED [CRASHED] — the refresh threw: EACCES: symlink",
+    ]);
   });
 
-  it("is silent for a refreshed run and for an empty log", () => {
-    expect(lastBackgroundFailure({ log: "codex plugin-sync: refreshed — behind; installed at /c\n" })).toBeUndefined();
-    expect(lastBackgroundFailure({ log: "" })).toBeUndefined();
+  it("is empty for a run that failed nowhere and for an empty log", () => {
+    expect(backgroundFailures({ log: "codex plugin-sync: /c/a refreshed — behind; installed at /c\n" })).toEqual([]);
+    expect(backgroundFailures({ log: "" })).toEqual([]);
   });
 });

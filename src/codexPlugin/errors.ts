@@ -56,12 +56,59 @@ export interface SyncLockUnavailableError {
   readonly message: string;
 }
 
+/** The personal marketplace changed between this run's read and its write, so the write was not made. */
+export interface MarketplaceChangedError {
+  readonly code: "MARKETPLACE_CHANGED";
+  readonly message: string;
+  readonly path: string;
+}
+
+/** The personal marketplace could not be written for a reason other than a concurrent change. */
+export interface MarketplaceWriteFailedError {
+  readonly code: "MARKETPLACE_WRITE_FAILED";
+  readonly message: string;
+  readonly path: string;
+}
+
+/** A REGISTERED Codex home has no directory, so the plan register names a store nobody signed into. */
+export interface CodexHomeMissingError {
+  readonly code: "CODEX_HOME_MISSING";
+  readonly message: string;
+  readonly codexHome: string;
+}
+
+/** A Codex home is the export root, holds it, or sits inside it, so creating the export would create or fill it. */
+export interface CodexHomeOverlapsExportError {
+  readonly code: "CODEX_HOME_OVERLAPS_EXPORT";
+  readonly message: string;
+  readonly codexHome: string;
+}
+
+/** The plan register could not be read, so the set of Codex homes is unknown. */
+export interface DestinationsUnreadableError {
+  readonly code: "DESTINATIONS_UNREADABLE";
+  readonly message: string;
+}
+
+/** A home's Slopweaver hooks are not all running after the trust pass. */
+export interface HookTrustFailedError {
+  readonly code: "HOOK_TRUST_FAILED";
+  readonly message: string;
+  readonly codexHome: string;
+}
+
 /** Every way `codex plugin-sync` can fail. */
 export type CodexPluginSyncError =
   | AddFailedError
+  | CodexHomeMissingError
+  | CodexHomeOverlapsExportError
   | CrashedError
+  | DestinationsUnreadableError
   | ExportFailedError
+  | HookTrustFailedError
+  | MarketplaceChangedError
   | MarketplaceUnreadableError
+  | MarketplaceWriteFailedError
   | RepointFailedError
   | SourceNotSymlinkError
   | StampMismatchError
@@ -73,9 +120,48 @@ export const CodexPluginSyncErrors = {
     code: "ADD_FAILED",
     message: `codex plugin add failed: ${detail}`,
   }),
+  codexHomeMissing: ({ codexHome }: { codexHome: string }): CodexHomeMissingError => ({
+    code: "CODEX_HOME_MISSING",
+    codexHome,
+    message:
+      `the plan register names the Codex home ${codexHome}, and no directory is there — nothing was installed; ` +
+      "sign that plan in again or remove its row",
+  }),
+  codexHomeOverlapsExport: ({
+    codexHome,
+    exportRoot,
+  }: {
+    codexHome: string;
+    exportRoot: string;
+  }): CodexHomeOverlapsExportError => ({
+    code: "CODEX_HOME_OVERLAPS_EXPORT",
+    codexHome,
+    message:
+      `the Codex home ${codexHome} overlaps the plugin export at ${exportRoot}, so writing the export would ` +
+      "create or fill that home — nothing was written; move that Codex home or Slopweaver's cache apart",
+  }),
   crashed: ({ detail }: { detail: string }): CrashedError => ({
     code: "CRASHED",
     message: `the refresh threw: ${detail}`,
+  }),
+  destinationsUnreadable: ({ detail }: { detail: string }): DestinationsUnreadableError => ({
+    code: "DESTINATIONS_UNREADABLE",
+    message: `the plan register could not be read, so no Codex home was touched: ${detail}`,
+  }),
+  hookTrustFailed: ({ codexHome, detail }: { codexHome: string; detail: string }): HookTrustFailedError => ({
+    code: "HOOK_TRUST_FAILED",
+    codexHome,
+    message: `not every Slopweaver hook runs in ${codexHome}: ${detail}`,
+  }),
+  marketplaceChanged: ({ path }: { path: string }): MarketplaceChangedError => ({
+    code: "MARKETPLACE_CHANGED",
+    message: `the Codex marketplace at ${path} changed while this run was adding slopweaver to it — re-run`,
+    path,
+  }),
+  marketplaceWriteFailed: ({ path, detail }: { path: string; detail: string }): MarketplaceWriteFailedError => ({
+    code: "MARKETPLACE_WRITE_FAILED",
+    message: `could not write the Codex marketplace at ${path}: ${detail}`,
+    path,
   }),
   exportFailed: ({ detail }: { detail: string }): ExportFailedError => ({
     code: "EXPORT_FAILED",
