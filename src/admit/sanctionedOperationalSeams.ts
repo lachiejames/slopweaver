@@ -137,6 +137,13 @@ export const OPERATIONAL_SEAMS = {
   // and `codex plugin add`, which copies that export into the local Codex cache. Every write is a file on
   // this machine; no provider is reached, same class as `checkout/syncRun.ts`.
   "src/codexPlugin/sync.ts": "local-state",
+  // `sync.ts`'s effect half: a local `tar` extract of the export and its staged rename under the cache root's
+  // `codex-plugin`, the personal marketplace's source symlink under the user's home, and `codex plugin add` into
+  // each Codex home on this machine. Local files and local CLIs only; no provider is reached, same class as `sync.ts`.
+  "src/codexPlugin/syncEffects.ts": "local-state",
+  // The personal Codex marketplace file under the user's home: created, or appended to, by one atomic write
+  // after a byte-for-byte re-read. A file on this machine; no provider is reached, same class as `sync.ts`.
+  "src/codexPlugin/marketplaceStore.ts": "local-state",
   // `sync.ts`'s read half: `git rev-parse` against the local checkout, to learn its HEAD and branch. Reads a
   // repository on this machine; no provider is reached.
   "src/codexPlugin/checkout.ts": "local-state",

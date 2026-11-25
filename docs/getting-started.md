@@ -168,7 +168,7 @@ bin/slopweaver codex plugin-sync
 It adds a local `slopweaver` entry to that marketplace when it has none — creating the file with the `personal`
 marketplace when there is no file, appending to `plugins` when there is one, and never touching another entry
 or a file it cannot parse, nor one holding a number JSON would write back differently. The entry's path,
-`./plugins/slopweaver` under your home, becomes a symlink to the sync's export; a real directory there, or a
+`$HOME/plugins/slopweaver`, becomes a symlink to the sync's export; a real directory there, or a
 path that reaches the marketplace file itself, a linked parent included, is refused. It then installs into **every Codex home**: each one the
 plan register names (paused plans included) and the ambient `$CODEX_HOME`, since a seat boots with
 `CODEX_HOME` set to its plan's home and loads only what is installed there. Each home gets its own line and its

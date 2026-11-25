@@ -8,6 +8,7 @@ import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { cachePaths } from "../../../cacheHome.js";
 import { CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
 import type { SyncPaths } from "../../../codexPlugin/fleetPlan.js";
 import type { CodexPluginHome } from "../../../codexPlugin/homes.js";
@@ -60,12 +61,16 @@ function seededCheckout(): { readonly checkout: string; readonly head: string } 
   return template;
 }
 
-/** A fresh fleet; remove its `root` in an `afterEach`. */
+/**
+ * A fresh fleet; remove its `root` in an `afterEach`.
+ *
+ * @returns the throwaway root, its sync paths, the seeded head and the two empty Codex homes
+ */
 export function makeFleet(): Fleet {
   const root = mkdtempSync(join(tmpdir(), "codex-plugin-sync-"));
   const paths: SyncPaths = {
     checkout: join(root, "checkout"),
-    exportRoot: join(root, "cache", "codex-plugin"),
+    exportRoot: cachePaths({ root: join(root, "cache") }).codexPlugin,
     userHome: join(root, "home"),
   };
   const seeded = seededCheckout();
@@ -79,7 +84,11 @@ export function makeFleet(): Fleet {
   return { ambient, head: seeded.head, paths, registered, root };
 }
 
-/** The registered home, then the ambient one — the order `codexPluginHomes` gives. */
+/**
+ * The registered home, then the ambient one — the order `codexPluginHomes` gives.
+ *
+ * @returns both homes, each marked registered or not
+ */
 export function homesOf({ fleet }: { fleet: Fleet }): readonly CodexPluginHome[] {
   return [
     { codexHome: fleet.registered, registered: true },
@@ -87,7 +96,11 @@ export function homesOf({ fleet }: { fleet: Fleet }): readonly CodexPluginHome[]
   ];
 }
 
-/** Where the personal marketplace file lives under a user home. */
+/**
+ * Where the personal marketplace file lives under a user home.
+ *
+ * @returns the absolute path of `.agents/plugins/marketplace.json` beneath it
+ */
 export function marketplacePath({ userHome }: { userHome: string }): string {
   return join(userHome, ".agents", "plugins", "marketplace.json");
 }
@@ -104,7 +117,11 @@ export function writeMarketplace({ userHome, raw }: { userHome: string; raw: str
   writeFileSync(marketplacePath({ userHome }), raw);
 }
 
-/** The cache directory Codex installs Slopweaver into, for the `personal` marketplace unless one is named. */
+/**
+ * The cache directory Codex installs Slopweaver into, for the `personal` marketplace unless one is named.
+ *
+ * @returns that directory inside the given Codex home
+ */
 export function cacheOf({ codexHome, marketplace = "personal" }: { codexHome: string; marketplace?: string }): string {
   return pluginCacheDir({ codexHome, marketplace });
 }
@@ -118,6 +135,8 @@ export function stampInstall({ codexHome, commit }: { codexHome: string; commit:
 /**
  * A `codex plugin add` fake that copies the marketplace source into the cache of the home it was handed, the way
  * the real one does under `CODEX_HOME`, and answers `--json`. A home named in `failFor` answers a failed add.
+ *
+ * @returns the fake, which appends each home it is handed to `adds`
  */
 export function copyingAdd({
   userHome,
@@ -140,7 +159,11 @@ export function copyingAdd({
   };
 }
 
-/** A hook-trust fake: trusts `trusted` hooks in every home, fails each one named in `failFor`, records each call. */
+/**
+ * A hook-trust fake: trusts `trusted` hooks in every home, fails each one named in `failFor`, records each call.
+ *
+ * @returns the fake, answering a trusted count or a `HOOK_TRUST_FAILED` error per home
+ */
 export function trusting({
   trusted = 2,
   failFor = [],
@@ -159,7 +182,11 @@ export function trusting({
   };
 }
 
-/** The sync seams with a fixed clock. */
+/**
+ * The sync seams with a fixed clock.
+ *
+ * @returns the add and trust fakes, and a clock that always reads `nowMs`
+ */
 export function fleetDeps({
   codexAdd,
   trustHooks = trusting(),

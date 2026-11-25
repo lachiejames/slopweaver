@@ -58,7 +58,11 @@ export function codexPluginHomes({
   return homes;
 }
 
-/** True when `inner` is `outer` itself or lies anywhere beneath it, by resolved path. */
+/**
+ * Whether `inner` is `outer` itself or lies anywhere beneath it, by resolved path.
+ *
+ * @returns true for the path itself or a descendant, false for a sibling that merely shares a prefix
+ */
 export function pathWithin({ inner, outer }: { inner: string; outer: string }): boolean {
   const resolvedInner = resolve(inner);
   const resolvedOuter = resolve(outer);

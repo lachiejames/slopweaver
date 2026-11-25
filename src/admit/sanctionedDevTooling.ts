@@ -111,6 +111,11 @@ export const DEV_TOOLING_SEAMS = {
   // `CODEX_HOME` and removes every one. Test support, the class of `quotaLog/harness.ts` above — it moved here when
   // the two verbs' one test file was split by describe.
   "src/__tests__/unit/codex/gaugeRun/harness.ts": "dev-tooling",
+  // The `codex plugin-sync` tests' synthetic fleet: `makeFleet()` mints a throwaway `mkdtempSync` root holding a
+  // copied git checkout, a user home and two empty Codex homes, the seeded template is removed by
+  // `disposeTemplate()`, and every write lands under those roots. Test support, the class of
+  // `quotaLog/harness.ts` above; no real Codex home is read or written.
+  "src/__tests__/unit/codexPlugin/fleetFixture.ts": "dev-tooling",
   // The `scripts/docs-site.sh` cache-root tests' shared harness: `scratch()` mints a throwaway `mkdtempSync`
   // directory and records it in `made`, which each test file's own `afterEach` removes, and `run()` spawns the
   // script against a temp home a test built beneath one. Test support, the class of

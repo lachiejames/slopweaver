@@ -16,10 +16,10 @@ import type { CodexPluginSyncError } from "./errors.js";
 import { CODEX_PLUGIN_NAME, marketplaceEntryOf } from "./plan.js";
 
 /** The marketplace name a seeded file carries. */
-export const SEEDED_MARKETPLACE_NAME = "personal";
+const SEEDED_MARKETPLACE_NAME = "personal";
 
 /** The source path, relative to the user's home, that the seeded or appended entry names. */
-export const SEEDED_SOURCE_RELATIVE = "./plugins/slopweaver";
+const SEEDED_SOURCE_RELATIVE = "./plugins/slopweaver";
 
 /** The one plugin entry this verb ever adds to a personal marketplace. */
 export const SLOPWEAVER_MARKETPLACE_ENTRY = {
@@ -93,15 +93,22 @@ function appendedOrSkip({
   userHome: string;
   why: string;
 }): MarketplaceWritePlan {
-  // `marketplaceEntryOf` has already validated the shape, so these narrowings are invariants, not fallbacks.
-  const record = document as Readonly<Record<string, unknown>>;
-  const plugins = record["plugins"] as readonly unknown[];
-  if (plugins.some((plugin) => isRecord(plugin) && plugin["name"] === CODEX_PLUGIN_NAME)) {
+  // `marketplaceEntryOf` has already validated the shape, so a failed narrowing here is a broken invariant.
+  if (!isRecord(document)) {
+    throw new Error("invariant: a validated marketplace document is not an object");
+  }
+  const plugins: unknown = document["plugins"];
+  const name: unknown = document["name"];
+  if (!Array.isArray(plugins) || typeof name !== "string") {
+    throw new Error("invariant: a validated marketplace document lacks a plugins array or a string name");
+  }
+  const listed: readonly unknown[] = plugins;
+  if (listed.some((plugin) => isRecord(plugin) && plugin["name"] === CODEX_PLUGIN_NAME)) {
     return { kind: "skip", why };
   }
   return {
-    document: { ...record, plugins: [...plugins, SLOPWEAVER_MARKETPLACE_ENTRY] },
-    entry: { marketplace: record["name"] as string, sourcePath: resolve(userHome, SEEDED_SOURCE_RELATIVE) },
+    document: { ...document, plugins: [...listed, SLOPWEAVER_MARKETPLACE_ENTRY] },
+    entry: { marketplace: name, sourcePath: resolve(userHome, SEEDED_SOURCE_RELATIVE) },
     kind: "write",
   };
 }
