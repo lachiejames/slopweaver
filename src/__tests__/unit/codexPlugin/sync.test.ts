@@ -182,6 +182,49 @@ describe("codex plugin-sync, a foreground run", () => {
     expect([existsSync(fleet.paths.exportRoot), marketplaceWritten, adds]).toEqual([false, false, []]);
   });
 
+  it("refuses a registered home that is a dangling link to the export root, so the mkdir never creates it", () => {
+    const adds: string[] = [];
+    const codexHome = join(fleet.root, "linked-home");
+    symlinkSync(fleet.paths.exportRoot, codexHome);
+
+    const outcome = performFleetSync({
+      deps: fleetDeps({ codexAdd: copyingAdd({ adds, userHome: fleet.paths.userHome }) }),
+      homes: [{ codexHome, registered: true }, ...homesOf({ fleet })],
+      mainCheckouts: [fleet.paths.checkout],
+      paths: fleet.paths,
+      scope: "install-every-home",
+    });
+
+    expect(outcome).toEqual({
+      did: "failed",
+      error: CodexPluginSyncErrors.codexHomeOverlapsExport({ codexHome, exportRoot: fleet.paths.exportRoot }),
+    });
+    expect([existsSync(fleet.paths.exportRoot), existsSync(codexHome), adds]).toEqual([false, false, []]);
+  });
+
+  it("refuses a home whose relative dangling link reaches the export root only from the link's real directory", () => {
+    const adds: string[] = [];
+    // `linked` is a link to cache/sub, so `../codex-plugin` from the home inside it lands on the export root.
+    mkdirSync(join(fleet.root, "cache", "sub"), { recursive: true });
+    symlinkSync(join(fleet.root, "cache", "sub"), join(fleet.root, "linked"));
+    const codexHome = join(fleet.root, "linked", "home");
+    symlinkSync("../codex-plugin", codexHome);
+
+    const outcome = performFleetSync({
+      deps: fleetDeps({ codexAdd: copyingAdd({ adds, userHome: fleet.paths.userHome }) }),
+      homes: [{ codexHome, registered: true }, ...homesOf({ fleet })],
+      mainCheckouts: [fleet.paths.checkout],
+      paths: fleet.paths,
+      scope: "install-every-home",
+    });
+
+    expect(outcome).toEqual({
+      did: "failed",
+      error: CodexPluginSyncErrors.codexHomeOverlapsExport({ codexHome, exportRoot: fleet.paths.exportRoot }),
+    });
+    expect([existsSync(fleet.paths.exportRoot), adds]).toEqual([false, []]);
+  });
+
   it("leaves a marketplace file named as slopweaver's own source a regular file with its bytes unchanged", () => {
     const path = marketplacePath({ userHome: fleet.paths.userHome });
     const raw = JSON.stringify({

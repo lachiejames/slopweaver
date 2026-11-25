@@ -8,25 +8,27 @@
  * An absent file is CREATED EXCLUSIVELY, so a file that appeared after this run read the directory wins and
  * this run reports `MARKETPLACE_CHANGED`. A present file is re-read immediately before the atomic replace, and
  * a byte difference since the first read refuses the same way. An unparseable file is never overwritten, nor is
- * one holding a value `JSON.stringify` would write back differently. The
+ * one holding a number `JSON.stringify` would write back differently. A duplicated key is the residue:
+ * `JSON.parse` keeps its last value and no reviver sees the earlier one, so a rewrite drops it. The
  * plugin-sync lock serialises Slopweaver's own writers, but a person editing the file does not take it, so a
  * save landing between the final re-read and the rename is still lost: the window is narrowed, not closed.
  */
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isDeepStrictEqual } from "node:util";
 
 import { errorMessage } from "#lib/errorMessage.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { createFileExclusive, writeFileAtomic } from "#lib/writeAtomic.js";
 
 import { type CodexPluginSyncError, CodexPluginSyncErrors } from "./errors.js";
+import { pathWithin } from "./homes.js";
 import {
   type MarketplaceWritePlan,
   type PersonalMarketplaceEntry,
   planPersonalMarketplace,
 } from "./marketplacePlan.js";
 import { CODEX_PLUGIN_NAME, PERSONAL_MARKETPLACE_RELATIVE } from "./plan.js";
+import { entryPath } from "./realPath.js";
 
 /** What the marketplace file held when it was read: absent, or its exact bytes and their parse. */
 export interface MarketplaceSnapshot {
@@ -73,10 +75,32 @@ export function personalMarketplacePlan({
 }): Result<{ readonly snapshot: MarketplaceSnapshot; readonly plan: MarketplaceWritePlan }, CodexPluginSyncError> {
   return readPersonalMarketplace({ userHome }).andThen((snapshot) =>
     planPersonalMarketplace({ document: snapshot.document, marketplacePath: snapshot.path, userHome }).map((plan) => ({
-      plan,
+      plan: sourceClearOfMarketplace({ marketplacePath: snapshot.path, plan }),
       snapshot,
     })),
   );
+}
+
+/**
+ * The plan, or a skip when the entry's source path is the marketplace file or a directory holding it. The sync
+ * renames a link onto that source path, which would replace the marketplace file, so each side is compared as
+ * the directory entry it really is: a parent reached through a link is followed (`./realPath.ts`).
+ */
+function sourceClearOfMarketplace({
+  marketplacePath,
+  plan,
+}: {
+  marketplacePath: string;
+  plan: MarketplaceWritePlan;
+}): MarketplaceWritePlan {
+  if (plan.kind === "skip") {
+    return plan;
+  }
+  const { sourcePath } = plan.entry;
+  if (!pathWithin({ inner: entryPath({ path: marketplacePath }), outer: entryPath({ path: sourcePath }) })) {
+    return plan;
+  }
+  return { kind: "skip", why: `slopweaver's source path ${sourcePath} holds the marketplace file itself` };
 }
 
 /**
@@ -122,8 +146,8 @@ export function ensurePersonalMarketplace({
     if (plan.kind === "skip") {
       return ok({ skip: plan.why });
     }
-    if (snapshot.raw !== undefined && !survivesRewrite({ document: snapshot.document })) {
-      const detail = "it holds a value JSON cannot write back unchanged, such as 1e400, so it is never rewritten";
+    if (snapshot.raw !== undefined && !numbersSurviveRewrite({ raw: snapshot.raw })) {
+      const detail = "it holds a number JSON would write back differently, such as 1e400, so it is never rewritten";
       return err(CodexPluginSyncErrors.marketplaceUnreadable({ detail, path: snapshot.path }));
     }
     return writeMarketplace({ document: plan.document, snapshot }).map(() => plan.entry);
@@ -131,11 +155,21 @@ export function ensurePersonalMarketplace({
 }
 
 /**
- * True when serialising the parsed file gives back the same value. `JSON.parse` reads `1e400` as Infinity and
- * `-0` as negative zero, and `JSON.stringify` writes both differently, so a rewrite would change another entry.
+ * True when every number in the file is spelled exactly as `JSON.stringify` would write it back. Compared on
+ * the SOURCE TEXT, never on the parsed value: `9007199254740993` parses already rounded, so a value comparison
+ * passes it, while `1e400` (Infinity, written `null`) and `-0` (written `0`) differ too. A spelling such as
+ * `1.0` is refused with them — the rewrite would keep its value but not its bytes, and refusing is the safe arm.
+ * A runtime that gives the reviver no source text refuses every number rather than passing one unread.
  */
-function survivesRewrite({ document }: { document: unknown }): boolean {
-  return isDeepStrictEqual(JSON.parse(JSON.stringify(document)) as unknown, document);
+function numbersSurviveRewrite({ raw }: { raw: string }): boolean {
+  let survives = true;
+  JSON.parse(raw, (_key: string, value: unknown, context?: { readonly source?: string }) => {
+    if (typeof value === "number" && context?.source !== JSON.stringify(value)) {
+      survives = false;
+    }
+    return value;
+  });
+  return survives;
 }
 
 /** Write the planned document: an exclusive create for an absent file, a re-checked atomic replace otherwise. */

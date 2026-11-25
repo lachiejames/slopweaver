@@ -1,18 +1,22 @@
 /**
  * Which Codex homes `codex plugin-sync` keeps: every home the plan register names, paused rows included, then
- * the ambient one. Pure.
+ * the ambient one, and whether one overlaps the export. `codexPluginHomes` and `pathWithin` are pure;
+ * `homeOverlappingExport` reads the filesystem to follow links (`./realPath.ts`).
  *
  * A paused row is still a home a later seat boots on once the pause lifts, so it is kept current like any
  * other. The ambient home (`$CODEX_HOME`, else `~/.codex`) is added here rather than in
  * `../codex/destinations.ts`, which deliberately never returns it: the register names where seats run, the
  * ambient home is where a hand-started `codex` runs, and both load the plugin.
  *
- * The residue, stated rather than discovered: {@link pathWithin} compares RESOLVED paths, not real paths, so a
- * Codex home reached through a symlink into the export root is not caught by {@link homeOverlappingExport}.
+ * {@link pathWithin} compares paths as given. {@link homeOverlappingExport} hands it each side's
+ * {@link landingPath}, so a home reached through a link into the export root — a dangling one included — is
+ * caught; the residue is `./realPath.ts`'s.
  */
 import { resolve, sep } from "node:path";
 
 import type { CodexDestination } from "../codex/destinations.js";
+
+import { landingPath } from "./realPath.js";
 
 /** One Codex home to keep, and whether the plan register names it. */
 export interface CodexPluginHome {
@@ -62,8 +66,9 @@ export function pathWithin({ inner, outer }: { inner: string; outer: string }): 
 }
 
 /**
- * The first home that is the export root, holds it, or sits inside it. Creating the export root with
- * `mkdir -p` would create such a home, or fill it with Slopweaver's export, so the run refuses before writing.
+ * The first home that is the export root, holds it, or sits inside it, each compared where it really lands.
+ * Creating the export root with `mkdir -p` would create such a home, or fill it with Slopweaver's export, so the
+ * run refuses before writing.
  *
  * @param homes every Codex home the run keeps
  * @param exportRoot the directory each HEAD export is written under
@@ -76,8 +81,12 @@ export function homeOverlappingExport({
   homes: readonly CodexPluginHome[];
   exportRoot: string;
 }): CodexPluginHome | undefined {
-  return homes.find(
-    ({ codexHome }) =>
-      pathWithin({ inner: exportRoot, outer: codexHome }) || pathWithin({ inner: codexHome, outer: exportRoot }),
-  );
+  const exportLanding = landingPath({ path: exportRoot });
+  return homes.find(({ codexHome }) => {
+    const homeLanding = landingPath({ path: codexHome });
+    return (
+      pathWithin({ inner: exportLanding, outer: homeLanding }) ||
+      pathWithin({ inner: homeLanding, outer: exportLanding })
+    );
+  });
 }

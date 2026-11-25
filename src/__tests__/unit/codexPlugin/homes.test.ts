@@ -1,3 +1,7 @@
+import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { codexPluginHomes, homeOverlappingExport, pathWithin } from "../../../codexPlugin/homes.js";
@@ -62,6 +66,16 @@ describe("homeOverlappingExport", () => {
       { codexHome: "/c", registered: true },
       { codexHome: "/c/codex-plugin/home", registered: true },
     ]);
+  });
+
+  it("names a home that is a dangling link to the export root, which a lexical comparison misses", () => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "codex-homes-")));
+    const exportRoot = join(root, "cache", "codex-plugin");
+    const linked = { codexHome: join(root, "home"), registered: true };
+    symlinkSync(exportRoot, linked.codexHome);
+    const found = homeOverlappingExport({ exportRoot, homes: [apart, linked] });
+    rmSync(root, { force: true, recursive: true });
+    expect(found).toEqual(linked);
   });
 
   it("is undefined when every home is apart from the export, a sibling sharing its prefix included", () => {
