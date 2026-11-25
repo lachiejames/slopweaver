@@ -4,10 +4,9 @@ import type { GithubAttachDeps } from "../../../../../cli/commands/github/attach
 import { runGithubAttach } from "../../../../../cli/commands/github/attachRun.js";
 import { runGithubAttachStatus } from "../../../../../cli/commands/github/attachStatusRun.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
-import { err, unwrap } from "../../../../../lib/result.js";
+import { err } from "../../../../../lib/result.js";
 import { GithubAttachErrors } from "../../../../../outbound/github/attach.errors.js";
 import type { AttachResponse } from "../../../../../outbound/github/attachClient.js";
-import { readUploadReceipt } from "../../../../../outbound/github/attachReceipt.js";
 import { recordedCassette } from "../../../../attachEvidenceFixture.js";
 import { ANONYMOUS_PAGE, attachRunHarness, HAPPY, RECEIPT_ID, SIGNED_IN_PAGE } from "../../../../attachRunFixture.js";
 import { unreachableDoorLedger } from "../../../../doorLedgerFixture.js";
@@ -95,20 +94,14 @@ describe("runGithubAttach — upload", () => {
     expect(captured.diagnostics.at(-1)).toContain("slopweaver github attach upload not performed:");
   });
 
-  it("uploads a recording proof cassette wrote, and files its upload receipt", async () => {
+  it("holds a recording proof cassette wrote on its verb, even acknowledged, uploading nothing", async () => {
     const path = fixtureFile({ bytes: 4, name: "demo.mp4" });
-    const cassette = recordedCassette();
-    const { captured, deps, home } = makeDeps({ filePath: path, picture: cassette, replies: HAPPY });
-    expect(await runGithubAttach({ deps, rest: argvFor({ path }) })).toBe(EXIT_OK);
-    expect(captured.out[1]).toBe("https://github.com/user-attachments/assets/uuid-1");
-    // A video's embed is the bare URL, the only form GitHub plays inline in a pull-request body.
-    expect(captured.out[2]).toBe("https://github.com/user-attachments/assets/uuid-1");
-    expect(unwrap(readUploadReceipt({ home, uploadReceiptId: RECEIPT_ID })).image).toMatchObject({
-      captureId: cassette.receipt.captureId,
-      captureVerb: "proof cassette",
-      heightPx: 600,
-      widthPx: 1200,
-    });
+    const { captured, deps, door } = makeDeps({ filePath: path, picture: recordedCassette(), replies: HAPPY });
+    const rest = [...argvFor({ path }), "--acknowledge", "the console has no screen for this change"];
+    expect(await runGithubAttach({ deps, rest })).toBe(EXIT_ERROR);
+    expect(captured.out).toEqual([]);
+    expect(captured.diagnostics.some((line) => line.includes("`proof cassette` can show figures"))).toBe(true);
+    expect(door.text()).toContain('"status":"hold"');
   });
 
   it("uses --alt in the image markdown", async () => {
@@ -135,11 +128,12 @@ describe("runGithubAttach — upload", () => {
     expect(captured.out).toEqual([]);
   });
 
-  it("accepts a recorded video at a size that would refuse an image", async () => {
+  it("passes a recorded video at a size that would refuse an image, then holds it on its verb", async () => {
     const path = fixtureFile({ bytes: 10485761, name: "demo.mp4" });
     const { captured, deps } = makeDeps({ filePath: path, picture: recordedCassette(), replies: HAPPY });
-    expect(await runGithubAttach({ deps, rest: argvFor({ path }) })).toBe(EXIT_OK);
-    expect(captured.out[2]).toBe("https://github.com/user-attachments/assets/uuid-1");
+    expect(await runGithubAttach({ deps, rest: argvFor({ path }) })).toBe(EXIT_ERROR);
+    expect(captured.diagnostics.some((line) => line.includes("exceeds GitHub's measured ceiling"))).toBe(false);
+    expect(captured.diagnostics.some((line) => line.includes("`proof cassette` can show figures"))).toBe(true);
   });
 
   it("refuses an unsupported media type before touching the session", async () => {

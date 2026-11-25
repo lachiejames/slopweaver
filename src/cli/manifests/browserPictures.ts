@@ -67,8 +67,8 @@ const terminalShotMeta = {
   example: "slopweaver browser terminal-shot --form ./terminal-shot.json",
   parseRejectIsIoFree: true,
   summary:
-    "Render terminal text to a PNG and file the capture receipt recording the exact words drawn — the terminal " +
-    "picture `github attach` can scan and accept",
+    "Render terminal text to a PNG and file the capture receipt recording the exact words drawn — local proof " +
+    "`github attach` holds until a figure check exists",
   usage: BROWSER_USAGE,
 } as const;
 
@@ -83,7 +83,7 @@ const consoleShotMeta = {
   parseRejectIsIoFree: true,
   summary:
     "Photograph one registered click-through of this checkout's console over a throwaway store holding the " +
-    "synthetic organisation, and file the capture receipt `github attach` accepts",
+    "synthetic organisation, and file the capture receipt `github attach` admits, the one verb it does",
   usage: BROWSER_USAGE,
 } as const;
 

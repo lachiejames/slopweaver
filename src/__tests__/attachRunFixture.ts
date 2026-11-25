@@ -15,6 +15,7 @@ import type { AttachFetch, AttachResponse } from "../outbound/github/attachClien
 import type { ImageTextError, RecognisedImageText } from "../visualEvidence/imageTextRecognition.js";
 import {
   type AttachablePicture,
+  consoleShotPicture,
   fileAttachableEvidence,
   renderAttachablePicture,
   servingReadBack,
@@ -177,7 +178,8 @@ export function attachRunHarness(): AttachRunHarness {
   const fixtureDirs: string[] = [];
   let rendered: AttachablePicture | undefined;
   beforeAll(async () => {
-    rendered = await renderAttachablePicture();
+    // A console-shot receipt: the one capture verb attach admits, so a run reaches the concern its test is about.
+    rendered = consoleShotPicture({ picture: await renderAttachablePicture() });
   });
   afterEach(() => {
     for (const dir of fixtureDirs.splice(0)) {

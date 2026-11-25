@@ -1,7 +1,9 @@
 /**
- * An attachable picture for `github attach` tests: real terminal-shot bytes, the capture receipt the verb files for
- * them, and the passed image record a session writes after looking — filed into an explicit home, never the
- * ambient one. Plus the read-back transports a test scripts GitHub's answer with: plain functions, no mocks.
+ * Pictures for `github attach` tests: real terminal-shot bytes and the capture receipt that verb files for them,
+ * which attach HOLDS on its verb, and `consoleShotPicture`, the same bytes under a console-shot receipt, which is
+ * the one attach admits. Each comes with the passed image record a session writes after looking, filed into an
+ * explicit home, never the ambient one. Plus the read-back transports a test scripts GitHub's answer with: plain
+ * functions, no mocks.
  */
 
 import { unwrap } from "../lib/result.js";
@@ -40,6 +42,42 @@ export async function renderAttachablePicture({
     }),
   );
   return { bytes: shot.bytes, receipt: shot.receipt };
+}
+
+/**
+ * The fixture's picture as a `browser console-shot` wrote it: the same real, metadata-free PNG bytes and the same
+ * frame, under the console arm's receipt with its synthetic `acme` fixture — the one verb attach admits. Rendering a
+ * real console shot needs a browser and a database, so the receipt is relabelled rather than re-captured; nothing on
+ * the attach path reads the console detail beyond the verb.
+ *
+ * @param picture the rendered terminal picture whose bytes and frame it reuses
+ * @returns the picture under a console-shot receipt
+ */
+export function consoleShotPicture({ picture }: { picture: AttachablePicture }): AttachablePicture {
+  const { bytes, receipt } = picture;
+  return {
+    bytes,
+    receipt: {
+      capturedAtIso: receipt.capturedAtIso,
+      captureId: receipt.captureId,
+      cropRect: receipt.cropRect,
+      detail: {
+        finalPath: "/queue",
+        fixture: "acme",
+        initialPath: "/queue",
+        region: ["[data-queue-card]"],
+        viewport: { deviceScaleFactor: 1, heightPx: receipt.source.heightPx, widthPx: receipt.source.widthPx },
+        walk: "queue-card",
+        witnesses: ["[data-queue-card]"],
+      },
+      final: receipt.final,
+      frameText: receipt.frameText,
+      schemaVersion: 2,
+      source: receipt.source,
+      status: receipt.status,
+      verb: "browser console-shot",
+    },
+  };
 }
 
 /**

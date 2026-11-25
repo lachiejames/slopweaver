@@ -41,10 +41,8 @@ export function animatedGifFindings({ files }: { files: readonly CandidateFile[]
       {
         code: "ANIMATED_GIF",
         correction:
-          "ship it as an .mp4 so the reader gets a scrubber, a duration and a pause — a VHS tape renders " +
-          "through `slopweaver proof cassette --tape <tape> --out <name>.mp4`, anything else through " +
-          "`ffmpeg -i <name>.gif -movflags faststart -pix_fmt yuv420p -vf 'scale=trunc(iw/2)*2:trunc(ih/2)*2' " +
-          "<name>.mp4` — or acknowledge this one, " +
+          "attach a still picture of the moment that proves it, taken with `slopweaver browser console-shot`, " +
+          "the one capture verb attach admits until a figure check exists — or acknowledge this one, " +
           "carrying the reason its loop is the point",
         override: ANIMATED_GIF_OVERRIDE,
         severity: "warn",

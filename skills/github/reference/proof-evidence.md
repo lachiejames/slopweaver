@@ -8,7 +8,8 @@ a pull request body in either repository and to any claim that a change works.
   frozen citation carrying the exact window.
 - **Captured means a capture verb wrote it, and its receipt says so.** Screenshots and recordings are both proof
   and go through the same door: `github attach upload` sends only a file whose bytes a capture receipt names
-  (`browser shot`, `browser terminal-shot`, `browser console-shot`, `browser redact`, `proof cassette`), with its frame text scanned, its
+  and whose verb is `browser console-shot`, the one admitted until a figure check exists (any other capture is local
+  proof), with its frame text scanned, its
   image checks passed and the upload fetched back, then prints the upload receipt (`upl-<uuid>`) a description
   cites ([attachments.md](attachments.md#only-a-file-a-capture-verb-wrote-is-sent)).
 - **Gold shows the mechanism itself working** — a real CI run, a cache hit and its restore, a `yarn why` diff.

@@ -8,8 +8,9 @@
  * ## What it refuses, with no hatch
  *
  * - A source with no version-2 capture receipt for its exact bytes: a child receipt has to inherit the parent's
- *   frame text, crop and source frame, so a picture nothing recorded cannot be redacted into one `github attach`
- *   accepts. Re-capture through a capture verb instead.
+ *   frame text, crop and source frame, so a picture nothing recorded cannot be redacted into a receipted one.
+ *   Re-capture through a capture verb instead. `github attach` holds every redacted child on its verb until a
+ *   figure check exists, so the child stays local proof.
  * - A source whose digest holds any FAILED image record: a failed record is terminal for its bytes, and redacting
  *   them would mint new bytes with no record — the same laundering `browser annotate` refuses.
  */

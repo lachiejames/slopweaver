@@ -9,9 +9,9 @@
  * - **A proof slot holds a capture, never a sentence about a test.** The common shapes of a reason that talks about
  *   a test (`vitest`, "a unit test", "the test fails", "the test shows it", "pinned by a test", "the unit cases",
  *   "the cases below", "the specs are the proof") are refused here; the description review refuses the rest, so
- *   this is a list of refused shapes, never a whitelist of pointers. Where a command can show it, the proof is a
- *   `browser terminal-shot` of that command failing on main and passing on the branch, and a sentence about a test
- *   belongs under Checks. A reason's optional second sentence points at the checks or a linked record instead ("The
+ *   this is a list of refused shapes, never a whitelist of pointers. Where the console can show the change, the
+ *   proof is a `browser console-shot` of it, the one capture verb `github attach` admits until a figure check
+ *   exists, and a sentence about a test belongs under Checks. A reason's optional second sentence points at the checks or a linked record instead ("The
  *   checks below are the proof."). One reason in both slots is refused too.
  * - **The title and explainer use words a teammate knows.** Slopweaver's own words (seat, handoff, chain, seed,
  *   register, door, lap, row, relay, projection) are refused there outside a code run. A table "row" is refused with
@@ -118,8 +118,8 @@ function proofReasonIssues({ body }: { body: PrBody }): readonly FormRuleIssue[]
       issues.push({
         code: "PROOF_IS_TEST_SENTENCE",
         message:
-          "a proof reason is a sentence about a test. Where a command can show it, capture that command failing on " +
-          "main and passing on this branch with `slopweaver browser terminal-shot` and attach the picture; move the " +
+          "a proof reason is a sentence about a test. Where the console can show the change, photograph it with " +
+          "`slopweaver browser console-shot`, the one capture verb attach admits, and attach the picture; move the " +
           "sentence about the test to checks",
         path: [field, "reason"],
       });

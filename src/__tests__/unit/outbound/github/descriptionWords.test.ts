@@ -87,7 +87,7 @@ describe("descriptionWordIssues", () => {
       body: withSolutionReason({ reason: t({ text: "The test fails on main." }) }),
       title: undefined,
     });
-    expect(issue!.message).toContain("slopweaver browser terminal-shot");
+    expect(issue!.message).toContain("`slopweaver browser console-shot`, the one capture verb attach admits");
   });
 
   it("refuses one reason in both proof slots, at the solution's", () => {

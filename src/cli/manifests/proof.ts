@@ -24,7 +24,8 @@ export const proofManifest: Readonly<Record<string, VerbManifestEntry>> = {
         "slopweaver proof cassette --tape ~/.slopweaver/proof/<pr>/demo.tape --out ~/.slopweaver/proof/<pr>/demo.mp4",
       parseRejectIsIoFree: true,
       summary:
-        "Render a VHS tape to an .mp4 a reader can scrub, typed fast, and file the capture receipt github attach requires",
+        "Render a VHS tape to an .mp4 a reader can scrub, typed fast, and file its capture receipt — local proof " +
+        "github attach holds until a figure check exists",
       usage: "usage: slopweaver proof cassette --tape <path> --out <path.mp4> [--cwd <dir>]",
     },
   }),

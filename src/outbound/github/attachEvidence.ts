@@ -1,7 +1,14 @@
 /**
  * What `github attach upload` holds one picture or recording to before any byte leaves the machine: a capture
- * receipt that names these exact bytes, a one-line statement of what it proves, a publication scan over every word a
- * reader will see in or beside it, the five image checks, the crop rule and the metadata strip.
+ * receipt that names these exact bytes, written by the one capture verb admitted, a one-line statement of what it
+ * proves, a publication scan over every word a reader will see in or beside it, the five image checks, the crop rule
+ * and the metadata strip.
+ *
+ * ## Only `browser console-shot` is admitted
+ *
+ * Every other capture verb's receipt is held (`attach.capture-verb`) until a figure check exists, since its picture
+ * can carry a figure from the operator's own accounts; `./attachCaptureVerb.ts` holds that rule and the content-type
+ * checks. The checks below still run beside the hold, so every problem is named at once.
  *
  * ## A picture's words are read twice: as recorded, and off its pixels
  *
@@ -13,10 +20,11 @@
  * small, blurred or rotated to read, a term split across two lines — stays the capture rule that no picture shows the
  * owner's real Queue, calls or home. A recording is not recognised: its screens are the transcript already scanned.
  *
- * ## A recording goes through the same checks
+ * ## A recording goes through the same checks, and is held
  *
  * `proof cassette` writes the same receipt as the picture verbs, its frame text the recording's transcript, so a
- * video is admitted by exactly this path: found by its digest, scanned, viewed, declared as the type its verb wrote.
+ * video is judged by exactly this path — found by its digest, scanned, viewed, declared as the type its verb wrote —
+ * and then held on its verb, like every capture but a console shot.
  * Two checks read differently for it. The crop rule does not apply — the recorder drives a terminal of its own that
  * shows only what the tape typed, so there is no larger screen a crop was cut from. The metadata check reads PNG
  * chunks, so for an MP4 the receipt's own digest stands in: the bytes are the ones the verb stripped. A GIF, or a
@@ -52,7 +60,6 @@ import type { PrivateTerm } from "../../hygiene/privateTerms.js";
 import type { Result } from "../../lib/result.js";
 import {
   type CaptureReceipt,
-  type CaptureVerb,
   captureIdFor,
   isCaptureReceipt,
   readCaptureRecord,
@@ -65,6 +72,12 @@ import { metadataChunksIn } from "../../visualEvidence/pngMetadata.js";
 import { readImageRecords } from "../../visualEvidence/store.js";
 import type { ImageRecord } from "../../visualEvidence/types.js";
 import { type PublicationSurface, publicationFindings } from "../publicationScan.js";
+import {
+  attachCaptureVerbFindings,
+  capturedTypeFindings,
+  attachHold as hold,
+  uncapturedTypeFindings,
+} from "./attachCaptureVerb.js";
 
 /**
  * Where a reader meets a piece of text an attachment carries: in its pixels, in its proves line, in its alt text.
@@ -93,18 +106,6 @@ export type AttachTextScan = (input: {
   readonly surface: AttachScanSurface;
   readonly text: string;
 }) => readonly string[];
-
-/** The content type each capture verb writes: a PNG for every picture verb, an MP4 for a terminal recording. */
-const CAPTURED_CONTENT_TYPES: Readonly<Record<CaptureVerb, string>> = {
-  "browser console-shot": "image/png",
-  "browser redact": "image/png",
-  "browser shot": "image/png",
-  "browser terminal-shot": "image/png",
-  "proof cassette": "video/mp4",
-};
-
-/** Every content type some capture verb writes; anything else (a GIF, a WebM, a JPEG) has no receipt to describe it. */
-const ANY_CAPTURED_TYPE = new Set(Object.values(CAPTURED_CONTENT_TYPES));
 
 /** The longest a proves line may be — one line a reader takes in at a glance, not a paragraph. */
 export const MAX_PROVES_CHARS = 200;
@@ -175,8 +176,8 @@ export type AttachEvidence =
 export function resolveAttachEvidence({ home, bytes }: { home: string; bytes: Uint8Array }): AttachEvidence {
   const digest = imageDigestOf({ bytes });
   const recapture =
-    "take it through a capture verb — `slopweaver browser shot`, `browser terminal-shot`, `browser console-shot`, " +
-    "`browser redact` or `proof cassette` — and attach the file it wrote, unedited";
+    "take it through `slopweaver browser console-shot`, the one capture verb attach admits, and attach the file it " +
+    "wrote, unedited; any other proof stays local until a figure check exists";
   const captured = readCaptureRecord({ captureId: captureIdFor({ digest }), home });
   if (captured.isErr()) {
     return {
@@ -215,11 +216,6 @@ export function resolveAttachEvidence({ home, bytes }: { home: string; bytes: Ui
     };
   }
   return { digest, kind: "found", receipt: captured.value, records: records.value };
-}
-
-/** One hold finding, the only severity this module raises. */
-function hold({ code, summary, correction }: { code: string; summary: string; correction: string }): DoorFinding {
-  return { code, correction, severity: "hold", summary };
 }
 
 /**
@@ -271,47 +267,13 @@ export function attachEvidenceFindings({
   }
   const { receipt, records } = evidence;
   return [
+    ...attachCaptureVerbFindings({ verb: receipt.verb }),
     ...capturedTypeFindings({ contentType, receipt }),
     ...frameTextFindings({ receipt, scan }),
     ...pixels,
     ...textFindings,
     ...recordFindings({ receipt, records }),
     ...pictureOnlyFindings({ bytes, receipt }),
-  ];
-}
-
-/** No verb writes a GIF, a WebM or a JPEG, so that type is refused on its own, beside the missing receipt. */
-function uncapturedTypeFindings({ contentType }: { contentType: string }): readonly DoorFinding[] {
-  if (ANY_CAPTURED_TYPE.has(contentType)) {
-    return [];
-  }
-  return [
-    hold({
-      code: "attach.content-type",
-      correction: "attach the .png or .mp4 a capture verb wrote; no capture verb writes anything else",
-      summary: `the upload would be declared ${contentType}, and no capture verb writes one`,
-    }),
-  ];
-}
-
-/** The receipt names the verb, the verb names the type: a PNG renamed .mp4, or the reverse, is not what was checked. */
-function capturedTypeFindings({
-  contentType,
-  receipt,
-}: {
-  contentType: string;
-  receipt: CaptureReceipt;
-}): readonly DoorFinding[] {
-  const written = CAPTURED_CONTENT_TYPES[receipt.verb];
-  if (contentType === written) {
-    return [];
-  }
-  return [
-    hold({
-      code: "attach.content-type",
-      correction: "attach the file under the name the capture verb gave it",
-      summary: `the upload would be declared ${contentType}, and \`${receipt.verb}\` wrote an ${written}`,
-    }),
   ];
 }
 
@@ -335,7 +297,7 @@ function frameTextFindings({
   const recording = receipt.verb === "proof cassette";
   const correction = recording
     ? "re-record with a tape that does not show it"
-    : "re-capture without it, or burn it out with `slopweaver browser redact` and attach that file";
+    : "re-capture it with `slopweaver browser console-shot` so it does not show it";
   return scan({ surface: "frame-text", text: frameTextLines({ frameText: receipt.frameText }) }).map((problem) =>
     hold({
       code: "attach.scan.frame-text",
@@ -375,7 +337,7 @@ function pixelTextFindings({
   return scan({ surface: "pixel-text", text: pixelText.value.lines.join("\n") }).map((problem) =>
     hold({
       code: "attach.scan.pixel-text",
-      correction: "re-capture without it, or burn it out with `slopweaver browser redact` and attach that file",
+      correction: "re-capture it with `slopweaver browser console-shot` so it does not show it",
       summary: `the picture's pixels show ${problem}`,
     }),
   );

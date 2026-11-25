@@ -100,7 +100,9 @@ Both were tape properties, so `src/proof/cassette/tape.ts` refuses a tape that s
 - **The output is one `.mp4`, written by the verb.** A tape naming its own `Output` is refused, because VHS writes
   EVERY output line and a stray `.gif` would still be produced. The `.mp4` is h264/yuv420p and plays inline with a
   scrubber and a duration; `github attach upload` refuses any GIF, which no capture verb writes.
-- **It files the capture receipt `github attach` requires.** The verb also writes VHS's text output beside the video
+- **It files a capture receipt, and the video stays local proof.** `github attach` holds every verb but
+  `browser console-shot` until a figure check exists, because a terminal can print a figure from the operator's own
+  accounts that the text scan cannot tell apart from a harmless one. The verb also writes VHS's text output beside the video
   (`<out>.txt`), strips the container's metadata with ffmpeg, and records the recording's transcript as its frame
   text, so attach scans the words a reader watches scroll past. No transcript means `incomplete` frame text, which
   attach refuses. The transcript output has not yet been measured against a live `vhs`; the strip is measured in

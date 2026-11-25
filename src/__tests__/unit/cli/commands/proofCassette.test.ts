@@ -115,7 +115,8 @@ describe("runProofCassette", () => {
       `  capture receipt ${CAPTURE_ID}; frame text from ${out}.txt`,
       "next: read the transcript, then record what the recording shows: slopweaver browser image-record " +
         `--form <form>, citing capture id ${CAPTURE_ID}`,
-      `next: slopweaver github attach upload --file ${out} --repo <owner/name> --number <pr> --proves "<one line>"`,
+      "the recording stays local: github attach holds every capture verb but browser console-shot until a figure " +
+        "check exists",
     ]);
     expect(captured.errors).toStrictEqual([]);
   });
