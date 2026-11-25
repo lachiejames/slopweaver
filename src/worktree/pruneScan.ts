@@ -37,6 +37,7 @@ import { isFreshSnapshotTree, osTempRoots } from "./freshSnapshotPath.js";
 import type { WorktreeFacts } from "./pruneClassify.js";
 import { readIgnoredWork, readTreeStashes } from "./pruneContext.js";
 import { countLines, type GitRunner, readWorkingTree, realGit } from "./pruneGit.js";
+import { scanLapFacts } from "./pruneLapPin.js";
 import { verbatimAbsorbed } from "./prunePatchIds.js";
 
 /**
@@ -321,10 +322,11 @@ export function scanWorktree({
     return { ...base, ...UNMEASURED, ...work, lastActivityMs: dirMs({ path }) };
   }
   const runClosed = runClosedFor({ branch, path, runsDir });
+  const lap = scanLapFacts({ git, path });
   if (branch === null) {
-    return { ...base, ...UNMEASURED, ...detachedFacts({ git, path, repoRoot }), ...work, runClosed };
+    return { ...base, ...UNMEASURED, ...detachedFacts({ git, path, repoRoot }), ...work, ...lap, runClosed };
   }
-  return { ...base, ...branchFacts({ branch, deletionsOnly, git, path, repoRoot, trunk }), ...work, runClosed };
+  return { ...base, ...branchFacts({ branch, deletionsOnly, git, path, repoRoot, trunk }), ...work, ...lap, runClosed };
 }
 
 /**

@@ -356,6 +356,8 @@ export interface ScanPass {
  * @param scanBudgetMs how long the scan itself may take
  * @param runsDir where handover run journals live
  * @param cursors where the previous `--apply` left each repository short
+ * @param includeUnmarkedLap whether this is the explicit run that may take a lap tree with no provenance marker
+ *   (`--include-unmarked-lap`); never set by the hourly or disk-pressure runs
  * @returns the plans, the per-repository shortfall, where each short one resumes, and when the scan ended
  */
 export function scanRepos({
@@ -367,6 +369,7 @@ export function scanRepos({
   olderThanMs,
   scanBudgetMs,
   runsDir,
+  includeUnmarkedLap = false,
 }: {
   queues: readonly RepoQueue[];
   live: LiveState;
@@ -376,6 +379,7 @@ export function scanRepos({
   scanBudgetMs: number;
   runsDir: string;
   cursors: readonly ScanCursor[];
+  includeUnmarkedLap?: boolean;
 }): ScanPass {
   const trunks = new Map(queues.map((queue) => [queue.repoRoot, queue.trunk]));
   const swept = sweepWithin({
@@ -391,6 +395,7 @@ export function scanRepos({
           trunk: trunks.get(entry.repoRoot)!,
           worktree: entry.worktree,
         }),
+        includeUnmarkedLap,
         nowMs,
         nukeAfterMs,
         olderThanMs,

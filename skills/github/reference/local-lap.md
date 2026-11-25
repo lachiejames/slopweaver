@@ -68,10 +68,10 @@ The plan is DERIVED from `OFFLOADED_COMMANDS` (`src/devLint/ciOffloadCommands.ts
 project's install before its first command and `yarn slopweaver dev build` before the subprocess lane. It
 stops at the first red step, and a step past its 45-minute ceiling is killed with its whole process group.
 
-The detached checkout lives under `<cache root>/lap-trees.noindex` (`~/Library/Caches/slopweaver/lap-trees.noindex`
-by default on macOS), never the per-user temp directory: macOS's nightly temp cleaner empties files there older
-than three days, and an install keeps the package cache's old timestamps, so it once emptied a live tree's packages
-mid-lap. The lane home stays under `TMPDIR`.
+The detached checkout lives under `<cache root>/lap-trees.noindex`, never the per-user temp directory: macOS's
+nightly temp cleaner empties files there older than three days, and an install keeps the package cache's old
+timestamps, so it once emptied a live tree's packages mid-lap. The lane home stays under `TMPDIR`. A stop signal
+removes what the lap brought up, and a tree a `kill -9` strands carries a marker: [teardown](lap-teardown.md).
 
 A lane sees only an allowlist of the seat's variables (`PATH`, `TMPDIR` and the like), plus
 `CI=true`, `POLLY_MODE=replay`, `TZ=UTC`, one throwaway directory as both `HOME` and `SLOPWEAVER_HOME`, the

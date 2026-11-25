@@ -22,8 +22,9 @@ of a removal is one tree rather than a day's backlog.
 ## The classes
 
 A worktree lands in exactly one class. `--apply` acts on `merged`, `interrupted`, `pushed`, `detached`,
-`snapshot` and `salvaged` — the first four under the owner's untouched-over-24h rule, `snapshot` past the
-longest Codex pass, the last under the owner's over-a-week one; `--merged-only` narrows it to the first two;
+`snapshot`, `lap` and `salvaged` — the first four under the owner's untouched-over-24h rule, `snapshot` past the
+longest Codex pass, `lap` once the lap that minted it has stopped, the last under the owner's over-a-week one;
+`--merged-only` narrows it to the first two;
 nothing ever REMOVES a `hold` or `gone` tree. `--no-salvage` turns the waiver off, so no tree is `salvaged`
 and the run pushes nothing: a tree carrying work no remote has stays `hold` under its own reason and still
 drops its cold `node_modules`, for a checkout whose remote must never receive a salvage branch
@@ -61,6 +62,24 @@ read's width every class shares (below): a write into the tree — a commit, a r
 and `git worktree remove`, which git offers no compare-and-remove to close. A snapshot's private gitdir is read
 again in `changedSinceScan`, beside that last HEAD read, so the width is that instant and not the whole apply.
 
+A `github lap` tree under the cache's `lap-trees/` directory, named `sw-lap-<6>`, is `lap` once the lap that
+minted it is gone. A lap removes its own tree on every exit, a stop signal included
+([teardown](../../skills/github/reference/lap-teardown.md)), so this is for one killed outright. Shape is not provenance: the lap writes a marker into the tree's
+private gitdir naming its pid, that process's start stamp and the HEAD it minted
+(`src/worktree/lapTreeProvenance.ts`), and the tree is `lap` only while that pid and start stamp name no running
+process. A **marked** tree goes from the hourly run. An **unmarked** one — minted before the marker existed — is
+held there under its own reason, and goes only under an explicit `worktree prune --include-unmarked-lap`, and
+only when a kept ref contains its HEAD. Kept is an ALLOWLIST, so an unknown namespace never admits a tree:
+`refs/remotes/`, `refs/tags/`, `refs/heads/` except the tree's own `salvage/<slug>-` branches,
+`refs/slopweaver/pruned-lap/` and `refs/slopweaver/operator-lap/`. Scratch (`refs/tmp/`), the lap's own moving
+`refs/slopweaver/lap/` and a stash are not. Every unmarked verdict prints the HEAD and the ref that admitted it,
+or the line that none did; an operator admits one by writing `refs/slopweaver/operator-lap/<sha>` first. The
+lap's own report directories are excused from the ignored-file hold for this class only, and every other hold —
+dirty, stash, a hidden file, a live reference — still fires. The removal pins its HEAD at
+`refs/slopweaver/pruned-lap/<sha>` first, after re-reading the marker, the minter, the HEAD and the private
+gitdir (which may hold the marker beside a snapshot's six files), and runs without `--force`, so git's own dirty
+check is the second opinion (`src/worktree/pruneLapPin.ts`).
+
 | Class         | Membership                                                                                                              | What `--apply` does                                                                                                                            |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `merged`      | absorbed into the trunk, clean, unreferenced, and older than `--older-than`                                             | removes the tree, then deletes the branch only when the trunk carries its tip                                                                  |
@@ -68,6 +87,7 @@ again in `changedSinceScan`, beside that last HEAD read, so the width is that in
 | `pushed`      | clean and fully pushed, but NOT absorbed — the tree is recreatable, the branch is not disposable                        | removes the tree and KEEPS the branch; skipped by `--merged-only`                                                                              |
 | `detached`    | no branch, but a remote ref still contains the HEAD commit                                                              | removes the tree; `git worktree add --detach <sha>` recreates it                                                                               |
 | `snapshot`    | a one-off Codex snapshot under the OS temp directory, unreferenced and untouched for 25 hours                           | removes the tree; nothing is pushed, because it is a copy of another tree                                                                      |
+| `lap`         | a `github lap` tree whose marked minter has stopped, or an unmarked one a kept ref holds under `--include-unmarked-lap` | pins its HEAD under `refs/slopweaver/pruned-lap/`, then removes the tree without `--force`                                                     |
 | `salvaged`    | past `--nuke-after` and held only by work a push can carry — dirty, deletions, commits on no remote, or a detached HEAD | pushes the work to a remote branch, then removes the tree; never reached under `--no-salvage`                                                  |
 | `gone`        | registered by git, absent from disk                                                                                     | `git worktree prune` clears the record; frees nothing                                                                                          |
 | `hold`        | anything a safety rule stops                                                                                            | never removed; a cold, unreferenced one drops its `node_modules`                                                                               |

@@ -97,12 +97,16 @@ async function storeReady({ cwd, id }: { cwd: string; id: string }): Promise<boo
  * Start the throwaway store, removing any orphan first, and wait until it accepts connections.
  *
  * @param cwd the directory docker runs from
+ * @param register handed the container's removal as soon as `docker run` answers, before the readiness wait; what it
+ * answers is the removal used from then on, so a registry that drained meanwhile leaves nothing to remove twice
  * @returns the store's URLs, whose disposal removes the container, or why it would not come up
  */
 export async function startLapStore({
   cwd,
+  register,
 }: {
   cwd: string;
+  register: (held: { dispose: () => Promise<void> }) => () => Promise<void>;
 }): Promise<Result<LapResource<Readonly<Record<string, string>>>, LapError>> {
   removeOrphanStores({ cwd });
   const started = runLapCommand({
@@ -127,10 +131,12 @@ export async function startLapStore({
     return err(LapErrors.storeUnavailable({ why: `would not start (is Docker running?): ${started.error.message}` }));
   }
   const id = started.value;
-  const dispose = (): Promise<void> => {
-    runLapCommand({ args: storeRemovalArgs({ id }), cwd, file: "docker" });
-    return Promise.resolve();
-  };
+  const dispose = register({
+    dispose: () => {
+      runLapCommand({ args: storeRemovalArgs({ id }), cwd, file: "docker" });
+      return Promise.resolve();
+    },
+  });
   const reported = runLapCommand({ args: ["port", id, "5432/tcp"], cwd, file: "docker" });
   const port = reported.isOk() ? publishedPort({ output: reported.value }) : undefined;
   if (port === undefined) {

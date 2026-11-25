@@ -12,9 +12,13 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { checkoutLapTree } from "../../../../../cli/commands/github/lapTree.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { readLapTreeMarker } from "../../../../../worktree/lapTreeProvenance.js";
 import { gitInTemp, REAL_GIT_SUITE } from "../../../../tempGitRepo.js";
 
 const fixtureDirs: string[] = [];
+
+/** A minter `ps` stamped: this test process's own pid, with a fixed stamp the marker must carry verbatim. */
+const MINTER = { pid: process.pid, processStart: "Thu Nov 26 09:00:00 2026" };
 
 afterEach(() => {
   for (const dir of fixtureDirs.splice(0)) {
@@ -51,20 +55,45 @@ describe("checkoutLapTree", REAL_GIT_SUITE, () => {
     const parent = join(root, "cache", "lap-trees.noindex");
     expect(existsSync(parent)).toBe(false);
 
-    const tree = unwrap(checkoutLapTree({ cwd: repo, resolveParent: () => parent, sha }));
+    const tree = unwrap(checkoutLapTree({ cwd: repo, minter: MINTER, resolveParent: () => parent, sha }));
     const physical = realpathSync(tree.value);
+    const gitDir = gitInTemp({ args: ["rev-parse", "--absolute-git-dir"], cwd: tree.value });
     try {
       expect(dirname(tree.value)).toBe(parent);
       expect(basename(tree.value).startsWith("sw-lap-")).toBe(true);
       expect(gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree.value })).toBe(sha);
       expect(registeredWorktrees({ repo })).toContain(physical);
+      expect(unwrap(readLapTreeMarker({ gitDir }))).toEqual({
+        kind: "github-lap-tree",
+        mintedHead: sha,
+        pid: process.pid,
+        processStart: "Thu Nov 26 09:00:00 2026",
+        version: 1,
+      });
+      // The marker sits in the private gitdir, so the tree's own status never sees it.
+      expect(gitInTemp({ args: ["status", "--porcelain", "--ignored"], cwd: tree.value })).toBe("");
     } finally {
       await tree.dispose();
     }
 
     expect(existsSync(tree.value)).toBe(false);
+    expect(existsSync(gitDir)).toBe(false);
     expect(registeredWorktrees({ repo })).not.toContain(physical);
     expect(existsSync(parent)).toBe(true);
+  });
+
+  it("refuses a minter ps could not stamp before creating anything", () => {
+    const { repo, root, sha } = initRepo();
+    const parent = join(root, "cache", "lap-trees.noindex");
+
+    const failure = unwrapErr(
+      checkoutLapTree({ cwd: repo, minter: { pid: 4242, processStart: undefined }, resolveParent: () => parent, sha }),
+    );
+
+    expect(failure.code).toBe("COMMAND_FAILED");
+    expect(failure.message).toContain("ps printed no start time for pid 4242");
+    expect(existsSync(parent)).toBe(false);
+    expect(registeredWorktrees({ repo })).toEqual([realpathSync(repo)]);
   });
 
   it("answers a typed failure naming the lap-tree directory when the parent cannot be created", () => {
@@ -72,7 +101,7 @@ describe("checkoutLapTree", REAL_GIT_SUITE, () => {
     const parent = join(root, "a-file");
     writeFileSync(parent, "not a directory\n");
 
-    const failure = unwrapErr(checkoutLapTree({ cwd: repo, resolveParent: () => parent, sha }));
+    const failure = unwrapErr(checkoutLapTree({ cwd: repo, minter: MINTER, resolveParent: () => parent, sha }));
 
     expect(failure.code).toBe("COMMAND_FAILED");
     expect(failure.message).toContain(`create the lap tree under ${parent} failed: `);
@@ -85,7 +114,7 @@ describe("checkoutLapTree", REAL_GIT_SUITE, () => {
       throw new Error("cache root: SLOPWEAVER_CACHE_HOME carries a control character");
     };
 
-    const failure = unwrapErr(checkoutLapTree({ cwd: repo, resolveParent: unresolvable, sha }));
+    const failure = unwrapErr(checkoutLapTree({ cwd: repo, minter: MINTER, resolveParent: unresolvable, sha }));
 
     expect(failure.code).toBe("COMMAND_FAILED");
     expect(failure.message).toBe(

@@ -127,6 +127,11 @@ describe("applicable", () => {
     expect(applicable({ mergedOnly: true, verdict: verdict({ cls: "merged", path: "m" }) })).toBe(true);
     expect(applicable({ mergedOnly: true, verdict: verdict({ cls: "interrupted", path: "i" }) })).toBe(true);
   });
+
+  it("acts on a spent lap tree by default, and never under --merged-only", () => {
+    expect(applicable({ mergedOnly: false, verdict: verdict({ cls: "lap", path: "l" }) })).toBe(true);
+    expect(applicable({ mergedOnly: true, verdict: verdict({ cls: "lap", path: "l" }) })).toBe(false);
+  });
 });
 
 describe("applyOrder", () => {

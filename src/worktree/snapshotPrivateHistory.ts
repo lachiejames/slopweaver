@@ -101,16 +101,23 @@ function graftsFileMayExist({ common }: { common: string }): boolean {
  * own and refuses. Anything that is not a regular file — a directory aside — refuses.
  *
  * @param gitDir the tree's own gitdir, never the shared one
+ * @param alsoAllowed files the caller's own tooling writes there besides the six, read for ids like the rest
  * @returns each id named, the null id aside
  */
-function writtenObjects({ gitDir }: { gitDir: string }): readonly string[] | null {
+function writtenObjects({
+  gitDir,
+  alsoAllowed,
+}: {
+  gitDir: string;
+  alsoAllowed: readonly string[];
+}): readonly string[] | null {
   const ids: string[] = [];
   try {
     const entries = readdirSync(gitDir, { recursive: true, withFileTypes: true });
     const files = entries.filter((entry) => !entry.isDirectory());
     for (const entry of files) {
       const name = relative(gitDir, join(entry.parentPath, entry.name));
-      if (!entry.isFile() || !SNAPSHOT_GITDIR_FILES.has(name)) {
+      if (!entry.isFile() || !(SNAPSHOT_GITDIR_FILES.has(name) || alsoAllowed.includes(name))) {
         return null;
       }
       // Skipped by NAME, never by content: a NUL anywhere else is no snapshot's, so it refuses.
@@ -136,14 +143,25 @@ function writtenObjects({ gitDir }: { gitDir: string }): readonly string[] | nul
  * @param git how to run git
  * @param path the tree whose private gitdir is read
  * @param rev the commit the index must match exactly
+ * @param alsoAllowed files beyond the six that the caller's own tooling writes into the private gitdir
  * @returns every id its text files write out, and the per-worktree refs' targets, deduplicated
  */
-function privateNames({ git, path, rev }: { git: GitRunner; path: string; rev: string }): ReadonlySet<string> | null {
+function privateNames({
+  git,
+  path,
+  rev,
+  alsoAllowed,
+}: {
+  git: GitRunner;
+  path: string;
+  rev: string;
+  alsoAllowed: readonly string[];
+}): ReadonlySet<string> | null {
   const dirs = privateGitDir({ git, path });
   if (dirs === null || historyRewritten({ common: dirs.common, git, path })) {
     return null;
   }
-  const written = writtenObjects({ gitDir: dirs.gitDir });
+  const written = writtenObjects({ alsoAllowed, gitDir: dirs.gitDir });
   // Belt to the file scan's braces: git's own answer for the refs whose removal goes with the tree.
   const refs = git({ args: ["for-each-ref", "--format=%(objectname)", ...PER_WORKTREE_REFS], cwd: path });
   // The index is skipped as binary, so it is read whole here instead: its entries must be `rev`'s own, a blob staged
@@ -173,10 +191,22 @@ function privateNames({ git, path, rev }: { git: GitRunner; path: string; rev: s
  * @param git how to run git
  * @param path the snapshot's worktree
  * @param rev the commit every private name must be contained in
+ * @param alsoAllowed files beyond the six a snapshot's creation writes that the caller's own tooling adds — a lap
+ *   tree's marker — each still read for every id it names; none by default
  * @returns true only when nothing the private gitdir names is outside `rev`'s history
  */
-export function privateHistoryWithinHead({ git, path, rev }: { git: GitRunner; path: string; rev: string }): boolean {
-  const names = privateNames({ git, path, rev });
+export function privateHistoryWithinHead({
+  git,
+  path,
+  rev,
+  alsoAllowed = [],
+}: {
+  git: GitRunner;
+  path: string;
+  rev: string;
+  alsoAllowed?: readonly string[];
+}): boolean {
+  const names = privateNames({ alsoAllowed, git, path, rev });
   if (names === null) {
     return false;
   }

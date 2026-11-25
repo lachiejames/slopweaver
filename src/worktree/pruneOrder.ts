@@ -78,8 +78,9 @@ export function interleave<T>({ lists }: { lists: readonly (readonly T[])[] }): 
  * `pruneClassify.ts`'s header. `detached` is in it with its own witness rather than a looser age cut, and so is
  * `salvaged`; the same header carries both.
  * `snapshot` joined under the owner's evergreen-prune ruling: a leaked one-off Codex snapshot past the
- * longest pass, its reasoning in `freshSnapshotPath.ts`.
- * `--merged-only` is the way back to the narrowest pass, and it is the way back past all four.
+ * longest pass, its reasoning in `freshSnapshotPath.ts`. `lap` is a spent `github lap` tree, its reasoning in
+ * `pruneLapClass.ts`.
+ * `--merged-only` is the way back to the narrowest pass, and it is the way back past all five.
  *
  * @param verdict the classified worktree
  * @param mergedOnly whether the caller narrowed the run to the absorbed classes
@@ -92,9 +93,8 @@ export function applicable({ verdict, mergedOnly }: { verdict: PruneVerdict; mer
   if (mergedOnly) {
     return false;
   }
-  return (
-    verdict.cls === "pushed" || verdict.cls === "detached" || verdict.cls === "snapshot" || verdict.cls === "salvaged"
-  );
+  const removable: readonly PruneVerdict["cls"][] = ["pushed", "detached", "snapshot", "lap", "salvaged"];
+  return removable.includes(verdict.cls);
 }
 
 /**
