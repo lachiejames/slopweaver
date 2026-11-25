@@ -16,7 +16,7 @@
  * into `RequestError(message, 500, …)`, and `fetch` itself already wrapped undici's real failure. So the
  * only link that knows a socket died is two `cause` hops down, and the only status present is one the SDK
  * invented. Reading the top level alone reported `HTTP 500: other side closed` for a request GitHub never
- * answered — which is why {@link codeOf} walks the chain and {@link toIngestError} suppresses a status
+ * answered — which is why {@link codesOf} walks the chain and {@link toIngestError} suppresses a status
  * whenever a transport code is found.
  */
 import { isRecord } from "./parsers.js";
@@ -145,16 +145,59 @@ function causeChain({ error }: { error: unknown }): readonly unknown[] {
 }
 
 /**
- * The string code carried by an error or by anything in its `cause` chain, outermost first.
+ * The code a failure reports, and the transport code that proves no response came back, when one does.
  *
  * Reading only the top level is what threw `UND_ERR_SOCKET` away for every Octokit call in this program:
  * `RequestError` declares no `code` at all, so a socket that died reported no code and, with Octokit's
- * synthetic `status: 500` present, classified as an ordinary HTTP failure.
+ * synthetic `status: 500` present, classified as an ordinary HTTP failure. Taking the first code of any kind
+ * repeats that loss one link down: a wrapper carrying its own non-transport code (`WRAPPER_ERROR` around
+ * undici's `UND_ERR_SOCKET`) hid the link that proves no response came back, and the wrapper's synthetic status
+ * was believed — the very claim this module's header says a transport code outranks. So a transport code
+ * anywhere in the chain wins over a nearer code of another kind.
+ *
+ * Bar one signal: a RATE LIMIT. A `429` on the error, or a rate-limit code as its first code, is an answer —
+ * the provider replied, so a deeper transport code describes an earlier attempt, never this one. An SDK invents
+ * a status only for a request that got no reply (Octokit's is always `500`), and none invents a `429`, so this
+ * exception cannot readmit the synthetic status the rule above exists to drop.
  */
-function codeOf({ error }: { error: unknown }): string | undefined {
+function codesOf({ error, integration }: { error: unknown; integration: string | undefined }): {
+  code: string | undefined;
+  transportCode: string | undefined;
+} {
+  const first = firstCodeOf({ error });
+  const rateLimited = statusOf({ error }) === 429 || (first !== undefined && RATE_LIMIT_CODES.has(first));
+  if (rateLimited) {
+    return { code: first, transportCode: undefined };
+  }
+  const transportCode = transportCodeOf({ error, integration });
+  if (transportCode !== undefined) {
+    return { code: transportCode, transportCode };
+  }
+  return { code: first, transportCode: undefined };
+}
+
+/** The first non-empty string code in a thrown error's `cause` chain, outermost first, of any kind. */
+function firstCodeOf({ error }: { error: unknown }): string | undefined {
   for (const link of causeChain({ error })) {
     const code = readProp({ key: "code", value: link });
     if (typeof code === "string" && code.length > 0) {
+      return code;
+    }
+  }
+  return undefined;
+}
+
+/** The first transport code anywhere in a thrown error's `cause` chain, outermost first (see {@link codesOf}). */
+function transportCodeOf({
+  error,
+  integration,
+}: {
+  error: unknown;
+  integration: string | undefined;
+}): string | undefined {
+  for (const link of causeChain({ error })) {
+    const code = readProp({ key: "code", value: link });
+    if (typeof code === "string" && isTransportCode({ code, provider: integration })) {
       return code;
     }
   }
@@ -193,8 +236,45 @@ function retryAfterMsOf({ error }: { error: unknown }): number | undefined {
   return Number.isFinite(seconds) ? Math.round(seconds * 1000) : undefined;
 }
 
-/** The best human message for an error (`.message` when present, else a stringified fallback). */
-function messageOf({ error }: { error: unknown }): string {
+/**
+ * GitHub's own id for the response, from `response.headers["x-github-request-id"]` (Octokit lower-cases every
+ * response header name), when present and non-empty.
+ *
+ * Deliberately ONE header from ONE place: it is the id GitHub support asks for, and it is read only off the
+ * RECEIVED response, never a request header or a `cause` link, which could carry an id this program sent. It
+ * goes into a synthesised message alone and is never an {@link IngestError} field, so no other caller's
+ * structured error gains a provider detail it did not ask for.
+ */
+function githubRequestIdOf({ error }: { error: unknown }): string | undefined {
+  const headers = readProp({ key: "headers", value: readProp({ key: "response", value: error }) });
+  const id = readProp({ key: "x-github-request-id", value: headers });
+  return typeof id === "string" && id.length > 0 ? id : undefined;
+}
+
+/**
+ * The best human message for an error: its own `.message` when present, else a thrown string, else a message
+ * synthesised from what the failure DID carry.
+ *
+ * The synthesis exists because a provider can answer with no body at all. GitHub answered `pulls.create` with
+ * an HTTP 500 and `content-length: 0`, so `@octokit/request` threw `RequestError("", 500, …)` — and a message
+ * of `unknown error` threw away the status and the request id, while most callers print `.message` alone. The
+ * synthesised text claims only what is known — the provider sent no error message — never that the body was
+ * empty, since a plain `{ status: 503 }` carries no response at all. The status here is the EFFECTIVE one,
+ * already suppressed for a transport failure, so an SDK's invented 500 is never restated as an HTTP answer; a
+ * transport failure names its code instead.
+ *
+ * @param status the effective HTTP status, absent for a transport failure
+ * @param transportCode the code that proved no HTTP response came back, when one did
+ */
+function messageOf({
+  error,
+  status,
+  transportCode,
+}: {
+  error: unknown;
+  status: number | undefined;
+  transportCode: string | undefined;
+}): string {
   if (error instanceof Error && error.message.length > 0) {
     return error.message;
   }
@@ -202,7 +282,18 @@ function messageOf({ error }: { error: unknown }): string {
   if (typeof message === "string" && message.length > 0) {
     return message;
   }
-  return typeof error === "string" && error.length > 0 ? error : "unknown error";
+  if (typeof error === "string" && error.length > 0) {
+    return error;
+  }
+  if (status !== undefined) {
+    const requestId = githubRequestIdOf({ error });
+    const idSuffix = requestId !== undefined ? ` (GitHub request ID: ${requestId})` : "";
+    return `HTTP ${String(status)} with no error message from the provider${idSuffix}`;
+  }
+  if (transportCode !== undefined) {
+    return `Transport failure ${transportCode}; no HTTP response was received`;
+  }
+  return "unknown error";
 }
 
 /** Refine the boundary's default kind using any HTTP/code/message signal the error carried. */
@@ -262,14 +353,14 @@ export function toIngestError({
   path?: string;
   defaultKind?: IngestErrorKind;
 }): IngestError {
-  const code = codeOf({ error });
+  const { code, transportCode } = codesOf({ error, integration: provider });
   // A transport failure has NO status, whatever the SDK put on the error object. Octokit stamps 500 on every
   // `fetch` rejection, and carrying that forward made the verb print `HTTP 500` for a request GitHub never
   // answered — a false statement about the wire, and one that sent readers hunting a server fault.
   // `retryDecision` tests `kind === "network"` BEFORE `hasTransientStatus`, so dropping it costs no retry.
-  const status = isTransportCode({ code, provider }) ? undefined : statusOf({ error });
+  const status = transportCode !== undefined ? undefined : statusOf({ error });
   const retryAfterMs = retryAfterMsOf({ error });
-  const message = messageOf({ error });
+  const message = messageOf({ error, status, transportCode });
   const kind = resolveKind({ code, defaultKind, message, provider, status });
   // Enforce invariants (kind/operation/message/cause) LAST so the extracted optionals can never clobber
   // them — the archive's spread-then-enforce ordering, re-skinned.
