@@ -20,10 +20,10 @@
 import { type DefaultTreeAdapterMap, parse, html as parse5Html } from "parse5";
 import { sanitizeInlineStyle, sanitizeStyleBlock } from "./mailCss.js";
 import {
-  DATA_IMAGE,
   DROPPED_ELEMENTS,
   ELEMENT_ATTRIBUTES,
   GLOBAL_ATTRIBUTES,
+  isKeptDataImage,
   KEPT_ELEMENTS,
   REMOTE_SOURCE,
   VOID_ELEMENTS,
@@ -97,7 +97,7 @@ function keptImageSource({ value, state }: { value: string; state: WalkState }):
     state.remoteImagesBlocked += 1;
     return undefined;
   }
-  if (!DATA_IMAGE.test(value.trim())) {
+  if (!isKeptDataImage({ source: value.trim() })) {
     return undefined;
   }
   state.visible = true;
