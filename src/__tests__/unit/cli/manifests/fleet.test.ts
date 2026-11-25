@@ -1,7 +1,8 @@
 /**
- * The `fleet` noun's manifest: the readers (`burn`, `ceiling`, `history`, `landed`, `why`) are effect-free
- * diagnostics, `status` alone reaches a remote (external-read), `health` is a local-state diagnostic because its
- * console line files a fetch claim under the home, `configure` and `resume` write local state, and `restore-policy`
+ * The `fleet` noun's manifest: the readers (`ceiling`, `history`, `landed`, `why`) are effect-free diagnostics,
+ * `status` alone reaches a remote (external-read), `health` is a local-state diagnostic because its console line
+ * files a fetch claim under the home, `burn` is a local-state diagnostic because `--record-reading` appends to the
+ * readings ledger, `configure` and `resume` write local state, and `restore-policy`
  * is a local-state diagnostic (its read mode exits 3 on a finding). Every verb but `configure` acts on a bare run
  * (a read of the home, a ledger or a remote), so only `configure` is dry-parse safe. That the manifest imports nothing
  * heavier is `../manifestBarrelClosure.test.ts`'s job.
@@ -35,7 +36,7 @@ describe("fleetManifest", () => {
         diagnostic: true,
         doorRouted: false,
         dryParseSafe: false,
-        effect: "none",
+        effect: "local-state",
         parseRejectIsIoFree: true,
       },
       ceiling: {

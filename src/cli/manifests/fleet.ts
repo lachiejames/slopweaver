@@ -23,13 +23,14 @@ export const fleetManifest: Readonly<Record<string, VerbManifestEntry>> = {
       doorRouted: false,
       // A bare run reads the local transcripts and rollouts and prints the burn, so it acts rather than printing usage.
       dryParseSafe: false,
-      // The local Claude transcripts, the plan register and each registered Codex home's rollouts. No probe, no network.
-      effect: "none",
+      // Reads the local Claude transcripts, the plan register and each registered Codex home's rollouts — no probe, no
+      // network — and `--record-reading` appends the printed document to the local readings ledger.
+      effect: "local-state",
       example: "slopweaver fleet burn --json",
       parseRejectIsIoFree: true,
       summary:
         "How many tokens Claude and Codex each burned in the last 24 hours, what seven days at that rate would burn, and how many sessions are drawing now",
-      usage: "usage: slopweaver fleet burn [--home <value>] [--now <value>] [--json]",
+      usage: "usage: slopweaver fleet burn [--home <value>] [--now <value>] [--record-reading <value>] [--json]",
     },
   }),
   ceiling: lazy({

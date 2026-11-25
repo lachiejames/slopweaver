@@ -418,16 +418,16 @@ export const LIVE_VERBS: readonly LiveVerb[] = [
     timeoutMs: FAST_TIMEOUT_MS,
     title: "slopweaver profile standing --json",
   },
-  // The tick's recorded readings the state pages read — seats, the board reconcile, the listener and the
+  // The recorded readings the state pages read — seats, the board reconcile, the listener and the
   // machine's capacity — and why every one is a LEDGER read rather than the verb itself.
   // MEASURED: `session watch --json-report` spawned from the live route printed NOTHING on
   // exit 0, twice, while the same argv from a shell printed 6,141 bytes minutes earlier. The verb is a
   // cursor DRAIN — it reads the cmux events after its stored cursor and advances it (`cmux_event_state`)
-  // — so a second drain inside the same quiet window has nothing to print, and a page draining it every
-  // twenty seconds would STARVE the supervisor tick's own drain of the events it judges. That is the owner's
-  // steer stated as a mechanism: the rows come from the supervisor tick's own gauges, and
-  // `supervisor tick-capture` records every one of these as a reading. Reproduce the empty drain with
-  // `slopweaver session watch --json-report; slopweaver session watch --json-report` back to back.
+  // — so its stdout is only what arrived since the last drain, and a page polling it every twenty seconds
+  // would draw an empty list most of the time. So the page reads the ledger: `supervisor tick-capture`
+  // records every one of these as a reading while a tick runs, and the Fleet page's opening refresh records
+  // its own seat and burn readings through the sync route (`syncVerbs.ts`), once per opening, never on this poll.
+  // Reproduce the empty drain with `slopweaver session watch --json-report; slopweaver session watch --json-report`.
   {
     argv: ["reading", "last", "--producer", "session watch", "--json"],
     // A supervisor that has never recorded a session check leaves no reading, and the verb exits 3, `NO_READING`, to
@@ -436,8 +436,8 @@ export const LIVE_VERBS: readonly LiveVerb[] = [
     format: "json",
     lane: "fast",
     slug: "watch-reading",
-    // The tick's own drain, as the bytes it printed: every open seat by signal, judged at the document's
-    // `observedAtIso`, which is the instant the reading carries and the tile ages.
+    // The last recorded drain — the tick's or the page's own opening refresh — as the bytes it printed: every open
+    // seat by signal, judged at the document's `observedAtIso`, which is the instant the reading carries and the tile ages.
     stampsItsOwnTime: true,
     timeoutMs: FAST_TIMEOUT_MS,
     title: 'slopweaver reading last --producer "session watch" --json',
@@ -544,7 +544,8 @@ export const LIVE_VERBS: readonly LiveVerb[] = [
     lane: "fast",
     slug: "burn-reading",
     // Each host's tokens over the last 24 hours, the seven-day amount at that rate and the sessions drawing now, as
-    // the tick measured them — the burn line under each host on the Fleet page's plan usage (`lib/planMeters.ts`).
+    // the tick or the Fleet page's own opening refresh measured them — the burn line under each host on the Fleet
+    // page's plan usage (`lib/planMeters.ts`).
     stampsItsOwnTime: true,
     timeoutMs: FAST_TIMEOUT_MS,
     title: 'slopweaver reading last --producer "fleet burn" --json',

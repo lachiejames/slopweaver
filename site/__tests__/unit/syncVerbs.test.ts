@@ -26,9 +26,34 @@ describe("syncVerbFor", () => {
     ]);
   });
 
-  it("holds exactly the landing and currency rows, and nothing for an unknown slug", () => {
-    expect(SYNC_VERBS.map((row) => row.slug)).toStrictEqual(["landing", "currency"]);
+  it("resolves the Fleet page's session watch row to the self-recording report drain it re-reads", () => {
+    expect(syncVerbFor({ slug: "session-watch" })).toStrictEqual({
+      argv: ["session", "watch", "--json-report", "--record-reading", "sync-now"],
+      readsSlug: "watch-reading",
+      slug: "session-watch",
+      timeoutMs: 60_000,
+      title: "slopweaver session watch --json-report --record-reading sync-now",
+    });
+  });
+
+  it("resolves the Fleet page's burn row to the self-recording --json scan it re-reads", () => {
+    expect(syncVerbFor({ slug: "fleet-burn" })).toStrictEqual({
+      argv: ["fleet", "burn", "--json", "--record-reading", "sync-now"],
+      readsSlug: "burn-reading",
+      slug: "fleet-burn",
+      timeoutMs: 20_000,
+      title: "slopweaver fleet burn --json --record-reading sync-now",
+    });
+  });
+
+  it("holds exactly the landing, currency, session watch and burn rows, and nothing for an unknown slug", () => {
+    expect(SYNC_VERBS.map((row) => row.slug)).toStrictEqual(["landing", "currency", "session-watch", "fleet-burn"]);
     expect(syncVerbFor({ slug: "handover currency --press" })).toBe(undefined);
+  });
+
+  it("never offers machine capacity, whose plan-ceiling read spends a token at Anthropic", () => {
+    expect(SYNC_VERBS.length).toBeGreaterThan(0);
+    expect(SYNC_VERBS.filter((row) => row.argv.includes("capacity") || row.argv.includes("machine"))).toEqual([]);
   });
 
   it("carries no flag that acts on the world on any row", () => {

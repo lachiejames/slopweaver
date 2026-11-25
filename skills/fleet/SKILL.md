@@ -18,7 +18,7 @@ slopweaver fleet resume                   # the recovery pass — run INSIDE a c
 slopweaver fleet configure --capacity 15  # how many SESSIONS the capacity line counts against (default 15)
 slopweaver fleet ceiling [--days 7] [--json] [--now <iso>] [--publish]  # plans' unused week vs working seats, and N
 slopweaver fleet why [--minutes 60] [--json] [--now <iso>]  # why not more working seats, and what the machine measured
-slopweaver fleet burn [--json] [--now <iso>]  # each host's tokens over 24h, the 7-day amount at that rate
+slopweaver fleet burn [--json] [--now <iso>] [--record-reading <by>]  # each host's tokens over 24h, the 7-day amount at that rate; --record-reading (with --json) appends the document
 slopweaver fleet landed [--limit 30] [--ref origin/main] [--json]  # what landed on main, beside the owner's words and proof
 slopweaver fleet restore-policy [--apply]  # is cmux's own session restore off; --apply turns it off
 slopweaver fleet history [--hours 24] [--json] [--now <iso>]  # each tick's hold, load, ceilings, working, open ready

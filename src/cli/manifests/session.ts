@@ -161,7 +161,8 @@ export const sessionManifest: Readonly<Record<string, VerbManifestEntry>> = {
     meta: {
       ...sharedMeta,
       // It subscribes to cmux's own hook stream and every run commits its resume cursor and fold, together, to the
-      // local store; every flag is optional, so a bare run does that rather than printing usage.
+      // local store; every flag is optional, so a bare run does that rather than printing usage. `--record-reading`
+      // appends the `--json-report` document to the local readings ledger.
       diagnostic: true,
       dryParseSafe: false,
       effect: "local-state",
@@ -169,7 +170,7 @@ export const sessionManifest: Readonly<Record<string, VerbManifestEntry>> = {
       summary:
         "Fold cmux's hook events into per-session signals — needs-input, logged-out, limit-retrying, idle, silent, working",
       usage:
-        "usage: slopweaver session watch [--home <value>] [--idle-minutes <value>] [--since <value>] [--follow] [--include-stale] [--json] [--json-report] [--reset-state]",
+        "usage: slopweaver session watch [--home <value>] [--idle-minutes <value>] [--record-reading <value>] [--since <value>] [--follow] [--include-stale] [--json] [--json-report] [--reset-state]",
     },
   }),
   record: lazy({

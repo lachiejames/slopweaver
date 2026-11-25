@@ -12,6 +12,7 @@ import {
   type WorkingSessionCard,
   type WorkingSessionsView,
 } from "../../lib/workingSessions";
+import { workingSessionsHeading } from "../../lib/workingSessionsHeading";
 import { PageEmpty } from "../console/PageEmpty";
 import { QUEUE_META, QUEUE_ROW, QUEUE_ROW_EDGE, QUEUE_TEXT, QUEUE_TITLE, useNow } from "../console/QueueSections";
 import { ReadingIndicator } from "../console/ReadingIndicator";
@@ -289,17 +290,20 @@ function SessionPanel({
  *
  * @param openedKey the workspace id of the open card, when one is open
  * @param latestReadCurrent whether the seats' latest read answered, the only reading an empty state may stand on
+ * @param observedAtIso when the session watch reading the cards come off was read, which the heading ages
  * @returns the list
  */
 export function WorkingSessions({
   view,
   openedKey,
   latestReadCurrent,
+  observedAtIso,
   onOpen,
   onClose,
 }: {
   view: WorkingSessionsView;
   latestReadCurrent: boolean;
+  observedAtIso: string;
   openedKey: string | undefined;
   onOpen: (card: WorkingSessionCard) => void;
   onClose: () => void;
@@ -322,7 +326,7 @@ export function WorkingSessions({
       {view.cards.length > 0 && (
         <div className="mt-[0.6rem] overflow-hidden rounded-xl border border-border" data-working-sessions="">
           <h3 className={SECTION_HEAD}>
-            Working now · <b>{String(view.cards.length)}</b>
+            {workingSessionsHeading({ nowMs, observedAtIso })} · <b>{String(view.cards.length)}</b>
           </h3>
           {view.cards.map((card, index) => (
             <SessionCardButton

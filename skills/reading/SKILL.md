@@ -48,7 +48,7 @@ whatever selection took it, so a landing recorded from one checkout's origin wit
 repository of the console's selection with one and everyone's pull requests. A `github landing` document
 whose `selection` is not `@me` is refused here exactly as `--record-reading` refuses it (`src/readings/landingSelection.ts`).
 
-Three producers record without being asked:
+These producers record without being asked:
 
 - **`github landing --record-reading <by>`** appends the document it just printed, whatever else the
   invocation did — sweep step 7 passes `--record-reading tick-<n>`, so the page and the tick show the same
@@ -57,6 +57,10 @@ Three producers record without being asked:
   `checkedIso`. The Queue runs it as `sync-now` once per opening when the check it shows is ten minutes old or
   missing (`site/lib/currencyOpeningRefresh.ts`); it still prints the document when the ledger refuses the append,
   then exits 1, so the sync route never calls a reading taken that was not recorded.
+- **`session watch --json-report --record-reading <by>`** and **`fleet burn --json --record-reading <by>`** do the
+  same for the Fleet page, which runs each as `sync-now` once per opening when the reading it shows is ten minutes
+  old or missing (`site/lib/fleetOpeningRefresh.ts`). A watch drain commits its fold and cursor before it records,
+  so one that lost a race with the tick's exits 1 and records nothing.
 - **`supervisor tick-capture`** takes a `session watch` reading that exited 0 with nothing on stdout ONCE more
   (`retryWhenEmpty`), keeps only that second attempt, and calls it failed if it is empty again.
 - **`supervisor tick-capture`** records every completed, non-empty JSON reading it took, by `tick-<label>`,
