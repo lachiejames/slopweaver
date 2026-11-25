@@ -8,7 +8,10 @@
  * do that for `LOCK_REFUSED`.
  */
 import { errorMessage } from "../lib/errorMessage.js";
-import { holderIsAlive } from "./lockHolder.js";
+import { holderRunning, type StartOf } from "../talk/relayLease.js";
+
+import { liveStartOf } from "./lockHolder.js";
+import { guardianVouches, type ProcessGuardian } from "./processGuardian.js";
 
 /** What one lock record carries. */
 export interface LockContents {
@@ -19,6 +22,11 @@ export interface LockContents {
    * `ps` could not say or the record predates it. With it, a pid handed on to another process reads as dead.
    */
   readonly start?: string | undefined;
+  /**
+   * The unsandboxed ancestor vouching for a holder `ps` could not stamp (`./processGuardian.ts`), or absent when the
+   * holder's environment named none or the record predates it. Read only when `start` is absent.
+   */
+  readonly guardian?: ProcessGuardian | undefined;
 }
 
 /** How long a lock may sit unreleased before a later caller may take it over — long enough for a real
@@ -95,33 +103,40 @@ export const OperationLockAcquireErrors = {
  * `nothing-arbitrates-the-playwright-relay-and-the-loser`. Reproduce it with two concurrent
  * `slopweaver browser shot --url <a> --raw --settle 8000` and read the loser's stderr.
  *
+ * **A guarded record is never aged out, and a guardian never makes a holder dead.** A holder inside Codex's sandbox
+ * cannot stamp itself, so it records the unsandboxed ancestor that read its own exact stamp (`./processGuardian.ts`).
+ * While that guardian is still the same process, a live holder is contention. Once the guardian is gone or its pid is
+ * another process's, a holder pid that still answers may be the writer or a stranger that inherited its pid, and
+ * nothing left can tell which: that is `LOCK_REFUSED`, never a takeover, since aging it out would hand a second writer
+ * the lease while the first may still be running. A holder pid the kernel no longer answers for is stale whatever it
+ * carries.
+ *
  * @param existing the record the occupied lock path holds
  * @param nowIso the instant of this attempt
  * @param staleAfterMs the caller's threshold, or positive infinity for a lease never aged out while its holder lives
+ * @param startOf a pid's current state, for the holder and its guardian — the real probe unless a test passes a fixture
  * @returns undefined when the holder is stale, else `LOCK_CONTENDED` for a live holder within its threshold
- *   and `LOCK_REFUSED` when the age could not be compared at all
+ *   and `LOCK_REFUSED` when the age could not be compared at all or a guarded holder's identity can no longer be told
  */
 export function heldReason({
   existing,
   nowIso,
   staleAfterMs: declared,
+  startOf = liveStartOf,
 }: {
   existing: LockContents;
   nowIso: string;
   staleAfterMs: number;
+  startOf?: StartOf;
 }): OperationLockAcquireError | undefined {
-  // Never-stale trusts the holder's identity; a record with no start stamp (only one written before the field: an
-  // unstamped process is refused this lease, `./lockHolder.ts`) has a pid another process may have since. It ages out
-  // on the ordinary window, as every record once did; else a recycled pid wedges the lease for good.
-  const unidentified = declared === Number.POSITIVE_INFINITY && existing.start === undefined;
-  const staleAfterMs = unidentified ? DEFAULT_STALE_AFTER_MS : declared;
+  const { guardian, staleAfterMs, vouched } = leaseIdentity({ declared, existing, startOf });
   const ageMs = Date.parse(nowIso) - Date.parse(existing.acquiredAtIso);
   const neverStale = staleAfterMs === Number.POSITIVE_INFINITY;
   const comparable = Number.isFinite(ageMs) && (Number.isFinite(staleAfterMs) || neverStale);
   if (comparable && ageMs > staleAfterMs) {
     return undefined;
   }
-  if (!holderIsAlive({ pid: existing.pid, start: existing.start })) {
+  if (!holderRunning({ holder: { pid: existing.pid, start: existing.start }, startOf })) {
     return undefined;
   }
   // REFUSED, not contended: nothing says this state ends, so a caller that defers on contention must not wait on it.
@@ -130,14 +145,68 @@ export function heldReason({
       message: `held by pid ${String(existing.pid)} since ${existing.acquiredAtIso}, and its age could not be compared with the stale threshold because ${unreadableValue({ existing, nowIso, staleAfterMs })} — the holder answered signal 0, so this is refused rather than taken over`,
     });
   }
+  // REFUSED too: a live pid whose guardian no longer vouches may be the writer or a stranger that inherited its pid.
+  if (guardian !== undefined && !vouched) {
+    return OperationLockAcquireErrors.refused({
+      message: `held by pid ${String(existing.pid)} since ${existing.acquiredAtIso} (${String(ageMs)}ms old, under a lease declared never to go stale while its holder lives), and the holder answered signal 0 at ${nowIso}, but it carries no start stamp of its own and its guardian, pid ${String(guardian.pid)} recorded as started ${guardian.start}, no longer vouches for it — whether pid ${String(existing.pid)} is still the writer cannot be told, so this is refused rather than taken over; run again once pid ${String(existing.pid)} has exited, or, if it is no slopweaver process, remove the lock record its writer left`,
+    });
+  }
   if (neverStale) {
+    const identity = vouchedClause({ existing, vouched });
     return OperationLockAcquireErrors.contended({
-      message: `held by pid ${String(existing.pid)} since ${existing.acquiredAtIso} (${String(ageMs)}ms old, under a lease declared never to go stale while its holder lives, and the holder answered signal 0 — it was ALIVE when checked at ${nowIso}, so this is contention rather than a lock left behind by a dead process; wait for the holder to finish)`,
+      message: `held by pid ${String(existing.pid)} since ${existing.acquiredAtIso} (${String(ageMs)}ms old, under a lease declared never to go stale while its holder lives, and the holder answered signal 0${identity} — it was ALIVE when checked at ${nowIso}, so this is contention rather than a lock left behind by a dead process; wait for the holder to finish)`,
     });
   }
   return OperationLockAcquireErrors.contended({
     message: `held by pid ${String(existing.pid)} since ${existing.acquiredAtIso} (${String(ageMs)}ms old, under the ${String(staleAfterMs)}ms stale threshold, and the holder answered signal 0 — it was ALIVE when checked at ${nowIso}, so this is contention rather than a lock left behind by a dead process)`,
   });
+}
+
+/**
+ * Who a record's holder can be told to be, and the threshold that follows. Never-stale trusts the holder's identity; a
+ * record with neither a start stamp nor a guardian (only one written before both fields: an unstamped, unguarded
+ * process is refused this lease, `./lockHolder.ts`) has a pid another process may have since, so it ages out on the
+ * ordinary window, as every record once did; else a recycled pid wedges the lease for good. A GUARDED record never
+ * ages out: its writer was identified when it took the lease, so a guardian that stops vouching leaves the live pid's
+ * identity unknown, which {@link heldReason} refuses, never takes over.
+ *
+ * @returns the guardian a never-stale unstamped record carries (undefined otherwise), whether it still vouches, and
+ *   the threshold to judge the record's age against
+ */
+function leaseIdentity({
+  declared,
+  existing,
+  startOf,
+}: {
+  declared: number;
+  existing: LockContents;
+  startOf: StartOf;
+}): { guardian: LockContents["guardian"]; staleAfterMs: number; vouched: boolean } {
+  const unstamped = declared === Number.POSITIVE_INFINITY && existing.start === undefined;
+  if (!unstamped) {
+    return { guardian: undefined, staleAfterMs: declared, vouched: false };
+  }
+  if (existing.guardian === undefined) {
+    return { guardian: undefined, staleAfterMs: DEFAULT_STALE_AFTER_MS, vouched: false };
+  }
+  return {
+    guardian: existing.guardian,
+    staleAfterMs: declared,
+    vouched: guardianVouches({ guardian: existing.guardian, startOf }),
+  };
+}
+
+/**
+ * The clause naming the guardian that kept an unstamped holder's lease, so a reader can tell why a record with no
+ * start stamp of its own was not aged out — empty when the holder's own stamp identified it.
+ *
+ * @returns the clause, with its leading separator, or an empty string
+ */
+function vouchedClause({ existing, vouched }: { existing: LockContents; vouched: boolean }): string {
+  if (!vouched || existing.guardian === undefined) {
+    return "";
+  }
+  return `, and its guardian, pid ${String(existing.guardian.pid)} recorded as started ${existing.guardian.start}, still vouched for it`;
 }
 
 /**

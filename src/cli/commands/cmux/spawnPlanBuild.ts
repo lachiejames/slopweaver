@@ -20,6 +20,7 @@ import { slopweaverHome } from "../../../config.js";
 import type { HandoverDoc } from "../../../handover/doc.js";
 import type { RunEvent } from "../../../handover/ledger.js";
 import type { PlanRegisterPort } from "../../../plans/port.js";
+import { type AppContinuationPlan, continuingSessionOf } from "../../../sessionHarness/appContinuation.js";
 import type { ParsedFlags } from "../../parseFlags.js";
 
 import { resolveSpawnModel, type SpawnPins } from "./spawnPins.js";
@@ -95,12 +96,24 @@ async function chosenStoreDir({
 }
 
 /**
+ * A spawn plan and the app session it continues: decided once, before routing, and carried to the launch so the act
+ * it calls and the session a `launch.resume` names are the ones the Codex seat was routed for — never a second ledger
+ * read at launch time, which could name a session the seat decision never saw.
+ */
+export type ContinuingSpawnPlan = SpawnPlan & {
+  /** The app session a `launch.resume` names, or undefined when this spawn opens a new session. */
+  readonly continuingAppSessionId: string | undefined;
+};
+
+/**
  * The doc's spawn plan, with every field the pure planner needs read first.
  *
  * Split out of `./spawnTarget.ts`'s `resolveSpawnTarget` purely to keep that function under the repo's max-function-lines
  * ratchet — the argument list here IS the planner's, not a second decision.
  *
- * @param codexSeat the routed codex seat, whose `$CODEX_HOME` the plan carries; undefined on a claude spawn
+ * @param codexSeat the routed codex seat, whose `$CODEX_HOME` the plan carries; undefined on a claude spawn. On a
+ *   continuing Codex app seat it is the home the session opened on (`./codexSeat.ts`'s `resolveContinuingCodexSeat`)
+ * @param continuation what the spawn decided about the slug's open app session, whose resumed id the plan carries
  * @param doc the handover doc being spawned
  * @param namedStore the store `--plan` named for a claude seat, which wins over the role's pin; undefined lets the
  * role pin or routing decide
@@ -113,6 +126,7 @@ async function chosenStoreDir({
  */
 export async function buildSpawnPlan({
   codexSeat,
+  continuation,
   doc,
   namedStore,
   parsed,
@@ -122,6 +136,7 @@ export async function buildSpawnPlan({
   template,
 }: {
   codexSeat: CodexSeatRoute | undefined;
+  continuation: AppContinuationPlan;
   doc: HandoverDoc;
   namedStore: string | undefined;
   pins: SpawnPins;
@@ -129,37 +144,36 @@ export async function buildSpawnPlan({
   port: PlanRegisterPort;
   preflight: { readonly repo: string; readonly runEvents: readonly RunEvent[] };
   template: LaunchTemplate;
-}): Promise<Result<SpawnPlan, ClaudeRotationError>> {
+}): Promise<Result<ContinuingSpawnPlan, ClaudeRotationError>> {
   const role = classifySessionRole({ docRole: doc.role });
   const chosen = await chosenStoreDir({ namedStore, port, role });
   if (chosen.isErr()) {
     return err(chosen.error);
   }
   const credentialStoreDir = chosen.value;
-  return ok(
-    planSpawn({
-      baseBranch: doc.baseBranch,
-      // The routed Codex home travels as a plan field for the same reason `credentialStoreDir` does: the boot
-      // line is built in one place, and only this caller reads the register.
-      ...(codexSeat === undefined ? {} : { codexHome: codexSeat.destination.codexHome }),
-      // A `--plan` (or a publisher pin) boots against a fixed credential store; any other seat, the supervisor
-      // chair included, gets undefined and routes. Resolved here rather than in `planSpawn`, because only the
-      // caller reads configuration.
-      ...(credentialStoreDir === undefined ? {} : { credentialStoreDir }),
-      declaredBranch: doc.branch,
-      docPath: doc.path,
-      docRole: role,
-      driver: pins.driver,
-      // Spread rather than assigned, so a spawn with no effort (passed or defaulted) sets no key at all and its
-      // boot line stays byte-identical to the one this repo has always sent.
-      ...(pins.effort === undefined ? {} : { effort: pins.effort }),
-      model: resolveSpawnModel({ doc, parsed }),
-      repoRoot: preflight.repo,
-      runEvents: preflight.runEvents,
-      slug: doc.slug,
-      spawnedAt: new Date().toISOString(),
-      template,
-      worktrees: listWorktrees({ repoRoot: preflight.repo }),
-    }),
-  );
+  const plan = planSpawn({
+    baseBranch: doc.baseBranch,
+    // The routed Codex home travels as a plan field for the same reason `credentialStoreDir` does: the boot
+    // line is built in one place, and only this caller reads the register.
+    ...(codexSeat === undefined ? {} : { codexHome: codexSeat.destination.codexHome }),
+    // A `--plan` (or a publisher pin) boots against a fixed credential store; any other seat, the supervisor
+    // chair included, gets undefined and routes. Resolved here rather than in `planSpawn`, because only the
+    // caller reads configuration.
+    ...(credentialStoreDir === undefined ? {} : { credentialStoreDir }),
+    declaredBranch: doc.branch,
+    docPath: doc.path,
+    docRole: role,
+    driver: pins.driver,
+    // Spread rather than assigned, so a spawn with no effort (passed or defaulted) sets no key at all and its
+    // boot line stays byte-identical to the one this repo has always sent.
+    ...(pins.effort === undefined ? {} : { effort: pins.effort }),
+    model: resolveSpawnModel({ doc, parsed }),
+    repoRoot: preflight.repo,
+    runEvents: preflight.runEvents,
+    slug: doc.slug,
+    spawnedAt: new Date().toISOString(),
+    template,
+    worktrees: listWorktrees({ repoRoot: preflight.repo }),
+  });
+  return ok({ ...plan, continuingAppSessionId: continuingSessionOf({ continuation }) });
 }

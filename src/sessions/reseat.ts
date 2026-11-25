@@ -31,7 +31,7 @@ import { err, ok, type Result } from "#lib/result.js";
 import type { SeatBootPlan } from "../claude/seatBoot.js";
 import type { CmuxWorkspaceSummary } from "../cmux/client.js";
 import { claudeTemplateSuffix, defaultTemplateForRole } from "../cmux/launchTemplate.js";
-import { fableOverrideOpen, isFableModel, opusSpawnEffort } from "../cmux/modelPin.js";
+import { fableOverrideOpen, isFableModel, namedTiers, opusSpawnEffort } from "../cmux/modelPin.js";
 import type { ReseatLaunch } from "../cmux/reseatLine.js";
 import { FABLE_MODEL_ALIAS } from "../supervisor/chairModel.js";
 import { pairRowsToWorkspaces } from "./closeDone.js";
@@ -403,9 +403,14 @@ export function reseatAllTargets({
  * Each live workspace's pinned boot model, read off the OPEN ledger row that pairs to it — the same pairing
  * `session re-seat` uses, so a workspace cmux renumbered on restart still finds its row by its worktree.
  *
+ * A pinned model naming no Claude tier is skipped too: a Codex seat's row records the repository's Codex pin
+ * (`../sessionHarness/recordingHarness.ts`'s `bootModelForLaunch`), and this relaunches `claude`, which cannot boot
+ * it — the relaunch refuses for want of a model rather than handing Claude a Codex id.
+ *
  * @param rows the folded ledger, any status
  * @param workspaces the live cmux inventory
- * @returns the pinned model by workspace id; a workspace whose row inherited its model, or has none, is absent
+ * @returns the pinned model by workspace id; a workspace whose row inherited its model, has none, or pinned a model
+ *   naming no Claude tier is absent
  */
 export function pinnedModelsByWorkspace({
   rows,
@@ -417,7 +422,7 @@ export function pinnedModelsByWorkspace({
   const paired = pairRowsToWorkspaces({ rows: rows.filter((row) => row.status === "open"), workspaces });
   const models = new Map<string, string>();
   for (const [row, workspace] of paired) {
-    if (row.bootModel?.kind === "pinned") {
+    if (row.bootModel?.kind === "pinned" && namedTiers({ text: row.bootModel.model }).length > 0) {
       models.set(workspace.workspaceId, row.bootModel.model);
     }
   }

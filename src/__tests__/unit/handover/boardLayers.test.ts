@@ -104,7 +104,7 @@ describe("the four fallbacks the split had to rewrite", () => {
   it("falls from the in-flight rules to the remaining ones through an if that returns", () => {
     const text = sourceOf({ module: "boardEvidence.ts" });
     expect(text).toContain("const inFlight = inFlightEvidence({ derived, probe, run });");
-    expect(text).toContain("return remainingEvidence({ derived, run });");
+    expect(text).toContain("return remainingEvidence({ derived, events, run });");
   });
 
   it("leaves no silent fallback anywhere in the rule family", () => {

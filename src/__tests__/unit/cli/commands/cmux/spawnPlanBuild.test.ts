@@ -43,6 +43,7 @@ describe("buildSpawnPlan", () => {
     const plan = unwrap(
       await buildSpawnPlan({
         codexSeat: undefined,
+        continuation: { kind: "none" },
         doc,
         namedStore: undefined,
         parsed: { positionals: ["a-doc"], values: { model: "sonnet" } },
@@ -66,6 +67,7 @@ describe("buildSpawnPlan", () => {
     const plan = unwrap(
       await buildSpawnPlan({
         codexSeat: undefined,
+        continuation: { kind: "none" },
         doc,
         namedStore: "/stores/plan-three",
         parsed: { positionals: ["a-doc"], values: { model: "opus", plan: "plan-three" } },
@@ -86,6 +88,7 @@ describe("buildSpawnPlan", () => {
     const error = unwrapErr(
       await buildSpawnPlan({
         codexSeat: undefined,
+        continuation: { kind: "none" },
         doc,
         namedStore: undefined,
         parsed: { positionals: ["a-doc"], values: { model: "sonnet" } },
@@ -98,5 +101,57 @@ describe("buildSpawnPlan", () => {
 
     expect(error.code).toBe("ACCOUNT_CONFIG_STORE_UNAVAILABLE");
     expect(error.message).toContain("ECONNREFUSED");
+  });
+
+  it("boots a continuing Codex seat on the recorded home and carries the session its launch resumes", async () => {
+    const repoRoot = gitRepo();
+    const doc = parseHandoverDoc({ path: join(repoRoot, "a-doc.md"), text: DOC_TEXT });
+
+    const plan = unwrap(
+      await buildSpawnPlan({
+        codexSeat: {
+          destination: { alias: "codex-two", codexHome: "/home/acme/.codex-two" },
+          why: "app session 0b5e resumes on the plan it was opened on",
+        },
+        continuation: { kind: "resume", sessionId: "0b5e" },
+        doc,
+        namedStore: undefined,
+        parsed: { positionals: ["a-doc"], values: {} },
+        pins: { driver: "codex" },
+        port: memoryPlanRegisterPort(),
+        preflight: { repo: repoRoot, runEvents: [] },
+        template: "research",
+      }),
+    );
+
+    expect(plan.codexHome).toBe("/home/acme/.codex-two");
+    expect(plan.continuingAppSessionId).toBe("0b5e");
+  });
+
+  it("opens a new session on the routed home when the recorded plan could not take the seat", async () => {
+    const repoRoot = gitRepo();
+    const doc = parseHandoverDoc({ path: join(repoRoot, "a-doc.md"), text: DOC_TEXT });
+
+    const plan = unwrap(
+      await buildSpawnPlan({
+        codexSeat: { destination: { alias: "codex-one", codexHome: "/home/acme/.codex-one" }, why: "ranked first" },
+        continuation: {
+          kind: "fresh",
+          previousCodexHome: "/home/acme/.codex-two",
+          previousSessionId: "0b5e",
+          reason: "codex-two is paused: card expired",
+        },
+        doc,
+        namedStore: undefined,
+        parsed: { positionals: ["a-doc"], values: {} },
+        pins: { driver: "codex" },
+        port: memoryPlanRegisterPort(),
+        preflight: { repo: repoRoot, runEvents: [] },
+        template: "research",
+      }),
+    );
+
+    expect(plan.codexHome).toBe("/home/acme/.codex-one");
+    expect(plan.continuingAppSessionId).toBe(undefined);
   });
 });

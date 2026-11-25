@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CmuxWorkspaceSummary } from "../../../cmux/client.js";
+import { CODEX_MODEL } from "../../../codex/profiles.js";
 import {
   detectSeatWall,
   type NonRespawnableSeat,
@@ -359,6 +360,18 @@ describe("planSeatRecovery", () => {
       ["not-respawnable", "no-pinned-model"],
     ]);
   });
+
+  it("reports a row pinned to the Codex model, since re-booting it would hand Claude a model it cannot run", () => {
+    const plan = planOne({ over: { bootModel: { kind: "pinned", model: CODEX_MODEL } }, wall: LOGGED_OUT_WALL });
+    expect(plan.map((item) => [item.kind, "reason" in item ? item.reason : ""])).toEqual([
+      ["not-respawnable", "not-a-claude-model"],
+    ]);
+  });
+
+  it("still re-seats a row pinned to a dated Claude id", () => {
+    const plan = planOne({ over: { bootModel: { kind: "pinned", model: "claude-opus-5-5" } }, wall: LOGGED_OUT_WALL });
+    expect(plan[0]).toMatchObject({ kind: "respawn", model: "claude-opus-5-5" });
+  });
 });
 
 describe("renderSeatRecoveryOutcome", () => {
@@ -381,6 +394,16 @@ describe("renderSeatRecoveryOutcome", () => {
     const reported = planOne({ over: { bootModel: { kind: "inherited" } }, wall: LIMIT_WALL })[0] as NonRespawnableSeat;
     expect(renderSeatRecoveryOutcome({ outcome: { item: reported, kind: "reported" } })).toBe(
       "reported\tworkspace:9 (a doc)\tlimit-retrying\ta-doc recorded no pinned model — re-seat by hand: slopweaver cmux close workspace:9, then slopweaver cmux spawn a-doc --model <opus|sonnet>",
+    );
+  });
+
+  it("gives a Codex seat's row its own hand step, never a Claude spawn on the Codex model", () => {
+    const reported = planOne({
+      over: { bootModel: { kind: "pinned", model: CODEX_MODEL } },
+      wall: LIMIT_WALL,
+    })[0] as NonRespawnableSeat;
+    expect(renderSeatRecoveryOutcome({ outcome: { item: reported, kind: "reported" } })).toBe(
+      `reported\tworkspace:9 (a doc)\tlimit-retrying\ta-doc booted on a model that is no Claude tier (a Codex seat), and this verb re-boots only Claude — re-seat by hand: slopweaver cmux close workspace:9, then slopweaver cmux spawn a-doc --driver codex --model ${CODEX_MODEL}`,
     );
   });
 

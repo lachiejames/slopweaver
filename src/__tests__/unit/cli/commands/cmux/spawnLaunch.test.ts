@@ -42,7 +42,8 @@ async function spawnUnder({ home }: { home: string }): Promise<{
     doc: { path: "/handovers/a-doc.md", slug: "a-doc" },
     harness: "cmux",
     home,
-    plan: PLAN,
+    // A cmux spawn continues no app session: the plan carries none, and the journal alone picks the act.
+    plan: { ...PLAN, continuingAppSessionId: undefined },
     runEvents: [],
   });
   const { events } = parseSessionLog({ text: readSessionLogTextStrict({ home }) });

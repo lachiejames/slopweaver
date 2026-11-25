@@ -176,6 +176,42 @@ describe("isAppHarnessResponseEnvelope", () => {
   });
 });
 
+describe("the launch inspection", () => {
+  it("accepts a request naming one session, and refuses one naming none", () => {
+    const requests = [
+      { kind: "launch.inspect", sessionId: "0b5e" },
+      { kind: "launch.inspect" },
+      { kind: "launch.inspect", sessionId: "" },
+      { kind: "launch.inspect", sessionId: 7 },
+    ];
+    expect(requests.map((request) => isAppHarnessRequestEnvelope(requestOf({ request })))).toEqual([
+      true,
+      false,
+      false,
+      false,
+    ]);
+  });
+
+  it("accepts the recorded spec of either vendor, and refuses an answer with no session or no readable spec", () => {
+    const responses = [
+      { kind: "launch-spec", sessionId: "0b5e", spec: SPEC },
+      { kind: "launch-spec", sessionId: "0b5e", spec: CLAUDE_SPEC },
+      { kind: "launch-spec", spec: SPEC },
+      { kind: "launch-spec", sessionId: "", spec: SPEC },
+      { kind: "launch-spec", sessionId: "0b5e" },
+      { kind: "launch-spec", sessionId: "0b5e", spec: { ...SPEC, codexHome: 3 } },
+    ];
+    expect(responses.map((response) => isAppHarnessResponseEnvelope(answerOf({ response })))).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+});
+
 describe("the usage read", () => {
   const CODEX_TOKENS = {
     cacheWriteInputTokens: 0,

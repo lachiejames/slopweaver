@@ -83,3 +83,43 @@ describe("readPlainFileLock", () => {
     expect(readPlainFileLock({ path })).toEqual({ kind: "unreadable" });
   });
 });
+
+describe("a lock record's guardian", () => {
+  const GUARDED = {
+    acquiredAtIso: "2026-11-25T00:00:00Z",
+    guardian: { pid: 5151, start: "Wed Nov  5 09:01:02 2026" },
+    pid: 4242,
+    start: undefined,
+  };
+
+  it("round-trips a guardian the writer recorded, its double-spaced day intact", () => {
+    writeFileSync(path, JSON.stringify(GUARDED));
+    expect(readPlainFileLock({ path })).toEqual({ holder: { contents: GUARDED, token: undefined }, kind: "held" });
+  });
+
+  it("round-trips a record written before the guardian field exactly as it always read", () => {
+    writeFileSync(path, RECORD);
+    expect(readPlainFileLock({ path })).toEqual({
+      holder: {
+        contents: { acquiredAtIso: "2026-10-22T00:00:00Z", pid: 4242, start: "Thu Oct 22 00:00:00 2026" },
+        token: undefined,
+      },
+      kind: "held",
+    });
+  });
+
+  it.each([
+    ["a string pid", { pid: "5151", start: "Wed Nov  5 09:01:02 2026" }],
+    ["a zero pid", { pid: 0, start: "Wed Nov  5 09:01:02 2026" }],
+    ["a fractional pid", { pid: 51.5, start: "Wed Nov  5 09:01:02 2026" }],
+    ["a blank stamp", { pid: 5151, start: "  " }],
+    ["a missing stamp", { pid: 5151 }],
+    ["a non-object", "5151 Wed Nov  5 09:01:02 2026"],
+  ])("drops a malformed guardian (%s), reading the record as an unguarded one", (_label, guardian) => {
+    writeFileSync(path, JSON.stringify({ ...GUARDED, guardian }));
+    expect(readPlainFileLock({ path })).toEqual({
+      holder: { contents: { acquiredAtIso: "2026-11-25T00:00:00Z", pid: 4242, start: undefined }, token: undefined },
+      kind: "held",
+    });
+  });
+});

@@ -30,6 +30,11 @@ them as `repolessRows` and those as `repolessUrgentRows`, with every slug two do
 nobody read. `handover set-repo <slug> --repo <checkout>` is the way back to ready — add-only, and only the top of
 a MAIN checkout, never a linked worktree.
 
+A `RUN NOW` row whose last `dispatched` has no later `started` reads, as its reason, "the last dispatch has no
+started row; pickup delivery is not proof that handover start succeeded" (`pendingDispatchEvidence`,
+`src/handover/boardEvidence.ts`): a seat was sent its pickup and never journalled a start, whatever it said. Its
+section is unchanged, and nothing retries it.
+
 `--json` also lists every open run its seat RELEASED (`handover release`, never a park) as `releasedRows`: `{ kind:
 "read", ids }`, or `{ kind: "unread", unreadableIds, why }` when any run journal carries a line this build cannot read,
 because a smaller list would hide one (`src/handover/releasedRows.ts`). The Fleet page's doctrine panel names them.

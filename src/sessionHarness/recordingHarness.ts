@@ -19,7 +19,8 @@
  * - **A failed launch that left a session holding its initial message is recorded**, since that session is real
  *   and may be running the message; any other failed launch leaves no row.
  */
-import { bootModelForSpawn, type SessionEvent, type SessionOpenedBy } from "../sessions/session.js";
+import { CODEX_MODEL } from "../codex/profiles.js";
+import { type BootModel, bootModelForSpawn, type SessionEvent, type SessionOpenedBy } from "../sessions/session.js";
 import type { HarnessLaunchAddress, HarnessLaunchOperation } from "./errors.js";
 import { type HarnessLaunchSpec, launchLeftSessionOpen, type SessionLauncher } from "./launch.js";
 import type { HarnessSession, SessionHarness } from "./sessionHarness.js";
@@ -114,6 +115,24 @@ function warnBestEffort({ ledger, message }: { ledger: SessionLedgerDeps; messag
 }
 
 /**
+ * The model a launch's session actually boots on, as the ledger records it.
+ *
+ * A Codex seat boots the repository's own pin whatever the spawn's `--model` said — both the cmux boot line
+ * (`../cmux/seatRoute.ts`) and the app's launch spec (`./appLaunchSpec.ts`) pass `CODEX_MODEL` — so recording the
+ * spec's Claude tier there wrote `pinned: sonnet` for a session running `gpt-*`. A Claude seat boots what the spec
+ * pinned, or inherits the saved default when it pinned nothing.
+ *
+ * @param spec the launch spec, read for its host and its model
+ * @returns the boot model to record
+ */
+export function bootModelForLaunch({ spec }: { spec: HarnessLaunchSpec }): BootModel {
+  if (spec.host === "codex") {
+    return { kind: "pinned", model: CODEX_MODEL };
+  }
+  return bootModelForSpawn({ model: spec.model });
+}
+
+/**
  * The `spawned` event a launch writes — one new row, keyed by the session's id.
  *
  * @param spec the launch spec
@@ -139,7 +158,7 @@ export function spawnedEventOf({
   const openedBy: SessionOpenedBy = operation;
   return {
     // The last moment anything can say honestly which tier the session booted onto (`../sessions/session.ts`).
-    bootModel: bootModelForSpawn({ model: spec.model }),
+    bootModel: bootModelForLaunch({ spec }),
     branch: spec.branch,
     cwd: spec.directory,
     harness: implementation,

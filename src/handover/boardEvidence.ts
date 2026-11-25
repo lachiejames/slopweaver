@@ -11,10 +11,12 @@
  * root, and why the module header of `boardState.ts` can promise there is no fixed point to reach.
  */
 
+import { hasUnansweredDispatch } from "./attention.js";
 import { type OwnEvidence, type RunDisposition } from "./boardTypes.js";
 import { type Consistency, consistencyOf } from "./consistency.js";
 import { type DerivedRowState } from "./derivedRowState.js";
 import { type DocProbeState, type DocStatus, type HandoverDoc, isTerminalDocStatus } from "./doc.js";
+import type { RunEvent } from "./ledger.js";
 import type { ParkedEvent } from "./parkedEvent.js";
 import { parkWakePhrase } from "./parkWake.js";
 import { pausedPhrase, pausedStateOf } from "./paused.js";
@@ -181,6 +183,35 @@ function reseatPhrase({ parked }: { parked: ParkedEvent }): string {
   return parked.wake === undefined ? "`cmux spawn` reseats it" : "`handover wake` reseats it once due";
 }
 
+/** The reason a row prints while its last dispatch has had no start, launch or closure after it. */
+export const PENDING_DISPATCH_REASON =
+  "the last dispatch has no started row; pickup delivery is not proof that handover start succeeded";
+
+/**
+ * Rule 12's reason when a seat was dispatched at the row and nothing has started since — `cmux spawn` delivered
+ * the pickup, but no `handover start` landed.
+ *
+ * Delivery and start are separate facts: the app's accepted pickup and cmux's submit witness both prove the
+ * message reached a session, never that the session ran it. A dispatch-only journal composes as `never-started`,
+ * and its plain "declared ready" reason claimed nothing was going on. This changes only that REASON, never the
+ * section: the row still reaches `RUN NOW`, `NOT YET` or `WAITING ON OWNER` exactly as before, so every reader
+ * keyed on a section sees what it saw.
+ *
+ * An ABSENCE report, not a timeout: there is no grace window and no retry, so a seat merely slow to act reads
+ * pending at once, and `handover abandon` is the typed way to clear one that is not coming. The derivation is
+ * `./attention.ts`'s, the same one `handover abandon` asks.
+ *
+ * @param events the row's run journal, in order
+ * @returns the dependency-pending placement carrying the pending reason while the last dispatch is unanswered,
+ *   else undefined
+ */
+function pendingDispatchEvidence({ events }: { events: readonly RunEvent[] }): OwnEvidence | undefined {
+  if (!hasUnansweredDispatch({ events })) {
+    return undefined;
+  }
+  return { reason: PENDING_DISPATCH_REASON, section: "dependency-pending" };
+}
+
 /** Rules 7 through 9: an open run cycle, or other probe evidence short of landed. */
 function inFlightEvidence({
   derived,
@@ -324,12 +355,15 @@ export function ownEvidence({
   probe,
   run,
   consistency,
+  events,
 }: {
   doc: HandoverDoc;
   derived: DerivedRowState;
   probe: DocProbeState | undefined;
   run: RunDisposition;
   consistency: Consistency;
+  /** The row's decoded run journal, empty when it has none — read only for an unanswered dispatch. */
+  events: readonly RunEvent[];
 }): OwnEvidence {
   const computed = probe?.computed;
 
@@ -370,11 +404,19 @@ export function ownEvidence({
   if (inFlight !== undefined) {
     return inFlight;
   }
-  return remainingEvidence({ derived, run });
+  return remainingEvidence({ derived, events, run });
 }
 
 /** Rule 10's draft half and rules 11-12: everything left, which `blockedBy` alone decides. */
-function remainingEvidence({ derived, run }: { derived: DerivedRowState; run: RunDisposition }): OwnEvidence {
+function remainingEvidence({
+  derived,
+  events,
+  run,
+}: {
+  derived: DerivedRowState;
+  events: readonly RunEvent[];
+  run: RunDisposition;
+}): OwnEvidence {
   if (derived.status === "draft") {
     return { reason: "declared draft", section: "NOT YET" };
   }
@@ -382,6 +424,13 @@ function remainingEvidence({ derived, run }: { derived: DerivedRowState; run: Ru
     // An open/waiting run whose own probes/status reached here still needs the dependency check, so a
     // contradictory unsatisfied dependency (rule 3's remaining case) can be found below.
     return { reason: "a run is currently open or waiting on the owner", section: "dependency-pending" };
+  }
+  // AFTER the open-run arms: a reseat of an open run dispatches too, and its pickup (`handover resume`) writes no
+  // `started`, so an open run keeps its own reason. Only a `ready` row's "declared ready" is replaced, and only its
+  // reason: `resolveDependencyPending` still decides RUN NOW, NOT YET or WAITING ON OWNER, and only RUN NOW prints it.
+  const pending = derived.status === "ready" ? pendingDispatchEvidence({ events }) : undefined;
+  if (pending !== undefined) {
+    return pending;
   }
   return { reason: "declared ready", section: "dependency-pending" };
 }

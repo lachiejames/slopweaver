@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CmuxWorkspaceSummary } from "../../../cmux/client.js";
+import { CODEX_MODEL } from "../../../codex/profiles.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 import type { SessionRecord } from "../../../sessions/liveSessions.js";
 import {
@@ -330,6 +331,21 @@ describe("pinnedModelsByWorkspace", () => {
     ];
 
     expect([...pinnedModelsByWorkspace({ rows, workspaces })]).toEqual([["ws-seat", "opus"]]);
+  });
+
+  it("reads nothing for a Codex seat's row, whose pin is no model claude can boot", () => {
+    const rows: SessionItem[] = [
+      {
+        bootModel: { kind: "pinned", model: CODEX_MODEL },
+        cwd: "/wt/seat",
+        lastEventIso: "2026-10-01T00:00:00.000Z",
+        sessionKey: "k1",
+        slug: "a-seat",
+        status: "open",
+        workspaceRef: "workspace:4",
+      },
+    ];
+    expect([...pinnedModelsByWorkspace({ rows, workspaces: [workspace()] })]).toEqual([]);
   });
 });
 
