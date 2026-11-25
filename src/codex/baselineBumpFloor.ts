@@ -26,8 +26,12 @@ import type { BumpRecord } from "./bumpRecordStore.js";
 import { commitDiffSha256 } from "./diffsNow.js";
 import type { CodexArtifactRecord } from "./types.js";
 
-/** A full git object name, the only review base ref that cannot move. */
-const FULL_SHA = /^[0-9a-f]{40}$/u;
+/**
+ * A full git object name, the only review base ref that cannot move. Git reads its hex in either case, so both
+ * spellings pass. The ref is kept as spelled, because the witness looks its record's own `baseRef` up in the
+ * pinned set.
+ */
+const FULL_SHA = /^[0-9a-f]{40}$/iu;
 
 /**
  * Every full-SHA base ref a review under each property id was taken against. Pure. Read through `unknown`,

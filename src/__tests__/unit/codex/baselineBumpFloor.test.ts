@@ -140,6 +140,15 @@ describe("readBaselineBumpCarryEvidence", { timeout: REAL_GIT_TIMEOUT_MS }, () =
     expect([...evidence.floorHeldBasesByDigest.entries()]).toEqual([[FLOOR.digest, new Set([older, base])]]);
   });
 
+  it("pins and holds an uppercase full SHA as spelled, so the witness finds its record's own base ref", () => {
+    const upper = older.toUpperCase();
+    const records = [review({ baseRef: upper })];
+    const evidence = readBaselineBumpCarryEvidence({ baseSha: base, headSha: feature, manifests, records, root });
+    expect([...evidence.pinnedBases]).toEqual([upper]);
+    expect([...evidence.floorHeldBasesByDigest.entries()]).toEqual([[FLOOR.digest, new Set([upper])]]);
+    expect(evidence.landingDiffSha256).toBe(unwrap(commitDiffSha256({ base, commit: feature, cwd: root })));
+  });
+
   it("reads a floor git fails to compare as not held, while the base stays pinned", () => {
     const unreadable = manifestOn({ files: ["../outside-the-repository.json"] });
     const evidence = readBaselineBumpCarryEvidence({
