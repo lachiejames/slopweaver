@@ -320,7 +320,7 @@ async function renderStatus({
     return branch;
   }
   const resolvedHome = resolveHome({ named: home });
-  const evidence = await readStatusEvidence({ fallbackPort, home: resolvedHome, supersessions });
+  const evidence = await readStatusEvidence({ branch, fallbackPort, home: resolvedHome, repoRoot, supersessions });
   if (typeof evidence === "number") {
     return evidence;
   }

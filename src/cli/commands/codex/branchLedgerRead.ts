@@ -7,6 +7,7 @@
  * `./reviewCapGate.ts` (the two-pass cap), which refuses on one. Each displays the error's `message`.
  */
 
+import { readBranchEvidence } from "../../../codex/branchContinuityGit.js";
 import { fallbackLedgerEntries } from "../../../codex/fallbackPlan.js";
 import type { FallbackRegisterPort } from "../../../codex/fallbackPort.js";
 import { type LedgerEntry, ledgerForBranch } from "../../../codex/ledger.js";
@@ -19,12 +20,20 @@ import { stateHomePaths } from "../../../stateHome.js";
 /** Which of the three sources the fold reads could not be read, so a caller can say which. */
 export interface BranchLedgerReadError {
   readonly code:
-    "PASS_RECORDS_UNREADABLE" | "FALLBACK_RECEIPTS_UNREADABLE" | "SUPERSESSIONS_UNREADABLE" | "LEDGER_INCOMPLETE";
+    | "PASS_RECORDS_UNREADABLE"
+    | "FALLBACK_RECEIPTS_UNREADABLE"
+    | "SUPERSESSIONS_UNREADABLE"
+    | "BRANCH_CONTINUITY_UNREADABLE"
+    | "LEDGER_INCOMPLETE";
   readonly message: string;
 }
 
 /** The factories {@link readBranchLedger} builds its one failure through. */
 const BranchLedgerReadErrors = {
+  branchContinuityUnreadable: ({ cause }: { cause: string }): BranchLedgerReadError => ({
+    code: "BRANCH_CONTINUITY_UNREADABLE",
+    message: `which branches this one continues could not be read, so a renamed branch's passes might be missed: ${cause}`,
+  }),
   fallbackReceiptsUnreadable: ({ cause }: { cause: string }): BranchLedgerReadError => ({
     code: "FALLBACK_RECEIPTS_UNREADABLE",
     message: `the fallback receipts could not be read: ${cause}`,
@@ -79,11 +88,16 @@ export async function readBranchLedger({
   if (retired.isErr()) {
     return err(BranchLedgerReadErrors.supersessionsUnreadable({ cause: retired.error.message }));
   }
+  // A branch cut from or renamed off the one its reviews ran on keeps them, so a rename never resets the cap.
+  const evidence = readBranchEvidence({ branch, cwd: repoRoot, receipts: receipts.value, scan: scan.value });
+  if (evidence.isErr()) {
+    return err(BranchLedgerReadErrors.branchContinuityUnreadable({ cause: evidence.error.message }));
+  }
   const ledger = ledgerForBranch({
     branch,
-    fallbackEntries: fallbackLedgerEntries({ branch, now: undefined, repoRoot, scan: receipts.value }),
+    fallbackEntries: fallbackLedgerEntries({ branch, now: undefined, repoRoot, scan: evidence.value.receipts }),
     now: undefined,
-    records: scan.value.records,
+    records: evidence.value.scan.records,
     repoRoot,
     supersessions: retired.value,
   });
@@ -92,9 +106,9 @@ export async function readBranchLedger({
   const incomplete = incompleteScanReason({
     branch,
     ledger,
-    receipts: receipts.value,
+    receipts: evidence.value.receipts,
     repoRoots: new Set([repoRoot]),
-    scan: scan.value,
+    scan: evidence.value.scan,
   });
   if (incomplete !== undefined) {
     return err(BranchLedgerReadErrors.ledgerIncomplete({ cause: incomplete }));

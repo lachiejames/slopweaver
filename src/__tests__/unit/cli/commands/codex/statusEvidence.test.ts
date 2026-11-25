@@ -32,6 +32,9 @@ function emptyHome(): string {
 describe("readStatusEvidence", () => {
   it("reads all three sources over an empty home as empty, not as a failure", async () => {
     const evidence = await readStatusEvidence({
+      // An empty home names no other branch, so the reflogs are never asked and the root need be no checkout.
+      branch: "feature/abc-1",
+      repoRoot: "/repo",
       fallbackPort: memoryFallbackRegisterPort(),
       home: emptyHome(),
       supersessions: memorySupersessionPort(),
@@ -45,6 +48,9 @@ describe("readStatusEvidence", () => {
 
   it("stops with EXIT_ERROR when the supersession register cannot be read", async () => {
     const evidence = await readStatusEvidence({
+      // An empty home names no other branch, so the reflogs are never asked and the root need be no checkout.
+      branch: "feature/abc-1",
+      repoRoot: "/repo",
       fallbackPort: memoryFallbackRegisterPort(),
       home: emptyHome(),
       supersessions: unavailableSupersessionPort(),
@@ -54,6 +60,9 @@ describe("readStatusEvidence", () => {
 
   it("stops with EXIT_ERROR when the fallback receipts cannot be read", async () => {
     const evidence = await readStatusEvidence({
+      // An empty home names no other branch, so the reflogs are never asked and the root need be no checkout.
+      branch: "feature/abc-1",
+      repoRoot: "/repo",
       fallbackPort: unavailableFallbackRegisterPort(),
       home: emptyHome(),
       supersessions: memorySupersessionPort(),

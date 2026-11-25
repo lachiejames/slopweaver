@@ -48,6 +48,7 @@ import type { TreeFingerprint } from "./fingerprint.js";
 import { currentCodexFleetCap } from "./fleetCap.js";
 import { codexFleetCapPort } from "./fleetCapPort.js";
 import { commitTreeFingerprint, resolveRepoRoot } from "./gitDiff.js";
+import { landingBranchEvidence } from "./landingBranchEvidence.js";
 import type { PullRequestHead } from "./landingGate.js";
 import type { LocalCodexLoopRead } from "./landingGateTypes.js";
 import { assessCodexLoop, ledgerForBranch } from "./ledger.js";
@@ -126,12 +127,12 @@ export async function readLocalCodexLoop({
       reason: `could not read the Claude fallback review receipts: ${receipts.error.message}`,
     };
   }
-  const { considered, ownRoot, qualified } = qualifyingFromCwd({
-    cwd,
-    head,
-    receipts: receipts.value,
-    scan: scan.value,
-  });
+  // A head branch cut from or renamed off the branch its passes ran on keeps them (`./landingBranchEvidence.ts`).
+  const evidence = landingBranchEvidence({ cwd, head, receipts: receipts.value, scan: scan.value });
+  if (evidence.isErr()) {
+    return { kind: "unreadable", reason: `could not read the head branch's predecessors: ${evidence.error.message}` };
+  }
+  const { considered, ownRoot, qualified } = qualifyingFromCwd({ cwd, head, ...evidence.value });
   const first = qualified[0];
   if (first === undefined) {
     return { kind: "unreadable", reason: noQualifyingCheckoutReason({ considered, head }) };
@@ -150,10 +151,10 @@ export async function readLocalCodexLoop({
     // The checkout the OLD reader consulted, and the only one whose fail-closed count must never be dropped.
     // An unresolvable cwd leaves it undefined, which matches no root and so privileges nothing.
     ownRoot,
-    receipts: receipts.value,
+    receipts: evidence.value.receipts,
     retired: retired.value,
     roots: qualified.map((checkout) => checkout.root),
-    scan: scan.value,
+    scan: evidence.value.scan,
     signInPort,
   });
 }

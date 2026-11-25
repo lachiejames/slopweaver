@@ -79,6 +79,24 @@ worktree's rows would be marked against bytes they never read. What changed is t
 the branch's rows are: an `OTHER CHECKOUTS:` line counts every other checkout's rows through that checkout's own
 fold (`src/codex/otherCheckoutPasses.ts`), printed only when this checkout holds none.
 
+**A branch keeps the passes of the branch it continues, when git proves the link.** Every record names the branch
+it was taken on, so a branch planned and reviewed under one name and pushed under another read as a branch nothing
+ever ran on, and could land only past a `codex-loop-incomplete` acknowledgement. The landing floor, `codex status`
+and the review cap now read the reflogs once (`src/codex/branchContinuityGit.ts`) and show a predecessor's rows
+under the judged name in memory, never on disk (`src/codex/branchContinuityView.ts`). Two links count and nothing
+else does: a `git branch -m` rename, in every checkout, and a `git checkout -b` cut from the checked-out branch, in
+the checkout whose HEAD moved, and in none when two checkouts moved onto it in that second. A remote's default branch is never a predecessor, because a branch cut from the
+shared base is new work and a plan taken there for other work would otherwise stand as its plan; a repository whose
+remotes name no default carries nothing. A row counts only when it was made before the link and after the
+predecessor's previous continuation, so two branches cut from one never share a pass, two cuts in one second take
+nothing, and a later branch of the old name feeds nothing forward. A receipt this build cannot judge names no
+instant, so a predecessor holding one carries nothing and the receipt is never relabelled. An expired reflog, a
+checkout git no longer lists and a clone at another path prove nothing, so their rows stay on the name they were
+recorded under, which is the old behaviour; a reflog, a worktree record or a remote HEAD that cannot be READ refuses instead,
+because the cap must not under-count. Relabelling moves where a row is counted, never whether it
+still describes the code: a review is `CURRENT` only by its tree, exactly as before
+(`src/codex/branchContinuity.ts` carries the argument).
+
 **A refusal names what it would land over.** The same run found two more silences, both in what a waiver says
 rather than what it admits. `github merge --admin` printed only the reason line when it took a
 `codex-loop-incomplete` acknowledgement, so a pull request merged over two BROKEN properties nothing on the page named; it

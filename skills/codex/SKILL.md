@@ -154,8 +154,8 @@ still describes yours and no two properties can disagree (rationale doc § Rule 
 
 **`codex status` is keyed by CHECKOUT as well as branch**: a pass from a DIFFERENT worktree reads `NOT RUN` here,
 and an `OTHER CHECKOUTS:` line names where it is. **The LANDING floor is not**: both landing verbs fold every
-checkout holding the PR's head commit with a pass or receipt on its branch, and a waiver prints each failure it
-waives, every drifted BROKEN with no later CLEAN under its property named.
+checkout holding the PR's head commit with a pass or receipt on its branch; a waiver prints each failure it waives.
+A git-proven predecessor's passes (`branch -m`, a `checkout -b` cut; never the default branch's) count as its own.
 
 ## Watch a long pass without waiting on it
 
