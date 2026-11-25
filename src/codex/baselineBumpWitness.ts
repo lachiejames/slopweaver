@@ -314,12 +314,12 @@ export function unwitnessedManifests({
  * @returns the judging inputs
  */
 function judgingFor({ digest, evidence }: { digest: string; evidence: BaselineBumpCarryEvidence }): WitnessJudging {
+  const { landingDiffSha256, pinnedBases } = evidence;
   const held = evidence.floorHeldBasesByDigest.get(digest);
-  return {
-    floorHeldBases: held === undefined ? new Set<string>() : held,
-    landingDiffSha256: evidence.landingDiffSha256,
-    pinnedBases: evidence.pinnedBases,
-  };
+  if (held === undefined) {
+    return { floorHeldBases: new Set<string>(), landingDiffSha256, pinnedBases };
+  }
+  return { floorHeldBases: held, landingDiffSha256, pinnedBases };
 }
 
 /**

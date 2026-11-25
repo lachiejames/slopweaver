@@ -339,13 +339,8 @@ async function unwitnessedOf({
     return refused({ detail: noQualifyingCheckoutReason({ considered: candidates.roots, head }) });
   }
   const ledger = qualifiedLedger({ head, qualified, records, retired: retired.value });
-  const evidence = readBaselineBumpCarryEvidence({
-    baseSha,
-    headSha: head.headSha,
-    manifests: eligible,
-    records,
-    root,
-  });
+  const { headSha } = head;
+  const evidence = readBaselineBumpCarryEvidence({ baseSha, headSha, manifests: eligible, records, root });
   const unwitnessed = unwitnessedManifests({
     baseSha,
     entries: ledger.entries,
