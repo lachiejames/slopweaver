@@ -6,8 +6,8 @@ The noun is `automation`, and `recipe` is an alias the dispatcher resolves befor
 such a line verbatim, so the alias answers for as long as anything on disk says it. Canon names `automation`;
 the stale-reference sweep refuses `recipe` as the noun of a quoted command.
 
-The owner's words: call everything automations, and the owner does not want anything to break… it is only on
-the owner's machine right now.
+The ruling: everything is called an automation, and nothing may break, since it runs only on the owner's
+machine for now.
 
 ## What is spelled `recipe`, and why
 

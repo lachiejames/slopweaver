@@ -2,8 +2,8 @@
 
 Part of [The local Supabase store](../store.md).
 
-Pretty much everything is taken out of the user-level Slopweaver directory and put into Supabase, which is where
-the data should sit and which also makes it more portable. Sixteen tables carry the record-shaped half of that —
+Nearly everything is taken out of the user-level Slopweaver directory and put into Supabase, where the data
+belongs and which also makes it more portable. Sixteen tables carry the record-shaped half of that —
 `board_row`, `run` + `run_event`, `codex_pass`, `door_event`, `autonomy_event`, `grant_row`, the owner's own words as
 `owner_turn` + `owner_turn_location`, the Claude fallback plans and reviews as `codex_fallback_request` +
 `codex_fallback_receipt`, the authored working state as `authored_body` + `authored_file` (+ `authored_absent`), and the measurements

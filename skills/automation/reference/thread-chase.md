@@ -23,8 +23,7 @@ You were seated with ONE command, `slopweaver automation run-due --recipe thread
    flags the candidates — a question that merely cites a pull request or a commit in one is still yours to chase.
 3. **Read the thread itself.** `slopweaver slack read-thread <permalink>`. The corpus copy can be a day old, so
    this is where you find that somebody answered in a DM, a new top-level message, or a reaction. Skip a thread that
-   is settled, that ended on the owner's own no rush, or whose silence reads as intentional — in the owner's words,
-   unless that's intentional — and a chase the owner would never send is a card the owner has to drop. Most skips
+   is settled, that ended on the owner's own no rush, or whose silence reads as intentional (a chase the owner would never send is a card the owner has to drop). Most skips
    are the owner's own closers: a cheers! or a ticked with a `?` or a tag of somebody new in it, and an announcement to a group wants no reply
    ([the measured yield](../../slack/reference/awaiting.md#measured-yield)).
    **A thread waiting on a pull request moves when the pull request does, and Slack does not say so.** Read each one
@@ -41,9 +40,9 @@ You were seated with ONE command, `slopweaver automation run-due --recipe thread
    ONE question per chase, even with two people tagged: the record refuses a second
    ([earns-its-place](../../slack/reference/earns-its-place.md)).
 
-   **Never the owner's own last ask again in new words.** The owner dropped exactly that, in the owner's words:
-   basically a duplicate of the previous post. The owner's ask of any preference on how that should run came back
-   as "@Rosa any preference on where the automation should run?", which only adds a tag. A chase moves the ask
+   **Never the owner's own last ask again in new words.** The owner dropped exactly that, as a
+   duplicate of the previous post. The owner's ask of any preference on how that should run came back
+   as "@<colleague> any preference on where the automation should run?", which only adds a tag. A chase moves the ask
    forward: a concrete option to OK or turn down ("would a GitHub Actions schedule work for it?"), or a fact that
    has changed since the owner asked. When the only chase you can write is the owner's question restated, skip the thread and name it so in the board row.
 

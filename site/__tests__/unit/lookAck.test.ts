@@ -99,7 +99,7 @@ describe("isLookAsk", () => {
 
   // "X, not Y" corrects a figure only when the voice has just said one; anywhere else it is an ordinary sentence.
   it.each([
-    " No, four hundred and twenty dollars, not five hundred and twenty dollars. Four hundred and twenty dollars. Come on",
+    " No, four hundred and twenty dollars, not five hundred and twenty dollars. Four hundred and twenty dollars. Thanks",
     "it's 420, not 520",
   ])("hears %j as a look ask right after the voice said a figure, and not otherwise", (text) => {
     expect(isLookAsk({ afterFigure: true, text })).toBe(true);
@@ -139,8 +139,8 @@ describe("isLookAsk", () => {
 
 describe("carriesFigure", () => {
   it("sees a figure in digits, money or words, and nothing in words without one", () => {
-    expect(carriesFigure({ text: ' Right, A$770 a month, and "Fastest' })).toBe(true);
-    expect(carriesFigure({ text: "seven hundred and seventy Australian dollars" })).toBe(true);
+    expect(carriesFigure({ text: ' Right, US$420 a month, and "Priority' })).toBe(true);
+    expect(carriesFigure({ text: "four hundred and twenty US dollars" })).toBe(true);
     expect(carriesFigure({ text: "It's on the pricing page." })).toBe(false);
     expect(carriesFigure({ text: "" })).toBe(false);
   });
@@ -288,7 +288,7 @@ describe("foldLookAck", () => {
   // This hand-off came 12s before the voice's first words.
   it("owes a finding-it line for the owner's lookup ask once it is handed off, once", () => {
     const words =
-      "It- it's the one... you can look this up, right? It's the one where it's asking... like... to bump a PR as me";
+      "It- it's the ABC-1 card... you can look it up, right? It's the one where it's asking... like... to merge the PR";
     const state = foldLookAck({ effect: ownerSaid({ id: "t1", text: words }), state: LOOK_ACK_START });
     const first = foldLookAck({ effect: delegated, state: state.state });
     const again = foldLookAck({ effect: delegated, state: first.state });
@@ -304,7 +304,7 @@ describe("foldLookAck", () => {
 
 describe("isFindAsk", () => {
   it.each([
-    " Um... It- it's the one... you can look this up, right?",
+    " Um... It- it's the ABC-1 card... you can look that up, right?",
     "Surely you can find that",
     "can you find the Jasper card",
     "could you just go find that thread",
@@ -324,7 +324,7 @@ describe("isFindAsk", () => {
     "we found the bug",
     "look into why staging is down",
     "Send it in drip feed style",
-    "Cool, that's perfect. I'm going to pre-approve you sending that, tagging Ari in the launch channel.",
+    "Great, that works. You can go ahead and send that one, tagging the Acme launch channel.",
     "",
   ])("does not hear %j as one", (text) => {
     expect(isFindAsk({ text })).toBe(false);
@@ -452,32 +452,32 @@ describe("foldLookFrame", () => {
       effects: [
         ownerSaid({
           id: "EWXyYPUH1SYgiSoa68AJM",
-          text: " Wow. Actually, oh, [laugh] . Alright, it actually says seven hundred and",
+          text: " Oh. Actually, hm, [laugh] . Okay, it actually says four hundred and",
         }),
         finished({
           id: "EWXyYPUH1SYgiSoa68AJM",
-          text: " Wow. Actually, oh, [laugh] . Alright, it actually says seven hundred and seventy dollars a month",
+          text: " Oh. Actually, hm, [laugh] . Okay, it actually says four hundred and twenty dollars a month",
         }),
-        voice({ id: "EWXydgFn4u3iE4b8Ue8u2", text: ' Right, A$770 a month, and "Fastest' }),
+        voice({ id: "EWXydgFn4u3iE4b8Ue8u2", text: ' Right, US$420 a month, and "Priority' }),
         ownerSaid({ id: "EWXyhe5McQ0aikBQpg5Bz", text: " No" }),
         ownerSaid({
           id: "EWXyhe5McQ0aikBQpg5Bz",
-          text: " No, seven hundred and seventy dollars, not eight hundred and seventy dollars",
+          text: " No, four hundred and twenty dollars, not five hundred and twenty dollars",
         }),
         finished({
           id: "EWXyhe5McQ0aikBQpg5Bz",
-          text: " No, seven hundred and seventy dollars, not eight hundred and seventy dollars. Seven hundred and seventy dollars. Come on",
+          text: " No, four hundred and twenty dollars, not five hundred and twenty dollars. Four hundred and twenty dollars. Thanks",
         }),
-        voice({ id: "EWXyl86gy2VIqSyhTVvN3", text: " You're right, 770 dollars a month, \"Fastest" }),
+        voice({ id: "EWXyl86gy2VIqSyhTVvN3", text: " You're right, 420 dollars a month, \"Priority" }),
         { kind: "spoke" },
         ownerSaid({
           id: "EWXyomaIuh1dzAYT9YLkS",
-          text: " D- j- d- don't just tell me I'm right. Just, just fucking, just, uh, hang on",
+          text: " D- j- d- don't just agree with me. Just, just like, just, uh, hang on",
         }),
         delegated,
         finished({
           id: "EWXyomaIuh1dzAYT9YLkS",
-          text: " D- j- d- don't just tell me I'm right. Just, just fucking, just, uh, hang on I wa- I don't want you to just say I'm right. I want you to know. Just take another screenshot. I've zoomed in a bit",
+          text: " D- j- d- don't just agree with me. Just, just like, just, uh, hang on I wa- I want you to check it, not agree. Just take another screenshot. I've zoomed in a bit",
         }),
       ],
     });
@@ -492,8 +492,8 @@ describe("foldLookFrame", () => {
       text,
       who: "voice",
     });
-    const correction = finished({ id: "t1", text: "it's 770, not 870" });
-    expect(framesOf({ effects: [voice({ text: "It's A$870 a month." }), correction] })).toEqual([false, true]);
+    const correction = finished({ id: "t1", text: "it's 420, not 520" });
+    expect(framesOf({ effects: [voice({ text: "It's US$520 a month." }), correction] })).toEqual([false, true]);
     expect(framesOf({ effects: [voice({ text: "Who should review it?" }), correction] })).toEqual([false, false]);
     expect(framesOf({ effects: [correction] })).toEqual([false]);
   });
@@ -501,7 +501,7 @@ describe("foldLookFrame", () => {
   // A turn of the owner's in between means the next one is not "right after" the voice's figure.
   it("owes no frame for 'X, not Y' once another turn of the owner's has come between it and the voice's figure", () => {
     const effects: PlanEffect[] = [
-      { final: true, id: "v1", kind: "segment", text: "It costs 870 dollars", who: "voice" },
+      { final: true, id: "v1", kind: "segment", text: "It costs 520 dollars", who: "voice" },
       finished({ id: "t1", text: "Okay" }),
       finished({ id: "t2", text: "We should invite two reviewers, not three" }),
     ];

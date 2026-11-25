@@ -8,7 +8,7 @@
  * went straight at the engineering: more than two hours in it had opened, pushed, self-reviewed
  * and landed a composer pull request. The first thing the channel heard from it was the answer — two hours and
  * thirty-eight minutes after the ask, and TWELVE MINUTES AFTER the owner asked, in front of the team,
- * *"whats happening here? feeling embarrassed in public rn"*.
+ * what was happening in the thread.
  *
  * Nothing the worker did was wrong on its own. The composer change was the right change, it landed, and
  * three review rounds caught real defects in the answer that followed. What was wrong was the ORDER: a

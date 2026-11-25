@@ -79,7 +79,7 @@ export function liveThreadKey({
 export interface ThreadMember {
   /**
    * Whether the OWNER wrote it. Only the owner's own root lends its pull request to a reply: under somebody else's
-   * announcement the owner is a participant, and a reply such as "pls confirm the follow, and then I'm happy to
+   * announcement the owner is a participant, and a reply such as "pls confirm the rename, and then I'm happy to
    * approve" on THEIR pull request would read as the owner asking for a review of it.
    */
   readonly byOwner: boolean;

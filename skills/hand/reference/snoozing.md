@@ -1,6 +1,6 @@
 # Not now is a snooze — the note never offers a bare dismiss
 
-Owner ask: _"a floating note never offers a bare dismiss"_ — its buttons are the specific answers. **Not now…**
+Owner ask: a floating note never offers a bare dismiss; its buttons are the specific answers. **Not now…**
 swaps the band in place for **1 hour** · **3 hours** · **Tomorrow** · **Back**, and the title-bar close is
 hidden; a close that still happens is read as the shortest snooze, never as a dismiss. Tomorrow is 09:00
 Australia/Melbourne on the next calendar day, DST included (`src/hand/snooze.ts`).

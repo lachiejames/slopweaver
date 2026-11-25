@@ -1,7 +1,7 @@
 /**
  * `slack draft record --as bot` — park a `--as bot` card for their approval, the way a finding shared at the top
- * level of a channel is recorded (_"if we are sharing some random finding at the top level in
- * some channel after i approved the queue card, post as the bot instead of as-me"_).
+ * level of a channel is recorded (a finding shared at the top level of a channel is posted as the bot, not as
+ * the owner, once the owner approves the queue card).
  *
  * The card is admitted, resolved and rendered by the SAME functions a `slack post --as bot` send runs, marked
  * `approvedDraft` so a finding may name a team channel, and its `--media` is admitted, counted against the finding

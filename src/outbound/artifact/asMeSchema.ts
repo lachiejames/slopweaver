@@ -21,11 +21,10 @@ import type { DripArtifact, DripInlineRun, OneCardArtifact, OneListArtifact, Pla
 /**
  * The AS-ME drip form, bounded by the operator's OWN preferences rather than by constants.
  *
- * A factory, not a module-level schema, and that is the whole point: PR5's caps are measured against real
- * reference cards and belong in code, whereas "how long is one of my drip messages" is a PER-PERSON
- * preference — *"whoever… when other people eventually want to onboard to Slopweaver, they're going to have
- * their own preferences"*. So the numbers arrive from `profile.json` and nothing person-specific is ever a
- * literal in this public repo.
+ * A factory, not a module-level schema, and that is the whole point: PR5's caps are measured against real reference
+ * cards and belong in code, whereas "how long is one of my drip messages" is a PER-PERSON preference, since every
+ * operator has their own. So the numbers arrive from `profile.json` and nothing person-specific is ever a literal in
+ * this public repo.
  *
  * Stated honestly: unlike every cap in `./schema.ts`, these bounds have NO measured reference corpus behind
  * them yet — there is no confirmed set of as-me messages to measure. They are a starting shape, they are

@@ -79,8 +79,8 @@ a corrupt atlas is never read as empty.
   code, so `atlasFile.ts` writes the envelope on line 1 and one entity per line through `writeFileAtomicStream`
   and reads it back through `readJsonlLines` — never one JS string ([TypeScript patterns](typescript-patterns.md)).
 - **Whether a generation may publish is judged once, in the kit** (`kit/mandatoryKinds.ts`). The owner's
-  ruling there is the rule for this whole tree: _"we should avoid making a change just for one atlas. If
-  you're making a change, you probably want to make it so it applies to all atlases."_ A gap measured on one
+  ruling there is the rule for this whole tree: a change is never made for one atlas alone; it is made so it
+  applies to all atlases. A gap measured on one
   platform is fixed in `kit/`. A refusal that genuinely belongs to one platform goes through the kit's
   `guardPublish` seam (`kit/publish.ts` runs it; Linear's cross-workspace guard is the case), never a private path.
 - **Where it is stored is not this tree's decision.** A generation lives under `$SLOPWEAVER_HOME/atlas/<p>/`,

@@ -311,8 +311,8 @@ export function firstCardFrame({ question }: { question: string }): {
  * `fresh-visible-session`, and `../turn/turnBegin.ts` — the one thing that corrects the
  * pre-routing placeholder — runs only inside `turn run`, the INLINE path. So the public thread's card sat on
  * `◦ Work out how to answer` for the whole dispatch, waiting for a `turn status` the worker never ran, while
- * that worker opened, pushed and enqueued a pull request. The owner, in the channel: *"whats happening here?
- * feeling embarrassed in public rn"*. Routing HAS run by the time a dispatch stands a card up, so the
+ * that worker opened, pushed and enqueued a pull request. The owner, in the channel, asked what was happening
+ * in the thread. Routing HAS run by the time a dispatch stands a card up, so the
  * placeholder is not just unhelpful there — it is out of date the instant it is posted.
  *
  * `nowDetail` is `undefined`, deliberately: the `now:` line is derived from the worker's own command log and

@@ -8,8 +8,8 @@ import { asksInWordsToWait, asksToWait } from "../../lib/waitAsk";
 
 describe("asksToWait", () => {
   it.each([
-    "I might just handle this one by hand actually. One sec",
-    "Moving on to the next thing. Umm",
+    "I could do the ABC-1 step myself, actually. One sec",
+    "Moving on to the Acme rollout. Umm",
     "okay give me a minute",
     "hang on",
     "hold on, hold on.",
@@ -25,8 +25,8 @@ describe("asksToWait", () => {
   });
 
   it.each([
-    "Cool, that's perfect. I'm going to pre-approve you sending that, tagging Ari in the launch channel.",
-    "I'm gonna pre-approve you sending something like that as me",
+    "Great, that works. You can go ahead and send that one, tagging the Acme launch channel.",
+    "You can send something like that from my account",
     "Send it in drip feed style",
     "have a look at this thread now",
     "I think so",
@@ -46,7 +46,7 @@ describe("asksToWait", () => {
 
 // A tail before a resume that re-pitched the card the owner was reading.
 const OWNER_READING_TAIL =
-  "Um, I mostly use the other voice mode so I never really tried this one before but " +
+  "Um, I mostly use the Acme report so I never really opened this one before but " +
   "Anyway, that can wait for a later call, so let me just keep reading";
 
 describe("asksToWait — the owner is still reading the card in front of them", () => {
@@ -192,8 +192,8 @@ describe("asksInWordsToWait", () => {
   it("reads a trailing filler as no ask, and an explicit wait as one", () => {
     expect([
       asksInWordsToWait({ text: "Can you check the staging pool and" }),
-      asksInWordsToWait({ text: "Moving on to the next thing. Umm" }),
-      asksInWordsToWait({ text: "I might just handle this one by hand actually. One sec" }),
+      asksInWordsToWait({ text: "Moving on to the Acme rollout. Umm" }),
+      asksInWordsToWait({ text: "I could do the ABC-1 step myself, actually. One sec" }),
       asksInWordsToWait({ text: "Hold on" }),
     ]).toEqual([false, false, true, true]);
   });

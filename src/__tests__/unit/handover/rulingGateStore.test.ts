@@ -54,7 +54,7 @@ const PLACING = {
   decidedIso: PLACED,
   gate: { subjects: ["iso-policy-acceptance-daily"], verbs: [{ noun: "recipe", verb: "run-due" }] },
   kind: "ruling",
-  ruling: "stop posting shit that no one is asking for",
+  ruling: "post only what someone has asked for",
 };
 
 describe("rebuildStandingGates", () => {

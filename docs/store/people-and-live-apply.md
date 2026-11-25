@@ -119,8 +119,8 @@ from content where author_native_id is not null group by 1 order by 2 desc;
 merge.** A colleague's personal gmail beside their work address, a staff member's second Workspace account on
 the NZ domain, a contractor's `.ctr` account beside their staff one — each is a unique key issued by an
 authority, so each is correctly its own person, and only the owner can say which pairs are one human. The
-owner was explicit that a display name is not a reliable source (in the owner's words, lots of people set their
-display name to something completely different in Slack), so the duplicate is made VISIBLE instead of guessed at.
+owner ruled that a display name is not a reliable source (many people set a Slack display name unrelated to
+their real one), so the duplicate is made VISIBLE instead of guessed at.
 
 **What still does not resolve, stated rather than discovered.** GitHub sits at 11.0% and that is the honest
 ceiling of what this install can see: 19,514 of the unresolved rows are `coderabbitai`, 10,300

@@ -2,7 +2,7 @@
 
 A store-backup card once stood first on the owner's queue for three hours after the row it waited on had closed,
 beside a second card about the same thing, and a re-cut elsewhere was done as two separate commands. The owner must
-never go through stuff already gone through, because that is a waste of the owner's time. Nothing read whether a
+never review anything already settled, because that wastes the owner's time. Nothing read whether a
 card's work had finished.
 
 ## Every post says which kind it is

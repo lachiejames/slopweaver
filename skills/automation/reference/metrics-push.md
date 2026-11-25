@@ -1,6 +1,6 @@
 # A `metrics-push` row — push an install's own metrics to Datadog, a day at a time
 
-The kind is generic on purpose. The owner's word: pushing custom metrics to Datadog on a schedule, with
+The kind is generic on purpose: pushing custom metrics to Datadog on a schedule, with
 backfill, is useful whatever the metrics are; which metrics an organisation pushes is its own business and stays
 out of this repository. So the code runs a **metrics producer** the install declares and computes nothing itself.
 

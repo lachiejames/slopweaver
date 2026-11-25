@@ -1,8 +1,8 @@
 # `recipe-repairing`: a stop being fixed is news, never a card
 
-The owner's ruling A, in the owner's words: the fleet will let the owner know via a floating card when a job has stopped working but
-is being fixed, and it won't show up as a queue card, or something that's blocked on the owner, or silently stop
-working. Nothing on disk linked a stopped recipe to the seat repairing it, so a seat says so. The other
+The owner's ruling A: the fleet lets the owner know via a floating card when a job has stopped working but
+is being fixed; it never shows up as a queue card or as something blocked on the owner, and a job never silently
+stops working. Nothing on disk linked a stopped recipe to the seat repairing it, so a seat says so. The other
 monitors: [the monitors](the-monitors.md).
 
 - **The take.** `slopweaver automation repair <recipeId> --row <slug>` appends one line to

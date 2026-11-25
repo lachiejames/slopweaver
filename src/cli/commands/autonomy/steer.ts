@@ -1,9 +1,9 @@
 /**
  * `slopweaver autonomy steer <actionId>` — record THEIR retroactive word about one act.
  *
- * This is the other half of the ruling that built the register. They read the ledger on their Fleet Briefing,
- * says something about a row to the supervisor — _"something I actually would have been fine with but you
- * didn't do or something you did do and I wasn't fine with"_ — and the supervisor runs this. It appends
+ * This is the other half of the ruling that built the register. They read the ledger on their Fleet Briefing
+ * and tell the supervisor about a row — an act they would have accepted that the fleet did not take, or one
+ * it took that they did not accept — and the supervisor runs this. It appends
  * rather than editing, so a second word on one act does not erase the first: both stay in the file and
  * `../../../autonomy/query.ts`'s fold shows them the newer one.
  *

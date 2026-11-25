@@ -1,10 +1,9 @@
 # Asked before — an answered question is never asked again with nothing shown
 
-The owner's ruling, reading a parked key-spend draft: if they answered _"yeah, it's expected, here's why"_ and a
-month later we ask the same thing, then in the owner's words they're gonna look at the fleet and be like … didn't
-the owner and the fleet already have this exact conversation a month ago? The default is to **drop it**. The one
-other shape is a Queue card carrying our earlier message, their answer and proof of what changed: _"you can't just
-tell me something's changed, I need some charts, I need some proof."_ The owner decides.
+The owner's ruling, on a parked key-spend draft: when someone already answered that a thing is expected and why,
+asking the same question a month later makes the fleet look like it forgot the earlier conversation. The default
+is to **drop it**. The one other shape is a Queue card carrying our earlier message, their answer and proof of
+what changed (a claim of change without charts or other proof is not enough). The owner decides.
 
 ## The declaration
 
@@ -35,8 +34,8 @@ terms, then `store around` or `slack read-thread <link>` on a hit. A chase of ou
 
 ## An answer at the top of the channel
 
-In the owner's words: replies to the owner and the fleet's messages that are coming at the top level of a channel
-… the owner would look silly if the owner said, 'Bump, no one responded to me.' So a channel ask also reads the channel's top level
+Replies to the owner's and the fleet's messages can arrive at the top level of a channel, and a bump claiming
+nobody responded would then look silly. So a channel ask also reads the channel's top level
 after ours, up to four days of it, whole or not at all. A considered post is a person's, strictly after ours and
 within one business day of it: never ours, a bot's, an app's, a join, or a reply's channel copy (a file shared with a
 comment or none counts, as in a thread). The rule, `topLevelTieOf` in `src/outbound/slack/topLevelAnswer.ts`:
@@ -63,7 +62,7 @@ changed with its pictures, or why it was no answer. An ask nobody answered owes 
 
 ## At release
 
-A row that named an earlier ask re-reads it before sending (in the owner's words, a read before and after
+A row that named an earlier ask re-reads it before sending (a read before and after
 every send cancels a re-ask by itself). A reply the row did not record that is newer than the recording's THREAD
 read, a top-level post the rule ties to ours included, refuses, and so does a clear top-level answer the row never
 recorded (a deleted post can expose an older one). The mark is the thread's alone: the channel is read after it, so

@@ -83,14 +83,12 @@ fi
 # runaway must stay survivable). An explicit --max-old-space-size in NODE_OPTIONS always wins — cmux's
 # injected one is not explicit, and is stripped above.
 #
-# It is NOT the fix, and must not be read as one. The owner accepted it with the objection attached:
-# "are there performance optimizations so that you don't need 12 gigabytes... sometimes you'll have three
-# people asking [the bot] a question at once... I'm only on a 48 gig RAM laptop." A ceiling one process
-# may safely reach is not one three may reach, so it ships with a concurrency guard
-# (src/lib/loadSlots.ts). What retires this block is a query that stops loading the whole corpus into heap.
-# The prebuilt lexical index (#488) is NOT that, measured: it removed the per-query BM25 build, but the
-# records are the larger half, and with #488 landed `ask` at the default ceiling still died during the
-# bronze read.
+# It is NOT the fix, and must not be read as one. It shipped with a standing objection: a query should not need 12
+# gigabytes, since several asks can run on one machine at once. A ceiling one process may safely reach is not one
+# three may reach, so it ships with a concurrency guard (src/lib/loadSlots.ts). What retires
+# this block is a query that stops loading the whole corpus into heap. The prebuilt lexical index (#488) is NOT that,
+# measured: it removed the per-query BM25 build, but the records are the larger half, and with #488 landed `ask` at the
+# default ceiling still died during the bronze read.
 #
 # A QUERY NO LONGER NEEDS THIS, and the number is unchanged anyway — both halves of that are measurements,
 # 25 Aug 2026, one corpus of 1,930,477 records / 7,811 MiB, one question, `facts`:

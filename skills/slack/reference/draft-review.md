@@ -64,9 +64,8 @@ route exists to show the owner.
 
 ## A message as the owner to the bot is sent, never parked
 
-The owner's words, on a queue card holding a reply as the owner under the owner's own message to the bot, were: this
-sounds like some slopweaver dogfooding stuff, and it shouldn't have been escalated to the owner or blocked on the
-owner. So the seat that needs one — a gold witness's human half, above all — sends it with `slack post|reply --as me`, and
+A queue card holding a reply as the owner under the owner's own message to the bot is slopweaver dogfooding, and
+it should never be escalated to the owner or blocked on the owner. So the seat that needs one — a gold witness's human half, above all — sends it with `slack post|reply --as me`, and
 `slack draft record` REFUSES to park it, naming that command. The test is exact
 (`src/outbound/slack/botDmWitness.ts`): the destination is `slackBot.promptChannel`, and the message is top-level
 or replies under a root THE OWNER wrote. A reply under the bot's own root there, the owner's self-DM (their `U…`
@@ -84,9 +83,8 @@ that is also a word (`ray`, `rob`) is held too and reworded. No hatch: tagging t
 
 ## A finding shared in a channel is the bot's draft
 
-In the owner's words: if the owner and the fleet are sharing some random finding at the top level in some channel
-after the owner approved the queue card, post as the bot instead of as-me — the bot found it and the owner has not
-verified it. So `slack draft record --as bot --form -` parks a `finding` card (or any bot form) for a team channel: the same
+A finding shared at the top level of a channel after the owner approved the queue card posts as the bot instead
+of as-me, because the bot found it and the owner has not verified it. So `slack draft record --as bot --form -` parks a `finding` card (or any bot form) for a team channel: the same
 admission, render, three-picture floor and membership check a `slack post --as bot` runs, with the bot's own
 id as the author the digest binds. `slack post --as bot --draft <id> --approve <digest>` releases it through
 the whole card lane, refusing if the card now renders differently; each verb refuses a row recorded under the

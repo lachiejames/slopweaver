@@ -12,10 +12,9 @@
  * ## What it opens, and why that satisfies rule 2
  *
  * The investigation is a `cmux spawn` — a VISIBLE, interactive workspace the owner can watch and interrupt.
- * Nothing here launches a detached or resident model. The owner asked for exactly this shape: _"maybe it
- * notices, like, oh hey our usage is being drawn down like 10 times what they have been compared to our
- * last week's baseline, I'm going to spawn a session to investigate this"_ — so that the alternative,
- * _"me to come in after the fact and say like hey what the fuck's going on here"_, stops being necessary.
+ * Nothing here launches a detached or resident model. The intended shape: the tick notices usage drawn down
+ * at several times last week's baseline and spawns a session to investigate, so the owner never has to
+ * come in after the fact to ask what happened.
  *
  * Every effect is injected, so the whole decision path is unit-tested without touching a socket or a file.
  */

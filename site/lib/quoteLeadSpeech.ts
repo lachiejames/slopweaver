@@ -128,8 +128,8 @@ export const REVERSAL =
 
 /**
  * A later sentence correcting an earlier one — opening on "sorry" behind only filler ("Uh, sorry, I'm more talking
- * about policies"), never an apology "sorry about", or carrying "sorry, not" anywhere ("Sorry, not bothered about
- * clerk, they're bothered that …").
+ * about the eslint bump"), never an apology "sorry about", or carrying "sorry, not" anywhere ("Sorry, not the knip
+ * bump, the eslint bump").
  */
 export const CORRECTION =
   /^[^\p{L}]*(?:(?:uh|um|oh|well|yeah|okay|so|and|right)[^\p{L}]+)*sorry\b(?!\s+about)|\bsorry,? (?:not|no)\b/iu;

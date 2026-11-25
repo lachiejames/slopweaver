@@ -20,8 +20,8 @@
  * `text` or `raw` would pull the whole tree into heap to get at a chunk. Storing it beside the corpus and
  * naming it by digest keeps the rows small, so only a caller that actually wants the structure pays for it.
  *
- * Content-addressing buys the second property the owner asked for by name: _"if you've already got a page in
- * the index, you don't need to do the whole thing again"_. An unchanged body serialises to identical bytes,
+ * Content-addressing buys the second property wanted by name: a page already
+ * in the index is not processed again in full. An unchanged body serialises to identical bytes,
  * hashes to the same digest, finds the file already there and writes nothing — and the record's attr is
  * byte-identical too, so an unchanged page's fingerprint does not move.
  *

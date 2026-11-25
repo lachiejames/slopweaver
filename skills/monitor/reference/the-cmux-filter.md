@@ -1,8 +1,7 @@
 # The cmux notification filter — no cmux banner reaches the owner; the floating note is the one surface
 
-The owner's words: cmux is always notifying for non-supervisor stuff, so poor signal to noise ratio. And
-later, in the owner's words: the owner is thinking of just dropping cmux notifications entirely and just using these floating macOS
-notes. They're quite nice, and the owner likes when they link the owner to something useful when the owner clicks. A cmux banner
+cmux notified constantly for non-supervisor work, a poor signal to noise ratio, so cmux notifications are
+dropped entirely in favour of floating macOS notes, which link the owner to something useful on a click. A cmux banner
 carries neither the act nor a link to it; a `hand post` note carries both. So every cmux banner is off, the
 supervisor chair's included, and a step or question aimed at the owner goes up as a note.
 

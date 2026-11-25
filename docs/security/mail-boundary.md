@@ -179,8 +179,7 @@ Four further properties worth stating plainly:
 ## The copy a card stores
 
 An inbox-triage card is about mail the owner has not read, so its Queue card draws that mail under the problem line
-(in the owner's words: if the owner doesn't know exactly what's in the email, there's a chance that the owner gives a
-steer that's wrong).
+(an owner who does not know exactly what is in the email may give a wrong steer).
 That is the one place a mail BODY leaves Gmail for a page, and five properties bound it:
 
 - **Stored once, at the pin, and read locally ever after.** `gmail triage --pin` reads the pinned messages in

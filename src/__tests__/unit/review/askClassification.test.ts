@@ -186,7 +186,7 @@ describe("classifyReviewCandidate — the vetoes, each measured on a real messag
   it("refuses a `cc` in passing, which copies somebody in rather than asking them", () => {
     const decision = classifyReviewCandidate({
       candidate: candidateOf({
-        text: "Almost true for local E2Es too, once I get a platform tick (CC <@U0SYN000002> :eyebrows: ) <https://github.com/acme/acme-admin/pull/16378>",
+        text: "Same goes for the Acme staging deploys, once I get a platform tick (CC <@U0SYN000002> :eyebrows: ) <https://github.com/acme/acme-admin/pull/16378>",
       }),
     });
     expect(decision.kind).toBe("non-ask");
@@ -497,12 +497,12 @@ describe("classifyReviewCandidate — a reply that names its pull request only t
 });
 
 describe("classifyReviewCandidate — a thread reply that names a need rather than an act", () => {
-  it("stays undecided on the owner's real explanation of a block", () => {
+  it("stays undecided on an explanation of a block", () => {
     const decision = classifyReviewCandidate({
       candidate: {
         ...candidateOf({
           number: 16331,
-          text: "I've been trying man since August, but stays blocked on <!subteam^S0SYN000012> codeowner tick",
+          text: "I've been trying man since the Acme cutover, but stays blocked on <!subteam^S0SYN000012> codeowner tick",
         }),
         threadPrKeys: ["acme/acme-admin#16331"],
       },
@@ -511,7 +511,7 @@ describe("classifyReviewCandidate — a thread reply that names a need rather th
     expect(decision.ruleId).toBe("thread-reply-reports-rather-than-asks");
   });
 
-  it("still certifies the owner's real bump in the same position", () => {
+  it("still certifies a bump in the same position", () => {
     const decision = classifyReviewCandidate({
       candidate: {
         ...candidateOf({ number: 16415, text: "Bumpity bump <@U0SYN000012> :pray:" }),
@@ -528,7 +528,7 @@ describe("classifyReviewCandidate — a need-word anywhere in a thread reply", (
     const decision = classifyReviewCandidate({
       candidate: {
         ...candidateOf({
-          text: "I've been bumping this since August, but stays blocked on <!subteam^S0SYN000012> codeowner tick",
+          text: "I've been bumping this since the Acme cutover, but stays blocked on <!subteam^S0SYN000012> codeowner tick",
         }),
         threadPrKeys: ["acme/acme-admin#16378"],
       },
@@ -542,7 +542,7 @@ describe("classifyReviewCandidate — a need named through the group a thread re
     const decision = classifyReviewCandidate({
       candidate: {
         ...candidateOf({
-          text: "I've been bumping this since August, but stays blocked on <!subteam^S0SYN000012|@platform-codeowners>",
+          text: "I've been bumping this since the Acme cutover, but stays blocked on <!subteam^S0SYN000012|@platform-codeowners>",
         }),
         threadPrKeys: ["acme/acme-admin#16378"],
       },
@@ -701,13 +701,13 @@ describe("classifyReviewCandidate — the quote route runs the same gates as the
 });
 
 describe("classifyReviewCandidate — a direct message reaching pull requests through an unfurl", () => {
-  it("abstains rather than answering never-asked on a real handover to a codeowner", () => {
+  it("abstains rather than answering never-asked on a handover to a codeowner", () => {
     const decision = classifyReviewCandidate({
       candidate: {
         ...candidateOf({
           conversation: "direct-message",
           counterpartId: "U0SYN000019",
-          text: "in the meantime, got a big stack for ya",
+          text: "in the meantime, got a big Acme stack for you",
         }),
         quotedPrKeys: ["acme/acme-admin#16378"],
       },
@@ -719,7 +719,7 @@ describe("classifyReviewCandidate — a direct message reaching pull requests th
   it("abstains on the corpus leg too, where no record ever names the other party", () => {
     const decision = classifyReviewCandidate({
       candidate: {
-        ...candidateOf({ conversation: "direct-message", text: "in the meantime, got a big stack for ya" }),
+        ...candidateOf({ conversation: "direct-message", text: "in the meantime, got a big Acme stack for you" }),
         quotedPrKeys: ["acme/acme-admin#16378"],
       },
     });

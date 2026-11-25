@@ -4,8 +4,8 @@
  *
  * ## Why the install is part of the same verb rather than a thing to remember
  *
- * The owner's ruling: *"after we do a git pull on our main worktrees … we should run a `yarn install` and
- * make sure node_modules actually reflect reality."* A remembered second step is a step that gets skipped,
+ * The ruling: after a git pull on a main worktree, run a `yarn install` so `node_modules` reflects the
+ * pulled tree. A remembered second step is a step that gets skipped,
  * and when it is skipped the symptom appears somewhere else entirely — a provider call throwing before the
  * network, with CI green the whole time. So the pull and the install are one operation here, and the verb
  * prints the sentence that says which of the two it did and why.

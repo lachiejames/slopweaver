@@ -1,8 +1,8 @@
 /**
  * `slopweaver session re-seat` — re-seat every workspace standing behind a wall it cannot answer through:
  * reopened LOGGED OUT after a machine restart, or sitting on Claude Code's usage-limit
- * RETRY spinner after its plan spent its window (owner ruling relayed: _"nudge or respawn a
- * limit-hit seat, never leave it retrying"_). One boot at a time under the capacity read. The judgement — what
+ * RETRY spinner after its plan spent its window (owner ruling relayed: nudge or respawn a
+ * limit-hit seat, never leave it retrying). One boot at a time under the capacity read. The judgement — what
  * each wall looks like, which ledger row a renumbered workspace belongs to, and what is never touched — is
  * `../../../sessions/seatRecovery.ts`; this file is the socket, the capacity wait, the close and the boot.
  *

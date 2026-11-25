@@ -1,8 +1,7 @@
 # An alignment-briefing row — the owner's weekday morning, a step ahead of the owner's manager
 
 The owner's ruling: a briefing early in the morning that anticipates what the owner's manager will expect or look for by
-the end of the day, so that, in the owner's words, in the morning, the owner basically has some kind of goal about what
-the owner is going to have done by the end today.
+the end of the day, so that each morning the owner has a goal for what will be done by the end of that day.
 `alignment-briefing-weekday` is the declared row ([declared rows](declared-rows.md)): 08:00 the owner's time, Monday to
 Friday, reading `handover currency --json`.
 

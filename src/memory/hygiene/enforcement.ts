@@ -54,8 +54,8 @@ export interface Enforcer {
  * MEASURED, and the measurement is why this is a SHARE rather than a count. An absolute threshold of two shared
  * rare tokens nominated 12 of the 19 memories in the live corpus on the first run of this check — because
  * `AGENTS.md` is thousands of words, so almost any memory shares two uncommon words with it. That is exactly the
- * failure the owner named on a different similarity surface: _"The false positives will kill trust
- * immediately."_ A share asks the question the check actually means — is nearly everything this memory
+ * failure named on a different similarity surface: false positives kill trust
+ * immediately. A share asks the question the check actually means — is nearly everything this memory
  * distinctively says already in that doc — and it is scale-free, so a long enforcer earns no advantage.
  *
  * Re-measure with:

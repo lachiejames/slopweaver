@@ -86,9 +86,9 @@ export const KNOCK_ATLAS_DESCRIPTOR: AtlasDescriptor = {
     },
     {
       because:
-        "a screenshot of any page whose content is the organisation's own recipients or message history. The" +
-        " owner's ruling names settings and admin pages as what a walk photographs, and is explicit that a" +
-        ' walk must not *"get a screenshot of every single message that\'s ever been sent"*. `browserPages.ts`' +
+        "a screenshot of any page whose content is the organisation's own recipients or message history. A walk" +
+        " photographs settings and admin pages, and never pilots a browser to photograph every message ever" +
+        " sent. `browserPages.ts`" +
         " is the declared set and it is the settings, admin and section-index pages only",
       ground: "never-acted",
     },

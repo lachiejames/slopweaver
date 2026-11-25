@@ -34,7 +34,7 @@ const placing: RunEvent = {
   decidedIso: PLACED,
   gate: { subjects: [], verbs: [{ noun: "slack", verb: "post" }] },
   kind: "ruling",
-  ruling: "stop posting shit that no one is asking for",
+  ruling: "post only what someone has asked for",
 };
 
 const gates = standingGatesOf({ events: [placing], slug: "a-row" });
@@ -268,7 +268,7 @@ describe("rulingGateDoor reads the real home whatever argv names", () => {
     });
 
     expect(sameIdOtherWords[0]!.id).toBe(gates[0]!.id);
-    expect(verdict.lines.join("\n")).toContain("stop posting shit that no one is asking for");
+    expect(verdict.lines.join("\n")).toContain("post only what someone has asked for");
     expect(verdict.lines.join("\n")).toContain("no unasked posts to a channel");
   });
 
@@ -313,7 +313,7 @@ describe("readGatesForHomes", () => {
     const read = readGatesForHomes({ homes: [home, alsoGated, otherWords] });
 
     expect(read.map((gate) => gate.words)).toEqual([
-      "stop posting shit that no one is asking for",
+      "post only what someone has asked for",
       "no unasked posts to a channel",
     ]);
   });

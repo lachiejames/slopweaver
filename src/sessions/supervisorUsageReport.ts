@@ -3,11 +3,10 @@
  *
  * ## Why one command rather than three
  *
- * The owner's ruling: _"I want it to just be one command that returns all the text that's
- * needed for a good decision."_ Before this, a supervisor could learn how DEEP a session was (`session
- * depth`) and, separately, how many tokens the console said it had spent — and neither number was weighted,
- * so a Fable session and a Sonnet session with the same token count looked identical while differing by
- * more than 6x in what they actually drew down.
+ * The owner's ruling: one command returns all the text a good decision needs. Before this, a supervisor could learn how
+ * DEEP a session was (`session depth`) and, separately, how many tokens the console said it had spent — and neither
+ * number was weighted, so a Fable session and a Sonnet session with the same token count looked identical while
+ * differing by more than 6x in what they actually drew down.
  *
  * ## Why it recommends nothing
  *
@@ -18,8 +17,7 @@
  * the time, on a fact — how much work is LEFT — that no gauge can see and a supervisor can.
  *
  * So the report hands over the arithmetic and the evidence, and the judgement stays where the same ruling
- * put it: _"gut tells me purely supervisor should be the one who probably looks at session depth and token
- * spend."_
+ * put it: the supervisor looks at session depth and token spend, because it already manages the fleet.
  *
  * Pure: rows in, lines out. Every effectful read lives in `cli/commands/session/depth.ts`.
  */

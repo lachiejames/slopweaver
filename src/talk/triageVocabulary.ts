@@ -5,8 +5,8 @@
  * ran inbox zero on: waiting on them, waiting on me, come back to it, action now. A card the owner cannot understand
  * is dropped and rewritten from their feedback, so `rewrite` is a verdict too.
  *
- * `drop` is the owner's "no": a first live pass had nowhere to put "just close the PR, I don't actually want this
- * anymore", and it was stored as `send-it` — the one verdict a yes reads as a send.
+ * `drop` is the owner's "no": a first live pass had nowhere to put a close-it, not-wanted-anymore verdict on a pull
+ * request, and it was stored as `send-it` — the one verdict a yes reads as a send.
  *
  * Shared by `relay_steer`'s schema (`./steerToolSchemas.ts`), `talk relay --triage --label` and the row's text, so a
  * word the voice may pass is a word the verb accepts and the row spells; `site/lib/triageWords.ts` restates the two

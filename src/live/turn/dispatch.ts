@@ -7,8 +7,8 @@
  * An earlier review (P3) found the original dispatch-record design trustable-but-stale: a record's own
  * `state: "answerable"` field could be re-read as proof a tier ran, even after the ask it named was re-briefed
  * or the record itself had drifted. The proposed fix was to bind the record to a digest of the exact brief it
- * was created from and revalidate that digest on every read. The owner rejected it directly: persisted local
- * state "tends to get stale... not very trustworthy," and asked instead for the dispatch record to be an
+ * was created from and revalidate that digest on every read. It was rejected: persisted local
+ * state goes stale and is not trustworthy, so the dispatch record is an
  * ADDRESS — where the real session is — with completion read from that session's own live terminal every
  * time, via `readScreen` (`../../cmux/client.js`). A {@link FreshDispatchRecord} therefore carries only durable
  * REQUEST and LOCATOR facts; it never carries `state: "answerable"`, cached terminal output, or a report

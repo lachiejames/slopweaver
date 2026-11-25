@@ -4,9 +4,8 @@ A child of [the voice flow](../voice-flow.md#2--what-the-voice-reads); it narrow
 [the meeting heads-up](../../site/content/console/call-widget.mdx) inside
 [voice-boundary](../security/voice-boundary.md).
 
-The owner, after the voice told the owner to join a meeting the owner had already said was done, in the owner's
-words: assume that the owner is going to all meetings unless the owner has said otherwise, and in this case, the owner
-explicitly... said otherwise, so- but- but... it didn't take effect. That's the bug.
+The bug: the voice told the owner to join a meeting the owner had already ruled out. The owner attends every
+meeting unless the owner has said otherwise, and the ruling-out did not take effect.
 
 **The default is that the owner attends.** Every meeting the server reads with `talk meeting-due` is announced and gets
 its join pill, as before. Only a meeting the owner ruled out on this provider's life is left out, and nothing else

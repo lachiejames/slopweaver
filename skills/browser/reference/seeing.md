@@ -122,9 +122,9 @@ reloaded, and `browser close` sweeps a session's own with a targetless `highligh
 slopweaver browser scroll --session <id> [--pages <n>] [--up]
 ```
 
-The owner, narrating the owner's own walk: seeing no resource toggle on the page, the owner maybe wants to go
-down to the left sidebar, scrolls down some more, has scrolled down one page's worth, asks whether there is any
-sort of resource thing there, and finds one on the left. That is a
+The walk that motivates it: no resource toggle is visible on the page, so the walker heads for the left sidebar,
+scrolls down some more, has scrolled one page's worth, checks whether a resource entry is there, and finds
+one on the left. That is a
 loop with a picture in it, and `act --do scroll` is not it — a scroll through `act` must cite a fresh
 `--observation` each time, so walking three screens costs six commands and the caller assembles the pictures
 itself.

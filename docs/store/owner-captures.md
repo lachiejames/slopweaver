@@ -3,9 +3,8 @@
 Part of [The local Supabase store](../store.md), beside
 [the fleet's own state](./fleet-state-and-measurements.md), whose `owner_turn` holds the turns a supervisor seat
 wrote down. This page covers the rest of what the owner said: what they dictated and what they typed into Codex, plus
-the verb that loads an older store's turns back from a dump. Owner ruling: build the import and load the dump
-(_"I thought we were just importing everything … being able to selectively restore stuff useful nice feature to
-have"_).
+the verb that loads an older store's turns back from a dump. Owner ruling: build the import and load the dump, with
+selective restore as a useful feature.
 
 ## `owner_capture`: one row per thing the owner said, append-only
 

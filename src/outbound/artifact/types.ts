@@ -304,7 +304,7 @@ export interface NoFoldArtifact {
 /**
  * Every inline run the AS-ME lane can carry — {@link InlineRun} MINUS {@link CitationRun}.
  *
- * Citations are bot-only by owner decision: *"I feel like citations are bot only"*. A human does not
+ * Citations are available only on bot-authored forms. A human does not
  * footnote themselves, so the chip is not merely discouraged here, it is UNREPRESENTABLE — a `[1]` in an
  * as-me message is a type error rather than a review comment. Should that decision ever soften, this
  * widens to `InlineRun` in one line, which is why it is expressed as a narrowing rather than a new union.
@@ -314,9 +314,9 @@ export type DripInlineRun = TextSpan | LinkRun | MentionRun | GroupRun | Broadca
 /**
  * ONE message of a drip: a single unbroken run sequence, and deliberately not a `DetailBlock`.
  *
- * There is no bullets or table variant and no nesting, because the owner's measured answer was that a drip
- * message carries NO internal line breaks at all — *"each message is one run; all visible whitespace comes
- * from the message boundary"*. A structure that cannot hold a newline cannot accidentally grow one.
+ * There is no bullets or table variant and no nesting, because a drip message carries NO internal line breaks at all:
+ * each message is one run, and all visible whitespace comes from the message boundary. A structure that cannot hold a
+ * newline cannot accidentally grow one.
  */
 interface DripMessage {
   readonly runs: readonly DripInlineRun[];
@@ -325,11 +325,10 @@ interface DripMessage {
 /**
  * The AS-ME drip: an ORDERED SEQUENCE of short messages, one or two sentences each.
  *
- * This is a different artifact from {@link UpdateArtifact}, not a styled variant of it. The bot's card is
- * one message carrying everything behind a fold; the human lane is several small messages with no card, no
- * wrapper, no fold and no author chrome — *"much more freeform… a drip feed approach where it's one or two
- * concise sentences in my voice per section"*. Order is a CORRECTNESS property: messages that arrive out of
- * order read as gibberish, which is why the sender awaits each one.
+ * This is a different artifact from {@link UpdateArtifact}, not a styled variant of it. The bot's card is one message
+ * carrying everything behind a fold; the human lane is several small messages with no card, no wrapper, no fold and no
+ * author chrome, freeform, one or two concise sentences per section. Order is a CORRECTNESS property: messages that
+ * arrive out of order read as gibberish, which is why the sender awaits each one.
  */
 export interface DripArtifact {
   readonly kind: "drip";

@@ -25,8 +25,8 @@
  * fail this way however old it is.
  *
  * That is why the criterion here is an OVERLAP and not a distance. A commit-count threshold was weighed and
- * dropped: it contradicts the owner's standing ruling recorded in `../cmux/baseFreshness.ts` (*"sometimes
- * it's fine if your base is a little drifted depending on your changes"*), no measurable number maps a
+ * dropped: it contradicts the owner's standing ruling recorded in `../cmux/baseFreshness.ts` (a slightly
+ * drifted base is fine, depending on the change), no measurable number maps a
  * commit count onto "this verb will lie" — commits-behind tracks the fleet's landing rate, not risk — and it
  * is simultaneously too loud (fires on `slack when` at 258 behind) and too quiet (silent on `autonomy list`
  * at 30). Measured on this repository at three realistic distances, the overlap criterion discriminates

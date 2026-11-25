@@ -31,8 +31,8 @@ the day reads done before anything was fixed.
    closes itself (`close-superseded`, [superseded bumps](../../github/reference/superseded-bumps.md)), so a
    worklist line reading that act is already done.
 4. **Press a bump whose only red leg is `dev-gate` by hand**, its body untouched. The
-   owner's standing rule, in the owner's words: for renovate-authored PRs, just leave the renovate PR description on
-   them, both on slopweaver and acme-admin — so `bump-drive` never plans `rewrite-body` on one (`isRenovateAuthored`), and it
+   owner's standing rule: a renovate-authored PR keeps its renovate PR description,
+   on slopweaver and acme-admin both — so `bump-drive` never plans `rewrite-body` on one (`isRenovateAuthored`), and it
    reads `seat`. `slopweaver github ready` on a draft, then `slopweaver github enqueue --pr <n> --acknowledge
 ci-not-green`: the queue requires only `build` and `integration`. Read every other finding before acknowledging it.
    Then re-read the worklist, until no `seat` bump remains.

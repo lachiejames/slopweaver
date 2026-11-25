@@ -333,7 +333,7 @@ export function matchMethodSurfaces({
 /**
  * Project the DECLARED surface map into `page` entities, whether or not a walk ever reached them.
  *
- * This is the owner's floor made mechanical: _"we should at least know all the pages that exist."_ A walk
+ * This is the floor made mechanical: the atlas knows every page that exists. A walk
  * reports where it went, so a page nobody visited leaves no trace in a walk-only projection — the same
  * invisibility `slack.ts` removes one level down for channels nobody has read. Declaring the denominator
  * here is what lets the atlas NAME a page it did not reach.

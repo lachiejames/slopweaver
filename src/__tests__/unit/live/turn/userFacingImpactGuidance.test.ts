@@ -9,9 +9,8 @@ import {
 } from "../../../../live/turn/userFacingImpactGuidance.js";
 import { visualEvidenceReviewLines } from "../../../../live/turn/visualEvidenceGuidance.js";
 
-/** The owner turn's own closing sentence, the ask this rule exists for. */
-const OWNER_ASK =
-  "fix up our setup so that I don't have to repeat this, since I'll be asking for user-facing impact a lot";
+/** An ask of the shape this rule exists for, naming user-facing impact once among other words. */
+const IMPACT_ASK = "make the setup remember this, since the Acme team will ask for user-facing impact a lot";
 
 const EXPECTED_PREFLIGHT = [
   "USER-FACING IMPACT — this ask is about what a CUSTOMER SAW, so lead with their screen:",
@@ -59,8 +58,8 @@ describe("USER_FACING_IMPACT_KEYWORDS", () => {
 });
 
 describe("userFacingImpactPreflightLines", () => {
-  it("prints the whole block for the owner's own ask", () => {
-    expect(userFacingImpactPreflightLines({ question: OWNER_ASK })).toEqual(EXPECTED_PREFLIGHT);
+  it("prints the whole block for an impact ask", () => {
+    expect(userFacingImpactPreflightLines({ question: IMPACT_ASK })).toEqual(EXPECTED_PREFLIGHT);
   });
 
   it.each(USER_FACING_IMPACT_KEYWORDS.map((keyword) => [keyword]))("prints the same block for %s", (keyword) => {
@@ -88,8 +87,8 @@ describe("userFacingImpactPreflightLines", () => {
 });
 
 describe("userFacingImpactReviewLines", () => {
-  it("prints the whole clause for the owner's own ask", () => {
-    expect(userFacingImpactReviewLines({ question: OWNER_ASK })).toEqual(EXPECTED_REVIEW);
+  it("prints the whole clause for an impact ask", () => {
+    expect(userFacingImpactReviewLines({ question: IMPACT_ASK })).toEqual(EXPECTED_REVIEW);
   });
 
   it("prints nothing for an unrelated ask", () => {
@@ -99,7 +98,7 @@ describe("userFacingImpactReviewLines", () => {
 
 describe("reviewImageClauseLines", () => {
   it("is 1b then the user-facing impact clause for an impact ask", () => {
-    expect(reviewImageClauseLines({ question: OWNER_ASK })).toEqual([
+    expect(reviewImageClauseLines({ question: IMPACT_ASK })).toEqual([
       ...visualEvidenceReviewLines(),
       ...EXPECTED_REVIEW,
     ]);

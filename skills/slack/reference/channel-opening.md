@@ -1,9 +1,9 @@
 # A top-level channel post opens with what it is and what it asks
 
 On two drafts for a pilot channel, the bot's card opened on "Five real MFA asks from the support channel…" and the
-owner said, in the owner's words, that the owner doesn't even know what the fuck it's talking about. Its readers had never heard
-of the pilot. The post the owner took said what the channel was, then what the owner wanted from them; in the
-owner's words, basically open with that. Review kept catching this after the fact, so it is now the form's job (doctrine rule 7).
+owner sent it back as unreadable. Its readers had never heard
+of the pilot. The post the owner took said what the channel was, then what the owner wanted from them, so a
+post opens with that. Review kept catching this after the fact, so it is now the form's job (doctrine rule 7).
 
 ## The declaration
 

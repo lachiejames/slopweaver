@@ -8,9 +8,8 @@ the way the freshness leg takes a live GitHub read.
 ## Blocked on the owner — `src/briefing/blockedAsks.ts`
 
 A bot turn that has stopped on something only the owner can do, and react-now does not LINK the thread, refuses the
-page. The owner's design, in the owner's words: surface it maybe on the owner's react now in the fleet briefing, because that is one of
-the most common places the owner looks lately — and explicitly not the bot DM, because there is so much stuff in
-that DM that the owner never really looks at it ever.
+page. The owner's design: surface it in react-now on the fleet briefing, one of the most common places the owner
+looks, and explicitly not the bot DM, which holds so much that the owner never reads it.
 
 Matched on the Slack permalink token (`p<ts with the dot removed>`), which is the only falsifiable handle: a
 card is prose, so whether it MENTIONS a block cannot be checked, while whether it LINKS one can. Requiring

@@ -21,8 +21,8 @@
  * ## The bar, and why it is structural rather than a score
  *
  * Every material claim classified, and no unresolved high-impact claim. That is checkable by reading the
- * verdict. It is deliberately not a confidence percentage: _"when AI tries to calculate its own percentage
- * of confidence it is always misleading"_ — a number invites the author to tune it, and a reader to trust
+ * verdict. It is deliberately not a confidence percentage: a model's own computed confidence
+ * percentage is always misleading — a number invites the author to tune it, and a reader to trust
  * it, neither of which is available with a list.
  *
  * A `warn` rather than a `hold`: the house rule is block-by-default WITH a break-glass, and a hold would

@@ -8,9 +8,9 @@ import { endsOnOver } from "../../lib/overWord";
 describe("endsOnOver", () => {
   it.each([
     " Uh, the former. Over",
-    " Okay, um, well, I'm very irritated so I'm probably gonna drop now. Over",
-    " but because I wanted to make that investment for all future weeks over",
-    " And now you won't even answer me when I use the fucking code word. Fuck you. Over",
+    " Okay, um, well, ABC-1 is all set so I'm probably gonna drop now. Over",
+    " but because I wanted that set up for all future Acme releases over",
+    " And now let's see if you answer me when I use the code word. Okay. Over",
     "over",
     "OVER.",
     "that's all from me, over…  ",

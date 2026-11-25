@@ -1,8 +1,8 @@
 /**
  * Which Claude Code session a parking seat IS, and what `session close-done` may do with it — pure.
  *
- * Owner steer: _"If a session is ever parked, it needs to leave our fleet
- * immediately … We close them, we track state somewhere, and we resume them when we want to."_ A seat is parked
+ * Rule: a parked session leaves the fleet immediately; it is closed, its state tracked, and it is resumed
+ * when wanted. A seat is parked
  * when it looks frozen and runs no shell that will complete. The screen says the first half; this module binds
  * the seat to the ONE registry session running in its workspace's process tree, so the checkpoint is written for
  * the session that actually holds the run and never for a stranger in the same directory.

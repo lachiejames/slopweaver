@@ -18,8 +18,8 @@ slopweaver github reviewer backfill --repo acme/acme-admin --author <login> [--a
 ## A suggestion on every ask, and a suggestion is all it is
 
 **Every ask that reaches the owner carries a suggested person**, even where the owner names the reviewer
-directly. The owner's ruling, in the owner's words: A: the owner can correct + gain confidence over time that your
-reviewer picker heuristic is accurate. B: Sometimes saves the owner time, patterns are sure to emerge over time. So it is phrased as a
+directly. The owner's ruling gives two reasons: the owner can correct it and gain confidence over time that the reviewer
+picker heuristic is accurate, and it sometimes saves the owner time as patterns emerge. So it is phrased as a
 suggestion, settled one word at a time, and a `decline` with its `--feedback` is the correction the tiers
 below learn from. A user-group mention is never offered as the follow-up to a silent person
 (`src/review/cadence.ts`): it reaches people the owner never chose.
@@ -28,8 +28,8 @@ below learn from. A user-group mention is never offered as the follow-up to a si
 two reviewers, one says "ask someone else", and the pull request is unmergeable despite two other
 approvals). The hard gate stays at codeowner approval plus green CI. Rulesets target ref names, not pull
 requests, and a per-pull-request ruleset needs an admin token in CI and races, so enforcement is not built.
-The owner reviews what reaches the owner as a Slack tag (in the owner's words, ignore what github says, the owner
-only reviews PRs when people tag the owner in slack), which is why no row here is enrolled off GitHub's own reviewer-request field
+The owner reviews what reaches the owner as a Slack tag (GitHub's own reviewer requests are ignored; the owner
+reviews a PR only when tagged in Slack), which is why no row here is enrolled off GitHub's own reviewer-request field
 ([review-state.md](review-state.md)).
 
 ## The register

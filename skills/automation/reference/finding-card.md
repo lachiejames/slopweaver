@@ -67,9 +67,9 @@ missing one.
 For each lead, in its own window:
 
 - **Impact**: what the person using the product cannot do. The owner's anchors: cannot pay or cannot log in is
-  `high`; an occasional error popup is `low`. The owner's test for every grade, in the owner's words: how would the owner grade impact and priority.
+  `high`; an occasional error popup is `low`. The owner's test for every grade: how the owner would grade impact and priority.
 - **Blast radius**: UNIQUE PEOPLE, grouped on the user id, customer id or account. Never sessions, events or calls:
-  _"affecting one user in a hundred sessions is less important than affecting 100 users each in one session"_.
+  one user in a hundred sessions matters less than 100 users each in one session.
 - **Cost**: dollars a day and how they were counted, when there is a defensible count (above).
 - **Env**: production or staging, from the query's own `env:` facet.
 - **Introduced**: the first failing instant, and how that is known (the quiet window before it). A standing
@@ -111,7 +111,7 @@ opens with Blast radius, Impact and Priority, derived (`FINDING_SIZING_LABELS`, 
 
 ## A P0 or P1 with a dollar figure tags Jonah and Smith
 
-That is the post the owner described, in the owner's words: found this bug, costing the organisation a million dollars a day, P1. The form carries it:
+That is the post the owner described: a bug found, costing the organisation a large daily sum, graded P1. The form carries it:
 
 - `cost: { dollarsPerDay, basis }` shows on the Impact line (`high, costing about $12,500 a day. …`), basis folded.
 - `escalate` names the people it tags, rendered as mentions on the Priority line, `P1, …, for @Jonah and @smith`.
@@ -155,8 +155,8 @@ channel or one of its threads, the owner's DM included; `findingIdentity.ts` sig
 
 ## The bar, and what the form refuses
 
-Only P0, P1 or P2, and only an issue nobody is tracking: _"priority should be sort of the metric that we use to
-decide what we're going to bother surfacing"_. A lead below the bar is named among what was checked and never
+Only P0, P1 or P2, and only an issue nobody is tracking: priority is the metric that decides what is worth
+surfacing. A lead below the bar is named among what was checked and never
 posted. The form also refuses:
 
 - a missing `impact`, `blastRadius`, `env`, `introduced`, `tracking`, `priorThread` or `options`, and any unknown

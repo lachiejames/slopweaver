@@ -60,8 +60,8 @@ earlier days' cards sat on the owner's Queue a day after the sweep read SHIPPED 
 write (`closureSettlePrecondition`), so a card a seat holds is left. Residue: a same-day card is not rewritten when
 its page set changes, and the census may count a card retired after publication for one pass.
 
-**`--close-shipped` closes a `SHIPPED` row by itself** — the same owner steer: _"this sounds like it doesn't need a
-queue card, no need to ask about landing something i already ruled on"_. Each is `handover close`, the very call
+**`--close-shipped` closes a `SHIPPED` row by itself** — the same owner steer: landing something already ruled on needs
+no queue card and no ask. Each is `handover close`, the very call
 `sweep apply` makes, at most 25 a pass, re-judged under the row's closing lock (`shippedClosePrecondition`,
 `src/cli/commands/sweep/shippedClose.ts`): a run that is active, parked or waiting on the owner, a seat dispatched
 but not yet started, or a journal that will not read, leaves the row. Every `handover close` gate stands, the uncarded-page gate included. A refused close

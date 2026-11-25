@@ -12,7 +12,7 @@
  *
  * ## What is fetched
  *
- * The owner's rule is "get the whole file and properly read it" — the point being that an image or a PDF
+ * The rule is to fetch the whole file and read it properly — the point being that an image or a PDF
  * often carries the context the thread is about. What the model cannot read (video, audio, archives) is
  * NOT downloaded, because a 213 MB mp4 costs minutes to produce a line saying "this is a video". Measured
  * in the real corpus: 87 videos, and the largest single file is 213.7 MB.

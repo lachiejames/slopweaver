@@ -18,7 +18,7 @@ const base = {
   atIso: PLACED,
   decidedIso: PLACED,
   kind: "ruling",
-  ruling: "stop posting shit that no one is asking for",
+  ruling: "post only what someone has asked for",
 };
 
 /** One journal holding exactly the line under test. */

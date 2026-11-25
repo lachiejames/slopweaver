@@ -9,8 +9,8 @@ slopweaver linear label create --form - --dry-run   # add ONE label, previewed f
 
 **An agreed label goes ON the object, never into its text.** A session once filed 23 Security
 issues and two projects with the agreed bucket and access labels written into each issue's fold, because no
-verb listed or created a label. The owner's word on reading it: _"we agreed on linear labels. if this is due
-to a gap in out setup, id rather you fix that gap now"_. These two verbs are that fix.
+verb listed or created a label. The owner's ruling on reading it: the labels were agreed, and a gap in the setup is fixed
+at once. These two verbs are that fix.
 
 ## Reading: `linear labels`
 

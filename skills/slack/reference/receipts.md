@@ -1,10 +1,10 @@
 # Receipts — a card that makes a claim brings them, or says why not
 
-The owner's ruling, after five cards came back with the same complaint that the session didn't bring the receipts,
-in the owner's words: a queue card can't get in front of the owner anymore without the receipts. Two minutes later
-the owner bounded it. Never withhold a card because a session thinks it cannot get the receipt: sometimes _"the evidence really speaks
-for itself"_. A claim to a person, like a LangSmith bill, wants _"at least a screenshot and a link to where they
-can go and see it"_. And on proof that could not be had: _"show what it tried"_.
+The owner's ruling, after five cards came back with the same complaint that the session didn't bring the receipts:
+a queue card no longer reaches the owner without them. The ruling is bounded. Never withhold a card because a
+session thinks it cannot get the receipt: sometimes the evidence speaks for itself. A claim to a person, like a
+LangSmith bill, wants at least a screenshot and a link to where they can see it. And on proof that could not be
+had, the card shows what was tried.
 
 ## Three shapes, and the one that costs nothing
 
@@ -38,10 +38,9 @@ declaration you can always make.
 
 ## A finding owes all three: a screenshot, a link, the impact in people
 
-The owner's word, sending back sd-b5a68451 (year-two repeat orders), which passed the rule above on one Linear
-link: no screenshots, no links, no proof of user impact, and, in the owner's words, if you're gonna show the owner
-any other queue cards that are also trying to raise a finding like this and missing those key details, don't bother
-… send them back.
+The owner sent back sd-b5a68451 (year-two repeat orders), which passed the rule above on one Linear link, for
+carrying no screenshots, no links and no proof of user impact; any other card raising a finding without those
+details is sent back unseen.
 
 So a row that RAISES a finding — `--kind finding` whatever its act, or a form declaring `problem: possible` whatever
 its kind on anything but a chase bump — parks only with every piece (`src/outbound/slack/findingProof.ts`):
@@ -68,10 +67,9 @@ leading the words, and that its noun is people is the recorder's word.
 ## A first message in a channel leads with an annotated screenshot and its link
 
 The owner's standing rule, after ten V-card action drafts (sd-09b7eb89 and nine more) reached the owner's Queue on
-their links alone, in the owner's words: that first thing coming in with the screenshots coming in with the receipts
-on the very first message in the channel is very important to the owner. The owner and the fleet don't go anywhere
-without proof. Sharpened that night: the screenshot is cropped and ANNOTATED — a rectangle over the thing to look at,
-with notes — and, in the owner's words, make sure the screenshots ALL have annotations; a pop-up, banner or modal is
+their links alone: the very first message in a channel carries its screenshots as receipts, and nothing goes
+anywhere without proof. Sharpened that night: the screenshot is cropped and ANNOTATED — a rectangle over the thing
+to look at, with notes — and every screenshot carries annotations; a pop-up, banner or modal is
 dismissed before the capture, and an obscured capture is retaken, never worked around; a card failing this is sent
 back without being put in front of the owner.
 

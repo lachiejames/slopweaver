@@ -9,9 +9,8 @@ comes back thin, when a filter is refused, or before proposing that a repeated l
 ```
 
 `recall` is full-text search over the **memories table** in the local Supabase, and it is what the owner's
-steer asks for by name: the owner imagines that a session doing a task about Datadog will query the memories
-table in the local Supabase for things that include the word Datadog or similar, read everything that comes
-up, and that this should happen kind of early on when work is being done. Retrieval is
+steer asks for by name: a session doing a task about Datadog queries the memories table in the local Supabase
+for the word Datadog or similar and reads everything that comes up, early in the work. Retrieval is
 thinking back, so run it at the START of a task, on the nouns the task actually names.
 
 It ranks claims, not recordings: a claim's LATEST recording is selected before the search runs, so a newer
@@ -39,10 +38,9 @@ should be smaller than the first. Start with `--domain <slug> --tier 1` and work
 usage rather than quietly reading the register unfiltered: a filter that silently does not filter is a check
 that cannot fail.
 
-`--repeats` is the consolidation view, and it is the owner's own trigger: _"if multiple agents have the same
-lesson then I guess maybe it's time to look at turning that lesson into a standing rule or finding some way
-to make it structurally impossible so that a future agent doesn't come and repeat a mistake and have to
-relearn the lesson."_ It ranks by DISTINCT RUNS rather than raw count, because two recordings from one run
+`--repeats` is the consolidation view, and it is the owner's own trigger: when several agents
+have the same lesson, it is time to turn that lesson into a standing rule or make the mistake structurally
+impossible, so a future agent never repeats it. It ranks by DISTINCT RUNS rather than raw count, because two recordings from one run
 is a session writing twice while two runs is two sessions having independently learned the same thing. When
 a row shows several runs, propose promoting it — to a gate in the repo where one is possible, to a rule where
 it is not — rather than leaving it to be learned a fourth time.

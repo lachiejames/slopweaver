@@ -15,7 +15,7 @@ import {
 
 /** A synthetic proof ask on an acme-admin pull request, shaped as a row stores one: a pasted image, the link, the ask. */
 const WORDS_17564 =
-  "[Image #12] the shape of https://github.com/acme/acme-admin/pull/17564 looks right, but it needs before and after proof: screenshots, plus links to the CI runs in github, and it should carry links and screenshots from datadog CI, since that shows the test logs";
+  "[Image #12] the diff on https://github.com/acme/acme-admin/pull/17564 is close, but it needs before and after proof: screenshots, plus links to the CI runs in github, and it should carry links and screenshots from datadog CI, where the Acme test logs are";
 
 const RUN_A = "https://github.com/acme/acme-admin/actions/runs/36080719230/job/107901830804";
 const RUN_B = "https://github.com/acme/acme-admin/actions/runs/35822152721/job/107056104701";

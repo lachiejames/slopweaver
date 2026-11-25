@@ -9,13 +9,12 @@ waits for the owner's reaction before anything acts on it — `record-feedback` 
 debt, never a decision. That rule carries the owner's words, the phase it binds and the one thing that ends it.
 
 Slack holds the words; Linear holds state but cannot say "this was an objection to a proposal". Nothing else
-in the stack has a place to put a piece of pushback and whether it has been answered — which is the owner's
-own named failure: "when people give feedback on a proposal you want to make sure you're actually getting back
-to them, or the whole thing stalls."
+in the stack has a place to put a piece of pushback and whether it has been answered — the named failure being
+feedback on a proposal that never gets a reply, so the whole thing stalls.
 
 `record-feedback` takes a `--kind`, because the owner asked for both halves of a tension: see pushback first, but
-still record the positive replies, since, in the owner's words, positive information is also useful
-sometimes, while tracking everything would get noisy.
+still record the positive replies, since positive information is sometimes useful, while tracking everything
+would get noisy.
 
 **Only `pushback` and `question` ever count as unanswered.** All four kinds are recorded and all four are
 listed; an acknowledgement with no reply is not a debt, and a query that lists one has invented work. So:
@@ -26,7 +25,7 @@ listed; an acknowledgement with no reply is not a debt, and a query that lists o
 That is the whole definition. Nothing infers an objection from a Slack thread — the door's send ledger holds
 no content and no coordinates, so a best-effort join would silently attach the wrong thread, and an inferred
 objection is a guess wearing a fact's clothes. Recording it is deliberate, and in practice it is a session
-that reads the thread and calls the verb, which is exactly the workflow the owner described.
+that reads the thread and calls the verb, which is exactly the intended workflow.
 
 `--where` is REQUIRED for the two kinds that owe an answer, because answering means going back to where it was
 raised, and a recorded objection with nowhere to go back to is a debt with no address. Each item gets an id
@@ -44,9 +43,9 @@ The register answers **engagement** only in the sense of what was recorded into 
 Slack permalinks `record-slack` holds, and the follow-ups. That is recorded interactions — not a complete
 picture of who engaged, which nothing here measures.
 
-**Adoption is never a stored number.** The owner's ruling: "adoption changes over time, a stored number
-wouldn't make sense — and 'adoption' doesn't even apply to some proposals (a CI validation that merges and
-becomes part of CI/CD isn't 'adopted')." So there is no adoption field and no adoption verb. The signal
+**Adoption is never a stored number.** The owner's ruling: adoption changes over time, so a stored number
+would not make sense, and it does not apply to some proposals (a CI validation that merges and becomes part
+of CI/CD is not "adopted"). So there is no adoption field and no adoption verb. The signal
 differs per proposal kind and is answered on the day it is asked, by hand, against the corpus. "Addressed
 messages per channel per week against the responder roster" is not the metric: the owner did not follow what
 it measured, and a metric the owner cannot read is not a metric.
@@ -54,8 +53,8 @@ it measured, and a metric the owner cannot read is not a metric.
 ## What is deliberately not here
 
 - **Parent/child proposal edges.** A workstream-sized proposal gets a sequence of verdicts rather than one, so
-  its status wants deriving from children rather than declaring. The owner's ruling was to wait: "I can't
-  answer this until I see what it looks like in practice and how I'd use it." Flat first, then a real example
+  its status wants deriving from children rather than declaring. The owner's ruling was to wait until it can be
+  seen in practice and used. Flat first, then a real example
   on a real parent, then the edge type — not a speculative one now.
 - **Auto-detecting pushback from Slack replies**, **stored adoption metrics**, and **a milestone tracker**.
   Each turns this into a second board, and there is one board already.

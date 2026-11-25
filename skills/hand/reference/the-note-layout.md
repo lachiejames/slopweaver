@@ -37,8 +37,8 @@ pbpaste | wc -c        # => the whole literal, fitted rows or not; the band is o
 ## The opened Details region: entries, and a scroll cap
 
 On one char-wrapped monospaced run that broke `HOLDER_GONE` across two lines, cut each reason at 160 characters
-and grew the note toward the band, the owner's word is that below the fold reads terribly, and needs proper
-formatting and maybe to be scrollable. So each detail line is read into an ENTRY (`detailEntry`, `src/hand/details.ts`): status, name, age and count on a first line, the reason as
+and grew the note toward the band, the region below the fold was unreadable: it needs proper formatting and
+may need to scroll. So each detail line is read into an ENTRY (`detailEntry`, `src/hand/details.ts`): status, name, age and count on a first line, the reason as
 word-wrapped prose under it, in one `NSTextView` inside an `NSScrollView`. The fold above it is untouched.
 
 **An entry the owner has to act on carries a button.** A line ending `[hand:<id>]` (`detailActMarker`) is read as owner

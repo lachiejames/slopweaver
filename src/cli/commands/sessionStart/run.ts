@@ -1,9 +1,9 @@
 /**
  * `slopweaver session-start` — the ranked list of what is actually tasked to the owner.
  *
- * The friction it removes, in the owner's words: instead of reading every Slack message, every mail and every
- * connected app to work out what the owner must do, something that has already read them hands the owner an ordered
- * list, *"to ensure that I'm actually doing all the important stuff"*.
+ * The friction it removes: instead of reading every Slack message, every mail and every connected app to
+ * work out what the owner must do, something that has already read them hands the owner an ordered list,
+ * so the important work all gets done.
  *
  * A thin effectful shell. Every rule is pure — {@link ../../../sessionStart/boardLeg} detects,
  * {@link ../../../silver/ruleZero} and {@link ../../../silver/traceBeforeRanking} gate,

@@ -57,7 +57,7 @@ describe("reviewerPacket", () => {
     expect(packet).toContain("listed above (2) and nothing else");
   });
 
-  it("forbids a `broken` verdict for what an answer is ABOUT — a standing owner rule", () => {
+  it("forbids a `broken` verdict for what an answer is ABOUT — a standing rule", () => {
     expect(packet).toContain("**A correct answer is NEVER `broken` for what it is ABOUT.**");
     expect(packet).toContain("ranks, compares or names colleagues");
     expect(packet).toContain("tact is the ASKER's onus");

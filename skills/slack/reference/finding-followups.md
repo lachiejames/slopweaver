@@ -6,10 +6,10 @@ sends**: the seated [thread-chase](../../automation/reference/thread-chase.md) s
 
 The owner's rulings, journalled on board row
 `never-lead-with-the-pr-lead-with-the-discussion-on-every-queue-card`: a finding that meets silence comes back to the
-owner and the owner decides whether to bump, and in the owner's words the owner and the fleet should wait until the
-team has had a full working day to respond; an untimed "I'm looking into it" with no update after a business day is,
-in the owner's words, the same deal, bring it back; a "fixed" our checks contradict, in the owner's words, bring the
-owner that evidence straight away, assuming that like the team has actually deployed the fix. **The person carries
+owner and the owner decides whether to bump, and the fleet waits until the team has had a full working day to
+respond; an untimed "looking into it" with no update after a business day is the same case and comes back; a
+"fixed" our checks contradict brings the owner that evidence straight away, once the team has actually deployed the
+fix. **The person carries
 no cadence**: one card to the owner, never a schedule on the person.
 
 ```bash

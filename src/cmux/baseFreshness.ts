@@ -3,12 +3,12 @@
  *
  * ## The owner's ruling this encodes, and the line it draws
  *
- * *"Sometimes it's fine if your base is a little drifted depending on your changes — but if your change
- * depends on something in the latest main, you should be on the latest base."* Nothing can detect semantic
+ * A slightly drifted base is fine, depending on the change; a change that depends on something in the
+ * latest main needs the latest base. Nothing can detect semantic
  * dependence, so this does not try. It states the honest proxy instead: the doc names files (its `doneWhen:`
  * probes, and the paths its prose points a reader at), the upstream changed files, and an OVERLAP between the
  * two is the case worth saying out loud. No overlap and the drift is reported as a plain count, because that
- * is the "a little drifted, and fine" case the ruling explicitly protects.
+ * is the slightly-drifted-and-fine case the ruling explicitly protects.
  *
  * Advisory by default for the same reason: refusing every spawn on any drift is the overkill the ruling names.
  * `--require-current-base` is the opt-in for a caller who knows their change depends on the newer base.

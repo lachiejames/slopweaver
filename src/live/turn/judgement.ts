@@ -115,10 +115,9 @@ export interface LiveNeed {
 /**
  * What KIND of claim this answer will make, declared before any evidence is gathered.
  *
- * This is the field that lets the world model be consulted without letting it conclude. The owner's ruling
- * is that the corpus is a source to lean on and then check — _"you don't take that at face value — you
- * check, verify"_ — and the failure that guards against is specific: an answer about what is true NOW,
- * assembled entirely from what was true THEN, reads exactly like a good answer.
+ * This is the field that lets the world model be consulted without letting it conclude. The ruling is that the corpus
+ * is a source to lean on and then check, never to take at face value, and the failure that guards against is specific:
+ * an answer about what is true NOW, assembled entirely from what was true THEN, reads exactly like a good answer.
  *
  * - `current` — the answer asserts present state. It must name at least one current-truth leg; a plan whose
  *   only evidence is historical is refused, however much history it gathers.

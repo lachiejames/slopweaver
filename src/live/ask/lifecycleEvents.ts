@@ -395,10 +395,8 @@ export function isBlockedNeed(value: unknown): value is BlockedNeed {
  * cannot proceed because nobody is signed into Google Cloud locally — a sign-in the owner does about once a day.
  *
  * **Deliberately NOT terminal** ({@link terminalAskLifecycleEvent} is unchanged), and that is the whole
- * point of the event rather than an incidental property: _"I definitely would want to avoid [the bot]
- * treating something as done if it was not really done, and it was actually only being marked as done as a
- * cheap way for the bot to tick something off a list … the owner is going to come back and look at it and
- * say what the fuck, you just embarrassed me in public."_ An ask sitting here reads as unfinished at every
+ * point of the event rather than an incidental property: a blocked ask is never marked done merely to tick it
+ * off a list, because that would misrepresent the work. An ask sitting here reads as unfinished at every
  * reader of this log, and `../../cli/commands/turn/run.ts` refuses to post a final answer over one.
  *
  * **Not stranded either**, and this is the difference a reader must not blur. `../listen/stranded.ts`'s
@@ -406,10 +404,9 @@ export function isBlockedNeed(value: unknown): value is BlockedNeed {
  * that ended with a plan and a named person. Re-admitting it would re-run investigation that already
  * succeeded and would post a second capture checklist over the card the hourglass is standing on.
  *
- * **No time bound anywhere.** _"Might be one minute, might be one week, it should not necessarily be
- * constrained on time."_ So nothing here carries a deadline, an expiry or an age, and nothing downstream may
- * derive one: `since` is answered by `tsIso` for a reader, never by a sweep deciding this has waited long
- * enough to give up on.
+ * **No time bound anywhere.** The wait may be short or long. So nothing here carries a deadline, an expiry or an age,
+ * and nothing downstream may derive one: `since` is answered by `tsIso` for a reader, never by a sweep deciding this
+ * has waited long enough to give up on.
  *
  * It ENDS the dispatch (see {@link supersedesDispatch}) because the worker session genuinely stops — holding
  * a lease open for a week is the "it looks like it is working" lie `../turn/indicators.ts` exists to end.
@@ -494,7 +491,7 @@ export interface RedispatchedEvent extends AskIdentity {
  * one terminal that settles an ask to completion and says nothing.
  *
  * MEASURED on `C0SYN000012`. Three asks landed in one thread; the third
- * (`1787540579.950269`, the owner's burst follow-up *"also answer the question they just asked"*) had its
+ * (`1787540579.950269`, a burst follow-up asking for the same question to be answered too) had its
  * content satisfied by the answer turn for ask `1787540532.743159`, while its own working card
  * had stood for hours. The ledger still owed that ask a terminal, and every terminal the vocabulary
  * offered POSTED something: `answered` a card, `failed`/`withheld` a notice, `triaged-no-response` the

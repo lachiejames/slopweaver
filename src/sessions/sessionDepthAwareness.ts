@@ -4,22 +4,19 @@
  * ## Awareness, not enforcement, and that is an owner ruling rather than a softening
  *
  * This module replaces a 500k-warn/600k-BLOCK gate that fired only for the cmux-pinned supervisor. Both
- * halves of that shape were wrong, and the ruling named the reason: _"blocking has
- * a chance of leading to some undesirable outcomes for something like this. And usually the issue is not so
- * much around blocking or not blocking, it's more that the agent doesn't even have awareness that there's a
- * problem. So warning is probably one of the easier ways to solve that."_
+ * halves of that shape were wrong: blocking risks undesirable outcomes here, and the usual problem is not
+ * block versus allow but that the agent has no awareness of the problem, so a warning is the simpler fix.
  *
  * So there is no block verdict here, no refusal text, no escape hatch and no break-glass grant — because
  * nothing is refused, there is nothing to waive. What is left is one thing: a session past the line is TOLD.
  *
  * ## Why the warned session is told NOT to act on it
  *
- * The same ruling put the decision somewhere specific: _"gut tells me purely supervisor should be the one who
- * probably looks at session depth and token spend and stuff like that. Because they're already kind of
- * managing the fleet."_ A warning that invited every session to weigh its own restart would put a lifecycle
- * decision in the hand of the session least able to judge it — the deep one — and would scatter a judgement
- * the fleet makes centrally. The text therefore states the depth and hands the decision to the supervisor's
- * `slopweaver session depth`.
+ * The same ruling put the decision somewhere specific: the supervisor looks at session depth and token spend, because
+ * it already manages the fleet. A warning that invited every session to weigh its own restart would put a lifecycle
+ * decision in the hand of the session least able to judge it — the deep one — and would scatter a judgement the fleet
+ * makes centrally. The text therefore states the depth and hands the decision to the supervisor's `slopweaver session
+ * depth`.
  *
  * ## Why 500k, stated as the heuristic it is
  *

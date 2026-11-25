@@ -29,7 +29,7 @@ const AUTO_MERGE = {
   atIso: "2026-09-21T03:00:00.000Z",
   cut: "none",
   where: "session",
-  words: "i asked for us to auto-merge all of our dependency bump PRs, as well as pretty much any slopweaver PR",
+  words: "auto-merge every dependency bump PR, and nearly every slopweaver PR too",
 } as const;
 const FINDING_LINE = "it came from a fleet finding a session observed.";
 

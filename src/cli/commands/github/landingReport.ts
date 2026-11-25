@@ -3,7 +3,7 @@
  * machine reads. Pure: every function here takes rows and returns strings.
  *
  * The table's job is that the ACT column is readable top to bottom without opening a single pull request,
- * because that is the whole ruling: *"It shouldn't really have to infer much."* Everything a row needs to
+ * because that is the whole ruling: the reader should have little to infer. Everything a row needs to
  * justify its act rides in the same line — who is blocking it, which check failed, what CodeRabbit said —
  * and the fuller `why` per test lives in `--json` for a consumer that wants it.
  */

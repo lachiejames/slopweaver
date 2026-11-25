@@ -146,7 +146,7 @@ slopweaver plans set-usage-limit --provider claude --plan plan-one --percent 50 
   and no hatch crosses an unread limit (a STALE store is READ under its hatch: [boots refused](../supervisor/reference/boots-refused.md)); `claude token`, `mint` and `reset` refuse before any probe.
   The `claude-plan-unusable` monitor floats ONE note naming the fault: fail closed, but let the owner know early.
 - **The one-token gauge probe stays allowed past a limit**, how the fleet learns a capped plan has room again:
-  the owner's ruling is that under a hundred tokens is basically zero, strictly under. Each probe MEASURES its cost
+  the owner's ruling is that under a hundred tokens counts as zero, strictly under. Each probe MEASURES its cost
   (`claude gauge --json` `plans[].probeCost`, 35 measured); 100 or over prints `PROBE COST`, an alarm, never a refusal.
 - **A Claude `monthly-spend` row is routed in DOLLARS.** An Enterprise seat is metered in dollars a month.
   `slopweaver claude spend --plan <alias>` reads its spend and limit off the provider's usage answer and records it

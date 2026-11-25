@@ -21,7 +21,7 @@ export const QUOTE = {
   cut: "none",
   atIso: "2026-09-28T06:03:54.584Z",
   where: "console-voice",
-  words: "put the line I actually said near the top of the opened card, so I can tell where the card came from",
+  words: "show the quoted line near the top of the opened card, so it is clear where the card came from",
 } as const;
 /** A console-call anchor, one turn of a recorded call. */
 export const CALL = "talk-call:the-call#the-turn";

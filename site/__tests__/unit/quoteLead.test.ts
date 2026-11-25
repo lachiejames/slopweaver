@@ -1,8 +1,7 @@
 /*
  * The line a folded quote of the owner's leads with: the stretch naming what the card is about, speech noise
- * dropped, never the opening filler. The three spoken turns are board-row quotes — the knip heads-up card, and the
- * two waiting asks whose block opened on filler like "Yeah, okay. Well, I guess..." and "Yeah, I like that... sounds
- * good. Uh...".
+ * dropped, never the opening filler. The three long spoken turns are synthetic, shaped like board-row quotes: a
+ * heads-up card for a package-pruning work stream, and two waiting asks whose block opens on filler.
  */
 
 import { describe, expect, it } from "vitest";
@@ -10,74 +9,68 @@ import { describe, expect, it } from "vitest";
 import { quoteLead } from "../../lib/quoteLead";
 import { withoutDisfluencies } from "../../lib/quoteLeadSpeech";
 
-const KNIP =
-  "anyway... Uh... oh-wait. Hang on I'm talking, hang on... Um... so yeah. Yeah, I've had times where... I run nip... " +
-  "and it's like... uh... you know, removed a bunch of dependencies, but it's actually broken some shit... Uh... and, " +
-  "so... cause it's not perfect, it, you know, detecting where and how dependency is used. Um... and so... then... um, " +
-  "after that... I would uh... uh... then... look at like what the error was where it broke and then I would look at " +
-  "which dependency being removed... probably resulted in that and then I would go and add that to an exclusion list " +
-  "in the nip dot json. I would say, nip removes this dependency, but it... it actually breaks... if- if we let it do " +
-  "that. So... just put this on the exclusion list for now and deal with... You know, if- if we... If we want to do " +
-  "more... than we can... but for now... we can like keep other unused dependencies out. I think this would be really " +
-  "good because if I'm spending all this time... bumping dependen- if I bump like five hundred dependencies, raise " +
-  "five hundred PRs, but it turns out that a hundred of those are unused, that's pretty dumb, right? Like I wouldn't " +
-  "want to do that. Maybe we could actually like... um... cut out a lot of work... by... um... uh... if we... um... " +
-  "[tongue click] Like, I think that if we have like five hundred vulnerabilities and a hundred of them are coming " +
-  "from like unused dependencies, and then we raise PRs to remove those unused dependencies, I think that's... can " +
-  "even be better than ";
-/** The knip row's summary to its first paragraph's end — the board publishes only its first 320 characters. */
-const KNIP_SUMMARY =
-  "The owner's words, spoken as 'nip' though the tool is knip, in one recorded call now: 'new work stream candidate. " +
-  "I would like to properly use knip in our repo to remove all unused dependencies ... I turn knip on and I'll start " +
-  "with just only dependencies, not looking at the rest of the code ... aggressively apply and it'll remove a bunch " +
-  "and then I'll watch CI run and see a bunch break ... then I look at what the error was, which dependency being " +
-  "removed resulted in that, and add that to an exclusion list in the knip.json ... I am declaring that I want a new " +
-  "work stream around aggressively applying knip till CI is green, but an exclusion list has some stuff on it, until " +
-  "we get to a point where it's not even possible for us to be working with unused dependencies because PRs are not " +
-  "mergeable when they have unused dependencies.'";
-const KNIP_SLUG =
-  "apply knip aggressively to acme admin in a do not merge draft pr and whitelist what ci proves is used until green";
+const TIDY =
+  "okay... Um... right. Hold on a sec, hold on... Uh... so yeah. So tidy runs over the acme admin repo and... um... " +
+  "deletes every unused package it flags, in one pass... and then, uh, a few of the builds fall over. Uh... cause " +
+  "tidy is not great at, you know, spotting where a package still gets pulled in. Um... so after that... someone " +
+  "opens the red leg... checks which deleted package the failure shows... and then appends that package to the " +
+  "ignore list in the tidy dot yaml. The ticket gets a short line too, tidy flags this package, but the build still " +
+  "uses it... so it stays on the ignore list for now. And... you know, if- if the team wants... more... later... " +
+  "that is fine... but for now... the ignore list holds the used ones back. The payoff is big because... bumping " +
+  "packa- bumping four hundred packages means four hundred PRs, and if a hundred of those packages are unused, that " +
+  "is a lot of wasted effort, right? So maybe... um... a lot of that work just... disappears... by... um... uh... " +
+  "if it... um... [tongue click] Like, it turns out that with four hundred vulnerabilities and a hundred of them " +
+  "coming from unused packages, PRs that delete those unused packages could even be better than ";
+/** The tidy row's summary — the board publishes only its first 320 characters. */
+const TIDY_SUMMARY =
+  "The heads-up for a new work stream, from one recorded call: turn tidy on in the acme admin repo for packages alone, " +
+  "not the rest of the code, and let it delete every unused package it flags, aggressively and in one pass. The stream " +
+  "stays a draft that is never merged, and the card names every step of it in order. Tidy will then delete a bunch, CI " +
+  "will run and a bunch will break, the failure on each red leg shows which deleted package ended in it, and that " +
+  "package is appended to the ignore list in tidy.yaml. The stream closes when no PRs can merge with an unused package " +
+  "in them.";
+const TIDY_SLUG =
+  "apply tidy aggressively to acme admin in a do not merge draft pr and allowlist what ci proves is used until green";
 
 const BACKWARDS =
-  "Yeah, okay. Well, I guess... maybe... something I'm interested in... eh... the supervisor... maybe... spawning a " +
-  "session for... is just taking a look at all the things that I've said... you know, in this chat... Mm... And just " +
-  "think about... like... you know, instead of focusing... on... evals... specifically... more so... I want to think " +
-  "about... what are... other ways... to give... mechanical enforcement... that... context is carried forward... and " +
-  "that... mistakes are not... repeated... and... work backwards from there... to decide what... options... we " +
+  "Yeah, okay. Well, I guess... maybe... something I'm interested in... eh... the scheduler... maybe... starting a " +
+  "job for... is just taking a look at all the things that I've said... you know, in this channel... Mm... And just " +
+  "think about... like... you know, instead of dwelling... on... alerts... alone... more so... I want to think " +
+  "about... what are... other ways... to give... automatic checks... that... state is passed forward... and " +
+  "that... errors are not... repeated... and... work backwards from there... to decide what... options... we " +
   "might... want to pursue";
 const BACKWARDS_SUBJECT =
-  "Work backwards from the owner's call: mechanical enforcement that context carries forward and mistakes are not repeated, " +
-  "evals only one option";
+  "Work backwards from the owner's call: automatic checks that state passes forward and errors are not repeated, " +
+  "alerts only one option";
 
-const DEMO =
+const LAUNCH =
   "Yeah, I like that... sounds good. Uh... yeah... and I'd like... um... [tongue click]... for eventually... on the " +
-  "queue... um... I'd like to see some... basically slides and a script to react to... uh basically, you know... " +
-  "slides and script... for demo day... uh... maybe even showing like, um... you know... what'll happen when... um... " +
-  "[tongue click] ... different parts of the live demo are happening, cause uh... you know. Yeah, I'm imagining... " +
-  "that we'll have a desktop app... by Friday... and... um... you'll be able to... pre-script... something... but " +
+  "queue... um... I'd like to see some... basically mockups and a plan to react to... uh basically, you know... " +
+  "mockups and plan... for launch day... uh... maybe even showing like, um... you know... what'll happen when... um... " +
+  "[tongue click] ... different parts of the live launch are happening, cause uh... you know. Yeah, I'm imagining... " +
+  "that we'll have a mobile app... by Thursday... and... um... you'll be able to... pre-plan... something... but " +
   "also I'm not sure how... we'll... do it";
-const DEMO_SUBJECT = "Demo-day slides and script for the owner to react to on the Queue: an opening timeline slide";
+const LAUNCH_SUBJECT = "Launch-day mockups and plan for the owner to react to on the Queue: an opening timeline mockup";
 
 describe("the lead a folded quote shows", () => {
-  it("leads the knip card, as the board publishes its row, on knip breaking things — never 'Hang on I'm talking'", () => {
-    const subject = `${KNIP_SUMMARY.slice(0, 320)} ${KNIP_SLUG}`;
-    expect(quoteLead({ cut: "end", subject, where: "call", words: KNIP })).toEqual({
+  it("leads the tidy card, as the board publishes its row, on tidy breaking builds — never the opening filler", () => {
+    const subject = `${TIDY_SUMMARY.slice(0, 320)} ${TIDY_SLUG}`;
+    expect(quoteLead({ cut: "end", subject, where: "call", words: TIDY })).toEqual({
       moreAfter: true,
       moreBefore: true,
       text:
-        "I've had times where I run nip and it's like removed a bunch of dependencies, but it's actually broken some " +
-        "shit and, so cause it's not perfect, it, detecting where and how dependency is used.",
+        "tidy runs over the acme admin repo and deletes every unused package it flags, in one pass and then, a few " +
+        "of the builds fall over.",
     });
   });
 
-  it("leads on what the owner would do when a removal breaks CI once the subject names the exclusion list", () => {
-    expect(quoteLead({ cut: "end", subject: `${KNIP_SUMMARY} ${KNIP_SLUG}`, where: "call", words: KNIP })).toEqual({
+  it("leads on how a deletion that breaks CI is handled once the subject names the ignore list", () => {
+    expect(quoteLead({ cut: "end", subject: `${TIDY_SUMMARY} ${TIDY_SLUG}`, where: "call", words: TIDY })).toEqual({
       moreAfter: true,
       moreBefore: true,
       text:
-        "after that I would then look at like what the error was where it broke and then I would look at which " +
-        "dependency being removed probably resulted in that and then I would go and add that to an exclusion list in " +
-        "the nip dot json.",
+        "after that someone opens the red leg checks which deleted package the failure shows and then appends that " +
+        "package to the ignore list in the tidy dot yaml.",
     });
   });
 
@@ -86,20 +79,20 @@ describe("the lead a folded quote shows", () => {
       moreAfter: false,
       moreBefore: true,
       text:
-        "just think about instead of focusing on evals specifically more so I want to think about what are other " +
-        "ways to give mechanical enforcement that context is carried forward and that mistakes are not repeated and " +
+        "just think about instead of dwelling on alerts alone more so I want to think about what are other " +
+        "ways to give automatic checks that state is passed forward and that errors are not repeated and " +
         "work backwards from there to decide what options we might want to pursue",
     });
   });
 
-  it("leads the demo-day ask with what the owner would like to see, not 'sounds good'", () => {
-    expect(quoteLead({ cut: "none", subject: DEMO_SUBJECT, where: "call", words: DEMO })).toEqual({
+  it("leads the launch-day ask with what the speaker would like to see, not 'sounds good'", () => {
+    expect(quoteLead({ cut: "none", subject: LAUNCH_SUBJECT, where: "call", words: LAUNCH })).toEqual({
       moreAfter: true,
       moreBefore: true,
       text:
-        "I'd like for eventually on the queue I'd like to see some basically slides and a script to react to " +
-        "basically slides and script for demo day maybe even showing like what'll happen when different parts of " +
-        "the live demo are happening",
+        "I'd like for eventually on the queue I'd like to see some basically mockups and a plan to react to " +
+        "basically mockups and plan for launch day maybe even showing like what'll happen when different parts of " +
+        "the live launch are happening",
     });
   });
 
@@ -115,12 +108,11 @@ describe("the lead a folded quote shows", () => {
   });
 
   it("never leads on an 'if' whose consequent it drops, nor stops just before the clause that turns it", () => {
-    const words =
-      "So... if I bump like five hundred dependencies... raise five hundred PRs... that's pretty dumb. Right.";
-    expect(quoteLead({ cut: "none", subject: "bump dependencies", where: "call", words })).toEqual({
+    const words = "So... if I bump like four hundred packages... raise four hundred PRs... that's pretty dumb. Right.";
+    expect(quoteLead({ cut: "none", subject: "bump packages", where: "call", words })).toEqual({
       moreAfter: true,
       moreBefore: false,
-      text: "if I bump like five hundred dependencies raise five hundred PRs that's pretty dumb.",
+      text: "if I bump like four hundred packages raise four hundred PRs that's pretty dumb.",
     });
   });
 
@@ -186,11 +178,11 @@ describe("the lead a folded quote shows", () => {
   it("runs no stretch through a thought the speaker dropped and restarted", () => {
     const words =
       "Maybe we could actually like... um... cut out a lot of work... by... um... if we... [tongue click] Like, I " +
-      "think that if we have like five hundred vulnerabilities from unused dependencies, we raise PRs to remove them.";
-    expect(quoteLead({ cut: "none", subject: "unused dependencies vulnerabilities", where: "call", words })).toEqual({
+      "think that if we have like four hundred vulnerabilities from unused packages, we raise PRs to delete them.";
+    expect(quoteLead({ cut: "none", subject: "unused packages vulnerabilities", where: "call", words })).toEqual({
       moreAfter: false,
       moreBefore: true,
-      text: "I think that if we have like five hundred vulnerabilities from unused dependencies, we raise PRs to remove them.",
+      text: "I think that if we have like four hundred vulnerabilities from unused packages, we raise PRs to delete them.",
     });
   });
 
@@ -310,41 +302,41 @@ describe("the lead a folded quote shows", () => {
         where: "call-landing" as const,
         words:
           "[breath] Yeah, I'm just, uh... um... just reading through the rest of this. So... uh, code the five " +
-          "registration throws, so the register page act on them. What was this PR about again? Um... uh... [sigh] " +
-          "It's just more of this GraphQL error code stuff, right...",
+          "checkout timeouts, so the checkout page acts on them. What was this PR about again? Um... uh... [sigh] " +
+          "It's just more of this webhook retry code stuff, right...",
       },
       {
         // "Continuing reading", then the briefing's own sentence, then the speaker's reaction.
         where: "console-voice" as const,
         words:
-          "Alright, continuing reading. Uh... the one real user we caught waited about fifteen seconds and then " +
-          "loaded fine. Three things are still open. Uh... yeah, I have heard of that... Um... Like I've heard of " +
-          "slow container startup times, and I know that we have another work stream around it. I don't know if " +
+          "Alright, continuing reading. Uh... the one real customer we traced retried about twenty times and then " +
+          "synced fine. Two jobs are still open. Uh... yeah, I have heard of that... Um... Like I've heard of " +
+          "slow cache warmup times, and I know that we have another work stream around it. I don't know if " +
           "it's worth... linking to that here.",
       },
       {
-        // three-new-staff-landed-in-vanta-s-default-entry-group-with-the-isms-governance-set: a typed quote line.
+        // A typed quote line, then the speaker reading it.
         where: "session" as const,
         words:
-          ">1. Which Vanta group shape do you take to Theo, your three packs or the three packs plus a named ISMS " +
-          "Council? Alright, so I'm currently reading through this Vanta group shape and I feel like you probably had " +
-          "a good think about it but I'm just struggling to pass some of this in my head.",
+          ">1. Which access group shape do you take to the auditor, your three packs or the three packs plus a named " +
+          "review board? Alright, so I'm currently reading through this access group shape and I feel like you " +
+          "probably had a good think about it but I'm still missing how the packs map to it.",
       },
       {
-        // A bare "says," before the card's text, then the speaker's own view of their Linear teams.
+        // A bare "says," before the card's text, then the speaker's own view of the checklist.
         where: "console-voice" as const,
         words:
           "Yeah, now, having a look at the release checklist one, so... says, this is real work, but the " +
           "project cannot show it: it holds four status columns, nobody moves... Oh, every one of your per... " +
-          "release tickets sits outside it... Yeah... I am not really in the platform team, so I feel like " +
-          "I need a change which teams I'm in, in Linear...",
+          "release tickets sits outside it... Yeah... I am not really on the release rota, so I feel like " +
+          "the checklist wants a different owner, in Acme...",
       },
     ].map(({ where, words }) =>
       quoteLead({
         cut: "none",
         subject:
-          "registration throws register page user waited loaded vanta group shape security council release " +
-          "checklist linear teams",
+          "checkout timeouts checkout page customer retried synced access group shape review board release " +
+          "checklist rota",
         where,
         words,
       }),
@@ -389,18 +381,18 @@ describe("the lead a folded quote shows", () => {
 
   it("never leads on a colleague's message or a card title read aloud, whatever cue opens it", () => {
     const leads = [
-      // A colleague's Slack message read aloud — itself saying "I think" — then the speaker's reply.
-      "Are you taking me back to the billing export one? Uh... yeah, we were talking about this earlier Uh, you're " +
-        "saying, hey, is the retro for this one still planned? Couldn't find a PIR for it on the post-incident " +
-        "reviews page yet... And I think the incidents page wants one for a major... I could facilitate it if it " +
-        "helps. The template asks for someone who wasn't on the response and I wasn't. Okay, well that sounds... " +
+      // A teammate's message read aloud — itself saying "I think" — then the speaker's reply.
+      "Are you taking me back to the invoice sync one? Uh... yeah, we were talking about this earlier Uh, you're " +
+        "saying, hey, is the demo for this one still on? Couldn't find a recording for it on the team " +
+        "videos page yet... And I think the videos page wants one for a launch... I could record it if it " +
+        "helps. The checklist asks for someone who wasn't on the build and I wasn't. Okay, well that sounds... " +
         "alright.",
-      // every-queue-card-lines-up-with-reality-states: a card title read after "Let me see.", with no cue at all.
-      "Let me see. Name PR number 1085 name the secret store in the full canon surfaces. Okay, so it is about that.",
+      // A card title read after "Let me see.", with no cue at all.
+      "Let me see. Tag PR number 2048 tag the release notes in the full docs index. Okay, so it is about that.",
     ].map((words) =>
       quoteLead({
         cut: "none",
-        subject: "retro post-incident review PIR billing export incident facilitate PR secret store canon surfaces",
+        subject: "demo recording videos invoice sync launch record PR release notes docs index",
         where: "call",
         words,
       }),
@@ -430,19 +422,19 @@ describe("the lead a folded quote shows", () => {
   it("in a reading turn, admits one clause of the speaker's stance that opens its sentence, never one behind 'And'", () => {
     const leads = [
       // A card title read with no cue, then "Is it saying".
-      "now delete the plain text linear key in acme admin Claude settings, and revoke in linear. Ooh, what is this? " +
+      "now rotate the plain text deploy token in acme admin CI settings, and revoke in vault. Ooh, what is this? " +
         "Is it saying... I'm a little confused.",
       // A stance running on past a pause into the draft being read.
       "So you're saying, hey, the deploy looks off. I think it's a good opener... And then two settings look wrong " +
-        "to me, the cloudflare pages deploy drops the previous builds files. See, that's a claim that we're making.",
-      // The PIR row punctuated with stops instead of pauses.
-      "Uh, you're saying, hey, is the retro for this one still planned? Couldn't find a PIR for it on the " +
-        "post-incident reviews page yet. And I think the incidents page wants one for a major. I could facilitate " +
+        "to me, the acme preview deploy keeps only the latest bundle. See, that's a claim that we're making.",
+      // The teammate's message punctuated with stops instead of pauses.
+      "Uh, you're saying, hey, is the demo for this one still on? Couldn't find a recording for it on the " +
+        "team videos page yet. And I think the videos page wants one for a launch. I could record " +
         "it if it helps. Okay, well that sounds alright.",
     ].map((words) =>
       quoteLead({
         cut: "none",
-        subject: "linear key acme admin claude settings revoke cloudflare pages deploy builds retro PIR incidents",
+        subject: "deploy token acme admin ci settings revoke vault preview deploy bundle demo recording videos",
         where: "call",
         words,
       }),
@@ -460,7 +452,7 @@ describe("the lead a folded quote shows", () => {
 
   it("never leads on an option turned down with 'nah', or tells the bot not to do yet — only on what is said instead", () => {
     const leads = [
-      "Which of these do you wanna take to the team? Keep the OTel traces plus DD traces profile splits, buy DD trace SDK. Nah, I don't wanna-",
+      "Which of these do you wanna take to the team? Keep the nightly backups plus weekly backups region splits, buy cold backup tier. Nah, I don't wanna-",
       "Let's merge the knip dependency bump on acme admin tonight. Nah. Leave it till the auditor replies.",
       "Let's merge the knip dependency bump on acme admin tonight. Yeah, nah, leave it till the auditor replies.",
       "Let's merge the knip dependency bump on acme admin tonight. Hang on, don't do that yet.",
@@ -480,7 +472,7 @@ describe("the lead a folded quote shows", () => {
   it("never leads on an approval withdrawn mid-call, however it is worded — only on the withdrawal", () => {
     const merge = "Merge the knip dependency bump on acme admin tonight.";
     const leads = [
-      "Cool-cool let's also just pre-approve that to go out once the tag has been fixed up cause I think the Slack message looks good. Oh wait, actually, sorry. Hang on, I haven't looked at the PR yet. I should probably do that first, right?",
+      "Cool-cool let's also just pre-approve that to go out once the notes have been fixed up cause I think the release post looks good. Oh wait, actually, sorry. Hang on, I haven't looked at the PR yet. I should probably do that first, right?",
       `${merge} Oh, wait, hang on... No, sorry, the auditor froze it.`,
       `${merge} Nope, the auditor froze it.`,
       `${merge} Hmm. Let's leave it, the auditor froze it.`,
@@ -504,8 +496,8 @@ describe("the lead a folded quote shows", () => {
     const leads = [
       `${merge} Um, and the lockfile. Sorry, not the knip bump, the eslint bump.`,
       `${merge} Uh, sorry, I'm more talking about the eslint bump.`,
-      `${merge} Uh sorry- Sorry, it's late, I'm tired. Merge the eslint bump on acme admin tonight.`,
-      `${merge} I'm sorry about the noise, the builders are in.`,
+      `${merge} Uh sorry- Sorry, wrong one, my mistake. Merge the eslint bump on acme admin tonight.`,
+      `${merge} I'm sorry about the echo, the mic is new.`,
     ].map((words) => quoteLead({ cut: "none", subject: "merge knip bump acme admin", where: "call", words }));
     expect(leads.map((lead) => lead?.text)).toEqual([
       "not the knip bump, the eslint bump.",

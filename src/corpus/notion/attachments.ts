@@ -21,8 +21,8 @@
  *   now, and it EXPIRES — the block json carries an `expiry_time` about an hour out. So the ceiling is
  *   applied at FETCH time against what a ranged probe reports, never against anything on disk.
  *   {@link classifyAttachment} takes a url from a live read for that reason.
- * - **An author's link to somebody else's site is not an attachment.** The owner asked for "the full page
- *   including the attachments on it". A video-host or social link on a page is that site's content, and
+ * - **An author's link to somebody else's site is not an attachment.** The requirement is the full page,
+ *   attachments on it included. A video-host or social link on a page is that site's content, and
  *   fetching it would be third-party egress nobody asked for, so it is classified `external` and left alone.
  *
  * Reproduce the split over any corpus:

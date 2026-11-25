@@ -84,7 +84,7 @@ const SETH_BUMP = {
   shape: "thread",
   threadParent: {
     permalink: "https://acme.slack.com/archives/C0SYN000030/p1789712232549289",
-    text: `<@${ANSEL}> <@${SETH}> i'll take the lead on this. options coming, here's the first: <https://app.notion.com/p/Proposal-budget-Claude-and-Codex-plans-on-an-Acme-domain-0000000000000000000000000000a007|budget claude and codex plans on an acme domain>  the first of a few…`,
+    text: `<@${ANSEL}> <@${SETH}> taking this one on. a few options coming, here's the first: <https://app.notion.com/p/Proposal-budget-Claude-and-Codex-plans-on-an-Acme-domain-0000000000000000000000000000a007|budget claude and codex plans on an acme domain>  the first of a few…`,
     userId: OWNER,
   },
   threadTs: "1789712232.549289",
@@ -105,7 +105,7 @@ const JASPER_BUMP = {
   shape: "thread",
   threadParent: {
     permalink: "https://acme.slack.com/archives/C0SYN000007/p1790648151107569",
-    text: "yo, we said we wanted error tracking heading toward zero. pulled some numbers and i think we're a fair way off  48% of prod error spans last week (106k of 221k) have no error.type, so error tracking never groups them. mostly http and grpc client spans in jobs-api, checkout-api, p…",
+    text: "yo, the goal is error tracking heading toward zero. pulled some numbers and it looks a fair way off  31% of prod error spans last week (52k of 168k) have no error.type, so error tracking never groups them. mostly http and grpc client spans in jobs-api, checkout-api, p…",
     userId: OWNER,
   },
   threadTs: "1790648151.107569",
@@ -176,7 +176,7 @@ describe("the Seth Tanner bump, sd-babd8c5a", () => {
   it("badges a Bump and nudges Seth and Ansel BY ID, in the draft's own order", () => {
     expect(card.head).toEqual({
       act: "bump",
-      context: `on your thread in #temp-claude-max-rollout: "@Ansel Jory @Seth Tanner i'll take the lead on this."`,
+      context: `on your thread in #temp-claude-max-rollout: "@Ansel Jory @Seth Tanner taking this one on."`,
       people: [
         { id: SETH, label: "Seth Tanner" },
         { id: ANSEL, label: "Ansel Jory" },
@@ -204,7 +204,7 @@ describe("the Jasper bump, sd-6c89a869", () => {
   it("badges a Bump, nudges Jasper by id, and opens the context on the owner's own thread's first sentence", () => {
     expect(card.head).toEqual({
       act: "bump",
-      context: `on your thread in #proj-monitoring: "yo, we said we wanted error tracking heading toward zero."`,
+      context: `on your thread in #proj-monitoring: "yo, the goal is error tracking heading toward zero."`,
       people: [{ id: JASPER, label: "Jasper Nolan" }],
       peopleVerb: "Nudging",
     });
@@ -239,8 +239,8 @@ describe("a row recorded before --act", () => {
   });
 });
 
-/** The owner's words at the policy-mirror row's anchor, verbatim as the board published them — cut at the end. */
-const POLICY_WORDS = `[Image #83] <pasted_content id="3236"> For this one... I'm a little confused, cause like I thought our process was kind of just putting stuff in GitHub for them to review. But now it looks like we're putting the PDFs in Slack for them, because there was one recently with Rosa. I think we were talking about like software development lifecycle or something of that nature. And they put in some like analytics proposal Notion doc thing that people were iterating on... and then I propose this like larger set of evidence... um... and had like a lot of screenshots and markdown and all that. And I don't think Rosa ever actually got back to us and said "yeah, your evidence looks good, upload that into Vanta" and I'll approve it or whatever. Probably should chase that if the conversation has stalled. But yeah, cuz I did kinda push back in that thread and say that I think that the other evidence that was previously there and sitting in draft was like something in order to my pushback on or ask about, and I'm just trying to minimize to minimize the risk of an auditor needing to ask about something. And that's sort of how I think about putting in the evidence. So yeah... Anyway, coming back to this Slack draft, the other issue here is that like I can't really see what's in these drafts because you said we said that there's two PDFs attached, but in our cue card I can't see these PDFs. I can't see the contents of these docs. I don't know what changes we've made to these docs or this evidenc`;
+/** A synthetic long spoken quote at the policy-mirror row's anchor, about 1,500 characters, cut at the end. */
+const POLICY_WORDS = `[Image #83] <pasted_content id="3236"> So for this one... the open question is kind of where the evidence is supposed to live, cause like the agreed process was GitHub for review, right. But lately the PDFs keep turning up in Slack instead, like the one on ABC-1 last week, which was the change management control or something along those lines. Then a draft Notion page went around that a few people were editing on... and after that a bigger evidence bundle landed... um... lots of screenshots, markdown, that kind of thing. And nobody on the Acme side ever came back with a "yep, that evidence looks fine, upload it" or any sort of approval at all. That thread is probably worth a nudge if it has gone quiet. The same thing came up on the access review control a month or so back, and it took a while to untangle. The reviewer was due to look at it this week, and there is no sign yet that it happened. The reason it matters is that there was pushback in that thread about the older evidence sitting in draft, and the whole point is to keep down the odds of an auditor having to ask about something later. That is basically the thinking behind how evidence goes in. So yeah... Anyway, back to this Slack draft, the other problem is that the card says two PDFs are attached, but the queue card does not show the PDFs at all, like anywhere. There is no way to read what is in these docs from the card itself, and no way to tell what changed in these docs or in this evidenc`;
 
 const POLICY_ANCHOR = "transcript:a0000049-0000-4000-8000-000000000052#6ebc1b20-e271-4b5b-8b75-d45a5ad9ba4b";
 

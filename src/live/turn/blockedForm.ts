@@ -30,9 +30,8 @@ export type BlockedNeedWording = "sign-in" | "risky-approval" | "ruling" | "othe
  * The clause naming what kind of thing is owed, per need. Pure.
  *
  * Every one of them is about ACCESS or PERMISSION and none of them is about the bot: that is the whole
- * editorial rule of this card, and it is the owner's — _"it is not that the bot fails, it is not that the
- * bot is crap, it is just that the bot got blocked on something that the owner is the only one that can
- * solve."_
+ * editorial rule of this card: a blocked card does not present as a failure, because the bot is blocked on
+ * something only the owner can resolve.
  *
  * @param need which of the two shapes this block is
  * @returns the clause, with no trailing punctuation
@@ -65,9 +64,8 @@ function blockedNeedClause({ need }: { need: BlockedNeedWording }): string {
  * ending to report. What it carries instead is the resume promise, which is the fact the reader is actually
  * owed.
  *
- * **No time is ever stated, anywhere on it.** _"Might be one minute, might be one week, it should not
- * necessarily be constrained on time."_ So the card never says "shortly", never estimates, and never implies
- * a deadline the owner has not agreed to.
+ * **No time is ever stated, anywhere on it.** The wait may be short or long. So the card never says "shortly", never
+ * estimates, and never implies a deadline the owner has not agreed to.
  *
  * @param need which of the two shapes this block is
  * @param question the question as asked

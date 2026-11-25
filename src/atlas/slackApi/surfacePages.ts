@@ -314,7 +314,7 @@ const NO_BARE_ROUTE =
 /**
  * The client's rail and sidebar panes: surfaces that exist and cannot be addressed.
  *
- * Recorded because the owner's floor is existence — _"we should at least know all the pages that exist"_ —
+ * Recorded because the floor is existence — the atlas knows every page that exists —
  * and left un-walked because there is nowhere to walk to. Their contents are all message-shaped, so the
  * corpus is the holder in every case.
  */

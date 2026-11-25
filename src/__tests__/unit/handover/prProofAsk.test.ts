@@ -7,7 +7,7 @@ import { proofAskOf, proofCarriedBy, proofMissing } from "../../../handover/prPr
 
 /** A synthetic proof ask on an acme-admin pull request, shaped as a row stores one. */
 const MEASURED_ASK =
-  "[Image #12] the shape of https://github.com/acme/acme-admin/pull/17564 looks right, but it needs before and after proof: screenshots, plus links to the CI runs in github, and it should carry links and screenshots from datadog CI, since that shows the test logs";
+  "[Image #12] the diff on https://github.com/acme/acme-admin/pull/17564 is close, but it needs before and after proof: screenshots, plus links to the CI runs in github, and it should carry links and screenshots from datadog CI, where the Acme test logs are";
 
 describe("proofAskOf", () => {
   it("reads a long ask as asking for an image, a run link and a Datadog link", () => {

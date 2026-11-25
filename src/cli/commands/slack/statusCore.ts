@@ -4,8 +4,8 @@
  *
  * ## The gap this closes
  *
- * The owner rule: "pls update my calendar and slack status accordingly, and if
- * you dont have the verbs for that, then write those verbs". Nothing in this repo could set a Slack status.
+ * The rule: update the calendar and Slack status on request, and write the verbs for it where none
+ * exist. Nothing in this repo could set a Slack status.
  *
  * ## Why presence is its own sub-command
  *

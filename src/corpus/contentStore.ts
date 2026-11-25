@@ -59,8 +59,8 @@ export function contentPath({ root, digest }: { root: string; digest: string }):
  * Put bytes in the store, or recognise that they are already there.
  *
  * Idempotent by construction, which is what makes a re-pull cheap: the second run computes the same digest,
- * finds the file, and writes nothing. That is the same property the owner asked for at the page level —
- * _"if you've already got a page in the index, you don't need to do the whole thing again"_ — applied to the
+ * finds the file, and writes nothing. That is the same property wanted at the page level — a page already
+ * in the index is not processed again in full — applied to the
  * bytes underneath it.
  *
  * @param root the store root, resolved by the caller from `stateHome.ts`

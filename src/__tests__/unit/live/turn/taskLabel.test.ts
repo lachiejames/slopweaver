@@ -51,7 +51,7 @@ describe("clampVisible over a person tag", () => {
  * whose label clamped to `• close <https://linear.app/acme/issue/HELP-…` and was refused on the wire.
  */
 const LONG_LINK_QUESTION =
-  "@(U0SYN000005) • close <https://linear.app/acme/issue/HELP-2878/vanta-remediate-cloudflare-ip-access-rules-enabled-for-no-active|HELP-2878> • we definitely want uploads to happen properly inside of Vanta";
+  "@(U0SYN000005) • close <https://linear.app/acme/issue/HELP-2878/vanta-remediate-cloudflare-ip-access-rules-enabled-for-no-active|HELP-2878> • the Acme audit needs files to upload properly inside of Vanta";
 
 const CHROME: TurnChrome = {
   authorEmoji: ":robot_face:",
@@ -78,7 +78,7 @@ function wireViolations({ frame }: { frame: { steps: readonly TodoStep[]; task: 
 describe("turnTaskLabel over a question opening with a long Slack link", () => {
   it("rewrites the link to its own label before clamping, so no URL is cut", () => {
     expect(turnTaskLabel({ question: LONG_LINK_QUESTION })).toBe(
-      "answering: • close HELP-2878 • we definitely want uploads …",
+      "answering: • close HELP-2878 • the Acme audit needs files …",
     );
   });
 

@@ -158,7 +158,7 @@ export async function admitRunAndSettle({
  *
  * Settling is NOT conditional on the row having reached its verb. A row that refused its own plan has
  * failed this attempt at this firing exactly as a row whose verb exited 1 has, and both must come back:
- * that is what _"if it fails then it's picked up again"_ means. The attempt count on the record is what
+ * that is what the rule that a failed row is picked up again means. The attempt count on the record is what
  * keeps coming back bounded.
  *
  * A run-here effect runs under `./runDueSignal.ts`'s guard: a SIGHUP, SIGINT or SIGTERM arriving while it

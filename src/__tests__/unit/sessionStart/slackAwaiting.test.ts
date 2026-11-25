@@ -193,13 +193,13 @@ describe("awaitingVerdictOf", () => {
     expect(verdict).toEqual({ kind: "no-ask" });
   });
 
-  it("holds the Rosa chase the owner dropped: the owner's ask 25.5 business hours before the draft is not due", () => {
+  it("holds a chase the owner dropped: the owner's ask 25.5 business hours before the draft is not due", () => {
     const verdict = awaitingVerdictOf({
       candidate: thread({
         ownerWords: [
           ownerWord({
             authoredText:
-              "Coming back to this point, I'm curious to explore moving some automations off my computer and into the cloud.  Any preference on how that should run?",
+              "Coming back to this point, the Acme team could move some nightly jobs off the build box and onto a runner.  Any preference on how that should run?",
             tsIso: "2026-09-28T11:13:05.000Z",
           }),
         ],

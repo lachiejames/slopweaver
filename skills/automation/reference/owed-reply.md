@@ -1,8 +1,7 @@
 # An owed-reply row — one reply draft as the owner per thread whose last word asks the owner something
 
-The owner's ruling, on a colleague's question under the owner's own post that sat 38 hours, in the owner's words:
-if the owner comes to the queue page, is the owner gonna see it already written draft for that Slack thread ...
-the owner thinks they'd like to know.
+The owner's ruling, on a colleague's question under the owner's own post that sat 38 hours: the queue page shows
+an already-written draft reply for that Slack thread, because the owner wants to know about it.
 `slack-owed-daily` is the declared row ([declared rows](declared-rows.md)): daily 08:55 the owner's time, reading
 `slack owed` ([its reference](../../slack/reference/owed.md)). It is the inverse of
 [thread-chase](thread-chase.md): that row chases a thread quiet on the owner's OWN ask, this one answers a thread

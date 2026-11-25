@@ -19,8 +19,8 @@ import type { WitnessDispatchedEvent } from "./types.js";
  */
 const PERMALINK_ORIGIN = "https://app.slack.com";
 
-/** The owner's ruling the materiality bar rests on, verbatim. */
-const WITNESS_POSTING_RULING = "you post in the thread when it's worth posting in the thread";
+/** The rule the materiality bar rests on. */
+const WITNESS_POSTING_RULE = "Post in the thread only when the finding is worth adding there.";
 
 /**
  * The idempotency key a witness reply carries — one per witnessed message, so a retried reply can never post
@@ -76,7 +76,7 @@ export function witnessResumeInstructions({ record }: { record: WitnessDispatche
     "silently skipped — it goes in the settle `--why`, or in the form's `checked` list.",
     "",
     "## 3. Decide whether it is material",
-    `The owner's ruling: "${WITNESS_POSTING_RULING}".`,
+    `The rule: ${WITNESS_POSTING_RULE}`,
     "Post ONLY when the finding is material AND you hold proof a reader can open. Material is one of:",
     "- claim-contradicted — the claim is wrong, and a link shows it;",
     "- wider-impact — the claim is right but understates what is affected, and a link shows the rest;",

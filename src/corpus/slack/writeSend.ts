@@ -14,8 +14,8 @@
  * | **the read-back disagrees** | **the same thing, with Slack having claimed success** |
  *
  * The last two are the dangerous ones, and by owner decision they are an INVARIANT VIOLATION rather
- * than a degraded success: *"if the media has failed to attach then consider that an invariant,
- * something's wrong. Delete the message, partial failure should fail loudly."* So the message is
+ * than a degraded success: media that fails to attach means something is wrong, so the message is deleted
+ * and a partial failure fails loudly. So the message is
  * retracted and the whole operation throws, carrying what it did for audit.
  *
  * **The readiness row is deliberately NOT that invariant, and the distinction is where the line sits.** That

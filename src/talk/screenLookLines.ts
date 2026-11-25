@@ -16,11 +16,11 @@
  * look line itself three times and hand nothing off, so the console starts the turn with the frame itself when none has.
  *
  * A correction is a look, and the answer is what the new frame reads: the owner does not want the voice to just say
- * they are right, but to know, by taking another screenshot. The voice had read "A$770 a month" off a frame correctly;
- * the owner heard eight hundred and seventy and said "No, seven hundred and seventy dollars, not eight hundred and
- * seventy dollars", and the voice answered "You're right, 770 dollars" 1 ms after the owner's words, with no hand-off
- * and no frame. Once a frame was read it said "seven hundred and seventy Australian dollars a month" and the owner
- * took it. The console now takes a frame for a figure the owner corrects (`READING_CORRECTION`, `FIGURE_REPLACED`,
+ * they are right, but to know, by taking another screenshot. The voice had read a price, 420 dollars a month, off a
+ * frame correctly; the owner misheard it as 520 and corrected it to the figure the voice had already said ("420, not
+ * 520"), and the voice agreed with the correction 1 ms after the owner's words, with no hand-off and no frame. Once
+ * a frame was read it said the price again, in full, and the owner took it. The console now takes a frame for a figure
+ * the owner corrects (`READING_CORRECTION`, `FIGURE_REPLACED`,
  * `site/lib/lookAck.ts`), but that frame cannot beat a 1 ms reply: only these lines can stop the agreement itself.
  * Repro: the lines of that call's `$SLOPWEAVER_HOME/talk/calls/<call-id>.jsonl` around the correction.
  *

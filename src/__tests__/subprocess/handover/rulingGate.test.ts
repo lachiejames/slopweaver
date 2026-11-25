@@ -34,7 +34,7 @@ const CLI_TIMEOUT_MS = 180_000;
 
 const ROW = "a-gated-row";
 const ANCHOR = "transcript:a0000036-0000-4000-8000-000000000039#1922fc9e";
-const WORDS = "stop posting shit that no one is asking for";
+const WORDS = "post only what someone has asked for";
 
 const homes: string[] = [];
 

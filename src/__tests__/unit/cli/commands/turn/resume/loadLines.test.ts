@@ -364,7 +364,7 @@ describe("turn resume --dispatch (LOAD mode)", () => {
     });
 
   it("prints the user-facing impact block, whole, right after the visual-evidence default for an impact ask", () => {
-    const question = "I'll be asking for user-facing impact a lot going forward";
+    const question = "make the setup remember this, since the Acme team will ask for user-facing impact a lot";
     const lines = impactLinesFor({ question });
     const block = userFacingImpactPreflightLines({ question });
     const start = lines.findIndex((line) => line === block[0]);

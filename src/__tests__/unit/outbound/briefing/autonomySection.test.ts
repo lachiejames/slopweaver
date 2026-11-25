@@ -191,7 +191,7 @@ describe("the section on the page", () => {
 });
 
 describe("a why or steer quoting a raw pull-request URL", () => {
-  // An act's why quoted the owner's words verbatim, URL included; escaped as inert text, that URL
+  // An act's why quoted the owner's steer, URL included; escaped as inert text, that URL
   // refused the whole page with `bare reference (page)`.
   const url = "https://github.com/acme/acme-admin/pull/16355";
   const html = renderBriefing({
@@ -203,7 +203,7 @@ describe("a why or steer quoting a raw pull-request URL", () => {
             steer: `fine, ${url} was stale`,
             subject: url,
             subjectLabel: "acme/acme-admin#16355",
-            why: `The owner's own word: 'i honestly dont remember ${url} lol, happy to close it for now'`,
+            why: `The owner's call: 'the Acme rewrite replaces ${url} anyway, happy to close it for now'`,
           }),
         ],
       }),
@@ -220,7 +220,7 @@ describe("a why or steer quoting a raw pull-request URL", () => {
 
   it("renders the URL in the why as a link, its visible text unchanged", () => {
     expect(html).toContain(
-      `<strong>Why:</strong> The owner's own word: 'i honestly dont remember <a class="raw" href="${url}">${url}</a> lol`,
+      `<strong>Why:</strong> The owner's call: 'the Acme rewrite replaces <a class="raw" href="${url}">${url}</a> anyway`,
     );
   });
 

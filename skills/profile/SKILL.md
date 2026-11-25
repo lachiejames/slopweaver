@@ -8,7 +8,7 @@ The owner's ruling: three things moved into the local Supabase and
 one thing became mechanical:
 
 - **People are tracked on the identity register**, and a COLUMN on it carries facts and per-person
-  judgement. _"One file per person doesn't make much sense."_
+  judgement; one file per person makes no sense.
 - **The measured voice register lands there too**, as one row per surface and cohort.
 - **What is known about THE OWNER is GLOBAL**, in a table dedicated to the owner — because the plugin loads into
   `acme-admin` and into this repository alike, while Claude's own project memories cannot span the two.
