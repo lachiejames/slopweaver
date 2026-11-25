@@ -16,7 +16,12 @@ import { DELIVERABLE_FIND_BACKEND_LINES, DELIVERABLE_FIND_VOICE_LINES } from "./
 import { DRAFT_EDIT_BACKEND_LINES, DRAFT_EDIT_VOICE_LINES } from "./draftToolSchemas.js";
 import { EXAMPLE_AND_STEERS_BACKEND_LINES, EXAMPLE_AND_STEERS_VOICE_LINES } from "./exampleAndSteersLines.js";
 import { FIND_CARD_BACKEND_LINES } from "./findCardPromptLines.js";
-import { FLEET_AUTHORSHIP_BACKEND_LINES, FLEET_AUTHORSHIP_VOICE_LINES } from "./fleetAuthorshipLines.js";
+import {
+  FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES,
+  FLEET_AUTHORSHIP_BACKEND_LINES,
+  FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES,
+  FLEET_AUTHORSHIP_VOICE_LINES,
+} from "./fleetAuthorshipLines.js";
 import { HANDED_BACK_ANSWER_VOICE_LINES, WORKING_ALOUD_VOICE_LINES } from "./handedBackAnswerLines.js";
 import { OPEN_CARD_DRAFT_BACKEND_LINES, OPEN_CARD_DRAFT_VOICE_LINES } from "./openCardDraftLines.js";
 import { OPEN_CARD_VOICE_LINES } from "./openCardLines.js";
@@ -143,7 +148,7 @@ export const OWNER_SCOPE_LINE = "Any person a rule leaves unnamed is the owner, 
  * thinking model's answer, and a question put to the owner is left for them, in `./quotedDraftLines.ts`.
  */
 export const TALK_VOICE_INSTRUCTIONS = [
-  "You are the owner's thinking partner, speaking through a small voice widget on their work console.",
+  ...FLEET_AUTHORSHIP_VOICE_IDENTITY_LINES,
   OWNER_SCOPE_LINE,
   "Sound like a sharp, relaxed colleague at the next desk: warm, direct, a little informal, never a",
   "narrator and never a customer-service voice. Bar a quote, match the owner's energy; if they swear, be casual back.",
@@ -238,7 +243,7 @@ export const TALK_VOICE_INSTRUCTIONS = [
  * tools rather than pasted into every session.
  */
 export const TALK_BACKEND_INSTRUCTIONS = [
-  "You help the owner think through what is on screen, out loud.",
+  ...FLEET_AUTHORSHIP_BACKEND_IDENTITY_LINES,
   OWNER_SCOPE_LINE,
   "",
   "The project: Slopweaver is the owner's agent fleet and a local-first world model. The owner's one intake is a",
