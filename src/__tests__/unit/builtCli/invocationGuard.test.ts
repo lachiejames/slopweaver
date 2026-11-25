@@ -9,13 +9,90 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+import { err, ok, type Result } from "#lib/result.js";
 import { CONSOLE_REBUILD_WAIT_MS, type RebuildWaitSeams } from "../../../builtCli/consoleRebuildWait.js";
-import { guardInvocation, productionWaitSeams, WAITING_LINE } from "../../../builtCli/invocationGuard.js";
+import {
+  guardInvocation as guardInvocationWith,
+  type InvocationGuard,
+  productionWaitSeams,
+  sourceFallbackLine,
+  WAITING_LINE,
+} from "../../../builtCli/invocationGuard.js";
+import { BUILT_TREE_VERBS } from "../../../builtCli/sourceFallbackPolicy.js";
+import { type SourceLaunch, type SourceLaunchError, SourceLaunchErrors } from "../../../builtCli/sourceRestart.js";
 import { scanSourceStamps } from "../../../builtCli/sourceScan.js";
 import { BUILD_MANIFEST_FILE } from "../../../builtCli/staleness.js";
+import { JUDGEMENT_NOTE } from "../../../hatch/render.js";
 import { gitInTemp } from "../../tempGitRepo.js";
 
 const dirs: string[] = [];
+
+/** An ordinary verb's argv — one no stale build is barred from handing to source. */
+const VERB_ARGV = ["node", "dist-cli/cli/index.js", "catalog"] as const;
+
+/** A checkout whose source can always run, recording every root it was asked about. */
+function launchable(): {
+  asked: string[];
+  sourceLaunch: (options: { root: string }) => Result<SourceLaunch, SourceLaunchError>;
+} {
+  const asked: string[] = [];
+  return {
+    asked,
+    sourceLaunch: ({ root }) => {
+      asked.push(root);
+      return ok({ root });
+    },
+  };
+}
+
+/** The guard's own options. */
+type GuardOptions = Parameters<typeof guardInvocationWith>[0];
+
+/** The guard from a built tree, with an ordinary verb and a checkout that can run its source, unless a case says otherwise. */
+function guardInvocation(
+  options: Omit<GuardOptions, "argv" | "fromSource" | "sourceLaunch"> &
+    Partial<Pick<GuardOptions, "argv" | "fromSource" | "sourceLaunch">>,
+): Promise<InvocationGuard> {
+  return guardInvocationWith({
+    argv: VERB_ARGV,
+    fromSource: false,
+    sourceLaunch: launchable().sourceLaunch,
+    ...options,
+  });
+}
+
+/** The exact four-line refusal the guard draws over one detail, every line spelled out. */
+function refusalOver({ detail }: { detail: string }): readonly string[] {
+  return [
+    `slopweaver <any verb> blocked because the built CLI in this checkout no longer describes the source beside it, so a verdict it gives is about code nobody is editing (${detail}).`,
+    "Legitimate exceptions may include reproducing a defect that only the older build shows, deliberately and knowing the source has moved; the source tree is mid-rebase and the built CLI is the only working copy of the verb being run.",
+    "To override use the designated escape hatch SLOPWEAVER_ALLOW_STALE_BUILD=1 slopweaver <any verb>.",
+    JUDGEMENT_NOTE,
+  ];
+}
+
+/** The exact four-line refusal the test checkout's one-byte edit draws. */
+const STALE_REFUSAL = refusalOver({
+  detail: "src/a.ts is 21 bytes, 20 at build time — rebuild with `slopweaver dev build`",
+});
+
+/** The detail an unreadable manifest under `builtRoot` draws. */
+function unreadableDetail({ builtRoot }: { builtRoot: string }): string {
+  return `${join(builtRoot, BUILD_MANIFEST_FILE)} is not a build manifest, so what this tree was built from is unknown`;
+}
+
+/** The detail a manifest naming the vanished checkout `root` draws. */
+function vanishedDetail({ root }: { root: string }): string {
+  return `the checkout it was built from (${root}) is gone, so nothing can say whether it is current`;
+}
+
+/** The exact two lines an open hatch prints over the test checkout's one-byte edit. */
+function hatchLines({ builtRoot, root }: { builtRoot: string; root: string }): readonly string[] {
+  return [
+    "slopweaver: [stale-build] override in force — src/a.ts is 21 bytes, 20 at build time.",
+    `slopweaver:   this answer comes from ${builtRoot}, built at 1970-01-01T00:00:00.000Z, NOT from ${root}/src.`,
+  ];
+}
 
 afterEach(() => {
   while (dirs.length > 0) {
@@ -110,18 +187,161 @@ describe("guardInvocation", () => {
     expect(events).toEqual([]);
   });
 
-  it("refuses an ordinary stale invocation AT ONCE, with the four-line refusal and no announced wait", async () => {
+  it("restarts an ordinary stale invocation on ITS checkout's source, with one exact line and no wait", async () => {
     const { builtRoot, root } = builtCheckout();
     pull({ root });
     const { announce, events, seams, pauses } = seamsFor({ builtRoot, onPause: () => undefined });
+    const { asked, sourceLaunch } = launchable();
 
-    const guarded = await guardInvocation({ announce, builtRoot, env: {}, waitSeams: seams });
+    const guarded = await guardInvocation({ announce, builtRoot, env: {}, sourceLaunch, waitSeams: seams });
 
-    expect(guarded.disposition).toBe("refuse");
-    expect(guarded.lines.length).toBe(4);
-    expect(guarded.lines[0]).toContain("src/a.ts is 21 bytes, 20 at build time");
+    expect(guarded).toEqual({
+      disposition: "source",
+      lines: [
+        `slopweaver: [stale-build] ${root}: the build is behind (src/a.ts is 21 bytes, 20 at build time); running this checkout's source; \`slopweaver dev build\` restores the fast path.`,
+      ],
+      source: { root },
+    });
+    expect(asked).toEqual([root]);
     expect(pauses()).toBe(0);
     expect(events).toEqual([]);
+  });
+
+  it("never restarts or waits in a run that is already source, over a stale manifest planted beside `src/`", async () => {
+    const { root } = builtCheckout();
+    const besideSrc = join(root, "src");
+    stamp({ builtRoot: besideSrc, root });
+    pull({ root });
+    // A console child's first pause re-stamps the planted manifest fresh, so a source run that waited WOULD restart.
+    const { announce, events, seams, pauses } = seamsFor({
+      builtRoot: besideSrc,
+      onPause: () => {
+        stamp({ builtRoot: besideSrc, root });
+      },
+    });
+    const { asked, sourceLaunch } = launchable();
+
+    const guarded = [
+      await guardInvocation({
+        announce,
+        builtRoot: besideSrc,
+        env: {},
+        fromSource: true,
+        sourceLaunch,
+        waitSeams: seams,
+      }),
+      await guardInvocation({
+        announce,
+        builtRoot: besideSrc,
+        env: { SLOPWEAVER_CONSOLE_CHILD: "1" },
+        fromSource: true,
+        sourceLaunch,
+        waitSeams: seams,
+      }),
+    ];
+
+    expect(guarded).toEqual([
+      { disposition: "refuse", lines: STALE_REFUSAL },
+      { disposition: "refuse", lines: STALE_REFUSAL },
+    ]);
+    expect(asked).toEqual([]);
+    expect(pauses()).toBe(0);
+    expect(events).toEqual([]);
+  });
+
+  it("words the source line as one line naming the checkout, the reason and the remedy", () => {
+    expect(sourceFallbackLine({ root: "/w/seat", why: "src/x.ts has changed since the build" })).toBe(
+      "slopweaver: [stale-build] /w/seat: the build is behind (src/x.ts has changed since the build); running this checkout's source; `slopweaver dev build` restores the fast path.",
+    );
+  });
+
+  it("keeps the exact four-line refusal for every verb that needs the built tree, asking about no source", async () => {
+    const { builtRoot, root } = builtCheckout();
+    pull({ root });
+    const { announce, seams } = seamsFor({ builtRoot, onPause: () => undefined });
+    const { asked, sourceLaunch } = launchable();
+
+    const guarded = await Promise.all(
+      BUILT_TREE_VERBS.map(({ noun, verb }) =>
+        guardInvocation({
+          announce,
+          argv: ["node", "dist-cli/cli/index.js", noun, verb, "--json"],
+          builtRoot,
+          env: {},
+          sourceLaunch,
+          waitSeams: seams,
+        }),
+      ),
+    );
+
+    expect(guarded).toEqual(BUILT_TREE_VERBS.map(() => ({ disposition: "refuse", lines: STALE_REFUSAL })));
+    expect(asked).toEqual([]);
+  });
+
+  it("keeps the exact four-line refusal when the checkout cannot run its own source, for each reason", async () => {
+    const { builtRoot, root } = builtCheckout();
+    pull({ root });
+    const { announce, seams } = seamsFor({ builtRoot, onPause: () => undefined });
+    const reasons: readonly SourceLaunchError[] = [
+      SourceLaunchErrors.noExecve({ version: "v0.0.0" }),
+      SourceLaunchErrors.fileMissing({
+        code: "NO_TSX_PREFLIGHT",
+        path: join(root, "node_modules/tsx/dist/preflight.cjs"),
+      }),
+      SourceLaunchErrors.fileMissing({ code: "NO_TSX_LOADER", path: join(root, "node_modules/tsx/dist/loader.mjs") }),
+      SourceLaunchErrors.fileMissing({ code: "NO_SOURCE_ENTRY", path: join(root, "src/cli/index.ts") }),
+    ];
+
+    const guarded = await Promise.all(
+      reasons.map((reason) =>
+        guardInvocation({ announce, builtRoot, env: {}, sourceLaunch: () => err(reason), waitSeams: seams }),
+      ),
+    );
+
+    expect(guarded).toEqual(reasons.map(() => ({ disposition: "refuse", lines: STALE_REFUSAL })));
+  });
+
+  it("runs an ordinary stale invocation under the open hatch from the build, never the source", async () => {
+    const { builtRoot, root } = builtCheckout();
+    pull({ root });
+    const { announce, seams } = seamsFor({ builtRoot, onPause: () => undefined });
+    const { asked, sourceLaunch } = launchable();
+
+    const guarded = await guardInvocation({
+      announce,
+      builtRoot,
+      env: { SLOPWEAVER_ALLOW_STALE_BUILD: "1" },
+      sourceLaunch,
+      waitSeams: seams,
+    });
+
+    expect(guarded).toEqual({ disposition: "run", lines: hatchLines({ builtRoot, root }) });
+    expect(guarded.lines.length).toBe(2);
+    expect(asked).toEqual([]);
+  });
+
+  it("refuses an ordinary invocation over an unreadable manifest or a vanished checkout, naming no source", async () => {
+    const unreadable = builtCheckout();
+    writeFileSync(join(unreadable.builtRoot, BUILD_MANIFEST_FILE), "{}");
+    const vanished = builtCheckout();
+    writeFileSync(
+      join(vanished.builtRoot, BUILD_MANIFEST_FILE),
+      JSON.stringify({ builtAtIso: new Date(0).toISOString(), root: `${vanished.root}-gone`, stamps: [] }),
+    );
+    const { asked, sourceLaunch } = launchable();
+
+    const guarded = await Promise.all(
+      [unreadable, vanished].map(({ builtRoot }) => {
+        const { announce, seams } = seamsFor({ builtRoot, onPause: () => undefined });
+        return guardInvocation({ announce, builtRoot, env: {}, sourceLaunch, waitSeams: seams });
+      }),
+    );
+
+    expect(guarded).toEqual([
+      { disposition: "refuse", lines: refusalOver({ detail: unreadableDetail({ builtRoot: unreadable.builtRoot }) }) },
+      { disposition: "refuse", lines: refusalOver({ detail: vanishedDetail({ root: `${vanished.root}-gone` }) }) },
+    ]);
+    expect(asked).toEqual([]);
   });
 
   it("announces the wait BEFORE its first pause, so a rebuild landing on the announcement is seen", async () => {
@@ -303,8 +523,8 @@ describe("guardInvocation", () => {
       waitSeams: seams,
     });
 
-    expect(guarded.disposition).toBe("run");
-    expect(guarded.lines[0]).toContain("[stale-build] override in force");
+    expect(guarded).toEqual({ disposition: "run", lines: hatchLines({ builtRoot, root }) });
+    expect(guarded.lines.length).toBe(2);
     expect(pauses()).toBe(0);
   });
 
@@ -320,8 +540,7 @@ describe("guardInvocation", () => {
       waitSeams: seams,
     });
 
-    expect(guarded.disposition).toBe("refuse");
-    expect(guarded.lines[0]).toContain("is not a build manifest");
+    expect(guarded).toEqual({ disposition: "refuse", lines: refusalOver({ detail: unreadableDetail({ builtRoot }) }) });
     expect(pauses()).toBe(0);
   });
 
@@ -340,8 +559,10 @@ describe("guardInvocation", () => {
       waitSeams: seams,
     });
 
-    expect(guarded.disposition).toBe("refuse");
-    expect(guarded.lines[0]).toContain("is gone, so nothing can say whether it is current");
+    expect(guarded).toEqual({
+      disposition: "refuse",
+      lines: refusalOver({ detail: vanishedDetail({ root: `${root}-gone` }) }),
+    });
     expect(pauses()).toBe(0);
   });
 });

@@ -112,6 +112,39 @@ describe("runCliProcess closes TypeScript once, between the verb and the drain",
     expect(events).toEqual(["close", "drain", "restart", "drain", "exit:1"]);
   });
 
+  it("on a source restart: closes, drains, restarts on THAT checkout's source, and never runs the verb here", async () => {
+    const events: string[] = [];
+    await runCliProcess({
+      argv: ["node", "cli", "probe", "verb"],
+      close: () => {
+        events.push("close");
+      },
+      drain: () => {
+        events.push("drain");
+        return Promise.resolve();
+      },
+      exit: (code) => {
+        events.push(`exit:${String(code)}`);
+      },
+      guard: () => Promise.resolve({ disposition: "source", lines: ["behind"], source: { root: "/w/seat" } }),
+      restart: () => {
+        events.push("restart");
+        return "could not restart";
+      },
+      // A real source restart never returns; one that does could not attempt the exec, and the process exits 1.
+      source: ({ root }) => {
+        events.push(`source:${root}`);
+        return "could not restart on source";
+      },
+      run: () => {
+        events.push("main");
+        return Promise.resolve(0);
+      },
+    });
+
+    expect(events).toEqual(["close", "drain", "source:/w/seat", "drain", "exit:1"]);
+  });
+
   it("on a refusal: closes, drains and exits 1, running neither the verb nor a restart", async () => {
     const events: string[] = [];
     await runCliProcess({

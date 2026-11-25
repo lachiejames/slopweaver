@@ -12,7 +12,9 @@
  * ## The falsifiable half
  *
  * Asserting that a fresh build answers proves nothing on its own — a guard that never ran would pass it. So
- * the same artifact is re-run with ONE stamp in its manifest changed, and the refusal is asserted by name.
+ * the same artifact is re-run with ONE stamp in its manifest changed, and what the guard does instead is asserted by
+ * name: the one stderr line of a restart on the checkout's source, with stdout byte-identical to the fresh run's, and
+ * the refusal for a verb that needs the built tree itself.
  * The manifest rather than the source is what moves, because mutating this checkout's own `src/` mid-test
  * would leave a different test's file wrong if this one threw before restoring it.
  *
@@ -35,6 +37,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { WAITING_LINE } from "../../../builtCli/invocationGuard.js";
 import { BUILT_ENTRYPOINT } from "../../../builtCli/layout.js";
 import { BUILD_MANIFEST_FILE } from "../../../builtCli/staleness.js";
+import { JUDGEMENT_NOTE } from "../../../hatch/render.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -50,17 +53,28 @@ let home = "";
  * `--home` by design. It is passed at all because the CLI writes a stale-seat notice on its way past the
  * guard, and the ambient-home guard fails any test that lets one reach the operator's own home.
  */
-function runBuilt({ env }: { env: Readonly<Record<string, string>> }): { status: number; text: string } {
-  const run = spawnSync(process.execPath, [join(outDir, BUILT_ENTRYPOINT), "catalog"], {
+function runBuilt({ env, words = ["catalog"] }: { env: Readonly<Record<string, string>>; words?: readonly string[] }): {
+  status: number;
+  stdout: string;
+  stderr: string;
+  text: string;
+} {
+  const run = spawnSync(process.execPath, [join(outDir, BUILT_ENTRYPOINT), ...words], {
     cwd: repoRoot,
     encoding: "utf8",
     env: { ...process.env, SLOPWEAVER_HOME: home, ...env },
   });
-  const text = `${run.stdout}${run.stderr}`;
+  const streams = { stderr: run.stderr, stdout: run.stdout, text: `${run.stdout}${run.stderr}` };
   if (run.status === null) {
-    return { status: -1, text };
+    return { status: -1, ...streams };
   }
-  return { status: run.status, text };
+  return { status: run.status, ...streams };
+}
+
+/** The size the emit recorded for one source file — what the staleness sentence quotes back. */
+function recordedSize({ path }: { path: string }): number {
+  const record = JSON.parse(pristineManifest) as { stamps: { path: string; size: number }[] };
+  return record.stamps.find((stamp) => stamp.path === path)!.size;
 }
 
 /** The manifest as the emit wrote it, kept so each case can put it back. */
@@ -102,15 +116,40 @@ describe("the built CLI's staleness guard", () => {
     expect(run.text).toContain("commands across");
   });
 
-  it("REFUSES, exits 1 and names the file once the source no longer matches", () => {
+  it("restarts on the checkout's source once it no longer matches: one stderr line, stdout byte-identical", () => {
+    writeFileSync(join(outDir, BUILD_MANIFEST_FILE), pristineManifest);
+    const fresh = runBuilt({ env: {} });
     stale({ path: "src/cli/main.ts" });
+    const size = recordedSize({ path: "src/cli/main.ts" });
 
     const run = runBuilt({ env: {} });
 
+    expect(fresh.status).toBe(0);
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain("commands across");
+    expect(run.stdout).toBe(fresh.stdout);
+    expect(run.stdout).not.toContain("[stale-build]");
+    // Everything the stale run printed on stderr beyond what the fresh run printed is the one fallback line, first.
+    expect(run.stderr).toBe(
+      `slopweaver: [stale-build] ${repoRoot}: the build is behind (src/cli/main.ts is ${String(size)} bytes, ${String(size + 1)} at build time); running this checkout's source; \`slopweaver dev build\` restores the fast path.\n${fresh.stderr}`,
+    );
+  });
+
+  it("still REFUSES, exits 1 and names the file for a verb that needs the built tree itself", () => {
+    stale({ path: "src/cli/main.ts" });
+    const size = recordedSize({ path: "src/cli/main.ts" });
+
+    const run = runBuilt({ env: {}, words: ["desktop", "e2e", "--help"] });
+
     expect(run.status).toBe(1);
-    expect(run.text).toContain("src/cli/main.ts is ");
-    expect(run.text).toContain("rebuild with `slopweaver dev build`");
-    expect(run.text).not.toContain("commands across");
+    expect(run.stdout).toBe("");
+    expect(run.stderr.split("\n")).toEqual([
+      `slopweaver <any verb> blocked because the built CLI in this checkout no longer describes the source beside it, so a verdict it gives is about code nobody is editing (src/cli/main.ts is ${String(size)} bytes, ${String(size + 1)} at build time — rebuild with \`slopweaver dev build\`).`,
+      "Legitimate exceptions may include reproducing a defect that only the older build shows, deliberately and knowing the source has moved; the source tree is mid-rebase and the built CLI is the only working copy of the verb being run.",
+      "To override use the designated escape hatch SLOPWEAVER_ALLOW_STALE_BUILD=1 slopweaver <any verb>.",
+      JUDGEMENT_NOTE,
+      "",
+    ]);
   });
 
   // The incident: a pull left main's build stale, the console's organisation read refused, and every

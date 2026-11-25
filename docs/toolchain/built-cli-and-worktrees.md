@@ -24,15 +24,16 @@ was a cold tsx transform, and one file took 273.3 s of a 273.8 s lane (the step'
 
 **The launcher takes the built tree when there is one.** `bin/slopweaver` execs `node dist-cli/cli/index.js`
 when both that entrypoint and its manifest exist, and `tsx` otherwise — 0.63 s against 1.37 s for the same
-verb, measured on `slopweaver catalog`. The single exception is `dev build` itself, which is
-routed to source with a printed line saying so, because it is the verb that rebuilds the tree the guard is
-about to refuse. A silent substitution there would be the one place this mechanism could lie.
+verb, measured on `slopweaver catalog`. The launcher's one exception is `dev build` itself, routed to source
+with a printed line saying so, because it is the verb that rebuilds the tree the guard judges. Most of a stale
+build's verbs reach source too, through the guard (below), and that substitution prints its line as well: every
+switch from build to source is announced, because a silent one is where this mechanism could lie.
 
 **The guard runs before any verb dispatch, and names the first file that moved.** `dev build` writes
 `.slopweaver-build.json` beside the emit — every tracked non-test `src/**.ts` file with its size and mtime,
 plus the root it was emitted from. `guardBuiltTree` (`src/builtCli/guard.ts`) re-scans that list on every run of
-the BUILT CLI and refuses with the four-line escape-hatch shape, naming the file and `slopweaver dev build`
-as the fix. `SLOPWEAVER_ALLOW_STALE_BUILD=1` runs anyway and prints which tree the answer came from. **The manifest is written LAST, and removed FIRST**, which is what makes a failed build safe. `dev build`
+the BUILT CLI, and a stale one never answers: what it does instead is the paragraph below on running its
+checkout's source. `SLOPWEAVER_ALLOW_STALE_BUILD=1` runs the stale build anyway and prints which tree the answer came from. **The manifest is written LAST, and removed FIRST**, which is what makes a failed build safe. `dev build`
 clears `.slopweaver-build.json` before esbuild writes a single file and stamps it only once the smoke run
 has passed, so a build that dies half way leaves a tree mixing old and new files with NO manifest beside
 them — the launcher ignores it and the caller gets tsx. Stamping up front would have left the one state
@@ -41,7 +42,22 @@ manifest at all means the guard did not run rather than that it passed — a `ts
 about. The recorded root is stored rather than derived because `--out` can name any directory, and deriving
 it from the built tree's parent would scan whatever sits beside it.
 
-**A console child waits out a pull's rebuild instead of refusing.** MEASURED: a pull to the main
+**A stale build runs its checkout's source.** Every seat worktree is emitted a build when it is made, its first
+edit to `src/` makes that build stale, and rebuilding is barred to a seat by the owner's no-local-CI ruling, so a
+refusal cost a seat every verb in its own worktree. Instead, `src/builtCli/invocationGuard.ts` restarts the
+process in place (`process.execve`, same pid and descriptors) on the source of the ONE checkout the manifest
+names, under tsx's loader with no tsx wrapper (`src/builtCli/sourceRestart.ts`), and prints one stderr line
+naming that checkout, the first file that moved and `slopweaver dev build` as what restores the fast path.
+Stdout stays the verb's alone. Nothing old answers: the source IS the code being edited, and the line says so.
+The source run cannot re-enter this arm: a process loaded from `.ts` never restarts on source nor
+waits to restart on a build (`runsFromSource`), console child or not, so even a manifest written beside `src/` by `--out` draws the refusal, not a loop. Four cases still refuse
+with the four-line escape-hatch shape: an unreadable manifest, a vanished checkout, a checkout whose own
+tsx preflight, tsx loader or `src/cli/index.ts` is not a readable regular file (a directory there counts as
+missing, because Node would only fail after the exec), and a verb that needs the built tree itself —
+`desktop install`, `desktop update`, `desktop e2e`, `talk courier`, `supervisor tick-capture` and
+`supervisor tick`, declared once in `src/builtCli/sourceFallbackPolicy.ts`.
+
+**A console child waits out a pull's rebuild instead of running source.** MEASURED: a pull to the main
 checkout left its build stale until the post-merge `dev build` finished, every console verb refused in that
 window, and the root layout's `org show --json` refusing drew "Organisation required" over every console page
 until a reload. So a child the console launches carries `SLOPWEAVER_CONSOLE_CHILD=1` (`site/lib/launcherQuiet.ts`),
@@ -50,8 +66,7 @@ prints `WAITING_LINE` to stderr before it waits, so a wait is never silent, then
 polls the manifest every 250 ms for up to 30 s, judges a text only when it changes, and once one judges fresh
 **restarts the process in place** on the rebuilt entrypoint (`src/builtCli/restart.ts`, `process.execve`) —
 nothing is ever dispatched from the stale process. No fresh build in 30 s, and it refuses as before, one line
-longer. An unreadable manifest or a vanished checkout is never waited out, an open hatch runs at once, and every
-other caller still refuses at once.
+longer. An unreadable manifest or a vanished checkout is never waited out, and an open hatch runs at once.
 
 **`supervisor tick open` waits as the PARENT, never in each child.** MEASURED: one tick lost 39 of
 its 50 serial readings to a landing's fast-forward of the main checkout, each child refusing `[stale-build]` in
@@ -70,7 +85,8 @@ directory `build`, `dist` or `coverage`.
 `yarn typecheck` and `yarn build` read its 4,189 emitted `.js` files and answer with thousands of TS7031s,
 on the machine of whoever ran `dev build` and never in CI, where no job builds one.
 `src/__tests__/subprocess/builtCli/staleGuard.test.ts` is the end-to-end witness: it emits this repository, runs
-the artifact, mutates ONE stamp in the manifest and asserts the refusal by name — and, as a console child,
+the artifact, mutates ONE stamp in the manifest and asserts the source restart's one stderr line with stdout
+byte-identical to the fresh run's, and the refusal of a verb that needs the built tree — and, as a console child,
 restores the stamp mid-wait and asserts the restarted answer. Its emit lands under the
 gitignored `/.cache/` rather than in the temp sandbox, for the resolution reason above.
 
