@@ -98,6 +98,7 @@ describe(
           newId: () => "test-artifact",
           orchestrationRoot,
           profile,
+          reclaimLedgerPath: join(orchestrationRoot, "never-written-ledger.jsonl"),
           repoRoot,
           runtime: new InertRuntime(),
           task: "prove the finally runs",

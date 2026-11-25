@@ -17,48 +17,24 @@ import { randomUUID } from "node:crypto";
 import type { IngestError } from "../lib/ingestError.js";
 import { createConcurrencyLimiter } from "../lib/resilience.js";
 import type { Result } from "../lib/result.js";
-import { type ArtifactLocation, createPassScratch, writeCodexArtifact, writePassDiff } from "./artifactStore.js";
+import { createPassScratch, writePassDiff } from "./artifactStore.js";
 import type { LockedCodexClient } from "./client.js";
 import { scratchUnavailable } from "./fatalOutcome.js";
 import { capturePassTree, type ReviewDiff } from "./gitDiff.js";
 import { PLAN_OUTPUT_SCHEMA, parsePlanAnswer, parseReviewAnswer, REVIEW_OUTPUT_SCHEMA } from "./output.js";
 import type { AdmittedPass } from "./passAdmission.js";
+import { type CompletedPass, persistPass } from "./passPersist.js";
 import { reviewPassProvenance, stableTree, withSnapshotCommit } from "./passProvenance.js";
-import { planScope, reviewScope, toArtifactRecord } from "./passRecord.js";
+import { planScope, reviewScope } from "./passRecord.js";
 import { runReviewPassWithPolicyRetry } from "./policyRetryPass.js";
 import type { PassProfile } from "./profiles.js";
 import { buildPlanPrompt, buildReviewPrompt } from "./prompt.js";
 import { type BoundedPassResult, type DeadlineRuntime, runBoundedPass } from "./runPass.js";
 import { captureContentTree, type TreeSnapshot } from "./snapshot.js";
 import { freezeForPass } from "./snapshotPool.js";
-import type {
-  CodexArtifactRecord,
-  CodexEventSink,
-  CodexPassTree,
-  PassBound,
-  ReviewAnswer,
-  ReviewProperty,
-} from "./types.js";
+import type { CodexEventSink, CodexPassTree, PassBound, ReviewAnswer, ReviewProperty } from "./types.js";
 
-/** One completed pass: its record, and where the artifact landed (or why it could not be written). */
-export interface CompletedPass {
-  readonly record: CodexArtifactRecord;
-  readonly location: ArtifactLocation | undefined;
-  /** Present when the artifact could NOT be published — a known result that was not persisted. */
-  readonly persistError: string | undefined;
-}
-
-function persist({
-  orchestrationRoot,
-  ...fields
-}: Parameters<typeof toArtifactRecord>[0] & { orchestrationRoot: string }): CompletedPass {
-  const record = toArtifactRecord(fields);
-  const written = writeCodexArtifact({ orchestrationRoot, record });
-  if (written.isErr()) {
-    return { location: undefined, persistError: written.error.message, record };
-  }
-  return { location: written.value, persistError: undefined, record };
-}
+export type { CompletedPass } from "./passPersist.js";
 
 /**
  * Git's content address of the LIVE tree — the third reading {@link stableTree} needs the other half of.
@@ -179,6 +155,7 @@ async function runPlanTurn({
  * @param repoRoot the repository the pass reads
  * @param runtime the clock/timer seam
  * @param orchestrationRoot `$SLOPWEAVER_HOME/orchestration`
+ * @param reclaimLedgerPath the reclaim ledger the pass journals its own scratch's removal into
  * @param newId an id generator (injected so tests are deterministic)
  * @param onEvent receives each step of the pass as it happens; omit to run blind
  * @returns the completed pass
@@ -191,6 +168,7 @@ export async function runPlanPass({
   repoRoot,
   runtime,
   orchestrationRoot,
+  reclaimLedgerPath,
   onEvent,
   newId = () => randomUUID(),
 }: {
@@ -202,6 +180,7 @@ export async function runPlanPass({
   repoRoot: string;
   runtime: DeadlineRuntime;
   orchestrationRoot: string;
+  reclaimLedgerPath: string;
   /** Receives each step of the pass as it happens. Omit to run blind. */
   onEvent?: CodexEventSink | undefined;
   newId?: () => string;
@@ -216,17 +195,20 @@ export async function runPlanPass({
   const prompt = buildPlanPrompt({ profile, repoRoot: readRoot, task });
   const passResult = await runPlanTurn({ bound, client, frozen, onEvent, prompt, readRoot, runtime, scratch });
   const scope = planScope({ profile, prompt });
-  return persist({
-    artifactId,
-    bound,
+  return persistPass({
+    fields: {
+      artifactId,
+      bound,
+      passResult,
+      repoRoot,
+      requestedModel: client.model,
+      runtime,
+      scope,
+      tree,
+      workspace: scratch.isErr() ? null : scratch.value,
+    },
     orchestrationRoot,
-    passResult,
-    repoRoot,
-    requestedModel: client.model,
-    runtime,
-    scope,
-    tree,
-    workspace: scratch.isErr() ? null : scratch.value,
+    reclaimLedgerPath,
   });
 }
 
@@ -328,6 +310,7 @@ async function runReviewTurn({
  * @param bound the explicit bound
  * @param runtime the clock/timer seam
  * @param orchestrationRoot `$SLOPWEAVER_HOME/orchestration`
+ * @param reclaimLedgerPath the reclaim ledger the pass journals its own scratch's removal into
  * @param newId an id generator
  * @param onEvent receives each step of the pass as it happens; omit to run blind
  * @returns the completed pass
@@ -342,6 +325,7 @@ export async function runReviewProperty({
   bound,
   runtime,
   orchestrationRoot,
+  reclaimLedgerPath,
   onEvent,
   newId = () => randomUUID(),
 }: {
@@ -355,6 +339,7 @@ export async function runReviewProperty({
   bound: PassBound;
   runtime: DeadlineRuntime;
   orchestrationRoot: string;
+  reclaimLedgerPath: string;
   /** Receives each step of the pass as it happens. Omit to run blind. */
   onEvent?: CodexEventSink | undefined;
   newId?: () => string;
@@ -372,17 +357,20 @@ export async function runReviewProperty({
     runtime,
     validate: ({ response }) => parseReviewAnswer({ property, response }),
   });
-  return persist({
-    artifactId,
-    bound,
+  return persistPass({
+    fields: {
+      artifactId,
+      bound,
+      passResult: turn.passResult,
+      repoRoot: diff.repoRoot,
+      requestedModel: client.model,
+      runtime,
+      scope: reviewScope({ baseRef, diff, profile, property }),
+      tree: reviewPassProvenance({ diffTree, snapshotCommit: turn.snapshotCommit }),
+      workspace: turn.workspace,
+    },
     orchestrationRoot,
-    passResult: turn.passResult,
-    repoRoot: diff.repoRoot,
-    requestedModel: client.model,
-    runtime,
-    scope: reviewScope({ baseRef, diff, profile, property }),
-    tree: reviewPassProvenance({ diffTree, snapshotCommit: turn.snapshotCommit }),
-    workspace: turn.workspace,
+    reclaimLedgerPath,
   });
 }
 

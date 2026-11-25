@@ -9,6 +9,24 @@ import { logger } from "../../../lib/logger.js";
 import { EXIT_ERROR, EXIT_USAGE } from "../../exitCodes.js";
 import { codexHumanLines, codexResultJson } from "./core.js";
 import type { PassInvocation } from "./passRoute.js";
+import { scratchReclaimFailureLines } from "./scratchReclaimReport.js";
+
+/**
+ * The exit code a set of completed passes adds up to. Pure.
+ *
+ * A pass whose artifact could not be written is a FAULT: the answer exists but was not persisted, and saying
+ * otherwise would claim a durable record that is not there. What became of a pass's scratch is deliberately
+ * NOT read here — a scratch left behind is disk, not a wrong answer.
+ *
+ * @param passes every completed pass in this invocation
+ * @returns `EXIT_ERROR` on any unpersisted artifact, else what the outcomes aggregate to
+ */
+export function completedPassesExitCode({ passes }: { passes: readonly CompletedPass[] }): number {
+  if (passes.some((p) => p.persistError !== undefined)) {
+    return EXIT_ERROR;
+  }
+  return aggregateExitCode({ outcomes: passes.map((p) => p.record.outcome) });
+}
 
 /** Report a set of completed passes and pick the exit code. */
 function report({ passes }: { passes: readonly CompletedPass[] }): number {
@@ -16,13 +34,13 @@ function report({ passes }: { passes: readonly CompletedPass[] }): number {
     logger.info({ msg: line });
   }
   logger.out({ line: codexResultJson({ passes }) });
-  // A pass whose artifact could not be written is a FAULT: the answer exists but was not persisted, and
-  // saying otherwise would claim a durable record that is not there.
+  for (const line of scratchReclaimFailureLines({ passes })) {
+    logger.error({ msg: line });
+  }
   if (passes.some((p) => p.persistError !== undefined)) {
     logger.error({ msg: "an artifact could not be written — the result above exists but was NOT persisted" });
-    return EXIT_ERROR;
   }
-  return aggregateExitCode({ outcomes: passes.map((p) => p.record.outcome) });
+  return completedPassesExitCode({ passes });
 }
 
 /**

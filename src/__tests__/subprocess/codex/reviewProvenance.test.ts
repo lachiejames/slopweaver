@@ -13,7 +13,7 @@
  * real `git commit`, and every assertion is on the record the shipped recorder persisted.
  */
 
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -55,10 +55,10 @@ function repoWithADiff(): string {
   return dir;
 }
 
-/** A fresh orchestration root for one case. */
+/** A fresh orchestration root for one case, and the ledger directory beside it. */
 function orchestrationRoot(): string {
   const dir = mkdtempSync(join(tmpdir(), "slopweaver-rev-prov-orch-"));
-  mintedDirs.push(dir);
+  mintedDirs.push(dir, `${dir}-ledgers`);
   return dir;
 }
 
@@ -137,8 +137,14 @@ async function completeOnePass({
     orchestrationRoot: root,
     profile,
     property: PROPERTY,
+    reclaimLedgerPath: ledgerPathFor({ root }),
     runtime: new FixedRuntime(),
   });
+}
+
+/** The reclaim ledger a case's passes journal into — beside its orchestration root, never inside it. */
+function ledgerPathFor({ root }: { root: string }): string {
+  return `${root}-ledgers/home-reclaim.jsonl`;
 }
 
 /** The tree a record carries, where the caller has already established there is one. */
@@ -213,6 +219,37 @@ describe("runReviewProperty — the record names the tree the DIFF came from", {
     expect(treeOf({ record: pass.record }).snapshotCommit!.length).toBe(40);
     // The artifact ON DISK carries the same tree the returned record does.
     expect(readFileSync(pass.location!.artifactPath, "utf8").includes(diff.headSha)).toBe(true);
+  });
+
+  /**
+   * The pass reclaims its OWN scratch once its artifact is written. Nothing ran `home reclaim`, so every
+   * finished pass's workspace — a whole checkout when the pass built or installed there — stayed forever.
+   */
+  it("removes its own scratch after publishing, keeps the record, and journals the removal", async () => {
+    const repoRoot = repoWithADiff();
+    const root = orchestrationRoot();
+    const scoped = unwrap(captureReviewDiffWithProvenance({ base: "main", cwd: repoRoot, maxBytes: 1_000_000 }));
+
+    const pass = await completeOnePass({
+      artifactId: "reclaims-own",
+      diff: unwrap(scoped.capture),
+      diffTree: scoped.tree,
+      root,
+    });
+
+    expect(pass.scratchReclaim.kind).toBe("reclaimed");
+    expect(existsSync(join(root, "reclaims-own.scratch"))).toBe(false);
+    expect(existsSync(join(root, "reclaims-own", "artifact.md"))).toBe(true);
+    expect(existsSync(join(root, "reclaims-own", "record.json"))).toBe(true);
+    const rows = readFileSync(ledgerPathFor({ root }), "utf8").trim().split("\n");
+    expect(rows).toHaveLength(1);
+    expect(JSON.parse(rows[0]!)).toMatchObject({
+      removedEntries: 1,
+      root: "codex-scratch",
+      session: "pass:reclaims-own",
+      takes: "finished-scratch",
+      witnessHeld: true,
+    });
   });
 
   /**

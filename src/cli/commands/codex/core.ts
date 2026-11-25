@@ -24,6 +24,7 @@ import { isRecord } from "../../../lib/parsers.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { parseFlagTail } from "../../optionParsers.js";
 import { type CodexCommandError, CodexCommandErrors } from "./errors.js";
+import { scratchReclaimJson } from "./scratchReclaimReport.js";
 
 export const PLAN_USAGE =
   "usage: slopweaver codex plan --pass p1|p2|p3 --task-file <path> --bound-seconds <n> " +
@@ -358,7 +359,8 @@ function passDestination({ pass }: { pass: CompletedPass }): string {
  *
  * This — not the exit code — is what a caller must branch on, because `BROKEN` and `CLEAN` are both
  * successful passes and both exit 0. Every field a consuming agent needs to decide "may I proceed?" is
- * here explicitly, including the artifact path to read the full answer from.
+ * here explicitly, including the artifact path to read the full answer from. `scratchReclaim` says what
+ * became of the pass's own scratch workspace; it is beside the verdict and never part of it.
  *
  * @param passes every completed pass in this invocation
  * @returns the JSON document, as one line
@@ -370,6 +372,7 @@ export function codexResultJson({ passes }: { passes: readonly CompletedPass[] }
       pass: pass.record.scope.pass,
       persistError: persistFailure({ pass }),
       property: pass.record.scope.mode === "review" ? pass.record.scope.property.id : null,
+      scratchReclaim: scratchReclaimJson({ outcome: pass.scratchReclaim }),
       verdict: verdictOf({ pass }),
     })),
     schemaVersion: 1,

@@ -77,6 +77,13 @@ reproduces a bug has exactly one place to put the result: `$SLOPWEAVER_HOME/orch
 The `node_modules` in the home is the shadow of the repo-unwritable rail. The scratch is the bench a pass
 worked at, and what the work showed is in its artifact, so once that exists the whole bench goes.
 
+**The pass clears its own bench.** Right after it writes its artifact, a `codex plan` or `codex review` pass
+removes its OWN `<passId>.scratch` — the exact path it was given, never a sibling — under the same checks and
+witness, and appends the same ledger row with `pass:<passId>` as its session
+(`src/home/reclaim/passScratch.ts`). A refused or failed removal leaves the verdict and the exit code alone
+and prints one line. So `home reclaim` is the **bulk and fallback** path: a pass that died before its
+artifact, a refused self-reclaim, and anything older.
+
 `supervisor-scratch` is the other large tree, and nothing grows it: `carry.ts` carries a seat forward on a
 three-file allowlist. This verb cannot touch it.
 
@@ -110,6 +117,7 @@ computed, which printed would read as a claim nothing survived.
 | `src/home/reclaim/finishedScratch.ts` | the pure rule: is this scratch finished                                       |
 | `src/home/reclaim/scan.ts`            | the effectful half — walk, remove, re-stat; `lstat` never `stat`              |
 | `src/home/reclaim/run.ts`             | one root's reclaim, and the witness                                           |
+| `src/home/reclaim/passScratch.ts`     | a finished pass removing its own scratch, one exact path                      |
 | `src/home/reclaim/journalRow.ts`      | the ledger row's shape and how it renders                                     |
 | `src/home/reclaim/journalStore.ts`    | reading and appending it; an unreadable ledger is a failure, not an empty one |
 | `src/cli/commands/home/`              | the thin verb shell, usage text and flag specs                                |
