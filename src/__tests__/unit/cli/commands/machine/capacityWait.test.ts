@@ -297,9 +297,10 @@ describe("waitPublishingCapacityEvents", () => {
   });
 
   it("publishes the first and the last reading when the hold outlives the timeout, never one per re-read", async () => {
-    const waited = await waitOver({ holdReads: 99, timeoutSeconds: 10 });
-    expect(waited.kind).toBe("timed-out");
-    expect(waited.reads).toBeGreaterThan(2);
+    // PROVIDER_WAIT_SCHEDULE_MS reads at 0s, 10s, 30s and 60s; the next 45s delay crosses the 60s deadline. Four
+    // reads and two published holds is what separates first-and-last from one per read.
+    const waited = await waitOver({ holdReads: 99, timeoutSeconds: 60 });
+    expect([waited.kind, waited.reads]).toEqual(["timed-out", 4]);
     expect(streamKinds({ home })).toEqual(["capacity-hold", "capacity-hold"]);
   });
 
