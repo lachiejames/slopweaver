@@ -85,8 +85,13 @@ verdict on it), never in the tree, so a fork starts with the rules and none of t
   the branch the whole stack lands on, since GitHub lands every unmerged member below it in the same press. The
   witness is a CURRENT, CLEAN adversarial Codex review (the `r3` profile) on the record's property id and exact
   claim for the head, read off both the ledger row and its record; a CURRENT BROKEN one on an eligible record
-  refuses whatever stands beside it. `baseline-bump-unwitnessed` has no acknowledgement, and Codex capped means
-  the bump waits ([pull requests](../../skills/github/reference/pull-requests.md)).
+  refuses whatever stands beside it. A STALE witness still counts when its recorded diff is the head's diff
+  against the landing base AND every file the record's rows name is unchanged between the review's base and the
+  landing base; the same patch on a moved floor is `floor-moved`. A record with no usable diff digest, or an
+  UNKNOWN row, never carries, and a STALE BROKEN review over the same patch and floor keeps refusing
+  (`src/codex/baselineBumpFloor.ts`). Comparator code no row names goes unchecked, which is why the landing
+  comparison re-measures every row's exact `from -> to`. `baseline-bump-unwitnessed` has no acknowledgement,
+  and Codex capped means the bump waits ([pull requests](../../skills/github/reference/pull-requests.md)).
 - **The witness counts in its own lane** (`src/codex/reviewLane.ts`), so a branch that spent its two general
   review passes can still take it. Every `baseline-bump-` property id is reserved. `codex review` admits one only
   as the exact witness: pass `r3`, one property, an existing record's full id and its exact claim. Any other
@@ -101,17 +106,15 @@ the witness it prints. A new row in `.baselines/file-size-tradeoffs.json` (a tra
 measured CI re-seed go the same way.
 **The residue, stated:** a merge that bypasses both landing verbs (GitHub's own UI) lands a loosening nothing
 checked, since CI only reports — the one door (AGENTS.md rule 3) covers it exactly as it does the pairing floor;
-main moving, or the pull request's base being
-retargeted, between the landing read and the merge (`merge --admin` pins only the head and refuses a retarget
-only between its own two reads; the queue re-runs CI on the merge group, which is the PR's own gate code);
-a landing verb run from the pull request's OWN
-checkout, which runs that pull request's copy of the comparison (land from main's checkout and it is main's
-code that judges); and a change to the WIRING — the gate's registration, the landing verbs' call sites — or
-to a gate's OWN code, its cap or the path it reads its baseline from included, none of which
-`BASELINE_POLICY_FILES` lists, so each is read by the pairing floor's review like any other code. A path
-under `.baselines/` is the one exception the comparison closes itself: any file there, at any depth and of
-any extension, that the registry does not name is refused, so a gate
-repointed at a sibling `.yaml` never reads a file nothing judged.
+main moving, or the pull request's base being retargeted, between the landing read and the merge (`merge
+--admin` pins only the head and refuses a retarget only between its own two reads; the queue re-runs CI on the
+merge group, which is the PR's own gate code); a landing verb run from the pull request's OWN checkout, which
+runs that pull request's copy of the comparison (land from main's checkout and it is main's code that judges);
+and a change to the WIRING — the gate's registration, the landing verbs' call sites — or to a gate's OWN code,
+its cap or the path it reads its baseline from included, none of which `BASELINE_POLICY_FILES` lists, so each
+is read by the pairing floor's review like any other code. A path under `.baselines/` is the one exception the
+comparison closes itself: any file there, at any depth and of any extension, that the registry does not name
+is refused, so a gate repointed at a sibling `.yaml` never reads a file nothing judged.
 
 ## Two lanes: the local one is a secrets scan and a working-tree check, and everything else is CI's
 
@@ -165,17 +168,15 @@ way to watch it.
 **The lock is untouched by that answer.** Its critical section shrinks because the gate inside it got light,
 which is why this section, and not `operationLock.ts`, is where that finding landed.
 
-Those two narrowings named three gates — `named-object-params` (memory, a whole-repo `ts.Program`),
-`prettier` (76.6 s, then the slowest gate in the lint lap) and `manifest-loader-tests` (31.1 s, the second
-slowest) — plus `typecheck`, `test:unit` + `coverage:ratchet` and `test:subprocess`. Every one of them is
-CI-only, and the opt-in inversion put the other ~40 ratchets beside them by inverting the filter rather than lengthening
-the list.
+Those two narrowings named three gates — `named-object-params` (memory, a whole-repo `ts.Program`), `prettier`
+(76.6 s, then the slowest gate in the lint lap) and `manifest-loader-tests` (31.1 s, the second slowest) — plus
+`typecheck`, `test:unit` + `coverage:ratchet` and `test:subprocess`. Every one of them is CI-only, and the opt-in
+inversion put the other ~40 ratchets beside them by inverting the filter rather than lengthening the list.
 
 **The offload added nothing to CI, because CI already ran all of it.** The `lint` job runs `yarn lint`
 (the FULL lane, so it covers `prettier` and `manifest-loader-tests`) and the `typecheck` job runs
 `yarn typecheck`: no CI time, no CI job and no extra turns, only a machine that stopped duplicating them.
-**Hygiene stays local** — its denylist is private and exists only on this
-machine, so CI cannot apply that half at all.
+**Hygiene stays local** — its denylist is private and exists only on this machine, so CI cannot apply that half at all.
 
 MEASURED on this tree, before and after the second split, with `time yarn <script>` on a busy
 fleet machine. **Read the CPU column, not the wall column** — the two laps did not run under the same load
@@ -260,11 +261,10 @@ and `rootDir` from the root and keeps its own `tsBuildInfoFile`, which is load-b
 Program and `yarn typecheck` invalidate each other on every alternating run.
 
 **`incremental` is on, and it buys a developer machine rather than a runner.** The root config carries
-`incremental: true` and a `tsBuildInfoFile` under the gitignored `.cache/`, off the
-`typescript-analyze-trace` profile. That profile's first
-finding is a negative one worth keeping: **there is no slow file** — the worst single file is 6.6% of a
-61.6 s cold typecheck — so there was nothing to optimise in the source, and the whole win is the cache.
-MEASURED against that 61.6 s: warm no-change **23.9 s**, a leaf edit **19.8 s**, a hub edit **41.3 s**.
+`incremental: true` and a `tsBuildInfoFile` under the gitignored `.cache/`, off the `typescript-analyze-trace`
+profile. That profile's first finding is a negative one worth keeping: **there is no slow file** — the worst
+single file is 6.6% of a 61.6 s cold typecheck — so there was nothing to optimise in the source, and the whole win
+is the cache. MEASURED against that 61.6 s: warm no-change **23.9 s**, a leaf edit **19.8 s**, a hub edit **41.3 s**.
 **In CI it buys nothing today**, and that is not a defect to fix here: each job checks out onto a fresh
 runner with no `.cache/`, so every lap is a cold one until something persists that directory between runs.
 Restoring it is the `ci-under-five-minutes` row's, not this one's. The same profile explains the

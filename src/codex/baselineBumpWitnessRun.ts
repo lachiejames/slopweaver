@@ -30,16 +30,18 @@
  * A full-history checkout of the pull request's repository holding both commits, chosen and if need be fetched
  * into by `./baselineBumpCheckouts.ts`, which asks the candidates lazily and stops at the first that will do. The
  * ledger is then read across every checkout holding the head commit that has a pass record on the branch, exactly
- * as the pairing floor reads it (`./landingGateRun.ts`, `./branchEvidenceRoots.ts`).
+ * as the pairing floor reads it (`./landingGateRun.ts`, `./branchEvidenceRoots.ts`). The ledger takes no
+ * landing-base carry; `./baselineBumpFloor.ts` reads the pinned review bases, the landing patch and each
+ * manifest's held floor from the full-history checkout, and the witness predicate alone decides what they carry.
  */
 
-import { isRecord } from "#lib/parsers.js";
-import { rowKey, witnessPropertyId } from "../devLint/baselineBump.js";
+import { rowKey } from "../devLint/baselineBump.js";
 import type { BaselineComparison } from "../devLint/baselineComparison.js";
-import { gitLines, gitSucceeds } from "../devLint/gitAtCommit.js";
+import { gitLines } from "../devLint/gitAtCommit.js";
 import { stateHomePaths } from "../stateHome.js";
 import { type CandidateCheckoutRoots, candidateCheckoutRoots } from "./baselineBumpCheckouts.js";
 import { coverageRefusalLines, judgeRecords, recordApplies } from "./baselineBumpCoverage.js";
+import { readBaselineBumpCarryEvidence } from "./baselineBumpFloor.js";
 import { measureLanding } from "./baselineBumpLanding.js";
 import { placeRecords } from "./baselineBumpPlacement.js";
 import { type UnwitnessedManifest, unwitnessedManifests } from "./baselineBumpWitness.js";
@@ -241,47 +243,6 @@ async function judgeLanding({
 }
 
 /**
- * The review base refs that cannot move: a full commit SHA the pull request's base commit already holds. Only
- * a review carrying one of these records' witness property ids is asked about, so a ledger of ordinary
- * reviews costs no git call. Read through `unknown`, because a record from disk is only shallow-decoded. IO edge.
- *
- * @param manifests the eligible bump records whose witness property ids are asked about
- * @param root a checkout holding `baseSha` and its whole history
- * @returns the pinned base refs
- * @internal
- */
-export function pinnedReviewBases({
-  baseSha,
-  manifests,
-  records,
-  root,
-}: {
-  baseSha: string;
-  manifests: readonly BumpRecord[];
-  records: readonly CodexArtifactRecord[];
-  root: string;
-}): ReadonlySet<string> {
-  const witnessIds = new Set(manifests.map(({ manifest }) => witnessPropertyId({ digest: manifest.digest })));
-  const pinned = new Set<string>();
-  for (const record of records) {
-    if (record.scope.mode !== "review") {
-      continue;
-    }
-    const property: unknown = record.scope.property;
-    const id = isRecord(property) ? property["id"] : undefined;
-    const ref: unknown = record.scope.baseRef;
-    const fixed = typeof ref === "string" && /^[0-9a-f]{40}$/u.test(ref);
-    if (typeof id !== "string" || !witnessIds.has(id) || !fixed) {
-      continue;
-    }
-    if (gitSucceeds({ args: ["merge-base", "--is-ancestor", ref, baseSha], root })) {
-      pinned.add(ref);
-    }
-  }
-  return pinned;
-}
-
-/**
  * The branch ledger of every qualifying checkout, unioned, each counted only when it holds an entry
  * (`alwaysCount: false`), since none of them is the verb's own privileged read.
  *
@@ -378,12 +339,13 @@ async function unwitnessedOf({
     return refused({ detail: noQualifyingCheckoutReason({ considered: candidates.roots, head }) });
   }
   const ledger = qualifiedLedger({ head, qualified, records, retired: retired.value });
-  const pinnedBases = pinnedReviewBases({ baseSha, manifests: eligible, records, root });
+  const { headSha } = head;
+  const evidence = readBaselineBumpCarryEvidence({ baseSha, headSha, manifests: eligible, records, root });
   const unwitnessed = unwitnessedManifests({
     baseSha,
     entries: ledger.entries,
+    evidence,
     manifests: eligible,
-    pinnedBases,
     records,
   });
   return { byPath: new Map(unwitnessed.map((one) => [one.path, one])), kind: "judged" };
