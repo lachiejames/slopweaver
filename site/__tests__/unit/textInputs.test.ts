@@ -9,14 +9,16 @@
  * takes no typed words, and it attaches to the one conversation field rather than opening a second entry point, so a
  * file input anywhere else is still refused.
  *
- * Settings keeps two search boxes, a later rule than the no-text-inputs one: the owner searches the integration
- * catalog to find what they are looking for, and a later ruling outranks an earlier one, so the grouped, searchable
- * Settings modal wins. A search box filters what is on screen and sends nothing anywhere, so it is not a
- * second way to talk to the fleet; it is kept only as a `type="search"` input, and only in those two files.
+ * Settings and the Store page keep two search boxes each, later rulings than the no-text-inputs one, and a later
+ * ruling outranks an earlier one. In Settings the owner searches the section list and the integration catalog to find
+ * what they are looking for. On the Store page the owner narrows the table list by name, which sends nothing anywhere,
+ * and filters a table's rows by a typed value, which goes only to the read-only `store rows`. None of the four is a
+ * second way to talk to the fleet: each narrows a view, and is kept only as a `type="search"` input, and only in its
+ * own file.
  *
  * So this walks every component and route under `site/` with the TypeScript parser, not a text match, and refuses any
  * control a person types into outside those. A checkbox, a radio and a `<select>` take no words and pass by what
- * they are; the four exceptions pass by file, and each is held to its count so a removed exception cannot leave a stale
+ * they are; the exceptions pass by file, and each is held to its count so a removed exception cannot leave a stale
  * row behind.
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -46,8 +48,19 @@ const SETTINGS_SEARCH_FILE = "components/console/SettingsModal.tsx";
 /** The integration catalog, searchable by name. */
 const INTEGRATION_SEARCH_FILE = "components/console/SettingsIntegrations.tsx";
 
-/** The two files a search box is kept in. */
-const SEARCH_FILES: ReadonlySet<string> = new Set([SETTINGS_SEARCH_FILE, INTEGRATION_SEARCH_FILE]);
+/** The Store page's table list, narrowed by name. */
+const STORE_TABLES_SEARCH_FILE = "components/console/StoreTableList.tsx";
+
+/** The Store page's filter bar, whose equals and contains take a value. */
+const STORE_FILTER_SEARCH_FILE = "components/console/StoreFilter.tsx";
+
+/** The four files a search box is kept in. */
+const SEARCH_FILES: ReadonlySet<string> = new Set([
+  SETTINGS_SEARCH_FILE,
+  INTEGRATION_SEARCH_FILE,
+  STORE_TABLES_SEARCH_FILE,
+  STORE_FILTER_SEARCH_FILE,
+]);
 
 /** The `type`s an `<input>` may carry anywhere, because none of them takes words. */
 const CHOICE_TYPES: ReadonlySet<string> = new Set(["checkbox", "radio"]);
@@ -273,18 +286,28 @@ describe("textInputScan", () => {
     ]);
   });
 
-  it("keeps a search box only in the two Settings files, and refuses any other typed field there", () => {
+  it("keeps a search box only in the two Settings files and the two Store files, and refuses any other typed field there", () => {
     const search = `const A = () => <input type="search" />;`;
     const text = `const A = () => <input type="text" />;`;
     expect([
       textInputScan({ path: SETTINGS_SEARCH_FILE, source: search }),
       textInputScan({ path: INTEGRATION_SEARCH_FILE, source: search }),
+      textInputScan({ path: STORE_TABLES_SEARCH_FILE, source: search }),
+      textInputScan({ path: STORE_FILTER_SEARCH_FILE, source: search }),
       textInputScan({ path: SETTINGS_SEARCH_FILE, source: text }).violations.map((one) => one.kind),
+      textInputScan({ path: STORE_TABLES_SEARCH_FILE, source: text }).violations.map((one) => one.kind),
+      textInputScan({ path: STORE_FILTER_SEARCH_FILE, source: text }).violations.map((one) => one.kind),
       textInputScan({ path: CHAT_FILE, source: search }).violations.map((one) => one.kind),
+      textInputScan({ path: "components/console/StoreRowsGrid.tsx", source: search }).violations.map((one) => one.kind),
       textInputScan({ path: "components/x/Form.tsx", source: search }).violations.map((one) => one.kind),
     ]).toEqual([
       { kept: [{ control: "search", path: SETTINGS_SEARCH_FILE }], violations: [] },
       { kept: [{ control: "search", path: INTEGRATION_SEARCH_FILE }], violations: [] },
+      { kept: [{ control: "search", path: STORE_TABLES_SEARCH_FILE }], violations: [] },
+      { kept: [{ control: "search", path: STORE_FILTER_SEARCH_FILE }], violations: [] },
+      ["input"],
+      ["input"],
+      ["input"],
       ["input"],
       ["input"],
       ["input"],
@@ -320,7 +343,7 @@ describe("the console's text inputs", () => {
     expect(sources).toContain(SECRET_FILE);
   });
 
-  it("holds no field a person types into but the call's chat, the running list's box, the secret paste and Settings' two search boxes", () => {
+  it("holds no field a person types into outside the kept fields' own files", () => {
     expect(scans.flatMap((scan) => scan.violations)).toEqual([]);
   });
 
@@ -333,6 +356,8 @@ describe("the console's text inputs", () => {
     expect(kept.filter((one) => one.control === "search").toSorted((a, b) => a.path.localeCompare(b.path))).toEqual([
       { control: "search", path: INTEGRATION_SEARCH_FILE },
       { control: "search", path: SETTINGS_SEARCH_FILE },
+      { control: "search", path: STORE_FILTER_SEARCH_FILE },
+      { control: "search", path: STORE_TABLES_SEARCH_FILE },
     ]);
   });
 });

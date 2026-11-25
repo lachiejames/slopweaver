@@ -34,6 +34,12 @@ describe("tokenOfName / nameOfToken", () => {
     expect(unwrap(nameOfToken({ token: tokenOfName({ name }) }))).toBe(name);
   });
 
+  it("keeps a leading U+FEFF rather than stripping it as a byte-order mark", () => {
+    const name = `${String.fromCodePoint(0xfeff)}a`;
+    expect(tokenOfName({ name })).toBe("efbbbf61");
+    expect(unwrap(nameOfToken({ token: "efbbbf61" }))).toBe(name);
+  });
+
   it("refuses uppercase hex, odd length, empty and invalid UTF-8", () => {
     expect(unwrapErr(nameOfToken({ token: "6D" }))).toBe("not lowercase hex of whole bytes");
     expect(unwrapErr(nameOfToken({ token: "6" }))).toBe("not lowercase hex of whole bytes");

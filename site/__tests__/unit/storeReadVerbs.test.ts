@@ -1,7 +1,7 @@
 /*
  * The Store page's closed list of reads: exact argv per slug, request fields filling declared data flags only, every
- * value in a spelling no parser reads as a flag, and the route's answer read off a finished child. Synthetic `acme`
- * names only.
+ * value (a typed filter value included) in a spelling no parser reads as a flag, and the route's answer read off a
+ * finished child. Synthetic `acme` names only.
  */
 import { describe, expect, it } from "vitest";
 
@@ -10,6 +10,7 @@ import type { SpawnOutcome } from "../../lib/spawnVerb";
 import {
   isStoreToken,
   LOCATOR_MAX,
+  STORE_FILTER_VALUE_MAX,
   STORE_READ_TIMEOUT_MS,
   STORE_READ_VERBS,
   storeErrorOf,
@@ -117,13 +118,117 @@ describe("rows", () => {
     });
   });
 
-  it("refuses a typed value, which the console never sends, even one shaped like a flag", () => {
+  it("refuses a value on an operator that takes none, an empty one included, rather than dropping it", () => {
     expect(
-      build({
-        request: { filterColumn: COLUMN, filterOp: "is-null", filterValue: "--json", page: 1, table: TABLE },
-        slug: "rows",
-      }),
-    ).toEqual({ kind: "refused", why: "store rows takes no field named filterValue" });
+      [
+        ["is-null", "--json"],
+        ["is-null", ""],
+        ["not-null", "acme"],
+      ].map(([filterOp, filterValue]) =>
+        build({
+          request: { filterColumn: COLUMN, filterOp, filterValue, page: 1, table: TABLE },
+          slug: "rows",
+        }),
+      ),
+    ).toEqual([
+      { kind: "refused", why: "filterOp is-null takes no filterValue" },
+      { kind: "refused", why: "filterOp is-null takes no filterValue" },
+      { kind: "refused", why: "filterOp not-null takes no filterValue" },
+    ]);
+    expect(build({ request: { filterValue: "acme", page: 1, table: TABLE }, slug: "rows" })).toEqual({
+      kind: "refused",
+      why: "a filter names both filterColumn and filterOp",
+    });
+  });
+
+  it("carries an eq or contains value only as its UTF-8 hex after --filter-value-hex", () => {
+    expect(
+      ["eq", "contains"].map((filterOp) =>
+        build({
+          request: { filterColumn: COLUMN, filterOp, filterValue: "Acme Pty", page: 1, table: TABLE },
+          slug: "rows",
+        }),
+      ),
+    ).toEqual(
+      ["eq", "contains"].map((filterOp) => ({
+        argv: [
+          "store",
+          "rows",
+          "--table-hex",
+          TABLE,
+          "--filter-column-hex",
+          COLUMN,
+          "--filter-op",
+          filterOp,
+          "--filter-value-hex",
+          "41636d6520507479",
+          "--page",
+          "1",
+          "--json",
+        ],
+        kind: "argv",
+      })),
+    );
+  });
+
+  it("spells a multi-byte character as its UTF-8 bytes", () => {
+    const filterValue = `caf${String.fromCodePoint(0xe9)}`;
+    const argv = argvOf({
+      request: { filterColumn: COLUMN, filterOp: "contains", filterValue, page: 1, table: TABLE },
+      slug: "rows",
+    });
+    expect(argv[argv.indexOf("--filter-value-hex") + 1]).toBe("636166c3a9");
+  });
+
+  it("never lets a value shaped like a flag reach the argv as one", () => {
+    const argv = argvOf({
+      request: { filterColumn: COLUMN, filterOp: "eq", filterValue: "--home /etc", page: 1, table: TABLE },
+      slug: "rows",
+    });
+    expect(argv.includes("--home /etc")).toBe(false);
+    expect(argv.includes("--home")).toBe(false);
+    expect(Buffer.from(argv[argv.indexOf("--filter-value-hex") + 1], "hex").toString("utf8")).toBe("--home /etc");
+  });
+
+  it("keeps a value's surrounding spaces and accepts exactly the console's 2,000 characters", () => {
+    expect(STORE_FILTER_VALUE_MAX).toBe(2000);
+    const spaced = argvOf({
+      request: { filterColumn: COLUMN, filterOp: "contains", filterValue: " acme ", page: 1, table: TABLE },
+      slug: "rows",
+    });
+    expect(spaced[spaced.indexOf("--filter-value-hex") + 1]).toBe("2061636d6520");
+    const longest = argvOf({
+      request: { filterColumn: COLUMN, filterOp: "eq", filterValue: "a".repeat(2000), page: 1, table: TABLE },
+      slug: "rows",
+    });
+    expect(longest[longest.indexOf("--filter-value-hex") + 1]).toBe("61".repeat(2000));
+  });
+
+  it("refuses an eq or contains value that is missing, not text, blank, too long, half a character or a control", () => {
+    const refusals = [undefined, 7, "", "   ", "a".repeat(2001), "acme\uD800", "acme\u0007"].map((filterValue) =>
+      build({ request: { filterColumn: COLUMN, filterOp: "eq", filterValue, page: 1, table: TABLE }, slug: "rows" }),
+    );
+    expect(refusals).toEqual([
+      { kind: "refused", why: "filterOp eq needs a filterValue: the value is not text" },
+      { kind: "refused", why: "filterOp eq needs a filterValue: the value is not text" },
+      {
+        kind: "refused",
+        why: "filterOp eq needs a filterValue: type a value to filter on; to stop filtering, use Clear",
+      },
+      {
+        kind: "refused",
+        why: "filterOp eq needs a filterValue: type a value to filter on; to stop filtering, use Clear",
+      },
+      {
+        kind: "refused",
+        why: "filterOp eq needs a filterValue: the value is 2001 characters; the console carries up to 2000",
+      },
+      {
+        kind: "refused",
+        why: "filterOp eq needs a filterValue: the value carries half of a character, which no file can contain",
+      },
+      { kind: "refused", why: "filterOp eq needs a filterValue: the value carries a control character" },
+    ]);
   });
 
   it("carries no value for is-null and not-null", () => {
@@ -148,17 +253,6 @@ describe("rows", () => {
     expect(
       argvOf({ request: { filterColumn: COLUMN, filterOp: "not-null", page: 1, table: TABLE }, slug: "rows" })[7],
     ).toBe("not-null");
-  });
-
-  it("refuses eq and contains, which take a typed value and stay with store rows in a terminal", () => {
-    expect(
-      ["eq", "contains"].map((filterOp) =>
-        build({ request: { filterColumn: COLUMN, filterOp, page: 1, table: TABLE }, slug: "rows" }),
-      ),
-    ).toEqual([
-      { kind: "refused", why: "filterOp is is-null or not-null" },
-      { kind: "refused", why: "filterOp is is-null or not-null" },
-    ]);
   });
 
   it("refuses a field it does not declare, a flag smuggled as a field name included", () => {
@@ -186,7 +280,7 @@ describe("rows", () => {
     });
     expect(
       build({ request: { filterColumn: COLUMN, filterOp: "ilike", page: 1, table: TABLE }, slug: "rows" }),
-    ).toEqual({ kind: "refused", why: "filterOp is is-null or not-null" });
+    ).toEqual({ kind: "refused", why: "filterOp is eq, contains, is-null or not-null" });
   });
 
   it("refuses a page below one, a fractional page, and a page size outside 1 to 100", () => {

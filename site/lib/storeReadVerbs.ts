@@ -11,8 +11,10 @@
  * - a table or column is the catalog's own TOKEN (lowercase hex of the name's UTF-8, printed by `store tables` and
  *   `store rows`), passed through after a shape check — the verb decodes it and looks the name up in the live
  *   catalog before quoting anything into SQL (`src/store/browse/types.ts`);
- * - a filter carries no value: the page offers only `is-null` and `not-null`, because the console takes typed words
- *   in the call's chat alone (`site/__tests__/unit/textInputs.test.ts`), and `store rows` keeps the rest;
+ * - a filter is `eq`, `contains`, `is-null` or `not-null`; the first two carry the one typed value this list takes,
+ *   `filterValue`, which travels raw in the POST body and is checked here ({@link storeFilterValueWhy}) and written
+ *   into the argv only as its UTF-8 hex after the literal `--filter-value-hex`, so it can never read as a flag. Hex
+ *   is an argv spelling, not a secret: another process of the same user can still read it off the process table;
  * - a row locator is the opaque hex a rows document printed, passed through after a shape check;
  * - a page and a page size are digits.
  *
@@ -20,7 +22,7 @@
  * verb reads it from `$SLOPWEAVER_HOME` itself.
  */
 import { isBag } from "./bag";
-import type { BuiltArgv } from "./slots";
+import { type BuiltArgv, refuseSlot, TEXT_MAX, utf8Hex } from "./slots";
 import type { SpawnOutcome } from "./spawnVerb";
 
 /** A request body the route parsed: a JSON object, its fields not yet checked. */
@@ -64,8 +66,14 @@ const LOCATOR_SHAPE = /^(?:[0-9a-f]{2})+$/;
 /** The longest locator the page passes back: 8 KiB of hex. */
 export const LOCATOR_MAX = 8 * 1024;
 
-/** The filter operators the page offers: the two that carry no value. */
-const FILTER_OPERATORS = ["is-null", "not-null"] as const;
+/** The filter operators that carry a typed value. */
+const VALUE_OPERATORS = ["eq", "contains"] as const;
+
+/** The filter operators that carry none. */
+const NULL_OPERATORS = ["is-null", "not-null"] as const;
+
+/** The longest filter value the console carries; `store rows` itself has no cap. */
+export const STORE_FILTER_VALUE_MAX = TEXT_MAX;
 
 /** The sort directions `store rows` takes. */
 const DIRECTIONS = ["asc", "desc"] as const;
@@ -80,6 +88,7 @@ const ROWS_FIELDS: readonly string[] = [
   "direction",
   "filterColumn",
   "filterOp",
+  "filterValue",
 ];
 const ROW_FIELDS: readonly string[] = ["locator"];
 
@@ -173,14 +182,35 @@ function sortFlags({ request }: { request: StoreReadRequest }): BuiltArgv {
 }
 
 /**
- * The filter flags of a rows request: none, or a column and `is-null` or `not-null`. A value is never taken.
+ * Why a typed filter value cannot be carried, or `undefined` when it can: it must be text with something in it
+ * besides whitespace, at most {@link STORE_FILTER_VALUE_MAX} characters, whole characters only (a lone surrogate has
+ * no UTF-8 spelling) and no control character but tab and newline. A value that passes is carried exactly, its
+ * surrounding spaces kept. The page's draft check and the route's builder both ask this, so the two cannot disagree.
+ *
+ * @param value the value as the request carried it, not yet known to be text
+ * @returns the refusal sentence, or `undefined`
+ */
+export function storeFilterValueWhy({ value }: { value: unknown }): string | undefined {
+  if (typeof value !== "string") {
+    return "the value is not text";
+  }
+  if (value.trim().length === 0) {
+    return "type a value to filter on; to stop filtering, use Clear";
+  }
+  return refuseSlot({ slot: { shape: "hexText", slot: "the value" }, value });
+}
+
+/**
+ * The filter flags of a rows request: none; a column and `is-null` or `not-null`, with no value; or a column, `eq` or
+ * `contains`, and the value as UTF-8 hex. A value on an operator that takes none is refused, never dropped.
  *
  * @returns the flags, or the refusal
  */
 function filterFlags({ request }: { request: StoreReadRequest }): BuiltArgv {
   const column = request["filterColumn"];
   const operator = request["filterOp"];
-  if (column === undefined && operator === undefined) {
+  const value = request["filterValue"];
+  if (column === undefined && operator === undefined && value === undefined) {
     return { argv: [], kind: "argv" };
   }
   if (column === undefined || operator === undefined) {
@@ -189,11 +219,25 @@ function filterFlags({ request }: { request: StoreReadRequest }): BuiltArgv {
   if (!isStoreToken(column)) {
     return { kind: "refused", why: notTokenWhy({ field: "filterColumn" }) };
   }
-  const known = FILTER_OPERATORS.find((one) => one === operator);
-  if (known === undefined) {
-    return { kind: "refused", why: "filterOp is is-null or not-null" };
+  const nullOperator = NULL_OPERATORS.find((one) => one === operator);
+  if (nullOperator !== undefined) {
+    if (value !== undefined) {
+      return { kind: "refused", why: `filterOp ${nullOperator} takes no filterValue` };
+    }
+    return { argv: ["--filter-column-hex", column, "--filter-op", nullOperator], kind: "argv" };
   }
-  return { argv: ["--filter-column-hex", column, "--filter-op", known], kind: "argv" };
+  const valueOperator = VALUE_OPERATORS.find((one) => one === operator);
+  if (valueOperator === undefined) {
+    return { kind: "refused", why: "filterOp is eq, contains, is-null or not-null" };
+  }
+  const why = storeFilterValueWhy({ value });
+  if (why !== undefined || typeof value !== "string") {
+    return { kind: "refused", why: `filterOp ${valueOperator} needs a filterValue: ${String(why)}` };
+  }
+  return {
+    argv: ["--filter-column-hex", column, "--filter-op", valueOperator, "--filter-value-hex", utf8Hex({ text: value })],
+    kind: "argv",
+  };
 }
 
 /**

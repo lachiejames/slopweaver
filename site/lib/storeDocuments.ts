@@ -83,8 +83,8 @@ export interface StoreRowPreview {
   readonly cells: Readonly<Record<string, StoreCell>>;
 }
 
-/** The filter operators `store rows` may report it applied; the page itself asks only for the two without a value. */
-type StoreFilterOperator = "eq" | "contains" | "is-null" | "not-null";
+/** The filter operators `store rows` applies: `eq` and `contains` with a typed value, `is-null` and `not-null` without. */
+export type StoreFilterOperator = "eq" | "contains" | "is-null" | "not-null";
 
 /** The direction a page is sorted in. */
 export type StoreSortDirection = "asc" | "desc";
