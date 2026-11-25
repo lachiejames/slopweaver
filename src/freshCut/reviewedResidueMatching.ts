@@ -2,8 +2,9 @@
  * Which finding each reviewed-residue entry takes out of one verification. An entry clears only the ONE line it was
  * accepted for, never whichever byte-identical copy the verify meets first:
  *
- * - **An anchored entry (version 2)** applies only in the record and tree it was accepted in, where the bytes cannot
- *   have moved, so it binds to its exact `lineNumberAtReview`.
+ * - **An anchored entry (version 2)** applies, of every cut, only in the record and tree it was accepted in, where the
+ *   bytes cannot have moved, so it binds to its exact `lineNumberAtReview`. The working-tree scan carries it as well
+ *   ({@link matchReviewedResidueInWorkingTree}).
  * - **An owner-address entry (version 1) carrying `occurrence`** binds, in any cut, to that occurrence among the
  *   file's lines with its exact bytes ({@link lineNumbersByDigest}).
  * - **An older owner-address entry with no `occurrence`** binds to its `lineNumberAtReview` in its own record and
@@ -69,21 +70,28 @@ function inReviewedCut({
  * @param entry the entry
  * @param group the line numbers in the entry's file holding the entry's exact bytes, in file order
  * @param reviewedHere whether the verification is of the cut the entry was accepted in
+ * @param workingTree whether this is the working-tree scan, where an anchored entry falls back to its one copy
  * @returns the 1-based line, or undefined
  */
 function boundLine({
   entry,
   group,
   reviewedHere,
+  workingTree,
 }: {
   entry: ReviewedResidueEntry;
   group: readonly number[];
   reviewedHere: boolean;
+  workingTree: boolean;
 }): number | undefined {
   if (entry.schemaVersion === 1 && entry.occurrence !== undefined) {
     return group[entry.occurrence - 1];
   }
-  if (entry.schemaVersion === 2 || reviewedHere) {
+  const anchoredInWorkingTree = entry.schemaVersion === 2 && workingTree;
+  if (anchoredInWorkingTree && group.includes(entry.lineNumberAtReview)) {
+    return entry.lineNumberAtReview;
+  }
+  if (!anchoredInWorkingTree && (entry.schemaVersion === 2 || reviewedHere)) {
     return group.includes(entry.lineNumberAtReview) ? entry.lineNumberAtReview : undefined;
   }
   return group.length === 1 ? group[0] : undefined;
@@ -157,6 +165,36 @@ function digestsByEntryPath({
 }
 
 /**
+ * The record and tree a working-tree scan is judged as: no cut's, since a record id is a UUID and a tree id is hex, so
+ * no entry was ever accepted "here" and only an entry that matches in any cut can apply.
+ */
+const WORKING_TREE = "working-tree";
+
+/**
+ * Pure: which private-term findings of a WORKING TREE, not a cut, the list takes out. An owner-address entry (version
+ * 1) binds by its bytes exactly as {@link matchReviewedResidue} binds it outside its own record. An anchored entry
+ * (version 2) is carried too, since the owner accepts what the repository held at its public cut: it binds to its
+ * reviewed line while that line still holds its exact bytes, else to the file's ONE line with them, so a new copy of an
+ * accepted line, or a moved one beside a copy, still fails.
+ *
+ * @param entries the accepted findings, the whole list
+ * @param files every scanned file an entry or a finding names, with its bytes
+ * @param findings the scan's private-term findings, in report order
+ * @returns the matched finding indexes and the unmatched entry count
+ */
+export function matchReviewedResidueInWorkingTree({
+  entries,
+  files,
+  findings,
+}: {
+  entries: readonly ReviewedResidueEntry[];
+  files: readonly CutFile[];
+  findings: readonly FreshCutFinding[];
+}): ReviewedResidueMatches {
+  return matchEntries({ entries, files, findings, recordId: WORKING_TREE, treeSha: WORKING_TREE, workingTree: true });
+}
+
+/**
  * Pure: which findings the list takes out of THIS verification, and how many applicable entries took nothing. An
  * anchored entry for another record or tree is not applicable, so it is neither matched nor unmatched.
  *
@@ -180,6 +218,36 @@ export function matchReviewedResidue({
   recordId: string;
   treeSha: string;
 }): ReviewedResidueMatches {
+  return matchEntries({ entries, files, findings, recordId, treeSha, workingTree: false });
+}
+
+/**
+ * Pure: the shared matching loop — {@link matchReviewedResidue} for a cut, {@link matchReviewedResidueInWorkingTree}
+ * for the working tree, which alone carries an anchored entry outside its own record.
+ *
+ * @param entries the accepted findings, the whole list
+ * @param files every file of the cut or scan, with its bytes
+ * @param findings the findings, in report order
+ * @param recordId the record being verified
+ * @param treeSha that record's tree
+ * @param workingTree whether this is the working-tree scan rather than a cut's verify
+ * @returns the matched finding indexes and the unmatched entry count
+ */
+function matchEntries({
+  entries,
+  files,
+  findings,
+  recordId,
+  treeSha,
+  workingTree,
+}: {
+  entries: readonly ReviewedResidueEntry[];
+  files: readonly CutFile[];
+  findings: readonly FreshCutFinding[];
+  recordId: string;
+  treeSha: string;
+  workingTree: boolean;
+}): ReviewedResidueMatches {
   const bytesByPath = new Map(files.map((file) => [file.path, file.bytes]));
   const open = subtractableFindings({ bytesByPath, findings });
   const digests = digestsByEntryPath({ bytesByPath, entries });
@@ -187,11 +255,11 @@ export function matchReviewedResidue({
   let unmatched = 0;
   for (const entry of entries) {
     const reviewedHere = inReviewedCut({ entry, recordId, treeSha });
-    if (entry.schemaVersion === 2 && !reviewedHere) {
+    if (entry.schemaVersion === 2 && !reviewedHere && !workingTree) {
       continue;
     }
     const group = digests.get(entry.path)?.get(entry.lineSha256);
-    const line = group === undefined ? undefined : boundLine({ entry, group, reviewedHere });
+    const line = group === undefined ? undefined : boundLine({ entry, group, reviewedHere, workingTree });
     const indexes = line === undefined ? [] : open.get(lineKey({ className: entry.className, line, path: entry.path }));
     const claimed = indexes?.find((index) => !matched.has(index));
     if (claimed === undefined) {

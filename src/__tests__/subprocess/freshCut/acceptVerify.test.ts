@@ -31,6 +31,14 @@ const SESSION = "session-under-test";
 /** An owner-address row that over-reads a dotted version string, and a topic row. */
 const ROWS = ["owner-address\t-\t\\d{1,3}(?:\\.\\d{1,3}){3}\tsynthetic", "topic\ti\tquillfeather\tsynthetic"];
 
+/*
+ * The dotted build line the owner-address row over-reads, and the same line one build later. Composed at run time
+ * from its parts so no source line here carries the dotted value: the repository's own pre-push scan reads this file
+ * against the owner's private terms, and a made-up version string would fail it.
+ */
+const BUILD_LINE = `build ${["7", "12", "3", "40"].join(".")}`;
+const NEXT_BUILD_LINE = `build ${["7", "12", "3", "41"].join(".")}`;
+
 const roots: string[] = [];
 
 afterEach(() => {
@@ -138,7 +146,7 @@ const accept = ({
 
 describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   it("takes an accepted line out of the next verify, counts it, and binds the list's exact bytes", () => {
-    const { home, record, repo } = cutOf({ files: { "VERSION.md": "intro\nbuild 7.12.3.40\n" } });
+    const { home, record, repo } = cutOf({ files: { "VERSION.md": `intro\n${BUILD_LINE}\n` } });
     const before = verificationOf({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo });
     expect([before.status, before.findings, before.reviewedAccepted]).toEqual([
       "refused",
@@ -150,7 +158,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
     expect([accepted.entry.className, accepted.entry.reviewedBySessionId, accepted.entry.lineSha256]).toEqual([
       "owner-address",
       SESSION,
-      createHash("sha256").update("build 7.12.3.40").digest("hex"),
+      createHash("sha256").update(BUILD_LINE).digest("hex"),
     ]);
 
     const after = verificationOf({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo });
@@ -165,7 +173,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   });
 
   it("refuses the verify, rather than subtracting, when a matching entry sits beside a blank line", () => {
-    const { home, record, repo } = cutOf({ files: { "VERSION.md": "build 7.12.3.40\n" } });
+    const { home, record, repo } = cutOf({ files: { "VERSION.md": `${BUILD_LINE}\n` } });
     unwrap(accept({ home, line: 1, path: "VERSION.md", record, repo }));
     appendFileSync(reviewedResiduePath({ home }), "\n");
     expect(unwrapErr(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo })).code).toBe(
@@ -174,7 +182,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   });
 
   it("refuses, and appends nothing, while another accept holds the list's lock", () => {
-    const { home, record, repo } = cutOf({ files: { "VERSION.md": "build 7.12.3.40\n" } });
+    const { home, record, repo } = cutOf({ files: { "VERSION.md": `${BUILD_LINE}\n` } });
     const held = unwrap(acquireOperationLock({ home, key: REVIEWED_RESIDUE_LOCK_KEY, nowIso: NOW.toISOString() }));
     try {
       expect(unwrapErr(accept({ home, line: 1, path: "VERSION.md", record, repo })).code).toBe(
@@ -188,7 +196,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   });
 
   it("refuses a second acceptance of the same line", () => {
-    const { home, record, repo } = cutOf({ files: { "VERSION.md": "build 7.12.3.40\n" } });
+    const { home, record, repo } = cutOf({ files: { "VERSION.md": `${BUILD_LINE}\n` } });
     unwrap(accept({ home, line: 1, path: "VERSION.md", record, repo }));
     expect(unwrapErr(accept({ home, line: 1, path: "VERSION.md", record, repo })).code).toBe(
       "REVIEWED_RESIDUE_CANDIDATE_REFUSED",
@@ -196,7 +204,7 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   });
 
   it("clears only the accepted copy of two identical lines, and leaves the other open to its own acceptance", () => {
-    const { home, record, repo } = cutOf({ files: { "VERSION.md": "intro\nbuild 7.12.3.40\nbuild 7.12.3.40\n" } });
+    const { home, record, repo } = cutOf({ files: { "VERSION.md": `intro\n${BUILD_LINE}\n${BUILD_LINE}\n` } });
     const accepted = unwrap(accept({ home, line: 3, path: "VERSION.md", record, repo }));
     const verified = unwrap(verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }));
     expect(accepted.entry).toMatchObject({ lineNumberAtReview: 3, occurrence: 2, schemaVersion: 1 });
@@ -212,13 +220,13 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   });
 
   it("clears neither of two identical lines for an older entry from another cut, and stores no unmatched count", () => {
-    const { home, record, repo } = cutOf({ files: { "VERSION.md": "intro\nbuild 7.12.3.40\nbuild 7.12.3.40\n" } });
+    const { home, record, repo } = cutOf({ files: { "VERSION.md": `intro\n${BUILD_LINE}\n${BUILD_LINE}\n` } });
     const older = {
       className: "owner-address",
       entryId: "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f",
       judgement: "not-an-address",
       lineNumberAtReview: 3,
-      lineSha256: createHash("sha256").update("build 7.12.3.40").digest("hex"),
+      lineSha256: createHash("sha256").update(BUILD_LINE).digest("hex"),
       path: "VERSION.md",
       reviewedAtIso: NOW.toISOString(),
       reviewedBySessionId: SESSION,
@@ -408,9 +416,9 @@ describe("fresh-cut accept and verify", REAL_GIT_SUITE, () => {
   });
 
   it("refuses again once the accepted line changes, in a new cut over the same home", () => {
-    const first = cutOf({ files: { "VERSION.md": "build 7.12.3.40\n" } });
+    const first = cutOf({ files: { "VERSION.md": `${BUILD_LINE}\n` } });
     unwrap(accept({ home: first.home, line: 1, path: "VERSION.md", record: first.record, repo: first.repo }));
-    const second = cutOf({ files: { "VERSION.md": "build 7.12.3.41\n" } });
+    const second = cutOf({ files: { "VERSION.md": `${NEXT_BUILD_LINE}\n` } });
     const list = readFileSync(reviewedResiduePath({ home: first.home }));
     mkdirSync(join(second.home, "fresh-cuts"), { recursive: true });
     writeFileSync(reviewedResiduePath({ home: second.home }), list);

@@ -24,7 +24,8 @@
 #
 #                Five do, each reading state that exists on this machine and on no runner (measured:
 #                whole lane ~47s — reproduce with `time yarn validate:local`):
-#                  · `hygiene`         — the PRIVATE denylist, $SLOPWEAVER_HOME/hygiene-denylist.txt;
+#                  · `hygiene`         — the PRIVATE denylist, $SLOPWEAVER_HOME/hygiene-denylist.txt, and the
+#                                        private terms, $SLOPWEAVER_HOME/hygiene/private-terms.tsv;
 #                  · `corpus-hygiene`  — the same leak classes over the bronze corpus (41.2s, most of the lane);
 #                  · `register-hygiene`— the handover register under $SLOPWEAVER_HOME;
 #                  · `secrets-registry`— the secrets store under $SLOPWEAVER_HOME;

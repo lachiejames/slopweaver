@@ -249,13 +249,15 @@ function matchesCanonical({
 }
 
 /**
- * Pure: the per-match exemption for one scanned text.
+ * Pure: the per-match exemption for one scanned text. The repository gate (`../hygiene/repoScan.ts`) asks this same
+ * function of every working-tree file, so a line the cut publishes and the line the repository carries are forgiven
+ * alike.
  *
  * @param content the scanned text
  * @param path the tree-relative path it was read from, or the path-list locus
  * @returns the reason a match at those offsets is exempt, or undefined when it counts
  */
-function cutExemptionOf({
+export function cutExemptionOf({
   content,
   path,
 }: {

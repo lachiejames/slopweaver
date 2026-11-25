@@ -32,6 +32,8 @@
  * but its owner, a missing header or any malformed row refuses every write the check guards, and the refusal
  * names the file, the line and the class, never the pattern. A header with no row is the explicit "none" and
  * passes. Nothing seeds it, on purpose: a seeded header would make a fresh installation claim "none" unasked.
+ * The one reader that passes an ABSENT file is the repository scan (`./repoScan.ts`), because no CI runner has one;
+ * it says the terms were not applied, and fails on an unreadable or malformed file like every write.
  *
  * ## What it cannot protect against
  *

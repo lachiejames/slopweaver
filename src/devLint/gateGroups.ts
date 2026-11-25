@@ -125,7 +125,8 @@ export function externalChecks({ bin }: { bin: BinResolver }): readonly LintChec
     { args: ["--exclude", "exports,nsExports,types,nsTypes"], cmd: bin({ name: "knip" }), name: "knip" },
     { args: ["constraints"], cmd: "yarn", name: "constraints" },
     // `offRepoState`: the leak classes run everywhere, but the PRIVATE denylist
-    // (`$SLOPWEAVER_HOME/hygiene-denylist.txt`, uncommitted) exists on this machine and on no runner, so the
+    // (`$SLOPWEAVER_HOME/hygiene-denylist.txt`, uncommitted) and the private terms
+    // (`$SLOPWEAVER_HOME/hygiene/private-terms.tsv`) exist on this machine and on no runner, so the
     // half that catches a literal no pattern can express only ever runs here. This is the secrets scan that is
     // the local lane's whole purpose; `docs/security/hygiene-gate.md` § "Where the private denylist
     // actually applies" carries what that leaves unchecked. MEASURED: 4.0s

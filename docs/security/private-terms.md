@@ -54,3 +54,18 @@ The owner never edits the file by hand.
 - `private-terms list` names rows by id, never a pattern, and marks each waiting proposal `current` or `stale`
   against the one read it made: stale means a confirm would refuse it now, not forever, since the file can return
   to the exact bytes it recorded.
+
+## The repository scan
+
+The pre-push `hygiene` gate (`src/hygiene/repoScan.ts`) runs the same rows over every text file of the working tree.
+
+- **Absent** (every CI runner, a fresh checkout) passes on the leak classes alone and says `not applied`; unreadable
+  or malformed fails before the tree is read.
+- **A match fails**, printed as path, line and class, never the matched text. A path a term matches prints as
+  `(working-tree file N)`, and every report line a term matches prints as the withheld stand-in.
+- **The fresh cut's forgiveness applies** (`cutExemptionOf`): the repository's own address, the code-owner row, the
+  README's owner link and a documentation address, so a line the cut publishes is forgiven in the tree alike.
+- **An accepted entry of the reviewed-residue list sets its line aside** by its path and exact bytes, as
+  [fresh-cut residue](./fresh-cut-residue.md) binds it, owner-anchored ones included:
+  what the repository held at its public cut is accepted, so only a new line fails. An unreadable list sets nothing
+  aside.

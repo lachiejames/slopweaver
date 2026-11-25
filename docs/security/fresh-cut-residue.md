@@ -28,6 +28,11 @@ occurrence on the first track and the anchor on the second. It never holds the m
   line in its own record and tree. Anywhere else it binds only when the file holds exactly one copy of the line,
   and with two or more copies it clears nothing.
 
+**The pre-push repository scan reads the same list** ([the repository scan](private-terms.md#the-repository-scan)),
+`matchReviewedResidueInWorkingTree`: an `owner-address` entry binds there exactly as in a cut that is not its own,
+and an anchored entry binds too, since the owner accepts what the repository held at its public cut — to its
+reviewed line while that line keeps its bytes, else to the file's one copy, so only a new line fails.
+
 Verify prints `reviewed, accepted: N`, then the anchored share by class, so a clear that rests on the owner's ruling
 says so. It then prints `reviewed, unmatched: N`. That counts every entry that applies to the cut but took nothing
 out: its line changed, its occurrence is gone, it is ambiguous, or its line is not flagged. The unmatched count is

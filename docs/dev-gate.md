@@ -39,8 +39,9 @@ $SLOPWEAVER_HOME/
 
 One command, one non-zero exit, four composed checks (all run — one pass tells you everything that's wrong):
 
-1. **hygiene** — the public leak-class scan + your private denylist (`src/hygiene/`). In CI that denylist is
-   ABSENT in `lint` and EMPTY in `dev-gate`, and the gate says which on every run — see
+1. **hygiene** — the public leak-class scan + your private denylist and private terms (`src/hygiene/`). In CI the
+   terms are absent and not applied, and that denylist is ABSENT in `lint` and EMPTY in `dev-gate`; the gate says
+   which on every run — see
    [security/hygiene-gate.md](./security/hygiene-gate.md#where-the-private-denylist-actually-applies) § "Where the private denylist actually applies".
 2. **PR-format** — the PR-description schema (`src/prformat/`). A missing body is a failure, not a skip.
 3. **evidence-handoff** — the evidence-handoff contract (`src/devGate/handoffCheck.ts`): frozen records

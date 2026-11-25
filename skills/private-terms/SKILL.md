@@ -8,7 +8,8 @@ argument-hint: "list | add --class <c> --case <c> --pattern-file <path> --meanin
 row carries what the owner said the term means and where the owner said it is fine. A match on such a row HOLDS
 the write for a review in context; a row with no meaning refuses outright. The mechanism and its residue are
 [the hygiene gate](../../docs/security/hygiene-gate.md#private-terms-on-outbound-writes) and
-[write transports](../../docs/security/write-transports.md).
+[write transports](../../docs/security/write-transports.md). The pre-push `hygiene` gate runs the same rows over the
+working tree and fails a match by path, line and class ([the repository scan](../../docs/security/private-terms.md#the-repository-scan)).
 
 **Never print a term's value**: not in a message, a card's text, a page, a commit, a pull request body or a test. A
 term reaches a verb only through `--pattern-file`; the verbs print ids, classes and counts, never a pattern, a

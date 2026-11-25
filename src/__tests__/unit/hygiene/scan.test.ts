@@ -426,20 +426,27 @@ describe("partitionHits", () => {
 
 describe("scanReportLines", () => {
   const loaded = { kind: "loaded", lines: [] } as const;
+  const termsAbsent = { kind: "absent", path: "/state/hygiene/private-terms.tsv" } as const;
+  const termsLine =
+    "hygiene: private terms NOT PRESENT at /state/hygiene/private-terms.tsv — not applied to this repository scan";
 
   it("prints a refused identifier under IDENTIFIER and a credential under SECRET, neither twice", () => {
     expect(
       scanReportLines({
+        accepted: 0,
         failing: true,
         files: ["a.ts"],
         load: loaded,
+        privateTermHits: [],
         refusedIdentifiers: [hit({ label: "raw-workspace-id" })],
         reportedIdentifiers: [],
         secrets: [hit({ label: "github-pat" })],
+        termsLoad: termsAbsent,
         unreadable: [],
       }),
     ).toEqual([
       denylistStatusLine({ load: loaded }),
+      termsLine,
       "hygiene: 1 SECRET hit(s) — these fail:",
       "  a.ts:1: [github-pat] x",
       "hygiene: 1 IDENTIFIER hit(s) — these fail (replace each with a synthetic stand-in, " +
@@ -451,16 +458,20 @@ describe("scanReportLines", () => {
   it("passes a report-only scan as no refused hits, naming the files it read", () => {
     expect(
       scanReportLines({
+        accepted: 0,
         failing: false,
         files: ["a.ts", "b.ts"],
         load: loaded,
+        privateTermHits: [],
         refusedIdentifiers: [],
         reportedIdentifiers: [hit({ label: SYNTHETIC_WORKSPACE_ID_LABEL })],
         secrets: [],
+        termsLoad: termsAbsent,
         unreadable: [],
       }),
     ).toEqual([
       denylistStatusLine({ load: loaded }),
+      termsLine,
       "hygiene: 1 identifier hit(s) — reported, NOT a failure " +
         '(state belongs under $SLOPWEAVER_HOME, see AGENTS.md § "no secrets, ever"):',
       `  a.ts:1: [${SYNTHETIC_WORKSPACE_ID_LABEL}] x`,
