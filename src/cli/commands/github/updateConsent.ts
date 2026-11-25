@@ -7,15 +7,25 @@
  * The order is the point. `SLOPWEAVER_ALLOW_PR_REPLACE=1` consents to discarding whatever a form cannot carry,
  * and it is exactly what a rollout sets when a pull request's screenshots become links — so the
  * evidence a settled ask of the owner's named is judged first, on every mode, and that key never reaches it.
+ *
+ * The key is asked for only when a changed whole form could discard something this door did not write: when the
+ * local ledger proves the live title and body are its own last confirmed write, it is not read at all
+ * (`./replacementDrift.ts`), and the diff still prints.
  */
 import type { WrittenPr } from "../../../corpus/github/write.js";
 import { unifiedPatch } from "../../../lib/textDiff.js";
+import { listPrRecords } from "../../../outbound/github/prLedger.js";
 import type { PrForm } from "../../../outbound/github/types.js";
-import { ownerRepoOf } from "./addressRun.js";
+import { liveLocusFor, ownerRepoOf } from "./addressRun.js";
 import type { GithubPrArgs } from "./core.js";
 import type { GithubPrDeps } from "./prDeps.js";
+import { recordConfirmsLiveReplacement } from "./replacementDrift.js";
 import { judgeSettledEvidence, type SettledEvidenceDecision } from "./settledEvidenceGate.js";
 import { ALLOW_PR_REPLACE, replaceDecisionFor } from "./updateCore.js";
+
+/** What a changed whole-form write prints when the ledger proved the live fields its own, so no key was read. */
+export const OWN_WRITE_NOTICE =
+  "no replacement key needed: the live title and description match this door's last confirmed write";
 
 /**
  * Run both consent steps and say whether the update stops here, having printed why.
@@ -60,8 +70,12 @@ export function consentStops({
   if (!wholesale) {
     return false;
   }
+  // The record judged sits under the LIVE pull request's own locus and must be its latest confirmed write anywhere,
+  // so a retarget back to a base with an older record still keeps the key; an unreadable file keeps it too.
+  const { records, unreadable } = listPrRecords({ home });
+  const confirmed = recordConfirmsLiveReplacement({ live, locus: liveLocusFor({ pr: live }), records, unreadable });
   // The diff prints on BOTH paths; the KEY is demanded only when a write would follow.
-  const stopped = previewReplacement({ body, deps, enforce: !args.dryRun, form, live });
+  const stopped = previewReplacement({ body, confirmed, deps, enforce: !args.dryRun, form, live });
   if (stopped === undefined) {
     return false;
   }
@@ -122,18 +136,23 @@ function evidenceStops({
  * only safe way to inspect a replacement was to first set the variable that authorises the unsafe one — and it
  * exited non-zero on a command that provably sends nothing, so a bot turn read its own preview as a failure.
  *
+ * Nor is the key asked for when `confirmed`: the ledger proves the live title and body are this door's own last
+ * write (`./replacementDrift.ts`), so nothing a form cannot carry is live to lose. The diff still prints.
+ *
  * @returns a refusal reason, or undefined when the replacement may go ahead
  */
 function previewReplacement({
   live,
   form,
   body,
+  confirmed,
   deps,
   enforce,
 }: {
   live: WrittenPr;
   form: PrForm;
   body: string;
+  confirmed: boolean;
   deps: GithubPrDeps;
   enforce: boolean;
 }): string | undefined {
@@ -147,9 +166,14 @@ function previewReplacement({
   for (const line of [titlePatch, bodyPatch].filter((part): part is string => part !== undefined)) {
     deps.err({ line });
   }
+  const unchanged = bodyPatch === undefined && titlePatch === undefined;
+  if (enforce && confirmed && !unchanged) {
+    deps.out({ line: OWN_WRITE_NOTICE });
+    return undefined;
+  }
   const decided = replaceDecisionFor({
     allowReplace: !enforce || deps.env({ name: ALLOW_PR_REPLACE }) === "1",
-    unchanged: bodyPatch === undefined && titlePatch === undefined,
+    unchanged,
   });
   if (!enforce) {
     return undefined;

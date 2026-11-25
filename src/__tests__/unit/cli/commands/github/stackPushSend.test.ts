@@ -2,9 +2,10 @@
  * `sendStackPush`, the locked write `github stack push` runs once its plan is resolved and its lock is held: a
  * clean bottom-of-stack create amends, pushes on the exact lease, creates, and names the walkthrough it still
  * owes; a push the remote does not confirm creates nothing and fails the run; a branch whose pull request is
- * already open has that pull request updated, never a second create.
+ * already open has that pull request updated, never a second create; a create whose native registration fails
+ * still gets its walkthrough, and the run still fails.
  */
-import { okAsync } from "neverthrow";
+import { errAsync, okAsync } from "neverthrow";
 import { describe, expect, it } from "vitest";
 
 import { parsePrForm } from "../../../../../cli/commands/github/prFormParse.js";
@@ -25,8 +26,15 @@ import { harness, tempHome, useTempHomes } from "./stackPushRun/harness.js";
 
 useTempHomes();
 
-/** The plan `resolveStackPushPlan` would hand over for the harness's clean push of `top` onto `main`. */
-function gatedPlan(): GatedStackPushPlan {
+/** A patch exposing right-side lines 1-4 on `src/a.ts`, where the walkthrough's one comment lands. */
+const DIFF_PATCH = ["@@ -1,3 +1,4 @@", " line1", "+line2", "+line3", " line4"].join("\n");
+
+/**
+ * The plan `resolveStackPushPlan` would hand over for the harness's clean push of `top`, onto `main` by default.
+ *
+ * @param base the branch the form targets; anything but `main` makes the create register natively against a parent
+ */
+function gatedPlan({ base = "main" }: { base?: string } = {}): GatedStackPushPlan {
   const planned = githubStackPushPlan({
     facts: {
       amendPin: { kind: "pinned", tree: PINNED_TREE },
@@ -36,7 +44,7 @@ function gatedPlan(): GatedStackPushPlan {
       repo: "o/r",
       repoRoot: "/repo",
     },
-    form: unwrap(parsePrForm({ raw: baseForm({ base: "main" }) })),
+    form: unwrap(parsePrForm({ raw: baseForm({ base }) })),
   });
   return { ...unwrap(planned), installationIdentifiers: undefined };
 }
@@ -144,5 +152,39 @@ describe("sendStackPush", () => {
     expect(updateCalls).toEqual([{ number: 42, title: "t" }]);
     expect(lines).toContain("updated #42  https://example.invalid/pr/42");
     expect(lines).not.toContain(missingWalkthroughLine({ number: 42, repoSlug: "o/r" }));
+  });
+
+  it("still posts the walkthrough on a created pull request whose native stack registration failed, and fails the run", async () => {
+    const submitted: string[] = [];
+    const api: GithubWriteApi = fakeApi({
+      createPr: () => okAsync(pr({ number: 100 })),
+      diffFiles: () => okAsync([{ patch: DIFF_PATCH, path: "src/a.ts" }]),
+      findOpenPrByHead: () => errAsync({ kind: "http", message: "socket hang up", operation: "github.pulls.list" }),
+      getPr: () => okAsync(pr({ number: 100 })),
+      reviewThreads: () => okAsync([{ commentIds: ["C1"], id: "T1", isResolved: false }]),
+      submitReviewRound: () => {
+        submitted.push("round");
+        return okAsync({ commentIds: ["C1"], reviewId: "R1" });
+      },
+    });
+    const { deps, lines } = harness({ api });
+    const plan = gatedPlan({ base: "mid" });
+    const code = await sendStackPush({
+      args: unwrap(parseGithubStackPushArgs({ argv: ["--form", "{}"] })),
+      carry: { kind: "clear" },
+      deps,
+      freshApi: () => api,
+      home: tempHome(),
+      locus: locusOf({ target: plan.form.target }),
+      plan,
+      selfReview: { comments: [{ body: "This keeps the entry.", kind: "explanation", line: 2, path: "src/a.ts" }] },
+      write: { kind: "create" },
+    });
+    expect(code).toBe(EXIT_ERROR);
+    expect(submitted).toStrictEqual(["round"]);
+    expect(lines.slice(-2)).toStrictEqual([
+      "self-review: posted 1 inline comment(s) on #100 and resolved 0 previous thread(s)",
+      "https://example.invalid/pr/100",
+    ]);
   });
 });

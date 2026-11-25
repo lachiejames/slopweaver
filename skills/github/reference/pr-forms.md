@@ -153,8 +153,8 @@ refused. Put a screenshot in a proof slot instead.
 
 ## Policy locks, and the refusal no key releases
 
-Not your pull request → `SLOPWEAVER_ALLOW_FOREIGN_PR=1`; a `--form` replacing the whole description →
-`SLOPWEAVER_ALLOW_PR_REPLACE=1`. **Neither releases evidence the owner asked for**: a write on any mode dropping a
+Not your pull request → `SLOPWEAVER_ALLOW_FOREIGN_PR=1`; a `--form` replacing a description this door did not last
+write → `SLOPWEAVER_ALLOW_PR_REPLACE=1`. **Neither releases evidence the owner asked for**: a write on any mode dropping a
 screenshot or CI run link a settled ask of the owner's named the pull request for is refused, past only the journalled
 `pr-evidence-loss` grant. Read [pr-update-locks](pr-update-locks.md) before using either key.
 

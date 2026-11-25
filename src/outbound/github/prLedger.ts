@@ -331,32 +331,48 @@ export function confirmPr({
 }
 
 /**
- * Every locus slopweaver has reserved, for reconciliation and for `doctor`.
+ * Every readable record the ledger holds, in no particular order, and how many record files could not be read.
  *
  * Records are named by a digest, so the locus cannot be recovered from the filename — each file is read and
- * its stored `locus` returned. An unreadable record is SKIPPED rather than reported as a locus, because a
- * corrupt file has no locus to report, and nothing downstream grants permission on the strength of one.
+ * parsed. An unreadable record is left out of `records`, because a corrupt file has no locus to report, and is
+ * COUNTED in `unreadable`. The replacement key's provenance check (`../../cli/commands/github/replacementDrift.ts`)
+ * reads both: a corrupt record might have been the pull request's latest write, so any unreadable file fails that
+ * check closed and the key stays demanded.
+ *
+ * @param home the state home
+ * @returns every record that parses, and the number of `.json` files that did not
+ */
+export function listPrRecords({ home }: { home: string }): {
+  readonly records: readonly PrRecord[];
+  readonly unreadable: number;
+} {
+  let names: readonly string[];
+  try {
+    names = readdirSync(ledgerDir({ home })).filter((name) => name.endsWith(".json"));
+  } catch {
+    return { records: [], unreadable: 0 };
+  }
+  const read = names.map((name) => {
+    try {
+      return parsePrRecord({ raw: readFileSync(join(ledgerDir({ home }), name), "utf8") });
+    } catch {
+      return undefined;
+    }
+  });
+  const records = read.filter((record): record is PrRecord => record !== undefined);
+  return { records, unreadable: read.length - records.length };
+}
+
+/**
+ * Every locus slopweaver has reserved, for reconciliation and for `doctor`.
  *
  * @param home the state home
  * @returns every reserved locus, sorted
  */
 export function listPrLoci({ home }: { home: string }): readonly string[] {
-  try {
-    return readdirSync(ledgerDir({ home }))
-      .filter((name) => name.endsWith(".json"))
-      .map((name) => {
-        try {
-          return parsePrRecord({ raw: readFileSync(join(ledgerDir({ home }), name), "utf8") });
-        } catch {
-          return undefined;
-        }
-      })
-      .filter((record): record is PrRecord => record !== undefined)
-      .map((record) => record.locus)
-      .toSorted();
-  } catch {
-    return [];
-  }
+  return listPrRecords({ home })
+    .records.map((record) => record.locus)
+    .toSorted();
 }
 
 /**

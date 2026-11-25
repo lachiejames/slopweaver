@@ -20,7 +20,13 @@ and the refusal names it; `SLOPWEAVER_ALLOW_PR_REPLACE=1` for a deliberate whole
 any pull request you authored, cached or not, house-format or not — that is the point of it. What it does not
 do is act silently: anything in the live description a form cannot carry is discarded, GitHub keeps no history
 of it, so the diff is printed to stderr first and the key is required. A replacement that changes nothing does
-not ask for the key.
+not ask for the key, and nor does one over this door's own last write: when the local ledger record under the
+live pull request's locus is its latest confirmed write, names its number and node id, and its body digest and
+stored title match the live ones, nothing a form cannot carry is live, so the diff prints with a `no replacement
+key needed` line instead (`src/cli/commands/github/replacementDrift.ts`). Any drift — an edit on github.com, a
+bot's appended block, no record, another number, a later write under another base, a ledger file that does not
+parse — still takes the key. The ledger is local, so it knows only this machine's writes, and a hand-forged record
+is trusted.
 
 ## Neither key releases evidence the owner asked for
 
