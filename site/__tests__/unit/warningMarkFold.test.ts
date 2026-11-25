@@ -20,6 +20,7 @@ import {
 
 /** The mark's own source. */
 const PATH = join(import.meta.dirname, "../../components/console/WarningMark.tsx");
+const SHELL_PATH = join(import.meta.dirname, "../../components/console/Shell.tsx");
 
 /** Every JSX tag drawn anywhere under a node, in source order. */
 function tagsUnder({ node }: { node: ts.Node }): readonly string[] {
@@ -170,9 +171,13 @@ describe("WarningMark", () => {
 
     expect(drawn).toEqual([1, 1]);
     expect(words).toEqual([["span"], ["aria-hidden", "className", "data-short-words"]]);
-    // The icons setting sits on the whole console frame, so only a mark inside the sidebar drops its words.
+    // The icons setting sits on the whole console frame, so only a mark inside the shell's own sidebar drops its
+    // words, and a page's own `<aside>` keeps them.
     expect(
-      readFileSync(PATH, "utf8").includes('"ml-1 text-[0.78rem] group-data-[sidebar=icons]/console:in-[aside]:hidden"'),
+      readFileSync(PATH, "utf8").includes(
+        '"ml-1 text-[0.78rem] group-data-[sidebar=icons]/console:in-[.sw-sidebar]:hidden"',
+      ),
     ).toBe(true);
+    expect(readFileSync(SHELL_PATH, "utf8").match(/className="[^"]*\bsw-sidebar\b/g)).toHaveLength(1);
   });
 });

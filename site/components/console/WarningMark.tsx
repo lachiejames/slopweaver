@@ -294,7 +294,8 @@ export function WarningMark({
  * read", "app build not read". Hidden from assistive technology, because the glyph's label already says the full
  * words and a Queue row's or sidebar link's name would otherwise carry them twice. Hidden only on a mark inside the
  * sidebar while it is icons alone, which has room for the glyph only: the icons setting sits on the whole console's
- * frame, so the `aside` scope is what keeps a mark on the page itself saying its words.
+ * frame, so the `.sw-sidebar` scope is what keeps a mark on the page itself saying its words. A page's own `<aside>`
+ * (a pull request's conversation column, say) is not the sidebar, so a bare `aside` scope would hide them there too.
  *
  * @returns the words, or nothing when none was supplied
  */
@@ -305,7 +306,7 @@ function ShortWords({ words }: { words: readonly string[] }): ReactElement | nul
   return (
     <span
       aria-hidden="true"
-      className="ml-1 text-[0.78rem] group-data-[sidebar=icons]/console:in-[aside]:hidden"
+      className="ml-1 text-[0.78rem] group-data-[sidebar=icons]/console:in-[.sw-sidebar]:hidden"
       data-short-words
     >
       {words.join(" · ")}
