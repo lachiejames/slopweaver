@@ -22,9 +22,11 @@
  *
  * ## The winner rule, including the cases that are easy to get wrong
  *
- * Newest `tsIso` wins. Three further tie-breaks exist so the rule is a TOTAL order — a partial order would let
- * the winner depend on directory read order, which varies by filesystem and would make retrieval
- * non-deterministic between two runs over identical bytes:
+ * The newest VERSION wins (`./recordVersion.ts`): a record's own `tsIso` for every source but the two diaries,
+ * whose `tsIso` is an event's start and whose versions order by the provider's modification time instead, so an
+ * event moved earlier still replaces its old time. Three further tie-breaks exist so the rule is a TOTAL order —
+ * a partial order would let the winner depend on directory read order, which varies by filesystem and would
+ * make retrieval non-deterministic between two runs over identical bytes:
  *
  *  1. **A capture that declares itself incomplete loses a tie to one that does not**, when the two carry
  *     identical `text`. This rule is not a precaution: `slopweaver dev capture-conflicts --source notion`
@@ -43,6 +45,7 @@
  * bronze remains the durable capture.
  */
 import { serialiseRecord } from "./recordSerialisation.js";
+import { laterRecordVersion, recordVersion, sameRecordVersion } from "./recordVersion.js";
 import { CAPTURE_ATTR, CAPTURE_PARTIAL, type CorpusRecord } from "./types.js";
 
 /** The separator the identity key joins on: NUL, which no ESCAPED part can contain. */
@@ -104,54 +107,6 @@ export function identityOf({
 }
 
 /**
- * The instant a `tsIso` denotes, ranked so the winner rule stays a TOTAL order: a value no parser accepts
- * ranks `-Infinity`, below every real timestamp, rather than `NaN`.
- *
- * `NaN` would be fatal here, and not only because every comparison against it is false. Letting an
- * unparseable pair "fall through" to the content tie-breaks makes the relation NON-TRANSITIVE: a long
- * unparseable row beats a short dated one on length, that dated row beats a long dated one on nothing at
- * all, and the dated rows order by instant — a cycle, which `latestRecords` folds through a Map, so the
- * survivor becomes whichever row was read first. Ranking unparseable as `-Infinity` keeps the comparison a
- * lexicographic order on (instant, length, row), every part of which is total. Pure.
- */
-function instantOf({ tsIso }: { tsIso: string }): number {
-  const parsed = Date.parse(tsIso);
-  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
-}
-
-/**
- * Whether one `tsIso` is LATER than a DIFFERENT one — the whole of the winner rule whenever two versions'
- * timestamps are not the same string. Pure, and a total order over distinct strings.
- *
- * Split out of {@link supersedes} so the streaming census can decide a differing-timestamp pair from the two
- * strings it keeps, without re-reading either row: every other branch of the rule needs record content, and
- * this one provably does not.
- *
- * @param candidate the later-read version's `tsIso`
- * @param incumbent the held version's `tsIso`, which must differ from `candidate`
- * @returns true when `candidate` is the later timestamp
- */
-export function laterTimestamp({ candidate, incumbent }: { candidate: string; incumbent: string }): boolean {
-  const candidateAt = instantOf({ tsIso: candidate });
-  const incumbentAt = instantOf({ tsIso: incumbent });
-  // Compare INSTANTS, not the strings. `corpusStore` accepts any non-empty `tsIso`, and 12.2% of the
-  // records measured here carry a `+10:00` offset rather than `Z` — and `"…T00:30:00+10:00"` sorts ABOVE
-  // a `Z` instant at midnight of the same date while being the EARLIER moment. Comparing strings would then keep the older row and
-  // hand the stale prose to the only verb that spends tokens. No entity currently mixes the two formats
-  // (0 of 7,663 multi-version entities, so this changes no winner today), but nothing prevents one: a
-  // connector that changes its timestamp rendering is all it takes.
-  if (candidateAt !== incumbentAt) {
-    return candidateAt > incumbentAt;
-  }
-  // Equal RANK, but the strings still differ — the same instant written two ways (`+10:00` vs `Z`), both
-  // unparseable, or two timestamps `Date.parse` truncated to the same millisecond. That last case is why
-  // the raw strings are compared BEFORE content: `…00.0009Z` and `…00.0001Z` are one instant to
-  // `Date.parse`, and deciding between them on serialised length would let a longer, EARLIER row win.
-  // Comparing the strings keeps sub-millisecond ordering that the instant comparison cannot see.
-  return candidate > incumbent;
-}
-
-/**
  * Whether `candidate` supersedes `incumbent` under the shared winner rule. Pure, and a TOTAL order, so the
  * outcome never depends on the order records were read in.
  *
@@ -160,10 +115,12 @@ export function laterTimestamp({ candidate, incumbent }: { candidate: string; in
  * @returns true when the candidate should replace the incumbent
  */
 export function supersedes({ candidate, incumbent }: { candidate: CorpusRecord; incumbent: CorpusRecord }): boolean {
-  if (candidate.tsIso !== incumbent.tsIso) {
-    return laterTimestamp({ candidate: candidate.tsIso, incumbent: incumbent.tsIso });
+  const candidateVersion = recordVersion({ record: candidate });
+  const incumbentVersion = recordVersion({ record: incumbent });
+  if (!sameRecordVersion({ candidate: candidateVersion, incumbent: incumbentVersion })) {
+    return laterRecordVersion({ candidate: candidateVersion, incumbent: incumbentVersion });
   }
-  // Same instant, same text: the row that does NOT declare itself incomplete wins. This runs BEFORE the
+  // Same version, same text: the row that does NOT declare itself incomplete wins. This runs BEFORE the
   // length tie-break because the marker MAKES a row longer — a repaired capture is byte-for-byte its
   // truncated predecessor minus `,"capture":"partial"`, so length alone systematically keeps the truncated
   // one. Guarded on equal `text` so it can only ever break a tie the length rule was going to get wrong,
@@ -194,7 +151,7 @@ function declaresPartial({ candidate }: { candidate: CorpusRecord }): boolean {
  * {@link latestRecords} folds with, as one call.
  *
  * Exported for the streaming census (`./corpusCensus.ts`), which holds a byte range rather than a record and
- * re-reads both rows only when their timestamps tie. Two copies of this rule is how two readers of one
+ * re-reads both rows only when their version stamps tie. Two copies of this rule is how two readers of one
  * corpus start disagreeing about which version is current ({@link laterCaptureWins} carries that history),
  * so the census calls this rather than restating it. Pure.
  *

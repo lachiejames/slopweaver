@@ -177,6 +177,49 @@ describe("censusCorpus — the collapse is latestRecords, exactly", () => {
   });
 });
 
+describe("censusCorpus — a diary event moved EARLIER", () => {
+  const event = ({ start, updated }: { start: string; updated: string }): CorpusRecord =>
+    record({
+      attrs: { updatedIso: updated },
+      container: "primary",
+      kind: "event",
+      source: "calendar",
+      sourceId: "primary:evt1",
+      text: "Planning",
+      tsIso: start,
+    });
+  const DIARY = {
+    "calendar/2026-11-01_2026-12-01.jsonl": [
+      event({ start: "2026-12-10T10:00:00Z", updated: "2026-11-01T08:00:00Z" }),
+      event({ start: "2026-12-03T10:00:00Z", updated: "2026-11-20T08:00:00Z" }),
+    ],
+  } as const;
+
+  it.each(["bronze", "retrieval"] as const)(
+    "keeps the moved row, exactly as latestRecords does under %s",
+    (projection) => {
+      const dir = seed({ files: DIARY });
+      const expected = latestRecords({
+        records: unwrap(readCorpusDir({ dir, home: dir, projection, protection: NO_ENTRIES })).records,
+      });
+      expect(expected.map((r) => r.tsIso)).toEqual(["2026-12-03T10:00:00Z"]);
+      expect(censusCollapse({ dir, tieProjection: projection })).toEqual(expected);
+    },
+  );
+
+  it("carries the event's start as tsIso and its modification time as the version", () => {
+    const dir = seed({ files: DIARY });
+    const entry = withRowReader({
+      run: (reader) =>
+        unwrap(censusCorpus({ dir, home: dir, protection: NO_ENTRIES, reader, tieProjection: "bronze" })).winners.get(
+          identityOf({ container: "primary", source: "calendar", sourceId: "primary:evt1" }),
+        ),
+    })!;
+    expect(entry.tsIso).toBe("2026-12-03T10:00:00Z");
+    expect(entry.version).toEqual({ basis: "authoritative", tsIso: "2026-11-20T08:00:00Z" });
+  });
+});
+
 describe("censusCorpus — accounting", () => {
   it("counts rows, parses and skips per group exactly as readCorpusTally does", () => {
     const dir = seed({ files: FIXTURE });

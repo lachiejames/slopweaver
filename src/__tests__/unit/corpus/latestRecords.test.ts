@@ -388,3 +388,48 @@ describe("a later capture wins a timestamp tie for the read-once kinds", () => {
     expect(latestRecords({ records: [newer, older] })[0]!.text).toBe("long newer body");
   });
 });
+
+describe("latestRecords — a diary event's tsIso is its start, so its versions order by modification time", () => {
+  /** One event at `start`, modified at `updated` when given. */
+  const event = ({ source, start, updated }: { source: CorpusRecord["source"]; start: string; updated?: string }) =>
+    record({
+      container: "primary",
+      kind: "event",
+      source,
+      sourceId: "primary:evt1",
+      text: "Planning",
+      tsIso: start,
+      ...(updated !== undefined ? { attrs: { updatedIso: updated } } : {}),
+    });
+
+  it.each(["calendar", "outlook-calendar"] as const)(
+    "serves a %s event moved EARLIER, in either read order",
+    (source) => {
+      const before = event({ source, start: "2026-12-10T10:00:00Z", updated: "2026-11-01T08:00:00Z" });
+      const moved = event({ source, start: "2026-12-03T10:00:00Z", updated: "2026-11-20T08:00:00Z" });
+
+      expect(latestRecords({ records: [before, moved] })[0]!.tsIso).toBe("2026-12-03T10:00:00Z");
+      expect(latestRecords({ records: [moved, before] })[0]!.tsIso).toBe("2026-12-03T10:00:00Z");
+    },
+  );
+
+  it("serves a modified row over one with no modification time, in either read order", () => {
+    const unstamped = event({ source: "calendar", start: "2027-03-01T10:00:00Z" });
+    const stamped = event({ source: "calendar", start: "2027-02-01T10:00:00Z", updated: "2026-11-20T08:00:00Z" });
+
+    expect(latestRecords({ records: [unstamped, stamped] })[0]!.tsIso).toBe("2027-02-01T10:00:00Z");
+    expect(latestRecords({ records: [stamped, unstamped] })[0]!.tsIso).toBe("2027-02-01T10:00:00Z");
+  });
+
+  it("still orders any other source by tsIso, an updatedIso attr notwithstanding", () => {
+    const later = record({
+      attrs: { updatedIso: "2026-01-01T00:00:00Z" },
+      text: "later",
+      tsIso: "2026-02-01T00:00:00.000Z",
+    });
+    const earlier = record({ attrs: { updatedIso: "2030-01-01T00:00:00Z" }, text: "earlier" });
+
+    expect(supersedes({ candidate: earlier, incumbent: later })).toBe(false);
+    expect(supersedes({ candidate: later, incumbent: earlier })).toBe(true);
+  });
+});

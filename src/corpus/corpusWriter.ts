@@ -2,8 +2,9 @@
  * The bronze write pipeline: **redact → fingerprint-dedup → append JSONL**. Redaction runs first so no
  * secret ever touches disk (and so the fingerprint is computed over the exact bytes we persist). Dedup
  * is per `sourceId`: a record is written only when its content fingerprint is NEW for that id AND its
- * `tsIso` is at least the newest already stored — which makes refresh idempotent (re-running writes
- * nothing) and update-aware (a genuine edit writes a new line, a stale re-fetch does not).
+ * version stamp (`./recordVersion.ts`: its `tsIso`, or a diary row's modification time) is at least the newest
+ * already stored — which makes refresh idempotent (re-running writes nothing) and update-aware (a genuine edit
+ * writes a new line, a stale re-fetch does not).
  *
  * The dedup index the writer consults, and the digest it keys on, are `./bronzeDedupIndex.ts`.
  */

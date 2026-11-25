@@ -23,9 +23,9 @@
  *
  * ## The collapse is {@link ./latestRecords.latestRecords}, exactly
  *
- * The winner rule is not restated here. A pair whose timestamps differ is decided from the two strings the
- * entry keeps ({@link ./latestRecords.laterTimestamp}, the only branch of the rule that reads no content);
- * a pair whose timestamps are the SAME string re-reads the held row by pointer, parses both under the
+ * The winner rule is not restated here. A pair whose version stamps differ is decided from the stamp the entry
+ * keeps ({@link ./recordVersion.laterRecordVersion}, the only branch of the rule that reads no content);
+ * a pair whose stamps are the SAME re-reads the held row by pointer, parses both under the
  * caller's `tieProjection`, and asks {@link ./latestRecords.latestWins}. The projection matters: the rule's
  * last tie-break compares serialised rows, and `raw` is in a `bronze` row and not in a `retrieval` one, so a
  * census matches the collapse its caller USED to run only when it re-reads under the projection that caller
@@ -41,7 +41,8 @@ import { type CensusRowUnreadableError, type CorpusCensusError, CorpusCensusErro
 import { type CorpusProjection, parseRow, type SkipReason } from "./corpusRowCore.js";
 import { protectedSkipWarnings, readJsonlLines, scanCorpusRoot } from "./corpusStore.js";
 import { groupOfFile, type SkipTally, tallySkips } from "./corpusTallyCore.js";
-import { laterTimestamp, latestWins, recordIdentity } from "./latestRecords.js";
+import { latestWins, recordIdentity } from "./latestRecords.js";
+import { laterRecordVersion, type RecordVersion, recordVersion, sameRecordVersion } from "./recordVersion.js";
 import { type RowPointer, type RowReader, rowUnreadable } from "./rowReader.js";
 import { collapseRowWarnings, type RowWarning } from "./rowWarnings.js";
 import type { CorpusRecord, CorpusSource } from "./types.js";
@@ -53,6 +54,8 @@ export interface CensusEntry {
   readonly sourceId: string;
   readonly kind: string;
   readonly tsIso: string;
+  /** The version stamp the winner rule orders by (`./recordVersion.ts`) — a diary's modification time, not its start. */
+  readonly version: RecordVersion;
   /**
    * The length of the record's title and text joined by a newline — `gold/recordBody.recordBody`'s string,
    * whose length the distil budget spends and the slice exposure measures. Pinned equal by a unit test.
@@ -145,8 +148,9 @@ function candidateWins({
   reader: RowReader;
   tieProjection: CorpusProjection;
 }): Result<boolean, CensusRowUnreadableError> {
-  if (candidate.tsIso !== incumbent.tsIso) {
-    return ok(laterTimestamp({ candidate: candidate.tsIso, incumbent: incumbent.tsIso }));
+  const candidateVersion = recordVersion({ record: candidate });
+  if (!sameRecordVersion({ candidate: candidateVersion, incumbent: incumbent.version })) {
+    return ok(laterRecordVersion({ candidate: candidateVersion, incumbent: incumbent.version }));
   }
   const heldLine = reader.line({ pointer: incumbent.pointer });
   if (heldLine.isErr()) {
@@ -237,6 +241,7 @@ function foldRow({
     source: record.source,
     sourceId: record.sourceId,
     tsIso: record.tsIso,
+    version: recordVersion({ record }),
   });
 }
 

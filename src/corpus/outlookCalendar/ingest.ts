@@ -8,14 +8,12 @@
  * moves no anchor. A capped read saw only the events it happened to be served, so banking the instant it
  * began would claim every edit before it, including those the cap left unread.
  *
- * ## A residue this file cannot close: a meeting moved EARLIER
+ * ## A meeting moved EARLIER is a newer version, not a stale one
  *
- * A record's `tsIso` is the event's START, and bronze keeps a version only when its `tsIso` is not older than
- * the stored one (`../bronzeFreshness.ts`), so an event moved to an earlier time is refused as stale and the
- * stored record keeps the old time. Holding the anchor would not help: the next pass reads the same event and
- * bronze refuses it again. The committer counts that refusal together with a plain duplicate, so this lane
- * cannot even name it. The Google diary (`../calendar/`) shares it; the fix is the freshness rule's, for
- * every source whose `tsIso` is a start rather than a version time.
+ * A record's `tsIso` is the event's START, which a reschedule moves either way, so bronze does not order this
+ * source's versions by it: `../recordVersion.ts` orders them by the `updatedIso` attr the projection keeps (the
+ * event's `lastModifiedDateTime`), for the writer and the latest view alike. The Google diary (`../calendar/`)
+ * takes the same rule.
  */
 import { err, ok, type Result } from "#lib/result.js";
 import { resolveOutlookGraph } from "../../live/outlook/session.js";
