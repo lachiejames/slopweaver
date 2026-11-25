@@ -20,7 +20,7 @@ import { unwrap } from "../../../../../lib/result.js";
 import type { PlanRegisterPort } from "../../../../../plans/port.js";
 import { stateHomePaths } from "../../../../../stateHome.js";
 import { memoryPlanRegisterPort } from "../../../../planRegisterFixture.js";
-import { fresh, NOW, recordingDeps, row, snapshotOf } from "./plansRunFixtures.js";
+import { fakeCodexSync, fresh, NOW, recordingDeps, row, snapshotOf } from "./plansRunFixtures.js";
 
 const homes: string[] = [];
 
@@ -61,6 +61,8 @@ function depsOver({
 }): PlansDeps {
   return {
     ...plansDepsOver({ port }),
+    // A Codex add installs into its home after publishing; faked, so no case writes a real cache root.
+    syncCodexPluginHome: fakeCodexSync(),
     writeDiagnostic: (line) => {
       errors.push(line);
     },

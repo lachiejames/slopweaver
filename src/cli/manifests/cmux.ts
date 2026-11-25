@@ -184,7 +184,7 @@ export const cmuxManifest: Readonly<Record<string, VerbManifestEntry>> = {
       // Some flag-value refusals come after the doc lookup and seat preflight.
       parseRejectIsIoFree: false,
       summary:
-        "Provision a handover doc's worktree, open a cmux workspace in it, boot Claude or Codex, verify it, send its pickup command — one receipt line, --full for the worktree and boot detail",
+        "Provision a handover doc's worktree, open a cmux workspace in it, boot Claude or Codex, verify it, send its pickup command — one receipt line, --full for the worktree and boot detail. A Codex seat whose home has no Slopweaver install is refused first",
       usage:
         "usage: slopweaver cmux spawn <slug> [--build] [--deps <value>] [--dev-build] [--dir <value>] " +
         "[--driver <value>] [--effort <value>] [--force] [--full] [--harness <value>] [--home <value>] --model <value> [--no-dev-build] " +

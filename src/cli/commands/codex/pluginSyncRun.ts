@@ -32,8 +32,7 @@ import { err, ok, type Result } from "#lib/result.js";
 import { writeFileAtomic } from "#lib/writeAtomic.js";
 import { cachePaths } from "../../../cacheHome.js";
 import { codexDestinations } from "../../../codex/destinations.js";
-import { renderHookTrust } from "../../../codex/hookTrust.js";
-import { type CodexPluginSyncError, CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
+import { CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
 import type { SyncPaths } from "../../../codexPlugin/fleetPlan.js";
 import { backgroundFailures, renderSyncOutcome, syncFailed } from "../../../codexPlugin/plan.js";
 import { pluginSyncOutcome, productionPluginSyncDeps, type SyncMode } from "../../../codexPlugin/run.js";
@@ -43,7 +42,7 @@ import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { resolveHome } from "../../optionParsers.js";
 import { booleanFlagsOf, type FlagSpec, parseFlags, stringFlagsOf } from "../../parseFlags.js";
-import { trustCodexHooks } from "./hooksRun.js";
+import { trustPluginHooks } from "./pluginTrust.js";
 
 /** Where a `codex <verb>` flag tail begins in `process.argv`: `[node, cli, codex, plugin-sync, ...]`. */
 const VERB_ARG_OFFSET = 4;
@@ -96,33 +95,6 @@ function ambientCodexHome(): string {
     return named;
   }
   return join(homedir(), ".codex");
-}
-
-/**
- * Have one home's Codex trust every Slopweaver hook it skips, failing that home unless every one then runs — a
- * re-add that changed a hook's hash turns it off in Codex until its trust record carries the new hash, silently,
- * so a refresh is the moment to write it, the fleet's act and never a step for the owner's hands
- * (`src/codex/hookTrust.ts`).
- */
-function trustHooksIn({
-  codexHome,
-  cwd,
-  pluginId,
-}: {
-  codexHome: string;
-  cwd: string;
-  pluginId: string;
-}): Result<{ readonly trusted: number }, CodexPluginSyncError> {
-  const pass = trustCodexHooks({ codexHome, cwd, pluginId });
-  if (pass.failure !== undefined) {
-    return err(CodexPluginSyncErrors.hookTrustFailed({ codexHome, detail: pass.failure }));
-  }
-  const report = renderHookTrust({ codexHome, reading: pass.reading });
-  if (!report.allRun) {
-    const detail = report.lines.map((line) => line.trim()).join(" ");
-    return err(CodexPluginSyncErrors.hookTrustFailed({ codexHome, detail }));
-  }
-  return ok({ trusted: pass.trusted });
 }
 
 /** The mode and `--home` the flags name, or the problems to print before the usage. */
@@ -218,7 +190,7 @@ export async function runCodexPluginSync(argv: readonly string[]): Promise<numbe
     mainCheckouts: mainCheckoutsFromProfile({ home }).map((config) => config.path),
     paths,
     readDestinations: () => codexDestinations({ home, port: planRegisterPort() }),
-    trustHooks: trustHooksIn,
+    trustHooks: trustPluginHooks,
   });
   if (mode === "log") {
     return runToLog({ log, paths, run: () => pluginSyncOutcome({ deps, mode }) });

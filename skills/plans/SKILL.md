@@ -65,9 +65,7 @@ slopweaver plans add --provider codex --plan codex-two --store-dir /Users/you/.c
 # then, in THE OWNER'S terminal:  mkdir -p /Users/you/.codex-two && CODEX_HOME=/Users/you/.codex-two codex login
 ```
 
-`add` creates the directory (mode 0700) BEFORE writing the row, refusing the add when it cannot: `codex login` refuses
-a missing `CODEX_HOME` (measured on codex-cli 0.155.1). The line still carries the `mkdir -p`. Once the owner
-signs in, `codex route` asks the new home's own app-server for its limits and takes work there with no further step.
+`add` creates the directory (mode 0700) BEFORE writing the row, refusing the add when it cannot: `codex login` refuses a missing `CODEX_HOME` (measured on codex-cli 0.155.1), though the line still carries the `mkdir -p`. Once published, `add` installs Slopweaver there as `codex plugin-sync` would; a failed install keeps the row and exits non-zero. Once the owner signs in, `codex route` asks the new home's own app-server for its limits and takes work there with no further step.
 
 ## Which account is each store ACTUALLY signed into
 

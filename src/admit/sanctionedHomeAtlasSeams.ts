@@ -231,7 +231,8 @@ export const HOME_ATLAS_SEAMS = {
   "src/cli/commands/claude/signinRun.ts": "local-state",
   // `plans add --provider codex`: the production `ensureStoreDir` seam's one `mkdirSync` creates the empty 0700
   // store directory the row names, so the printed `codex login` line works first time. It writes no credential
-  // and reaches no provider — the sign-in itself is the owner's own terminal command.
+  // and reaches no provider — the sign-in itself is the owner's own terminal command. The Slopweaver install the
+  // add makes afterwards is `src/codexPlugin/sync.ts`'s, not this file's.
   "src/cli/commands/plans/storeDirLive.ts": "local-state",
   // `protect add|remove`: its one `rmSync` deletes `$SLOPWEAVER_HOME/protected-paths.json` when an edit leaves it
   // empty, so the read-side hook row keeps starting no Node process; the write beside it is `writeFileAtomic`. Both

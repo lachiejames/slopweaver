@@ -5,6 +5,7 @@
  */
 import type { PlansDeps } from "../../../../../cli/commands/plans/run.js";
 import type { ReadCodexAccountsLive } from "../../../../../codex/accountLive.js";
+import type { SyncOutcome } from "../../../../../codexPlugin/plan.js";
 import { err, ok, type Result } from "../../../../../lib/result.js";
 import { PlanRegisterErrors } from "../../../../../plans/errors.js";
 import type { PlanPaidThrough } from "../../../../../plans/lapse.js";
@@ -63,7 +64,44 @@ export interface Recording {
   readonly judged: (number | null | undefined)[];
   /** Every Codex store whose sign-in was asked for its paid-through date. */
   readonly paidThroughReads: string[];
+  /** Every one-home plugin sync asked for, with the `--home` it ran under. */
+  readonly synced: { readonly codexHome: string; readonly home: string | undefined }[];
+  /** The register writes and plugin syncs, in the order they happened. */
+  readonly events: ("write-register" | "sync-home")[];
 }
+
+/**
+ * A one-home sync that installed: the outcome a foreground plugin-sync reports for a first install.
+ *
+ * @returns that outcome, naming the home it was handed
+ */
+const installedSync = ({ codexHome }: { codexHome: string }): SyncOutcome => ({
+  did: "synced",
+  homes: [
+    {
+      codexHome,
+      did: "refreshed",
+      installedPath: `${codexHome}/plugins/cache/personal/slopweaver/local`,
+      trusted: 2,
+      why: "no install yet",
+    },
+  ],
+});
+
+/**
+ * A one-home sync seam that answers `outcome` (an install, unless a case names another) and never touches disk —
+ * spread over production deps by a test that drives a Codex `add` end to end, so no real cache root is written.
+ *
+ * @returns the seam
+ */
+export const fakeCodexSync =
+  ({ outcome }: { outcome?: SyncOutcome } = {}): PlansDeps["syncCodexPluginHome"] =>
+  ({ codexHome }) => {
+    if (outcome === undefined) {
+      return installedSync({ codexHome });
+    }
+    return outcome;
+  };
 
 /**
  * Seams that answer every read with one snapshot and journal every write instead of performing it.
@@ -77,8 +115,11 @@ export const recordingDeps = ({
   readLive = liveReaderFrom(),
   recording,
   resolved = {},
+  sync,
 }: {
   ensure?: Result<"created" | "existed", string>;
+  /** What the one-home plugin sync answers; an install of the home it is handed when unnamed. */
+  sync?: SyncOutcome;
   /** What each Codex store's sign-in states; a store absent here answers `unread`, as one with no sign-in file does. */
   paidThrough?: Readonly<Record<string, PlanPaidThrough>>;
   read?: PlanRegisterSnapshot;
@@ -106,6 +147,11 @@ export const recordingDeps = ({
     return ok(read);
   },
   resolveStore: ({ storeDir }) => resolved[storeDir],
+  syncCodexPluginHome: ({ codexHome, home }) => {
+    recording.events.push("sync-home");
+    recording.synced.push({ codexHome, home });
+    return fakeCodexSync(sync === undefined ? {} : { outcome: sync })({ codexHome, home });
+  },
   writeDiagnostic: (line) => {
     recording.diagnostics.push(line);
   },
@@ -113,6 +159,7 @@ export const recordingDeps = ({
     recording.out.push(line);
   },
   writeRegister: async ({ home, judgedAtRevision, mutation }) => {
+    recording.events.push("write-register");
     recording.homes.push(home);
     recording.judged.push(judgedAtRevision);
     recording.mutations.push(mutation);
@@ -128,11 +175,13 @@ export const recordingDeps = ({
 export const fresh = (): Recording => ({
   diagnostics: [],
   ensured: [],
+  events: [],
   homes: [],
   judged: [],
   mutations: [],
   out: [],
   paidThroughReads: [],
+  synced: [],
 });
 
 /** The thresholds block `plans list` opens with on a register naming none: both providers, every field a default. */

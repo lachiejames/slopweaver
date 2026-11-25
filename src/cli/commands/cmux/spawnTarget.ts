@@ -150,12 +150,13 @@ async function resolveSeatFor({
       continuing: { codexHome, sessionId },
       fleetCap,
       home,
+      log: logger,
       parsed,
       port,
       signInPort,
     });
   }
-  const seat = await resolveCodexSeat({ driver, fleetCap, home, parsed, port, signInPort });
+  const seat = await resolveCodexSeat({ driver, fleetCap, home, log: logger, parsed, port, signInPort });
   if (typeof seat === "number") {
     return seat;
   }
