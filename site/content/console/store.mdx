@@ -11,16 +11,19 @@ page and a sum of estimates would mean nothing.
 <details>
 <summary>What the page shows</summary>
 
-- **Every table down the left**, each with its estimated row count and a box that narrows the list by name. The
-  count is `pg_class.reltuples`, the planner's figure, written `~1,200`; a table never analysed says **not
-  analysed**, never zero. No exact `count(*)` is run, so a large table costs nothing to list.
+- **Every table down the left**, each with its estimated row count, under a box that narrows the list by name. The
+  box matches any part of a name, ignoring case, marks the match and says **N of M tables**; it narrows the list the
+  page already read and sends nothing anywhere. The count is `pg_class.reltuples`, the planner's figure, written
+  `~1,200`; a table never analysed says **not analysed**, never zero. No exact `count(*)` is run, so a large table
+  costs nothing to list.
 - **A table's rows in a grid**, fifty to a page. Each header shows the column's name, its type in grey and a key mark on
   a primary-key column. Click a header to sort ascending, click it again for descending. A NULL is an italic grey
   **NULL**, an empty string is `""`, and a value the credential mask withheld is marked **withheld**, its reason on hover
   — four states, never drawn alike.
 - **Filter**: one column, one operator (**equals**, **contains**, **is null**, **is not null**) and, for the first
-  two, a value. Clear is its own button: an empty value is refused with a sentence, never read as "no filter".
-  Contains is a case-insensitive match on the value as text.
+  two, a value, kept exactly as typed. Clear is its own button: an empty value is refused with a sentence, never read
+  as "no filter". Contains is a case-insensitive match on the value as text. The applied filter's chip names the
+  column and operator, never the value.
 - **Previous / Page N / Next**, each enabled only as far as the verb says there is a page. Changing the table, the sort
   or the filter goes back to page 1 and closes any open row.
 - **Data / Definition**: the definition is every column in catalog order with its type, whether it may be null, whether
@@ -51,9 +54,12 @@ Every reading is one of three verbs, run on this machine by the console's server
 - **Credentials are masked before a value leaves the verb.** A cell whose credential survives the mask is withheld
   whole, with a reason, rather than shown.
 - **What a request may carry is closed** (`site/lib/storeReadVerbs.ts`). A table or column travels as the token a
-  document printed (its name's bytes in hex), a filter value hex-encoded, a row by the opaque locator a page printed,
-  a page as digits; the verb decodes each one and checks it against the live catalog before any of it reaches SQL.
-  No value is ever a verb, a flag or a path, and a field the list does not declare is refused.
+  document printed (its name's bytes in hex), a row by the opaque locator a page printed, a page as digits. A filter
+  value is the one typed field: it travels as text in the request body, and the list checks it and writes it into the
+  verb's argv only as its UTF-8 hex after `--filter-value-hex`. The verb decodes each one and checks it against the
+  live catalog before any of it reaches SQL, where a value is only ever a bound parameter. No value is ever a verb, a
+  flag or a path, and a field the list does not declare is refused. Hex is a spelling, not a secret: while a read
+  runs, its argv is visible to another process of the same user, as any command's is.
 - **Reads go by POST from this page only**, behind the same same-origin check the Queue's acts use, so a filter value
   or a row never lands in a URL, the browser's history or a log, and the route keeps no copy of what it read.
 
@@ -63,7 +69,8 @@ Every reading is one of three verbs, run on this machine by the console's server
 <summary>Limits</summary>
 
 - A page holds 50 rows; the route takes a page size of 1 to 100.
-- A filter value is up to 2,000 characters; a row locator up to 8 KiB.
+- The console carries a filter value of up to 2,000 characters (`store rows` itself has no cap); a row locator up to
+  8 KiB.
 - Each read is killed at 15 seconds if the verb has not answered; the verb's own statement timeout ends a slow query
   well inside that.
 - The grid shows one line per cell, cut; the row panel shows each value as the verb printed it, and a value the verb

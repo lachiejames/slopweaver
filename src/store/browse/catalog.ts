@@ -74,7 +74,9 @@ export function tokenOfName({ name }: { name: string }): string {
 }
 
 /**
- * The name a token carries, refusing anything that is not lowercase hex of whole bytes of valid UTF-8.
+ * The name a token carries, refusing anything that is not lowercase hex of whole bytes of valid UTF-8. Every byte is
+ * kept: a leading U+FEFF is part of the name or value, never a byte-order mark to strip, so a token always decodes
+ * back to exactly what {@link tokenOfName} encoded.
  *
  * @param token the hex a request carried
  * @returns the decoded name, or why the token is not one
@@ -84,7 +86,7 @@ export function nameOfToken({ token }: { token: string }): Result<string, string
     return err("not lowercase hex of whole bytes");
   }
   try {
-    return ok(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(token, "hex")));
+    return ok(new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(Buffer.from(token, "hex")));
   } catch {
     return err("not valid UTF-8");
   }

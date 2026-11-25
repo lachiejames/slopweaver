@@ -14,19 +14,21 @@
  * Tables and columns are held by TOKEN, the opaque spelling the documents print, since that is what a request
  * carries; a name is only ever drawn.
  */
-import { STORE_PAGE_SIZE } from "./storeReadVerbs";
+import { err, ok, type Result } from "neverthrow";
+
+import type { StoreFilterOperator } from "./storeDocuments";
+import { STORE_PAGE_SIZE, storeFilterValueWhy } from "./storeReadVerbs";
 
 /** The two views of a table: its rows, or its columns' definitions. */
 export type StoreView = "data" | "definition";
 
 /**
- * A filter the page applies: one column, empty or not. No operator carries a value, because the console takes typed
- * words in the call's chat alone; `store rows` keeps equals and contains.
+ * A filter the page applies: one column, and either equals or contains a typed value (contains is the verb's own
+ * case-insensitive match), or empty or not, with no value at all.
  */
-export interface StoreFilterState {
-  readonly column: string;
-  readonly operator: "is-null" | "not-null";
-}
+export type StoreFilterState =
+  | { readonly column: string; readonly operator: "eq" | "contains"; readonly value: string }
+  | { readonly column: string; readonly operator: "is-null" | "not-null" };
 
 /** Where the page stands. */
 export interface StoreBrowserState {
@@ -77,9 +79,44 @@ export function clickStoreHeader({ state, column }: { state: StoreBrowserState; 
 }
 
 /**
+ * The filter the bar's draft asks for, or the sentence saying why it cannot be applied. A column the table does not
+ * have is refused; `is-null` and `not-null` drop whatever text the value box still holds; `eq` and `contains` need a
+ * value the route will carry (the same check the route makes), kept exactly as typed, surrounding spaces included.
+ * An empty value is refused, never read as "no filter": Clear is the way to stop filtering.
+ *
+ * @param column the chosen column's token
+ * @param value the value box's text, whatever the operator
+ * @param columnTokens every column token the shown table has
+ * @returns the filter, or the refusal sentence
+ */
+export function storeFilterFromDraft({
+  column,
+  operator,
+  value,
+  columnTokens,
+}: {
+  column: string;
+  operator: StoreFilterOperator;
+  value: string;
+  columnTokens: readonly string[];
+}): Result<StoreFilterState, string> {
+  if (!columnTokens.includes(column)) {
+    return err("pick a column to filter on");
+  }
+  if (operator === "is-null" || operator === "not-null") {
+    return ok({ column, operator });
+  }
+  const why = storeFilterValueWhy({ value });
+  if (why !== undefined) {
+    return err(why);
+  }
+  return ok({ column, operator, value });
+}
+
+/**
  * Apply a filter, which replaces any filter already applied. Page 1.
  *
- * @param filter the column and whether it is empty
+ * @param filter the column, the operator and, for equals and contains, the value
  * @returns the state filtered
  */
 export function applyStoreFilter({
@@ -162,6 +199,9 @@ export function storeRowsRequest({ state }: { state: StoreBrowserState }): Reado
   if (state.filter !== null) {
     body["filterColumn"] = state.filter.column;
     body["filterOp"] = state.filter.operator;
+    if (state.filter.operator === "eq" || state.filter.operator === "contains") {
+      body["filterValue"] = state.filter.value;
+    }
   }
   return body;
 }

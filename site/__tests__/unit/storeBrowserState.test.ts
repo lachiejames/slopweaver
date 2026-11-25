@@ -1,7 +1,7 @@
 /*
  * Where the Store page stands and how it moves: a header click sorts ascending then reverses, every change to what is
- * listed returns to page 1 and closes the open row, a filter never carries a typed value, and an answer filed under
- * an older state's key is dropped. Synthetic `acme` tokens only.
+ * listed returns to page 1 and closes the open row, a typed value rides only on equals and contains and is never
+ * blank, and an answer filed under an older state's key is dropped. Synthetic `acme` tokens only.
  */
 import { describe, expect, it } from "vitest";
 import { utf8Hex } from "../../lib/slots";
@@ -15,8 +15,10 @@ import {
   openStoreRow,
   STORE_BROWSER_START,
   type StoreBrowserState,
+  type StoreFilterState,
   selectStoreTable,
   setStoreView,
+  storeFilterFromDraft,
   storeRowsKey,
   storeRowsRequest,
 } from "../../lib/storeBrowserState";
@@ -79,14 +81,76 @@ describe("filters", () => {
     expect(clearStoreFilter({ state: DEEP })).toEqual({ ...DEEP, filter: null, openRow: null, page: 1 });
   });
 
-  it("every filter the page can hold builds to an argv the route accepts, with no value flag", () => {
-    const built = (["is-null", "not-null"] as const).map((operator) =>
+  it("every filter the page can hold builds to an argv the route accepts, a value flag only on equals and contains", () => {
+    const filters: readonly StoreFilterState[] = [
+      { column: NAME, operator: "eq", value: "acme" },
+      { column: NAME, operator: "contains", value: "acme" },
+      { column: NAME, operator: "is-null" },
+      { column: NAME, operator: "not-null" },
+    ];
+    const built = filters.map((filter) =>
       storeReadVerbFor({ slug: "rows" })!.build({
-        request: storeRowsRequest({ state: applyStoreFilter({ filter: { column: NAME, operator }, state: DEEP }) })!,
+        request: storeRowsRequest({ state: applyStoreFilter({ filter, state: DEEP }) })!,
       }),
     );
-    expect(built.map((one) => one.kind)).toEqual(["argv", "argv"]);
-    expect(JSON.stringify(built).includes("--filter-value-hex")).toBe(false);
+    expect(built.map((one) => one.kind)).toEqual(["argv", "argv", "argv", "argv"]);
+    expect(built.map((one) => JSON.stringify(one).includes("--filter-value-hex"))).toEqual([true, true, false, false]);
+  });
+
+  it("selecting another table drops a value-bearing filter with everything else", () => {
+    const filtered = applyStoreFilter({ filter: { column: NAME, operator: "contains", value: "acme" }, state: DEEP });
+    expect(selectStoreTable({ state: filtered, table: NOTES }).filter).toBeNull();
+  });
+});
+
+describe("storeFilterFromDraft", () => {
+  const columnTokens = [NAME, TOTAL];
+
+  it("builds equals and contains with the value exactly as typed, surrounding spaces kept", () => {
+    expect(
+      (["eq", "contains"] as const).map((operator) =>
+        storeFilterFromDraft({ column: NAME, columnTokens, operator, value: " acme " })._unsafeUnwrap(),
+      ),
+    ).toEqual([
+      { column: NAME, operator: "eq", value: " acme " },
+      { column: NAME, operator: "contains", value: " acme " },
+    ]);
+  });
+
+  it("builds is null and is not null with no value, whatever the box still holds", () => {
+    expect(
+      (["is-null", "not-null"] as const).map((operator) =>
+        storeFilterFromDraft({ column: TOTAL, columnTokens, operator, value: "left over" })._unsafeUnwrap(),
+      ),
+    ).toEqual([
+      { column: TOTAL, operator: "is-null" },
+      { column: TOTAL, operator: "not-null" },
+    ]);
+  });
+
+  it("refuses an empty or blank value with a sentence rather than reading it as no filter", () => {
+    expect(
+      ["", "   "].map((value) =>
+        storeFilterFromDraft({ column: NAME, columnTokens, operator: "eq", value })._unsafeUnwrapErr(),
+      ),
+    ).toEqual([
+      "type a value to filter on; to stop filtering, use Clear",
+      "type a value to filter on; to stop filtering, use Clear",
+    ]);
+  });
+
+  it("refuses a column the table does not have, and a value the route would refuse", () => {
+    expect(storeFilterFromDraft({ column: "", columnTokens, operator: "is-null", value: "" })._unsafeUnwrapErr()).toBe(
+      "pick a column to filter on",
+    );
+    expect(
+      storeFilterFromDraft({
+        column: NAME,
+        columnTokens,
+        operator: "contains",
+        value: "a".repeat(2001),
+      })._unsafeUnwrapErr(),
+    ).toBe("the value is 2001 characters; the console carries up to 2000");
   });
 });
 
@@ -179,6 +243,16 @@ describe("stale answers", () => {
       false,
       false,
     ]);
+  });
+
+  it("makes an answer stale when only the typed value or only the operator changed", () => {
+    const filtered = applyStoreFilter({ filter: { column: NAME, operator: "eq", value: "acme" }, state: DEEP });
+    const asked = storeRowsKey({ state: filtered })!;
+    const moved = [
+      applyStoreFilter({ filter: { column: NAME, operator: "eq", value: "acme2" }, state: filtered }),
+      applyStoreFilter({ filter: { column: NAME, operator: "contains", value: "acme" }, state: filtered }),
+    ];
+    expect(moved.map((state) => isCurrentStoreAnswer({ answeredKey: asked, state }))).toEqual([false, false]);
   });
 
   it("keeps an answer current across a view switch or a row opening, which list the same rows", () => {

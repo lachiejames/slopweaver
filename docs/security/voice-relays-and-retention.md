@@ -159,8 +159,10 @@ the retry carries strictly less of the model's than the first attempt did (`site
   courier can check, so a same-user process passing the console flags itself can still reach the chair this way; it
   could already write your files directly. The socket strips the presented capability out of every frame cmux sends
   back, and never replays a keystroke after a lost reply (`src/cmux/socket.ts`).
-- **A typed steer has one route: the call's chat.** The console takes no typed words anywhere else, bar the secret paste a hand
-  step keeps, and `site/__tests__/unit/textInputs.test.ts` refuses any other field. A message typed in the
+- **A typed steer has one route: the call's chat.** No other field sends typed words to the fleet: the secret paste a
+  hand step keeps stores a token, and the named search boxes in Settings and on the Store page only narrow a view,
+  the Store's value filter going to the read-only `store rows` and nowhere else.
+  `site/__tests__/unit/textInputs.test.ts` refuses any other field. A message typed in the
   messenger is a turn on the call's own thread, so it relays through the same gate and `/api/talk/relay` as a
   spoken one, carrying the card the owner last touched as the item the owner had open; no other page writes a relay or a board
   row. `talk relay --typed` stays a verb a session can run, with no console route behind it.
