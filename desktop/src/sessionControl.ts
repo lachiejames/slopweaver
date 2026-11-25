@@ -19,6 +19,7 @@ import {
   sessionForToken,
 } from "./sessionLaunch";
 import { entryForHandle } from "./sessionRegistryShape";
+import { recordedLaunchSpec } from "./sessionResumeShell";
 import { stoppedWhole } from "./sessionStopRequests";
 import { usageReportOf } from "./sessionUsage";
 import { pressSessionStop } from "./sessionWindow";
@@ -62,6 +63,13 @@ async function answer({
     }
     case "launch.resume": {
       return resumeSessionOnce({ host, sessionId: request.sessionId, spec: request.spec });
+    }
+    case "launch.inspect": {
+      const recorded = await recordedLaunchSpec({ sessionId: request.sessionId });
+      if (recorded.isErr()) {
+        throw new SessionRefusal(recorded.error.code, recorded.error.message);
+      }
+      return { kind: "launch-spec", sessionId: request.sessionId, spec: recorded.value };
     }
     case "launch.deliver": {
       const sessionId = sessionForToken({ launchToken: request.launchToken });

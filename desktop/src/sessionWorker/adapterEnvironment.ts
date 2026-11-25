@@ -8,6 +8,7 @@
  */
 import { codexBrowserOffConfig } from "./codexBrowserOff";
 import { codexSessionEnvironment } from "./codexEnvironmentPolicy";
+import { GUARDIAN_PID_ENV, GUARDIAN_START_ENV, type ProcessGuardian } from "./processGuardian";
 import { type CodexWorkerLaunchConfig, WORKER_CONFIG_ENV } from "./workerWire";
 
 /**
@@ -20,19 +21,34 @@ export const ADAPTER_AGENT_MODE = "workspace-write";
 /**
  * The adapter's environment.
  *
+ * The worker's guardian identity (`processGuardian.ts`) rides two fields every command the model runs inherits: the
+ * adapter spawns the Codex app-server with its own environment, and Codex's default shell policy inherits it whole —
+ * measured on the app's bundled codex, `codex sandbox -c 'sandbox_mode="workspace-write"' -- /usr/bin/printenv
+ * SLOPWEAVER_SESSION_GUARDIAN_START` prints the stamp, double-spaced day intact. An inherited pair is always dropped
+ * first, so the only guardian a session ever carries is the worker that started its adapter.
+ *
  * @param inherited the worker's own environment
  * @param config the worker's launch configuration
+ * @param guardian the worker's own pid and exact start stamp, read once before the adapter starts, when `ps` gave one
  * @returns the environment to start the adapter under
  */
 export function adapterEnvironment({
   inherited,
   config,
+  guardian,
 }: {
   inherited: Readonly<Record<string, string | undefined>>;
   config: CodexWorkerLaunchConfig;
+  guardian: ProcessGuardian | undefined;
 }): Record<string, string> {
   const environment = codexSessionEnvironment({ codexHome: config.codexHome, inherited });
   delete environment[WORKER_CONFIG_ENV];
+  delete environment[GUARDIAN_PID_ENV];
+  delete environment[GUARDIAN_START_ENV];
+  if (guardian !== undefined) {
+    environment[GUARDIAN_PID_ENV] = String(guardian.pid);
+    environment[GUARDIAN_START_ENV] = guardian.start;
+  }
   environment["CODEX_PATH"] = config.codexPath;
   environment["INITIAL_AGENT_MODE"] = ADAPTER_AGENT_MODE;
   environment["ELECTRON_RUN_AS_NODE"] = "1";

@@ -28,7 +28,7 @@ Launching is its own interface, `SessionLauncher` (`src/sessionHarness/launch.ts
 the other operations never do (a worktree, the credential gate, a boot witness): `open` starts a run's first
 session, `resume` a fresh one for a run already under way. Both open a new visible session and send it one
 initial message; they stay two calls because the ledger records which act opened the session. A cmux `resume`
-never continues a vendor transcript in place; an app `resume` does, when the run still holds an open app row
+never continues a vendor transcript in place; an app `resume` does, whenever the slug still holds an open app row
 ([resuming an app session](#resuming-an-app-session)).
 
 ## The ledger row: one writer
@@ -197,12 +197,42 @@ proven on the installed app.
 
 ### Resuming an app session
 
-`cmux spawn --harness app` on a run the journal says is under way looks for the newest OPEN app row for its slug,
-kept under the slug as its key, since the `resumed` event is written there (`openAppSessionForSlug`,
-`src/sessions/sessionRow.ts`). A row stays open only when nothing proved the session closed, a quit or a killed
-app, so that row is the session worth continuing. With one, the launcher sends `launch.resume` naming its id
-instead of `launch.prepare`; with none, it opens a fresh card as before. An app answering with any other session
-is sent `launch.abort`, and the launch fails.
+`cmux spawn --harness app` looks for the newest OPEN app row for its slug, kept under the slug as its key, since
+the `resumed` event is written there (`openAppSessionForSlug`, `src/sessions/sessionRow.ts`), once, before any
+plan is routed (`src/sessionHarness/appContinuation.ts`). A row stays open only when nothing proved the session
+closed, a quit or a killed app, so that row is the session worth continuing, and it decides the act whatever the
+run journal's phase: a seat whose pickup was delivered but whose `handover start` never journalled `started` is
+still resumed, not opened afresh beside its own transcript. The pickup line stays the journal's, so such a seat is
+sent `handover start` again. With a row, the launcher sends `launch.resume` naming its id instead of
+`launch.prepare`; with none, it opens a fresh card as before. An app answering with any other session is sent
+`launch.abort`, and the launch fails.
+
+**A Codex resume keeps the plan it opened on.** Before routing, the CLI asks the app for the session's recorded
+spec (`launch.inspect`, answered `launch-spec` from the recovery journal's `opened` row by
+`desktop/src/sessionRecordedSpec.ts`) and seats on its `codexHome`, never a newly ranked one, saying so. A `--plan`
+naming another plan refuses. When the recorded plan cannot take the seat now (unregistered, paused, signed out, or
+refused by the usage preflight), the spawn names the old home and the reason, routes afresh and opens a FRESH
+session, leaving the old row open: an unavailable plan does not prove the session gone. An unreachable app, a
+refused inspection or a malformed answer fails the spawn; it never falls back to fresh.
+
+**A dead session's row is closed by `cmux close`.** When the app answers `SESSION_NOT_FOUND` and the operand names
+exactly one open app row, `cmux close app:<id> --harness app` writes its `closed` event and prints `cmux close:
+app:<id> is already gone; closed its ledger row` (`src/cli/commands/cmux/closeAbsentApp.ts`). Every other failure
+keeps its error; nothing selects by slug or by newest.
+
+**A Codex seat's row records the model it boots**, the repository's Codex pin, never the Claude tier passed on
+`--model` (`bootModelForLaunch`, `src/sessionHarness/recordingHarness.ts`); a respawn or reseat reading a pin that
+names no Claude tier never hands it to `claude --model`.
+
+**A lock taken inside Codex's sandbox carries a guardian.** Codex's seatbelt refuses to exec `/bin/ps`, so a verb
+there cannot read its own start stamp and every never-stale lease (`handover start`'s among them) was refused. The
+app's unsandboxed Codex worker hands its own exact `{ pid, start }` down as `SLOPWEAVER_SESSION_GUARDIAN_PID` and
+`SLOPWEAVER_SESSION_GUARDIAN_START` (`desktop/src/sessionWorker/processGuardian.ts`); a lock record with no stamp
+of its own carries it (`src/admit/processGuardian.ts`) and is never aged out. While the guardian is the same
+process, a live holder is contention; once it is gone or its pid is another process's, a holder pid that still
+answers is `LOCK_REFUSED`, since nothing tells the writer from a process that inherited its pid
+(`src/admit/operationLockHeld.ts`). A pid the kernel no longer answers for is stale whatever it carries, so a
+recycled holder pid costs a wedged lock until it exits or its record is removed, never a second writer.
 
 The app decides from its own recovery journal, never the CLI's word (`desktop/src/sessionResume.ts`, effects in
 `sessionResumeShell.ts`). It refuses a session this run of the app hosts in any state (a close journals only a hosted session, so

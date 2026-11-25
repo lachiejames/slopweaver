@@ -19,6 +19,7 @@ import type * as AcpSdk from "@agentclientprotocol/sdk";
 
 import { adapterEnvironment } from "./adapterEnvironment";
 import { codexTurnUsageOf, contextOccupancyOf, resolvedModelOf } from "./codexUsage";
+import { ownProcessGuardian } from "./processGuardian";
 import {
   type CodexWorkerLaunchConfig,
   type FromWorker,
@@ -53,7 +54,8 @@ function report({ message }: { message: FromWorker }): void {
 function startAdapter({ config }: { config: CodexWorkerLaunchConfig }): ChildProcess {
   return spawn(process.execPath, [config.adapterEntry], {
     cwd: config.directory,
-    env: adapterEnvironment({ config, inherited: process.env }),
+    // Read once, here, outside the sandbox: the identity a sandboxed `slopweaver` verb's lock records (`processGuardian.ts`).
+    env: adapterEnvironment({ config, guardian: ownProcessGuardian(), inherited: process.env }),
     stdio: ["pipe", "pipe", "inherit"],
   });
 }

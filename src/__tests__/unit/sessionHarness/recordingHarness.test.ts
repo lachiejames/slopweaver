@@ -8,12 +8,14 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { CODEX_MODEL } from "../../../codex/profiles.js";
 import { err, ok, unwrap, unwrapErr } from "../../../lib/result.js";
 import { cmuxSessionHarnessOver } from "../../../sessionHarness/cmuxHarness.js";
 import { sessionFromCmux } from "../../../sessionHarness/cmuxSession.js";
 import { SessionHarnessErrors } from "../../../sessionHarness/errors.js";
 import type { HarnessOpenedSession } from "../../../sessionHarness/launch.js";
 import {
+  bootModelForLaunch,
   recordingSessionHarness,
   recordingSessionLauncher,
   spawnedEventOf,
@@ -49,6 +51,32 @@ describe("spawnedEventOf", () => {
     });
   });
 
+  it("records the repository's Codex pin for a Codex seat, never the Claude tier the spawn was handed", () => {
+    expect(
+      spawnedEventOf({
+        address: { endpointHandle: "app:id-7", handle: "app:id-7", sessionId: "id-7" },
+        implementation: "app",
+        operation: "open",
+        spec: { ...SPEC, host: "codex", model: "sonnet" },
+        tsIso: NOW,
+      }),
+    ).toEqual({
+      bootModel: { kind: "pinned", model: CODEX_MODEL },
+      branch: "a-branch",
+      cwd: "/work/tree-7",
+      harness: "app",
+      kind: "spawned",
+      openedBy: "open",
+      sessionId: "id-7",
+      sessionKey: "a-doc",
+      slug: "a-doc",
+      surfaceRef: "app:id-7",
+      tsIso: NOW,
+      workspaceId: "id-7",
+      workspaceRef: "app:id-7",
+    });
+  });
+
   it("omits both ids when the launch named none", () => {
     const event = spawnedEventOf({
       address: { endpointHandle: "", handle: "workspace:7" },
@@ -58,6 +86,35 @@ describe("spawnedEventOf", () => {
       tsIso: NOW,
     });
     expect(Object.keys(event).filter((k) => k === "sessionId" || k === "workspaceId")).toEqual([]);
+  });
+});
+
+describe("bootModelForLaunch", () => {
+  it("records the Codex pin for a Codex seat whatever the spec's model", () => {
+    expect(bootModelForLaunch({ spec: { ...SPEC, host: "codex", model: "sonnet" } })).toEqual({
+      kind: "pinned",
+      model: CODEX_MODEL,
+    });
+  });
+
+  it("records the Codex pin for a Codex seat that pinned no model", () => {
+    expect(bootModelForLaunch({ spec: { ...SPEC, host: "codex", model: undefined } })).toEqual({
+      kind: "pinned",
+      model: CODEX_MODEL,
+    });
+  });
+
+  it("keeps a Claude seat's pinned tier", () => {
+    expect(bootModelForLaunch({ spec: { ...SPEC, host: "claude-code", model: "sonnet" } })).toEqual({
+      kind: "pinned",
+      model: "sonnet",
+    });
+  });
+
+  it("keeps an unpinned Claude seat inherited", () => {
+    expect(bootModelForLaunch({ spec: { ...SPEC, host: "claude-code", model: undefined } })).toEqual({
+      kind: "inherited",
+    });
   });
 });
 

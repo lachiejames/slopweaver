@@ -12,6 +12,27 @@
  */
 import type { SpawnPlan } from "../../../cmux/plan.js";
 import type { PickupDelivery, SpawnedSession } from "../../../cmux/spawn.js";
+import type { AppContinuationPlan } from "../../../sessionHarness/appContinuation.js";
+
+/**
+ * The one line a spawn prints when an open app session will NOT be continued because the plan it opened on cannot
+ * take the seat now: it names the session, the `$CODEX_HOME` it opened on and why, and says the loss plainly — a new
+ * session opens and that transcript does not continue. Undefined for every other continuation: a resume says so on
+ * the seat line itself (`./codexSeat.ts`'s `reportCodexSeat`, whose `why` names the session), and none says nothing.
+ *
+ * @param continuation what the spawn decided about the slug's open app session
+ * @returns the warning line, or undefined when there is nothing to announce
+ */
+export function appContinuationLine({ continuation }: { continuation: AppContinuationPlan }): string | undefined {
+  if (continuation.kind !== "fresh") {
+    return undefined;
+  }
+  return (
+    `cmux spawn: app session ${continuation.previousSessionId} opened on CODEX_HOME=${continuation.previousCodexHome}, ` +
+    `which cannot take the seat now (${continuation.reason}) — opening a FRESH session on a newly routed plan, so ` +
+    `that session's transcript does not continue here; its ledger row is left open`
+  );
+}
 
 /**
  * The line printed before a spawn opens its workspace, naming the worktree it creates or reuses.

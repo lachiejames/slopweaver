@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { isRecord } from "../lib/parsers.js";
 
 import type { LockContents } from "./operationLockHeld.js";
+import { guardianOf } from "./processGuardian.js";
 
 /** The one file inside a lock directory — or, with no token, a plain-file lock at the path itself. */
 export interface Holder {
@@ -24,7 +25,15 @@ export type LockState =
   | { readonly kind: "unreadable" }
   | { readonly kind: "held"; readonly holder: Holder };
 
-/** Parse a lock file's contents, returning undefined when it cannot be trusted. */
+/**
+ * Parse a lock file's contents, returning undefined when it cannot be trusted.
+ *
+ * A record from before the guardian field reads exactly as it always did. A `guardian` is kept only when it is
+ * exactly one (`./processGuardian.ts` `guardianOf`); a malformed one is DROPPED rather than refusing the record, so it
+ * leaves the record judged as an unguarded one — never more lenient, and never a lock wedged by a field.
+ *
+ * @returns the record, or `undefined` when it is not JSON or lacks its pid or instant
+ */
 function parseLockContents({ raw }: { raw: string }): LockContents | undefined {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -32,7 +41,11 @@ function parseLockContents({ raw }: { raw: string }): LockContents | undefined {
       return undefined;
     }
     const start = typeof parsed["start"] === "string" ? parsed["start"] : undefined;
-    return { acquiredAtIso: parsed["acquiredAtIso"], pid: parsed["pid"], start };
+    const guardian = guardianOf({ value: parsed["guardian"] });
+    if (guardian === undefined) {
+      return { acquiredAtIso: parsed["acquiredAtIso"], pid: parsed["pid"], start };
+    }
+    return { acquiredAtIso: parsed["acquiredAtIso"], guardian, pid: parsed["pid"], start };
   } catch {
     return undefined;
   }

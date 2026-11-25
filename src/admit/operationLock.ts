@@ -93,6 +93,13 @@ import {
 } from "./operationLockHeld.js";
 import { operationLockPath } from "./operationLockPath.js";
 import { judgeOccupant } from "./operationLockTakeover.js";
+import { guardianFromEnvironment, type ProcessGuardian } from "./processGuardian.js";
+
+/** Who this process is, as a record it writes names it: its own start stamp, and the guardian its environment names. */
+interface WriterIdentity {
+  readonly start: string | undefined;
+  readonly guardian: ProcessGuardian | undefined;
+}
 
 /** What acquiring the lock actually did — released, and if a stale lock was taken over, from which pid. */
 export interface OperationLockHandle {
@@ -180,11 +187,26 @@ interface CandidateState {
  *
  * @returns the candidate directory's path
  */
-function mintCandidate({ path, token, nowIso }: { path: string; token: string; nowIso: string }): string {
+function mintCandidate({
+  identity,
+  path,
+  token,
+  nowIso,
+}: {
+  identity: WriterIdentity;
+  path: string;
+  token: string;
+  nowIso: string;
+}): string {
   // Its rename is an INSTALL, not a durable write: the lock is process-lifetime state judged by pid and age,
   // so `writeFileAtomic`'s fsync discipline buys nothing here and cannot rename a directory anyway.
   const candidate = mkdtempSync(`${path}.candidate-`);
-  const lock: LockContents = { acquiredAtIso: nowIso, pid: process.pid, start: ownProcessStart() };
+  const lock: LockContents = {
+    acquiredAtIso: nowIso,
+    guardian: identity.guardian,
+    pid: process.pid,
+    start: identity.start,
+  };
   writeFileSync(join(candidate, token), JSON.stringify(lock), { flag: "wx" });
   return candidate;
 }
@@ -374,11 +396,16 @@ function stageCandidate({
   token: string;
 }): Result<string, OperationLockAcquireError> {
   mkdirSync(dirname(path), { recursive: true });
-  const unstamped = unstampedLeaseRefusal({ path, staleAfterMs, start: ownProcessStart() });
+  // ONE identity, read once, decides the refusal and is what the record carries — never two reads that could differ.
+  const identity: WriterIdentity = {
+    guardian: guardianFromEnvironment({ env: process.env }),
+    start: ownProcessStart(),
+  };
+  const unstamped = unstampedLeaseRefusal({ guardian: identity.guardian, path, staleAfterMs, start: identity.start });
   if (unstamped !== undefined) {
     return err(OperationLockAcquireErrors.refused({ message: unstamped }));
   }
-  return ok(mintCandidate({ nowIso, path, token }));
+  return ok(mintCandidate({ identity, nowIso, path, token }));
 }
 
 /**

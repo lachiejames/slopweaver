@@ -143,6 +143,13 @@ export type AppHarnessRequest =
    * its own. An app from before it refuses it as `BAD_REQUEST`.
    */
   | { readonly kind: "launch.resume"; readonly sessionId: string; readonly spec: AppLaunchSpec }
+  /**
+   * Read, and change nothing: the launch the app's recovery journal recorded for a session it hosted before, answered
+   * `launch-spec`, so a resume can be planned on the routed login that session opened on. Refused unless the journal
+   * holds that session up and never stopped, and this run of the app is not hosting it. An app from before it refuses
+   * it as `BAD_REQUEST`.
+   */
+  | { readonly kind: "launch.inspect"; readonly sessionId: string }
   | { readonly kind: "launch.deliver"; readonly launchToken: string; readonly text: string }
   | { readonly kind: "launch.abort"; readonly launchToken: string }
   | { readonly kind: "list" }
@@ -178,6 +185,8 @@ export type AppHarnessResponse =
       readonly instanceId?: string;
     }
   | { readonly kind: "prepared"; readonly launchToken: string; readonly session: AppSessionSnapshot }
+  /** The launch the recovery journal recorded for `sessionId`, exactly as it was opened. */
+  | { readonly kind: "launch-spec"; readonly sessionId: string; readonly spec: AppLaunchSpec }
   | { readonly kind: "delivered"; readonly session: AppSessionSnapshot }
   | { readonly kind: "aborted" }
   | { readonly kind: "sessions"; readonly sessions: readonly AppSessionSnapshot[] }
@@ -322,6 +331,9 @@ function isRequest(value: unknown): value is AppHarnessRequest {
     case "launch.resume": {
       return hasStrings({ keys: ["sessionId"], value }) && value["sessionId"] !== "" && isAppLaunchSpec(value["spec"]);
     }
+    case "launch.inspect": {
+      return hasStrings({ keys: ["sessionId"], value }) && value["sessionId"] !== "";
+    }
     case "launch.deliver": {
       return hasStrings({ keys: ["launchToken", "text"], value });
     }
@@ -363,6 +375,9 @@ function isResponse(value: unknown): value is AppHarnessResponse {
     }
     case "prepared": {
       return hasStrings({ keys: ["launchToken"], value }) && isAppSessionSnapshot(value["session"]);
+    }
+    case "launch-spec": {
+      return hasStrings({ keys: ["sessionId"], value }) && value["sessionId"] !== "" && isAppLaunchSpec(value["spec"]);
     }
     case "delivered":
     case "resolved":

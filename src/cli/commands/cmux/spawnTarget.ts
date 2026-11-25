@@ -10,7 +10,6 @@ import { readFileSync } from "node:fs";
 
 import type { LaunchTemplate } from "../../../cmux/launchTemplate.js";
 import type { CmuxDriver } from "../../../cmux/pickupCommand.js";
-import type { SpawnPlan } from "../../../cmux/plan.js";
 import type { CodexSeatRoute } from "../../../cmux/seatRoute.js";
 import type { SpawnDeps } from "../../../cmux/spawn.js";
 import { type CodexFleetCapPort, codexFleetCapPort } from "../../../codex/fleetCapPort.js";
@@ -19,18 +18,24 @@ import type { HandoverDoc } from "../../../handover/doc.js";
 import type { RunEvent } from "../../../handover/ledger.js";
 import { logger } from "../../../lib/logger.js";
 import { type PlanRegisterPort, planRegisterPort } from "../../../plans/port.js";
+import {
+  type AppContinuationPlan,
+  continuedAppSession,
+  inspectRecordedLaunch,
+} from "../../../sessionHarness/appContinuation.js";
+import { APP_SOCKET_ROOT, type AppTransport, socketAppTransport } from "../../../sessionHarness/appSocketTransport.js";
 import type { HarnessName } from "../../../sessionHarness/harnessChoice.js";
 import { productionSpawnDeps } from "../../../sessionHarness/recordedSpawn.js";
 import type { WaitOptions } from "../../../wait/flags.js";
 import { EXIT_ERROR } from "../../exitCodes.js";
 import type { ParsedFlags } from "../../parseFlags.js";
 import { claudeSeatNamedStore } from "./claudePlanFlag.js";
-import { resolveCodexSeat } from "./codexSeat.js";
+import { resolveCodexSeat, resolveContinuingCodexSeat } from "./codexSeat.js";
 import { stringFlag } from "./core.js";
 import { resolveSpawnArgv, type SpawnArgv } from "./spawnArgv.js";
 import { spawnDefaultDriver } from "./spawnDriver.js";
 import { resolveSpawnPins, type SpawnPins } from "./spawnPins.js";
-import { buildSpawnPlan } from "./spawnPlanBuild.js";
+import { buildSpawnPlan, type ContinuingSpawnPlan } from "./spawnPlanBuild.js";
 import { findDoc, spawnPreflight } from "./spawnPreflight.js";
 import { refuseSpawnTemplate, resolveSpawnTemplate } from "./spawnTemplate.js";
 import type { SpawnWorktreeOptions } from "./spawnWorktreeOptions.js";
@@ -39,7 +44,8 @@ import type { SpawnWorktreeOptions } from "./spawnWorktreeOptions.js";
 export interface SpawnTarget {
   readonly doc: HandoverDoc;
   readonly docText: string;
-  readonly plan: SpawnPlan;
+  /** The plan, carrying the app session this spawn continues, decided before the Codex seat was routed. */
+  readonly plan: ContinuingSpawnPlan;
   readonly driver: CmuxDriver;
   /** `--harness`: a cmux workspace (the default) or a card in the desktop app. */
   readonly harness: HarnessName;
@@ -65,15 +71,64 @@ export interface SpawnTarget {
 /**
  * The account a spawn spends, by driver: the routed Codex seat, or the Claude store `--plan` named.
  *
+ * The slug's open app session is found FIRST, before any Codex routing, so a continuing Codex app seat is decided on
+ * the home its session opened on rather than routed afresh.
+ *
  * @param driver the already-resolved `--driver`, which decides which of the two can be set
+ * @param harness where the session opens; only an app spawn reads an open app row
  * @param home the `--home` value both registers live under
  * @param parsed the verb's parsed flags
  * @param port where both drivers' plan register is read
  * @param fleetCap where a Codex seat's fleet read files its conclusion
  * @param signInPort where a Codex seat's fleet read files each store's sign-in observation
- * @returns both, either undefined when its driver is not this spawn's, or the exit code to stop on
+ * @param slug the handover slug whose open app ledger row a continuation reads
+ * @returns both, either undefined when its driver is not this spawn's, with the continuation the spawn carries, or
+ *   the exit code to stop on
  */
 async function resolveSeatAccounts({
+  driver,
+  fleetCap,
+  harness,
+  home,
+  parsed,
+  port,
+  signInPort,
+  slug,
+}: {
+  driver: CmuxDriver;
+  fleetCap: CodexFleetCapPort;
+  harness: HarnessName;
+  home: string | undefined;
+  parsed: ParsedFlags;
+  port: PlanRegisterPort;
+  signInPort: CodexSignInPort;
+  slug: string;
+}): Promise<
+  { continuation: AppContinuationPlan; namedStore: string | undefined; seat: CodexSeatRoute | undefined } | number
+> {
+  const transport = socketAppTransport({ root: APP_SOCKET_ROOT });
+  const discovered = await discoverAppContinuation({ driver, harness, home, slug, transport });
+  if (typeof discovered === "number") {
+    return discovered;
+  }
+  const codex = await resolveSeatFor({ discovered, driver, fleetCap, home, parsed, port, signInPort });
+  if (typeof codex === "number") {
+    return codex;
+  }
+  const namedStore = await claudeSeatNamedStore({ driver, home, parsed, port });
+  if (typeof namedStore === "number") {
+    return namedStore;
+  }
+  return { ...codex, namedStore };
+}
+
+/**
+ * The Codex seat and the continuation it carries: a continuing Codex app seat is decided on the home its session
+ * opened on; any other seat routes as it always has, and a Claude app seat continues its open row unchanged, its
+ * credential route being the credential gate's, which this does not re-decide.
+ */
+async function resolveSeatFor({
+  discovered,
   driver,
   fleetCap,
   home,
@@ -81,22 +136,94 @@ async function resolveSeatAccounts({
   port,
   signInPort,
 }: {
+  discovered: DiscoveredContinuation;
   driver: CmuxDriver;
   fleetCap: CodexFleetCapPort;
   home: string | undefined;
   parsed: ParsedFlags;
   port: PlanRegisterPort;
   signInPort: CodexSignInPort;
-}): Promise<{ namedStore: string | undefined; seat: CodexSeatRoute | undefined } | number> {
+}): Promise<{ continuation: AppContinuationPlan; seat: CodexSeatRoute | undefined } | number> {
+  if (discovered.kind === "codex") {
+    const { codexHome, sessionId } = discovered;
+    return resolveContinuingCodexSeat({
+      continuing: { codexHome, sessionId },
+      fleetCap,
+      home,
+      parsed,
+      port,
+      signInPort,
+    });
+  }
   const seat = await resolveCodexSeat({ driver, fleetCap, home, parsed, port, signInPort });
   if (typeof seat === "number") {
     return seat;
   }
-  const namedStore = await claudeSeatNamedStore({ driver, home, parsed, port });
-  if (typeof namedStore === "number") {
-    return namedStore;
+  if (discovered.kind === "claude") {
+    return { continuation: { kind: "resume", sessionId: discovered.sessionId }, seat };
   }
-  return { namedStore, seat };
+  return { continuation: { kind: "none" }, seat };
+}
+
+/**
+ * The slug's open app session, found BEFORE any Codex routing: none for a cmux spawn or a slug with no open app row;
+ * a Claude seat's id as it stands; a Codex seat's id with the `$CODEX_HOME` the app's recovery journal recorded it
+ * opening on. Reading that launch is a request to the app, and any failure of it STOPS the spawn — an app refusal, a
+ * torn journal or a malformed answer is never read as licence to open fresh.
+ */
+type DiscoveredContinuation =
+  | { readonly kind: "none" }
+  | { readonly kind: "claude"; readonly sessionId: string }
+  | { readonly kind: "codex"; readonly sessionId: string; readonly codexHome: string };
+
+/**
+ * Find the slug's open app session and, for a Codex seat, the home it opened on.
+ *
+ * @param driver the already-resolved `--driver`
+ * @param harness where the session opens
+ * @param home the state home the ledger lives under
+ * @param slug the handover slug the spawn is for
+ * @param transport the request channel to the app
+ * @returns what the spawn may continue, or the exit code to stop on
+ */
+async function discoverAppContinuation({
+  driver,
+  harness,
+  home,
+  slug,
+  transport,
+}: {
+  driver: CmuxDriver;
+  harness: HarnessName;
+  home: string | undefined;
+  slug: string;
+  transport: AppTransport;
+}): Promise<DiscoveredContinuation | number> {
+  if (harness !== "app") {
+    return { kind: "none" };
+  }
+  const sessionId = continuedAppSession({ home, slug });
+  if (sessionId === undefined) {
+    return { kind: "none" };
+  }
+  if (driver !== "codex") {
+    return { kind: "claude", sessionId };
+  }
+  const recorded = await inspectRecordedLaunch({ sessionId, transport });
+  if (recorded.isErr()) {
+    logger.error({ msg: `cmux spawn: refusing — ${recorded.error.message}` });
+    return EXIT_ERROR;
+  }
+  if (recorded.value.vendor !== "codex") {
+    logger.error({
+      msg:
+        `cmux spawn: refusing — app session ${sessionId} was opened as a ${recorded.value.vendor} session, and a codex ` +
+        `seat cannot resume it; close it (slopweaver cmux close app:${sessionId} --harness app) or spawn --driver ` +
+        recorded.value.vendor,
+    });
+    return EXIT_ERROR;
+  }
+  return { codexHome: recorded.value.codexHome, kind: "codex", sessionId };
 }
 
 /**
@@ -197,14 +324,15 @@ export async function resolveSpawnTarget({ argv }: { argv: readonly string[] }):
   }
   const { doc, harness, parsed, pins, preflight, template, wait, worktree } = inputs;
   const home = stringFlag({ name: "home", parsed });
-  const seats = await resolveSeatAccounts({ driver: pins.driver, home, parsed, ...ports });
+  const seats = await resolveSeatAccounts({ driver: pins.driver, harness, home, parsed, slug: doc.slug, ...ports });
   if (typeof seats === "number") {
     return seats;
   }
-  const { namedStore, seat } = seats;
+  const { continuation, namedStore, seat } = seats;
   const docText = readFileSync(doc.path, "utf8");
   const plan = await buildSpawnPlan({
     codexSeat: seat,
+    continuation,
     doc,
     namedStore,
     parsed,

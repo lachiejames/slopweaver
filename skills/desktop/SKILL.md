@@ -88,7 +88,8 @@ desktop update` from the main checkout: it waits up to 75s for a call the app ju
 - **The installed app hosts sessions; a test instance never does.** The owner's app serves the session harness's
   owner-only socket, so `cmux spawn|list|send|stop|close --harness app` opens and drives a Claude or Codex session as a
   card with a Stop control, its worker started only once that card is on screen. A quit ends every session it
-  hosts. `cmux usage --harness app` reads what each hosted session spent this run, by plan, counted at each turn's
+  hosts; a re-spawn resumes a slug's open card on the plan it opened on, and `cmux close app:<id> --harness app`
+  closes the row of one no app hosts any longer. `cmux usage --harness app` reads what each hosted session spent this run, by plan, counted at each turn's
   end, so poll it until the session is idle. So the app harness is proven on the installed app, never `desktop e2e`:
   [the app implementation](../../docs/session-harness.md#the-app-implementation).
 - **Where the code is.** The decisions are pure in `src/desktop/installPlan.ts`; the verb is

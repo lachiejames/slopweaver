@@ -41,6 +41,8 @@
  */
 import { detectLimitRetryBanner } from "../claude/limitBanner.js";
 import type { CmuxWorkspaceSummary } from "../cmux/client.js";
+import { namedTiers } from "../cmux/modelPin.js";
+import { CODEX_MODEL } from "../codex/profiles.js";
 import { pairRowsToWorkspaces } from "./closeDone.js";
 import type { SessionItem } from "./session.js";
 
@@ -282,7 +284,13 @@ type NotRespawnableReason =
   /** No open, slug-backed ledger row claims this workspace — there is no doc to spawn. */
   | "no-slug-row"
   /** The row's boot model was inherited or never recorded, and `cmux spawn` refuses a boot with no `--model`. */
-  | "no-pinned-model";
+  | "no-pinned-model"
+  /**
+   * The row's pinned model names no Claude tier — a Codex seat records the repository's Codex pin
+   * (`../sessionHarness/recordingHarness.ts`'s `bootModelForLaunch`) — and this verb re-boots only onto Claude, where
+   * `--model gpt-…` would boot nothing.
+   */
+  | "not-a-claude-model";
 
 /** One walled workspace, placed. */
 export type SeatRecoveryItem =
@@ -347,6 +355,10 @@ export function planSeatRecovery({
       items.push({ kind: "not-respawnable", reason: "no-pinned-model", row, wall, workspace });
       continue;
     }
+    if (namedTiers({ text: row.bootModel.model }).length === 0) {
+      items.push({ kind: "not-respawnable", reason: "not-a-claude-model", row, wall, workspace });
+      continue;
+    }
     items.push({ kind: "respawn", model: row.bootModel.model, row, slug: row.slug, wall, workspace });
   }
   return items;
@@ -399,6 +411,9 @@ function renderReported({ item, name }: { item: NonRespawnableSeat; name: string
   const slug = item.row?.slug;
   if (item.reason === "no-slug-row" || slug === undefined) {
     return `reported\t${name}\tno open doc row claims it, so there is nothing to spawn — ${close} if it is done`;
+  }
+  if (item.reason === "not-a-claude-model") {
+    return `reported\t${name}\t${slug} booted on a model that is no Claude tier (a Codex seat), and this verb re-boots only Claude — re-seat by hand: ${close}, then slopweaver cmux spawn ${slug} --driver codex --model ${CODEX_MODEL}`;
   }
   return `reported\t${name}\t${slug} recorded no pinned model — re-seat by hand: ${close}, then slopweaver cmux spawn ${slug} --model <opus|sonnet>`;
 }

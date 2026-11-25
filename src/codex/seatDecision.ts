@@ -136,19 +136,167 @@ export async function decideCodexSeat({
   if (snapshot.isErr()) {
     return err(CodexSeatErrors.registerUnreadable({ detail: snapshot.error.message }));
   }
+  return routedOverSnapshot({ allowRefusing, home, nowIso, requestedAlias, snapshot: snapshot.value });
+}
+
+/**
+ * Whether the plan a continuing session opened on may take the seat again, judged over the SAME fleet read the spawn
+ * would route on, and never by ranking first: the session's transcript lives under that one `$CODEX_HOME`, so the
+ * question is whether THAT home may be spent, not which home is emptiest.
+ *
+ * It may not when no registered row carries it any more, when the owner paused it, when its store is signed out or
+ * gone, or when the shared preflight ({@link codexSeatPreflightRefusal}: the owner's usage limit and monthly-spend
+ * setting, then the provider quota unless `allowRefusing`) refuses it. The near-cap routing bar is NOT a reason: it
+ * steers new work away from a plan, and a refusing quota is already caught by the preflight.
+ *
+ * @param allowRefusing whether the caller may spend past a refusing provider quota (a spawn's `--force`)
+ * @param codexHome the `$CODEX_HOME` the app's recovery journal recorded the session opening on
+ * @param home the state home the cached cap records live under
+ * @param nowIso the instant a window reset is judged against
+ * @param snapshot the one fleet read this decision and any fresh routing share
+ * @returns the route onto the recorded home, or why it cannot be resumed on
+ */
+function assessRecordedCodexHome({
+  allowRefusing,
+  codexHome,
+  home,
+  nowIso,
+  snapshot,
+}: {
+  allowRefusing: boolean;
+  codexHome: string;
+  home: string | undefined;
+  nowIso: string;
+  snapshot: CodexFleetSnapshot;
+}):
+  | { readonly kind: "resume"; readonly destination: CodexDestination }
+  | { readonly kind: "fresh"; readonly reason: string } {
+  const observation = snapshot.observations.find((candidate) => candidate.destination.codexHome === codexHome);
+  if (observation === undefined) {
+    return { kind: "fresh", reason: "no registered Codex plan carries that home any more" };
+  }
+  const { alias } = observation.destination;
+  const { paused } = observation.plan;
+  if (paused !== undefined) {
+    return { kind: "fresh", reason: `${alias} is paused: ${paused.reason}` };
+  }
+  const { live } = observation;
+  if (live.kind === "signed-out" || live.kind === "store-missing") {
+    const state = live.kind === "signed-out" ? "nothing is signed in there" : "its store directory does not exist";
+    return { kind: "fresh", reason: `${alias} cannot be spent: ${state}` };
+  }
+  const refusal = codexSeatPreflightRefusal({ allowRefusing, home, nowIso, observation });
+  if (refusal !== undefined) {
+    return { kind: "fresh", reason: refusal };
+  }
+  return { destination: observation.destination, kind: "resume" };
+}
+
+/** What a continuing Codex seat boots on: its recorded plan, or a newly routed one and why the recorded one is not. */
+export type CodexContinuationDecision =
+  | { readonly kind: "resume"; readonly route: CodexSeatRoute }
+  | { readonly kind: "fresh"; readonly reason: string; readonly route: CodexSeatRoute };
+
+/**
+ * The Codex seat decision for a spawn continuing an app session, over ONE fleet read: the recorded `$CODEX_HOME` when
+ * {@link assessRecordedCodexHome} admits it, else ordinary routing — exactly {@link decideCodexSeat}'s — for a FRESH
+ * session, carrying why.
+ *
+ * An explicit `requestedAlias` naming a plan other than the admissible recorded one is REFUSED rather than ignored:
+ * honouring it would open the resume on a different login, which the app refuses, and dropping it silently would
+ * boot a plan the operator did not name. On the fresh branch it routes as `--plan` always does.
+ *
+ * @param allowRefusing whether the caller may spend past a refusing provider quota (a spawn's `--force`)
+ * @param continuing the session being continued: the app's id for it and the home its recovery journal recorded
+ * @param fleetCap where the fleet read files its conclusion
+ * @param home the state home holding the register and the cached quota records
+ * @param nowIso the instant the read and every reset are judged against
+ * @param port where the plan register is read
+ * @param readLive the live account reader — `readCodexAccountsLive` in production, a plain fake in a test
+ * @param requestedAlias the alias the caller named (a spawn's `--plan`), or undefined
+ * @param signInPort where the fleet read files each store's sign-in observation
+ * @returns the resume onto the recorded plan, the fresh route and why, or why no seat may open at all
+ */
+export async function decideContinuingCodexSeat({
+  allowRefusing,
+  continuing,
+  fleetCap,
+  home,
+  nowIso,
+  port,
+  readLive,
+  requestedAlias,
+  signInPort,
+}: {
+  allowRefusing: boolean;
+  continuing: { readonly sessionId: string; readonly codexHome: string };
+  fleetCap: CodexFleetCapPort;
+  home: string;
+  nowIso: string;
+  port: PlanRegisterPort;
+  readLive: ReadCodexAccountsLive;
+  requestedAlias: string | undefined;
+  signInPort: CodexSignInPort;
+}): Promise<Result<CodexContinuationDecision, CodexSeatError>> {
+  const snapshot = await readCodexFleetSnapshot({ fleetCap, home, nowIso, port, readLive, signInPort });
+  if (snapshot.isErr()) {
+    return err(CodexSeatErrors.registerUnreadable({ detail: snapshot.error.message }));
+  }
+  const assessed = assessRecordedCodexHome({
+    allowRefusing,
+    codexHome: continuing.codexHome,
+    home,
+    nowIso,
+    snapshot: snapshot.value,
+  });
+  if (assessed.kind === "resume") {
+    const { alias } = assessed.destination;
+    if (requestedAlias !== undefined && requestedAlias !== alias) {
+      return err(
+        CodexSeatErrors.seatRefused({
+          refusal:
+            `--plan ${requestedAlias} conflicts with app session ${continuing.sessionId}, which opened on ${alias} ` +
+            `(CODEX_HOME=${continuing.codexHome}) and resumes only there — drop --plan, or name ${alias}`,
+        }),
+      );
+    }
+    const why = `app session ${continuing.sessionId} resumes on the plan it was opened on`;
+    return ok({ kind: "resume", route: { destination: assessed.destination, why } });
+  }
+  const routed = routedOverSnapshot({ allowRefusing, home, nowIso, requestedAlias, snapshot: snapshot.value });
+  return routed.map((route): CodexContinuationDecision => ({ kind: "fresh", reason: assessed.reason, route }));
+}
+
+/**
+ * Rank one fleet read, let the pure router pick, and ask the usage policy and the cap cache whether the pick may be
+ * spent — {@link decideCodexSeat}'s whole decision once its read has answered.
+ */
+function routedOverSnapshot({
+  allowRefusing,
+  home,
+  nowIso,
+  requestedAlias,
+  snapshot,
+}: {
+  allowRefusing: boolean;
+  home: string;
+  nowIso: string;
+  requestedAlias: string | undefined;
+  snapshot: CodexFleetSnapshot;
+}): Result<CodexSeatRoute, CodexSeatError> {
   const routed = routeCodexSeat({
     allowRefusing,
     ranking: rankCodexPlans({
-      nowIso: snapshot.value.readAtIso,
-      observations: snapshot.value.observations,
-      thresholds: snapshot.value.thresholds,
+      nowIso: snapshot.readAtIso,
+      observations: snapshot.observations,
+      thresholds: snapshot.thresholds,
     }),
     requestedAlias,
   });
   if (routed.isErr()) {
     return err(CodexSeatErrors.unrouted({ route: routed.error }));
   }
-  const observation = routedObservation({ destination: routed.value.destination, snapshot: snapshot.value });
+  const observation = routedObservation({ destination: routed.value.destination, snapshot });
   if (observation === undefined) {
     return err(
       CodexSeatErrors.seatRefused({

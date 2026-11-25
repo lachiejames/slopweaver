@@ -120,7 +120,7 @@ function intrinsicModel({
     consistency,
     derived,
     doc,
-    evidence: ownEvidence({ consistency, derived, doc, probe, run }),
+    evidence: ownEvidence({ consistency, derived, doc, events, probe, run }),
     movedIso: journal?.events.at(-1)?.atIso,
     probe,
     run,

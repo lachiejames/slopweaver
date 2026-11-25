@@ -7,9 +7,10 @@ import { execFileSync } from "node:child_process";
 
 import { err, ok, type Result } from "neverthrow";
 
-import type { AppLaunchSpec } from "./sessionControlProtocol";
+import type { AppHarnessRefusalCode, AppLaunchSpec } from "./sessionControlProtocol";
 import { holdsGroup, hostedSessions, recordRecovery, recoveryJournalNamed } from "./sessionHosting";
 import { GROUP_GRACE_MS, signalGroup, waitGone } from "./sessionProcessGroup";
+import { recordedSpecOf } from "./sessionRecordedSpec";
 import type { SessionGroupRow } from "./sessionRecoveryRecord";
 import { readRecoveryJournal } from "./sessionRecoveryStore";
 import { classifyRecoveryGroup, parseProcessTable, type RecoveryProcess, resumeTargetOf } from "./sessionResume";
@@ -175,4 +176,41 @@ export async function readyToResume({
   }
   const cleared = await clearRecordedGroups({ groups: target.value.groups });
   return cleared.map(() => target.value.vendorSessionId);
+}
+
+/**
+ * The launch the recovery journal recorded for a session this run of the app is not hosting, read and changing
+ * nothing — what `launch.inspect` answers. A session this run hosts is refused, as a resume of it would be: there is
+ * nothing to plan a resume onto beside a session already up.
+ *
+ * @param sessionId the app's own id for the session, as the spawn's open ledger row records it
+ * @returns the recorded launch spec, or the wire refusal code and the line naming why there is none
+ */
+export async function recordedLaunchSpec({
+  sessionId,
+}: {
+  sessionId: string;
+}): Promise<Result<AppLaunchSpec, { code: AppHarnessRefusalCode; message: string }>> {
+  const state = hostedSessions().get(sessionId)?.snapshot.state;
+  if (state !== undefined) {
+    return err({
+      code: "OPERATION_FAILED",
+      message: `session ${sessionId} is ${state} in this run of the app, so there is no recorded launch to resume`,
+    });
+  }
+  const path = recoveryJournalNamed();
+  if (path === undefined) {
+    return err({ code: "OPERATION_FAILED", message: "no recovery journal was named at boot, so no launch is read" });
+  }
+  const journal = await readRecoveryJournal({ path });
+  if (journal.isErr()) {
+    return err({ code: "OPERATION_FAILED", message: journal.error });
+  }
+  const recorded = recordedSpecOf({ journal: journal.value, sessionId });
+  if (recorded.isErr()) {
+    // A torn journal is a fault to fix; a session it never recorded up, or recorded stopped, is no session to resume.
+    const code = recorded.error.code === "JOURNAL_MALFORMED" ? "OPERATION_FAILED" : "SESSION_NOT_FOUND";
+    return err({ code, message: recorded.error.message });
+  }
+  return ok(recorded.value);
 }

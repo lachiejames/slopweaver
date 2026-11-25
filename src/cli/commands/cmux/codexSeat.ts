@@ -17,15 +17,21 @@ import { readCodexAccountsLive } from "../../../codex/accountLive.js";
 import type { CodexDestination } from "../../../codex/destinations.js";
 import type { CodexFleetCapPort } from "../../../codex/fleetCapPort.js";
 import type { CodexQuotaKind } from "../../../codex/quotaTypes.js";
-import { decideCodexSeat } from "../../../codex/seatDecision.js";
+import {
+  type CodexContinuationDecision,
+  decideCodexSeat,
+  decideContinuingCodexSeat,
+} from "../../../codex/seatDecision.js";
 import type { CodexSignInPort } from "../../../codex/signInPort.js";
 import { slopweaverHome } from "../../../config.js";
 import { logger } from "../../../lib/logger.js";
 import type { PlanRegisterPort } from "../../../plans/port.js";
+import type { AppContinuationPlan } from "../../../sessionHarness/appContinuation.js";
 import { EXIT_ERROR } from "../../exitCodes.js";
 import type { ParsedFlags } from "../../parseFlags.js";
 import { recordCodexSeatExhaustion } from "./codexQuotaSeat.js";
 import { stringFlag } from "./core.js";
+import { appContinuationLine } from "./spawnOutput.js";
 
 /** The current instant, as ISO-8601. Not injected: this is the effectful CLI edge, not a pure module. */
 function nowIso(): string {
@@ -111,6 +117,85 @@ export async function resolveCodexSeat({
   }
   reportCodexSeat({ parsed, route: decided.value });
   return decided.value;
+}
+
+/**
+ * Which Codex account a seat continuing an app session boots against, and whether it continues that session at all:
+ * on the `$CODEX_HOME` the session opened on when that plan may still be spent, else on a newly routed plan as a FRESH
+ * session, announced in one line naming the old home and why (`appContinuationLine`). The decision is
+ * `../../../codex/seatDecision.ts`'s `decideContinuingCodexSeat`; a `--plan` naming another plan than an admissible
+ * recorded one is refused there, never ignored.
+ *
+ * @param continuing the open app session and the home the app's recovery journal recorded for it
+ * @param fleetCap where the seat's fleet read files its conclusion
+ * @param home the state home holding the register and the cached quota records
+ * @param parsed the verb's parsed flags, for `--plan`, `--force` and `--model`
+ * @param port where the plan register is read
+ * @param signInPort where the fleet read files each store's sign-in observation
+ * @returns the routed seat and the continuation it carries, or the exit code to stop on
+ */
+export async function resolveContinuingCodexSeat({
+  continuing,
+  fleetCap,
+  home,
+  parsed,
+  port,
+  signInPort,
+}: {
+  continuing: { readonly sessionId: string; readonly codexHome: string };
+  fleetCap: CodexFleetCapPort;
+  home: string | undefined;
+  parsed: ParsedFlags;
+  port: PlanRegisterPort;
+  signInPort: CodexSignInPort;
+}): Promise<{ seat: CodexSeatRoute; continuation: AppContinuationPlan } | number> {
+  const decided = await decideContinuingCodexSeat({
+    allowRefusing: parsed.values["force"] === true,
+    continuing,
+    fleetCap,
+    home: seatStateHome({ home }),
+    nowIso: nowIso(),
+    port,
+    readLive: readCodexAccountsLive,
+    requestedAlias: stringFlag({ name: "plan", parsed }),
+    signInPort,
+  });
+  if (decided.isErr()) {
+    logger.error({ msg: `cmux spawn: ${decided.error.message}` });
+    return EXIT_ERROR;
+  }
+  const continuation = continuationOfDecision({ continuing, decision: decided.value });
+  const announced = appContinuationLine({ continuation });
+  if (announced !== undefined) {
+    logger.out({ line: announced });
+  }
+  reportCodexSeat({ parsed, route: decided.value.route });
+  return { continuation, seat: decided.value.route };
+}
+
+/**
+ * The continuation plan a continuing Codex seat decision carries.
+ *
+ * @param continuing the open app session and the home its recovery journal recorded
+ * @param decision what the seat decision concluded over the fleet read
+ * @returns resume that session, or open fresh beside it naming why
+ */
+export function continuationOfDecision({
+  continuing,
+  decision,
+}: {
+  continuing: { readonly sessionId: string; readonly codexHome: string };
+  decision: CodexContinuationDecision;
+}): AppContinuationPlan {
+  if (decision.kind === "resume") {
+    return { kind: "resume", sessionId: continuing.sessionId };
+  }
+  return {
+    kind: "fresh",
+    previousCodexHome: continuing.codexHome,
+    previousSessionId: continuing.sessionId,
+    reason: decision.reason,
+  };
 }
 
 /**

@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 import { ADAPTER_AGENT_MODE, adapterEnvironment } from "../../src/sessionWorker/adapterEnvironment";
 import { codexBrowserOffConfig } from "../../src/sessionWorker/codexBrowserOff";
 import { CODEX_CREDENTIAL_KEYS, codexSessionEnvironment } from "../../src/sessionWorker/codexEnvironmentPolicy";
+import { GUARDIAN_PID_ENV, GUARDIAN_START_ENV } from "../../src/sessionWorker/processGuardian";
 import { type CodexWorkerLaunchConfig, WORKER_CONFIG_ENV } from "../../src/sessionWorker/workerWire";
 
 const REPO = join(__dirname, "..", "..", "..");
@@ -64,7 +65,7 @@ describe("codexSessionEnvironment", () => {
       CODEX_HOME: "/routed",
       PATH: "/usr/bin",
     });
-    expect(Object.keys(adapterEnvironment({ config: CONFIG, inherited })).toSorted()).toEqual([
+    expect(Object.keys(adapterEnvironment({ config: CONFIG, guardian: undefined, inherited })).toSorted()).toEqual([
       "CODEX_CONFIG",
       "CODEX_HOME",
       "CODEX_PATH",
@@ -77,7 +78,9 @@ describe("codexSessionEnvironment", () => {
   it("inherits nothing, so a key set on Object.prototype never reaches a spawned child", () => {
     const environment = codexSessionEnvironment({ codexHome: "/home/codex-plan-1", inherited: {} });
     expect(Object.getPrototypeOf(environment)).toBe(null);
-    expect(Object.getPrototypeOf(adapterEnvironment({ config: CONFIG, inherited: {} }))).toBe(null);
+    expect(Object.getPrototypeOf(adapterEnvironment({ config: CONFIG, guardian: undefined, inherited: {} }))).toBe(
+      null,
+    );
   });
 });
 
@@ -85,6 +88,7 @@ describe("adapterEnvironment", () => {
   it("names the native codex, the agent mode and the model, and never passes the worker's config on", () => {
     const environment = adapterEnvironment({
       config: { ...CONFIG, model: "gpt-5" },
+      guardian: undefined,
       inherited: { HOME: "/home", [WORKER_CONFIG_ENV]: "{}" },
     });
     expect(environment).toEqual({
@@ -100,6 +104,7 @@ describe("adapterEnvironment", () => {
   it("scrubs a credential and a changed CODEX_HOME the worker's own environment gained after launch", () => {
     const environment = adapterEnvironment({
       config: CONFIG,
+      guardian: undefined,
       inherited: {
         CODEX_ACCESS_TOKEN: "t",
         CODEX_HOME: "/elsewhere",
@@ -117,11 +122,60 @@ describe("adapterEnvironment", () => {
   });
 
   it("sets no model when the session names none, yet still switches every browser surface off", () => {
-    expect(adapterEnvironment({ config: CONFIG, inherited: {} })["CODEX_CONFIG"]).toBe(BROWSER_OFF_ONLY);
+    expect(adapterEnvironment({ config: CONFIG, guardian: undefined, inherited: {} })["CODEX_CONFIG"]).toBe(
+      BROWSER_OFF_ONLY,
+    );
   });
 
   it("switches the browser surfaces off over an inherited CODEX_CONFIG that would have turned them on", () => {
     const inherited = { CODEX_CONFIG: '{"mcp_servers.node_repl.enabled":true}' };
-    expect(adapterEnvironment({ config: CONFIG, inherited })["CODEX_CONFIG"]).toBe(BROWSER_OFF_ONLY);
+    expect(adapterEnvironment({ config: CONFIG, guardian: undefined, inherited })["CODEX_CONFIG"]).toBe(
+      BROWSER_OFF_ONLY,
+    );
+  });
+});
+
+describe("adapterEnvironment's guardian", () => {
+  const GUARDIAN = { pid: 5151, start: "Wed Nov  5 09:01:02 2026" };
+
+  it("carries the worker's exact pid and stamp through the credential scrub, and no override field", () => {
+    const environment = adapterEnvironment({
+      config: CONFIG,
+      guardian: GUARDIAN,
+      inherited: { OPENAI_API_KEY: "wrong-account", PATH: "/usr/bin" },
+    });
+    expect(environment).toEqual({
+      CODEX_CONFIG: BROWSER_OFF_ONLY,
+      CODEX_HOME: "/home/codex-plan-1",
+      CODEX_PATH: "/bin/codex",
+      ELECTRON_RUN_AS_NODE: "1",
+      INITIAL_AGENT_MODE: ADAPTER_AGENT_MODE,
+      PATH: "/usr/bin",
+      SLOPWEAVER_SESSION_GUARDIAN_PID: "5151",
+      SLOPWEAVER_SESSION_GUARDIAN_START: "Wed Nov  5 09:01:02 2026",
+    });
+    expect(Object.keys(environment).filter((name) => /ALLOW|OVERRIDE/u.test(name))).toEqual([]);
+  });
+
+  it("names its fields by the worker's constants", () => {
+    const environment = adapterEnvironment({ config: CONFIG, guardian: GUARDIAN, inherited: {} });
+    expect([environment[GUARDIAN_PID_ENV], environment[GUARDIAN_START_ENV]]).toEqual([
+      "5151",
+      "Wed Nov  5 09:01:02 2026",
+    ]);
+  });
+
+  it("drops an inherited guardian pair, so only the worker that started the adapter is ever a session's guardian", () => {
+    const inherited = { [GUARDIAN_PID_ENV]: "1", [GUARDIAN_START_ENV]: "Thu Jan  1 00:00:00 1970" };
+    const unguarded = adapterEnvironment({ config: CONFIG, guardian: undefined, inherited });
+    expect(Object.keys(unguarded).toSorted()).toEqual([
+      "CODEX_CONFIG",
+      "CODEX_HOME",
+      "CODEX_PATH",
+      "ELECTRON_RUN_AS_NODE",
+      "INITIAL_AGENT_MODE",
+    ]);
+    const guarded = adapterEnvironment({ config: CONFIG, guardian: GUARDIAN, inherited });
+    expect([guarded[GUARDIAN_PID_ENV], guarded[GUARDIAN_START_ENV]]).toEqual(["5151", "Wed Nov  5 09:01:02 2026"]);
   });
 });

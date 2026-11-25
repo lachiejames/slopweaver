@@ -9,10 +9,12 @@ import { cmuxWorkspaceFromSession } from "../../../sessionHarness/cmuxSession.js
 import type { SessionHarnessError } from "../../../sessionHarness/errors.js";
 import { type HarnessName, parseHarnessFlag, withNamedSessionHarness } from "../../../sessionHarness/harnessChoice.js";
 import type { HarnessCloseHold, SessionHarness } from "../../../sessionHarness/sessionHarness.js";
-import { appendSessionEvent } from "../../../sessions/sessionStore.js";
+import { foldSessions, parseSessionLog } from "../../../sessions/session.js";
+import { appendSessionEvent, readSessionLogText } from "../../../sessions/sessionStore.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { resolveHome } from "../../optionParsers.js";
+import { closeAbsentAppRow } from "./closeAbsentApp.js";
 import { cmuxUsage, parseCmuxVerb, stringFlag, workspaceOperand } from "./core.js";
 import { openSessionKeyFor } from "./run.js";
 import { type ResidueReport, reapClosedSeat, renderResidueReport } from "./worktreeResidue.js";
@@ -121,11 +123,52 @@ async function closeViaCard({
 }
 
 /**
+ * A failed close's exit code. The one failure that still ends a row is the app proving the session gone while the
+ * operand names exactly one open app row (`./closeAbsentApp.ts`); every other failure keeps its error and writes
+ * nothing.
+ *
+ * @returns the process exit code
+ */
+function closeFailed({
+  error,
+  harnessName,
+  home,
+  workspaceRef,
+}: {
+  error: SessionHarnessError;
+  harnessName: HarnessName;
+  home: string | undefined;
+  workspaceRef: string;
+}): number {
+  const homeArg = home === undefined ? {} : { home };
+  const gone = closeAbsentAppRow({
+    deps: {
+      append: ({ event }) => {
+        appendSessionEvent({ event, ...homeArg });
+      },
+      nowIso: () => new Date().toISOString(),
+      rows: () => foldSessions({ events: parseSessionLog({ text: readSessionLogText(homeArg) }).events }),
+    },
+    error,
+    handle: workspaceRef,
+    harness: harnessName,
+  });
+  if (gone !== undefined) {
+    logger.out({ line: gone });
+    return EXIT_OK;
+  }
+  logger.error({ msg: `cmux close: ${error.message}` });
+  return EXIT_ERROR;
+}
+
+/**
  * `cmux close` — close a cmux workspace once its work has landed, then reap the node processes its worktree
  * left running (a detached nx daemon outlives the seat that started it). The reap is
  * `./worktreeResidue.ts`'s, over the same connection, and never fails the close: it prints what it did. When
  * cmux refuses the close for a running process, it forces once only if the screen proves Claude Code or Codex
  * idle at its prompt, and otherwise holds the workspace open and exits 1 (`../../../sessions/closeForce.ts`).
+ * Under `--harness app`, a session the app answers `SESSION_NOT_FOUND` for is already gone: its exact open ledger
+ * row is closed and the verb exits 0 (`./closeAbsentApp.ts`).
  *
  * @param argv the full process argv
  * @returns the process exit code
@@ -156,8 +199,7 @@ export async function runCmuxClose(argv: readonly string[]): Promise<number> {
     name: harnessName.value,
   });
   if (closed.isErr()) {
-    logger.error({ msg: `cmux close: ${closed.error.message}` });
-    return EXIT_ERROR;
+    return closeFailed({ error: closed.error, harnessName: harnessName.value, home, workspaceRef });
   }
   if (closed.value.kind === "held") {
     logger.error({
