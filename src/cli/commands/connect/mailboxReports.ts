@@ -13,7 +13,7 @@ import { err } from "../../../lib/result.js";
 import { resolveGmailClient } from "../../../live/gmail/client.js";
 import { resolveOutlookClient } from "../../../live/outlook/session.js";
 import { gmailGrantStore } from "../../../secrets/gmailGrant.js";
-import { outlookClientId, readOutlookGrant } from "../../../secrets/outlookGrant.js";
+import { outlookClientId, outlookMailGrantStore } from "../../../secrets/outlookGrant.js";
 import { resolveHome } from "../../optionParsers.js";
 
 /**
@@ -44,10 +44,12 @@ export async function gmailReport({ home }: { home: string | undefined }): Promi
 }
 
 /**
- * The Outlook branch. The stored state — client id, grant, its account and scopes — is read here so the report
- * can name which half of connecting is missing; the live `/me` goes through `resolveOutlookClient`, the same
- * locked refresh every Outlook verb uses, which re-reads the grant itself rather than trusting this read.
- * An unreadable grant file is reported as itself, never as "not connected".
+ * The Outlook branch — the MAIL preflight. The calendar is its own integration with its own grant, checked by
+ * `outlook-calendar connect --status`, so nothing here reads it. The stored state — client id, mail grant, its
+ * account and scopes — is read here so the report can name which half of connecting is missing; the live `/me`
+ * goes through `resolveOutlookClient`, the same locked refresh every Outlook mail verb uses, which re-reads the
+ * grant itself rather than trusting this read. An unreadable grant file is reported as itself, never as "not
+ * connected".
  *
  * @param home the `--home` the caller named, when it named one
  * @returns the Outlook preflight report
@@ -56,7 +58,7 @@ export async function outlookReport({ home }: { home: string | undefined }): Pro
   const resolvedHome = resolveHome({ named: home });
   const clientId = outlookClientId({ home: resolvedHome });
   const clientIdPresent = clientId !== undefined;
-  const stored = readOutlookGrant({ home: resolvedHome });
+  const stored = outlookMailGrantStore.read({ home: resolvedHome });
   if (stored.isErr()) {
     return outlookGrantUnreadableReport({
       clientIdPresent,

@@ -55,6 +55,21 @@ export const GRANT_CREDENTIALS = [
   {
     expiry: "grant-cache",
     lifecycle: "live",
+    mintScope: "read-only",
+    name: "outlook-calendar-oauth.json",
+    platform: "Microsoft (Outlook calendar door)",
+    reader: "src/secrets/outlookGrant.ts",
+    readVerbs: "slopweaver outlook-calendar *",
+    settable: false,
+    shape: "grant",
+    usedFor:
+      "reading the bound personal account's calendars, what is on in a window and one event in full, under `Calendars.Read` and nothing of the mailbox. Its own consent, separate from the mail grant; MSAL's serialized token cache plus the scopes Microsoft reported granted, rewritten after every silent refresh",
+    what: "a Microsoft user-consent grant",
+    writtenBy: "slopweaver outlook-calendar connect",
+  },
+  {
+    expiry: "grant-cache",
+    lifecycle: "live",
     mintScope: "read-write",
     name: "drive-oauth.json",
     platform: "Google (Drive door)",

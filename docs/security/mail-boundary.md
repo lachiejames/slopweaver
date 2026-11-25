@@ -245,9 +245,12 @@ The `outlook` noun is a personal Microsoft mailbox behind the same rails, and th
   `--status` reads the file and
   calls nothing; `--disconnect` deletes it and names `account.live.com/consent/Manage` for withdrawing consent.
 - **Scopes are Graph's delegated ones.** `read` is `User.Read`, `Mail.Read`, `MailboxSettings.Read`; `manage`
-  swaps in `Mail.ReadWrite`; only `full` adds `Mail.Send`. No mail grant carries `Calendars.Read`: only
-  `outlook connect --calendar` asks for it, for the `outlook-calendar` door. A verb needing a scope the grant
-  lacks refuses by name before any request, naming the one `connect` command that adds it.
+  swaps in `Mail.ReadWrite`; only `full` adds `Mail.Send`. No mail grant carries `Calendars.Read`: the
+  `outlook-calendar` door has its own consent, `outlook-calendar connect`, asking `User.Read` and
+  `Calendars.Read` only and stored as `outlook-calendar-oauth.json` under its own lock. Until one is stored, a
+  held mail grant already carrying a calendar permission still serves the calendar reads, and a refresh made
+  through it writes back to the mail file it read. A verb needing a scope the grant lacks refuses by name before
+  any request, naming the one `connect` command that adds it.
 - **Changing a mailbox is three Graph calls, not one.** `mark` and `category` PATCH a message's `isRead` and
   `categories` to absolute values; `archive` MOVES it to the Archive folder and `--restore` moves it back. A move
   is not retried (an ambiguous answer could have moved it already), and a mailbox with no Archive folder is

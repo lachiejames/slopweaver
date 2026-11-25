@@ -127,11 +127,11 @@ describe("checkOutlookConnection", () => {
   it("reduces a refused /me to a hard read-probe gap naming the refusal", async () => {
     const report = await checkOutlookConnection({
       probe: STORED,
-      probes: { me: () => Promise.resolve(err(OutlookErrors.notConnected())) },
+      probes: { me: () => Promise.resolve(err(OutlookErrors.notConnected({ product: "mail" }))) },
     });
     expect(report.ok).toBe(false);
     expect(row({ capabilities: report.capabilities, id: "read-probe" }).detail).toContain(
-      OutlookErrors.notConnected().message,
+      OutlookErrors.notConnected({ product: "mail" }).message,
     );
   });
 

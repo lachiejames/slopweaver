@@ -22,12 +22,16 @@ import type { Logger } from "../../../lib/logger.js";
 import { logger } from "../../../lib/logger.js";
 import { safeJsonParse } from "../../../lib/safeJson.js";
 import { notReadOnlyScopes } from "../../../live/google/scopes.js";
+import { OUTLOOK_CALENDAR_GRANT_SECRET, OUTLOOK_MAIL_GRANT_SECRET } from "../../../secrets/outlookGrant.js";
 import { credentialRows, type GrantObservation, type StoreObservation } from "../../../secrets/status.js";
 import { stateHomePaths } from "../../../stateHome.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { parseSecretsStatusArgs, renderStatus, type SecretsStatusArgs, visibleRows } from "./statusCore.js";
 import { SECRETS_STATUS_USAGE } from "./statusUsage.js";
+
+/** The two Outlook grant files — mail and calendar — both MSAL caches rather than a Google refresh token. */
+const OUTLOOK_GRANT_FILES: ReadonlySet<string> = new Set([OUTLOOK_MAIL_GRANT_SECRET, OUTLOOK_CALENDAR_GRANT_SECRET]);
 
 /** The token-free reading of a grant file. Anything that will not parse yields `undefined`, never a throw. */
 function readGrant({ path }: { path: string }): GrantObservation | undefined {
@@ -59,10 +63,10 @@ function readGrant({ path }: { path: string }): GrantObservation | undefined {
   if (scopeNames.length !== scopes.length) {
     return undefined;
   }
-  // The fields its own door requires beyond those: Outlook's `msalCache` and `homeAccountId`, every Google door's
-  // `refreshToken`. Only their types are read, never their bytes, and a grant without one is a file its door refuses,
-  // so it must not read `ok`.
-  const requiredFields = basename(path) === "outlook-oauth.json" ? ["msalCache", "homeAccountId"] : ["refreshToken"];
+  // The fields its own door requires beyond those: both Outlook grants' `msalCache` and `homeAccountId`, every Google
+  // door's `refreshToken`. Only their types are read, never their bytes, and a grant without one is a file its door
+  // refuses, so it must not read `ok`.
+  const requiredFields = OUTLOOK_GRANT_FILES.has(basename(path)) ? ["msalCache", "homeAccountId"] : ["refreshToken"];
   if (requiredFields.some((field) => typeof record[field] !== "string")) {
     return undefined;
   }

@@ -18,10 +18,46 @@
 
 /**
  * The Outlook capability a verb needs. One capability maps to one Graph permission. `read`, `modify` and `send`
- * are the MAIL capabilities, named before the calendar arrived; `calendar` is the calendar's read, which the
- * `outlook-calendar` noun needs and no mail verb does.
+ * are the MAIL capabilities; `calendar` is the calendar's read, which the `outlook-calendar` noun needs and no
+ * mail verb does.
  */
 export type OutlookCapability = "identity" | "read" | "modify" | "send" | "settings" | "calendar";
+
+/**
+ * The Microsoft product a grant belongs to. Each is its own integration with its own consent and its own stored
+ * grant: someone may connect their calendar and not their mail, or the reverse.
+ */
+export type OutlookProduct = "mail" | "calendar";
+
+/** The verb that establishes each product's grant — the one each refusal for that product names. */
+const CONNECT_VERB_BY_PRODUCT: Readonly<Record<OutlookProduct, string>> = {
+  calendar: "slopweaver outlook-calendar connect",
+  mail: "slopweaver outlook connect",
+};
+
+/** How each product names itself to the owner. */
+const PRODUCT_NAME: Readonly<Record<OutlookProduct, string>> = {
+  calendar: "Outlook Calendar",
+  mail: "Outlook",
+};
+
+/**
+ * The command that establishes a product's grant.
+ *
+ * @returns the connect command line, without flags
+ */
+export function outlookConnectVerb({ product }: { product: OutlookProduct }): string {
+  return CONNECT_VERB_BY_PRODUCT[product];
+}
+
+/**
+ * How a product names itself in a refusal.
+ *
+ * @returns the product's display name
+ */
+export function outlookProductName({ product }: { product: OutlookProduct }): string {
+  return PRODUCT_NAME[product];
+}
 
 /** The Graph permission granted for each capability, as Microsoft spells it. */
 const OUTLOOK_SCOPES: Readonly<Record<OutlookCapability, string>> = {
@@ -47,9 +83,8 @@ const IMPLIED_BY: Readonly<Record<OutlookCapability, readonly string[]>> = {
 const OFFLINE_ACCESS = "offline_access";
 
 /**
- * The MAIL grants `outlook connect --grant` offers, narrowest first. None carries `calendar`: a mail grant asks
- * for mail permissions only, and the calendar's `Calendars.Read` is added by `outlook connect --calendar` alone
- * (least privilege — the calendar door is the one verb family that needs it).
+ * The MAIL grants `outlook connect --grant` offers, narrowest first. None carries `calendar`: the calendar is its
+ * own integration, consented by `outlook-calendar connect` ({@link OUTLOOK_CALENDAR_GRANT}) into its own grant.
  */
 export const OUTLOOK_GRANTS: Readonly<Record<string, readonly OutlookCapability[]>> = {
   full: ["identity", "read", "settings", "modify", "send"],
@@ -60,40 +95,84 @@ export const OUTLOOK_GRANTS: Readonly<Record<string, readonly OutlookCapability[
   read: ["identity", "read", "settings"],
 };
 
-/** The capability `outlook connect --calendar` adds to whichever mail grant it asks for. */
-export const OUTLOOK_CALENDAR_CAPABILITY: OutlookCapability = "calendar";
+/**
+ * What `outlook-calendar connect` asks for: who the account is, and the calendar's read. Nothing of the mail.
+ * Exactly `User.Read Calendars.Read offline_access` once {@link outlookRequestScopes} adds the refresh request.
+ */
+export const OUTLOOK_CALENDAR_GRANT: readonly OutlookCapability[] = ["identity", "calendar"];
 
 /**
- * The ONE `outlook connect` command that re-grants what a verb found missing without narrowing what the stored
- * grant already holds: `--grant full` when `Mail.Send` is missing or already held, and `--calendar` when the
- * calendar permission is missing or already held. Re-running `connect` REPLACES the grant, so a remedy that left
- * either flag off would trade one missing permission for another.
+ * The ONE command that re-grants what a verb found missing without narrowing what the stored grant already
+ * holds. A calendar grant is one fixed consent, so its remedy is always `outlook-calendar connect`. A mail
+ * remedy is `outlook connect`, with `--grant full` when `Mail.Send` is missing or already held: re-running
+ * `connect` REPLACES the grant, so leaving the flag off would trade one missing permission for another.
  *
  * @param missing the permissions the verb found absent, as {@link missingOutlookScopes} names them
  * @param granted the scopes the stored grant carries, in any spelling
+ * @param product which product's grant fell short
  * @returns the command line to run, flags included
  */
 export function outlookReconnectCommand({
   missing,
   granted,
+  product,
 }: {
   missing: readonly string[];
   granted: readonly string[];
+  product: OutlookProduct;
 }): string {
-  const calendarScope = comparable({ scope: OUTLOOK_SCOPES.calendar });
-  const missingComparable = missing.map((scope) => comparable({ scope }));
-  const calendarMissing = missingComparable.includes(calendarScope);
-  const mailMissing = missingComparable.some((scope) => scope !== calendarScope);
+  if (product === "calendar") {
+    return outlookConnectVerb({ product });
+  }
   const holdsSend = missingOutlookScopes({ capabilities: ["send"], granted }).length === 0;
-  const holdsCalendar = missingOutlookScopes({ capabilities: [OUTLOOK_CALENDAR_CAPABILITY], granted }).length === 0;
-  const flags: string[] = [];
-  if (mailMissing || holdsSend) {
-    flags.push("--grant full");
+  if (missing.length > 0 || holdsSend) {
+    return `${outlookConnectVerb({ product })} --grant full`;
   }
-  if (calendarMissing || holdsCalendar) {
-    flags.push("--calendar");
+  return outlookConnectVerb({ product });
+}
+
+/**
+ * Whether a mail grant carries the calendar's read — the one fact that lets a calendar verb read over a mail
+ * grant that was consented before the calendar had a consent of its own.
+ *
+ * @param granted the scopes the mail grant carries, in any spelling
+ * @returns true when `Calendars.Read`, or a permission implying it, is among them
+ */
+export function mailGrantCoversCalendar({ granted }: { granted: readonly string[] }): boolean {
+  return missingOutlookScopes({ capabilities: ["calendar"], granted }).length === 0;
+}
+
+/**
+ * The warning a mail re-consent owes when it just cut off a calendar that was reading over the replaced grant:
+ * the old mail grant covered the calendar, the new one does not, and no calendar grant of its own is stored.
+ *
+ * @param previousScopes the scopes of the mail grant the consent replaced, or `undefined` when there was none
+ * @param replacementScopes the scopes Microsoft reported on the new mail grant
+ * @param calendarGrantStored whether the calendar's own grant file exists
+ * @returns the warning line, or `undefined` when nothing the calendar relied on was lost
+ */
+export function mailReconnectCalendarWarning({
+  previousScopes,
+  replacementScopes,
+  calendarGrantStored,
+}: {
+  previousScopes: readonly string[] | undefined;
+  replacementScopes: readonly string[];
+  calendarGrantStored: boolean;
+}): string | undefined {
+  if (previousScopes === undefined || calendarGrantStored) {
+    return undefined;
   }
-  return ["slopweaver outlook connect", ...flags].join(" ");
+  if (
+    !mailGrantCoversCalendar({ granted: previousScopes }) ||
+    mailGrantCoversCalendar({ granted: replacementScopes })
+  ) {
+    return undefined;
+  }
+  return (
+    "the Outlook calendar was reading over the mail grant this consent replaced, and the new grant does not " +
+    `cover it — run \`${outlookConnectVerb({ product: "calendar" })}\` to connect the calendar on its own`
+  );
 }
 
 /**

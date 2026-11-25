@@ -15,7 +15,7 @@ import type { Result } from "../lib/result.js";
 import { calendarGrantStore } from "../secrets/calendarGrant.js";
 import { driveGrantStore } from "../secrets/driveGrant.js";
 import { gmailGrantStore } from "../secrets/gmailGrant.js";
-import { readOutlookGrant } from "../secrets/outlookGrant.js";
+import { outlookMailGrantStore } from "../secrets/outlookGrant.js";
 
 import { type ConnectionRouteReading, connectionDoorOf } from "./connectionReading.js";
 import type { SourceCapability } from "./profile.js";
@@ -23,12 +23,12 @@ import type { SourceCapability } from "./profile.js";
 /** Read one door's stored grant: `undefined` when none is stored, an error when a stored one will not parse. */
 type GrantRead = (args: { home: string }) => Result<{ readonly account: string } | undefined>;
 
-/** The grant read behind each door this module can read — the three Google stores and the Outlook one. */
+/** The grant read behind each door this module can read — the three Google stores and the Outlook mail one. */
 const GRANT_READ_BY_DOOR: Readonly<Record<string, GrantRead>> = {
   calendar: calendarGrantStore.read,
   drive: driveGrantStore.read,
   gmail: gmailGrantStore.read,
-  outlook: readOutlookGrant,
+  outlook: outlookMailGrantStore.read,
 };
 
 /**

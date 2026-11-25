@@ -1,6 +1,6 @@
 /**
- * The effectful shells for the three `outlook-calendar` verbs: parse (pure), bind the ONE Microsoft grant for the
- * calendar capability, read, print as text or `--json`.
+ * The effectful shells for the three `outlook-calendar` read verbs: parse (pure), bind the calendar's grant (its
+ * own, or a held mail grant that covers it — `live/outlook/calendarGrantChoice.ts`), read, print as text or `--json`.
  *
  * The seam is the SESSION, as in `../outlook/shell.ts`: a test hands the shell a session answering a plain fake
  * {@link OutlookCalendarApi}, so the shell, the domain read and the rendering run together with no account.
@@ -9,8 +9,7 @@ import { slopweaverHome } from "../../../homeDir.js";
 import { logger } from "../../../lib/logger.js";
 import type { Result } from "../../../lib/result.js";
 import type { OutlookError } from "../../../live/outlook/errors.js";
-import type { OutlookCapability } from "../../../live/outlook/scopes.js";
-import { resolveOutlookGraph } from "../../../live/outlook/session.js";
+import { resolveOutlookCalendarGraph } from "../../../live/outlook/session.js";
 import { makeOutlookCalendarApi, type OutlookCalendarApi } from "../../../live/outlookCalendar/api.js";
 import {
   listOutlookCalendars,
@@ -35,12 +34,9 @@ import {
 
 const VERB_ARG_OFFSET = 4;
 
-/** What every `outlook-calendar` verb needs of the grant: the calendar's read, nothing of the mailbox. */
-export const OUTLOOK_CALENDAR_CAPABILITIES: readonly OutlookCapability[] = ["calendar"];
-
 /** The effects the `outlook-calendar` shells compose, production or fake. */
 export interface OutlookCalendarShellDeps {
-  /** Bind the stored Microsoft grant, refusing one without the calendar's read. */
+  /** Bind the calendar's grant, refusing when neither it nor a covering mail grant is stored. */
   readonly session: (args: { home: string }) => Promise<Result<OutlookCalendarApi, OutlookError>>;
   readonly home: () => string;
   readonly nowIso: () => string;
@@ -173,7 +169,7 @@ export function productionOutlookCalendarShellDeps(): OutlookCalendarShellDeps {
       logger.out({ line });
     },
     session: async ({ home }) => {
-      const bound = await resolveOutlookGraph({ capabilities: OUTLOOK_CALENDAR_CAPABILITIES, home });
+      const bound = await resolveOutlookCalendarGraph({ home });
       return bound.map(({ account, graph }) => makeOutlookCalendarApi({ graph, rateScopeKey: account }));
     },
     warn: (line) => {

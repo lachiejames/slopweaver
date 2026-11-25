@@ -24,21 +24,21 @@ A journalled assignment the running build's registry refuses — a key since rem
 since made derived — is KEPT with source `unrecognised`, and set apart: shown so it can be fixed, never matched or
 acted on. The write path refuses it; the reader never erases it, and it never contradicts a derived value.
 
-| Key                 | Holds   | Values                                                                                                  |
-| ------------------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| `platform`          | one     | slack · linear · github · gmail · notion · calendar · drive · vanta · none                              |
-| `audience`          | one     | owner · team · person · channel                                                                         |
-| `workstream`        | several | a kebab-case workstream name                                                                            |
-| `substream`         | several | a kebab-case milestone, prefixed with its workstream by convention                                      |
-| `area`              | several | a kebab-case area name                                                                                  |
-| `impact`            | one     | critical · high · medium · low                                                                          |
-| `controls-resolved` | one     | a whole number of failing compliance controls the act resolves                                          |
-| `effort`            | one     | xs · s · m · l · xl                                                                                     |
-| `pr`                | several | `owner/repo#N`                                                                                          |
-| `preapproved`       | one     | cassette-recording                                                                                      |
-| `steer-hatch`       | several | vulnerability-fix-topup-gate — written only by `vulnerability-fix topup --steer-row`                    |
-| `context`           | one     | work · slopweaver                                                                                       |
-| `needs`             | several | gmail · calendar · drive · outlook · fathom · slack · linear · notion · datadog · vanta · hex · trelica |
+| Key                 | Holds   | Values                                                                                                                     |
+| ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `platform`          | one     | slack · linear · github · gmail · notion · calendar · drive · vanta · none                                                 |
+| `audience`          | one     | owner · team · person · channel                                                                                            |
+| `workstream`        | several | a kebab-case workstream name                                                                                               |
+| `substream`         | several | a kebab-case milestone, prefixed with its workstream by convention                                                         |
+| `area`              | several | a kebab-case area name                                                                                                     |
+| `impact`            | one     | critical · high · medium · low                                                                                             |
+| `controls-resolved` | one     | a whole number of failing compliance controls the act resolves                                                             |
+| `effort`            | one     | xs · s · m · l · xl                                                                                                        |
+| `pr`                | several | `owner/repo#N`                                                                                                             |
+| `preapproved`       | one     | cassette-recording                                                                                                         |
+| `steer-hatch`       | several | vulnerability-fix-topup-gate — written only by `vulnerability-fix topup --steer-row`                                       |
+| `context`           | one     | work · slopweaver                                                                                                          |
+| `needs`             | several | gmail · calendar · drive · outlook · fathom · slack · linear · notion · datadog · vanta · hex · trelica · outlook-calendar |
 
 `rowTagsOf({ fields, events })` (`src/handover/rowTagFold.ts`) answers `{ tags, unrecognised }`: `tags` is what a filter matches and a card reads,
 declared then derived, each marked with its source. `fields` is one shape from either kind of row — `fieldsOfDoc` for

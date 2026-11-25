@@ -102,7 +102,7 @@ export const outlookManifest: Readonly<Record<string, VerbManifestEntry>> = {
       effect: "local-state",
       example: "slopweaver outlook connect --grant manage",
       parseRejectIsIoFree: true,
-      summary: "Authorise a personal Outlook mailbox by browser consent and store the grant owner-only",
+      summary: "Authorise a personal Outlook mailbox by browser consent and store the mail grant owner-only",
       usage: OUTLOOK_CONNECT_USAGE,
     },
   }),

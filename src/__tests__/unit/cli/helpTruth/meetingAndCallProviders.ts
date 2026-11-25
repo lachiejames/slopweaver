@@ -12,7 +12,10 @@ import {
 } from "../../../../cli/commands/fathom/usage.js";
 import { GOOGLE_ADC_FLAG_NAMES, parseGoogleAdcArgs } from "../../../../cli/commands/google/adcArgs.js";
 import { GOOGLE_AUDIT_LOG_FLAG_NAMES, parseGoogleAuditLogArgs } from "../../../../cli/commands/google/auditLogArgs.js";
-import { parseOutlookConnectArgs } from "../../../../cli/commands/outlook/connectCore.js";
+import {
+  parseOutlookCalendarConnectArgs,
+  parseOutlookConnectArgs,
+} from "../../../../cli/commands/outlook/connectCore.js";
 import {
   OUTLOOK_FLAG_NAMES,
   parseOutlookAttachmentArgs,
@@ -90,6 +93,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "outlook send": OUTLOOK_FLAG_NAMES["send"]!,
   "outlook triage": OUTLOOK_FLAG_NAMES["triage"]!,
   "outlook-calendar calendars": OUTLOOK_CALENDAR_FLAG_NAMES["calendars"]!,
+  "outlook-calendar connect": OUTLOOK_CALENDAR_FLAG_NAMES["connect"]!,
   "outlook-calendar list": OUTLOOK_CALENDAR_FLAG_NAMES["list"]!,
   "outlook-calendar read": OUTLOOK_CALENDAR_FLAG_NAMES["read"]!,
 };
@@ -151,7 +155,6 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--thread": ["--thread"],
   },
   "outlook connect": {
-    "--calendar": ["--calendar"],
     "--disconnect": ["--disconnect"],
     "--grant": ["--grant", "full"],
     "--home": ["--home", "/tmp"],
@@ -191,6 +194,12 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
   },
   "outlook triage": { "--home": ["--home", "/tmp"], "--json": ["--json"], "--limit": ["--limit", "5"] },
   "outlook-calendar calendars": { "--home": ["--home", "/tmp"], "--json": ["--json"] },
+  "outlook-calendar connect": {
+    "--disconnect": ["--disconnect"],
+    "--home": ["--home", "/tmp"],
+    "--json": ["--json"],
+    "--status": ["--status"],
+  },
   "outlook-calendar list": {
     "--calendar": ["--calendar", "cal-1"],
     "--days": ["--days", "3"],
@@ -279,6 +288,8 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
     parseOutlookTriageArgs({ rest: [...fragment] }).mapErr((error) => [error.message]),
   "outlook-calendar calendars": ({ fragment }) =>
     parseOutlookCalendarCalendarsArgs({ rest: [...fragment] }).mapErr((error) => [error.message]),
+  "outlook-calendar connect": ({ fragment }) =>
+    parseOutlookCalendarConnectArgs({ rest: [...fragment] }).mapErr((error) => [error.message]),
   "outlook-calendar list": ({ fragment }) =>
     parseOutlookCalendarListArgs({ nowIso: "2001-01-08T00:00:00.000Z", rest: [...fragment] }).mapErr((error) => [
       error.message,

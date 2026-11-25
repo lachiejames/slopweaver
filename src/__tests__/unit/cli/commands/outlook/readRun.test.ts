@@ -153,7 +153,11 @@ describe("outlook folders, categories, measure, triage", () => {
   });
 
   it("a verb whose session cannot be bound says why and reads nothing", async () => {
-    const sessionError = OutlookErrors.scopeMissing({ granted: ["User.Read"], missing: ["MailboxSettings.Read"] });
+    const sessionError = OutlookErrors.scopeMissing({
+      granted: ["User.Read"],
+      missing: ["MailboxSettings.Read"],
+      product: "mail",
+    });
     const { deps, record } = fakeOutlookShell({ home: HOME, mailbox: mailbox(), sessionError });
     const code = await runOutlookCategories({ deps, rest: [] });
     expect(code).toBe(EXIT_ERROR);

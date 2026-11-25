@@ -11,52 +11,15 @@
  * what you get rather than what the tool is, the one thing the archived Integrations page did that the owner kept.
  * `site/__tests__/unit/integrationCatalog.test.ts` binds every integration to a guide and every paste field and
  * consent verb to a step, so a credential the registry adds cannot go unexplained.
+ *
+ * The key-paste guides live here; the browser-consent ones (Google and Microsoft) live in `./consentGuides.ts`,
+ * spread in at their registry position. The shape both share is `./guideShape.ts`.
  */
-
-/** One numbered Configure step. */
-export interface GuideStep {
-  /** What the step does, as a short heading. */
-  readonly title: string;
-  /** How, in the provider's own menu names. */
-  readonly detail: string;
-  /** The provider page the step happens on, when one address serves every install. */
-  readonly link?: { readonly href: string; readonly label: string };
-  /** The store files this step's paste fields write (`SecretFields`), in the order they are made. */
-  readonly paste?: readonly string[];
-  /** The browser-consent verb this step runs. */
-  readonly verb?: string;
-}
-
-/** One integration's page: its pitch, its steps and the facts column. */
-export interface IntegrationGuide {
-  /** The id in `INTEGRATIONS` (`./integrations.ts`). */
-  readonly id: string;
-  /** What connecting it gets you, in a line short enough for a card. */
-  readonly pitch: string;
-  /** The longer line under the integration's name once opened. */
-  readonly overview: string;
-  readonly steps: readonly GuideStep[];
-  /** Where what you paste is kept. */
-  readonly storedAs: string;
-  /** What in Slopweaver reads through it. */
-  readonly usedBy: string;
-  /** What the credential can reach. */
-  readonly reach: string;
-  /** How to take it away again. */
-  readonly disconnect: string;
-}
+import { CONSENT_GUIDES } from "./consentGuides";
+import type { IntegrationGuide } from "./guideShape";
 
 /** The owner-only file every paste lands in, said once. */
 const ONE_FILE = "An owner-only file on this machine. Never shown again, never in a chat.";
-
-/** The Google client the three Google doors share, made once. */
-const GOOGLE_CLIENT: GuideStep = {
-  detail:
-    "In Google Cloud: pick or create a project, then Credentials → Create credentials → OAuth client ID → Desktop app. It must be a Desktop app: a Web application client fails consent with redirect_uri_mismatch. The secret is shown once, so save it before closing that dialog. Gmail, Drive and Calendar share this one client: paste it once.",
-  link: { href: "https://console.cloud.google.com/apis/credentials", label: "Open Google Cloud credentials" },
-  paste: ["google-client-id", "google-client-secret"],
-  title: "Make a Google OAuth client, once",
-};
 
 /** Every integration's guide, in the registry's order. */
 export const INTEGRATION_GUIDES: readonly IntegrationGuide[] = [
@@ -233,92 +196,7 @@ export const INTEGRATION_GUIDES: readonly IntegrationGuide[] = [
     storedAs: ONE_FILE,
     usedBy: "Hex reads during investigations.",
   },
-  {
-    disconnect: "Delete the grant here, or remove the app from your Google account's third-party access.",
-    id: "gmail",
-    overview: "Your mail and the meeting notes it links, read into the corpus; drafts and sends only on your approval.",
-    pitch: "Mail and meeting notes",
-    reach: "The grant you pick: read (the default), manage (labels, archive, read state) or full (drafts and sending).",
-    steps: [
-      GOOGLE_CLIENT,
-      {
-        detail: "On the same project, enable the Gmail API and the Google Docs API.",
-        title: "Enable the APIs",
-      },
-      {
-        detail:
-          "Opens Google's consent in your browser and keeps the one redirect. It also asks to read Google Docs so it can follow meeting notes; saying no is fine.",
-        title: "Approve the consent",
-        verb: "slopweaver gmail connect",
-      },
-    ],
-    storedAs: "The grant, an owner-only file on this machine. The client is two more.",
-    usedBy: "Gmail reads, mail cards and the Gmail corpus.",
-  },
-  {
-    disconnect: "Delete the grant here, or remove the app from your Google account's third-party access.",
-    id: "drive",
-    overview: "Docs and files, by name and details unless you grant their contents.",
-    pitch: "Docs and files",
-    reach:
-      "Metadata (the default: names and details, not contents), read (contents too) or write. No verb writes today.",
-    steps: [
-      GOOGLE_CLIENT,
-      { detail: "On the same project, enable the Google Drive API.", title: "Enable the API" },
-      {
-        detail: "Opens Google's consent in your browser.",
-        title: "Approve the consent",
-        verb: "slopweaver drive connect",
-      },
-    ],
-    storedAs: "The grant, an owner-only file on this machine.",
-    usedBy: "Drive reads.",
-  },
-  {
-    disconnect: "Delete the grant here, or remove the app from your Google account's third-party access.",
-    id: "calendar",
-    overview: "Meetings to prep for and your free time.",
-    pitch: "Meetings to prep for",
-    reach: "Read (the default, which also answers free time), events, or meetings on calendars you own.",
-    steps: [
-      GOOGLE_CLIENT,
-      {
-        detail:
-          "On the same project, enable the Google Calendar API. Skip it and the first read fails with a 403 naming the API.",
-        title: "Enable the API",
-      },
-      {
-        detail: "Opens Google's consent in your browser.",
-        title: "Approve the consent",
-        verb: "slopweaver calendar connect",
-      },
-    ],
-    storedAs: "The grant, an owner-only file on this machine.",
-    usedBy: "Meeting prep and calendar reads.",
-  },
-  {
-    disconnect: "Delete the grant here, or remove the app under your Microsoft account's permissions.",
-    id: "outlook",
-    overview: "Your Outlook mail, read and organised the way Gmail is.",
-    pitch: "Mail",
-    reach: "Read, manage or full, with manage the default.",
-    steps: [
-      {
-        detail:
-          "entra.microsoft.com → App registrations → New registration; personal accounts (or work and personal); redirect Public client/native, http://localhost; no client secret. Reusing one? It needs the Mobile and desktop applications platform with that redirect. The Application (client) ID is not a secret.",
-        link: { href: "https://entra.microsoft.com", label: "Open Microsoft Entra" },
-        paste: ["outlook-client-id"],
-        title: "Register the app",
-      },
-      {
-        detail: "Opens Microsoft's consent in your browser and keeps the one redirect.",
-        title: "Approve the consent",
-        verb: "slopweaver outlook connect",
-      },
-    ],
-    storedAs: "The grant, an owner-only file on this machine.",
-    usedBy: "Outlook reads.",
-  },
+  ...CONSENT_GUIDES,
 ];
 
 /**

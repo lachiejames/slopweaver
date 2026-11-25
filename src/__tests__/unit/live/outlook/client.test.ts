@@ -70,15 +70,54 @@ describe("acquireOutlookToken", () => {
 
     const refused = unwrapErr(
       await acquireOutlookToken({
+        cacheGrant: "mail",
         clientId: "00000000-0000-0000-0000-000000000000",
         homeAccountId: "fixture.home",
         msalCache: "FIXTURE_REFRESH_TOKEN_VALUE",
+        product: "mail",
         scopes: ["User.Read"],
       }),
     );
 
     expect(refused.code).toBe("CREDENTIAL_UNREADABLE");
     expect(refused.message).toContain("is not a readable MSAL cache");
+    expect(refused.message).toContain("run `slopweaver outlook connect` again");
     expect(refused.message).not.toContain("FIXTURE_RE");
+  });
+
+  it("names the calendar's own connect verb when the unreadable cache is the calendar's grant", async () => {
+    const refused = unwrapErr(
+      await acquireOutlookToken({
+        cacheGrant: "calendar",
+        clientId: "00000000-0000-0000-0000-000000000000",
+        homeAccountId: "fixture.home",
+        msalCache: "FIXTURE_REFRESH_TOKEN_VALUE",
+        product: "calendar",
+        scopes: ["User.Read", "Calendars.Read"],
+      }),
+    );
+
+    expect(refused.message).toBe(
+      "the stored Outlook Calendar grant's cache is not a readable MSAL cache (the parser's detail is withheld: " +
+        "it quotes the cache) — run `slopweaver outlook-calendar connect` again",
+    );
+  });
+
+  it("names the mail grant as the unreadable cache when the calendar reads over it, and the calendar's connect as the remedy", async () => {
+    const refused = unwrapErr(
+      await acquireOutlookToken({
+        cacheGrant: "mail",
+        clientId: "00000000-0000-0000-0000-000000000000",
+        homeAccountId: "fixture.home",
+        msalCache: "FIXTURE_REFRESH_TOKEN_VALUE",
+        product: "calendar",
+        scopes: ["User.Read", "Calendars.Read"],
+      }),
+    );
+
+    expect(refused.message).toBe(
+      "the stored Outlook grant's cache is not a readable MSAL cache (the parser's detail is withheld: " +
+        "it quotes the cache) — run `slopweaver outlook-calendar connect` again",
+    );
   });
 });

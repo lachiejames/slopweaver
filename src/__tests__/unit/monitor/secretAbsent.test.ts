@@ -97,8 +97,17 @@ describe("evaluateSecretAbsent", () => {
   });
 
   it("never asks for a row that is not settable — a hand-installed file is not a paste", () => {
-    // outlook-oauth.json shares this row's platform and is a grant, so only settability keeps it off the card.
+    // outlook-oauth.json is linked to this row and is a grant, so only settability keeps it off the card.
     expect(judge({ storedNames: new Set(["outlook-client-id"]) }).state).toBe("clear");
+  });
+
+  it("cards the shared Microsoft registration when either Outlook grant is stored without it", () => {
+    const mailOnly = firing({ reading: judge({ storedNames: new Set(["outlook-oauth.json"]) }) });
+    const calendarOnly = firing({ reading: judge({ storedNames: new Set(["outlook-calendar-oauth.json"]) }) });
+    expect([mailOnly, calendarOnly].map((reading) => reading.subjects.map((subject) => subject.id))).toEqual([
+      ["outlook-client-id"],
+      ["outlook-client-id"],
+    ]);
   });
 
   it("does not fold a per-door grant onto its base platform, so a door never connected stays silent", () => {

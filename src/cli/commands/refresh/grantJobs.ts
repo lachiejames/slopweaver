@@ -90,7 +90,7 @@ export function buildCalendarSourceJob({
 }
 
 /**
- * Build the `outlook-calendar` ingest job — the Outlook diary, over the one Microsoft grant.
+ * Build the `outlook-calendar` ingest job — the Outlook diary, over its own calendar grant.
  *
  * @param options the parsed refresh options, for the two caps this lane honours itself
  * @param cursorOverridden whether an explicit window flag beat the stored cursor; for this lane it also beats

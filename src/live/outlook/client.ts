@@ -50,6 +50,7 @@ import { safeProviderCall, scopeIdForToken } from "#lib/providerCall.js";
 import { err, ok, type Result, type ResultAsync } from "#lib/result.js";
 import { OUTLOOK_AUTHORITY, OUTLOOK_AUTHORITY_METADATA, OUTLOOK_CLOUD_DISCOVERY_METADATA } from "./authority.js";
 import { type OutlookError, OutlookErrors } from "./errors.js";
+import { type OutlookProduct, outlookConnectVerb, outlookProductName } from "./scopes.js";
 
 /** The Graph SDK client, under this door's name, so no other file imports the SDK to type it. */
 export type GraphClient = Client;
@@ -250,9 +251,9 @@ function tokenOf({
 }
 
 /** Map an MSAL failure: a refresh Microsoft refuses becomes "connect again", everything else an API failure. */
-function msalError({ error }: { error: IngestError }): OutlookError {
+function msalError({ error, product }: { error: IngestError; product: OutlookProduct }): OutlookError {
   if (error.cause instanceof InteractionRequiredAuthError) {
-    return OutlookErrors.interactionRequired({ cause: error.cause });
+    return OutlookErrors.interactionRequired({ cause: error.cause, product });
   }
   return OutlookErrors.apiFailed({ cause: error, message: error.message });
 }
@@ -276,6 +277,7 @@ export async function makeConsentSecrets(): Promise<ConsentSecrets> {
  * @param scopes the permissions to ask for
  * @param redirectUri the loopback URI the listener announced
  * @param secrets this round trip's PKCE pair and state
+ * @param product which product's consent this is, so a refusal names that product's connect verb
  * @returns the URL to send the owner to
  */
 export function outlookConsentUrl({
@@ -283,11 +285,13 @@ export function outlookConsentUrl({
   scopes,
   redirectUri,
   secrets,
+  product,
 }: {
   clientId: string;
   scopes: readonly string[];
   redirectUri: string;
   secrets: ConsentSecrets;
+  product: OutlookProduct;
 }): ResultAsync<string, OutlookError> {
   const app = publicClient({ clientId });
   return safeProviderCall({
@@ -304,7 +308,7 @@ export function outlookConsentUrl({
     provider: "outlook",
     retryMode: "never",
     scopeId: scopeIdForToken({ token: clientId }),
-  }).mapErr((error) => msalError({ error }));
+  }).mapErr((error) => msalError({ error, product }));
 }
 
 /**
@@ -316,6 +320,7 @@ export function outlookConsentUrl({
  * @param code the callback's `code`
  * @param clientInfo the callback's `client_info`, when Microsoft sent one — MSAL keys the account on it
  * @param verifier the PKCE verifier whose challenge the consent carried
+ * @param product which product's consent this is, so a refusal names that product's connect verb
  * @returns the token facts and the cache to store, or why the exchange failed
  */
 export async function redeemOutlookCode({
@@ -325,6 +330,7 @@ export async function redeemOutlookCode({
   code,
   clientInfo,
   verifier,
+  product,
 }: {
   clientId: string;
   scopes: readonly string[];
@@ -332,6 +338,7 @@ export async function redeemOutlookCode({
   code: string;
   clientInfo: string | undefined;
   verifier: string;
+  product: OutlookProduct;
 }): Promise<Result<OutlookToken, OutlookError>> {
   const app = publicClient({ clientId });
   const redeemed = await safeProviderCall({
@@ -349,7 +356,7 @@ export async function redeemOutlookCode({
     scopeId: scopeIdForToken({ token: clientId }),
   });
   if (redeemed.isErr()) {
-    return err(msalError({ error: redeemed.error }));
+    return err(msalError({ error: redeemed.error, product }));
   }
   return tokenOf({ cache: app.getTokenCache().serialize(), result: redeemed.value });
 }
@@ -361,6 +368,9 @@ export async function redeemOutlookCode({
  * @param msalCache the grant's serialized cache
  * @param homeAccountId the account the grant was bound to, as MSAL keys it
  * @param scopes the permissions to ask the token for
+ * @param product whose connect verb every refusal names as the remedy
+ * @param cacheGrant which product's grant file the cache was read from, named when the cache itself is refused —
+ *   the mail grant's when the calendar reads over it, while the remedy stays the calendar's own connect
  * @returns the token facts and the cache to write back, or why no token could be had without the owner
  */
 export async function acquireOutlookToken({
@@ -368,14 +378,20 @@ export async function acquireOutlookToken({
   msalCache,
   homeAccountId,
   scopes,
+  product,
+  cacheGrant,
 }: {
   clientId: string;
   msalCache: string;
   homeAccountId: string;
   scopes: readonly string[];
+  product: OutlookProduct;
+  cacheGrant: OutlookProduct;
 }): Promise<Result<OutlookToken, OutlookError>> {
   const app = publicClient({ clientId });
   const cache = app.getTokenCache();
+  const name = outlookProductName({ product: cacheGrant });
+  const verb = outlookConnectVerb({ product });
   // A cache that will not deserialize is refused WITHOUT its parser's message: V8 quotes the input it choked
   // on, and that input is the refresh token. Repro: node -e 'try{JSON.parse("REFRESH_TOKEN")}catch(e){console.log(e.message)}'
   try {
@@ -384,8 +400,8 @@ export async function acquireOutlookToken({
     return err(
       OutlookErrors.credentialUnreadable({
         message:
-          "the stored Outlook grant's cache is not a readable MSAL cache (the parser's detail is withheld: it " +
-          "quotes the cache) — run `slopweaver outlook connect` again",
+          `the stored ${name} grant's cache is not a readable MSAL cache (the parser's detail is withheld: it ` +
+          `quotes the cache) — run \`${verb}\` again`,
       }),
     );
   }
@@ -393,8 +409,7 @@ export async function acquireOutlookToken({
   if (account === null) {
     return err(
       OutlookErrors.credentialUnreadable({
-        message:
-          "the stored Outlook grant's cache does not hold the account it names — run `slopweaver outlook connect` again",
+        message: `the stored ${name} grant's cache does not hold the account it names — run \`${verb}\` again`,
       }),
     );
   }
@@ -406,7 +421,7 @@ export async function acquireOutlookToken({
     scopeId: scopeIdForToken({ token: homeAccountId }),
   });
   if (acquired.isErr()) {
-    return err(msalError({ error: acquired.error }));
+    return err(msalError({ error: acquired.error, product }));
   }
   return tokenOf({ cache: cache.serialize(), result: acquired.value });
 }

@@ -27,7 +27,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PREFER_READ, searchQuoted } from "../../../../live/outlook/apiCore.js";
 import { UNREAD_NEWEST_FIRST } from "../../../../live/outlook/apiPaged.js";
-import { outlookGrantPath } from "../../../../secrets/outlookGrant.js";
+import { outlookMailGrantStore } from "../../../../secrets/outlookGrant.js";
 import { accountSandboxChildEnv } from "../../../accountHomeSandboxChild.js";
 import { refuseLiveStore } from "../../../proofStoreUrl.js";
 import { fetchRedirectSource } from "./fakeFetchRedirect.js";
@@ -205,7 +205,7 @@ describe("bin/slopweaver outlook connect — the consent round trip", () => {
     expect(connectRun.code).toBe(0);
     expect(consentStatus).toBe(200);
     expect(connectRun.stdout + connectRun.stderr).toContain("could not open a browser for you");
-    const grantPath = outlookGrantPath({ home });
+    const grantPath = outlookMailGrantStore.path({ home });
     expect(statSync(grantPath).mode & 0o777).toBe(0o600);
     expect(JSON.parse(readFileSync(grantPath, "utf8")).account).toBe("owner@example.test");
     const redeem = server.requests.find((request) => request.path.endsWith("/oauth2/v2.0/token"))!;
@@ -524,7 +524,7 @@ async function until({ predicate, withinMs }: { predicate: () => boolean; within
   }
 }
 
-describe("bin/slopweaver outlook connect --disconnect — last, because it removes the shared grant", () => {
+describe("bin/slopweaver outlook connect --disconnect — last, because it removes the mail grant", () => {
   it("waits out a refresh in flight, so that refresh cannot write the removed grant back", async () => {
     const tokenRequests = (): number =>
       server.requests.filter((request) => request.path.endsWith("/oauth2/v2.0/token")).length;
@@ -539,6 +539,6 @@ describe("bin/slopweaver outlook connect --disconnect — last, because it remov
     expect(listed.code).toBe(0);
     expect(disconnected.code).toBe(0);
     expect(disconnected.stdout).toContain("removed the local grant");
-    expect(existsSync(outlookGrantPath({ home }))).toBe(false);
+    expect(existsSync(outlookMailGrantStore.path({ home }))).toBe(false);
   });
 });

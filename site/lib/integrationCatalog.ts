@@ -14,10 +14,13 @@
  * problem, so it can never count as Connected. The three rules, per integration's own registry row
  * (`./integrations.ts`):
  *
- * - a CONSENT door (Gmail, Drive, Calendar, Outlook) is available until its grant file exists, then connected only
- *   when the grant and its client are both healthy, since the door reads the client on every call. Its client alone
- *   is no half-finished connection: the Google client serves three doors, and a person who connected Gmail has not
- *   thereby half-connected Drive.
+ * - a CONSENT door (Gmail, Drive, Calendar, Outlook, Outlook Calendar) is available until its grant file exists, then
+ *   connected only when the grant and its client are both healthy, since the door reads the client on every call. Its
+ *   client alone is no half-finished connection: the Google client serves three doors, and a person who connected
+ *   Gmail has not thereby half-connected Drive. The residue, stated: Outlook Calendar reads only its OWN grant file
+ *   here, because a store row carries no scopes, so an install whose older mail grant still carries a calendar
+ *   permission sees Outlook Calendar as available while the calendar verbs read over that mail grant
+ *   (`src/live/outlook/calendarGrantChoice.ts`).
  * - an EITHER door (Slack) is connected when any one of its paste fields is healthy and none has a problem.
  * - every other door is connected when all its files are healthy, needs attention when only some are (one of
  *   Datadog's two keys) or any has a problem, and available when none is stored.

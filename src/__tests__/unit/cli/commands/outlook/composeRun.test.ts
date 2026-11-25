@@ -131,7 +131,7 @@ describe("outlook draft", () => {
     await withOutlookHome({
       run: async ({ home }) => {
         const box = fakeMailbox();
-        const sessionError = OutlookErrors.notConnected();
+        const sessionError = OutlookErrors.notConnected({ product: "mail" });
         const { deps, record } = fakeOutlookShell({ home, mailbox: box, sessionError });
         const code = await runOutlookDraft({ deps, rest: ["--form", FORM, "--home", home] });
         expect(code).toBe(EXIT_ERROR);

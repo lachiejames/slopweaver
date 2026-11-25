@@ -1,18 +1,17 @@
 ---
 name: outlook-calendar
-description: Read a personal Microsoft account's calendar (outlook.com, hotmail.com, live.com) live through the slopweaver door, over the same grant as the Outlook mailbox — which calendars exist, what is on in a window with recurring events expanded, and one event in full — with explicit bounds and stated residue. Use when the user asks what is on their Outlook or Hotmail calendar, what an Outlook meeting is, who is in it, or which Outlook calendars slopweaver can see. Phrases like "what's on my outlook calendar", "my hotmail calendar this week", "read that outlook meeting", "who's in that outlook invite", "which outlook calendars can you see".
-argument-hint: calendars | list [--calendar <id>] [--from <YYYY-MM-DD|iso>] [--days <1-90>] [--limit <1-1000>] | read <event-id>
+description: Read a personal Microsoft account's calendar (outlook.com, hotmail.com, live.com) live through the slopweaver door, over its own consent, separate from the Outlook mailbox — which calendars exist, what is on in a window with recurring events expanded, and one event in full — with explicit bounds and stated residue. Use when the user asks what is on their Outlook or Hotmail calendar, what an Outlook meeting is, who is in it, which Outlook calendars slopweaver can see, or to connect the Outlook calendar. Phrases like "what's on my outlook calendar", "my hotmail calendar this week", "read that outlook meeting", "who's in that outlook invite", "which outlook calendars can you see", "connect my outlook calendar".
+argument-hint: connect [--status|--disconnect] | calendars | list [--calendar <id>] [--from <YYYY-MM-DD|iso>] [--days <1-90>] [--limit <1-1000>] | read <event-id>
 ---
 
 Run `"${CLAUDE_PLUGIN_ROOT}/bin/slopweaver" outlook-calendar $ARGUMENTS` and report the result.
 
 ## The door, and what is behind it
 
-`calendars`, `list` and `read` are the whole Outlook calendar surface, and all three only READ: nothing here
-books, moves, cancels or answers an invite. They speak Microsoft Graph through the official Graph SDK over the
-client `src/live/outlook/session.ts` binds to the ONE Microsoft grant `outlook connect` stored, so there is no
-second consent and no token path of its own. Never reach for raw HTTP, `curl`, a Microsoft MCP tool or a browser
-scrape to do something a verb does not: the absence is the answer.
+`calendars`, `list` and `read` are the whole Outlook calendar read surface, and all three only READ: nothing
+here books, moves, cancels or answers an invite. They speak Microsoft Graph through the official Graph SDK over
+the client `src/live/outlook/session.ts` binds to the calendar grant. Never reach for raw HTTP, `curl`, a
+Microsoft MCP tool or a browser scrape to do something a verb does not: the absence is the answer.
 
 **History lives in the corpus, as the `outlook-calendar` source.** `refresh --source outlook-calendar` reads
 every calendar whole the first time, then only what changed since the last pass (a modified-time anchor per
@@ -20,10 +19,20 @@ calendar, overlapped five minutes). Each event is one private record, a series a
 at Microsoft keeps its record until a full pass (`--all`). These three verbs read Outlook LIVE, never that
 copy; say which one answered.
 
-**The grant needs the calendar's read.** No mail grant asks for `Calendars.Read`; `outlook connect --calendar`
-adds it to whichever `--grant` tier is asked for, and a grant already holding `Calendars.ReadWrite` satisfies it.
-A grant with neither is refused by name before any request, and the refusal prints the one `outlook connect`
-command that adds it without dropping a mail permission — the `outlook` skill owns connecting.
+**The calendar has its own consent.** `outlook-calendar connect` asks for `User.Read` and `Calendars.Read` and
+nothing of the mailbox, and stores its own grant beside the mail one, under the same app registration
+(`outlook-client-id`; the `outlook` skill's `reference/connecting.md` sets it up). `--status` reads that grant
+from the file alone; `--disconnect` removes it and leaves the mail grant alone. With no calendar grant stored, both
+say when a held mail grant still serves the calendar's reads (`readsOverMailGrant` under `--json`). Which grant a read uses:
+
+- a stored calendar grant always wins, and one missing `Calendars.Read` is refused by name, naming
+  `outlook-calendar connect`;
+- with none stored, a held mail grant that already carries `Calendars.Read` or `Calendars.ReadWrite` (one made
+  before the calendar had its own consent) keeps working;
+- otherwise the read refuses as not connected, naming `outlook-calendar connect`.
+
+The integrations page judges the Outlook Calendar row by its own grant alone, so on that older mail grant alone
+the row reads as available while these reads still work.
 
 ## Three reads
 

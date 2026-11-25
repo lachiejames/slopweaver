@@ -147,14 +147,20 @@ describe("what the secret-absent monitor reads off it", () => {
     expect(dangling).toEqual([]);
   });
 
-  it("declares the one link and the one optional row this install relies on", () => {
+  it("declares the links and the one optional row this install relies on", () => {
     expect([
       REGISTER.filter((spec) => spec.absentMattersWith !== undefined).map((spec) => [
         spec.name,
         spec.absentMattersWith,
       ]),
       REGISTER.filter((spec) => spec.optional === true).map((spec) => spec.name),
-    ]).toEqual([[["backup-passphrase", ["store-backup-directory"]]], ["jumpcloud-org-id"]]);
+    ]).toEqual([
+      [
+        ["outlook-client-id", ["outlook-oauth.json", "outlook-calendar-oauth.json"]],
+        ["backup-passphrase", ["store-backup-directory"]],
+      ],
+      ["jumpcloud-org-id"],
+    ]);
   });
 });
 

@@ -180,6 +180,17 @@ export const INTEGRATIONS: readonly Integration[] = [
     paste: ["outlook-client-id"],
     secrets: ["outlook-oauth.json"],
   },
+  {
+    aliases: ["outlook calendar"],
+    config: undefined,
+    consentVerb: "slopweaver outlook-calendar connect",
+    id: "outlook-calendar",
+    label: "Outlook Calendar",
+    optional: [],
+    pasteEither: false,
+    paste: ["outlook-client-id"],
+    secrets: ["outlook-calendar-oauth.json"],
+  },
 ];
 
 /**

@@ -111,17 +111,20 @@ export const OAUTH_CLIENT_CREDENTIALS = [
     writtenBy: "slopweaver secrets set google-secops-client-secret",
   },
   {
+    // Both grants sit on their own door's platform, so the link is what makes either one stored evidence that
+    // this missing registration is a gap.
+    absentMattersWith: ["outlook-oauth.json", "outlook-calendar-oauth.json"],
     expiry: "none",
     lifecycle: "live",
     mintScope: "not-a-credential",
     name: "outlook-client-id",
-    platform: "Microsoft (Outlook mail door)",
+    platform: "Microsoft (Outlook mail and calendar doors)",
     reader: "src/secrets/outlookGrant.ts",
-    readVerbs: "slopweaver outlook connect, slopweaver connect outlook --check",
+    readVerbs: "slopweaver outlook connect, slopweaver outlook-calendar connect, slopweaver connect outlook --check",
     settable: true,
     shape: "line",
     usedFor:
-      "identifying the PUBLIC-client app registration (personal Microsoft accounts, Mobile and desktop platform, redirect `http://localhost`) the Outlook door consents through with PKCE. Not a user credential, and a public client has no secret",
+      "identifying the PUBLIC-client app registration (personal Microsoft accounts, Mobile and desktop platform, redirect `http://localhost`) the Outlook mail and Outlook Calendar doors each consent through with PKCE. Not a user credential, and a public client has no secret",
     valueShape: {
       describe: "a bare Microsoft application (client) id, a GUID like `00000000-0000-0000-0000-000000000000`",
       pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
