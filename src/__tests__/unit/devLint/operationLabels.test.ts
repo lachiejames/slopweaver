@@ -121,6 +121,182 @@ describe("scanOperationLabels (pure)", () => {
   });
 });
 
+describe("scanOperationLabels — a label passed by name", () => {
+  it("flags a shorthand label bound to an unmapped const, at the USE line rather than the declaration", () => {
+    const content = [
+      'const operation = "acme.widgets.list";',
+      "const res = await safeProviderCall({",
+      "  execute: () => client.widgets.list(),",
+      "  operation,",
+      "});",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/x.ts" })).toEqual([
+      { excerpt: "acme.widgets.list", line: 4, path: "src/x.ts", reason: "unmapped-label" },
+    ]);
+  });
+
+  it("flags `operation: SOME_CONST` bound to an unmapped label, `as const` and single quotes included", () => {
+    const content = [
+      "const WIDGETS_READ = 'acme.widgets.read' as const;",
+      "const res = await safeApiCall({",
+      "  operation: WIDGETS_READ,",
+      "});",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/x.ts" })).toEqual([
+      { excerpt: "acme.widgets.read", line: 3, path: "src/x.ts", reason: "unmapped-label" },
+    ]);
+  });
+
+  it("passes a shorthand and a named label that both resolve to mapped consts", () => {
+    const content = [
+      'export const BOT_PROBE = "slack.auth.test.write.bot";',
+      "async function history() {",
+      '  const operation = "slack.conversations.history";',
+      "  return safeProviderCall({",
+      "    operation,",
+      "  });",
+      "}",
+      "async function probe() {",
+      "  return safeProviderCall({",
+      "    operation: BOT_PROBE,",
+      "  });",
+      "}",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/ok.ts" })).toEqual([]);
+  });
+
+  it("resolves a const with a non-ASCII name, which is as much an identifier as an ASCII one", () => {
+    const content = [
+      'const Ωlabel = "acme.widgets.read";',
+      "const res = await safeProviderCall({",
+      "  operation: Ωlabel,",
+      "});",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/x.ts" })).toEqual([
+      { excerpt: "acme.widgets.read", line: 3, path: "src/x.ts", reason: "unmapped-label" },
+    ]);
+  });
+
+  it("resolves a const whose literal the formatter wrapped onto the next line", () => {
+    const content = [
+      "const WIDGETS_READ =",
+      '  "acme.widgets.read";',
+      "const res = await safeProviderCall({",
+      "  operation: WIDGETS_READ,",
+      "});",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/x.ts" })).toEqual([
+      { excerpt: "acme.widgets.read", line: 4, path: "src/x.ts", reason: "unmapped-label" },
+    ]);
+  });
+
+  it("flags an EXPORTED const exactly like a local one", () => {
+    const content = [
+      'export const WIDGETS_READ = "acme.widgets.read";',
+      "const res = await safeProviderCall({",
+      "  operation: WIDGETS_READ,",
+      "});",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/x.ts" })).toEqual([
+      { excerpt: "acme.widgets.read", line: 3, path: "src/x.ts", reason: "unmapped-label" },
+    ]);
+  });
+
+  it("resolves each use to the const its OWN scope sees, never a same-named one elsewhere in the file", () => {
+    const content = [
+      'const LABEL = "slack.conversations.history";',
+      "async function inner() {",
+      '  const LABEL = "acme.widgets.list";',
+      "  return safeProviderCall({",
+      "    operation: LABEL,",
+      "  });",
+      "}",
+      "async function outer() {",
+      "  return safeProviderCall({",
+      "    operation: LABEL,",
+      "  });",
+      "}",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/x.ts" })).toEqual([
+      { excerpt: "acme.widgets.list", line: 5, path: "src/x.ts", reason: "unmapped-label" },
+    ]);
+  });
+
+  it("never reads an outer const through a namespace-local `import X = …` alias that shadows it", () => {
+    const content = [
+      'namespace Other { export const LABEL = "slack.conversations.history"; }',
+      'const LABEL = "acme.widgets.read";',
+      "namespace Inner {",
+      "  import LABEL = Other.LABEL;",
+      "  safeProviderCall({",
+      "    operation: LABEL,",
+      "  });",
+      "}",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/ok.ts" })).toEqual([]);
+  });
+
+  it("never reads a same-named const in another function as the label a wrapper forwards by parameter", () => {
+    const content = [
+      "function describeIt() {",
+      '  const operation = "some prose about a widget";',
+      "  return operation;",
+      "}",
+      "async function send({ operation }: { operation: string }) {",
+      "  return safeProviderCall({",
+      "    execute: () => fetch(url),",
+      "    operation,",
+      "  });",
+      "}",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/ok.ts" })).toEqual([]);
+  });
+
+  // The declared limit, pinned so a change to it shows up here: a name that does not resolve to a same-file `const`
+  // string is unchecked rather than refused, because a forwarding wrapper has no label at that site to check.
+  it.each([
+    [
+      "a forwarded parameter",
+      [
+        "async function send({ operation }: { operation: string }) {",
+        "  return safeProviderCall({",
+        "    operation,",
+        "  });",
+        "}",
+      ],
+    ],
+    [
+      "a ternary initialiser",
+      [
+        'const operation = lane === "bot" ? "acme.bot.read" : "acme.user.read";',
+        "safeProviderCall({",
+        "  operation,",
+        "});",
+      ],
+    ],
+    ["a `let`", ['let LABEL = "acme.widgets.read";', "safeProviderCall({", "  operation: LABEL,", "});"]],
+    ["an import", ['import { LABEL } from "./labels.js";', "safeProviderCall({", "  operation: LABEL,", "});"]],
+    [
+      "a property read",
+      ['const request = { op: "acme.widgets.read" };', "safeProviderCall({", "  operation: request.op,", "});"],
+    ],
+  ])("leaves %s unchecked — the declared limit", (_shape, lines) => {
+    expect(scanOperationLabels({ content: lines.join("\n"), mapped: MAPPED, path: "src/ok.ts" })).toEqual([]);
+  });
+
+  it("leaves a bound label past the 24-line window unchecked — the declared window limit, not wanted coverage", () => {
+    const filler = Array.from({ length: 24 }, () => "  // filler");
+    const content = [
+      'const LABEL = "acme.widgets.read";',
+      "safeProviderCall({",
+      ...filler,
+      "  operation: LABEL,",
+      "});",
+    ].join("\n");
+    expect(scanOperationLabels({ content, mapped: MAPPED, path: "src/ok.ts" })).toEqual([]);
+  });
+});
+
 describe("labelMessage", () => {
   it("tells an unmapped-label reader about the tier1 fallback that makes it dangerous", () => {
     const message = labelMessage({
@@ -129,6 +305,7 @@ describe("labelMessage", () => {
     expect(message).toContain("src/x.ts:7");
     expect(message).toContain("slack.nope");
     expect(message).toContain("75-SECOND");
+    expect(message).toContain("src/lib/operationEndpointClass.ts");
   });
 
   it("tells a dynamic-label reader to use one literal per branch", () => {
