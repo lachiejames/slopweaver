@@ -1,7 +1,8 @@
 /*
  * `sendStackPush`, the locked write `github stack push` runs once its plan is resolved and its lock is held: a
  * clean bottom-of-stack create amends, pushes on the exact lease, creates, and names the walkthrough it still
- * owes; a push the remote does not confirm creates nothing and fails the run.
+ * owes; a push the remote does not confirm creates nothing and fails the run; a branch whose pull request is
+ * already open has that pull request updated, never a second create.
  */
 import { okAsync } from "neverthrow";
 import { describe, expect, it } from "vitest";
@@ -63,8 +64,8 @@ describe("sendStackPush", () => {
       home: tempHome(),
       locus: locusOf({ target: plan.form.target }),
       plan,
-      pullRequest: { kind: "new" },
       selfReview: undefined,
+      write: { kind: "create" },
     });
     expect(code).toBe(EXIT_OK);
     expect(minted).toBe(1);
@@ -101,11 +102,47 @@ describe("sendStackPush", () => {
       home: tempHome(),
       locus: locusOf({ target: plan.form.target }),
       plan,
-      pullRequest: { kind: "new" },
       selfReview: undefined,
+      write: { kind: "create" },
     });
     expect(code).toBe(EXIT_ERROR);
     expect(createCalls).toEqual([]);
     expect(lines).not.toContain(missingWalkthroughLine({ number: 100, repoSlug: "o/r" }));
+  });
+
+  it("updates the branch's open pull request in place of a create, expecting the head this push landed", async () => {
+    const createCalls: string[] = [];
+    const updateCalls: { number: number; title: string | undefined }[] = [];
+    // The branch's open pull request as read before the push: still on the commit the push is about to replace.
+    const open = { ...pr({ number: 42 }), head: { ...pr({ number: 42 }).head, ref: "top", sha: LOCAL_SHA } };
+    const api: GithubWriteApi = fakeApi({
+      createPr: ({ head }) => {
+        createCalls.push(head);
+        return okAsync(pr({ number: 100 }));
+      },
+      getPr: () => okAsync({ ...open, head: { ...open.head, sha: AMENDED_SHA } }),
+      updatePr: ({ number, title }) => {
+        updateCalls.push({ number, title });
+        return okAsync({ ...open, head: { ...open.head, sha: AMENDED_SHA } });
+      },
+    });
+    const { deps, lines } = harness({ api });
+    const plan = gatedPlan();
+    const code = await sendStackPush({
+      args: unwrap(parseGithubStackPushArgs({ argv: ["--form", "{}"] })),
+      carry: { kind: "clear" },
+      deps,
+      freshApi: () => api,
+      home: tempHome(),
+      locus: locusOf({ target: plan.form.target }),
+      plan,
+      selfReview: undefined,
+      write: { draft: plan.form, kind: "update", previewed: open },
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(createCalls).toEqual([]);
+    expect(updateCalls).toEqual([{ number: 42, title: "t" }]);
+    expect(lines).toContain("updated #42  https://example.invalid/pr/42");
+    expect(lines).not.toContain(missingWalkthroughLine({ number: 42, repoSlug: "o/r" }));
   });
 });

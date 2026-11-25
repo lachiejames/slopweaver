@@ -24,7 +24,7 @@ describe("recordRaise", () => {
       deps: { now: () => NOW, out: ({ line }) => lines.push(line) },
       home,
       plan: PLAN,
-      result: { create: created, headSha: LOCAL_SHA },
+      result: { headSha: LOCAL_SHA, outcome: created },
     });
     const row = {
       atIso: NOW.toISOString(),
@@ -50,7 +50,7 @@ describe("recordRaise", () => {
       deps: { now: () => NOW, out: ({ line }) => lines.push(line) },
       home,
       plan: PLAN,
-      result: { create: updated, headSha: LOCAL_SHA },
+      result: { headSha: LOCAL_SHA, outcome: updated },
     });
     expect(lines).toEqual([]);
     expect(unwrap(readChecksReadLedger({ home }))).toEqual([]);

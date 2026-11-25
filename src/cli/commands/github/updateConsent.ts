@@ -1,6 +1,8 @@
 /**
  * The two consent steps `github pr update` takes between the rendered body and the door, in order: the
- * settled-evidence check (`./settledEvidenceGate.ts`), then a wholesale replacement's preview and its key.
+ * settled-evidence check (`./settledEvidenceGate.ts`), then a wholesale replacement's preview and its key. A `github
+ * stack push` re-run on a branch whose pull request is open takes the same two, before its push
+ * (`./stackPushUpdate.ts`).
  *
  * The order is the point. `SLOPWEAVER_ALLOW_PR_REPLACE=1` consents to discarding whatever a form cannot carry,
  * and it is exactly what a rollout sets when a pull request's screenshots become links — so the
@@ -18,7 +20,7 @@ import { ALLOW_PR_REPLACE, replaceDecisionFor } from "./updateCore.js";
 /**
  * Run both consent steps and say whether the update stops here, having printed why.
  *
- * @param args the parsed CLI arguments, read for `--dry-run`
+ * @param args whether this is a `--dry-run`, the one argument read; `stack push` passes a live run's `false`
  * @param body the exact bytes the write would send
  * @param form the form as previewed, whose title a replacement may change
  * @param home the state home whose board and grant journal are read
@@ -35,7 +37,7 @@ export function consentStops({
   live,
   wholesale,
 }: {
-  args: GithubPrArgs;
+  args: Pick<GithubPrArgs, "dryRun">;
   body: string;
   deps: GithubPrDeps;
   form: PrForm;

@@ -13,8 +13,6 @@ import { err, unwrapErr } from "../../../../../lib/result.js";
 import { EXAMPLE_PR_FORM } from "../../../../../outbound/github/formExample.js";
 import type { PrFormDraft } from "../../../../../outbound/github/types.js";
 
-// deleted-with-code: createReviewRefusal
-
 function form(over: Partial<PrFormDraft["target"]> = {}): PrFormDraft {
   return { ...EXAMPLE_PR_FORM, target: { base: "bottom", head: "top", owner: "o", repo: "r", ...over } };
 }
@@ -253,10 +251,19 @@ describe("githubStackRegistrationFor", () => {
 
 describe("githubStackPushDoorRequest", () => {
   it("describes the write without a credential-bearing remote URL", () => {
-    expect(githubStackPushDoorRequest({ home: "/home", plan: planned() })).toEqual({
+    expect(githubStackPushDoorRequest({ createsWorkItem: true, home: "/home", plan: planned() })).toEqual({
       action: { kind: "verb", noun: "github", verb: "stack push" },
       artifact: { base: "bottom", branch: "top", head: "top", repo: "o/r" },
       meta: { createsWorkItem: true, effect: "external-write", home: "/home", requiresApproval: false },
+    });
+  });
+
+  it("records an update of the branch's open pull request as creating no work item", () => {
+    expect(githubStackPushDoorRequest({ createsWorkItem: false, home: "/home", plan: planned() }).meta).toEqual({
+      createsWorkItem: false,
+      effect: "external-write",
+      home: "/home",
+      requiresApproval: false,
     });
   });
 });

@@ -19,7 +19,10 @@ import {
  * Print the outcome and choose the exit code. A door refusal and a store that could not record the decision are
  * different facts and print differently; both exit `EXIT_ERROR`.
  *
- * @param routed what the door decided, and when it performed, the create, the registration and the carry
+ * A create succeeds only as `created`; an update of the branch's open pull request succeeds as `updated`, or as
+ * `unchanged` when the pull request already said exactly what the push was given.
+ *
+ * @param routed what the door decided, and when it performed, the create or update, the registration and the carry
  * @returns the process exit code
  */
 export function reportStackPush({
@@ -28,7 +31,7 @@ export function reportStackPush({
 }: {
   deps: Pick<GithubStackPushDeps, "out">;
   routed: ThroughDoorResult<{
-    create: PrOutcome;
+    outcome: PrOutcome;
     registration: GithubStackRegistrationOutcome | undefined;
     carried: boolean;
   }>;
@@ -39,7 +42,7 @@ export function reportStackPush({
     }
     return EXIT_ERROR;
   }
-  for (const line of outcomeLines({ outcome: routed.result.create })) {
+  for (const line of outcomeLines({ outcome: routed.result.outcome })) {
     deps.out({ line });
   }
   for (const line of stackRegistrationLines({ registration: routed.result.registration })) {
@@ -56,7 +59,49 @@ export function reportStackPush({
     deps.out({ line: "refused to report success: the stack above this branch was only partially carried" });
     return EXIT_ERROR;
   }
-  return routed.result.create.kind === "created" ? EXIT_OK : EXIT_ERROR;
+  return succeededWrite({ outcome: routed.result.outcome }) === undefined ? EXIT_ERROR : EXIT_OK;
+}
+
+/** A write that reached the pull request: a create as `created`, an update as `updated` or `unchanged`. */
+export type SucceededWrite = Extract<PrOutcome, { kind: "created" | "updated" | "unchanged" }>;
+
+/**
+ * The outcome narrowed to a write that reached the pull request, else nothing.
+ *
+ * @returns the outcome when it is a confirmed create or update, else `undefined`
+ */
+export function succeededWrite({ outcome }: { outcome: PrOutcome }): SucceededWrite | undefined {
+  const { kind } = outcome;
+  return kind === "created" || kind === "updated" || kind === "unchanged" ? outcome : undefined;
+}
+
+/**
+ * Post the walkthrough whenever the write itself reached the pull request, then answer the worse of the two exits.
+ *
+ * A carry or a stack registration that failed AFTER the create or update still fails the run, but it no longer
+ * withholds a walkthrough from a pull request whose title and body did land: the round goes to the pull request the
+ * write produced, and the report's failure is kept.
+ *
+ * @param reported the exit `reportStackPush` chose
+ * @param outcome the write's outcome when the door performed it, else `undefined`
+ * @param walk posts (or, given none, accounts for) the walkthrough on the written pull request
+ * @returns the report's exit when it failed, else the walkthrough's
+ */
+export async function walkthroughAfterReport({
+  outcome,
+  reported,
+  walk,
+}: {
+  outcome: PrOutcome | undefined;
+  reported: number;
+  walk: (input: { outcome: SucceededWrite }) => Promise<number>;
+}): Promise<number> {
+  const written = outcome === undefined ? undefined : succeededWrite({ outcome });
+  if (written === undefined) {
+    return reported;
+  }
+  const posted = await walk({ outcome: written });
+  return reported === EXIT_OK ? posted : reported;
 }
 
 /**
@@ -74,7 +119,8 @@ export function reportStackPush({
  *
  * @param home the state home whose checks-read register takes the row
  * @param plan the gate-checked plan, naming the repository and the head branch the gate scopes by
- * @param result what the door performed — the create outcome and the head the push actually landed
+ * @param result what the door performed — the write's outcome and the head the push actually landed; only a create
+ *   leaves this row, since an update raises nothing new
  */
 export function recordRaise({
   deps,
@@ -88,9 +134,9 @@ export function recordRaise({
     readonly form: { readonly target: { readonly owner: string; readonly repo: string } };
     readonly facts: { readonly branch: string };
   };
-  result: { create: PrOutcome; headSha: string | undefined };
+  result: { outcome: PrOutcome; headSha: string | undefined };
 }): void {
-  if (result.create.kind !== "created" || result.headSha === undefined) {
+  if (result.outcome.kind !== "created" || result.headSha === undefined) {
     return;
   }
   const repo = `${plan.form.target.owner}/${plan.form.target.repo}`;
@@ -99,7 +145,7 @@ export function recordRaise({
     branch: plan.facts.branch,
     headSha: result.headSha,
     kind: "raised",
-    number: result.create.number,
+    number: result.outcome.number,
     repo,
   } as const;
   const appended = appendChecksReadRecord({ home, nowIso: row.atIso, row });

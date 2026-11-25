@@ -14,11 +14,11 @@ import type { SelfReviewForm } from "../../../outbound/github/selfReview.js";
 import type { WaitOptions } from "../../../wait/flags.js";
 import { realWaitClock } from "../../../wait/loop.js";
 import { EXIT_ERROR } from "../../exitCodes.js";
-import type { DescriptionPullRequest } from "./prDescriptionReviewCore.js";
 import type { StackCarryGate } from "./stackCarryRun.js";
 import type { GatedStackPushPlan, GithubStackPushArgs } from "./stackPushCore.js";
 import type { GithubStackPushDeps } from "./stackPushDeps.js";
 import { sendStackPush } from "./stackPushSend.js";
+import type { StackPushWrite } from "./stackPushUpdate.js";
 
 /**
  * Take the repository's operation lock — at once, or, under `--wait`, on the shared wait contract until the
@@ -74,19 +74,19 @@ export async function sendUnderStackPushLock({
   deps,
   home,
   plan,
-  pullRequest,
   selfReview,
   token,
+  write,
 }: {
   args: GithubStackPushArgs;
   carry: StackCarryGate;
   deps: GithubStackPushDeps;
   home: string;
   plan: GatedStackPushPlan;
-  /** The pull request the early description review bound, handed on so the create's review binds the same one. */
-  pullRequest: DescriptionPullRequest;
   selfReview: SelfReviewForm | undefined;
   token: string;
+  /** The create, or the update of the branch's open pull request, decided and gated before the lock. */
+  write: StackPushWrite;
 }): Promise<number> {
   // `locusOf`, never a hand-built string. The ledger's own definition lower-cases the repository and joins
   // with `#`; this verb used to spell it `owner/repo:base...head` by hand, which is a DIFFERENT key — so the
@@ -112,8 +112,8 @@ export async function sendUnderStackPushLock({
       home,
       locus,
       plan,
-      pullRequest,
       selfReview,
+      write,
     });
   } finally {
     // The release's own warning quotes the lock path, which comes from `--home`, so it goes through the filtered

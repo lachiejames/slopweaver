@@ -61,7 +61,9 @@ The form refuses each of these, naming the comment and the fix; none has an over
   judged everywhere.
 
 Pass `--self-review <json|->` to `stack push`, `pr update`, or `push`. A `pr update` may contain
-only `--self-review`. The authenticated account must own the pull request; the foreign-description
+only `--self-review`. `stack push` posts the round on whichever pull request its write produced, the open one it
+updated included, even when the carry or the stack registration after that write failed; the run still exits
+non-zero on that failure (`walkthroughAfterReport`, `src/cli/commands/github/stackPushReport.ts`). The authenticated account must own the pull request; the foreign-description
 override never applies to self-review. When a diff changes, supply the replacement form. The write posts the
 fresh round first, then uses its local ledger to resolve the previous self-review round. It never guesses at a
 human thread. An ambiguous result is `UNCONFIRMED` and must be inspected before retrying. A round is bound to

@@ -8,12 +8,10 @@
 import type { GithubWriteApi } from "../../../corpus/github/write.js";
 import type { InstallationIdentifiers } from "../../../hygiene/installationIdentifiers.js";
 import type { DescriptionReviewComment } from "../../../outbound/github/descriptionReviewTypes.js";
-import { releasePrRecord } from "../../../outbound/github/prLedger.js";
 import type { PrFormDraft } from "../../../outbound/github/types.js";
 import type { PrOutcome } from "./core.js";
 import { confirmOrUnconfirmed, type Outgoing } from "./performWrite.js";
 import type { GithubPrDeps } from "./prDeps.js";
-import type { DescriptionPullRequest } from "./prDescriptionReviewCore.js";
 import { renderAndCheck, stampToday, writeGates } from "./prRenderGate.js";
 import { resolvedReservation } from "./reservation.js";
 
@@ -27,14 +25,12 @@ async function outgoingCreate({
   draft,
   home,
   installationIdentifiers,
-  pullRequest,
 }: {
   comments: readonly DescriptionReviewComment[];
   deps: GithubPrDeps;
   draft: PrFormDraft;
   home: string;
   installationIdentifiers: InstallationIdentifiers | undefined;
-  pullRequest: DescriptionPullRequest;
 }): Promise<
   Extract<Outgoing, { kind: "refused" }> | (Extract<Outgoing, { kind: "send" }> & { boundHead: string | undefined })
 > {
@@ -53,9 +49,9 @@ async function outgoingCreate({
     form,
     headRef: form.target.head,
     home,
-    // The pull request the caller resolved: `new` reads no existing comments, while an open one already on this
-    // branch binds them, exactly as the early check did. The walkthrough this push posts is `comments`.
-    pullRequest,
+    // A create opens a pull request, so its review reads no existing comments; a branch whose pull request is already
+    // open is updated instead (`./stackPushSend.ts`). The walkthrough this push posts is `comments`.
+    pullRequest: { kind: "new" } as const,
     repoDir: deps.cwd(),
   };
   const reviewed = await deps.descriptionReview(review);
@@ -96,25 +92,6 @@ export function createdHeadWarning({
   );
 }
 
-/**
- * Why a create whose review bound an OPEN pull request must not go ahead once the reservation came back fresh: the
- * review read that pull request's comments, and the create would open a different one. Either the open pull request
- * closed after the review, or this machine's ledger never recorded it; both end here, never at a create.
- *
- * @returns the refusal reason, or undefined when the review described a new pull request
- */
-function reviewedAnotherPullRequest({ pullRequest }: { pullRequest: DescriptionPullRequest }): string | undefined {
-  if (pullRequest.kind === "new") {
-    return undefined;
-  }
-  const number = String(pullRequest.number);
-  return (
-    `both description reviews named open pull request #${number}, but no reservation here records it, so nothing ` +
-    `was created. Update #${number} with \`github push\` then \`github pr update --number ${number}\`, or re-run ` +
-    "if it has closed."
-  );
-}
-
 /** The form target's `owner/name` as the caller spelled it, which a duplicate's update command prints. */
 function targetRepo({ owner, repo }: { owner: string; repo: string }): string {
   return `${owner}/${repo}`;
@@ -133,8 +110,6 @@ function targetRepo({ owner, repo }: { owner: string; repo: string }): string {
  * @param locus the branch locus — the create-guard key
  * @param deps the injectable clock and output sink
  * @param installationIdentifiers the installation's own identifiers the scan forgives on this target
- * @param pullRequest the pull request the description review binds: `new`, or the branch's open one, which then
- *   ends at the reservation's duplicate refusal, or at a refusal that releases a fresh reservation
  * @returns the create outcome
  */
 export async function performCreate({
@@ -145,7 +120,6 @@ export async function performCreate({
   locus,
   deps,
   installationIdentifiers,
-  pullRequest,
 }: {
   api: GithubWriteApi;
   comments: readonly DescriptionReviewComment[];
@@ -154,9 +128,8 @@ export async function performCreate({
   locus: string;
   deps: GithubPrDeps;
   installationIdentifiers: InstallationIdentifiers | undefined;
-  pullRequest: DescriptionPullRequest;
 }): Promise<PrOutcome> {
-  const outgoing = await outgoingCreate({ comments, deps, draft, home, installationIdentifiers, pullRequest });
+  const outgoing = await outgoingCreate({ comments, deps, draft, home, installationIdentifiers });
   if (outgoing.kind === "refused") {
     return outgoing;
   }
@@ -171,11 +144,6 @@ export async function performCreate({
   });
   if (reservation.kind === "taken") {
     return { existing: reservation.record.number, kind: "duplicate", locus, repo: targetRepo(form.target) };
-  }
-  const elsewhere = reviewedAnotherPullRequest({ pullRequest });
-  if (elsewhere !== undefined) {
-    releasePrRecord({ home, locus });
-    return { kind: "refused", reason: elsewhere };
   }
   return createAndConfirm({ api, deps, home, locus, outgoing });
 }
