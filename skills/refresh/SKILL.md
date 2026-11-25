@@ -61,8 +61,8 @@ Two things worth reporting back that are easy to skip past:
   `--until`, `--lookback-days`, `--sample` and `--fetch-cap` are refused beside it, and `--all-sources` never
   sweeps it up. With no export held it says so; `chatgpt sync` is the verb the owner runs ([chatgpt](../chatgpt/SKILL.md)).
 
-- **The `outlook-calendar` lane reads the whole diary once, then what changed.** It rides the one Microsoft
-  grant (`outlook connect`). A calendar with no anchor is read whole; then by `lastModifiedDateTime`, five
+- **The `outlook-calendar` lane reads the whole diary once, then what changed.** It rides the calendar's
+  own grant (`outlook-calendar connect`). A calendar with no anchor is read whole; then by `lastModifiedDateTime`, five
   minutes overlapped. `--since`/`--all` read every calendar whole, the only way a deleted event's record goes.
   A gap or a `--sample`/`--fetch-cap` moves no anchor ([outlook-calendar](../outlook-calendar/SKILL.md)).
 

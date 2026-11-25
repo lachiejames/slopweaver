@@ -1,13 +1,16 @@
 /**
- * Lazy manifest for the `outlook-calendar` noun — the Microsoft calendar door, over the same personal-account
- * grant as `outlook`.
+ * Lazy manifest for the `outlook-calendar` noun — the Microsoft calendar door, its own integration with its own
+ * consent and grant.
  *
- * All three verbs are reads (`external-read`): nothing here changes the diary, so none is `doorRouted`. Every
- * parser refuses a malformed tail before a credential is read (`../commands/outlookCalendar/core.ts`), so every
- * verb is `parseRejectIsIoFree`; `read` with no id refuses on the parser alone, so it is also `dryParseSafe`.
+ * `connect` writes the calendar grant under `$SLOPWEAVER_HOME` and reads no diary (`local-state`). The other
+ * three verbs are reads (`external-read`): nothing here changes the diary, so none is `doorRouted`. Every
+ * parser refuses a malformed tail before a credential is read (`../commands/outlookCalendar/core.ts`,
+ * `../commands/outlook/connectCore.ts`), so every verb is `parseRejectIsIoFree`; `read` with no id refuses on
+ * the parser alone, so it is also `dryParseSafe`.
  */
 import {
   OUTLOOK_CALENDAR_CALENDARS_USAGE,
+  OUTLOOK_CALENDAR_CONNECT_USAGE,
   OUTLOOK_CALENDAR_LIST_USAGE,
   OUTLOOK_CALENDAR_READ_USAGE,
 } from "../commands/outlookCalendar/outlookCalendarUsage.js";
@@ -27,6 +30,21 @@ export const outlookCalendarManifest: Readonly<Record<string, VerbManifestEntry>
       parseRejectIsIoFree: true,
       summary: "List the Outlook account's calendars, default first, with the id `list --calendar` takes",
       usage: OUTLOOK_CALENDAR_CALENDARS_USAGE,
+    },
+  }),
+  connect: lazy({
+    load: () => import("../commands/outlook/connectRun.js").then((m) => m.outlookCalendarConnectCommand),
+    meta: {
+      createsWorkItem: false,
+      diagnostic: false,
+      doorRouted: false,
+      // A bare `outlook-calendar connect` opens a socket and a browser, so it is not no-args-safe; its REJECT path is.
+      dryParseSafe: false,
+      effect: "local-state",
+      example: "slopweaver outlook-calendar connect --status",
+      parseRejectIsIoFree: true,
+      summary: "Authorise a personal Outlook calendar by browser consent and store its own grant owner-only",
+      usage: OUTLOOK_CALENDAR_CONNECT_USAGE,
     },
   }),
   list: lazy({

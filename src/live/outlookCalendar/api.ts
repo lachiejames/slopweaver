@@ -1,7 +1,8 @@
 /**
  * The `outlook-calendar` door's Graph seam: four reads, each one Graph call inside `safeProviderCall`,
  * `transient`, through its strict boundary (`./wire.ts`). Built over the Graph client `../outlook/session.ts`
- * bound to the ONE Microsoft grant, so the calendar has no token path of its own.
+ * bound to the calendar grant (or, until one is stored, a held mail grant that carries a calendar permission),
+ * so this module never chooses or reads a grant itself.
  *
  * Three properties every request has, two of them the mail door's (`../outlook/apiCore.ts` header):
  *

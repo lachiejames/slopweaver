@@ -90,6 +90,7 @@ const CATEGORIES = [
       "chatgpt-web-session.json",
       "gmail-oauth.json",
       "outlook-oauth.json",
+      "outlook-calendar-oauth.json",
       "drive-oauth.json",
       "calendar-oauth.json",
       "google-admin-oauth.json",
@@ -111,8 +112,8 @@ describe("the register's category files", () => {
   });
 
   it("are spread into the one register contiguously, in category order, as the very same row objects", () => {
-    expect(CREDENTIALS.length).toBe(55);
+    expect(CREDENTIALS.length).toBe(56);
     expect(CREDENTIALS).toStrictEqual(CATEGORIES.flatMap((category) => [...category.rows]));
-    expect(CATEGORIES.map((category) => CREDENTIALS.indexOf(category.rows[0]))).toEqual([0, 7, 18, 26, 40, 43, 50]);
+    expect(CATEGORIES.map((category) => CREDENTIALS.indexOf(category.rows[0]))).toEqual([0, 7, 18, 26, 40, 43, 51]);
   });
 });

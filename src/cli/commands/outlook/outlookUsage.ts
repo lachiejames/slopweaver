@@ -5,11 +5,10 @@
 
 /** `outlook connect` usage. */
 export const OUTLOOK_CONNECT_USAGE =
-  "usage: slopweaver outlook connect [--grant <read|manage|full>] [--calendar] [--status] [--disconnect] [--json]\n" +
-  "       [--home <dir>]\n" +
-  "  Opens Microsoft's consent screen for a personal account and stores the grant, owner-only\n" +
+  "usage: slopweaver outlook connect [--grant <read|manage|full>] [--status] [--disconnect] [--json] [--home <dir>]\n" +
+  "  Opens Microsoft's consent screen for a personal account and stores the MAIL grant, owner-only.\n" +
+  "  It asks for mail permissions only; the calendar connects on its own with `outlook-calendar connect`\n" +
   "  --grant       which permissions to request (default manage: read + categories/read-state/archive/drafts)\n" +
-  "  --calendar    also ask for Calendars.Read, which `outlook-calendar` needs; no mail grant carries it\n" +
   "  --status      report the stored grant's account and scopes and stop — no browser, no socket\n" +
   "  --disconnect  delete the local grant; consent at Microsoft stays until withdrawn at\n" +
   "                https://account.live.com/consent/Manage\n" +

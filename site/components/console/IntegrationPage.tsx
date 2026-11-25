@@ -10,9 +10,9 @@
  * `./ConnectIntegration.tsx` already draws, so connecting here is exactly connecting from a failed read's Connect.
  */
 import { Fragment, type ReactElement } from "react";
-
+import type { GuideStep } from "../../lib/guideShape";
 import type { IntegrationStatus } from "../../lib/integrationCatalog";
-import { type GuideStep, guideOf } from "../../lib/integrationGuides";
+import { guideOf } from "../../lib/integrationGuides";
 import type { Integration } from "../../lib/integrations";
 import { ConsentVerb } from "./ConnectIntegration";
 import { StatusPill } from "./IntegrationStatusPill";

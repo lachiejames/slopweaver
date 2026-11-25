@@ -16,7 +16,7 @@
  * takes the same rule.
  */
 import { err, ok, type Result } from "#lib/result.js";
-import { resolveOutlookGraph } from "../../live/outlook/session.js";
+import { resolveOutlookCalendarGraph } from "../../live/outlook/session.js";
 import { makeOutlookCalendarApi, type OutlookCalendarApi } from "../../live/outlookCalendar/api.js";
 import { createBronzeCommitter } from "../corpusWriter.js";
 import { type CoverageGap, coverageGap, type SourceIngestJob } from "../ingestJob.js";
@@ -101,7 +101,7 @@ type OutlookCalendarIngestOutcome = Result<{
   committedCursor?: string;
 }>;
 
-/** Resolve the production seam from the ONE Microsoft grant, unless a caller injected one. */
+/** Resolve the production seam from the calendar's grant, unless a caller injected one. */
 async function resolveApi({
   api,
   home,
@@ -112,7 +112,7 @@ async function resolveApi({
   if (api !== undefined) {
     return ok(api);
   }
-  const bound = await resolveOutlookGraph({ capabilities: ["calendar"], home });
+  const bound = await resolveOutlookCalendarGraph({ home });
   if (bound.isErr()) {
     return err([bound.error.message]);
   }

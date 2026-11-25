@@ -111,6 +111,27 @@ describe("integrationStatusOf", () => {
     ).toBe("available");
   });
 
+  it("reads Outlook mail and Outlook Calendar off their own grant files, so a mail grant alone leaves the calendar available", () => {
+    const mailOnly = storeWith("outlook-client-id", "outlook-oauth.json");
+    expect(
+      integrationStatusOf({ datadogSite: "set", files: mailOnly, integration: integrationOf({ id: "outlook" }) }),
+    ).toBe("connected");
+    expect(
+      integrationStatusOf({
+        datadogSite: "set",
+        files: mailOnly,
+        integration: integrationOf({ id: "outlook-calendar" }),
+      }),
+    ).toBe("available");
+    expect(
+      integrationStatusOf({
+        datadogSite: "set",
+        files: storeWith("outlook-client-id", "outlook-calendar-oauth.json"),
+        integration: integrationOf({ id: "outlook-calendar" }),
+      }),
+    ).toBe("connected");
+  });
+
   it("calls a consent door needs-attention by a finding on its client before any grant exists", () => {
     const looseClient: readonly StoredFile[] = [
       { name: "google-client-id", state: "loose-mode", stored: true },
@@ -225,6 +246,7 @@ describe("catalogOrder and catalogShown", () => {
       "Linear",
       "Notion",
       "Outlook",
+      "Outlook Calendar",
       "Slack",
     ]);
   });
@@ -248,8 +270,8 @@ describe("catalogOrder and catalogShown", () => {
 
   it("counts what each chip would show for the search in hand", () => {
     expect(filterCounts({ entries, query: "" })).toEqual({
-      all: 12,
-      available: 8,
+      all: 13,
+      available: 9,
       connected: 3,
       "needs-attention": 1,
     });

@@ -74,7 +74,7 @@ export const OUTLOOK_FLAG_NAMES: Readonly<Record<string, readonly string[]>> = {
   attachment: ["--attachment-id", "--home", "--json", "--max-file-mb", "--name"],
   categories: ["--home", "--json"],
   category: ["--add", "--dry-run", "--home", "--json", "--remove", "--thread"],
-  connect: ["--calendar", "--disconnect", "--grant", "--home", "--json", "--status"],
+  connect: ["--disconnect", "--grant", "--home", "--json", "--status"],
   draft: ["--dry-run", "--form", "--home", "--json", "--reply-to"],
   folders: ["--home", "--json"],
   list: ["--folder", "--home", "--json", "--limit", "--query", "--unread"],

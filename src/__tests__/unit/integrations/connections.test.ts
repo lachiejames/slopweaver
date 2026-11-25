@@ -39,11 +39,16 @@ const HAND_KEPT_INTEGRATIONS = [
     credentialSets: [["trelica-tenant-host"]],
     integration: "trelica",
   },
+  {
+    connectWith: "slopweaver outlook-calendar connect",
+    credentialSets: [["outlook-calendar-oauth.json"]],
+    integration: "outlook-calendar",
+  },
 ];
 
 /** A manifest-only fixture integration that a row may need, connected by one stored key. */
 const FIXTURE = {
-  connection: { connectWith: "slopweaver secrets set hex-api-token", credentialSets: [["hex-api-token"]], ordinal: 12 },
+  connection: { connectWith: "slopweaver secrets set hex-api-token", credentialSets: [["hex-api-token"]], ordinal: 13 },
   features: { read: async () => (await import("../../../live/github/read.js")).parseGithubReadAddress },
   id: "acme",
   name: "Acme",

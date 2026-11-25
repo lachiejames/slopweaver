@@ -22,6 +22,8 @@ const ABSENT: readonly (readonly [string, string])[] = [
   ["talk meeting-due: no Google Calendar grant stored for this home — run `slopweaver calendar connect`", "calendar"],
   ["no grant stored — run `slopweaver gmail connect`", "gmail"],
   ["no outlook grant stored for this home", "outlook"],
+  ["no Outlook grant stored for this home — run `slopweaver outlook connect`", "outlook"],
+  ["no Outlook Calendar grant stored for this home — run `slopweaver outlook-calendar connect`", "outlook-calendar"],
   ["no Cloudflare token configured — run: slopweaver secrets set cloudflare-token", "cloudflare"],
   ["no Fathom API key is configured — mint one at https://fathom.video/customize#api-access-header", "fathom"],
   ["no Linear API key is configured — run: slopweaver secrets set linear-token", "linear"],

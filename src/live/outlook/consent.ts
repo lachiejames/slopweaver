@@ -24,7 +24,7 @@ import {
   redeemOutlookCode,
 } from "./client.js";
 import { type OutlookError, OutlookErrors } from "./errors.js";
-import { grantedOutlookScopes } from "./scopes.js";
+import { grantedOutlookScopes, type OutlookProduct, outlookProductName } from "./scopes.js";
 
 /** What one completed consent hands the grant writer. */
 export interface OutlookConsentOutcome {
@@ -237,26 +237,31 @@ async function finishOutlookConsent({
  *
  * @param clientId the app registration's client id
  * @param writeLine where the consent URL is printed
+ * @param product which product is being connected — named on the consent prompt and in every refusal
  * @returns the effects {@link runOutlookConsent} composes
  */
 export function productionOutlookConsentDeps({
   clientId,
   writeLine,
+  product,
 }: {
   clientId: string;
   writeLine: (line: string) => void;
+  product: OutlookProduct;
 }): OutlookConsentDeps {
+  const productName = outlookProductName({ product });
   return {
     awaitCallback: ({ onListening, signal }) =>
-      awaitLoopbackCallback({ onListening, productName: "Outlook", redirectHost: "localhost", signal }),
-    consentUrl: ({ redirectUri, scopes, secrets }) => outlookConsentUrl({ clientId, redirectUri, scopes, secrets }),
+      awaitLoopbackCallback({ onListening, productName, redirectHost: "localhost", signal }),
+    consentUrl: ({ redirectUri, scopes, secrets }) =>
+      outlookConsentUrl({ clientId, product, redirectUri, scopes, secrets }),
     identify: ({ accessToken }) =>
       makeOutlookApi({ graph: makeGraphClient({ accessToken }), rateScopeKey: clientId }).me(),
     makeSecrets: () => makeConsentSecrets(),
     present: ({ url }) => {
-      presentConsentUrl({ productName: "Outlook", url, writeLine });
+      presentConsentUrl({ productName, url, writeLine });
     },
     redeem: ({ code, clientInfo, redirectUri, scopes, verifier }) =>
-      redeemOutlookCode({ clientId, clientInfo, code, redirectUri, scopes, verifier }),
+      redeemOutlookCode({ clientId, clientInfo, code, product, redirectUri, scopes, verifier }),
   };
 }

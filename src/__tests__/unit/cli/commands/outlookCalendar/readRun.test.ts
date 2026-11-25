@@ -62,7 +62,7 @@ function shell({ bind = true }: { bind?: boolean } = {}): {
       },
       session: async ({ home }) => {
         homes.push(home);
-        return bind ? ok(API) : err(OutlookErrors.notConnected());
+        return bind ? ok(API) : err(OutlookErrors.notConnected({ product: "calendar" }));
       },
       warn: (line) => {
         warn.push(line);
@@ -105,7 +105,9 @@ describe("outlook-calendar list", () => {
     const run = shell({ bind: false });
     expect(await runOutlookCalendarList({ deps: run.deps, rest: ["--home", "/named"] })).toBe(EXIT_ERROR);
     expect(run.homes).toEqual(["/named"]);
-    expect(run.warn).toEqual([OutlookErrors.notConnected().message]);
+    expect(run.warn).toEqual([
+      "no Outlook Calendar grant stored for this home — run `slopweaver outlook-calendar connect`",
+    ]);
     expect(run.out).toEqual([]);
   });
 });

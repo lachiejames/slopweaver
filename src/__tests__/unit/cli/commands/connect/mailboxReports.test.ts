@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { gmailReport, outlookReport } from "../../../../../cli/commands/connect/mailboxReports.js";
-import { outlookGrantPath, writeOutlookGrant } from "../../../../../secrets/outlookGrant.js";
+import { outlookCalendarGrantStore, outlookMailGrantStore } from "../../../../../secrets/outlookGrant.js";
 
 let home: string;
 
@@ -31,16 +31,18 @@ describe("outlookReport", () => {
 
   it("reads a stored grant's account and tiers, and fails only on the missing registration", async () => {
     expect(
-      writeOutlookGrant({
-        grant: {
-          account: "me@example.test",
-          grantedAtIso: "2026-11-01T00:00:00.000Z",
-          homeAccountId: "home-account-fixture",
-          msalCache: "{}",
-          scopes: ["User.Read", "Mail.Read", "MailboxSettings.Read"],
-        },
-        home,
-      }).isOk(),
+      outlookMailGrantStore
+        .write({
+          grant: {
+            account: "me@example.test",
+            grantedAtIso: "2026-11-01T00:00:00.000Z",
+            homeAccountId: "home-account-fixture",
+            msalCache: "{}",
+            scopes: ["User.Read", "Mail.Read", "MailboxSettings.Read"],
+          },
+          home,
+        })
+        .isOk(),
     ).toBe(true);
 
     const report = await outlookReport({ home });
@@ -57,8 +59,33 @@ describe("outlookReport", () => {
     expect(report.capabilities[1]!.detail).toBe("a grant is stored for me@example.test");
   });
 
+  it("reads only the mail grant: a calendar grant alone leaves the mail preflight not connected", async () => {
+    expect(
+      outlookCalendarGrantStore
+        .write({
+          grant: {
+            account: "me@example.test",
+            grantedAtIso: "2026-11-01T00:00:00.000Z",
+            homeAccountId: "home-account-fixture",
+            msalCache: "{}",
+            scopes: ["User.Read", "Calendars.Read"],
+          },
+          home,
+        })
+        .isOk(),
+    ).toBe(true);
+
+    const report = await outlookReport({ home });
+
+    expect(report.tokenPresent).toBe(false);
+    expect(report.capabilities.map((capability) => [capability.id, capability.status])).toEqual([
+      ["registration", "missing"],
+      ["auth", "missing"],
+    ]);
+  });
+
   it("reports an unreadable grant as itself, never as not connected", async () => {
-    const path = outlookGrantPath({ home });
+    const path = outlookMailGrantStore.path({ home });
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, "FIXTURE_REFRESH_TOKEN_VALUE", { mode: 0o600 });
 

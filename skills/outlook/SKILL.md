@@ -39,7 +39,7 @@ renders both steps; the exact settings are in [reference/connecting.md](referenc
 the owner opens the portal.
 
 `--grant` chooses how much to ask for: `read`, `manage` (the default) or `full`, the one that adds `Mail.Send`.
-No tier asks for `Calendars.Read`; `--calendar` adds it, for the `outlook-calendar` door, over this same grant.
+No tier asks for `Calendars.Read`: the calendar is its own integration, `outlook-calendar connect`, with its own grant.
 **The grant records what Microsoft actually approved**, and a verb needing a scope it lacks refuses by name
 before any request. **`outlook connect --status` answers "which mailbox, what may I do" from the file alone**, no
 browser and no network; **`slopweaver connect outlook --check` is the live check** — registration, grant tiers and

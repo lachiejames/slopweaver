@@ -8,12 +8,18 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_OUTLOOK_GRANT,
   grantedOutlookScopes,
+  mailGrantCoversCalendar,
+  mailReconnectCalendarWarning,
   missingOutlookScopes,
+  OUTLOOK_CALENDAR_GRANT,
   OUTLOOK_GRANTS,
   OUTLOOK_VERB_CAPABILITIES,
+  outlookConnectVerb,
+  outlookProductName,
   outlookReconnectCommand,
   outlookRequestScopes,
 } from "../../../../live/outlook/scopes.js";
+import { outlookCalendarGrantStore, outlookMailGrantStore } from "../../../../secrets/outlookGrant.js";
 
 describe("outlookRequestScopes", () => {
   it("names each capability's own permission in capability order and ends with offline_access", () => {
@@ -114,22 +120,127 @@ describe("the connect grants and verb capabilities", () => {
     ]);
   });
 
-  it("names a reconnect that adds what is missing and drops nothing the grant already holds", () => {
+  it("asks the calendar's own consent for exactly who the account is and the calendar's read, nothing of the mail", () => {
+    expect(outlookRequestScopes({ capabilities: OUTLOOK_CALENDAR_GRANT })).toEqual([
+      "User.Read",
+      "Calendars.Read",
+      "offline_access",
+    ]);
+    expect(Object.values(OUTLOOK_GRANTS).filter((grant) => grant.includes("calendar"))).toEqual([]);
+  });
+
+  it("names a mail reconnect that adds what is missing and drops nothing the grant already holds", () => {
     const manage = ["User.Read", "Mail.Read", "MailboxSettings.Read", "Mail.ReadWrite"];
-    expect(outlookReconnectCommand({ granted: manage, missing: ["Calendars.Read"] })).toBe(
-      "slopweaver outlook connect --calendar",
-    );
-    expect(outlookReconnectCommand({ granted: [...manage, "Mail.Send"], missing: ["Calendars.Read"] })).toBe(
-      "slopweaver outlook connect --grant full --calendar",
-    );
-    expect(outlookReconnectCommand({ granted: manage, missing: ["Mail.Send"] })).toBe(
+    expect(outlookReconnectCommand({ granted: manage, missing: ["Mail.Send"], product: "mail" })).toBe(
       "slopweaver outlook connect --grant full",
     );
-    expect(outlookReconnectCommand({ granted: [...manage, "Calendars.ReadWrite"], missing: ["Mail.Send"] })).toBe(
-      "slopweaver outlook connect --grant full --calendar",
+    expect(outlookReconnectCommand({ granted: [...manage, "Mail.Send"], missing: [], product: "mail" })).toBe(
+      "slopweaver outlook connect --grant full",
+    );
+    expect(outlookReconnectCommand({ granted: manage, missing: [], product: "mail" })).toBe(
+      "slopweaver outlook connect",
     );
   });
 
+  it("names the calendar's own connect as its reconnect, whatever the grant holds", () => {
+    expect(
+      outlookReconnectCommand({
+        granted: ["User.Read", "Mail.Send"],
+        missing: ["Calendars.Read"],
+        product: "calendar",
+      }),
+    ).toBe("slopweaver outlook-calendar connect");
+  });
+
+  it("names each product's connect verb and display name", () => {
+    expect([outlookConnectVerb({ product: "mail" }), outlookConnectVerb({ product: "calendar" })]).toEqual([
+      "slopweaver outlook connect",
+      "slopweaver outlook-calendar connect",
+    ]);
+    expect([outlookProductName({ product: "mail" }), outlookProductName({ product: "calendar" })]).toEqual([
+      "Outlook",
+      "Outlook Calendar",
+    ]);
+  });
+
+  it("agrees with each grant store's own product, verb and name, so the two spellings cannot drift", () => {
+    const stores = [outlookMailGrantStore, outlookCalendarGrantStore];
+    expect(stores.map((store) => [store.product, store.connectVerb, store.productName])).toEqual(
+      stores.map((store) => [
+        store.product,
+        outlookConnectVerb({ product: store.product }),
+        outlookProductName({ product: store.product }),
+      ]),
+    );
+    expect(stores.map((store) => store.product)).toEqual(["mail", "calendar"]);
+  });
+});
+
+describe("mailGrantCoversCalendar", () => {
+  it("is true for Calendars.Read or Calendars.ReadWrite, in any spelling, and false otherwise", () => {
+    expect(mailGrantCoversCalendar({ granted: ["Mail.Read", "Calendars.Read"] })).toBe(true);
+    expect(mailGrantCoversCalendar({ granted: ["https://graph.microsoft.com/calendars.readwrite"] })).toBe(true);
+    expect(mailGrantCoversCalendar({ granted: ["Mail.ReadWrite", "Mail.Send"] })).toBe(false);
+    expect(mailGrantCoversCalendar({ granted: [] })).toBe(false);
+  });
+});
+
+describe("mailReconnectCalendarWarning", () => {
+  const withCalendar = ["User.Read", "Mail.ReadWrite", "Calendars.Read"];
+  const mailOnly = ["User.Read", "Mail.ReadWrite"];
+
+  it("warns when the replaced mail grant carried the calendar, the new one does not, and no calendar grant is stored", () => {
+    expect(
+      mailReconnectCalendarWarning({
+        calendarGrantStored: false,
+        previousScopes: withCalendar,
+        replacementScopes: mailOnly,
+      }),
+    ).toBe(
+      "the Outlook calendar was reading over the mail grant this consent replaced, and the new grant does not " +
+        "cover it — run `slopweaver outlook-calendar connect` to connect the calendar on its own",
+    );
+  });
+
+  it("stays quiet when a calendar grant of its own is stored, since the calendar never read over the mail grant", () => {
+    expect(
+      mailReconnectCalendarWarning({
+        calendarGrantStored: true,
+        previousScopes: withCalendar,
+        replacementScopes: mailOnly,
+      }),
+    ).toBe(undefined);
+  });
+
+  it("stays quiet on a first connect, and when the replaced grant never covered the calendar", () => {
+    expect(
+      mailReconnectCalendarWarning({
+        calendarGrantStored: false,
+        previousScopes: undefined,
+        replacementScopes: mailOnly,
+      }),
+    ).toBe(undefined);
+    expect(
+      mailReconnectCalendarWarning({
+        calendarGrantStored: false,
+        previousScopes: mailOnly,
+        replacementScopes: mailOnly,
+      }),
+    ).toBe(undefined);
+  });
+
+  it("stays quiet when the new grant still covers the calendar", () => {
+    expect(
+      mailReconnectCalendarWarning({
+        calendarGrantStored: false,
+        previousScopes: withCalendar,
+        replacementScopes: withCalendar,
+      }),
+    ).toBe(undefined);
+  });
+});
+
+describe("the verb capabilities", () => {
   it("declares each verb's minimum capabilities", () => {
     expect(OUTLOOK_VERB_CAPABILITIES).toEqual({
       archive: ["modify"],

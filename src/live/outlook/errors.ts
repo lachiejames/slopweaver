@@ -6,7 +6,7 @@
  */
 import type { BoundaryError } from "#lib/boundary.js";
 
-import { outlookReconnectCommand } from "./scopes.js";
+import { type OutlookProduct, outlookConnectVerb, outlookProductName, outlookReconnectCommand } from "./scopes.js";
 
 /** No grant is stored for the selected state home — nothing has been authorised yet. */
 interface NotConnectedError {
@@ -169,9 +169,6 @@ export type OutlookError =
   | CategoryConflictError
   | DraftRefusedError;
 
-/** The verb that establishes or widens the grant, named by every refusal that needs it. */
-const CONNECT_VERB = "slopweaver outlook connect";
-
 /** Factories for every {@link OutlookError} variant — the shape real code and its tests both construct through. */
 export const OutlookErrors = {
   apiFailed: ({ message, cause }: { message: string; cause?: unknown }): ApiFailedError => ({
@@ -260,18 +257,24 @@ export const OutlookErrors = {
       `Graph refused the filter \`${filter}\` as too expensive for this mailbox (InefficientFilter); nothing was ` +
       "read, and no weaker query was tried in its place",
   }),
-  interactionRequired: ({ cause }: { cause?: unknown }): InteractionRequiredError => ({
+  interactionRequired: ({
+    cause,
+    product,
+  }: {
+    cause?: unknown;
+    product: OutlookProduct;
+  }): InteractionRequiredError => ({
     code: "INTERACTION_REQUIRED",
-    message: `Microsoft will not refresh this grant silently any more — run \`${CONNECT_VERB}\` again`,
+    message: `Microsoft will not refresh this grant silently any more — run \`${outlookConnectVerb({ product })}\` again`,
     ...(cause !== undefined ? { cause } : {}),
   }),
   nextLinkRefused: ({ link }: { link: string }): NextLinkRefusedError => ({
     code: "NEXT_LINK_REFUSED",
     message: `Graph's paging link does not point at https://graph.microsoft.com, so it was not followed: ${link}`,
   }),
-  notConnected: (): NotConnectedError => ({
+  notConnected: ({ product }: { product: OutlookProduct }): NotConnectedError => ({
     code: "NOT_CONNECTED",
-    message: `no Outlook grant stored for this home — run \`${CONNECT_VERB}\``,
+    message: `no ${outlookProductName({ product })} grant stored for this home — run \`${outlookConnectVerb({ product })}\``,
   }),
   referenceUnresolved: ({
     kind,
@@ -300,12 +303,14 @@ export const OutlookErrors = {
   scopeMissing: ({
     missing,
     granted,
+    product,
   }: {
     missing: readonly string[];
     granted: readonly string[];
+    product: OutlookProduct;
   }): ScopeMissingError => ({
     code: "SCOPE_MISSING",
-    message: `the stored Outlook grant is missing ${missing.join(", ")} — re-run \`${outlookReconnectCommand({ granted, missing })}\` and approve it`,
+    message: `the stored ${outlookProductName({ product })} grant is missing ${missing.join(", ")} — re-run \`${outlookReconnectCommand({ granted, missing, product })}\` and approve it`,
     missing,
   }),
   writeOutcomeUnknown: ({

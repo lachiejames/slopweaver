@@ -34,6 +34,7 @@ const DAY_MS = 86_400_000;
 /** Every flag each verb's parser accepts — what the help-truth contract compares each usage line to. */
 export const OUTLOOK_CALENDAR_FLAG_NAMES: Readonly<Record<string, readonly string[]>> = {
   calendars: ["--home", "--json"],
+  connect: ["--disconnect", "--home", "--json", "--status"],
   list: ["--calendar", "--days", "--from", "--home", "--json", "--limit"],
   read: ["--home", "--json"],
 };
