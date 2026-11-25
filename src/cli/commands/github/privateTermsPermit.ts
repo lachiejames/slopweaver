@@ -3,10 +3,11 @@
  * and the lines that say so.
  *
  * A `hold` refuses whatever was acknowledged — a private term on a line about to be published is not a finding a
- * caller can accept. An `unchecked` verdict refuses unless `github merge --admin` names
- * {@link PRIVATE_TERMS_UNCHECKED_ACK} (or passes `--acknowledge-all`) WITH a `--reason`, and that waiver is handed
- * back for the door ledger, so a machine with no terms file says so on every landing and lands only on a recorded
- * acknowledgement. `clean` proceeds. Every line, the refusal's included, is judged against the loaded terms.
+ * caller can accept. An `unchecked` verdict refuses unless the landing verb (`github merge --admin`, `github
+ * enqueue`) names {@link PRIVATE_TERMS_UNCHECKED_ACK} itself WITH a `--reason` — `--acknowledge-all` never reaches
+ * it, since a blanket flag must not pass a finding that means no scan ran — and that waiver is handed back for the
+ * door ledger, so a machine with no terms file says so on every landing and lands only on a recorded
+ * acknowledgement. A reason a loaded term matches waives nothing, since the ledger would keep it. `clean` proceeds. Every line, the refusal's included, is judged against the loaded terms.
  */
 
 import type { DoorAcknowledgement } from "../../../admit/types.js";
@@ -23,6 +24,15 @@ import type { GithubVerbResult } from "./errors.js";
 
 /** The acknowledgement subject naming a landing whose change set the private terms did not check. */
 export const PRIVATE_TERMS_UNCHECKED_ACK = "private-terms-unchecked";
+
+/**
+ * Why a named waiver did not count when its `--reason` matches a private term: the ledger would keep the word.
+ *
+ * @internal named by this module and its tests.
+ */
+export const REASON_NAMES_A_TERM_LINE =
+  "private terms: the --reason given for private-terms-unchecked matches a private term, and the door ledger " +
+  "records a reason verbatim, so this waiver does not count; reword the reason and land again";
 
 /** What the landing prints for its change set, whether it stops, and the waiver the door records when one stood. */
 export interface PrivateTermsPermit {
@@ -75,16 +85,24 @@ export function privateTermsPermit({
   if (verdict.kind === "hold") {
     return { acknowledgement: undefined, lines, refused: true };
   }
+  // By name only: `--acknowledge-all` waives findings the caller has read, and this one says no read happened.
   const named = acknowledgement.acknowledge.includes(PRIVATE_TERMS_UNCHECKED_ACK);
   const reason = acknowledgement.reason?.trim();
-  if ((named || acknowledgement.acknowledgeAll) && reason !== undefined && reason.length > 0) {
-    const how = named ? "by name" : "with --acknowledge-all";
-    lines.push(`ACKNOWLEDGED: ${PRIVATE_TERMS_UNCHECKED_ACK} ${how} — reason: ${reason}`);
+  // The door ledger keeps a reason verbatim, out of any line filter's reach: one a term matches waives nothing. Both
+  // spellings are judged, since a pattern can match the typed reason and not its trimmed copy, or the reverse.
+  const recordable = [acknowledgement.reason, reason].every(
+    (text) => text === undefined || printableReportLines({ lines: [text], terms: verdict.terms })[0] === text,
+  );
+  if (named && reason !== undefined && reason.length > 0 && recordable) {
+    lines.push(`ACKNOWLEDGED: ${PRIVATE_TERMS_UNCHECKED_ACK} by name — reason: ${reason}`);
     return {
       acknowledgement: { reason, subject: PRIVATE_TERMS_UNCHECKED_ACK },
       lines: printableReportLines({ lines, terms: verdict.terms }),
       refused: false,
     };
+  }
+  if (named && !recordable) {
+    lines.push(REASON_NAMES_A_TERM_LINE);
   }
   const refusal = hatchRefusalLines({ detail: verdict.detail, hatch: hatchFor({ id: PRIVATE_TERMS_UNCHECKED_ACK }) });
   return {

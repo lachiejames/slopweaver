@@ -10,8 +10,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { performAdminMerge } from "../../../../../cli/commands/github/mergeAdminRun.js";
 import type { AdminMergeRequest, GithubAdminMergeDeps } from "../../../../../cli/commands/github/mergeAdminTypes.js";
 import { EXIT_ERROR, EXIT_OK } from "../../../../../cli/exitCodes.js";
+import { hatchFor } from "../../../../../hatch/lookup.js";
+import { hatchRefusalLines } from "../../../../../hatch/render.js";
 import type { ChangeSetPrivateTermsVerdict } from "../../../../../hygiene/changeSetPrivateTerms.js";
-import { ok } from "../../../../../lib/result.js";
+import { parsePrivateTerms, WITHHELD_REFUSAL_LINE } from "../../../../../hygiene/privateTerms.js";
+import { ok, unwrap } from "../../../../../lib/result.js";
 import { type MemoryDoorLedger, memoryDoorLedger } from "../../../../doorLedgerFixture.js";
 import {
   type AdminMergeHarness,
@@ -23,13 +26,29 @@ import {
 /** A just-fetched base tip distinct from every other sha the harness answers with. */
 const MOVED_BASE_SHA = "e".repeat(40);
 
-/** A hold carrying one hit, as the pure core renders a private term on a changed line. */
+/** The synthetic private value: the hold below carries it in every field the landing renders. */
+const SYNTHETIC_VALUE = "acmefixtureword";
+
+/**
+ * A hold whose loaded terms match {@link SYNTHETIC_VALUE}, carrying it in a reason and a hit's locus — fields the pure
+ * core would never fill with it — so a CLI layer that printed a line around the permit's filter would leak it here.
+ */
 const HOLD: ChangeSetPrivateTermsVerdict = {
-  hits: [{ className: "owner-name", line: 3, locus: "src/feature.ts" }],
+  hits: [
+    { className: "owner-name", line: 3, locus: "src/feature.ts" },
+    { className: "owner-name", line: 7, locus: `src/${SYNTHETIC_VALUE}.ts` },
+  ],
   kind: "hold",
-  reasons: [],
-  terms: [],
+  reasons: [`a reason naming ${SYNTHETIC_VALUE}`],
+  terms: unwrap(
+    parsePrivateTerms({ text: `class\tflags\tpattern\tsource\nowner-name\ti\t${SYNTHETIC_VALUE}\tsynthetic\n` }),
+  ),
 };
+
+/** Every printed line carrying the synthetic value, in any case. */
+function leaked({ lines }: { lines: readonly string[] }): readonly string[] {
+  return lines.filter((line) => line.toLowerCase().includes(SYNTHETIC_VALUE));
+}
 
 /** The verdict on a machine with no terms file. */
 const UNCHECKED: ChangeSetPrivateTermsVerdict = {
@@ -37,6 +56,23 @@ const UNCHECKED: ChangeSetPrivateTermsVerdict = {
   kind: "unchecked",
   terms: [],
 };
+
+/** The last five lines an unwaived {@link UNCHECKED} prints: its own line, then the hatch row's refusal. */
+const UNCHECKED_TAIL = [
+  `private terms: NOT CHECKED — ${UNCHECKED.detail}`,
+  ...hatchRefusalLines({ detail: UNCHECKED.detail, hatch: hatchFor({ id: "private-terms-unchecked" }) }),
+];
+
+/** The last five lines {@link HOLD} prints: the reason and the second hit withheld, since each carries the value. */
+const HOLD_TAIL = [
+  "private terms: HOLD — this landing is refused",
+  WITHHELD_REFUSAL_LINE,
+  "  src/feature.ts:3: [private-term] owner-name",
+  WITHHELD_REFUSAL_LINE,
+  "private terms have no acknowledgement and no escape hatch: --acknowledge and --acknowledge-all do not reach " +
+    "this hold. Reword each line named above (or repair the terms file), push, and land again; if a term is not " +
+    "private, ask the chair to narrow that terms row.",
+];
 
 let home: string;
 let door: MemoryDoorLedger;
@@ -105,14 +141,17 @@ describe("performAdminMerge — the private terms over the merged change set", (
     expect(h.merges).toEqual([]);
     // The override replaces the harness's recording default, so the sweep itself is not in `order`; the hit line is.
     expect(h.order).toEqual(["localSha", "measureBaseFreshness"]);
-    expect(h.lines).toContain("  src/feature.ts:3: [private-term] owner-name");
+    expect(h.lines.slice(-5)).toEqual(HOLD_TAIL);
+    expect(leaked({ lines: h.lines })).toEqual([]);
   });
 
   it("refuses a hold on a dry run too, so a lap's pre-check stops before its first lane", async () => {
     const h = harness({ sweepPrivateTerms: () => HOLD });
     const code = await performAdminMerge({ deps: h.deps, request: request({ execution: "dry-run" }) });
     expect(code).toBe(EXIT_ERROR);
-    expect(h.lines).toContain("private terms: HOLD — this landing is refused");
+    expect(h.merges).toEqual([]);
+    expect(h.lines.slice(-5)).toEqual(HOLD_TAIL);
+    expect(leaked({ lines: h.lines })).toEqual([]);
   });
 
   it("refuses an unchecked change set unless private-terms-unchecked is named", async () => {
@@ -120,9 +159,22 @@ describe("performAdminMerge — the private terms over the merged change set", (
     const code = await performAdminMerge({ deps: h.deps, request: request() });
     expect(code).toBe(EXIT_ERROR);
     expect(h.merges).toEqual([]);
-    expect(h.lines).toContain(
-      'To override use the designated escape hatch slopweaver github merge --admin --acknowledge private-terms-unchecked --reason "<why>".',
-    );
+    expect(h.lines.slice(-5)).toEqual(UNCHECKED_TAIL);
+    expect(h.lines.slice(-2, -1)).toEqual([
+      'To override use the designated escape hatch slopweaver github <enqueue|merge> --acknowledge private-terms-unchecked --reason "<why>" (merge with --admin).',
+    ]);
+  });
+
+  it("refuses an unchecked change set under --acknowledge-all with a reason, which never names it", async () => {
+    const h = harness({ sweepPrivateTerms: () => UNCHECKED });
+    const code = await performAdminMerge({
+      deps: h.deps,
+      request: request({ acknowledgement: { acknowledge: [], acknowledgeAll: true, reason: "everything" } }),
+    });
+    expect(code).toBe(EXIT_ERROR);
+    expect(h.merges).toEqual([]);
+    expect(h.lines.slice(-5)).toEqual(UNCHECKED_TAIL);
+    expect(door.records()).toEqual([]);
   });
 
   it("refuses an unchecked change set named without a reason, since the waiver is recorded", async () => {

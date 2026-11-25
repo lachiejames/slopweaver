@@ -239,6 +239,9 @@ export function enqueueDeps({
     hold: holdDeps(),
     home: () => home,
     makeApi: () => queueApi({ enqueued }),
+    // The private-terms preflight is not what this suite judges: a clean sweep over a skipped fetch.
+    measureBaseFreshness: () => ok({ kind: "skipped", why: "the pairing floor is under test" }),
+    sweepPrivateTerms: () => ({ accepted: 0, binaryFiles: 0, kind: "clean", terms: [], textFiles: 1 }),
     out: (line) => out.push(line),
     readCodexLoop: () => codexLoop,
     readBumpWitness: () => ({ kind: "clear" }),

@@ -40,7 +40,6 @@ import {
 import { loadPrivateTerms } from "../../hygiene/privateTerms.js";
 import { err, ok, type Result } from "../../lib/result.js";
 import { GitReadStoppedError } from "./gitReadStopped.js";
-import { refResolves } from "./probeSweep.js";
 
 /**
  * How long one git read here may take before it is killed — the bound `./docsBudgetSweep.ts` puts on the same class
@@ -193,6 +192,11 @@ export function readMergedChangeSet({
   }
 }
 
+/** Whether `ref` names a commit, read like every other git read here: ignoring local replacement refs. */
+function commitResolves({ repo, ref }: { repo: string; ref: string }): boolean {
+  return gitBytes({ args: ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], repo }).isOk();
+}
+
 /** {@link readMergedChangeSet}'s body; a git read stopped at its bound throws out of it. */
 function readChangeSet({
   repo,
@@ -203,7 +207,7 @@ function readChangeSet({
   baseRef: string;
   headRef: string;
 }): Result<readonly ChangeSetFile[], PrivateTermsSweepError> {
-  if (!refResolves({ ref: baseRef, repo }) || !refResolves({ ref: headRef, repo })) {
+  if (!commitResolves({ ref: baseRef, repo }) || !commitResolves({ ref: headRef, repo })) {
     return err(PrivateTermsSweepErrors.refUnresolved({ baseRef, headRef }));
   }
   // A conflict exits 1 and any other failure non-zero too: either way there is no clean tree, so nothing is clean.

@@ -13,13 +13,16 @@ import { join } from "node:path";
 import { errAsync, okAsync } from "neverthrow";
 
 import type { DoorLedgerPort } from "../../../../../../admit/doorLedgerPort.js";
+import type { BaseFreshness } from "../../../../../../cli/commands/github/baseFreshnessCore.js";
 import type { GithubEnqueueDeps } from "../../../../../../cli/commands/github/enqueueDeps.js";
+import type { GithubVerbResult } from "../../../../../../cli/commands/github/errors.js";
 import type { MergeHoldDeps } from "../../../../../../cli/commands/github/holdDeps.js";
 import type { WalkthroughStepDeps } from "../../../../../../cli/commands/github/walkthroughStep.js";
 import type { BaselineBumpVerdict } from "../../../../../../codex/baselineBumpWitnessRun.js";
 import type { PullRequestHead } from "../../../../../../codex/landingGate.js";
 import type { LocalCodexLoopRead } from "../../../../../../codex/landingGateTypes.js";
 import type { GithubAsyncMergeState } from "../../../../../../corpus/github/mergeAsync.js";
+import type { ChangeSetPrivateTermsVerdict } from "../../../../../../hygiene/changeSetPrivateTerms.js";
 import type { IngestError } from "../../../../../../lib/ingestError.js";
 import { err, ok, type Result } from "../../../../../../lib/result.js";
 import { type GithubLiveError, GithubLiveErrors } from "../../../../../../live/github/errors.js";
@@ -31,6 +34,28 @@ import { noWalkthroughs } from "../../../../../walkthroughFake.js";
 import { HOLD_NOW, pairedCheckout, pr } from "./fixtures.js";
 
 const QUEUE: MergeQueueState = { branch: "main", url: "https://example.invalid/queue" };
+
+/** The just-fetched tip of `main` the preflight sweeps against by default. */
+export const FETCHED_BASE_SHA = "b".repeat(40);
+
+/** The preflight's default base fetch: `main`, the landing branch, fetched at {@link FETCHED_BASE_SHA}. */
+const FETCHED_MAIN: GithubVerbResult<BaseFreshness> = ok({
+  baseBranch: "main",
+  baseSha: FETCHED_BASE_SHA,
+  headSha: "cafe1234",
+  kind: "fresh",
+  remote: "origin",
+  reverted: [],
+});
+
+/** The sweep's default answer: the terms loaded and nothing stands. */
+const CLEAN_TERMS: ChangeSetPrivateTermsVerdict = {
+  accepted: 0,
+  binaryFiles: 0,
+  kind: "clean",
+  terms: [],
+  textFiles: 1,
+};
 
 const HTTP_ERROR: IngestError = { kind: "http", message: "github said no", operation: "github.enqueuePullRequest" };
 
@@ -214,6 +239,9 @@ export function depsFor({
   bump = { kind: "clear" },
   bumpHeads = [],
   bumpBranches = [],
+  measurement = FETCHED_MAIN,
+  terms = CLEAN_TERMS,
+  sweeps = [],
 }: {
   door?: DoorLedgerPort;
   home: string;
@@ -229,9 +257,23 @@ export function depsFor({
   bumpHeads?: PullRequestHead[];
   /** The landing branch each witness read was handed, in step with `bumpHeads`. */
   bumpBranches?: (string | undefined)[];
+  /** What the private-terms preflight's base fetch answers. */
+  measurement?: GithubVerbResult<BaseFreshness>;
+  /** What the private-terms sweep answers. */
+  terms?: ChangeSetPrivateTermsVerdict;
+  /** Every measurement and sweep the preflight asked for, in order, so a case can prove one ran or did not. */
+  sweeps?: unknown[];
 }): GithubEnqueueDeps {
   return {
     cwd: () => "/w/repo",
+    measureBaseFreshness: (args) => {
+      sweeps.push({ measure: args });
+      return measurement;
+    },
+    sweepPrivateTerms: (args) => {
+      sweeps.push({ sweep: args });
+      return terms;
+    },
     doorLedger: door,
     hold: holdDepsFor({ holds }),
     wait: () => Promise.resolve(),

@@ -49,6 +49,18 @@ describe("parseGithubEnqueueArgs", () => {
     ]);
   });
 
+  it("refuses --acknowledge private-terms-unchecked with no --reason, since no scan ran to stand behind it", () => {
+    const problems = unwrapErr(
+      parseGithubEnqueueArgs({
+        rest: ["--pr", "9", "--repo", "acme/widget", "--acknowledge", "private-terms-unchecked"],
+      }),
+    );
+    expect(problems).toEqual([
+      '--acknowledge private-terms-unchecked must be paired with --reason "…" — the reason is written to the ' +
+        "door ledger, so a waived finding stays findable afterwards",
+    ]);
+  });
+
   it("names BOTH reason-requiring subjects when both were acknowledged bare", () => {
     const problems = unwrapErr(
       parseGithubEnqueueArgs({

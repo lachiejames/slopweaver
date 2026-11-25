@@ -111,6 +111,10 @@ export const GITHUB_ENQUEUE_USAGE =
   "                     acknowledgement cannot reach a red still standing on the head.\n" +
   "                     codex-loop-incomplete needs --reason even on its own, and that reason is written to\n" +
   "                     the door ledger so a waived pairing floor stays countable\n" +
+  "                     Before the press, the pinned head merged into the just-fetched landing branch is\n" +
+  "                     swept for private terms (the prospective tree; the merge group is not checked).\n" +
+  "                     A hold has no acknowledgement. private-terms-unchecked (no scan could run) is\n" +
+  "                     waived only BY NAME with --reason; --acknowledge-all never reaches it\n" +
   '  --acknowledge-all  accept every finding at once; MUST be paired with --reason "…"\n' +
   "  --reason <text>    why every finding is accepted, printed verbatim in the report\n" +
   "  --json             machine-readable output\n" +
