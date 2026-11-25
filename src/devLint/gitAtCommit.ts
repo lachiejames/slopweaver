@@ -14,7 +14,10 @@
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { safeJsonParse } from "#lib/safeJson.js";
 import { gitEnv } from "../lib/gitRepo.js";
+import { confirmNewRef, type GithubEventRead } from "./floorBaseConfirmation.js";
 import { repoRoot } from "./scanScope.js";
 
 /**
@@ -32,8 +35,9 @@ const GIT_READ_TIMEOUT_MS = 2 * 60_000;
  * Three outcomes, and only one of them passes without comparing:
  *
  *  - `absent` — the all-zeroes SHA CI supplies for a brand-new ref, which has no previous commit to compare
- *    against; that is a scope boundary, and it passes. It is read from the environment alone and never checked
- *    against the ref, so a hand-set all-zeroes value skips the comparison too.
+ *    against; that is a scope boundary, and it passes. {@link readFloorBaseClaim} reads it from the environment
+ *    alone, so it is only a CLAIM there; {@link resolveFloorBase}, which every gate calls, keeps it only when
+ *    `./floorBaseConfirmation.ts` confirms the ref is new, and turns it `invalid` otherwise.
  *  - `invalid` — no base, or one supplied and unusable. It FAILS. A gate that judges a branch against its base
  *    and finds no base has judged nothing, and printing a pass there is how a branch once reached the lap red
  *    on `host-wording` with a seat's local run green. CI and the lap both export the base, so the no-base case
@@ -55,7 +59,7 @@ export const FLOOR_BASE_ENV = "SLOPWEAVER_COVERAGE_BASE_SHA";
 const ZERO_SHA = "0".repeat(40);
 
 /**
- * Resolve the comparison commit from the environment. Pure.
+ * Read the comparison commit the environment CLAIMS, judging only its shape. Pure.
  *
  * There is deliberately NO fallback to `origin/main` inside a gate. Measured: a branch cut before `main`
  * raised the floor compares as a lowering it never made, and a stale remote-tracking ref compares clean
@@ -69,10 +73,14 @@ const ZERO_SHA = "0".repeat(40);
  * reassuring "skipped" line. A short SHA is still `invalid`, because a prefix that is unique today may not be
  * tomorrow; its reason prints the command that expands it.
  *
+ * All zeroes reads as `absent` here from the environment alone, which proves nothing about the ref. A gate
+ * never calls this: it calls {@link resolveFloorBase}, which checks that claim against HEAD. A caller that only
+ * asks whether a value is a usable full SHA (`src/perf/subject.ts`) reads this.
+ *
  * @param env the process environment
- * @returns the SHA to compare against, why there is no previous commit, or why the base is missing or unusable
+ * @returns the SHA to compare against, an unconfirmed new-ref claim, or why the base is missing or unusable
  */
-export function resolveFloorBase({ env }: { env: NodeJS.ProcessEnv }): FloorBase {
+export function readFloorBaseClaim({ env }: { env: NodeJS.ProcessEnv }): FloorBase {
   const supplied = env[FLOOR_BASE_ENV];
   if (supplied === undefined) {
     return {
@@ -233,16 +241,10 @@ export function gitAncestry({
  */
 const GIT_SHOW_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 
-/**
- * Read a blob at a commit.
- *
- * @param root the repository to run in
- * @param spec a `<commit>:<path>` revision spec
- * @returns the blob's text, or `undefined` if git refused
- */
-export function gitShow({ root, spec }: { root: string; spec: string }): string | undefined {
+/** The one bounded text read every helper below shares: git's whole stdout, or `undefined` if git refused. */
+function gitText({ root, args }: { root: string; args: readonly string[] }): string | undefined {
   try {
-    return execFileSync("git", [...gitArgs({ args: ["show", spec], root })], {
+    return execFileSync("git", [...gitArgs({ args, root })], {
       encoding: "utf8",
       env: gitEnv(),
       maxBuffer: GIT_SHOW_MAX_BUFFER_BYTES,
@@ -252,6 +254,17 @@ export function gitShow({ root, spec }: { root: string; spec: string }): string 
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Read a blob at a commit.
+ *
+ * @param root the repository to run in
+ * @param spec a `<commit>:<path>` revision spec
+ * @returns the blob's text, or `undefined` if git refused
+ */
+export function gitShow({ root, spec }: { root: string; spec: string }): string | undefined {
+  return gitText({ args: ["show", spec], root });
 }
 
 /**
@@ -266,18 +279,11 @@ export function gitShow({ root, spec }: { root: string; spec: string }): string 
  * @returns one entry per non-empty output line, or `undefined` if git refused
  */
 export function gitLines({ root, args }: { root: string; args: readonly string[] }): readonly string[] | undefined {
-  try {
-    const out = execFileSync("git", [...gitArgs({ args, root })], {
-      encoding: "utf8",
-      env: gitEnv(),
-      maxBuffer: GIT_SHOW_MAX_BUFFER_BYTES,
-      killSignal: "SIGKILL",
-      timeout: GIT_READ_TIMEOUT_MS,
-    });
-    return out.split("\n").filter((line) => line.length > 0);
-  } catch {
+  const out = gitText({ args, root });
+  if (out === undefined) {
     return undefined;
   }
+  return out.split("\n").filter((line) => line.length > 0);
 }
 
 /**
@@ -296,18 +302,74 @@ export function gitLines({ root, args }: { root: string; args: readonly string[]
  * @returns one entry per non-empty NUL-separated field, or `undefined` if git refused
  */
 export function gitNulFields({ root, args }: { root: string; args: readonly string[] }): readonly string[] | undefined {
-  try {
-    const out = execFileSync("git", [...gitArgs({ args, root })], {
-      encoding: "utf8",
-      env: gitEnv(),
-      maxBuffer: GIT_SHOW_MAX_BUFFER_BYTES,
-      killSignal: "SIGKILL",
-      timeout: GIT_READ_TIMEOUT_MS,
-    });
-    return out.split("\0").filter((field) => field.length > 0);
-  } catch {
+  const out = gitText({ args, root });
+  if (out === undefined) {
     return undefined;
   }
+  return out.split("\0").filter((field) => field.length > 0);
+}
+
+/** What the runner's GitHub event says, or why there is none to read. Only an Actions runner sets both names. */
+function readGithubEvent({ env }: { env: NodeJS.ProcessEnv }): GithubEventRead {
+  const name = env["GITHUB_EVENT_NAME"];
+  const path = env["GITHUB_EVENT_PATH"];
+  if (name === undefined || path === undefined) {
+    return { kind: "missing", why: "no GitHub event is in the environment" };
+  }
+  let text: string;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return { kind: "missing", why: `the GitHub event file could not be read (${detail})` };
+  }
+  try {
+    return { kind: "read", name, payload: safeJsonParse({ label: path, text }) };
+  } catch {
+    return { kind: "missing", why: "the GitHub event file is not JSON" };
+  }
+}
+
+/**
+ * Resolve the comparison commit for a gate: {@link readFloorBaseClaim}, with its all-zeroes claim checked against
+ * HEAD. All zeroes stays `absent` only when `./floorBaseConfirmation.ts` confirms the ref is new — HEAD is a root
+ * commit, or the runner's push event created this ref at HEAD — and is `invalid` otherwise, so every gate's
+ * existing `invalid` branch fails it. The check lives in the one entry point every gate already calls, so no gate
+ * can read the base without it. Reads local git and the runner's event file; never the network.
+ *
+ * @param env the process environment, carrying the base and, on a runner, the GitHub event
+ * @param root the repository whose HEAD the claim is checked against; unset, this checkout's, found only when
+ *   the base is all zeroes
+ * @returns the SHA to compare against, a confirmed new ref, or why the base is missing, unusable or unconfirmed
+ */
+export function resolveFloorBase({ env, root }: { env: NodeJS.ProcessEnv; root?: string }): FloorBase {
+  const base = readFloorBaseClaim({ env });
+  if (base.kind !== "absent") {
+    return base;
+  }
+  if (root === undefined) {
+    return confirmAtHead({ claim: base.reason, env, root: repoRoot() });
+  }
+  return confirmAtHead({ claim: base.reason, env, root });
+}
+
+/** Keep an all-zeroes claim `absent` only when HEAD in `root` confirms the ref is new; `invalid` otherwise. */
+function confirmAtHead({ claim, env, root }: { claim: string; env: NodeJS.ProcessEnv; root: string }): FloorBase {
+  // HEAD is resolved ONCE and its object read by that SHA, so both arms judge the same commit: two separate
+  // `HEAD` reads would let a ref moving between them pair one commit's parentless object with another's SHA.
+  const headSha = gitText({ args: ["rev-parse", "--verify", "HEAD^{commit}"], root })?.trim();
+  const headCommit = headSha === undefined ? undefined : gitText({ args: ["cat-file", "commit", headSha], root });
+  const confirmation = confirmNewRef({ event: readGithubEvent({ env }), headCommit, headSha });
+  if (confirmation.kind === "confirmed") {
+    return { kind: "absent", reason: `${claim} (${confirmation.evidence})` };
+  }
+  return {
+    kind: "invalid",
+    reason:
+      `${FLOOR_BASE_ENV} is all zeroes, but nothing confirms this ref is new: ${confirmation.why} — only a root ` +
+      `commit or the push that created the ref may skip the comparison; re-run with ` +
+      `\`${FLOOR_BASE_ENV}=$(git merge-base origin/main HEAD)\` in front of the command`,
+  };
 }
 
 /**
@@ -316,7 +378,7 @@ export function gitNulFields({ root, args }: { root: string; args: readonly stri
  * printed as a FACT on the gate's own channel, never as a verdict about anyone's code: no checkout, no base, or a
  * base that is unusable or missing from the checkout exits 1, the no-base line naming the command that supplies
  * one. Only an all-zeroes base exits 0 without judging: CI supplies it for a brand-new ref, which has no previous
- * commit, and it is read from the environment alone, never checked against the ref.
+ * commit, and {@link resolveFloorBase} keeps it only when HEAD confirms the ref is new.
  * CI exports and fetches the base (`git fetch --no-tags --depth=1 origin "$SLOPWEAVER_COVERAGE_BASE_SHA"`).
  *
  * @param gate the gate's id, which prefixes every fact line
@@ -342,7 +404,7 @@ export function runAgainstFloorBase({
     fact({ line: "not a git checkout (git ls-files failed)" });
     return 1;
   }
-  const base = resolveFloorBase({ env: process.env });
+  const base = resolveFloorBase({ env: process.env, root });
   if (base.kind === "absent") {
     // devlint: not-a-refusal -- a brand-new ref has no previous commit, so there is nothing to compare against
     fact({ line: `${base.reason} — no comparison made` });

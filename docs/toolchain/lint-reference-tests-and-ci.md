@@ -39,8 +39,9 @@ Part of [Toolchain](../toolchain.md).
   list can express, and what it compares against is `SLOPWEAVER_COVERAGE_BASE_SHA` — `coverage-ratchet`'s
   variable, shared through `gitAtCommit.ts`, exported and `--depth=1` fetched at job level by `lint` and
   `unit`, and exported by `github lap`. Run without one it FAILS and prints the command that supplies it,
-  because a comparison against no base read nothing; only a brand-new ref's all-zeroes base passes unjudged
-  (`resolveFloorBase`). The diff is **two-dot**
+  because a comparison against no base read nothing; only a brand-new ref's all-zeroes base passes unjudged,
+  and only once HEAD confirms the ref is new — a root commit, or the runner's push event created it at HEAD
+  (`resolveFloorBase`). Forty zeroes exported by hand on a branch with history FAILS. The diff is **two-dot**
   (`git diff <base> HEAD`) and must stay that way: a `--depth=1` fetch grafts a PARENTLESS base, so a
   three-dot `base...HEAD` has no merge-base to compute and exits non-zero — which is precisely how this
   gate went red in CI while passing every full-history lap. `unit/devLint/gitAtCommit.test.ts` asserts

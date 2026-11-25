@@ -230,8 +230,9 @@ function loadCommittedBaseline({
  * No base supplied FAILS, printing the command that supplies one: a comparison that never ran is not a clean
  * one, and a by-hand run that printed "skipped" and exited 0 was read as green. CI and `github lap` both
  * export the base. A brand-new ref's all-zeroes base has no previous commit, so that one alone prints what it
- * skipped and passes — `docs/constraints/hard.md` §2's rule that a skipped stage must say so. A base that was
- * supplied and is unavailable is a hard failure too: that is the fail-open case.
+ * skipped and passes, under `docs/constraints/hard.md` §2's rule that a skipped stage must say so. It passes
+ * only once HEAD confirms the ref is new (`./floorBaseConfirmation.ts`). A base that was supplied and is
+ * unavailable is a hard failure too: that is the fail-open case.
  */
 function reportFloorIntegrity({
   root,
@@ -250,7 +251,7 @@ function reportFloorIntegrity({
     writeErr({ text: `coverage-floor: ${head.error.message}\n` });
     return 1;
   }
-  const base = resolveFloorBase({ env });
+  const base = resolveFloorBase({ env, root });
   if (base.kind === "invalid") {
     // devlint: not-a-refusal -- the base is missing or unusable, so the gate reports the failure rather than a verdict
     writeErr({ text: `coverage-floor: ${base.reason}\n` });

@@ -6,7 +6,7 @@
  * is the merge commit; locally it is what is about to be committed. The BASE side is `git show` at
  * `SLOPWEAVER_COVERAGE_BASE_SHA`, through `./gitAtCommit.ts`. No base, or a base commit this checkout cannot
  * read, is `incomplete`, never a pass — a run with no base, or a shallow clone missing it, would otherwise skip
- * the half that matters. Only a brand-new ref's all-zeroes base skips it, and says so.
+ * the half that matters. Only a brand-new ref's all-zeroes base, confirmed against HEAD, skips it, and says so.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -95,7 +95,7 @@ function baseHalf({
     readonly uncapped: ReadonlySet<string>;
   };
 }): BaseHalf {
-  const floor = resolveFloorBase({ env });
+  const floor = resolveFloorBase({ env, root });
   if (floor.kind === "absent") {
     return { kind: "skipped", why: floor.reason };
   }
