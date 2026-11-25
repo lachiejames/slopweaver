@@ -7,12 +7,14 @@
  *
  * An absent file is CREATED EXCLUSIVELY, so a file that appeared after this run read the directory wins and
  * this run reports `MARKETPLACE_CHANGED`. A present file is re-read immediately before the atomic replace, and
- * a byte difference since the first read refuses the same way. An unparseable file is never overwritten. The
+ * a byte difference since the first read refuses the same way. An unparseable file is never overwritten, nor is
+ * one holding a value `JSON.stringify` would write back differently. The
  * plugin-sync lock serialises Slopweaver's own writers, but a person editing the file does not take it, so a
  * save landing between the final re-read and the rename is still lost: the window is narrowed, not closed.
  */
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 import { errorMessage } from "#lib/errorMessage.js";
 import { err, ok, type Result } from "#lib/result.js";
@@ -120,8 +122,20 @@ export function ensurePersonalMarketplace({
     if (plan.kind === "skip") {
       return ok({ skip: plan.why });
     }
+    if (snapshot.raw !== undefined && !survivesRewrite({ document: snapshot.document })) {
+      const detail = "it holds a value JSON cannot write back unchanged, such as 1e400, so it is never rewritten";
+      return err(CodexPluginSyncErrors.marketplaceUnreadable({ detail, path: snapshot.path }));
+    }
     return writeMarketplace({ document: plan.document, snapshot }).map(() => plan.entry);
   });
+}
+
+/**
+ * True when serialising the parsed file gives back the same value. `JSON.parse` reads `1e400` as Infinity and
+ * `-0` as negative zero, and `JSON.stringify` writes both differently, so a rewrite would change another entry.
+ */
+function survivesRewrite({ document }: { document: unknown }): boolean {
+  return isDeepStrictEqual(JSON.parse(JSON.stringify(document)) as unknown, document);
 }
 
 /** Write the planned document: an exclusive create for an absent file, a re-checked atomic replace otherwise. */

@@ -167,12 +167,14 @@ bin/slopweaver codex plugin-sync
 
 It adds a local `slopweaver` entry to that marketplace when it has none — creating the file with the `personal`
 marketplace when there is no file, appending to `plugins` when there is one, and never touching another entry
-or a file it cannot parse. The entry's path, `./plugins/slopweaver` under your home, becomes a symlink to the
-sync's export, and a real directory there is refused. It then installs into **every Codex home**: each one the
+or a file it cannot parse or write back unchanged. The entry's path, `./plugins/slopweaver` under your home,
+becomes a symlink to the sync's export; a real directory there, or a path holding the marketplace file, is
+refused. It then installs into **every Codex home**: each one the
 plan register names (paused plans included) and the ambient `$CODEX_HOME`, since a seat boots with
 `CODEX_HOME` set to its plan's home and loads only what is installed there. Each home gets its own line and its
 own hook-trust pass; a registered home with no directory is that home's failure and is never created, and an
-absent ambient home is left alone. With a clone on another branch, or one missing `origin/HEAD` (restore it with
+absent ambient home is left alone. A home that is the export's cache directory, holds it or sits in it fails the
+run before anything is written. With a clone on another branch, or one missing `origin/HEAD` (restore it with
 `git remote set-head origin --auto`), the sync prints `skipped` and installs nothing.
 
 **Codex installs a COPY, and re-copies only on `codex plugin add`** — never at a session start (measured on

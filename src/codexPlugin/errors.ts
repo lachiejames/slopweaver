@@ -77,6 +77,13 @@ export interface CodexHomeMissingError {
   readonly codexHome: string;
 }
 
+/** A Codex home is the export root, holds it, or sits inside it, so creating the export would create or fill it. */
+export interface CodexHomeOverlapsExportError {
+  readonly code: "CODEX_HOME_OVERLAPS_EXPORT";
+  readonly message: string;
+  readonly codexHome: string;
+}
+
 /** The plan register could not be read, so the set of Codex homes is unknown. */
 export interface DestinationsUnreadableError {
   readonly code: "DESTINATIONS_UNREADABLE";
@@ -94,6 +101,7 @@ export interface HookTrustFailedError {
 export type CodexPluginSyncError =
   | AddFailedError
   | CodexHomeMissingError
+  | CodexHomeOverlapsExportError
   | CrashedError
   | DestinationsUnreadableError
   | ExportFailedError
@@ -118,6 +126,19 @@ export const CodexPluginSyncErrors = {
     message:
       `the plan register names the Codex home ${codexHome}, and no directory is there — nothing was installed; ` +
       "sign that plan in again or remove its row",
+  }),
+  codexHomeOverlapsExport: ({
+    codexHome,
+    exportRoot,
+  }: {
+    codexHome: string;
+    exportRoot: string;
+  }): CodexHomeOverlapsExportError => ({
+    code: "CODEX_HOME_OVERLAPS_EXPORT",
+    codexHome,
+    message:
+      `the Codex home ${codexHome} overlaps the plugin export at ${exportRoot}, so writing the export would ` +
+      "create or fill that home — nothing was written; move that Codex home or Slopweaver's cache apart",
   }),
   crashed: ({ detail }: { detail: string }): CrashedError => ({
     code: "CRASHED",

@@ -6,8 +6,11 @@
  * other. The ambient home (`$CODEX_HOME`, else `~/.codex`) is added here rather than in
  * `../codex/destinations.ts`, which deliberately never returns it: the register names where seats run, the
  * ambient home is where a hand-started `codex` runs, and both load the plugin.
+ *
+ * The residue, stated rather than discovered: {@link pathWithin} compares RESOLVED paths, not real paths, so a
+ * Codex home reached through a symlink into the export root is not caught by {@link homeOverlappingExport}.
  */
-import { resolve } from "node:path";
+import { resolve, sep } from "node:path";
 
 import type { CodexDestination } from "../codex/destinations.js";
 
@@ -49,4 +52,32 @@ export function codexPluginHomes({
   }
   keep({ codexHome: ambientCodexHome, registered: false });
   return homes;
+}
+
+/** True when `inner` is `outer` itself or lies anywhere beneath it, by resolved path. */
+export function pathWithin({ inner, outer }: { inner: string; outer: string }): boolean {
+  const resolvedInner = resolve(inner);
+  const resolvedOuter = resolve(outer);
+  return resolvedInner === resolvedOuter || resolvedInner.startsWith(`${resolvedOuter}${sep}`);
+}
+
+/**
+ * The first home that is the export root, holds it, or sits inside it. Creating the export root with
+ * `mkdir -p` would create such a home, or fill it with Slopweaver's export, so the run refuses before writing.
+ *
+ * @param homes every Codex home the run keeps
+ * @param exportRoot the directory each HEAD export is written under
+ * @returns the overlapping home, or undefined when every home is apart from the export
+ */
+export function homeOverlappingExport({
+  homes,
+  exportRoot,
+}: {
+  homes: readonly CodexPluginHome[];
+  exportRoot: string;
+}): CodexPluginHome | undefined {
+  return homes.find(
+    ({ codexHome }) =>
+      pathWithin({ inner: exportRoot, outer: codexHome }) || pathWithin({ inner: codexHome, outer: exportRoot }),
+  );
 }

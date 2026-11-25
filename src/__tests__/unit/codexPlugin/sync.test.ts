@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, readlinkSync, rmSync, symlinkSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, rmSync, symlinkSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -156,6 +156,49 @@ describe("codex plugin-sync, a foreground run", () => {
       ],
     });
     expect(existsSync(fleet.registered)).toBe(false);
+  });
+
+  it.each([
+    ["is", (): string => fleet.paths.exportRoot],
+    ["holds", (): string => dirname(fleet.paths.exportRoot)],
+    ["sits inside", (): string => join(fleet.paths.exportRoot, "home")],
+  ])("refuses a registered home that %s the export root before creating it, and installs nowhere", (_how, homeOf) => {
+    const adds: string[] = [];
+    const codexHome = homeOf();
+
+    const outcome = performFleetSync({
+      deps: fleetDeps({ codexAdd: copyingAdd({ adds, userHome: fleet.paths.userHome }) }),
+      homes: [{ codexHome, registered: true }, ...homesOf({ fleet })],
+      mainCheckouts: [fleet.paths.checkout],
+      paths: fleet.paths,
+      scope: "install-every-home",
+    });
+
+    expect(outcome).toEqual({
+      did: "failed",
+      error: CodexPluginSyncErrors.codexHomeOverlapsExport({ codexHome, exportRoot: fleet.paths.exportRoot }),
+    });
+    const marketplaceWritten = existsSync(marketplacePath({ userHome: fleet.paths.userHome }));
+    expect([existsSync(fleet.paths.exportRoot), marketplaceWritten, adds]).toEqual([false, false, []]);
+  });
+
+  it("leaves a marketplace file named as slopweaver's own source a regular file with its bytes unchanged", () => {
+    const path = marketplacePath({ userHome: fleet.paths.userHome });
+    const raw = JSON.stringify({
+      name: "mine",
+      plugins: [{ name: "slopweaver", source: { path: "./.agents/plugins/marketplace.json", source: "local" } }],
+    });
+    writeMarketplace({ raw, userHome: fleet.paths.userHome });
+    const adds: string[] = [];
+
+    const outcome = run({ adds, scope: "install-every-home" });
+
+    expect(outcome).toEqual({
+      did: "skipped",
+      why: `slopweaver's source path ${path} holds the marketplace file itself`,
+    });
+    const stat = lstatSync(path);
+    expect([stat.isFile(), stat.isSymbolicLink(), readFileSync(path, "utf8"), adds]).toEqual([true, false, raw, []]);
   });
 
   it("leaves a missing ambient home untouched and uncreated, which is not a failure", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { codexPluginHomes } from "../../../codexPlugin/homes.js";
+import { codexPluginHomes, homeOverlappingExport, pathWithin } from "../../../codexPlugin/homes.js";
 
 describe("codexPluginHomes", () => {
   it("keeps every registered home in register order, then the ambient one", () => {
@@ -33,5 +33,39 @@ describe("codexPluginHomes", () => {
     expect(codexPluginHomes({ ambientCodexHome: "/u/.codex", destinations: [] })).toEqual([
       { codexHome: "/u/.codex", registered: false },
     ]);
+  });
+});
+
+describe("pathWithin", () => {
+  it("holds for the path itself and anything beneath it, never for a sibling sharing a prefix", () => {
+    expect([
+      pathWithin({ inner: "/c/plugin/", outer: "/c/plugin" }),
+      pathWithin({ inner: "/c/plugin/x", outer: "/c/plugin" }),
+      pathWithin({ inner: "/c/plugin-2", outer: "/c/plugin" }),
+      pathWithin({ inner: "/c", outer: "/c/plugin" }),
+    ]).toEqual([true, true, false, false]);
+  });
+});
+
+describe("homeOverlappingExport", () => {
+  const apart = { codexHome: "/u/.codex", registered: false };
+
+  it("names a home that is the export root, holds it, or sits inside it", () => {
+    const exportRoot = "/c/codex-plugin";
+    const overlaps = [
+      { codexHome: "/c/codex-plugin", registered: true },
+      { codexHome: "/c", registered: true },
+      { codexHome: "/c/codex-plugin/home", registered: true },
+    ].map((home) => homeOverlappingExport({ exportRoot, homes: [apart, home] }));
+    expect(overlaps).toEqual([
+      { codexHome: "/c/codex-plugin", registered: true },
+      { codexHome: "/c", registered: true },
+      { codexHome: "/c/codex-plugin/home", registered: true },
+    ]);
+  });
+
+  it("is undefined when every home is apart from the export, a sibling sharing its prefix included", () => {
+    const sibling = { codexHome: "/c/codex-plugin-2", registered: true };
+    expect(homeOverlappingExport({ exportRoot: "/c/codex-plugin", homes: [apart, sibling] })).toBe(undefined);
   });
 });

@@ -13,6 +13,7 @@ import { isRecord } from "#lib/parsers.js";
 import { err, ok, type Result } from "#lib/result.js";
 
 import type { CodexPluginSyncError } from "./errors.js";
+import { pathWithin } from "./homes.js";
 import { CODEX_PLUGIN_NAME, marketplaceEntryOf } from "./plan.js";
 
 /** The marketplace name a seeded file carries. */
@@ -75,6 +76,11 @@ export function planPersonalMarketplace({
     return err(found.error);
   }
   if (found.value.kind === "found") {
+    // Repointing a source that holds the marketplace file would replace that file with a link to the export.
+    if (pathWithin({ inner: marketplacePath, outer: found.value.sourcePath })) {
+      const why = `slopweaver's source path ${found.value.sourcePath} holds the marketplace file itself`;
+      return ok({ kind: "skip", why });
+    }
     return ok({
       entry: { marketplace: found.value.marketplace, sourcePath: found.value.sourcePath },
       kind: "unchanged",

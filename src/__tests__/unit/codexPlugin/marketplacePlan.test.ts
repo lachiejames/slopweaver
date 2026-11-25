@@ -36,6 +36,27 @@ describe("planPersonalMarketplace", () => {
     });
   });
 
+  it("skips a local entry whose source path holds the marketplace file, so a repoint never replaces it", () => {
+    const document = {
+      name: "mine",
+      plugins: [{ name: "slopweaver", source: { path: "./.agents/plugins", source: "local" } }],
+    };
+    const plan = unwrap(planPersonalMarketplace({ document, marketplacePath: PATH, userHome: HOME }));
+    expect(plan).toEqual({
+      kind: "skip",
+      why: "slopweaver's source path /u/.agents/plugins holds the marketplace file itself",
+    });
+  });
+
+  it("skips a local entry whose source path is the marketplace file itself", () => {
+    const document = {
+      name: "mine",
+      plugins: [{ name: "slopweaver", source: { path: "./.agents/plugins/marketplace.json", source: "local" } }],
+    };
+    const plan = unwrap(planPersonalMarketplace({ document, marketplacePath: PATH, userHome: HOME }));
+    expect(plan).toEqual({ kind: "skip", why: `slopweaver's source path ${PATH} holds the marketplace file itself` });
+  });
+
   it("never rewrites a slopweaver entry that is not a local source", () => {
     const document = { name: "mine", plugins: [{ name: "slopweaver", source: { source: "git" } }] };
     const plan = unwrap(planPersonalMarketplace({ document, marketplacePath: PATH, userHome: HOME }));

@@ -27,7 +27,7 @@ import {
   type SyncPaths,
   type SyncScope,
 } from "./fleetPlan.js";
-import type { CodexPluginHome } from "./homes.js";
+import { type CodexPluginHome, homeOverlappingExport } from "./homes.js";
 import { ensurePersonalMarketplace } from "./marketplaceStore.js";
 import {
   CODEX_PLUGIN_NAME,
@@ -154,6 +154,22 @@ function syncHomes({
   return { did: "synced", homes };
 }
 
+/** A failed run when a home overlaps the export root, refused before that root exists: creating it is the write. */
+function overlapRefusal({
+  exportRoot,
+  homes,
+}: {
+  exportRoot: string;
+  homes: readonly CodexPluginHome[];
+}): SyncOutcome | undefined {
+  const overlapping = homeOverlappingExport({ exportRoot, homes });
+  if (overlapping === undefined) {
+    return undefined;
+  }
+  const error = CodexPluginSyncErrors.codexHomeOverlapsExport({ codexHome: overlapping.codexHome, exportRoot });
+  return { did: "failed", error };
+}
+
 /**
  * Under the fleet-wide lock: re-decide, seed the marketplace when the scope allows, export once, and bring every
  * home onto HEAD — each home's failure its own outcome, never a reason to stop before the next.
@@ -178,6 +194,10 @@ export function performFleetSync({
   scope: SyncScope;
   deps: SyncDeps;
 }): SyncOutcome {
+  const overlap = overlapRefusal({ exportRoot: paths.exportRoot, homes });
+  if (overlap !== undefined) {
+    return overlap;
+  }
   mkdirSync(paths.exportRoot, { recursive: true });
   const lock = takeSyncLock({ nowMs: deps.nowMs(), paths });
   if (lock.isErr()) {

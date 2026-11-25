@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
 import {
   ensurePersonalMarketplace,
   personalMarketplaceEntry,
@@ -73,6 +74,21 @@ describe("ensurePersonalMarketplace", () => {
     writeMarketplace({ raw: "not json", userHome });
     expect(unwrapErr(ensurePersonalMarketplace({ userHome })).code).toBe("MARKETPLACE_UNREADABLE");
     expect(readFileSync(marketplacePath({ userHome }), "utf8")).toBe("not json");
+  });
+
+  it.each([
+    ["an overflowing number", '{"name":"mine","plugins":[],"extra":1e400}'],
+    ["negative zero", '{"name":"mine","plugins":[],"extra":-0}'],
+  ])("never rewrites a file holding %s, which JSON would write back differently", (_label, raw) => {
+    writeMarketplace({ raw, userHome });
+    const path = marketplacePath({ userHome });
+    expect(unwrapErr(ensurePersonalMarketplace({ userHome }))).toEqual(
+      CodexPluginSyncErrors.marketplaceUnreadable({
+        detail: "it holds a value JSON cannot write back unchanged, such as 1e400, so it is never rewritten",
+        path,
+      }),
+    );
+    expect(readFileSync(path, "utf8")).toBe(raw);
   });
 
   it("leaves a non-local slopweaver entry exactly as it was", () => {
