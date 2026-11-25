@@ -1,8 +1,10 @@
 /*
  * What crosses between the worker wire and the Agent SDK: a prompt becomes one user message, a top-level assistant
- * message's text becomes agent-text, a result becomes exactly one turn-ended, and an account the plan did not route
- * is refused.
+ * message's text becomes agent-text, each tool call and tool result becomes a tool activity carrying no input or
+ * output, a result becomes exactly one turn-ended, and an account the plan did not route is refused.
  */
+import { createHash } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -15,6 +17,11 @@ import {
 } from "../../src/sessionWorker/claudeMessages";
 
 const ID = "0b5e";
+
+/** A call id as the worker reports it: its digest, never the vendor's own string. */
+function d({ id }: { id: string }): string {
+  return `sha256:${createHash("sha256").update(id).digest("hex")}`;
+}
 
 /** The SDK's messages carry dozens of fields these reports never read; a fixture spells only the ones they do. */
 function sdk({ message }: { message: Record<string, unknown> }): SDKMessage {
@@ -36,7 +43,7 @@ describe("userMessageOf", () => {
 });
 
 describe("reportsOf", () => {
-  it("reports each text block of a top-level assistant message, in order, and nothing for a tool call", () => {
+  it("reports each text block of a top-level assistant message, in order, and a tool call as its activity", () => {
     const message = assistant({
       content: [
         { text: "one", type: "text" },
@@ -47,6 +54,11 @@ describe("reportsOf", () => {
     });
     expect(reportsOf({ message, sessionId: ID })).toEqual([
       { kind: "agent-text", sessionId: ID, text: "one" },
+      {
+        activity: { name: "Bash", status: "in_progress", toolCallId: d({ id: "t" }), toolKind: "execute" },
+        kind: "tool-activity",
+        sessionId: ID,
+      },
       { kind: "agent-text", sessionId: ID, text: "two" },
     ]);
   });
@@ -54,6 +66,132 @@ describe("reportsOf", () => {
   it("reports nothing a subagent says", () => {
     const message = assistant({ content: [{ text: "inner", type: "text" }], parent: "toolu_1" });
     expect(reportsOf({ message, sessionId: ID })).toEqual([]);
+  });
+
+  it("reports a subagent's tool call under the call that started it, and never its input", () => {
+    const secret = "FIXTURE-SECRET-INPUT";
+    const message = assistant({
+      content: [
+        { text: "inner", type: "text" },
+        { id: "toolu_2", input: { command: `echo ${secret}` }, name: "Grep", type: "tool_use" },
+      ],
+      parent: "toolu_1",
+    });
+    const reports = reportsOf({ message, sessionId: ID });
+    expect(reports).toEqual([
+      {
+        activity: {
+          name: "Grep",
+          parentToolCallId: d({ id: "toolu_1" }),
+          status: "in_progress",
+          toolCallId: d({ id: "toolu_2" }),
+          toolKind: "search",
+        },
+        kind: "tool-activity",
+        sessionId: ID,
+      },
+    ]);
+    expect(JSON.stringify(message)).toContain(secret);
+    expect(JSON.stringify(reports)).not.toContain(secret);
+  });
+
+  it("drops a tool name that is not a bare identifier, and digests the id, keeping the call", () => {
+    const message = assistant({
+      content: [{ id: "toolu 9", input: {}, name: "run the tests", type: "tool_use" }],
+      parent: null,
+    });
+    expect(reportsOf({ message, sessionId: ID })).toEqual([
+      {
+        activity: {
+          status: "in_progress",
+          toolCallId: d({ id: "toolu 9" }),
+          toolKind: "other",
+        },
+        kind: "tool-activity",
+        sessionId: ID,
+      },
+    ]);
+  });
+
+  it("calls an MCP tool's kind other, and a delegation's delegate", () => {
+    const message = assistant({
+      content: [
+        { id: "a", input: {}, name: "mcp__acme__search", type: "tool_use" },
+        { id: "b", input: {}, name: "Agent", type: "tool_use" },
+      ],
+      parent: null,
+    });
+    expect(reportsOf({ message, sessionId: ID })).toEqual([
+      {
+        activity: { name: "mcp__acme__search", status: "in_progress", toolCallId: d({ id: "a" }), toolKind: "other" },
+        kind: "tool-activity",
+        sessionId: ID,
+      },
+      {
+        activity: { name: "Agent", status: "in_progress", toolCallId: d({ id: "b" }), toolKind: "delegate" },
+        kind: "tool-activity",
+        sessionId: ID,
+      },
+    ]);
+  });
+
+  it("ends each tool result's call, failed when it errored, and never reads the result's content", () => {
+    const secret = "FIXTURE-SECRET-OUTPUT";
+    const message = sdk({
+      message: {
+        message: {
+          content: [
+            { content: secret, tool_use_id: "t1", type: "tool_result" },
+            { content: [{ text: secret, type: "text" }], is_error: true, tool_use_id: "t2", type: "tool_result" },
+            { text: "beside", type: "text" },
+          ],
+          role: "user",
+        },
+        parent_tool_use_id: null,
+        tool_use_result: { stdout: secret },
+        type: "user",
+      },
+    });
+    const reports = reportsOf({ message, sessionId: ID });
+    expect(reports).toEqual([
+      { activity: { status: "completed", toolCallId: d({ id: "t1" }) }, kind: "tool-activity", sessionId: ID },
+      { activity: { status: "failed", toolCallId: d({ id: "t2" }) }, kind: "tool-activity", sessionId: ID },
+    ]);
+    expect(JSON.stringify(message)).toContain(secret);
+    expect(JSON.stringify(reports)).not.toContain(secret);
+  });
+
+  it("ends a subagent's tool result under its parent", () => {
+    const message = sdk({
+      message: {
+        message: { content: [{ content: "", tool_use_id: "t3", type: "tool_result" }], role: "user" },
+        parent_tool_use_id: "toolu_1",
+        type: "user",
+      },
+    });
+    expect(reportsOf({ message, sessionId: ID })).toEqual([
+      {
+        activity: { parentToolCallId: d({ id: "toolu_1" }), status: "completed", toolCallId: d({ id: "t3" }) },
+        kind: "tool-activity",
+        sessionId: ID,
+      },
+    ]);
+  });
+
+  it("reports nothing for a replayed message or a typed prompt", () => {
+    const replay = sdk({
+      message: {
+        isReplay: true,
+        message: { content: [{ content: "", tool_use_id: "t4", type: "tool_result" }], role: "user" },
+        parent_tool_use_id: null,
+        type: "user",
+      },
+    });
+    expect(reportsOf({ message: replay, sessionId: ID })).toEqual([]);
+    const prompt = sdk({
+      message: { message: { content: "hello", role: "user" }, parent_tool_use_id: null, type: "user" },
+    });
+    expect(reportsOf({ message: prompt, sessionId: ID })).toEqual([]);
   });
 
   it("ends a successful turn as end_turn, and any other with the result's own subtype", () => {

@@ -90,7 +90,8 @@ desktop update` from the main checkout: it waits up to 75s for a call the app ju
   card with a Stop control, its worker started only once that card is on screen. A quit ends every session it
   hosts; a re-spawn resumes a slug's open card on the plan it opened on, and `cmux close app:<id> --harness app`
   closes the row of one no app hosts any longer. `cmux usage --harness app` reads what each hosted session spent this run, by plan, counted at each turn's
-  end, so poll it until the session is idle. So the app harness is proven on the installed app, never `desktop e2e`:
+  end, so poll it until the session is idle; `cmux picture app:<id> --harness app` reads which tools one session has
+  called, never their input, output or title ([facts picture](../../docs/session-harness/facts-picture.md)). So the app harness is proven on the installed app, never `desktop e2e`:
   [the app implementation](../../docs/session-harness.md#the-app-implementation).
 - **Where the code is.** The decisions are pure in `src/desktop/installPlan.ts`; the verb is
   `src/cli/commands/desktop/installRun.ts`, and every effect on the Mac goes through `installSeams.ts` beside

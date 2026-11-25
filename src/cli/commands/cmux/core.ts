@@ -46,6 +46,7 @@ const SPECS = {
     string: ["category", "home", "limit", "name", "since", "workspace"],
   },
   list: { boolean: ["full", "json"], string: ["harness"] },
+  picture: { boolean: ["json"], string: ["harness"] },
   pin: { boolean: [], string: ["workspace"] },
   processes: { boolean: ["json"], string: ["workspace"] },
   "read-screen": { boolean: ["json"], string: ["scrollback", "surface", "workspace"] },
@@ -107,11 +108,12 @@ const WITH_VALUE: ReadonlySet<string> = new Set([
  * spawn with no pin inherited the saved default, which had silently become Fable for the whole fleet
  * (`cmux/modelPin.ts`).
  */
-const REQUIRED: ReadonlySet<string> = new Set(["spawn --model", "usage --harness"]);
+const REQUIRED: ReadonlySet<string> = new Set(["picture --harness", "spawn --model", "usage --harness"]);
 
 /** What each verb's positional tail is called in its usage line. */
 const POSITIONALS: Readonly<Record<string, string>> = {
   close: "<workspace>",
+  picture: "<handle>",
   reseat: "<workspace>|--all",
   spawn: "<slug>",
   send: "<text>",

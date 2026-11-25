@@ -10,6 +10,7 @@ import {
   type AppHarnessResponse,
   type AppHarnessResponseEnvelope,
 } from "./sessionControlProtocol";
+import { sessionPictureOf } from "./sessionFacts";
 import { applySessionEvent, hostedSessions, SessionRefusal, snapshotOf } from "./sessionHosting";
 import {
   instanceId,
@@ -120,6 +121,14 @@ async function answer({
         kind: "usage",
         report: usageReportOf({ atIso: new Date().toISOString(), entries: hostedSessions().values() }),
       };
+    }
+    // One registry read and one clock read: it launches nothing and changes no state.
+    case "picture.read": {
+      const entry = entryForHandle({ handle: request.handle, registry: hostedSessions() });
+      if (entry === undefined) {
+        throw new SessionRefusal("SESSION_NOT_FOUND", `no app session ${request.handle}`);
+      }
+      return { kind: "picture", picture: sessionPictureOf({ entry, readAtIso: new Date().toISOString() }) };
     }
     default: {
       const never: never = request;

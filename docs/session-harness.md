@@ -84,22 +84,22 @@ is comes from the run journal by the same phase that picks the pickup line's `st
 the act that read decided (`ResolvedInitialMessage`), and the recorder writes that act over the one called, so a
 journal that moved during a capacity wait or the boot cannot leave the row and the line disagreeing.
 
-`slopweaver cmux list --json` is byte-identical through the seam: `cmuxWorkspaceFromSession` rebuilds the
-row in the order readers key on.
+`slopweaver cmux list --json` is byte-identical through the seam: `cmuxWorkspaceFromSession` rebuilds the row in the order readers key on.
 
 ## The app implementation
 
-`--harness app` on `cmux spawn`, `list`, `send`, `stop`, `close` and `usage` (and `--delivery now|turn|later` on `send`)
+`--harness app` on `cmux spawn`, `list`, `send`, `stop`, `close`, `usage` and `picture` (`--delivery now|turn|later` on `send`)
 points the verb at the desktop app's control plane, never at cmux as a fallback: an app that is not serving
-is `HARNESS_UNAVAILABLE` naming the app (`src/sessionHarness/harnessChoice.ts`).
+is `HARNESS_UNAVAILABLE` naming the app (`src/sessionHarness/harnessChoice.ts`). `picture` reads what one session has
+DONE, never its words or a tool's input, output or title: [the facts picture](session-harness/facts-picture.md).
 
 - **The wire.** One owner-only Unix socket, `/tmp/slopweaver-<uid>/session-harness-v2.sock` (directory `0700`,
   socket `0600`, the directory checked as a real one however its path is spelled, and nothing served until the
   socket is `0600`), one JSON line each way. The boundary is another
   local user: an ACL the owner's own uid put on its own directory is out of scope, since nobody else can. `desktop/src/sessionControlProtocol.ts` is the protocol and
-  `src/sessionHarness/appProtocol.ts` its byte-for-byte copy, because neither tree imports the other; its two
-  siblings, `wireBasics.ts` (vendor, state and the shape checks) and `usageWire.ts` (what a `usage` answer carries),
-  keep one name in both trees, and a mirror test holds every pair equal. The CLI half is `appSocketTransport.ts`, `appHarness.ts` and `appLaunch.ts`.
+  `src/sessionHarness/appProtocol.ts` its byte-for-byte copy, because neither tree imports the other; its four siblings,
+  `wireBasics.ts` (vendor, state, shape checks), `usageWire.ts` and `pictureWire.ts` (what a `usage` and a `picture` answer carry) and `credentialRouteWire.ts`
+  (a Claude login's route) keep one name in both trees, and a mirror test holds every pair equal. The CLI half is `appSocketTransport.ts`, `appHarness.ts` and `appLaunch.ts`.
 - **Rule 2, as an order.** `launch.prepare` opens the session's card window (JavaScript off, a Stop link), and
   only a card that is visible, loaded and showing THIS session mints the lease the worker is started from
   (`desktop/src/visibleSessionLease.ts`). The card's Stop closes through `cmux close --harness app`, under the

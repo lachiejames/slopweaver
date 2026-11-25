@@ -20,6 +20,7 @@ import type * as AcpSdk from "@agentclientprotocol/sdk";
 import { adapterEnvironment } from "./adapterEnvironment";
 import { codexTurnUsageOf, contextOccupancyOf, resolvedModelOf } from "./codexUsage";
 import { ownProcessGuardian } from "./processGuardian";
+import { codexToolActivityOf } from "./toolActivity";
 import {
   type CodexWorkerLaunchConfig,
   type FromWorker,
@@ -119,6 +120,12 @@ async function serve({ config }: { config: CodexWorkerLaunchConfig }): Promise<v
         return;
       }
       if (heldSessionId === undefined) {
+        return;
+      }
+      // Only the held session's tool calls are this seat's facts; a native subagent's own session is not it.
+      const activity = params.sessionId === heldSessionId ? codexToolActivityOf({ update }) : undefined;
+      if (activity !== undefined) {
+        report({ message: { activity, kind: "tool-activity", sessionId } });
         return;
       }
       const occupancy = contextOccupancyOf({

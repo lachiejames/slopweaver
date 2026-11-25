@@ -82,3 +82,65 @@ describe("isFromWorker usage reports", () => {
     expect(reports.map((report) => isFromWorker(report))).toEqual([false, false, false, false, false]);
   });
 });
+
+describe("isFromWorker tool activity", () => {
+  const activityReport = (activity: Record<string, unknown>) => ({
+    activity,
+    kind: "tool-activity",
+    sessionId: "0b5e",
+  });
+
+  const D1 = `sha256:${"a".repeat(64)}`;
+  const D2 = `sha256:${"b".repeat(64)}`;
+
+  it("reads a digest alone, and one carrying every field it may", () => {
+    const full = { name: "Bash", parentToolCallId: D2, status: "in_progress", toolCallId: D1, toolKind: "execute" };
+    expect([activityReport({ toolCallId: D1 }), activityReport(full)].map((report) => isFromWorker(report))).toEqual([
+      true,
+      true,
+    ]);
+  });
+
+  it("refuses an id or parent that is not a digest, a one-word command and an uppercase digest included", () => {
+    const reports: readonly unknown[] = [
+      activityReport({ toolCallId: "whoami" }),
+      activityReport({ toolCallId: "toolu_01" }),
+      activityReport({ toolCallId: D1.toUpperCase() }),
+      activityReport({ toolCallId: `${D1}0` }),
+      activityReport({ parentToolCallId: "pwd", toolCallId: D1 }),
+    ];
+    expect(reports.map((report) => isFromWorker(report))).toEqual([false, false, false, false, false]);
+  });
+
+  it("refuses a title, an input, an output or content beside the fields, any unknown value, and a name or id that is a command", () => {
+    const base = { status: "completed", toolCallId: D1, toolKind: "read" };
+    const reports: readonly unknown[] = [
+      activityReport({ ...base, title: "cat notes.txt" }),
+      activityReport({ ...base, input: { path: "notes.txt" } }),
+      activityReport({ ...base, rawInput: { path: "notes.txt" } }),
+      activityReport({ ...base, content: "the file" }),
+      activityReport({ ...base, toolKind: "browse" }),
+      activityReport({ ...base, status: "done" }),
+      activityReport({ ...base, toolCallId: "" }),
+      activityReport({ ...base, toolCallId: "x".repeat(257) }),
+      activityReport({ ...base, name: "cat notes.txt" }),
+      activityReport({ ...base, parentToolCallId: "" }),
+      activityReport({ ...base, toolCallId: "cat notes.txt" }),
+      activityReport({ ...base, parentToolCallId: "/work/acme/notes.txt" }),
+    ];
+    expect(reports.map((report) => isFromWorker(report))).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+});

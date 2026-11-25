@@ -6,7 +6,16 @@
  * speaks the vendor's protocol. So this wire is small and says what the card shows: the agent's words, a turn ending,
  * a failure.
  */
-import { APP_CLAUDE_EFFORTS, type AppClaudeEffort, type ClaudeCredentialRoute } from "../sessionControlProtocol";
+import type { ClaudeCredentialRoute } from "../credentialRouteWire";
+import {
+  type AppToolKind,
+  type AppToolStatus,
+  isAppToolKind,
+  isAppToolStatus,
+  isToolCallDigest,
+  isToolIdentifier,
+} from "../pictureWire";
+import { APP_CLAUDE_EFFORTS, type AppClaudeEffort } from "../sessionControlProtocol";
 import { type AppTurnUsage, isAppTurnUsage } from "../usageWire";
 
 /** The environment variable carrying {@link WorkerLaunchConfig} into the worker, as one JSON document. */
@@ -63,6 +72,21 @@ export type WorkerLaunchConfig = CodexWorkerLaunchConfig | ClaudeWorkerLaunchCon
 export type ToWorker =
   { readonly kind: "prompt"; readonly text: string } | { readonly kind: "cancel" } | { readonly kind: "close" };
 
+/**
+ * What a worker saw of one tool call: a patch, because a vendor's update may name only what changed. It carries the
+ * digest of the call's id, its kind and status and a bare tool name, and NEVER a title, an input, an output or a
+ * location: each can hold a command line, a path, a secret or the owner's private data (`../pictureWire.ts`). When the
+ * call happened is the control plane's own receipt instant, so no time rides here.
+ */
+export interface ToolActivity {
+  readonly toolCallId: string;
+  /** The call that started the subagent making this one, when a subagent made it. */
+  readonly parentToolCallId?: string;
+  readonly name?: string;
+  readonly toolKind?: AppToolKind;
+  readonly status?: AppToolStatus;
+}
+
 /** One report a worker sends the control plane. */
 export type FromWorker =
   /** The vendor session is open; `vendorSessionId` is the vendor's own id for it, the one a resume names. */
@@ -81,7 +105,17 @@ export type FromWorker =
       readonly sessionId: string;
       readonly usedTokens: number;
       readonly sizeTokens: number;
-    };
+    }
+  /** A tool call started, changed or ended: an observation, which never moves a turn. */
+  | { readonly kind: "tool-activity"; readonly sessionId: string; readonly activity: ToolActivity };
+
+const TOOL_ACTIVITY_KEYS: ReadonlySet<string> = new Set([
+  "toolCallId",
+  "parentToolCallId",
+  "name",
+  "toolKind",
+  "status",
+]);
 
 function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -93,6 +127,22 @@ function hasPaths({ value, keys }: { value: Readonly<Record<string, unknown>>; k
 
 function isOptionalString({ value }: { value: unknown }): boolean {
   return value === undefined || typeof value === "string";
+}
+
+/** A tool activity of its declared fields alone, ids as digests and a bare name: no input, output or title rides. */
+function isToolActivity({ value }: { value: unknown }): boolean {
+  if (!isObject(value)) {
+    return false;
+  }
+  const { parentToolCallId, name, toolKind, status } = value;
+  return (
+    Object.keys(value).every((key) => TOOL_ACTIVITY_KEYS.has(key)) &&
+    isToolCallDigest(value["toolCallId"]) &&
+    (parentToolCallId === undefined || isToolCallDigest(parentToolCallId)) &&
+    (name === undefined || isToolIdentifier(name)) &&
+    (toolKind === undefined || isAppToolKind(toolKind)) &&
+    (status === undefined || isAppToolStatus(status))
+  );
 }
 
 function isClaudeRoute({ value }: { value: unknown }): boolean {
@@ -192,6 +242,9 @@ export function isFromWorker(value: unknown): value is FromWorker {
       return [value["usedTokens"], value["sizeTokens"]].every(
         (count) => typeof count === "number" && Number.isSafeInteger(count) && count >= 0,
       );
+    }
+    case "tool-activity": {
+      return isToolActivity({ value: value["activity"] });
     }
     default: {
       return false;
