@@ -108,6 +108,7 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--apply": ["--apply"],
     "--budget": ["--budget", "15m"],
     "--if-idle": ["--apply", "--if-idle"],
+    "--include-unmarked-lap": ["--include-unmarked-lap"],
     "--json": ["--json"],
     "--merged-only": ["--merged-only"],
     "--no-salvage": ["--no-salvage"],
