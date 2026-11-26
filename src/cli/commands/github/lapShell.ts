@@ -8,11 +8,11 @@
  * lane runs in its own process group, so a step past its ceiling is killed with everything it spawned.
  */
 
-import { type SpawnSyncOptions, type SpawnSyncReturns, spawnSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { doorLedgerPort } from "../../../admit/doorLedgerPort.js";
+import { ownProcessStart } from "../../../admit/lockHolder.js";
 import { cachePaths } from "../../../cacheHome.js";
 import { githubToken, slopweaverHome } from "../../../config.js";
 import { makeGithubWriteApi } from "../../../corpus/github/write.js";
@@ -29,13 +29,13 @@ import { githubWritePrivacy } from "../../../outbound/github/writePrivacy.js";
 import { isAncestor, resolveCommitSha } from "./gitAncestry.js";
 import { lapBatchSeams } from "./lapBatchShell.js";
 import { acquireLapMachine } from "./lapCompileLease.js";
-import { LAP_STEP_CEILING_MS, LAP_STEP_TIMEOUT_EXIT } from "./lapCore.js";
 import type { GithubLapDeps, LapRefs, LapResource } from "./lapDeps.js";
 import { type LapError, LapErrors } from "./lapErrors.js";
 import { planSourcesDiffering, readStandingHold } from "./lapPreflightReads.js";
 import { runLapCommand } from "./lapProcess.js";
 import { lapRunsDirectory, readLapReceipts } from "./lapReceipts.js";
 import { lapSeatFacts } from "./lapSeatStore.js";
+import { runLapStep } from "./lapStepProcess.js";
 import { startLapStore } from "./lapStore.js";
 import { checkoutLapTree } from "./lapTree.js";
 import { runLapVerb } from "./lapVerb.js";
@@ -139,62 +139,14 @@ function laneHome(): LapResource<string> {
   return { dispose, value: dir };
 }
 
-/**
- * A finished step's exit: the ceiling's own code when it was killed there, 127 when it never started, 128 when a
- * signal ended it (no code is a red step, never a green one), else its own code.
- */
-function stepExit({ run }: { run: SpawnSyncReturns<Buffer> }): number {
-  if (run.error === undefined) {
-    if (run.status === null) {
-      return 128;
-    }
-    return run.status;
-  }
-  const timedOut = "code" in run.error && run.error.code === "ETIMEDOUT";
-  return timedOut ? LAP_STEP_TIMEOUT_EXIT : 127;
-}
-
-/**
- * Run one step in its own process group with its output in its own log file, killing the whole group at the
- * ceiling, and answer its exit code and wall time. Synchronous on purpose: no lap work runs beside a step, and
- * rule 2 admits no asynchronous child here. The ceiling kills only the group's leader, so the rest of the group
- * is killed straight after.
- */
-async function runStep({
-  step,
-  tree,
-  env,
-  logDir,
-}: Parameters<GithubLapDeps["runStep"]>[0]): ReturnType<GithubLapDeps["runStep"]> {
-  const fd = openSync(join(logDir, `${step.id}.log`), "w");
-  const startedMs = Date.now();
-  const cwd = step.directory === undefined ? tree : join(tree, step.directory);
-  // Node's `spawnSync` honours `detached` (its own process group) though `@types/node` leaves it off
-  // `SpawnSyncOptions`, so the options are a named value rather than a literal. Measured: pid equals
-  // pgid: node --input-type=module -e "import { spawnSync } from 'node:child_process';
-  // console.log(spawnSync('sh', ['-c', 'ps -o pid=,pgid= -p \$\$'], { detached: true, encoding: 'utf8' }).stdout)"
-  const options = {
+/** Check `sha` out under the cache's lap-trees directory, its marker naming this process as the minter. */
+function checkoutMarkedTree({ cwd, sha }: { cwd: string; sha: string }): ReturnType<typeof checkoutLapTree> {
+  return checkoutLapTree({
     cwd,
-    detached: true,
-    env,
-    killSignal: "SIGKILL",
-    stdio: ["ignore", fd, fd],
-    timeout: LAP_STEP_CEILING_MS,
-  } satisfies SpawnSyncOptions & { readonly detached: boolean };
-  try {
-    const run = spawnSync(step.argv[0]!, step.argv.slice(1), options);
-    const exitCode = stepExit({ run });
-    if (exitCode === LAP_STEP_TIMEOUT_EXIT) {
-      try {
-        process.kill(-run.pid, "SIGKILL");
-      } catch {
-        // The whole group had already gone with its leader.
-      }
-    }
-    return { context: step.context, exitCode, id: step.id, wallMs: Date.now() - startedMs };
-  } finally {
-    closeSync(fd);
-  }
+    minter: { pid: process.pid, processStart: ownProcessStart() },
+    resolveParent: () => cachePaths().lapTrees,
+    sha,
+  });
 }
 
 /** Land through `github merge --admin`, pinned to the lapped head, with the pull request's own body, in `tree`. */
@@ -316,7 +268,7 @@ export function productionGithubLapDeps(): GithubLapDeps {
       }),
     ambientEnv: process.env,
     ...lapBatchSeams({ cwd }),
-    checkout: ({ sha }) => Promise.resolve(checkoutLapTree({ cwd, resolveParent: () => cachePaths().lapTrees, sha })),
+    checkout: ({ sha }) => Promise.resolve(checkoutMarkedTree({ cwd, sha })),
     cleanTree,
     doorLedger: doorLedgerPort(),
     fetchRefs: ({ baseRef, number }) => Promise.resolve(fetchRefs({ baseRef, cwd, number })),
@@ -345,9 +297,9 @@ export function productionGithubLapDeps(): GithubLapDeps {
     readReceipts: readLapReceipts,
     planSourcesDiffering: cliPlanSourcesSeam({ cwd }),
     release: (at) => runLapVerb({ args: ["github", "release", ...holdArgs(at)], input: "" }),
-    runStep,
+    runStep: runLapStep,
     standingHold: ({ args, home }) => readStandingHold({ home, slug: `${args.owner}/${args.repo}` }),
-    startStore: () => startLapStore({ cwd }),
+    startStore: ({ register }) => startLapStore({ cwd, register }),
     token: ({ home }) => githubToken({ home }),
     toolCaches: toolCachesUnder({ exists: existsSync, osHome: homedir() }),
     wait: ({ ms }) =>

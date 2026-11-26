@@ -39,7 +39,7 @@ describe("runWorktreePrune argument handling", () => {
 describe("worktreeUsage", () => {
   it("renders every real flag, values marked, from the parser's own spec", () => {
     expect(worktreeUsage({ verb: "prune" })).toBe(
-      "usage: slopweaver worktree prune [--apply] [--budget <value>] [--if-idle] [--json] [--merged-only] [--no-salvage] [--nuke-after <value>] [--older-than <value>] [--repo <value>] [--scan-budget <value>]",
+      "usage: slopweaver worktree prune [--apply] [--budget <value>] [--if-idle] [--include-unmarked-lap] [--json] [--merged-only] [--no-salvage] [--nuke-after <value>] [--older-than <value>] [--repo <value>] [--scan-budget <value>]",
     );
   });
 
@@ -48,6 +48,7 @@ describe("worktreeUsage", () => {
       "--apply",
       "--budget",
       "--if-idle",
+      "--include-unmarked-lap",
       "--json",
       "--merged-only",
       "--no-salvage",

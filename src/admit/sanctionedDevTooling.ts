@@ -421,6 +421,9 @@ export const DEV_TOOLING_SEAMS = {
   // children in that worktree, and logs and a receipt under `$SLOPWEAVER_HOME/laps/`. The one provider write
   // the lap makes itself — the commit statuses — goes through `throughDoor` in `lapPhases.ts`, never from here.
   "src/cli/commands/github/lapShell.ts": "dev-tooling",
+  // The CI lanes themselves, each a synchronous child in its own process group in the lap's worktree, its output
+  // in its own log file under `$SLOPWEAVER_HOME/laps/`. Moved out of `lapShell.ts`, no provider.
+  "src/cli/commands/github/lapStepProcess.ts": "dev-tooling",
   // The lap's spawns of the `slopweaver` hold, merge and release verbs, under one ceiling, each doored on its own.
   "src/cli/commands/github/lapVerb.ts": "dev-tooling",
   // The machine's one lap lock: a file under `$SLOPWEAVER_HOME/laps/`, created exclusively and removed only by

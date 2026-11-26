@@ -172,6 +172,7 @@ const CLASS_ORDER: readonly PruneClass[] = [
   "pushed",
   "detached",
   "snapshot",
+  "lap",
   "salvaged",
   "gone",
   "hold",
@@ -185,6 +186,9 @@ const CLASS_HEADING: Readonly<Record<PruneClass, string>> = {
     "INTERRUPTED REMOVAL — a gutted tree whose work is in the trunk or on its own remote branch: finished, " +
     "and the branch deleted only when the trunk holds it",
   hold: "HELD — not touched",
+  lap:
+    "SPENT LAP TREE — a `github lap` checkout whose lap is over: its HEAD pinned under refs/slopweaver/pruned-lap/, " +
+    "then the tree removed with the lap's own reports in it",
   merged: "SAFE — merged, clean, unreferenced, cold: tree removed, and the branch deleted when the trunk holds its tip",
   pushed: "SAFE — clean, fully pushed, unreferenced, cold: tree removed and the branch KEPT",
   salvaged:
@@ -236,6 +240,7 @@ export function totalPrunePlan({ verdicts }: { verdicts: readonly PruneVerdict[]
     gone: 0,
     hold: 0,
     interrupted: 0,
+    lap: 0,
     merged: 0,
     pushed: 0,
     salvaged: 0,
@@ -246,6 +251,7 @@ export function totalPrunePlan({ verdicts }: { verdicts: readonly PruneVerdict[]
     gone: 0,
     hold: 0,
     interrupted: 0,
+    lap: 0,
     merged: 0,
     pushed: 0,
     salvaged: 0,
@@ -268,6 +274,7 @@ const CANDIDATE_CLASSES: readonly PruneClass[] = [
   "pushed",
   "detached",
   "snapshot",
+  "lap",
   "salvaged",
 ];
 

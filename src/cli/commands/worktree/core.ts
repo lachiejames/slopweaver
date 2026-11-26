@@ -42,7 +42,7 @@ const SPECS: Readonly<Record<string, FlagSpec>> = {
   "mirror-prune": { boolean: ["apply", "json"], string: ["budget"] },
   remove: { boolean: ["force", "json"], string: ["repo"] },
   prune: {
-    boolean: ["apply", "if-idle", "json", "merged-only", "no-salvage"],
+    boolean: ["apply", "if-idle", "include-unmarked-lap", "json", "merged-only", "no-salvage"],
     string: ["budget", "nuke-after", "older-than", "repo", "scan-budget"],
   },
   status: { boolean: ["json"], string: ["base", "repo"] },

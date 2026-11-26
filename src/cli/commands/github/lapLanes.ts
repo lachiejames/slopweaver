@@ -67,7 +67,7 @@ async function provision({
   disposers.push(tree.value.dispose);
   const laneHome = deps.laneHome();
   disposers.push(laneHome.dispose);
-  const store = await deps.startStore();
+  const store = await deps.startStore({ register: ({ dispose }) => dispose });
   if (store.isErr()) {
     return err(store.error);
   }

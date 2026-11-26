@@ -120,9 +120,9 @@ describe("the lap lock over a lap's preflight", () => {
     const firstDeps = realLockDeps({ home, observed: first, reached: [] });
     const deps: GithubLapDeps = {
       ...firstDeps,
-      startStore: async () => {
+      startStore: async (input) => {
         await runGithubLap({ deps: realLockDeps({ home, observed: second, reached: [] }), rest: ARGS });
-        return firstDeps.startStore();
+        return firstDeps.startStore(input);
       },
     };
     expect(await runGithubLap({ deps, rest: ARGS })).toBe(0);

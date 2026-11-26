@@ -81,8 +81,14 @@ export interface GithubLapDeps {
   readonly checkout: (args: { sha: string }) => Promise<Result<LapResource<string>, LapError>>;
   /** Mint the throwaway `SLOPWEAVER_HOME` every lane runs against. */
   readonly laneHome: () => LapResource<string>;
-  /** Start a throwaway Postgres 17 and answer the environment the store-backed lanes read. */
-  readonly startStore: () => Promise<Result<LapResource<Readonly<Record<string, string>>>, LapError>>;
+  /**
+   * Start a throwaway Postgres 17 and answer the environment the store-backed lanes read. `register` is handed the
+   * container's dispose the moment the container exists, BEFORE its readiness wait, and answers the dispose the
+   * store uses from then on — so a stop signal during that wait still removes the container.
+   */
+  readonly startStore: (args: {
+    register: (held: { dispose: () => Promise<void> }) => () => Promise<void>;
+  }) => Promise<Result<LapResource<Readonly<Record<string, string>>>, LapError>>;
   /** The seat's own environment; only `LAP_ENV_ALLOWLIST` of it reaches a lane. */
   readonly ambientEnv: Readonly<Record<string, string | undefined>>;
   /** Each download cache under the seat's real home a lane may reuse, keyed by the variable its tool reads. */

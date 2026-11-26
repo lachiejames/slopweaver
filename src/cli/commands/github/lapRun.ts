@@ -20,12 +20,15 @@ import { ok } from "../../../lib/result.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { runGithubLapBatch } from "./lapBatchRun.js";
+import { createLapCleanupRegistry } from "./lapCleanup.js";
+import { withLapCleanup } from "./lapCleanupDeps.js";
 import { type GithubLapArgs, lapPlan, parseGithubLapArgs } from "./lapCore.js";
 import type { GithubLapDeps, LapExecution, LapLockHandle, LapSession } from "./lapDeps.js";
 import { printLapPlan, underLapLock } from "./lapLanes.js";
 import { diagnose, land, lapInside, preflight, preflightLanding } from "./lapPhases.js";
 import { lapSeatRefusalDetail, lapSeatVerdict } from "./lapSeat.js";
 import { productionGithubLapDeps } from "./lapShell.js";
+import { installLapSignalCleanup, nodeLapSignalProcess } from "./lapSignals.js";
 import { lapStatuses } from "./lapStatuses.js";
 import { post } from "./lapStatusPost.js";
 import { GITHUB_LAP_USAGE } from "./lapUsage.js";
@@ -251,7 +254,15 @@ async function landOnEarnedLapInside({ session }: { session: LapSession }): Prom
   return land({ session });
 }
 
-/** `slopweaver github lap`, over the production seams. */
+/**
+ * `slopweaver github lap`, over the production seams, with its stop-signal teardown installed before it takes a lock
+ * or mints a tree (`./lapSignals.ts`).
+ */
 export const githubLapCommand = defineCommand({
-  run: (argv) => runGithubLap({ deps: productionGithubLapDeps(), rest: argv.slice(VERB_ARG_OFFSET) }),
+  run: (argv) => {
+    const cleanup = createLapCleanupRegistry();
+    installLapSignalCleanup({ cleanup, signalProcess: nodeLapSignalProcess() });
+    const deps = withLapCleanup({ cleanup, deps: productionGithubLapDeps() });
+    return runGithubLap({ deps, rest: argv.slice(VERB_ARG_OFFSET) });
+  },
 });

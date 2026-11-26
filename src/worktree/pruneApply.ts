@@ -64,12 +64,19 @@
  * the time a removal runs, which on the measured backlog is up to twenty-five minutes. {@link applyVerdict}
  * therefore re-reads HEAD and asks the remote itself, with `ls-remote`, whether a live branch still contains
  * it — a remote-tracking ref outlives a branch GitHub deleted on merge — and declines when none does.
+ *
+ * ## The `lap` class pins too, and needs no `--force`
+ *
+ * A spent `github lap` tree is detached, or on a `salvage/` branch the salvage loop switched it onto, so it is pinned
+ * under `refs/slopweaver/pruned-lap/` after `./pruneLapPin` re-reads its provenance. Its own report directories are
+ * ignored files, which `git worktree remove` takes without `--force`, so git's dirty check stays the second opinion.
  */
 import { execFileSync } from "node:child_process";
 
 import { absentAs } from "#lib/absent.js";
 import { deleteBranchInTrunk } from "./pruneBranchDelete.js";
 import type { PruneVerdict } from "./pruneClassify.js";
+import { pinLap } from "./pruneLapPin.js";
 import { changedSinceScan, lockHoldNow, pinDetached, pinSnapshot } from "./pruneRecheck.js";
 import { REMOVE_MAX_BUFFER, REMOVE_TIMEOUT_MS, refusalOf } from "./pruneRefusal.js";
 import { finishResidue, judgeRemoval, readAfterRemoval } from "./pruneRemoved.js";
@@ -147,6 +154,13 @@ export function applyVerdict({
   }
   if (verdict.cls === "snapshot") {
     const pin = pinSnapshot({ nowMs: Date.now(), path: verdict.path, repoRoot, scannedHead: verdict.scannedHead });
+    if ("declined" in pin) {
+      return { ...keptOutcome({ verdict }), declined: pin.declined };
+    }
+    return removeTree({ ...remove, pinnedHead: pin.headSha });
+  }
+  if (verdict.cls === "lap") {
+    const pin = pinLap({ evidence: verdict.lap, path: verdict.path, repoRoot, scannedHead: verdict.scannedHead });
     if ("declined" in pin) {
       return { ...keptOutcome({ verdict }), declined: pin.declined };
     }

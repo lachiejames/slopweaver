@@ -252,12 +252,12 @@ function fakeStartStore({
   observed: Observed;
   storeFails: boolean;
 }): GithubLapDeps["startStore"] {
-  return () =>
+  return ({ register }) =>
     Promise.resolve(
       storeFails
         ? err(LapErrors.storeUnavailable({ why: "would not start" }))
         : ok({
-            dispose: disposerFor({ name: "store", observed }),
+            dispose: register({ dispose: disposerFor({ name: "store", observed }) }),
             value: { STORE_PROOF_ADMIN_URL: "postgresql://x" },
           }),
     );

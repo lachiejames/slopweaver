@@ -109,6 +109,8 @@ interface PruneOptions {
   /** Step aside for another apply rather than wait for it — the automatic triggers (`./pruneApplyLock.ts`). */
   readonly ifIdle: boolean;
   readonly json: boolean;
+  /** The explicit run that may take a lap tree with no provenance marker, on a kept ref's word only. */
+  readonly includeUnmarkedLap: boolean;
   readonly mergedOnly: boolean;
   /** No tree is salvaged, so nothing is pushed: `nukeAfterMs` is then infinite (`salvageWaiverMs`). */
   readonly noSalvage: boolean;
@@ -222,6 +224,7 @@ function resolveOptions({ argv }: { argv: readonly string[] }): PruneOptions | n
   return {
     apply,
     ifIdle,
+    includeUnmarkedLap: parsed.values["include-unmarked-lap"] === true,
     json: parsed.values["json"] === true,
     mergedOnly: parsed.values["merged-only"] === true,
     noSalvage,

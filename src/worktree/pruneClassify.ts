@@ -101,12 +101,17 @@
 
 import { absentAsNumber } from "#lib/absent.js";
 
+import type { LapTreeFacts } from "./lapTreeProvenance.js";
 import { coldnessHold, coldnessWindowMs, renderAge } from "./pruneColdness.js";
+import { type LapVerdictEvidence, lapDecision } from "./pruneLapClass.js";
 import { snapshotDecision } from "./pruneSnapshotClass.js";
 import { headOnOwnRemote, recreatableDetached } from "./pruneWitness.js";
 
+/** The classes `--apply` removes a tree under; `gone` and `hold` are the two whose tree it never removes. */
+type RemovingClass = "detached" | "interrupted" | "lap" | "merged" | "pushed" | "salvaged" | "snapshot";
+
 /** What may happen to one worktree. */
-export type PruneClass = "detached" | "gone" | "hold" | "interrupted" | "merged" | "pushed" | "salvaged" | "snapshot";
+export type PruneClass = RemovingClass | "gone" | "hold";
 
 /** Everything the classifier needs about one worktree, gathered by the effectful scan. */
 export interface WorktreeFacts {
@@ -212,6 +217,13 @@ export interface WorktreeFacts {
    * another tree, which {@link snapshotDecision} judges by age instead of by branch, remote or salvage.
    */
   readonly freshSnapshot: boolean;
+  /**
+   * A tree carrying a `github lap` provenance marker, or an unmarked one at exactly a lap tree's path, detached or
+   * on the `salvage/` branch prune's salvage loop switched it onto, and what its marker says
+   * (`./lapTreeProvenance.ts`) — absent for every other tree, which the ordinary rules judge. {@link lapDecision}
+   * judges one before any of them.
+   */
+  readonly lapTree?: LapTreeFacts;
 }
 
 /** One worktree's verdict. */
@@ -230,10 +242,12 @@ export interface PruneVerdict {
   readonly dropsDeps: boolean;
   readonly diskKib: number | null;
   /**
-   * The HEAD the scan read, carried by a `snapshot` verdict only: its removal refuses any other HEAD, so a commit
-   * made onto it since — however it is dated — is never deleted with the tree.
+   * The HEAD the scan read, carried by a `snapshot` or `lap` verdict only: its removal refuses any other HEAD, so a
+   * commit made onto it since — however it is dated — is never deleted with the tree.
    */
   readonly scannedHead?: string;
+  /** What a `lap` verdict's removal re-reads before the tree goes: the marker, or the kept ref that admitted it. */
+  readonly lap?: LapVerdictEvidence;
   /**
    * How long untouched the tree must STILL be when `--apply` reaches it, carried by a `merged` or `pushed` verdict
    * whose coldness window applied (`./pruneColdness.ts`'s `coldnessWindowMs`). Absent when no age test applies — a
@@ -580,20 +594,27 @@ function branchDecision({ facts }: { facts: WorktreeFacts }): ClassDecision {
  * @param nowMs the instant the whole plan is judged against
  * @param olderThanMs the eligibility age in milliseconds
  * @param nukeAfterMs the age past which a hold over unbacked work is released by capturing that work
+ * @param includeUnmarkedLap true only on the explicit `--include-unmarked-lap` run, which may take an unmarked lap tree
  * @returns the verdict, including the reason a reader sees on the plan line
  */
 export function classifyWorktree({
   facts,
+  includeUnmarkedLap,
   nowMs,
   nukeAfterMs,
   olderThanMs,
 }: {
   facts: WorktreeFacts;
+  includeUnmarkedLap?: boolean;
   nowMs: number;
   nukeAfterMs: number;
   olderThanMs: number;
 }): PruneVerdict {
   const base = { branch: facts.branch, diskKib: facts.diskKib, dropsDeps: false, path: facts.path };
+  const lap = lapDecision({ facts, includeUnmarkedLap: includeUnmarkedLap === true });
+  if (lap !== undefined) {
+    return { ...base, ...lap };
+  }
   const snapshot = snapshotDecision({ facts, nowMs });
   if (snapshot !== undefined) {
     return { ...base, ...snapshot };

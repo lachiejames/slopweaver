@@ -34,7 +34,7 @@ export const worktreeManifest: Readonly<Record<string, VerbManifestEntry>> = {
       summary:
         "Plan — and with --apply, carry out — the removal of worktrees that are clean, unreferenced, fully backed up and cold",
       usage:
-        "usage: slopweaver worktree prune [--apply] [--budget <value>] [--if-idle] [--json] [--merged-only] " +
+        "usage: slopweaver worktree prune [--apply] [--budget <value>] [--if-idle] [--include-unmarked-lap] [--json] [--merged-only] " +
         "[--no-salvage] [--nuke-after <value>] [--older-than <value>] [--repo <value>] [--scan-budget <value>]",
     },
   }),

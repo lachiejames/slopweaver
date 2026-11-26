@@ -34,6 +34,7 @@ const LOCK_LOST_AFTER_SCAN =
  * @param scanBudgetMs how long the scan may read before it stops and says what it did not reach
  * @param lockHeld whether this run still holds the apply lock — always true for a dry run
  * @param home the state home the cursors and run records live under
+ * @param includeUnmarkedLap whether `--include-unmarked-lap` lets a lap tree with no marker be judged for removal
  * @returns what the scan read, or null when the run lost its lock and must stop
  */
 export function scanPhase({
@@ -45,6 +46,7 @@ export function scanPhase({
   scanBudgetMs,
   lockHeld,
   home,
+  includeUnmarkedLap = false,
 }: {
   repos: readonly string[];
   apply: boolean;
@@ -54,11 +56,13 @@ export function scanPhase({
   scanBudgetMs: number;
   lockHeld: () => boolean;
   home: string;
+  includeUnmarkedLap?: boolean;
 }): ScanPhase | null {
   const nowMs = Date.now();
   const queues = repos.map((repoRoot) => queueRepo({ repoRoot })).filter((queue): queue is RepoQueue => queue !== null);
   const pass = scanRepos({
     cursors: readScanCursors({ home }),
+    includeUnmarkedLap,
     live,
     nowMs,
     nukeAfterMs,

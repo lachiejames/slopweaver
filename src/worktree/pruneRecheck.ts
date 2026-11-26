@@ -6,6 +6,7 @@ import { realpathSync } from "node:fs";
 
 import { findWorktreeAtPath, parseWorktreeListPorcelain } from "../cmux/worktreeList.js";
 import { isSnapshotCommit, snapshotWarmReason, snapshotWitnessed } from "./freshSnapshotPath.js";
+import { unexpectedLapWork } from "./lapTreeProvenance.js";
 import type { PruneVerdict } from "./pruneClassify.js";
 import { readIgnoredWork, readTreeStashes } from "./pruneContext.js";
 import {
@@ -16,6 +17,7 @@ import {
   realGit,
   workingTreeStatus,
 } from "./pruneGit.js";
+import { LAP_GITDIR_FILES } from "./pruneLapPin.js";
 import { remoteStillCarries } from "./pruneRemote.js";
 import { activityNowMs, detachedHead } from "./pruneScan.js";
 import { symlinkEditsNow } from "./pruneSymlinks.js";
@@ -202,7 +204,8 @@ export function changedSinceScan({
     return "it carries a change, or its status could not be read, since the scan — kept";
   }
   // `git worktree remove` deletes ignored files unasked, and no git command ever looks at a stash on removal.
-  const ignored = readIgnoredWork({ git: realGit, path: verdict.path });
+  // A `lap` tree's own report directories are the one exception, and only for that class.
+  const ignored = ownIgnoredWork({ verdict });
   if (ignored === null || ignored.length > 0) {
     return "it carries ignored files no build writes again, or they could not be listed, since the scan — kept";
   }
@@ -244,11 +247,14 @@ function lastReads({
   pinnedHead: string | undefined;
   salvagedTo: string | null;
 }): string | null {
-  // A snapshot's private gitdir goes with it, so a ref written into it since the pin — `refs/bisect/keep` on a
-  // commit whose only branch then went — is read again here, as close to the removal as the HEAD read.
+  // A snapshot's or a lap tree's private gitdir goes with it, so a ref written into it since the pin —
+  // `refs/bisect/keep` on a commit whose only branch then went — is read again here, as close to the removal as
+  // the HEAD read. A lap tree's gitdir also carries its marker, which is read for ids like every other file.
+  const alsoAllowed = verdict.cls === "lap" ? LAP_GITDIR_FILES : [];
   if (
-    verdict.cls === "snapshot" &&
-    (pinnedHead === undefined || !privateHistoryWithinHead({ git: realGit, path: verdict.path, rev: pinnedHead }))
+    (verdict.cls === "snapshot" || verdict.cls === "lap") &&
+    (pinnedHead === undefined ||
+      !privateHistoryWithinHead({ alsoAllowed, git: realGit, path: verdict.path, rev: pinnedHead }))
   ) {
     return "its own gitdir names a commit its HEAD does not contain, or could not be read, since the pin — kept";
   }
@@ -281,6 +287,20 @@ function unpushedSinceScan({ verdict }: { verdict: PruneVerdict }): string | nul
     return "it carries a commit on no remote, or its commits could not be counted, since the scan — kept";
   }
   return null;
+}
+
+/**
+ * The ignored entries that hold a tree at removal: every one, bar a `lap` tree's own report directories.
+ *
+ * @param verdict the classified worktree about to be removed
+ * @returns those entries, or `null` when they could not be listed
+ */
+function ownIgnoredWork({ verdict }: { verdict: PruneVerdict }): readonly string[] | null {
+  const ignored = readIgnoredWork({ git: realGit, path: verdict.path });
+  if (ignored === null || verdict.cls !== "lap") {
+    return ignored;
+  }
+  return unexpectedLapWork({ ignoredWork: ignored });
 }
 
 /**
