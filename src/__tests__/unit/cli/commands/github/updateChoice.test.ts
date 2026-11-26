@@ -80,6 +80,7 @@ describe("chooseUpdate — a partial --edit", () => {
     expect(chosen).toStrictEqual({
       draft: { ...RECOVERED, title: "a new title" },
       notices: [],
+      pasted: [],
       trailing: "",
       wholesale: false,
     });
@@ -95,6 +96,7 @@ describe("chooseUpdate — a partial --edit", () => {
     expect(chosen).toStrictEqual({
       draft: { ...RECOVERED, title: "a new title" },
       notices: [],
+      pasted: [],
       trailing: footer,
       wholesale: false,
     });
@@ -110,7 +112,7 @@ describe("chooseUpdate — a partial --edit", () => {
     expect(JSON.stringify(chosen)).toContain("a partial --edit needs the description's current form to merge into");
   });
 
-  it("refuses, rather than silently dropping, a screenshot pasted between two sections", () => {
+  it("keeps a screenshot pasted between two sections, keyed to the block it followed, and merges around it", () => {
     const paste =
       '<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/abc-1" />';
     const problem = "<p>The short export was reported in a file, and nothing on screen changes.</p>";
@@ -122,10 +124,11 @@ describe("chooseUpdate — a partial --edit", () => {
       live: live({ body }),
     });
     expect(chosen).toStrictEqual({
-      reason:
-        "a partial --edit needs the description's current form to merge into, and it has none: the description " +
-        "is not in the C3 shape this renderer emits (stopped at: the Proof of the solution heading). Rewrite it " +
-        "whole with a complete --form or --file",
+      draft: { ...RECOVERED, title: "a new title" },
+      notices: [],
+      pasted: [{ after: "problem-proof", occurrence: 1, raw: paste }],
+      trailing: "",
+      wholesale: false,
     });
   });
 });
@@ -137,7 +140,7 @@ describe("chooseUpdate — a whole --form or --file", () => {
       input: { form: DRAFT, kind: "form" },
       live: live({ body: rendered({ draft: DRAFT }) }),
     });
-    expect(chosen).toStrictEqual({ draft: DRAFT, notices: [], trailing: "", wholesale: true });
+    expect(chosen).toStrictEqual({ draft: DRAFT, notices: [], pasted: [], trailing: "", wholesale: true });
   });
 
   it("states that a draft-state change was ignored rather than dropping it silently", () => {
@@ -151,6 +154,7 @@ describe("chooseUpdate — a whole --form or --file", () => {
       notices: [
         "note: draft state is not changeable through this API, so #7 stays a draft and the form's draft field was ignored",
       ],
+      pasted: [],
       trailing: "",
       wholesale: true,
     });
@@ -168,6 +172,7 @@ describe("chooseUpdate — a whole --form or --file", () => {
         "note: draft state is not changeable through this API, so #7 stays ready for review and the form's draft " +
           "field was ignored",
       ],
+      pasted: [],
       trailing: "",
       wholesale: true,
     });
@@ -185,6 +190,7 @@ describe("chooseUpdate — a whole --form or --file", () => {
         "note: this file carries no pulled-body-hash, so the live description was NOT checked for drift before " +
           "sending — if you meant to edit an existing description, `--pull` it first",
       ],
+      pasted: [],
       trailing: "",
       wholesale: true,
     });

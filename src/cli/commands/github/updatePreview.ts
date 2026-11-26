@@ -45,7 +45,7 @@ function bodyToSend({ rendered, trailing }: { rendered: string; trailing: string
  * The preview's bytes, checked against today: the accepted form, the gate's verdict, the exact body the PATCH would
  * send and the notices about it.
  *
- * @param chosen the update the input resolved to, carrying the third-party trailing region
+ * @param chosen the update the input resolved to, carrying the pasted media and the third-party trailing region
  * @param denylist the private hygiene denylist the PR gate's secret scan reads
  * @param publicationScan the scan of what may not be published, run on the exact title and body
  * @param titlePolicy which repositories' titles are judged, or why that could not be read
@@ -87,6 +87,7 @@ export function previewedUpdate({
     draft,
     installationIdentifiers,
     liveTitle: live.title,
+    pasted: chosen.pasted,
     publicationScan,
     titlePolicy,
     today,

@@ -240,6 +240,10 @@ describe("parsePrBody", () => {
     expect(unwrapErr(parsePrBody({ body: "<p>hello</p>\n" })).code).toBe("STRUCTURE");
   });
 
+  it("reads a body with nothing pasted into it as no pasted media", () => {
+    expect(unwrap(parsePrBody({ body: `${FEATURE_BYTES}\n` })).pasted).toStrictEqual([]);
+  });
+
   it("round-trips a command whose text carries a fence", () => {
     const body: PrBody = {
       ...FEATURE_BODY,
@@ -249,5 +253,94 @@ describe("parsePrBody", () => {
       ],
     };
     expect(unwrap(parsePrBody({ body: unwrap(renderBody({ body })) })).body).toEqual(body);
+  });
+});
+
+/** A screenshot as github.com's editor writes one, on a synthetic attachment id. */
+const PASTE = '<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/abc-1" />';
+
+/** A second paste, a Markdown image, so two pastes in one description stay distinguishable. */
+const SECOND_PASTE = "![image](https://github.com/user-attachments/assets/abc-2)";
+
+/** `blocks` with `paste` standing as its own block straight after the block at `index`. */
+function pastedAfter({ blocks, index, paste }: { blocks: readonly string[]; index: number; paste: string }): string {
+  return [...blocks.slice(0, index + 1), paste, ...blocks.slice(index + 1)].join("\n\n");
+}
+
+/** The layout-2 feature body's blocks, in render order. */
+const FEATURE_BLOCKS = FEATURE_BYTES.split("\n\n<details>")[0]!.split("\n\n").concat(FEATURE_TAIL[1]!);
+
+/** The layout-1 feature body's blocks, in render order. */
+const FEATURE_LAYOUT_1_BLOCKS = FEATURE_LAYOUT_1_BYTES.split("\n\n<details>")[0]!
+  .split("\n\n")
+  .concat(FEATURE_TAIL[1]!);
+
+describe("parsePrBody — media pasted on github.com", () => {
+  it("lifts a screenshot pasted between two sections, keys it to the block before, and re-renders it in place", () => {
+    const bytes = `${pastedAfter({ blocks: FEATURE_BLOCKS, index: 3, paste: PASTE })}\n`;
+    const parsed = unwrap(parsePrBody({ body: bytes }));
+    expect(parsed).toStrictEqual({
+      body: FEATURE_BODY,
+      layout: 2,
+      pasted: [{ after: "problem-proof", occurrence: 1, raw: PASTE }],
+      remainder: "",
+    });
+    expect(unwrap(renderBodyIn({ body: parsed.body, layout: 2, pasted: parsed.pasted }))).toBe(bytes);
+  });
+
+  it("keys a paste between two layout-1 check paragraphs to the first of them", () => {
+    const bytes = `${pastedAfter({ blocks: FEATURE_LAYOUT_1_BLOCKS, index: 6, paste: PASTE })}\n`;
+    const parsed = unwrap(parsePrBody({ body: bytes }));
+    expect([parsed.body, parsed.layout, parsed.pasted]).toStrictEqual([
+      FEATURE_BODY,
+      1,
+      [{ after: "checks", occurrence: 1, raw: PASTE }],
+    ]);
+    expect(unwrap(renderBodyIn({ body: parsed.body, layout: 1, pasted: parsed.pasted }))).toBe(bytes);
+  });
+
+  it("keys a paste opening the description to the start, and two pastes in one slot in their order", () => {
+    const twice = pastedAfter({ blocks: FEATURE_BLOCKS, index: 9, paste: `${PASTE}\n\n${SECOND_PASTE}` });
+    const bytes = `${PASTE}\n\n${twice}\n`;
+    const parsed = unwrap(parsePrBody({ body: bytes }));
+    expect(parsed.pasted).toStrictEqual([
+      { after: "start", raw: PASTE },
+      { after: "not-checked", occurrence: 1, raw: PASTE },
+      { after: "not-checked", occurrence: 1, raw: SECOND_PASTE },
+    ]);
+    expect(unwrap(renderBodyIn({ body: parsed.body, layout: 2, pasted: parsed.pasted }))).toBe(bytes);
+  });
+
+  it("leaves a paste after the re-run fold, the last rendered block, in the remainder", () => {
+    const parsed = unwrap(parsePrBody({ body: `${FEATURE_BYTES}\n\n${PASTE}\n` }));
+    expect([parsed.body, parsed.pasted, parsed.remainder]).toStrictEqual([FEATURE_BODY, [], `\n${PASTE}\n`]);
+  });
+
+  it("reads a CRLF body with a paste in it as LF, keyed the same", () => {
+    const bytes = `${pastedAfter({ blocks: FEATURE_BLOCKS, index: 3, paste: PASTE })}\n`.replaceAll("\n", "\r\n");
+    expect(unwrap(parsePrBody({ body: bytes })).pasted).toStrictEqual([
+      { after: "problem-proof", occurrence: 1, raw: PASTE },
+    ]);
+  });
+
+  it("refuses a paste on the line under a proof paragraph, which is not a block of its own", () => {
+    const blocks = FEATURE_BLOCKS.map((block, index) => (index === 3 ? `${block}\n${PASTE}` : block));
+    expect(unwrapErr(parsePrBody({ body: `${blocks.join("\n\n")}\n` })).code).toBe("STRUCTURE");
+  });
+
+  it("reads an attachment URL standing alone inside a Re-run command as the command, never as a paste", () => {
+    const asset = "https://github.com/user-attachments/assets/abc-3";
+    const body: PrBody = {
+      ...FEATURE_BODY,
+      rerun: [{ kind: "command", lang: "sh", text: `curl\n\n${asset}\n\necho` }],
+    };
+    const parsed = unwrap(parsePrBody({ body: unwrap(renderBody({ body })) }));
+    expect([parsed.body, parsed.pasted]).toStrictEqual([body, []]);
+  });
+
+  it("refuses a block that is not a narrow paste, such as an image hosted anywhere but user-attachments", () => {
+    const elsewhere = '<img width="10" height="10" alt="Image" src="https://example.invalid/a.png" />';
+    const bytes = `${pastedAfter({ blocks: FEATURE_BLOCKS, index: 3, paste: elsewhere })}\n`;
+    expect(unwrapErr(parsePrBody({ body: bytes })).code).toBe("STRUCTURE");
   });
 });

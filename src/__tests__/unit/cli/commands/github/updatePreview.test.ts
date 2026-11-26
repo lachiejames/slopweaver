@@ -41,10 +41,24 @@ const LIVE: WrittenPr = {
   updatedAtIso: "2026-10-05T00:00:00Z",
 };
 
-/** A whole-form update carrying `trailing` after the description. */
-function chosen({ draft, trailing }: { draft: PrFormDraft; trailing: string }): ChosenUpdate {
-  return { draft, notices: [], trailing, wholesale: true };
+/** A whole-form update carrying `trailing` after the description, and any `pasted` media to put back. */
+function chosen({
+  draft,
+  pasted = [],
+  trailing,
+}: {
+  draft: PrFormDraft;
+  pasted?: ChosenUpdate["pasted"];
+  trailing: string;
+}): ChosenUpdate {
+  return { draft, notices: [], pasted, trailing, wholesale: pasted.length === 0 };
 }
+
+/** A screenshot as github.com's editor writes one, on a synthetic attachment id. */
+const PASTE = '<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/abc-1" />';
+
+/** The example form's problem-proof paragraph, which {@link PASTE} is pasted after. */
+const PROBLEM = "<p>The short export was reported in a file, and nothing on screen changes.</p>";
 
 describe("previewedUpdate", () => {
   it("is ready on a clean draft, and sends the rendered body with the trailing bytes re-appended", () => {
@@ -132,6 +146,28 @@ describe("previewedUpdate", () => {
         "the problem is marked seen on 2026-10-07, after today (2026-10-06). A problem seen today is seen today, " +
         "never later",
     });
+  });
+
+  it("puts a pasted screenshot back after the block it followed, inside the body the PR gate checks", () => {
+    const preview = previewedUpdate({
+      chosen: chosen({
+        draft: EXAMPLE_PR_FORM,
+        pasted: [{ after: "problem-proof", occurrence: 1, raw: PASTE }],
+        trailing: "",
+      }),
+      denylist: DENYLIST,
+      installationIdentifiers: undefined,
+      publicationScan: noPublicationFindings,
+      titlePolicy: POLICY,
+      draft: EXAMPLE_PR_FORM,
+      live: LIVE,
+      today: TODAY,
+    });
+    expect(preview.kind).toBe("ready");
+    const ready = preview as Extract<typeof preview, { kind: "ready" }>;
+    expect(ready.body).toBe(ready.rendered.body);
+    expect(ready.body).toContain(`${PROBLEM}\n\n${PASTE}\n\n`);
+    expect(ready.body.split(PASTE).length).toBe(2);
   });
 
   it("does not scan the trailing region, which is already on GitHub", () => {

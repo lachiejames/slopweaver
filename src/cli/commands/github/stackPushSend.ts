@@ -88,8 +88,10 @@ async function preflightThenWrite({
       home,
       installationIdentifiers,
       locus,
+      // A whole form replaces the whole description, pasted media included; the wholesale consent before the push
+      // already covered that.
+      pasted: [],
       previewed: previewedAfterStackPush({ previewed: write.previewed, pushedHeadSha }),
-      // A whole form replaces the whole description; the wholesale consent before the push already covered that.
       trailing: "",
     });
   }

@@ -22,8 +22,10 @@
  * The re-append step is what makes a partial `--edit` survive a bot that has added to the description.
  * `recoverPrForm` splits the live body into the rendered description and an opaque trailing region; the gate
  * judges only the part slopweaver rendered, and the PATCH sends both, so nobody else's content is discarded
- * by an edit that was never about it. A `--form`/`--file` replacement is the deliberate opposite and keeps
- * discarding, behind the diff `./updateConsent.ts` prints.
+ * by an edit that was never about it. A screenshot a human pasted between the rendered sections on github.com is
+ * carried the same way, as `pasted`: put back after the block it followed, inside the bytes the gate judges. A
+ * `--form`/`--file` replacement is the deliberate opposite and keeps discarding, behind the diff
+ * `./updateConsent.ts` prints.
  *
  * Two things about it are worth stating rather than inferring. The dry run now RESOLVES A TOKEN AND PERFORMS
  * GETS — it never PATCHes, and `create --dry-run` stays fully offline, but update's old promise of touching
@@ -42,6 +44,7 @@ import type { InstallationIdentifiers } from "../../../hygiene/installationIdent
 import { err, ok, type Result } from "../../../lib/result.js";
 import { parseAuthoringFile } from "../../../outbound/github/authoringFile.js";
 import type { DescriptionReviewComment } from "../../../outbound/github/descriptionReviewTypes.js";
+import type { C3PastedMediaBlock } from "../../../outbound/github/render.js";
 import { renderSelfReviewComments, type SelfReviewForm } from "../../../outbound/github/selfReview.js";
 import type { PrForm, PrFormDraft } from "../../../outbound/github/types.js";
 import { printedAboveFoldRefusals } from "../../aboveFoldDoor.js";
@@ -210,6 +213,7 @@ async function runDescriptionUpdate({
       comments: renderSelfReviewComments({ form: selfReview }),
       draft,
       installationIdentifiers,
+      pasted: chosen.pasted,
       trailing: chosen.trailing,
     },
     wholesale: chosen.wholesale,
@@ -299,6 +303,8 @@ interface UpdateWrite {
   readonly comments: readonly DescriptionReviewComment[];
   readonly draft: PrFormDraft;
   readonly installationIdentifiers: InstallationIdentifiers | undefined;
+  /** Media a human pasted into the live description, put back where it was; `[]` when none was. */
+  readonly pasted: readonly C3PastedMediaBlock[];
   readonly trailing: string;
 }
 

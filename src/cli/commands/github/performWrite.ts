@@ -1,10 +1,10 @@
 /**
- * The update mutation, already inside the door, and the confirmation both writes share.
+ * The update mutation, already inside the door: what an update sends, decided against a fresh re-read.
  *
  * Split out of `run.ts` to keep that file under this repo's own line ceiling. `performUpdate` is exported because
- * `updateFlow.ts`'s `sendUpdate` calls it; the create is `./performCreate.ts`'s, and it imports
- * `confirmOrUnconfirmed` and `Outgoing` from here. The render-and-gate step both run before sending is
- * `./prRenderGate.ts`'s.
+ * `updateFlow.ts`'s `sendUpdate` calls it; the create is `./performCreate.ts`'s, and it imports `Outgoing` from
+ * here. The render-and-gate step both run before sending is `./prRenderGate.ts`'s; how the decided bytes reach
+ * GitHub — the no-op check, the review, the PATCH and the confirmation both writes share — is `./updateSend.ts`'s.
  *
  * ## The door checks the seen day against its own clock
  *
@@ -16,7 +16,7 @@ import { type GithubWriteApi, type WrittenPr } from "../../../corpus/github/writ
 import type { InstallationIdentifiers } from "../../../hygiene/installationIdentifiers.js";
 import type { Result } from "../../../lib/result.js";
 import type { DescriptionReviewComment } from "../../../outbound/github/descriptionReviewTypes.js";
-import { confirmPr } from "../../../outbound/github/prLedger.js";
+import type { C3PastedMediaBlock } from "../../../outbound/github/render.js";
 import type { TitleShapePolicy } from "../../../outbound/github/titleShape.js";
 import type { PrForm, PrFormDraft } from "../../../outbound/github/types.js";
 import { ownerRepoOf } from "./addressRun.js";
@@ -25,42 +25,8 @@ import { applyKindLabels } from "./kindLabelApply.js";
 import type { GithubPrDeps } from "./prDeps.js";
 import { type PublicationScan, stampedUpdate, writeGates } from "./prRenderGate.js";
 import type { TitleShapePolicyError } from "./titleShapePolicy.js";
-import { updateFreshnessFor, writeWouldChangeNothing } from "./updateCore.js";
-
-/**
- * Write the confirmation, and report UNCONFIRMED if even that fails.
- *
- * @param locus the branch locus, named in an unconfirmed outcome
- * @param pr the pull request the provider returned, whose stored body is the ledger's conflict signal
- * @param nowIso when the confirmation is recorded
- * @returns undefined once recorded, or the unconfirmed outcome
- */
-export function confirmOrUnconfirmed({
-  home,
-  locus,
-  form,
-  pr,
-  nowIso,
-}: {
-  home: string;
-  locus: string;
-  form: PrForm;
-  pr: WrittenPr;
-  nowIso: string;
-}): PrOutcome | undefined {
-  try {
-    confirmPr({ form, home, locus, nodeId: pr.nodeId, nowIso, number: pr.number, storedBody: pr.body });
-    return undefined;
-  } catch (cause) {
-    return {
-      detail:
-        `pull request #${String(pr.number)} WAS created at ${pr.htmlUrl}, but recording it locally failed ` +
-        `(${cause instanceof Error ? cause.message : "unknown"}). Without that record, update cannot own it.`,
-      kind: "unconfirmed",
-      locus,
-    };
-  }
-}
+import { updateFreshnessFor } from "./updateCore.js";
+import { sendDecidedUpdate } from "./updateSend.js";
 
 /** What a write sends, or why it sends nothing. */
 export type Outgoing =
@@ -68,8 +34,8 @@ export type Outgoing =
   | { readonly kind: "refused"; readonly reason: string };
 
 /**
- * The bytes an update sends: the draft checked against today, rendered, gated, and followed by the third-party
- * trailing region. Pure — the clock reading is passed in.
+ * The bytes an update sends: the draft checked against today, rendered with any pasted media put back, gated, and
+ * followed by the third-party trailing region. Pure — the clock reading is passed in.
  */
 function outgoingUpdate({
   denylist,
@@ -79,6 +45,7 @@ function outgoingUpdate({
   draft,
   live,
   today,
+  pasted,
   trailing,
 }: {
   denylist: readonly string[];
@@ -88,6 +55,7 @@ function outgoingUpdate({
   draft: PrFormDraft;
   live: WrittenPr;
   today: Date;
+  pasted: readonly C3PastedMediaBlock[];
   trailing: string;
 }): Outgoing {
   const checked = stampedUpdate({
@@ -95,6 +63,7 @@ function outgoingUpdate({
     draft,
     installationIdentifiers,
     liveTitle: live.title,
+    pasted,
     publicationScan,
     titlePolicy,
     today,
@@ -165,6 +134,7 @@ async function freshLive({
  * @param previewed the pull request as previewed before the door — the base freshness re-read compares
  *   against this
  * @param draft the merged or whole draft the write will send
+ * @param pasted media a human pasted into the live description, put back after the block it followed
  * @param trailing third-party bytes after the rendered description, re-appended verbatim
  * @param home the state home whose ledger records the write
  * @param locus the branch locus, used only to label an unconfirmed outcome
@@ -178,6 +148,7 @@ export async function performUpdate({
   comments,
   previewed,
   draft,
+  pasted,
   trailing,
   home,
   locus,
@@ -188,6 +159,7 @@ export async function performUpdate({
   comments: readonly DescriptionReviewComment[];
   previewed: WrittenPr;
   draft: PrFormDraft;
+  pasted: readonly C3PastedMediaBlock[];
   trailing: string;
   home: string;
   locus: string;
@@ -205,6 +177,7 @@ export async function performUpdate({
     draft,
     installationIdentifiers,
     live: current,
+    pasted,
     today: deps.now(),
     trailing,
   });
@@ -212,7 +185,7 @@ export async function performUpdate({
     return outgoing;
   }
   const { body, form } = outgoing;
-  const outcome = await sendUpdate({ api, body, comments, current, deps, form, home, locus });
+  const outcome = await sendDecidedUpdate({ api, body, comments, current, deps, form, home, locus });
   if (outcome.kind === "refused") {
     return outcome;
   }
@@ -225,159 +198,4 @@ export async function performUpdate({
     }
   }
   return outcome;
-}
-
-/** The decided bytes sent: `unchanged` when they match the live pull request, else the reviewed PATCH. */
-async function sendUpdate({
-  api,
-  body,
-  comments,
-  current,
-  deps,
-  form,
-  home,
-  locus,
-}: {
-  api: GithubWriteApi;
-  body: string;
-  comments: readonly DescriptionReviewComment[];
-  current: WrittenPr;
-  deps: GithubPrDeps;
-  form: PrForm;
-  home: string;
-  locus: string;
-}): Promise<PrOutcome> {
-  // Decided HERE, after the freshness re-read, and that placement is the whole fix. A no-op used to PATCH
-  // identical bytes and print `updated` — a change reported that never happened, which is the silent-success
-  // class this verb exists to remove. Behind `updateFreshnessFor` a concurrent edit is already a refusal by
-  // the time control reaches this line, so `unchanged` is never claimed about a description that has moved.
-  // The residual window — an edit landing after that GET — is the same accepted race the PATCH path carries.
-  const unchanged = writeWouldChangeNothing({ live: current, renderedBody: body, renderedTitle: form.title });
-  if (!unchanged) {
-    return reviewedPatch({ api, body, comments, current, deps, form, home, locus });
-  }
-  if (comments.length > 0) {
-    // A no-op PATCH sends nothing, but the round posted after it does, and it answers to the same review: checked
-    // HERE, so a round no CLEAN review covers is refused before the caller's kind labels reach GitHub.
-    const refusal = await reviewRefusal({ body, comments, current, deps, form, home });
-    if (refusal !== undefined) {
-      return refusal;
-    }
-  }
-  return { kind: "unchanged", number: current.number, url: current.htmlUrl };
-}
-
-/** The refusal when no CLEAN description review covers these bytes and this round at the head just re-read. */
-async function reviewRefusal({
-  body,
-  comments,
-  current,
-  deps,
-  form,
-  home,
-}: {
-  body: string;
-  comments: readonly DescriptionReviewComment[];
-  current: WrittenPr;
-  deps: GithubPrDeps;
-  form: PrForm;
-  home: string;
-}): Promise<PrOutcome | undefined> {
-  const reviewed = await deps.descriptionReview({
-    body,
-    comments,
-    form,
-    headRef: current.head.sha,
-    home,
-    pullRequest: { kind: "existing", number: current.number },
-    repoDir: deps.cwd(),
-  });
-  if (reviewed.kind === "refused") {
-    return { kind: "refused", reason: reviewed.lines.join("\n") };
-  }
-  if (reviewed.notice !== undefined) {
-    deps.err({ line: reviewed.notice });
-  }
-  return undefined;
-}
-
-/**
- * A write that changes something: last, immediately before the PATCH, a CLEAN description review must cover these
- * exact bytes against the head just re-read. A no-op with no round to post sends nothing and owes none.
- */
-async function reviewedPatch({
-  api,
-  body,
-  comments,
-  current,
-  deps,
-  form,
-  home,
-  locus,
-}: {
-  api: GithubWriteApi;
-  body: string;
-  comments: readonly DescriptionReviewComment[];
-  current: WrittenPr;
-  deps: GithubPrDeps;
-  form: PrForm;
-  home: string;
-  locus: string;
-}): Promise<PrOutcome> {
-  const reviewedHead = current.head.sha;
-  const refusal = await reviewRefusal({ body, comments, current, deps, form, home });
-  if (refusal !== undefined) {
-    return refusal;
-  }
-  const { owner, repo } = ownerRepoOf({ fullName: current.baseRepoFullName });
-  const target = { number: current.number, owner, repo, reviewedHead };
-  return patchAndConfirm({ api, body, deps, form, home, locus, ...target });
-}
-
-/**
- * The PATCH itself, then the local confirmation of what it wrote.
- *
- * GitHub offers no update conditional on the head SHA, so a force-push between the review check and this PATCH
- * cannot be refused, only seen: the PATCH's own response carries the head it landed on, and a head other than the
- * one the review bound is printed so the description is reviewed again.
- */
-async function patchAndConfirm({
-  api,
-  body,
-  deps,
-  form,
-  home,
-  locus,
-  number,
-  owner,
-  repo,
-  reviewedHead,
-}: {
-  api: GithubWriteApi;
-  body: string;
-  deps: GithubPrDeps;
-  form: PrForm;
-  home: string;
-  locus: string;
-  number: number;
-  owner: string;
-  repo: string;
-  reviewedHead: string;
-}): Promise<PrOutcome> {
-  const written = await api.updatePr({ body, number, owner, repo, title: form.title });
-  if (written.isErr()) {
-    return { detail: `the update call failed (${written.error.message}).`, kind: "unconfirmed", locus };
-  }
-  if (written.value.head.sha !== reviewedHead) {
-    deps.err({
-      line:
-        `warning: #${String(number)}'s head moved to ${written.value.head.sha} while the description was being ` +
-        `written; its review bound ${reviewedHead}. Prepare and record a review of it again.`,
-    });
-  }
-  const failed = confirmOrUnconfirmed({ form, home, locus, nowIso: deps.now().toISOString(), pr: written.value });
-  if (failed !== undefined) {
-    return failed;
-  }
-  return { kind: "updated", number: written.value.number, url: written.value.htmlUrl };
 }

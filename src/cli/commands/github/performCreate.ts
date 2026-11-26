@@ -2,18 +2,19 @@
  * The create mutation, already inside the door: stamp, render and gate, cover the exact bytes with a CLEAN
  * description review, then reserve → create → confirm.
  *
- * Exported so `stackPushSend.ts` runs the exact sequence rather than reimplementing it. The update mutation, and the
- * confirmation both writes share, are `./performWrite.ts`'s.
+ * Exported so `stackPushSend.ts` runs the exact sequence rather than reimplementing it. The update mutation is
+ * `./performWrite.ts`'s; the confirmation both writes share is `./updateSend.ts`'s.
  */
 import type { GithubWriteApi } from "../../../corpus/github/write.js";
 import type { InstallationIdentifiers } from "../../../hygiene/installationIdentifiers.js";
 import type { DescriptionReviewComment } from "../../../outbound/github/descriptionReviewTypes.js";
 import type { PrFormDraft } from "../../../outbound/github/types.js";
 import type { PrOutcome } from "./core.js";
-import { confirmOrUnconfirmed, type Outgoing } from "./performWrite.js";
+import type { Outgoing } from "./performWrite.js";
 import type { GithubPrDeps } from "./prDeps.js";
 import { renderAndCheck, stampToday, writeGates } from "./prRenderGate.js";
 import { resolvedReservation } from "./reservation.js";
+import { confirmOrUnconfirmed } from "./updateSend.js";
 
 /**
  * The bytes a create sends: the draft checked against today, rendered, gated, then covered by a CLEAN description
@@ -67,7 +68,7 @@ async function outgoingCreate({
 /**
  * A create names only the head BRANCH, so a force-push between the review check and the POST opens the pull request
  * at a commit the review never read. GitHub offers no create conditional on a commit, so it is seen, not refused:
- * the same warning `pr update` prints when its head moves (`./performWrite.ts`, `patchAndConfirm`).
+ * the same warning `pr update` prints when its head moves (`./updateSend.ts`, `patchAndConfirm`).
  *
  * @param boundHead the commit the review's change set was read at; undefined when the check bound none
  * @param createdHead the head commit GitHub reports the new pull request at

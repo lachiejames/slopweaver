@@ -11,6 +11,7 @@ import type { WrittenPr } from "../../../corpus/github/write.js";
 import { applyEdit } from "../../../outbound/github/merge.js";
 import { readPrRecord } from "../../../outbound/github/prLedger.js";
 import { recoverPrForm } from "../../../outbound/github/recovery.js";
+import type { C3PastedMediaBlock } from "../../../outbound/github/render.js";
 import type { PrFormDraft, PrFormEdit } from "../../../outbound/github/types.js";
 import { prFormWriteSchema } from "../../../outbound/github/writeSchema.js";
 import { liveLocusFor, liveTargetFor } from "./addressRun.js";
@@ -37,15 +38,19 @@ export type UpdateDescriptionInput =
     };
 
 /**
- * The description the write will send: the draft, and the third-party bytes to re-append after it.
+ * The description the write will send: the draft, the media pasted into it to put back, and the third-party bytes to
+ * re-append after it.
  *
  * `trailing` is empty on every path but a partial `--edit` over a description something else has appended to
- * — a bot's release notes, a human's footer. It is carried here rather than recovered again at the write,
- * because the form and the block it was split from have to come from the SAME read of the body.
+ * — a bot's release notes, a human's footer. `pasted` is empty on every path but a partial `--edit` over a
+ * description a human pasted a screenshot into on github.com, which the edit keeps where it was. Both are carried
+ * here rather than recovered again at the write, because the form and the bytes it was split from have to come from
+ * the SAME read of the body. A whole-form replace carries neither: it is the act of discarding them.
  */
 export type ChosenUpdate = {
   readonly draft: PrFormDraft;
   readonly wholesale: boolean;
+  readonly pasted: readonly C3PastedMediaBlock[];
   readonly trailing: string;
   /** Advisories to print before the preview, empty when there are none. */
   readonly notices: readonly string[];
@@ -137,6 +142,7 @@ function chooseEditInput({
   return {
     draft: revalidated.data,
     notices: [],
+    pasted: recovered.pasted,
     trailing: recovered.trailing,
     wholesale: false,
   };
@@ -165,9 +171,10 @@ function wholeFormFor({ form, live }: { form: PrFormDraft; live: WrittenPr }): C
   return {
     draft: { ...form, draft: live.draft, target: liveTargetFor({ pr: live }) },
     notices: draftIgnored === undefined ? [] : [draftIgnored],
-    // A whole-form replacement is exactly the act of discarding whatever is there, third-party block
-    // included — `./updateConsent.ts` shows those bytes in its diff and `SLOPWEAVER_ALLOW_PR_REPLACE`
-    // consents to losing them. Preserving a trailing region here would make the diff a lie.
+    // A whole-form replacement is exactly the act of discarding whatever is there, pasted media and third-party
+    // block included — `./updateConsent.ts` shows those bytes in its diff and `SLOPWEAVER_ALLOW_PR_REPLACE`
+    // consents to losing them. Preserving either here would make the diff a lie.
+    pasted: [],
     trailing: "",
     wholesale: true,
   };

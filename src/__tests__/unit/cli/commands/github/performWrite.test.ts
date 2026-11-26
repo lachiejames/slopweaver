@@ -162,6 +162,7 @@ describe("performUpdate", () => {
       home: tempHome(),
       installationIdentifiers: undefined,
       locus: "o/r:feature",
+      pasted: [],
       previewed: LIVE,
       trailing: "",
     });
@@ -195,6 +196,7 @@ describe("performUpdate", () => {
       home: tempHome(),
       installationIdentifiers: undefined,
       locus: "o/r:feature",
+      pasted: [],
       previewed: LIVE,
       trailing: "",
     });
@@ -228,6 +230,7 @@ describe("performUpdate", () => {
       home: tempHome(),
       installationIdentifiers: undefined,
       locus: "o/r:feature",
+      pasted: [],
       previewed: LIVE,
       trailing: "\n\nWe fixed this on the owner's laptop.\n",
     });
@@ -246,7 +249,13 @@ describe("performUpdate", () => {
       },
     });
     const { deps: renderDeps } = harnessDeps({ api: renderApi });
-    const common = { draft: SEEN_EARLIER, installationIdentifiers: undefined, locus: "o/r:feature", trailing: "" };
+    const common = {
+      draft: SEEN_EARLIER,
+      installationIdentifiers: undefined,
+      locus: "o/r:feature",
+      pasted: [],
+      trailing: "",
+    };
     await performUpdate({
       ...common,
       api: renderApi,
@@ -294,6 +303,36 @@ describe("performUpdate", () => {
     expect(reached).toStrictEqual([]);
   });
 
+  it("PATCHes a pasted screenshot back after the block it followed, once", async () => {
+    const paste =
+      '<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/abc-1" />';
+    const problem = "<p>The short export was reported in a file, and nothing on screen changes.</p>";
+    const bodies: string[] = [];
+    const api = fakeApi({
+      getPr: () => okAsync(LIVE),
+      updatePr: ({ body }) => {
+        bodies.push(String(body));
+        return okAsync(LIVE);
+      },
+    });
+    const { deps } = harnessDeps({ api });
+    await performUpdate({
+      api,
+      comments: [],
+      deps,
+      draft: SEEN_EARLIER,
+      home: tempHome(),
+      installationIdentifiers: undefined,
+      locus: "o/r:feature",
+      pasted: [{ after: "problem-proof", occurrence: 1, raw: paste }],
+      previewed: LIVE,
+      trailing: "",
+    });
+    expect(bodies.length).toBe(1);
+    expect(bodies[0]).toContain(`${problem}\n\n${paste}\n\n`);
+    expect(bodies[0]!.split(paste).length).toBe(2);
+  });
+
   it("warns when the PATCH lands on a head other than the one the review bound", async () => {
     const moved = { ...LIVE.head, sha: "b".repeat(40) };
     const api = fakeApi({ getPr: () => okAsync(LIVE), updatePr: () => okAsync({ ...LIVE, head: moved }) });
@@ -308,6 +347,7 @@ describe("performUpdate", () => {
       home: tempHome(),
       installationIdentifiers: undefined,
       locus: "o/r:feature",
+      pasted: [],
       previewed: LIVE,
       trailing: "",
     });

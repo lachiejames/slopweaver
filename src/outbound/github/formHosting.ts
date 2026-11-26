@@ -13,8 +13,8 @@ import type { Content, PrBody, ProofSlot } from "./types.js";
 const USER_ATTACHMENT = /^https:\/\/github\.com\/user-attachments\/assets\/[A-Za-z0-9-]+$/;
 
 /**
- * Whether a URL is a GitHub user-attachments upload — the one predicate, so the form's hosting rule and the frozen
- * reading-order reader's pasted-media criterion (`./legacy/pastedMedia.ts`) can never disagree about it.
+ * Whether a URL is a GitHub user-attachments upload — the one predicate, so the form's hosting rule and the
+ * pasted-media criterion both readers share (`./pastedMedia.ts`) can never disagree about it.
  *
  * @param url the address to judge
  * @returns true for exactly `https://github.com/user-attachments/assets/<id>`

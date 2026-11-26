@@ -18,12 +18,15 @@
  * one is refused there rather than rendered without them.
  *
  * Nothing here depends on the day of the write, a reviewer, a grade or an anchor: the bytes are a function of the
- * form and the layout alone, which is what lets `./parse.ts` invert them exactly.
+ * form and the layout alone, which is what lets `./parse.ts` invert them exactly. The one input beside the form is the
+ * media a human pasted into the live description on github.com, which an `--edit` re-places after the block it
+ * followed (`./pastedMedia.ts`) and which never enters the form.
  */
-import { err, ok, type Result } from "#lib/result.js";
+import { err, type Result } from "#lib/result.js";
 import { BADGE_TARGETS, badgeRowOf } from "./badgeRow.js";
 import { type PrBodyError, PrBodyErrors } from "./errors.js";
 import { imageTag, renderContent } from "./htmlText.js";
+import { joinWithPasted, type KeyedBlock, type PastedMediaBlock } from "./pastedMedia.js";
 import type { BodyLayout, CheckGroup, PrBody, PrForm, ProofSlot, RerunItem, UncheckedItem } from "./types.js";
 
 export { renderContent } from "./htmlText.js";
@@ -166,77 +169,152 @@ function renderRerunItem({ item }: { item: RerunItem }): string {
   return `${fence}${item.lang}\n${item.text}\n${fence}`;
 }
 
+/**
+ * Every block key a C3 body renders, in render order — what a pasted block is anchored to (`./pastedMedia.ts`). A
+ * layout-1 body renders one `checks` block per check, told apart by occurrence; every other key renders at most once.
+ */
+const C3_BLOCK_KEYS = [
+  "badges",
+  "explainer",
+  "problem-heading",
+  "problem-proof",
+  "solution-heading",
+  "solution-proof",
+  "checks-heading",
+  "checks",
+  "not-checked-heading",
+  "not-checked",
+  "rerun",
+] as const;
+
+/** One C3 block's key. */
+export type C3BlockKey = (typeof C3_BLOCK_KEYS)[number];
+
+/** One block a human pasted into a C3 description, keyed to the rendered block it followed. */
+export type C3PastedMediaBlock = PastedMediaBlock<C3BlockKey>;
+
 /** The checks' blocks in a layout: layout 1's paragraphs, or layout 2's heading over one list. */
-function checkBlocks({ body, layout }: { body: PrBody; layout: BodyLayout }): readonly string[] {
+function checkBlocks({ body, layout }: { body: PrBody; layout: BodyLayout }): readonly KeyedBlock<C3BlockKey>[] {
   const heading = headingsOf({ layout }).checksHeading;
   if (heading === undefined) {
-    return body.checks.map((content) => `<p>${renderContent({ content })}</p>`);
+    return body.checks.map((content) => ({ key: "checks", text: `<p>${renderContent({ content })}</p>` }));
   }
   const rows = body.checks.map((content) => `<li>${renderContent({ content })}</li>`);
   if (body.checkGroups !== undefined) {
     rows.push(...body.checkGroups.map((group) => renderGroup({ group })));
   }
-  return rows.length === 0 ? [] : [heading, ["<ul>", ...rows, "</ul>"].join("\n")];
+  if (rows.length === 0) {
+    return [];
+  }
+  return [
+    { key: "checks-heading", text: heading },
+    { key: "checks", text: ["<ul>", ...rows, "</ul>"].join("\n") },
+  ];
 }
 
 /**
- * A body's blocks in render order, the badge row first.
+ * A body's blocks in one layout and render order, the badge row first, each with the key a pasted block is anchored
+ * by. `./parse.ts` reads the keys to place what it lifted; {@link renderBodyIn} joins the text.
  *
- * @returns the blocks, or a refusal when a badge cannot be derived
+ * @param layout the layout to render in
+ * @returns the keyed blocks, or a refusal when a badge cannot be derived, or a check group asked of layout 1
  */
-function renderBlocks({ body, layout }: { body: PrBody; layout: BodyLayout }): Result<readonly string[], PrBodyError> {
+export function renderKeyedBlocksIn({
+  body,
+  layout,
+}: {
+  body: PrBody;
+  layout: BodyLayout;
+}): Result<readonly KeyedBlock<C3BlockKey>[], PrBodyError> {
+  if (layout === 1 && body.checkGroups !== undefined && body.checkGroups.length > 0) {
+    return err(PrBodyErrors.nonCanonical());
+  }
   const headings = headingsOf({ layout });
   return badgeRowOf({ body, layout }).map((row) => {
-    const blocks = [
-      row,
-      `<p>${renderContent({ content: body.explainer })}</p>`,
-      proofHeadingOf({ heading: headings.problemHeading, layout, slot: body.problemProof }),
-      renderProofSlot({ slot: body.problemProof }),
-      proofHeadingOf({ heading: headings.solutionHeading, layout, slot: body.solutionProof }),
-      renderProofSlot({ slot: body.solutionProof }),
+    const blocks: KeyedBlock<C3BlockKey>[] = [
+      { key: "badges", text: row },
+      { key: "explainer", text: `<p>${renderContent({ content: body.explainer })}</p>` },
+      {
+        key: "problem-heading",
+        text: proofHeadingOf({ heading: headings.problemHeading, layout, slot: body.problemProof }),
+      },
+      { key: "problem-proof", text: renderProofSlot({ slot: body.problemProof }) },
+      {
+        key: "solution-heading",
+        text: proofHeadingOf({ heading: headings.solutionHeading, layout, slot: body.solutionProof }),
+      },
+      { key: "solution-proof", text: renderProofSlot({ slot: body.solutionProof }) },
       ...checkBlocks({ body, layout }),
     ];
     if (body.notChecked.length > 0) {
       const items = body.notChecked.map((item) => `<li>${renderUnchecked({ item })}</li>`);
-      blocks.push(headings.notCheckedHeading, ["<ul>", ...items, "</ul>"].join("\n"));
+      blocks.push(
+        { key: "not-checked-heading", text: headings.notCheckedHeading },
+        { key: "not-checked", text: ["<ul>", ...items, "</ul>"].join("\n") },
+      );
     }
     if (body.rerun.length > 0) {
       const inner = body.rerun.map((item) => renderRerunItem({ item })).join("\n\n");
-      blocks.push(`${LAYOUT.rerunOpen}\n\n${inner}\n\n${LAYOUT.rerunClose}`);
+      blocks.push({ key: "rerun", text: `${LAYOUT.rerunOpen}\n\n${inner}\n\n${LAYOUT.rerunClose}` });
     }
     return blocks;
   });
 }
 
 /**
- * A body's exact bytes in one layout: its blocks joined by one blank line, ending on a newline. `./parse.ts` calls
- * this with the layout it read; every write goes through {@link renderBody}.
+ * A body's exact bytes in one layout: its blocks joined by one blank line, any pasted block put back after the block
+ * it followed, ending on a newline. `./parse.ts` calls this with the layout it read; every write goes through
+ * {@link renderBody}.
  *
  * @param layout the layout to render in
+ * @param pasted media a human pasted between the body's blocks on github.com, re-placed after its key; empty for a
+ *   body nobody pasted into
  * @returns the bytes, or a refusal when a badge cannot be derived, or a check group asked of layout 1
  */
-export function renderBodyIn({ body, layout }: { body: PrBody; layout: BodyLayout }): Result<string, PrBodyError> {
-  if (layout === 1 && body.checkGroups !== undefined && body.checkGroups.length > 0) {
-    return err(PrBodyErrors.nonCanonical());
-  }
-  return renderBlocks({ body, layout }).andThen((blocks) => ok(`${blocks.join("\n\n")}\n`));
+export function renderBodyIn({
+  body,
+  layout,
+  pasted = [],
+}: {
+  body: PrBody;
+  layout: BodyLayout;
+  pasted?: readonly C3PastedMediaBlock[] | undefined;
+}): Result<string, PrBodyError> {
+  return renderKeyedBlocksIn({ body, layout }).map(
+    (blocks) => `${joinWithPasted({ blocks, keyOrder: C3_BLOCK_KEYS, pasted })}\n`,
+  );
 }
 
 /**
  * A body's exact bytes in the current layout.
  *
+ * @param pasted media a human pasted into the live description, which an edit keeps where it was
  * @returns the bytes, or a refusal when a badge cannot be derived (unranked risk, a malformed day, a long hover)
  */
-export function renderBody({ body }: { body: PrBody }): Result<string, PrBodyError> {
-  return renderBodyIn({ body, layout: CURRENT_LAYOUT });
+export function renderBody({
+  body,
+  pasted = [],
+}: {
+  body: PrBody;
+  pasted?: readonly C3PastedMediaBlock[] | undefined;
+}): Result<string, PrBodyError> {
+  return renderBodyIn({ body, layout: CURRENT_LAYOUT, pasted });
 }
 
 /**
  * A whole form's body bytes. Every write renders through here.
  *
  * @param form the validated form
+ * @param pasted media a human pasted into the live description, which an `--edit` keeps where it was; a create and a
+ *   whole-form replace carry none
  * @returns the exact body to send, or a refusal when a badge cannot be derived
  */
-export function renderPrBody({ form }: { form: PrForm }): Result<string, PrBodyError> {
-  return renderBody({ body: form });
+export function renderPrBody({
+  form,
+  pasted = [],
+}: {
+  form: PrForm;
+  pasted?: readonly C3PastedMediaBlock[] | undefined;
+}): Result<string, PrBodyError> {
+  return renderBody({ body: form, pasted });
 }
