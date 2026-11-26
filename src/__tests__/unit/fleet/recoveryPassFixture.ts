@@ -31,6 +31,8 @@ export interface FakeApp {
   /** The id of every session closed, in order. */
   readonly closed: string[];
   readonly clock: { ms: number };
+  /** Whether every list from now on is refused, as an app that stopped answering would. */
+  readonly listing: { fails: boolean };
 }
 
 /** The answer a prompt asks for: its bracketed halves, joined. */
@@ -96,6 +98,7 @@ export function fakeApp({
   standing?: readonly AppSessionSnapshot[];
 }): FakeApp {
   const clock = { ms: START_MS };
+  const listing = { fails: listFails };
   const sessions: AppSessionSnapshot[] = [...standing];
   const aliases = new Map<string, string>();
   const opened: string[] = [];
@@ -115,7 +118,7 @@ export function fakeApp({
     },
     leftOpen: () => ok(leftOpen),
     list: async () => {
-      if (listFails) {
+      if (listing.fails) {
         return err("the desktop app is not running");
       }
       return ok([...sessions]);
@@ -137,7 +140,7 @@ export function fakeApp({
       return ok({ handle: `app:${sessionId}`, sessionId });
     },
   };
-  return { clock, closed, host, opened, sessions };
+  return { clock, closed, host, listing, opened, sessions };
 }
 
 /**
@@ -186,8 +189,13 @@ function countingBytes(): (size: number) => Buffer {
   };
 }
 
-/** What a chair the press opens on one plan does: `takes-pin-then-ends` takes the pin and is already failed. */
-export type ChairBehaviour = "takes-pin" | "takes-pin-then-ends" | "refused" | "ends" | "silent";
+/**
+ * What a chair the press opens on one plan does: `takes-pin-then-ends` takes the pin and is already failed;
+ * `unrecorded` runs and takes the pin while the spawn reports no chair, its ledger row lost; `unrecorded-app-gone`
+ * reports no chair and the app stops answering.
+ */
+export type ChairBehaviour =
+  "takes-pin" | "takes-pin-then-ends" | "refused" | "ends" | "silent" | "unrecorded" | "unrecorded-app-gone";
 
 /** The scripted chair and what it saw. */
 export interface FakeChair {
@@ -198,26 +206,54 @@ export interface FakeChair {
   readonly retired: string[];
 }
 
+/** A chair the app lists under its doc's slug, already failed when it `ends`. */
+function chairSession({
+  ends,
+  sessionId,
+  slug,
+  vendor,
+}: {
+  ends: boolean;
+  sessionId: string;
+  slug: string;
+  vendor: RecoveryVendor;
+}): AppSessionSnapshot {
+  return {
+    directory: "/repo",
+    handle: `app:${sessionId}`,
+    ledgerKey: slug,
+    openedAtIso: "2026-11-25T10:01:00.000Z",
+    sessionId,
+    state: ends ? "failed" : "running",
+    title: "Supervisor",
+    vendor,
+  };
+}
+
 /**
  * A chair read as `reading`, whose opens behave as scripted per plan, over the fake app's own session list.
  *
  * @param app the fake app the chair's sessions appear in
  * @param reading what the press reads of the supervisor
+ * @param later what every read after the first says instead, when the supervisor changes during the pass
  * @param opens what a chair opened on each plan does, by alias
  * @returns the chair and what it records
  */
 export function fakeChair({
   app,
   reading,
+  later,
   opens = {},
 }: {
   app: FakeApp;
   reading: RecoveryChairReading;
+  later?: RecoveryChairReading;
   opens?: Readonly<Record<string, ChairBehaviour>>;
 }): FakeChair {
   const opened: string[] = [];
   const retired: string[] = [];
   let pin: RecoveryPinLook = { kind: "none" };
+  let reads = 0;
   const chair: RecoveryChairDeps = {
     open: async ({ candidate }) => {
       opened.push(candidate.alias);
@@ -226,25 +262,30 @@ export function fakeChair({
       if (behaviour === "refused") {
         return err({ reason: `the spawn refused ${candidate.alias}`, slug });
       }
+      const unrecorded = { reason: `the spawn exited 0 and the ledger names no open app session for ${slug}`, slug };
+      if (behaviour === "unrecorded-app-gone") {
+        app.listing.fails = true;
+        return err(unrecorded);
+      }
       const sessionId = `chair-${String(opened.length)}`;
       const ends = behaviour === "ends" || behaviour === "takes-pin-then-ends";
-      app.sessions.push({
-        directory: "/repo",
-        handle: `app:${sessionId}`,
-        ledgerKey: slug,
-        openedAtIso: "2026-11-25T10:01:00.000Z",
-        sessionId,
-        state: ends ? "failed" : "running",
-        title: "Supervisor",
-        vendor: candidate.vendor,
-      });
-      if (behaviour === "takes-pin" || behaviour === "takes-pin-then-ends") {
+      app.sessions.push(chairSession({ ends, sessionId, slug, vendor: candidate.vendor }));
+      if (behaviour === "takes-pin" || behaviour === "takes-pin-then-ends" || behaviour === "unrecorded") {
         pin = { appSessionId: sessionId, kind: "app" };
+      }
+      if (behaviour === "unrecorded") {
+        return err(unrecorded);
       }
       return ok({ sessionId, slug });
     },
     pin: () => pin,
-    read: async () => reading,
+    read: async () => {
+      reads += 1;
+      if (reads > 1 && later !== undefined) {
+        return later;
+      }
+      return reading;
+    },
     retire: ({ slug, why }) => {
       retired.push(`${slug}: ${why}`);
       return ok(undefined);

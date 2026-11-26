@@ -44,6 +44,20 @@ describe("runRecoveryPass, the chair", () => {
     expect(result.status).toBe("passed");
   });
 
+  it("opens no chair beside a supervisor that came up while the plans were being checked", async () => {
+    const app = fakeApp({ behaviours: ALL_ANSWER });
+    const { scratch } = fakeScratch();
+    const later = { kind: "live", label: "app:the-chair" } as const;
+    const chair = fakeChair({ app, later, opens: { "claude-1": "takes-pin" }, reading: DOWN });
+    const result = await runRecoveryPass({ deps: passDeps({ app, chair: chair.chair, scratch }), runId: "run" });
+    expect(result.chair).toEqual({
+      outcome: "live",
+      reason: "the supervisor is running on app:the-chair, so nothing was restarted",
+      restarts: [],
+    });
+    expect(chair.opened).toEqual([]);
+  });
+
   it("falls back to the next plan when the spawn is refused, closing the refused doc's row", async () => {
     const app = fakeApp({ behaviours: ALL_ANSWER });
     const { scratch } = fakeScratch();

@@ -61,7 +61,11 @@ resume`'s, so a resume pass never holds a check off. A second check gets exit 4.
   back to the vendor's next passing plan, then the other vendor's; the result keeps each reason. A chair that took
   the pin and then ended is `lost`: its run is a supervisor's own, so its row is left and nothing opens after it. A
   restarted chair is looked at once more as the pass ends, and is `lost` if it has since ended or the pin moved off
-  it. A spawn that exits non-zero but leaves its seat open, its pickup not proven, is watched as an open chair. A
+  it, or `starting` if the app cannot be asked. A spawn that exits non-zero but leaves its seat open, its pickup not
+  proven, is watched as an open chair. A spawn whose ledger names no open seat is checked against the app before it
+  counts as refused, since that ledger write is best-effort: a running session under the doc's slug is watched as the
+  chair, and when the app cannot be asked the restart is `starting` and nothing more opens. The chair is read again
+  right before each open, so one that came up during the checks is reported as running and nothing opens beside it. A
   chair still running at the deadline is `starting`, and nothing opens beside it. A restart starts only if five
   minutes of the pass remain (`RECOVERY_RESTART_MS`, `src/fleet/recoveryRestart.ts`).
 
@@ -97,6 +101,5 @@ or `not-restarted`, its reason, and every chair the press opened or tried to, in
 - **A cmux chair reads unknown from the app** when cmux refuses the app's child its socket, so the press restarts
   nothing over it. An absent pin record is not checked against cmux; the successor's `cmux pin` refuses if cmux
   holds a pin. A successor starting in cmux, rather than the app, is not seen as starting.
-- **A spawn that exits 0 with no open app row in the ledger** is read as refused, and falls back.
 - **A pass proves one turn, on the plan that answered, at that moment.** A plan the ranker placed later is not
   proven.

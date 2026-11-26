@@ -232,7 +232,9 @@ function lastLine({ text }: { text: string }): string {
 /**
  * What a finished spawn opened. A spawn whose pickup was not proven submitted leaves its seat OPEN and exits non-zero
  * (`cmux/spawn.ts`'s `spawnFailureKeepsWorkspaceOpen`), so an open app row the ledger names is a chair to watch
- * whatever the exit code: calling it refused would close its row and open a second chair beside it.
+ * whatever the exit code: calling it refused would close its row and open a second chair beside it. No row is not
+ * proof of no chair, since the ledger append is best-effort, so a failure carries the slug and the pass asks the app
+ * for a running session under it before counting the spawn refused (`../../../fleet/recoveryRestart.ts`).
  *
  * @param exitCode the spawn's exit code
  * @param sessionId the open app session the ledger names for the doc, when it names one

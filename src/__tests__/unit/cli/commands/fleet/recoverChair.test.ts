@@ -37,7 +37,7 @@ describe("spawnedChairOf", () => {
     expect(unwrapErr(opened)).toEqual({ reason: "the credential gate refused claude-1", slug: SLUG });
   });
 
-  it("refuses a clean exit the ledger names no open app session for", () => {
+  it("reports no chair for a clean exit with no ledger row, naming the slug the pass then asks the app about", () => {
     const opened = spawnedChairOf({ exitCode: 0, failure: "unused", sessionId: undefined, slug: SLUG });
     expect(unwrapErr(opened)).toEqual({
       reason: `the spawn exited 0 and the ledger names no open app session for ${SLUG}`,

@@ -10,13 +10,14 @@
  */
 import type { AppSessionSnapshot } from "../sessionHarness/appProtocol.js";
 import {
+  appSessionEnded,
   judgeRecoveryChair,
   type RecoveryChairLook,
   type RecoveryRestartAttempt,
   reconfirmedRestart,
 } from "./recoveryChair.js";
 import { boundedReason, RECOVERY_PASS_MS, type RecoveryCandidate } from "./recoveryCheck.js";
-import type { RecoveryPassDeps } from "./recoveryPassDeps.js";
+import type { RecoveryChairOpenFailure, RecoveryPassDeps } from "./recoveryPassDeps.js";
 import type { RecoveryPredecessor } from "./recoverySuccessor.js";
 
 /** What a chair restart may take: the app's own launch bound, then at least two minutes for it to take the pin. */
@@ -95,8 +96,42 @@ function retired({
 }
 
 /**
+ * What a spawn that reported no chair left behind. The ledger row the spawn reads its chair from is written
+ * best-effort, so a chair can be running with no row: the app is asked for a running session under the doc's slug
+ * before the spawn counts as refused, and when the app cannot be asked, nothing more is opened.
+ */
+async function seatOfRefusedSpawn({
+  deps,
+  base,
+  failure,
+}: {
+  deps: RecoveryPassDeps;
+  base: Pick<RecoveryRestartAttempt, "alias" | "vendor">;
+  failure: RecoveryChairOpenFailure;
+}): Promise<
+  { readonly done: RestartDone } | { readonly seated: { readonly slug: string; readonly sessionId: string } }
+> {
+  const { reason, slug } = failure;
+  const refused = { base, deps, outcome: "spawn-refused", reason, sessionId: undefined, slug } as const;
+  if (slug === undefined) {
+    return { done: retired(refused) };
+  }
+  const listed = await deps.host.list();
+  if (listed.isErr()) {
+    const text = `the spawn reported no chair (${reason}), and the app could not be asked whether one opened (${listed.error}), so nothing more was opened`;
+    return { done: { attempt: { ...base, outcome: "starting", reason: boundedReason({ text }), slug } } };
+  }
+  const running = listed.value.findLast((one) => one.ledgerKey === slug && !appSessionEnded({ state: one.state }));
+  if (running === undefined) {
+    return { done: retired(refused) };
+  }
+  return { seated: { sessionId: running.sessionId, slug } };
+}
+
+/**
  * Look once more at the pass's last restart as the pass ends, in place: a chair that took the pin and has since
- * ended, or lost the pin, is `lost` rather than `restarted`. A list the app does not answer leaves it as it was.
+ * ended, or lost the pin, is `lost` rather than `restarted`. A list the app does not answer makes it `starting`, so
+ * a chair that could not be re-checked is never reported as restarted.
  *
  * @param deps everything the pass does to the world
  * @param restarts every restart the pass made, the last replaced when it no longer holds the seat
@@ -115,6 +150,8 @@ export async function reconfirmLastRestart({
   const pin = deps.chair.pin();
   const listed = await deps.host.list();
   if (listed.isErr()) {
+    const text = `it took the supervisor pin, but the app could not be asked again as the check ended: ${listed.error}`;
+    restarts[restarts.length - 1] = { ...last, outcome: "starting", reason: boundedReason({ text }) };
     return;
   }
   const snapshot = listed.value.find((one) => one.sessionId === last.sessionId);
@@ -149,17 +186,17 @@ export async function restartChair({
     };
   }
   const opened = await deps.chair.open({ candidate, predecessor });
-  if (opened.isErr()) {
-    return retired({
-      base,
-      deps,
-      outcome: "spawn-refused",
-      reason: opened.error.reason,
-      sessionId: undefined,
-      slug: opened.error.slug,
-    });
+  let seated: { readonly slug: string; readonly sessionId: string };
+  if (opened.isOk()) {
+    seated = opened.value;
+  } else {
+    const found = await seatOfRefusedSpawn({ base, deps, failure: opened.error });
+    if ("done" in found) {
+      return found.done;
+    }
+    seated = found.seated;
   }
-  const { sessionId, slug } = opened.value;
+  const { sessionId, slug } = seated;
   const look = await awaitPin({ deadlineMs, deps, sessionId });
   if (look.kind === "ended") {
     return retired({ base, deps, outcome: "ended", reason: look.reason, sessionId, slug });

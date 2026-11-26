@@ -211,8 +211,13 @@ async function afterAttempt({
   if (done.attempt.outcome !== "passed") {
     return "next-plan";
   }
-  const { chair } = state;
-  if (chair?.kind !== "down" || !chairWanted({ state })) {
+  if (!chairWanted({ state })) {
+    return undefined;
+  }
+  // Read again right before opening: a chair that came up during the checks is reported as read now, never doubled.
+  const chair = await state.deps.chair.read();
+  if (chair.kind !== "down") {
+    state.chair = chair;
     return undefined;
   }
   const restart = await restartChair({
