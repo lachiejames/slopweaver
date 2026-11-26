@@ -7,6 +7,11 @@
  * `remainder`, provided it carries no markup any renderer emits. Split points are tried longest-first, so a body
  * with no remainder is read whole, and when none parses the longest candidate's refusal is the one reported.
  *
+ * Media a human pasted BETWEEN the rendered blocks on github.com — one user-attachments image or video per block,
+ * nothing else (`./pastedMedia.ts`) — is lifted out, keyed to the block it followed and handed back as `pasted`; the
+ * re-render puts it back, and the whole prefix, pastes included, is what is compared. A paste after the LAST rendered
+ * block is not between two, and stays in the remainder.
+ *
  * The title, routing and draft state are not in the body, so the caller supplies them from the live pull request.
  * Three facts ride the badge hovers rather than a section (`./badgeRow.ts`): the top risk item, the problem's seen
  * state and who ran each screenshot. The risk items below the top one are not published, so a read-back carries the
@@ -27,15 +32,26 @@ import { checksOf } from "./parseChecks.js";
 import { IMG, imageRunOf, parseContent } from "./parseContent.js";
 import { allOf, between, type Cursor, listRows, stop, take, takeLiteral } from "./parseCursor.js";
 import { rerunItemsOf, splitFold } from "./parseRerunFold.js";
-import { headingsOf, NOT_SHOWN, renderBodyIn } from "./render.js";
+import { type KeyedBlock, liftPasted } from "./pastedMedia.js";
+import {
+  type C3BlockKey,
+  type C3PastedMediaBlock,
+  headingsOf,
+  LAYOUT,
+  NOT_SHOWN,
+  renderBodyIn,
+  renderKeyedBlocksIn,
+} from "./render.js";
 import { prBodySchema } from "./schema.js";
 import type { BodyLayout, PrBody, ProofActor, ProofSlot, UncheckedItem } from "./types.js";
 
-/** A successful read: the body, and the opaque tail. */
+/** A successful read: the body, the media pasted into it, and the opaque tail. */
 export interface PrBodyParse {
   readonly body: PrBody;
   /** The layout the bytes were in. A write always renders the current one; the CI gate judges by this one. */
   readonly layout: BodyLayout;
+  /** Media a human pasted BETWEEN the rendered blocks, each keyed to the block it follows. Empty when none. */
+  readonly pasted: readonly C3PastedMediaBlock[];
   /** Third-party content after the rendered body, to be re-appended verbatim. Empty when there was none. */
   readonly remainder: string;
 }
@@ -168,30 +184,79 @@ function visualProofOf({
   return !anyScreenshot && facts.testsOnly ? "nothing-on-screen" : "screen-change";
 }
 
-/** Read one candidate prefix into the fields a body carries, before the schema and the re-render. */
-function readPrefix({
-  prefix,
-  layout,
-}: {
-  prefix: string;
-  layout: BodyLayout;
-}): Result<Record<string, unknown>, PrBodyError> {
-  return splitFold({ text: prefix.slice(0, -1) }).andThen(({ main, inner }) => {
+/** Each pasted block lifted out of a candidate prefix, with how many canonical blank-line segments preceded it. */
+type LiftedPastes = readonly { readonly before: number; readonly raw: string }[];
+
+/** A candidate prefix read structurally: the fields as found, before the schema and the re-render. */
+interface PrefixReading {
+  readonly candidate: Record<string, unknown>;
+  readonly lifted: LiftedPastes;
+}
+
+/**
+ * Read one candidate prefix into the fields a body carries, before the schema and the re-render. Pasted media is
+ * lifted out first, so the rest reads as the canonical body it was before somebody pasted into it.
+ *
+ * Only the blocks BEFORE the Re-run fold are lifted from: a fenced command's own text can hold a blank line and then
+ * a bare attachment URL, and that is the command, never a paste. A paste inside the fold stays in it and fails the
+ * fold's own read, as it did before any paste was lifted.
+ */
+function readPrefix({ prefix, layout }: { prefix: string; layout: BodyLayout }): Result<PrefixReading, PrBodyError> {
+  const segments = prefix.slice(0, -1).split("\n\n");
+  const foldAt = segments.indexOf(LAYOUT.rerunOpen);
+  const beforeFold = foldAt < 0 ? segments : segments.slice(0, foldAt);
+  const { canonical: liftedFrom, pasted: lifted } = liftPasted({ blocks: beforeFold });
+  const canonical = [...liftedFrom, ...segments.slice(beforeFold.length)];
+  return splitFold({ text: canonical.join("\n\n") }).andThen(({ main, inner }) => {
     const rerun = inner === undefined ? [] : rerunItemsOf({ inner });
     if (rerun === undefined) {
-      return stop<Record<string, unknown>>({ at: "the re-run fold" });
+      return stop<PrefixReading>({ at: "the re-run fold" });
     }
     const cursor: Cursor = { at: 0, blocks: main.split("\n\n") };
     return readBadgeRow({ cursor }).andThen((facts) =>
       mainSections({ cursor, facts, layout }).map((sections) => ({
-        ...sections,
-        problemSeen: facts.problemSeen,
-        rerun,
-        risk: { items: [facts.topRisk] },
-        visualProof: visualProofOf({ body: sections, facts }),
+        candidate: {
+          ...sections,
+          problemSeen: facts.problemSeen,
+          rerun,
+          risk: { items: [facts.topRisk] },
+          visualProof: visualProofOf({ body: sections, facts }),
+        },
+        lifted,
       })),
     );
   });
+}
+
+/**
+ * Each lifted paste keyed to the rendered block it followed. A rendered block can itself hold blank lines (the re-run
+ * fold does), so the count of preceding segments is read against each block's own segments, carrying the block's key
+ * and which occurrence of that key it is. A count no segment answers is a body this renderer did not write.
+ */
+function keyedPastes({
+  blocks,
+  lifted,
+}: {
+  blocks: readonly KeyedBlock<C3BlockKey>[];
+  lifted: LiftedPastes;
+}): Result<readonly C3PastedMediaBlock[], PrBodyError> {
+  const segments = blocks.flatMap((block, index) => {
+    const occurrence = blocks.slice(0, index + 1).filter((earlier) => earlier.key === block.key).length;
+    return block.text.split("\n\n").map(() => ({ key: block.key, occurrence }));
+  });
+  const keyed: C3PastedMediaBlock[] = [];
+  for (const { before, raw } of lifted) {
+    if (before === 0) {
+      keyed.push({ after: "start", raw });
+      continue;
+    }
+    const segment = segments[before - 1];
+    if (segment === undefined) {
+      return err(PrBodyErrors.nonCanonical());
+    }
+    keyed.push({ after: segment.key, occurrence: segment.occurrence, raw });
+  }
+  return ok(keyed);
 }
 
 /** Decode, re-render and compare one candidate split. */
@@ -209,16 +274,23 @@ function parseAt({
   if (remainder.length > 0 && carriesAny({ markers: DESCRIPTION_SENTINELS, text: remainder })) {
     return err(PrBodyErrors.trailingMarkup());
   }
-  return readPrefix({ layout, prefix }).andThen((candidate) => {
+  return readPrefix({ layout, prefix }).andThen(({ candidate, lifted }) => {
     const decoded = prBodySchema.safeParse(candidate);
     if (!decoded.success) {
       return err(PrBodyErrors.recoveredSchema({ issues: decoded.error.issues.map((issue) => issue.message) }));
     }
-    return renderBodyIn({ body: decoded.data, layout }).andThen((rendered) =>
-      rendered === prefix
-        ? ok({ body: decoded.data, layout, remainder })
-        : err<PrBodyParse, PrBodyError>(PrBodyErrors.nonCanonical()),
-    );
+    const read = decoded.data;
+    // The WHOLE prefix, pastes put back, is what is compared — never the stripped body — so a pasted block is
+    // accepted only in the exact place the re-render puts it, and every canonical byte is still checked.
+    return renderKeyedBlocksIn({ body: read, layout })
+      .andThen((blocks) => keyedPastes({ blocks, lifted }))
+      .andThen((pasted) =>
+        renderBodyIn({ body: read, layout, pasted }).andThen((rendered) =>
+          rendered === prefix
+            ? ok({ body: read, layout, pasted, remainder })
+            : err<PrBodyParse, PrBodyError>(PrBodyErrors.nonCanonical()),
+        ),
+      );
   });
 }
 
@@ -234,7 +306,11 @@ function layoutOf({ body }: { body: string }): BodyLayout {
   return at >= 0 && body.slice(0, at).endsWith(`\n\n${hashes}`) ? 2 : 1;
 }
 
-/** Every place the rendered body could end, longest-first: after a line closing a paragraph, a list or the fold. */
+/**
+ * Every place the rendered body could end, longest-first: after a line closing a paragraph, a list or the fold. A
+ * paste after the final rendered block ends on none of these, so it stays the opaque remainder, re-appended verbatim
+ * exactly as the cached path carries it; only a paste BETWEEN rendered blocks is lifted.
+ */
 function splitCandidates({ body }: { body: string }): readonly number[] {
   const ends: number[] = [];
   for (const marker of ["</p>\n", "</ul>\n", "\n</details>\n"]) {
@@ -252,8 +328,8 @@ function splitCandidates({ body }: { body: string }): readonly number[] {
  * the content. The remainder comes back with LF too.
  *
  * @param body the live body exactly as GitHub stores it, or undefined when the read yielded none
- * @returns the body and the opaque remainder; or a typed refusal — `PRE_C3_SHAPE` for a pre-C3 body, naming the
- *   conversion verb
+ * @returns the body, the media pasted into it and the opaque remainder; or a typed refusal — `PRE_C3_SHAPE` for a
+ *   pre-C3 body, naming the conversion verb
  */
 export function parsePrBody({ body: raw }: { body: string | undefined }): Result<PrBodyParse, PrBodyError> {
   if (raw === undefined || raw.length === 0) {

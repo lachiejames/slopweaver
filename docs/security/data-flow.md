@@ -128,7 +128,7 @@ reads: two indexes to read beside this list, neither of them the whole of it on 
    description — a bot's release notes, a human's footer — are carried through opaquely and re-appended
    verbatim, so nobody else's content is destroyed by an edit that was never about it; a trailing region
    carrying slopweaver's own markup is refused instead of preserved, because two proof anchors in one body
-   is a gold-comparison failure.
+   is a gold-comparison failure. A screenshot pasted between sections rides outside the form the same way.
    A complete `--form` may replace any description you authored; it prints the diff of what would be discarded
    and takes `SLOPWEAVER_ALLOW_PR_REPLACE=1`, as GitHub keeps no body history — unless the local ledger proves the
    live title and body are this door's last confirmed write. That key never releases a screenshot or run link a

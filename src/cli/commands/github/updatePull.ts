@@ -50,21 +50,37 @@ function pullRefusal({
 }
 
 /**
- * The note a pull prints about bytes the authoring file cannot carry: a trailing block.
+ * The notes a pull prints about bytes the authoring file cannot carry: media a human pasted into the description,
+ * and a trailing block.
  *
- * The authoring file holds the FORM, and a third-party block is not part of one — so pushing the file back with
- * `--file` is a wholesale replacement that discards it. That is allowed (it takes SLOPWEAVER_ALLOW_PR_REPLACE and
- * prints the diff of what it would lose), but a caller who was not told the block existed cannot read that diff
- * as a decision. A partial `--edit` keeps it.
+ * The authoring file holds the FORM, and neither is part of one — so pushing the file back with `--file` is a
+ * wholesale replacement that discards them. That is allowed (it takes SLOPWEAVER_ALLOW_PR_REPLACE and prints the
+ * diff of what it would lose), but a caller who was not told they existed cannot read that diff as a decision. A
+ * partial `--edit` keeps both.
  */
-function trailingNotices({ outPath, trailing }: { outPath: string; trailing: number }): readonly string[] {
-  if (trailing === 0) {
-    return [];
+function uncarriedNotices({
+  outPath,
+  pasted,
+  trailing,
+}: {
+  outPath: string;
+  pasted: number;
+  trailing: number;
+}): readonly string[] {
+  const notices: string[] = [];
+  if (pasted > 0) {
+    notices.push(
+      `note: ${String(pasted)} pasted screenshot or video block(s) sit in this description — they are NOT in ` +
+        `${outPath}, so pushing that file back with --file would discard them. Use a partial --edit to keep them`,
+    );
   }
-  return [
-    `note: ${String(trailing)} bytes follow this description that slopweaver did not write — they are NOT in ` +
-      `${outPath}, so pushing that file back with --file would discard them. Use a partial --edit to keep them`,
-  ];
+  if (trailing > 0) {
+    notices.push(
+      `note: ${String(trailing)} bytes follow this description that slopweaver did not write — they are NOT in ` +
+        `${outPath}, so pushing that file back with --file would discard them. Use a partial --edit to keep them`,
+    );
+  }
+  return notices;
 }
 
 /** `--convert-c3`: the pre-C3 body read by the frozen reader, converted, and written with its report. */
@@ -94,7 +110,8 @@ function runConvert({ deps, live, outPath }: { deps: GithubPrDeps; live: Written
   for (const line of converted.report) {
     deps.out({ line: `  ${line}` });
   }
-  for (const line of trailingNotices({ outPath, trailing: readingOrder.value.remainder.length })) {
+  const { pasted, remainder } = readingOrder.value;
+  for (const line of uncarriedNotices({ outPath, pasted: pasted.length, trailing: remainder.length })) {
     deps.out({ line });
   }
   return EXIT_OK;
@@ -156,7 +173,8 @@ export async function runPull({
   const file = renderAuthoringFile({ form: recovered.form, pulledBodyHash: bodyHash({ body: live.body }) });
   deps.writeFileOut({ content: file, path: outPath });
   deps.out({ line: `pulled #${String(live.number)} into ${outPath}` });
-  for (const line of trailingNotices({ outPath, trailing: recovered.trailing.length })) {
+  const uncarried = { pasted: recovered.pasted.length, trailing: recovered.trailing.length };
+  for (const line of uncarriedNotices({ outPath, ...uncarried })) {
     deps.out({ line });
   }
   // A recut starts here and never reaches the examples, so the voice brief rides the pull too, after what

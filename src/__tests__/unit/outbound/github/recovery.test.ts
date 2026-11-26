@@ -55,12 +55,12 @@ const DRIFTED = unwrap(renderPrBody({ form: DRIFTED_FORM }));
 describe("recoverPrForm — the cached form is the fast path when it is exact", () => {
   it("uses the cache when the stored form re-renders the live body", () => {
     const found = recoverPrForm({ live: LIVE, liveBody: BODY, number: NUMBER, record: record({ overrides: {} }) });
-    expect(found).toStrictEqual({ form: FORM, kind: "cached", trailing: "" });
+    expect(found).toStrictEqual({ form: FORM, kind: "cached", pasted: [], trailing: "" });
   });
 
   it("falls through to the parser when the record is for a DIFFERENT pull request number", () => {
     const found = recoverPrForm({ live: LIVE, liveBody: BODY, number: 999, record: record({ overrides: {} }) });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: "" });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: "" });
   });
 
   it("falls through to the parser when the record carries no form", () => {
@@ -70,7 +70,7 @@ describe("recoverPrForm — the cached form is the fast path when it is exact", 
       number: NUMBER,
       record: record({ overrides: { form: undefined } }),
     });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: "" });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: "" });
   });
 
   it("falls through to the parser when the record carries no digest, the marker of a complete record", () => {
@@ -80,12 +80,12 @@ describe("recoverPrForm — the cached form is the fast path when it is exact", 
       number: NUMBER,
       record: record({ overrides: { bodyHash: undefined } }),
     });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: "" });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: "" });
   });
 
   it("falls through to the parser when there is no record at all", () => {
     const found = recoverPrForm({ live: LIVE, liveBody: BODY, number: NUMBER, record: undefined });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: "" });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: "" });
   });
 });
 
@@ -100,12 +100,59 @@ describe("recoverPrForm — the cache is where the risk items below the top one 
       number: NUMBER,
       record: record({ body: fixBody, form: fix, overrides: {} }),
     });
-    expect(found).toStrictEqual({ form: { ...fix, ...LIVE }, kind: "cached", trailing: "" });
+    expect(found).toStrictEqual({ form: { ...fix, ...LIVE }, kind: "cached", pasted: [], trailing: "" });
   });
 
   it("reads back the top item alone when it has to parse, since the description publishes only that one", () => {
     const found = recoverPrForm({ live: LIVE, liveBody: fixBody, number: NUMBER, record: undefined });
-    expect(found).toEqual({ form: { ...fix, ...LIVE, risk: { items: [P2_CHECKED] } }, kind: "parsed", trailing: "" });
+    expect(found).toEqual({
+      form: { ...fix, ...LIVE, risk: { items: [P2_CHECKED] } },
+      kind: "parsed",
+      pasted: [],
+      trailing: "",
+    });
+  });
+});
+
+describe("recoverPrForm — a screenshot pasted between two sections rides beside the form", () => {
+  const fix = formOf({ body: FIX_BODY });
+  const fixBody = unwrap(renderPrBody({ form: fix }));
+  const screenshot =
+    '<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/abc-1" />';
+  const solutionHeading = '\n\n## <a name="proof-of-the-solution"></a>';
+  const pastedBody = fixBody.replace(solutionHeading, `\n\n${screenshot}${solutionHeading}`);
+  const keyed = [{ after: "problem-proof", occurrence: 1, raw: screenshot }];
+
+  it("keeps the cache, and both ranked risk items, with the paste keyed to the block it followed", () => {
+    expect(pastedBody).toContain(screenshot);
+    const found = recoverPrForm({
+      live: LIVE,
+      liveBody: pastedBody,
+      number: NUMBER,
+      record: record({ body: fixBody, form: fix, overrides: {} }),
+    });
+    expect(found).toStrictEqual({ form: { ...fix, ...LIVE }, kind: "cached", pasted: keyed, trailing: "" });
+  });
+
+  it("parses the form and the paste off the live body when there is no record", () => {
+    const found = recoverPrForm({ live: LIVE, liveBody: pastedBody, number: NUMBER, record: undefined });
+    expect(found).toStrictEqual({
+      form: { ...fix, ...LIVE, risk: { items: [P2_CHECKED] } },
+      kind: "parsed",
+      pasted: keyed,
+      trailing: "",
+    });
+  });
+
+  it("keeps the cache and the paste with a third-party block appended after the description", () => {
+    const appended = "\n---\nAppended by a release bot.\n";
+    const found = recoverPrForm({
+      live: LIVE,
+      liveBody: `${pastedBody}${appended}`,
+      number: NUMBER,
+      record: record({ body: fixBody, form: fix, overrides: {} }),
+    });
+    expect(found).toStrictEqual({ form: { ...fix, ...LIVE }, kind: "cached", pasted: keyed, trailing: appended });
   });
 });
 
@@ -116,7 +163,7 @@ describe("recoverPrForm — a digest is never what decides a cache hit", () => {
   it("parses the LIVE body when the digest matches but the stored form renders something else", () => {
     const lying = record({ overrides: { bodyHash: bodyHash({ body: DRIFTED }) } });
     const found = recoverPrForm({ live: LIVE, liveBody: DRIFTED, number: NUMBER, record: lying });
-    expect(found).toEqual({ form: DRIFTED_FORM, kind: "parsed", trailing: "" });
+    expect(found).toEqual({ form: DRIFTED_FORM, kind: "parsed", pasted: [], trailing: "" });
   });
 
   it("the parsed form re-renders the human's edit byte for byte, so it is preserved rather than refused over", () => {
@@ -126,7 +173,7 @@ describe("recoverPrForm — a digest is never what decides a cache hit", () => {
 
   it("no longer refuses merely because the description changed since the last write", () => {
     const found = recoverPrForm({ live: LIVE, liveBody: DRIFTED, number: NUMBER, record: record({ overrides: {} }) });
-    expect(found).toEqual({ form: DRIFTED_FORM, kind: "parsed", trailing: "" });
+    expect(found).toEqual({ form: DRIFTED_FORM, kind: "parsed", pasted: [], trailing: "" });
   });
 });
 
@@ -135,19 +182,19 @@ describe("recoverPrForm — the live shell always wins, on both paths", () => {
 
   it("overlays the live title and draft onto a CACHED form, which is the title-reversion bug", () => {
     const found = recoverPrForm({ live: edited, liveBody: BODY, number: NUMBER, record: record({ overrides: {} }) });
-    expect(found).toStrictEqual({ form: { ...FORM, ...edited }, kind: "cached", trailing: "" });
+    expect(found).toStrictEqual({ form: { ...FORM, ...edited }, kind: "cached", pasted: [], trailing: "" });
   });
 
   it("overlays the live title and draft onto a PARSED form", () => {
     const found = recoverPrForm({ live: edited, liveBody: BODY, number: NUMBER, record: undefined });
-    expect(found).toEqual({ form: { ...FORM, ...edited }, kind: "parsed", trailing: "" });
+    expect(found).toEqual({ form: { ...FORM, ...edited }, kind: "parsed", pasted: [], trailing: "" });
   });
 
   it("overlays the live target, so a renamed base cannot be silently reverted", () => {
     const moved: PrTarget = { ...TARGET, base: "release" };
     const live = { ...LIVE, target: moved };
     const found = recoverPrForm({ live, liveBody: BODY, number: NUMBER, record: record({ overrides: {} }) });
-    expect(found).toStrictEqual({ form: { ...FORM, target: moved }, kind: "cached", trailing: "" });
+    expect(found).toStrictEqual({ form: { ...FORM, target: moved }, kind: "cached", pasted: [], trailing: "" });
   });
 });
 
@@ -203,7 +250,7 @@ describe("recoverPrForm — a C3 body links into no repository, so a moved targe
       number: NUMBER,
       record: undefined,
     });
-    expect(found).toEqual({ form: { ...FORM, target: elsewhere }, kind: "parsed", trailing: "" });
+    expect(found).toEqual({ form: { ...FORM, target: elsewhere }, kind: "parsed", pasted: [], trailing: "" });
   });
 });
 
@@ -225,7 +272,7 @@ describe("recoverPrForm — the cache reads the stored form as the live body's P
       number: NUMBER,
       record: record({ overrides: {} }),
     });
-    expect(found).toStrictEqual({ form: FORM, kind: "cached", trailing: APPENDED });
+    expect(found).toStrictEqual({ form: FORM, kind: "cached", pasted: [], trailing: APPENDED });
   });
 
   it("hits even though the stored digest describes the body BEFORE the block was appended", () => {
@@ -235,12 +282,12 @@ describe("recoverPrForm — the cache reads the stored form as the live body's P
       number: NUMBER,
       record: record({ overrides: {} }),
     });
-    expect(found).toMatchObject({ kind: "cached", trailing: APPENDED });
+    expect(found).toMatchObject({ kind: "cached", pasted: [], trailing: APPENDED });
   });
 
   it("parses the appended block back as the trailing region when the cache misses", () => {
     const found = recoverPrForm({ live: LIVE, liveBody: BODY + APPENDED, number: NUMBER, record: undefined });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: APPENDED });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: APPENDED });
   });
 
   it("parses past a record for another pull request and still carries the appended block back", () => {
@@ -250,7 +297,7 @@ describe("recoverPrForm — the cache reads the stored form as the live body's P
       number: 999,
       record: record({ overrides: {} }),
     });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: APPENDED });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: APPENDED });
   });
 
   it("keeps the cache for an image a human pasted after the description, carrying it back verbatim", () => {
@@ -260,17 +307,17 @@ describe("recoverPrForm — the cache reads the stored form as the live body's P
       number: NUMBER,
       record: record({ overrides: {} }),
     });
-    expect(found).toStrictEqual({ form: FORM, kind: "cached", trailing: `\n${PASTE}\n` });
+    expect(found).toStrictEqual({ form: FORM, kind: "cached", pasted: [], trailing: `\n${PASTE}\n` });
   });
 
   it("parses that pasted image back as the trailing region when the cache misses", () => {
     const found = recoverPrForm({ live: LIVE, liveBody: `${BODY}\n${PASTE}\n`, number: NUMBER, record: undefined });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: `\n${PASTE}\n` });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: `\n${PASTE}\n` });
   });
 
   it("carries the pasted image back when no newline closes it, too", () => {
     const found = recoverPrForm({ live: LIVE, liveBody: `${BODY}\n${PASTE}`, number: NUMBER, record: undefined });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: `\n${PASTE}` });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: `\n${PASTE}` });
   });
 
   // The guard, and the reason it is not optional: preserving a second rendered badge row verbatim beside a freshly
@@ -293,7 +340,7 @@ describe("recoverPrForm — the cache reads the stored form as the live body's P
       number: NUMBER,
       record: record({ overrides: {} }),
     });
-    expect(found).toEqual({ form: DRIFTED_FORM, kind: "parsed", trailing: APPENDED });
+    expect(found).toEqual({ form: DRIFTED_FORM, kind: "parsed", pasted: [], trailing: APPENDED });
   });
 
   it("carries a whitespace-only trailing region back verbatim on the cached path", () => {
@@ -303,7 +350,7 @@ describe("recoverPrForm — the cache reads the stored form as the live body's P
       number: NUMBER,
       record: record({ overrides: {} }),
     });
-    expect(found).toStrictEqual({ form: FORM, kind: "cached", trailing: "\n" });
+    expect(found).toStrictEqual({ form: FORM, kind: "cached", pasted: [], trailing: "\n" });
   });
 });
 
@@ -317,7 +364,7 @@ describe("recoverPrForm — a description GitHub stored with CRLF line endings",
       number: NUMBER,
       record: record({ overrides: {} }),
     });
-    expect(found).toStrictEqual({ form: FORM, kind: "cached", trailing: "" });
+    expect(found).toStrictEqual({ form: FORM, kind: "cached", pasted: [], trailing: "" });
   });
 
   // The update verb sends nothing over an unchanged CRLF body, so the body stays CRLF: a cache miss here would
@@ -327,14 +374,19 @@ describe("recoverPrForm — a description GitHub stored with CRLF line endings",
     const fixBody = unwrap(renderPrBody({ form: fix }));
     // The falsifier: parsed off the same CRLF body, only the top item survives.
     const parsed = recoverPrForm({ live: LIVE, liveBody: crlf({ text: fixBody }), number: NUMBER, record: undefined });
-    expect(parsed).toEqual({ form: { ...fix, ...LIVE, risk: { items: [P2_CHECKED] } }, kind: "parsed", trailing: "" });
+    expect(parsed).toEqual({
+      form: { ...fix, ...LIVE, risk: { items: [P2_CHECKED] } },
+      kind: "parsed",
+      pasted: [],
+      trailing: "",
+    });
     const found = recoverPrForm({
       live: LIVE,
       liveBody: crlf({ text: fixBody }),
       number: NUMBER,
       record: record({ body: fixBody, form: fix, overrides: {} }),
     });
-    expect(found).toStrictEqual({ form: { ...fix, ...LIVE }, kind: "cached", trailing: "" });
+    expect(found).toStrictEqual({ form: { ...fix, ...LIVE }, kind: "cached", pasted: [], trailing: "" });
   });
 
   it("hits the cache over a CRLF body with an appended block, handing the block back with LF", () => {
@@ -344,7 +396,7 @@ describe("recoverPrForm — a description GitHub stored with CRLF line endings",
       number: NUMBER,
       record: record({ overrides: {} }),
     });
-    expect(found).toStrictEqual({ form: FORM, kind: "cached", trailing: APPENDED });
+    expect(found).toStrictEqual({ form: FORM, kind: "cached", pasted: [], trailing: APPENDED });
   });
 
   it("hands the appended block back with its CRLF read as LF when it was parsed off the live body", () => {
@@ -354,6 +406,6 @@ describe("recoverPrForm — a description GitHub stored with CRLF line endings",
       number: NUMBER,
       record: undefined,
     });
-    expect(found).toEqual({ form: FORM, kind: "parsed", trailing: APPENDED });
+    expect(found).toEqual({ form: FORM, kind: "parsed", pasted: [], trailing: APPENDED });
   });
 });

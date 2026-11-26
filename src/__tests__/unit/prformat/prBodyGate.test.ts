@@ -207,6 +207,24 @@ describe("gatePrBody — an owned body", () => {
     ]);
   });
 
+  it("accepts a screenshot a human pasted on github.com between two sections", () => {
+    const paste =
+      '<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/abc-1" />';
+    const form = formOf({ body: FIX_BODY });
+    const body = unwrap(renderPrBody({ form, pasted: [{ after: "problem-proof", occurrence: 1, raw: paste }] }));
+    expect(body).toContain(`\n\n${paste}\n\n`);
+    expect(gatePrBody({ body, owned: true })).toEqual({ errors: [], shape: "c3" });
+  });
+
+  it("refuses an image pasted between two sections from anywhere but a GitHub user attachment", () => {
+    const elsewhere = '<img width="10" height="10" alt="Image" src="https://example.invalid/a.png" />';
+    const form = formOf({ body: FIX_BODY });
+    const body = unwrap(renderPrBody({ form, pasted: [{ after: "problem-proof", occurrence: 1, raw: elsewhere }] }));
+    const verdict = gatePrBody({ body, owned: true });
+    expect(verdict.shape).toBe("c3");
+    expect(verdict.errors[0]).toContain("The description is not a canonical C3 body");
+  });
+
   it("refuses a hand edit to the render's layout as not canonical", () => {
     const edited = FIX_RENDERED.replace("\n\n", "\n\n\n");
     const verdict = gatePrBody({ body: edited, owned: true });

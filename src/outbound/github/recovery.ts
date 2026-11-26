@@ -26,6 +26,12 @@
  *
  * A body in a pre-C3 shape has no C3 preimage and is refused naming the conversion verb.
  *
+ * ## Pasted media rides beside the form, never in it
+ *
+ * A screenshot a human pasted into the live description on github.com comes back as `pasted`, keyed by the parse
+ * (`./pastedMedia.ts`), for the write to put back where it was. A pasted body tries the cache a second time with those
+ * keys, so it keeps the cached risk items exactly as an unpasted body does.
+ *
  * ## Non-body fields always come from the live pull request
  *
  * The body never carries `title`, `target` or `draft`, so a cached form's copies of them are only as fresh as the
@@ -35,7 +41,7 @@ import { carriesAny, DESCRIPTION_SENTINELS } from "./bodyMarkers.js";
 import { lfLineEndings } from "./lineEndings.js";
 import { parsePrBody } from "./parse.js";
 import { type PrRecord } from "./prLedger.js";
-import { renderPrBody } from "./render.js";
+import { type C3PastedMediaBlock, renderPrBody } from "./render.js";
 import type { PrForm, PrTarget } from "./types.js";
 
 /**
@@ -46,15 +52,26 @@ import type { PrForm, PrTarget } from "./types.js";
  * caller can name the conversion for a pre-C3 body.
  */
 export type FormRecovery =
-  | { readonly kind: "cached"; readonly form: PrForm; readonly trailing: string }
-  | { readonly kind: "parsed"; readonly form: PrForm; readonly trailing: string }
+  | {
+      readonly kind: "cached";
+      readonly form: PrForm;
+      readonly pasted: readonly C3PastedMediaBlock[];
+      readonly trailing: string;
+    }
+  | {
+      readonly kind: "parsed";
+      readonly form: PrForm;
+      readonly pasted: readonly C3PastedMediaBlock[];
+      readonly trailing: string;
+    }
   | { readonly kind: "refused"; readonly code: string; readonly reason: string };
 
 /** The live shell fields, which are never taken from the cache. */
 type LiveShell = { readonly title: string; readonly target: PrTarget; readonly draft: boolean };
 
 /**
- * Whether the ledger's stored form still renders the live body's leading bytes exactly, CRLF read as LF.
+ * Whether the ledger's stored form, with the media pasted into the live body put back, still renders the live body's
+ * leading bytes exactly, CRLF read as LF.
  *
  * `number` is compared so a record left behind by a DIFFERENT pull request that once occupied this branch pair
  * cannot supply a form for this one.
@@ -63,15 +80,17 @@ function cacheHit({
   record,
   liveBody,
   number,
+  pasted,
 }: {
   record: PrRecord | undefined;
   liveBody: string | undefined;
   number: number;
+  pasted: readonly C3PastedMediaBlock[];
 }): { form: PrForm; trailing: string } | undefined {
   if (record?.form === undefined || record.bodyHash === undefined || record.number !== number) {
     return undefined;
   }
-  const rendered = renderPrBody({ form: record.form });
+  const rendered = renderPrBody({ form: record.form, pasted });
   if (liveBody === undefined || rendered.isErr()) {
     return undefined;
   }
@@ -93,8 +112,8 @@ function cacheHit({
  * @param liveBody the description as GitHub currently stores it
  * @param live the live title, routing fields and draft state, which always win over the cache
  * @param number the pull-request number the address resolved to
- * @returns the recovered form, where it came from and any third-party block to re-append, or a refusal naming the
- *   remedy
+ * @returns the recovered form, where it came from, any pasted media to put back and any third-party block to
+ *   re-append, or a refusal naming the remedy
  */
 export function recoverPrForm({
   record,
@@ -108,9 +127,9 @@ export function recoverPrForm({
   number: number;
 }): FormRecovery {
   const shell = { draft: live.draft, target: live.target, title: live.title };
-  const cached = cacheHit({ liveBody, number, record });
+  const cached = cacheHit({ liveBody, number, pasted: [], record });
   if (cached !== undefined) {
-    return { form: { ...cached.form, ...shell }, kind: "cached", trailing: cached.trailing };
+    return { form: { ...cached.form, ...shell }, kind: "cached", pasted: [], trailing: cached.trailing };
   }
   const parsed = parsePrBody({ body: liveBody });
   if (parsed.isErr()) {
@@ -120,5 +139,12 @@ export function recoverPrForm({
       reason: `a partial --edit needs the description's current form to merge into, and it has none: ${parsed.error.message}`,
     };
   }
-  return { form: { ...parsed.value.body, ...shell }, kind: "parsed", trailing: parsed.value.remainder };
+  const { body, pasted, remainder } = parsed.value;
+  // Only the parse can key a paste safely, so a pasted body tries the cache a second time with the parse's keys: a
+  // hit keeps the risk items below the top one, which the published body does not carry.
+  const cachedPasted = pasted.length === 0 ? undefined : cacheHit({ liveBody, number, pasted, record });
+  if (cachedPasted !== undefined) {
+    return { form: { ...cachedPasted.form, ...shell }, kind: "cached", pasted, trailing: cachedPasted.trailing };
+  }
+  return { form: { ...body, ...shell }, kind: "parsed", pasted, trailing: remainder };
 }

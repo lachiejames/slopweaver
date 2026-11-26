@@ -147,9 +147,9 @@ opaque trailing region, which `--edit` re-appends byte for byte, saying how many
 write. Only `--edit` keeps it; `--file` drops it. A trailing region carrying markup
 either renderer emits, the retired table's included, is refused, naming `trailing`.
 
-**A C3 body is exact bytes, so nothing pasted INSIDE it survives a read.** Media a human pastes after the rendered
-body is the trailing region above; a block pasted between its sections makes it unreadable as C3, and the edit is
-refused. Put a screenshot in a proof slot instead.
+**A screenshot pasted before or between sections is kept by `--edit`**: a line holding only a user-attachments image
+or URL goes back after the block it followed (`src/outbound/github/pastedMedia.ts`), or the nearest earlier one left.
+CI agrees. `--pull` counts what its file leaves out and `--file` drops it; any other paste is refused.
 
 ## Policy locks, and the refusal no key releases
 

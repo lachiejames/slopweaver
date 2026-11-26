@@ -165,7 +165,7 @@ body](composing-a-body.md)); editing one re-renders it in layout 2, so its words
 - **Media is evidence, so it is never folded**: a screenshot or video is an `image` run, at an optional `width` of
   64–2048 pixels, in a proof slot. A REAL capture, never a locally served page bar a click-through of the console's
   or desktop app's OWN branch build, hosted as a user attachment, never a release, comment or committed folder
-  ([attachments](attachments.md)). Media pasted inside a body is not kept ([pr-forms](pr-forms.md)).
+  ([attachments](attachments.md)). Pasted screenshots between sections survive `--edit` ([pr-forms](pr-forms.md)).
 - **Kind labels follow the title**: `stack push` and `pr update` add what the conventional-commit title derives
   (`src/outbound/github/kindLabels.ts`) and read them back; CI refuses an owned pull request missing one.
 - **The generators write this shape**: `github vuln body` ([vulnerability-fix](../../vulnerability-fix/SKILL.md)) and

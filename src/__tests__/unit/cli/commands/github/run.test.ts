@@ -315,6 +315,26 @@ describe("--file / --pull — the authoring-file workflow", () => {
     );
   });
 
+  it("update --pull says a screenshot pasted between two sections is not in the file, and a partial --edit keeps it", async () => {
+    const paste =
+      '<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/abc-1" />';
+    const heading = '\n\n## <a name="proof-of-the-solution"></a>';
+    const body = liveBodyOf({ draft: DRAFT }).replace(heading, `\n\n${paste}${heading}`);
+    expect(body).toContain(paste);
+    const api = fakeApi({ getPr: () => okAsync(livePr({ body })) });
+    const { deps, lines, writes } = harnessDeps({ api });
+    const code = await runGithubPr({
+      argv: updateArgv({ flags: ["--pull", "--out", "/pulled.md"], home: tempHome() }),
+      deps,
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(writes["/pulled.md"]!.includes(paste)).toBe(false);
+    expect(lines).toContain(
+      "note: 1 pasted screenshot or video block(s) sit in this description — they are NOT in /pulled.md, so pushing " +
+        "that file back with --file would discard them. Use a partial --edit to keep them",
+    );
+  });
+
   it("update --pull refuses when the caller is not the pull request's author", async () => {
     const body = liveBodyOf({ draft: DRAFT });
     const api = fakeApi({
@@ -439,5 +459,34 @@ describe("--edit — a partial change is merged into the live description and se
     expect(code).toBe(EXIT_OK);
     expect(written).toHaveLength(1);
     expect(unwrap(parsePrBody({ body: written[0]! })).body.explainer).toStrictEqual(explainer);
+  });
+
+  it("keeps a screenshot pasted between two sections exactly where it was, merging the edit around it", async () => {
+    const paste =
+      '<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/abc-1" />';
+    const heading = '\n\n## <a name="proof-of-the-solution"></a>';
+    const body = liveBodyOf({ draft: DRAFT }).replace(heading, `\n\n${paste}${heading}`);
+    const written: string[] = [];
+    const api = fakeApi({
+      getPr: () => okAsync(livePr({ body })),
+      updatePr: ({ body: sent }) => {
+        written.push(String(sent));
+        return okAsync(livePr({ body: String(sent) }));
+      },
+    });
+    const { deps } = harnessDeps({ api });
+    const explainer = [{ kind: "text", text: "Widget export now keeps the last entry of every sheet." }] as const;
+    const code = await runGithubPr({
+      argv: updateArgv({ flags: ["--edit", JSON.stringify({ explainer })], home: tempHome() }),
+      deps,
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(written).toHaveLength(1);
+    const read = unwrap(parsePrBody({ body: written[0]! }));
+    expect([read.body.explainer, read.pasted]).toStrictEqual([
+      explainer,
+      [{ after: "problem-proof", occurrence: 1, raw: paste }],
+    ]);
+    expect(written[0]!.includes(`\n\n${paste}${heading}`)).toBe(true);
   });
 });

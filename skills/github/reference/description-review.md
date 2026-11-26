@@ -155,7 +155,7 @@ separate open question.
 **The residue: a force-push mid-write.** `pr update` checks the receipt against the head it just re-read, but
 GitHub has no PATCH conditional on the head, so a push landing between that check and the PATCH cannot be
 refused. It is SEEN: the PATCH response carries the head it landed on, and a different one prints a warning
-naming both commits (`src/cli/commands/github/performWrite.ts`, `patchAndConfirm`). Review the description again.
+naming both commits (`src/cli/commands/github/updateSend.ts`, `patchAndConfirm`). Review the description again.
 
 ## A fresh reviewer, and what that proves
 

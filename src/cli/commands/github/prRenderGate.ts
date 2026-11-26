@@ -11,7 +11,7 @@ import type { Result } from "../../../lib/result.js";
 import { utcDayOf } from "../../../outbound/github/days.js";
 import { withholdingCredentialLines } from "../../../outbound/github/descriptionWords.js";
 import type { PrBodyError } from "../../../outbound/github/errors.js";
-import { renderPrBody } from "../../../outbound/github/render.js";
+import { type C3PastedMediaBlock, renderPrBody } from "../../../outbound/github/render.js";
 import { stampForWrite } from "../../../outbound/github/stamp.js";
 import { type TitleShapePolicy, titleWriteRefusal } from "../../../outbound/github/titleShape.js";
 import type { PrForm, PrFormDraft } from "../../../outbound/github/types.js";
@@ -93,6 +93,8 @@ export function prPublicationScan({ privateTerms }: { privateTerms: readonly Pri
  *   read refuses the write rather than judging no title
  * @param installationIdentifiers the installation's own identifiers the scan forgives, read for this target at the
  *   verb's shell (`../../../outbound/github/installationIdentifiersRead.ts`); undefined on this build's own repository, which forgives none
+ * @param pasted media a human pasted into the live description, put back where it was before every scan reads the
+ *   body, so the gate judges exactly what is sent; a create carries none
  * @returns the rendered body and whether it passes; a form that cannot render at all carries an empty body and the
  *   renderer's refusal. An error line that would quote a credential shape prints the withheld line instead
  */
@@ -103,6 +105,7 @@ export function renderAndCheck({
   liveTitle,
   titlePolicy,
   installationIdentifiers,
+  pasted = [],
 }: {
   form: PrForm;
   denylist: readonly string[];
@@ -110,8 +113,9 @@ export function renderAndCheck({
   liveTitle: string | undefined;
   titlePolicy: Result<TitleShapePolicy, TitleShapePolicyError>;
   installationIdentifiers: InstallationIdentifiers | undefined;
+  pasted?: readonly C3PastedMediaBlock[] | undefined;
 }): RenderedBody {
-  const rendered = renderPrBody({ form });
+  const rendered = renderPrBody({ form, pasted });
   if (rendered.isErr()) {
     return { body: "", errors: withholdingCredentialLines({ lines: [rendered.error.message] }), ok: false };
   }
@@ -212,6 +216,8 @@ export function stampToday({ draft, now }: { draft: PrFormDraft; now: () => Date
  * @param publicationScan the scan of what may not be published, run on the exact title and body
  * @param titlePolicy which repositories' titles are judged, or why that could not be read
  * @param installationIdentifiers the installation's own identifiers the scan forgives on this target
+ * @param pasted media a human pasted into the live description, which the update puts back where it was; empty for a
+ *   whole-form replace
  * @returns the accepted form and its rendering, or the one-line reason the update is refused
  */
 export function stampedUpdate({
@@ -222,6 +228,7 @@ export function stampedUpdate({
   publicationScan,
   titlePolicy,
   installationIdentifiers,
+  pasted,
 }: {
   draft: PrFormDraft;
   liveTitle: string;
@@ -230,6 +237,7 @@ export function stampedUpdate({
   publicationScan: PublicationScan;
   titlePolicy: Result<TitleShapePolicy, TitleShapePolicyError>;
   installationIdentifiers: InstallationIdentifiers | undefined;
+  pasted: readonly C3PastedMediaBlock[];
 }):
   | { readonly kind: "refused"; readonly reason: string }
   | { readonly kind: "ready"; readonly form: PrForm; readonly rendered: RenderedBody } {
@@ -242,6 +250,7 @@ export function stampedUpdate({
     form: stamped.value,
     installationIdentifiers,
     liveTitle,
+    pasted,
     publicationScan,
     titlePolicy,
   });
