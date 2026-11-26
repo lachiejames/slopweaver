@@ -42,7 +42,11 @@ const marked = (over: Partial<Extract<LapTreeFacts, { kind: "marked" }>> = {}): 
   ...over,
 });
 
-const unmarked = (witness: string | null | undefined): LapTreeFacts => ({ head: HEAD, kind: "unmarked", witness });
+const unmarked = ({ witness }: { witness: string | null | undefined }): LapTreeFacts => ({
+  head: HEAD,
+  kind: "unmarked",
+  witness,
+});
 
 /** Classify on the explicit `--include-unmarked-lap` run. */
 const explicit = (over: Partial<WorktreeFacts>): ReturnType<typeof classify> =>
@@ -106,14 +110,14 @@ describe("classifyWorktree — a marked lap tree", () => {
 
 describe("classifyWorktree — an unmarked lap tree", () => {
   it("holds one on the hourly run whatever keeps its HEAD, saying which ref does", () => {
-    expect(classify({ ...SPENT, lapTree: unmarked("refs/remotes/origin/main") }).reason).toBe(
+    expect(classify({ ...SPENT, lapTree: unmarked({ witness: "refs/remotes/origin/main" }) }).reason).toBe(
       "a lap-shaped tree with no provenance marker — the hourly prune never removes one; review it with `worktree prune --include-unmarked-lap` — " +
         `HEAD ${HEAD}, admitted by refs/remotes/origin/main`,
     );
   });
 
   it("takes one on the explicit run when a kept ref contains its HEAD, naming that ref", () => {
-    expect(explicit({ ...SPENT, lapTree: unmarked("refs/heads/feature") })).toEqual({
+    expect(explicit({ ...SPENT, lapTree: unmarked({ witness: "refs/heads/feature" }) })).toEqual({
       branch: null,
       cls: "lap",
       deleteBranch: false,
@@ -127,13 +131,13 @@ describe("classifyWorktree — an unmarked lap tree", () => {
   });
 
   it("refuses one on the explicit run when no kept ref contains its HEAD, naming the operator pin", () => {
-    expect(explicit({ ...SPENT, lapTree: unmarked(null) }).reason).toBe(
+    expect(explicit({ ...SPENT, lapTree: unmarked({ witness: null }) }).reason).toBe(
       `no kept ref contains its HEAD, so nothing could recreate this tree — to take it, pin it as refs/slopweaver/operator-lap/${HEAD} first — HEAD ${HEAD}, admitted by no kept ref`,
     );
   });
 
   it("holds one whose kept refs could not be read", () => {
-    expect(explicit({ ...SPENT, lapTree: unmarked(undefined) }).reason).toBe(
+    expect(explicit({ ...SPENT, lapTree: unmarked({ witness: undefined }) }).reason).toBe(
       `which kept refs contain its HEAD could not be read — HEAD ${HEAD}, its kept refs could not be read`,
     );
   });
