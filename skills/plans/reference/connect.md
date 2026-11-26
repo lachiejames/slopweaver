@@ -30,6 +30,12 @@ slopweaver plans connect-cancel --id <id> --json   # end an attempt still waitin
   a sign-in that names no account is refused too (`ACCOUNT_UNKNOWN`), since it cannot be checked for a twin. Every
   end but `connected` removes the fresh store; a write whose row committed and only a projection lagged is
   `connected`, its words in `detail`.
+- **The install.** Once a `connected` record is written and the lock released, the worker installs Slopweaver into
+  the new home exactly as `plans add` does (`syncCodexPluginHomeLive`), so a seat booted on it is not refused at
+  `cmux spawn`. It publishes from its OWN code's checkout, never its cwd, which is the state home: only a declared
+  main checkout installs, and any other prints `skipped`. A failed install keeps the plan `connected`, adds a closed
+  clause to its `detail` while the attempt is still the record, prints the sync's own lines to `worker.log` and exits
+  non-zero; `codex plugin-sync` repairs it.
 - **The attempt.** One record per provider under the home (`src/plans/connectionStore.ts`), its phase `starting`,
   `browser`, `connected`, `failed` or `cancelled`, with a closed set of failure codes. The owner has ten minutes to sign in
   (`CONNECT_SIGN_IN_MS`); a second Connect while one is active is refused, and two pressed at once are serialised by

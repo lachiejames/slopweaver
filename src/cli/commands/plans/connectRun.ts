@@ -4,14 +4,16 @@
  * the production effects `connectDeps.ts`; this file parses flags, wires those effects and prints.
  *
  * Every printed document is ONE JSON line under `--json`, the shape the console's act and live routes read; without
- * it, one plain line a person can read. No output here is ever a command for the owner to run.
+ * it, one plain line a person can read. No output here is ever a command for the owner to run; the one exception in
+ * shape is the worker's install lines, which land in its log for the fleet, never on the console.
  */
 import { logger } from "#lib/logger.js";
 import { err, ok, type Result } from "#lib/result.js";
 
+import { renderSyncOutcome, type SyncOutcome, syncFailed } from "../../../codexPlugin/plan.js";
 import { slopweaverHome } from "../../../homeDir.js";
 import { cancelPlanConnection, readPlanConnections, startCodexConnect } from "../../../plans/connectCodex.js";
-import { runCodexConnectWorker } from "../../../plans/connectCodexWorker.js";
+import { type CodexConnectWorkerOutcome, runCodexConnectWorker } from "../../../plans/connectCodexWorker.js";
 import { isConnectionId, type PlanConnection } from "../../../plans/connection.js";
 import { PlanConnectionErrors } from "../../../plans/connectionErrors.js";
 import { defineCommand } from "../../defineCommand.js";
@@ -175,22 +177,45 @@ async function runConnectWorker(argv: readonly string[]): Promise<number> {
   }
   const home = homeOf({ parsed: parsed.value });
   const result = await runCodexConnectWorker({ deps: productionCodexConnectDeps({ home }), home, id: id.value });
-  const code = printed({ json: false, result });
+  const code = printed({ json: false, result: result.map(({ connection }) => connection) });
   if (result.isErr()) {
     return code;
   }
-  return workerExitCode({ connection: result.value });
+  printSync({ sync: result.value.sync });
+  return workerExitCode({ outcome: result.value });
+}
+
+/**
+ * The install's own lines, into the worker's log (`launchConnectWorker` sends both channels there): a failure to
+ * diagnostics, anything else to stdout. They are the fleet's to read; the owner sees the record's closed clause.
+ */
+function printSync({ sync }: { sync: SyncOutcome | undefined }): void {
+  if (sync === undefined) {
+    return;
+  }
+  const failed = syncFailed({ outcome: sync });
+  renderSyncOutcome({ outcome: sync }).forEach((line) => {
+    if (failed) {
+      logger.error({ msg: line });
+    } else {
+      logger.out({ line });
+    }
+  });
 }
 
 /**
  * The exit a worker ends on once its final record is written: a sign-in that ended `failed` is a failed run even
- * though recording it succeeded (a `CLI_MISSING` attempt exited 0). Cancelled is the owner's own act.
+ * though recording it succeeded (a `CLI_MISSING` attempt exited 0), and so is a connected plan whose home the install
+ * failed on — registered, but every seat on it refused. Cancelled is the owner's own act.
  *
- * @param connection the record the worker ended on
- * @returns `EXIT_ERROR` for a failed attempt, else `EXIT_OK`
+ * @param outcome the record the worker ended on, and the install it ran
+ * @returns `EXIT_ERROR` for a failed attempt or a failed install, else `EXIT_OK`
  */
-export function workerExitCode({ connection }: { connection: PlanConnection }): number {
-  if (connection.phase === "failed") {
+export function workerExitCode({ outcome }: { outcome: CodexConnectWorkerOutcome }): number {
+  if (outcome.connection.phase === "failed") {
+    return EXIT_ERROR;
+  }
+  if (outcome.sync !== undefined && syncFailed({ outcome: outcome.sync })) {
     return EXIT_ERROR;
   }
   return EXIT_OK;

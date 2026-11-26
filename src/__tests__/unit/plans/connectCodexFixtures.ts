@@ -6,6 +6,7 @@
 import { readdirSync } from "node:fs";
 
 import type { CodexLoginRun } from "../../../codex/loginExchange.js";
+import type { SyncOutcome } from "../../../codexPlugin/plan.js";
 import { err, ok } from "../../../lib/result.js";
 import type { CodexConnectDeps } from "../../../plans/connectCodexRecord.js";
 import type { PlanRegisterError } from "../../../plans/errors.js";
@@ -35,7 +36,15 @@ export interface Journal {
   readonly mutations: PlanMutation[];
   readonly removed: string[];
   readonly reserved: string[];
+  /** Every Codex home the install ran into, in order. */
+  readonly synced: string[];
 }
+
+/** What the fake install answers unless a test names another: one home, already current. */
+export const SYNC_CURRENT: SyncOutcome = {
+  did: "synced",
+  homes: [{ codexHome: "/fixture/codex-home", did: "current", trusted: undefined, why: "the install is on HEAD" }],
+};
 
 /** The store-directory effects, over an in-memory reservation map, each journalled. */
 function fakeStoreDeps({
@@ -84,6 +93,22 @@ function fakeStoreDeps({
   };
 }
 
+/** The install seam, journalling each home it is handed before answering what the test chose. */
+function fakeSyncDeps({
+  journal,
+  sync,
+}: {
+  journal: Journal;
+  sync: (input: { readonly codexHome: string }) => SyncOutcome;
+}): Pick<CodexConnectDeps, "syncCodexPluginHome"> {
+  return {
+    syncCodexPluginHome: ({ codexHome }) => {
+      journal.synced.push(codexHome);
+      return sync({ codexHome });
+    },
+  };
+}
+
 /**
  * Deps over a temp home: a fixed register, a fake sign-in, and a journal of every effect.
  *
@@ -97,6 +122,7 @@ export function fakeDeps({
   reservations = new Map<string, string>(),
   signIn,
   standing = [],
+  sync = () => SYNC_CURRENT,
   writeAnswer = undefined,
 }: {
   journal: Journal;
@@ -110,6 +136,8 @@ export function fakeDeps({
   signIn: (input: { readonly signInUrlPath: string }) => CodexLoginRun;
   /** Store directories already standing before the start, which a reservation must skip rather than adopt. */
   standing?: readonly string[];
+  /** What the install answers, called once per run into the home it is handed; a test may act inside it. */
+  sync?: (input: { readonly codexHome: string }) => SyncOutcome;
   /** When set, every register write answers this error instead of the snapshot. */
   writeAnswer?: PlanRegisterError | undefined;
 }): CodexConnectDeps {
@@ -135,6 +163,7 @@ export function fakeDeps({
     runSignIn: (input) => signIn(input),
     processAlive: ({ pid }) => pid === LIVE_PID,
     processId: () => LIVE_PID,
+    ...fakeSyncDeps({ journal, sync }),
     wait: async () => undefined,
     writeRegister: async ({ mutation }) => {
       journal.mutations.push(mutation);
@@ -163,7 +192,7 @@ export function lockFiles({ home }: { home: string }): string[] {
  * @returns an empty journal
  */
 export function emptyJournal(): Journal {
-  return { launched: [], moved: [], mutations: [], removed: [], reserved: [] };
+  return { launched: [], moved: [], mutations: [], removed: [], reserved: [], synced: [] };
 }
 
 /** A fresh install: nothing adopted, one Claude plan signed in, no Codex row — a login on the machine is none. */

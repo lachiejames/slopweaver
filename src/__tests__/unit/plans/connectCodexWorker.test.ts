@@ -4,10 +4,12 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { CodexPluginSyncErrors } from "../../../codexPlugin/errors.js";
+import type { SyncOutcome } from "../../../codexPlugin/plan.js";
 import { unwrap } from "../../../lib/result.js";
 import { readPlanConnections, startCodexConnect } from "../../../plans/connectCodex.js";
 import { isoAt } from "../../../plans/connectCodexRecord.js";
-import { runCodexConnectWorker } from "../../../plans/connectCodexWorker.js";
+import { INSTALL_FAILED_DETAIL, runCodexConnectWorker } from "../../../plans/connectCodexWorker.js";
 import { connectionMarkerPaths, writePlanConnection } from "../../../plans/connectionStore.js";
 import { PlanRegisterErrors } from "../../../plans/errors.js";
 import { stateHomePaths } from "../../../stateHome.js";
@@ -23,6 +25,7 @@ import {
   OTHER_STORE,
   SIGNED_IN,
   START_MS,
+  SYNC_CURRENT,
 } from "./connectCodexFixtures.js";
 
 let home: string;
@@ -51,8 +54,9 @@ describe("runCodexConnectWorker", () => {
       },
     });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
+    const { connection: done, sync } = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
     expect(done.phase).toBe("connected");
+    expect([journal.synced, sync]).toEqual([[join(home, "codex-accounts", "codex-1")], SYNC_CURRENT]);
     expect(done.email).toBe("b@example.com");
     expect(done.signInUrl).toBe("https://auth.openai.com/oauth/authorize");
     expect(journal.reserved).toEqual([join(home, "codex-accounts", "codex-1")]);
@@ -87,10 +91,11 @@ describe("runCodexConnectWorker", () => {
     });
     const deps = fakeDeps({ journal, register: twin, signIn: () => ({ kind: "ran", lines: SIGNED_IN }) });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
     expect(done.failure).toBe("DUPLICATE_ACCOUNT");
     expect(journal.removed).toEqual([RETIRED_STORE({ home })]);
     expect(journal.mutations).toEqual([]);
+    expect(journal.synced).toEqual([]);
   });
 
   it("fails ACCOUNT_UNKNOWN, registers nothing and removes the store when the sign-in names no account", async () => {
@@ -98,12 +103,13 @@ describe("runCodexConnectWorker", () => {
     const nameless = [...SIGNED_IN.slice(0, 3), 'account\t{"id":3,"result":{"account":{"type":"chatgpt"}}}'];
     const deps = fakeDeps({ journal, register: adopted, signIn: () => ({ kind: "ran", lines: nameless }) });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
-    expect([done.phase, done.failure, journal.mutations, journal.removed]).toEqual([
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
+    expect([done.phase, done.failure, journal.mutations, journal.removed, journal.synced]).toEqual([
       "failed",
       "ACCOUNT_UNKNOWN",
       [],
       [RETIRED_STORE({ home })],
+      [],
     ]);
   });
 
@@ -114,7 +120,7 @@ describe("runCodexConnectWorker", () => {
       signIn: () => ({ kind: "cli-missing", reason: "the Codex CLI is not at /x" }),
     });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
     expect(done.phase).toBe("failed");
     expect(done.failure).toBe("CLI_MISSING");
     expect(done.detail).toBe("the Codex CLI is not at /x");
@@ -133,29 +139,30 @@ describe("runCodexConnectWorker", () => {
       },
     });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
-    expect([done.phase, done.failure, done.detail, journal.mutations, journal.removed]).toEqual([
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
+    expect([done.phase, done.failure, done.detail, journal.mutations, journal.removed, journal.synced]).toEqual([
       "failed",
       "INTERRUPTED",
       "the attempt reached its deadline before it was registered",
       [],
       [RETIRED_STORE({ home })],
+      [],
     ]);
   });
 
-  it("removes the store it made when the sign-in is cancelled or fails, and keeps it once connected", async () => {
+  it("removes the store it made when the sign-in is cancelled or fails, and keeps and installs into it once connected", async () => {
     const ends = await Promise.all(
       [["!cancelled"], [], SIGNED_IN].map(async (lines) => {
         const scratch = mkdtempSync(join(tmpdir(), "connect-end-"));
         const journal = emptyJournal();
         const deps = fakeDeps({ journal, register: adopted, signIn: () => ({ kind: "ran", lines }) });
         unwrap(await startCodexConnect({ deps, home: scratch }));
-        const done = unwrap(await runCodexConnectWorker({ deps, home: scratch, id: ATTEMPT_ID }));
+        const done = unwrap(await runCodexConnectWorker({ deps, home: scratch, id: ATTEMPT_ID })).connection;
         rmSync(scratch, { force: true, recursive: true });
-        return `${done.phase}:${String(journal.removed.length)}`;
+        return `${done.phase}:${String(journal.removed.length)}:${String(journal.synced.length)}`;
       }),
     );
-    expect(ends).toEqual(["cancelled:1", "failed:1", "connected:0"]);
+    expect(ends).toEqual(["cancelled:1:0", "failed:1:0", "connected:0:1"]);
   });
 
   it("reads a write whose row committed and only a projection lagged as connected, keeping the store", async () => {
@@ -172,12 +179,13 @@ describe("runCodexConnectWorker", () => {
       writeAnswer: lagged,
     });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
-    expect([done.phase, done.detail, journal.removed]).toEqual([
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
+    expect([done.phase, done.detail, journal.removed, journal.synced]).toEqual([
       "connected",
       "the plan is registered, but the generated copy older readers use was not rewritten, so they see the previous " +
         "plans until it is",
       [],
+      [join(home, "codex-accounts", "codex-1")],
     ]);
     expect(lagged.message).toContain("slopweaver plans validate");
     expect(done.detail).not.toContain("slopweaver");
@@ -193,8 +201,8 @@ describe("runCodexConnectWorker", () => {
       writeAnswer: conflict,
     });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
-    expect([done.failure, journal.removed]).toEqual(["REGISTER_FAILED", [RETIRED_STORE({ home })]]);
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
+    expect([done.failure, journal.removed, journal.synced]).toEqual(["REGISTER_FAILED", [RETIRED_STORE({ home })], []]);
   });
 
   it("keeps the end it reached when the store cannot be removed, naming what was left behind", async () => {
@@ -205,7 +213,7 @@ describe("runCodexConnectWorker", () => {
       signIn: () => ({ kind: "ran", lines: ["!cancelled"] }),
     });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
     expect([done.phase, done.detail]).toEqual([
       "cancelled",
       `${join(home, "codex-accounts", "codex-1")} was left behind: it was moved to ${RETIRED_STORE({ home })} and could not be removed there: permission denied`,
@@ -230,13 +238,14 @@ describe("runCodexConnectWorker", () => {
     unwrap(await startCodexConnect({ deps, home }));
     const done = await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID });
     const standing = unwrap(readPlanConnections({ home, nowMs: START_MS })).codex!;
-    expect([done._unsafeUnwrapErr().code, journal.mutations, journal.removed, standing.id, standing.phase]).toEqual([
-      "CONNECTION_SUPERSEDED",
-      [],
-      [RETIRED_STORE({ home })],
-      later,
-      "starting",
-    ]);
+    expect([
+      done._unsafeUnwrapErr().code,
+      journal.mutations,
+      journal.removed,
+      journal.synced,
+      standing.id,
+      standing.phase,
+    ]).toEqual(["CONNECTION_SUPERSEDED", [], [RETIRED_STORE({ home })], [], later, "starting"]);
   });
 
   it("names the signed-in store it could not remove when a later attempt replaced its own", async () => {
@@ -273,10 +282,11 @@ describe("runCodexConnectWorker", () => {
     });
     unwrap(await startCodexConnect({ deps, home }));
     const done = await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID });
-    expect([done._unsafeUnwrapErr().code, journal.mutations, journal.removed]).toEqual([
+    expect([done._unsafeUnwrapErr().code, journal.mutations, journal.removed, journal.synced]).toEqual([
       "CONNECTION_STARTING",
       [],
       [RETIRED_STORE({ home })],
+      [],
     ]);
   });
 
@@ -284,6 +294,96 @@ describe("runCodexConnectWorker", () => {
     const deps = fakeDeps({ journal: emptyJournal(), register: adopted, signIn: () => ({ kind: "ran", lines: [] }) });
     const result = await runCodexConnectWorker({ deps, home, id: "ffffffffffffffff" });
     expect(result._unsafeUnwrapErr().code).toBe("CONNECTION_NOT_FOUND");
+  });
+});
+
+describe("the Slopweaver install into a connected plan's home", () => {
+  it("keeps the plan connected when the install fails, putting the closed clause on the stored record", async () => {
+    const journal = emptyJournal();
+    const ownStore = join(home, "codex-accounts", "codex-1");
+    const failed: SyncOutcome = {
+      did: "synced",
+      homes: [{ codexHome: ownStore, did: "failed", error: CodexPluginSyncErrors.addFailed({ detail: "exit 1" }) }],
+    };
+    const deps = fakeDeps({
+      journal,
+      register: adopted,
+      signIn: () => ({ kind: "ran", lines: SIGNED_IN }),
+      sync: () => failed,
+    });
+    unwrap(await startCodexConnect({ deps, home }));
+    const { connection: done, sync } = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
+    const stored = unwrap(readPlanConnections({ home, nowMs: START_MS })).codex!;
+    expect([
+      done.phase,
+      done.detail,
+      stored.phase,
+      stored.detail,
+      sync,
+      journal.synced,
+      journal.mutations.map((mutation) => mutation.kind),
+      journal.removed,
+    ]).toEqual([
+      "connected",
+      INSTALL_FAILED_DETAIL,
+      "connected",
+      INSTALL_FAILED_DETAIL,
+      failed,
+      [ownStore],
+      ["add"],
+      [],
+    ]);
+  });
+
+  it("adds the install clause after a projection lag's own words, never in place of them", async () => {
+    const lagged = PlanRegisterErrors.projectionWriteFailed({
+      cause: new Error("disk full"),
+      committedRevision: 41,
+      paths: ["/x/plans.json"],
+    });
+    const failed: SyncOutcome = { did: "failed", error: CodexPluginSyncErrors.exportFailed({ detail: "no HEAD" }) };
+    const deps = fakeDeps({
+      journal: emptyJournal(),
+      register: adopted,
+      signIn: () => ({ kind: "ran", lines: SIGNED_IN }),
+      sync: () => failed,
+      writeAnswer: lagged,
+    });
+    unwrap(await startCodexConnect({ deps, home }));
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
+    expect([done.phase, done.detail]).toEqual([
+      "connected",
+      "the plan is registered, but the generated copy older readers use was not rewritten, so they see the previous " +
+        `plans until it is; ${INSTALL_FAILED_DETAIL}`,
+    ]);
+  });
+
+  it("leaves a later attempt's record alone when it replaced this one while the install ran", async () => {
+    const later = "fedcba9876543210";
+    const journal = emptyJournal();
+    const failed: SyncOutcome = { did: "failed", error: CodexPluginSyncErrors.exportFailed({ detail: "no HEAD" }) };
+    const deps = fakeDeps({
+      journal,
+      register: adopted,
+      signIn: () => ({ kind: "ran", lines: SIGNED_IN }),
+      sync: () => {
+        const own = unwrap(readPlanConnections({ home, nowMs: START_MS })).codex!;
+        unwrap(writePlanConnection({ connection: { ...own, id: later, phase: "starting" }, home }));
+        return failed;
+      },
+    });
+    unwrap(await startCodexConnect({ deps, home }));
+    const { connection: done, sync } = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
+    const standing = unwrap(readPlanConnections({ home, nowMs: START_MS })).codex!;
+    expect([
+      done.phase,
+      done.detail,
+      sync,
+      journal.synced.length,
+      standing.id,
+      standing.phase,
+      standing.detail,
+    ]).toEqual(["connected", undefined, failed, 1, later, "starting", undefined]);
   });
 });
 
@@ -299,7 +399,7 @@ describe("a register failure on the worker's record", () => {
       writeAnswer: conflict,
     });
     unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID }));
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: ATTEMPT_ID })).connection;
 
     expect([conflict.message.includes("slopweaver plans sync-accounts"), done.failure, done.detail]).toEqual([
       true,

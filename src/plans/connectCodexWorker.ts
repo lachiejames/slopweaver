@@ -1,15 +1,17 @@
 /**
- * The Codex Connect worker: hold the sign-in an attempt started, then register the plan and finish the record. Runs in
- * the background, launched by `./connectCodex.ts`'s `startCodexConnect`.
+ * The Codex Connect worker: hold the sign-in an attempt started, then register the plan, finish the record and
+ * install Slopweaver into the plan's Codex home. Runs in the background, launched by `./connectCodex.ts`'s
+ * `startCodexConnect`.
  *
  * Every effect arrives through {@link CodexConnectDeps}; the record moves are `./connectCodexRecord.ts`, whether the
  * store is the worker's own is `./connectCodexStore.ts`, and the pure decisions are `./connectPlan.ts` and
  * `../codex/loginExchangeParse.ts`.
  */
 import { parseStrictIsoInstantMs } from "#lib/date.js";
-import { err, type Result } from "#lib/result.js";
+import { err, ok, type Result } from "#lib/result.js";
 
 import { parseCodexLoginExchange } from "../codex/loginExchangeParse.js";
+import { type SyncOutcome, syncFailed } from "../codexPlugin/plan.js";
 
 import {
   CONNECT_SIGN_IN_MS,
@@ -27,13 +29,29 @@ import { clearConnectionMarkers, connectionMarkerPaths, readPlanConnection } fro
 import { codexConnectRegistration } from "./connectPlan.js";
 import type { PlanRegisterError } from "./errors.js";
 
+/** What a worker ended on: the record it finished, and the install it ran into a connected plan's home. */
+export interface CodexConnectWorkerOutcome {
+  readonly connection: PlanConnection;
+  /** `undefined` whenever the attempt did not end connected: no row committed, so there is no home to install into. */
+  readonly sync: SyncOutcome | undefined;
+}
+
 /**
- * The worker: hold the sign-in an attempt started, then register the plan and finish the record.
+ * The clause a connected record carries when the install into its home failed. Closed, like `registerReason`: the
+ * console shows a record's words to the owner, who is never handed a command; the sync's own lines, which name one,
+ * go to the worker's log.
+ */
+export const INSTALL_FAILED_DETAIL =
+  "the plan is registered, but Slopweaver could not be installed into its Codex home, so a session started on it is refused until it is";
+
+/**
+ * The worker: hold the sign-in an attempt started, then register the plan, finish the record, and install
+ * Slopweaver into the home a committed row names.
  *
  * @param deps the injected effects
  * @param home the Slopweaver home
  * @param id the attempt to finish
- * @returns the finished record, or why the worker could not take the attempt up
+ * @returns the finished record and the install it ran, or why the worker could not take the attempt up
  */
 export async function runCodexConnectWorker({
   deps,
@@ -43,7 +61,7 @@ export async function runCodexConnectWorker({
   deps: CodexConnectDeps;
   home: string;
   id: string;
-}): Promise<Result<PlanConnection, PlanConnectionError>> {
+}): Promise<Result<CodexConnectWorkerOutcome, PlanConnectionError>> {
   const read = readPlanConnection({ home, host: "codex" });
   if (read.isErr()) {
     return err(read.error);
@@ -86,7 +104,45 @@ export async function runCodexConnectWorker({
     }
   }
   clearConnectionMarkers({ home, id });
-  return final;
+  if (final.isErr()) {
+    return err(final.error);
+  }
+  return ok(await installIfConnected({ connection: final.value, deps, home }));
+}
+
+/**
+ * Install Slopweaver into a connected plan's home, once, after its row and final record committed and the lock was
+ * released — never under it, since the install spawns `codex plugin add` and trusts hooks, steps allowed minutes,
+ * while a Connect start waits on the lock for one. A failure leaves the plan registered, as `plans add` does: the
+ * two are separate acts, and a later sync repairs the second. Its clause goes onto the record only while this attempt
+ * is still the provider's, so a slow install never overwrites a later Connect's record.
+ */
+async function installIfConnected({
+  connection,
+  deps,
+  home,
+}: {
+  connection: PlanConnection;
+  deps: CodexConnectDeps;
+  home: string;
+}): Promise<CodexConnectWorkerOutcome> {
+  if (connection.phase !== "connected") {
+    return { connection, sync: undefined };
+  }
+  const sync = deps.syncCodexPluginHome({ codexHome: connection.storeDir });
+  if (!syncFailed({ outcome: sync })) {
+    return { connection, sync };
+  }
+  const detail =
+    connection.detail === undefined ? INSTALL_FAILED_DETAIL : `${connection.detail}; ${INSTALL_FAILED_DETAIL}`;
+  const noted: PlanConnection = { ...connection, detail, updatedAtIso: isoAt({ ms: deps.nowMs() }) };
+  const written = await writeIfCurrent({ connection: noted, deps, home });
+  // Superseded, or the lock held past its wait: the record keeps the words it had, so the worker answers that
+  // record rather than one nobody stored. The failed install is reported either way, from `sync`.
+  if (written.isErr()) {
+    return { connection, sync };
+  }
+  return { connection: noted, sync };
 }
 
 /**

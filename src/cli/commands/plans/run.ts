@@ -21,6 +21,7 @@
  * A pause records the instant it was recorded, and that is the only clock any of these verbs reads. It
  * arrives through {@link PlansDeps} so the pause tests assert an exact `sinceIso` rather than a shape.
  */
+import { runningCheckoutRoot } from "#lib/gitRepo.js";
 import { logger } from "#lib/logger.js";
 import type { Result } from "#lib/result.js";
 
@@ -374,7 +375,8 @@ export function plansDepsOver({ port }: { port: PlanRegisterPort }): PlansDeps {
     readPaidThrough: ({ codexHome }) => codexPaidThrough({ read: readCodexSubscriptionDates({ codexHome }) }),
     readRegister: ({ home }) => port.read({ home: resolved({ home }) }),
     resolveStore: resolveStoreLive,
-    syncCodexPluginHome: ({ codexHome, home }) => syncCodexPluginHomeLive({ codexHome, stateHome: resolved({ home }) }),
+    syncCodexPluginHome: ({ codexHome, home }) =>
+      syncCodexPluginHomeLive({ checkout: runningCheckoutRoot(), codexHome, stateHome: resolved({ home }) }),
     writeDiagnostic: (line) => {
       logger.error({ msg: line });
     },
