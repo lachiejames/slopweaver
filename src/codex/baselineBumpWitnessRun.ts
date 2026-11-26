@@ -1,7 +1,7 @@
 /**
  * The effectful half of the ratchet-bump check: measure what a pull request loosens against its base, read the
- * bump records in the state home (`./bumpRecordStore.ts`), any manifest the pull request itself commits
- * (`./committedBumpManifests.ts`) and the pass records beside them, resolve every git
+ * bump records in the state home (`./bumpRecordStore.ts`) — the only place a record comes from, never the tree
+ * the pull request commits — and the pass records beside them, resolve every git
  * and ledger fact, and ask the pure halves (`./baselineBumpCoverage.ts`, `./baselineBumpWitness.ts`) whether every
  * loosened row is covered by a witnessed record. Both landing verbs read it immediately before their mutation,
  * and it is the ONLY place a loosening is held to a declaration: CI cannot see the home.
@@ -46,7 +46,6 @@ import { measureLanding } from "./baselineBumpLanding.js";
 import { placeRecords } from "./baselineBumpPlacement.js";
 import { type UnwitnessedManifest, unwitnessedManifests } from "./baselineBumpWitness.js";
 import { type BumpRecord, readBumpRecords } from "./bumpRecordStore.js";
-import { committedBumpManifests, landingBumpRecords } from "./committedBumpManifests.js";
 import { reviewBaseRefs } from "./diffCarry.js";
 import { commitDiffsNow } from "./diffsNow.js";
 import type { PullRequestHead } from "./landingGate.js";
@@ -149,11 +148,6 @@ export async function readBaselineBumpWitness({
     return measured;
   }
   const { candidate, comparison, root } = measured;
-  // Read before the clear below, as main's comparison did: a malformed added manifest refuses even a quiet change.
-  const committed = committedBumpManifests({ base: baseSha, candidate, root });
-  if (committed.isErr()) {
-    return refused({ detail: `could not read the pull request's bump manifests: ${committed.error.message}` });
-  }
   if (comparison.loosened.length === 0) {
     return { kind: "clear" };
   }
@@ -168,7 +162,7 @@ export async function readBaselineBumpWitness({
     comparison,
     head,
     home,
-    records: landingBumpRecords({ committed: committed.value, stored: stored.value }),
+    records: stored.value,
     root,
     scan: scan.value,
     supersessions,
@@ -182,7 +176,7 @@ export async function readBaselineBumpWitness({
  * @param candidate the merge commit landing would produce
  * @param candidates every checkout considered, of any repository, and the verb's own
  * @param comparison what the candidate loosened against the base
- * @param records every bump record the landing read, the home's and the pull request's
+ * @param records every bump record the landing read from the state home
  * @param root the checkout holding both commits
  * @param scan the pass records, with how many could not be parsed
  * @returns `clear`, or `refused` with the uncovered rows and why

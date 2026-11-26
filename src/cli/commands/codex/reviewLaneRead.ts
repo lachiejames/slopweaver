@@ -12,16 +12,15 @@
  *
  * ## A READ only
  *
- * The bump records are read, never written: the state home's through `readBumpRecords`, and any the change commits
- * under `.baselines/bumps/` through `committedBumpManifests`, merged by `landingBumpRecords` so admission judges
- * exactly the records a landing would. A record that will not read refuses, never demotes the review to general.
+ * The bump records are read, never written, and only from the state home through `readBumpRecords` — the one
+ * place a landing reads them, so admission judges exactly the records a landing would and a file the change
+ * commits admits nothing. A record that will not read refuses, never demotes the review to general.
  * A general invocation reads neither.
  */
 
 import { logger } from "#lib/logger.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { readBumpRecords } from "../../../codex/bumpRecordStore.js";
-import { committedBumpManifests, landingBumpRecords } from "../../../codex/committedBumpManifests.js";
 import type { FallbackRegisterPort } from "../../../codex/fallbackPort.js";
 import type { ReviewDiff } from "../../../codex/gitDiff.js";
 import { isReservedWitnessPropertyId, type ReviewLane, reviewLaneAdmission } from "../../../codex/reviewLane.js";
@@ -62,19 +61,16 @@ const ReviewLaneReadErrors = {
  *
  * @internal exported so its test can drive admission over a synthetic home without a review.
  * @param home the state home the bump records are read from
- * @param diff the frozen diff, whose base and head bound the committed manifests read
  * @param pass the review profile the invocation runs
  * @param properties every property the invocation would fan out over
  * @returns the lane, or the refusal
  */
 export function readReviewLane({
   home,
-  diff,
   pass,
   properties,
 }: {
   home: string;
-  diff: { readonly baseSha: string; readonly headSha: string; readonly repoRoot: string };
   pass: ReviewPassId;
   properties: readonly ReviewProperty[];
 }): Result<ReviewLane, ReviewLaneReadError> {
@@ -85,12 +81,7 @@ export function readReviewLane({
   if (stored.isErr()) {
     return err(ReviewLaneReadErrors.recordsUnreadable({ reason: stored.error.message }));
   }
-  const committed = committedBumpManifests({ base: diff.baseSha, candidate: diff.headSha, root: diff.repoRoot });
-  if (committed.isErr()) {
-    return err(ReviewLaneReadErrors.recordsUnreadable({ reason: committed.error.message }));
-  }
-  const records = landingBumpRecords({ committed: committed.value, stored: stored.value });
-  const admission = reviewLaneAdmission({ pass, properties, records });
+  const admission = reviewLaneAdmission({ pass, properties, records: stored.value });
   if (admission.kind === "refused") {
     return err(ReviewLaneReadErrors.invocationRefused({ reason: admission.reason }));
   }
@@ -132,7 +123,7 @@ export async function refusedByLaneOrCap({
   supersessions: SupersessionPort;
   verb: string;
 }): Promise<boolean> {
-  const lane = readReviewLane({ diff, home, pass, properties });
+  const lane = readReviewLane({ home, pass, properties });
   if (lane.isErr()) {
     logger.error({ msg: `${verb}: refused: ${lane.error.message}` });
     return true;

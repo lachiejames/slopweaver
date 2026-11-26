@@ -12,11 +12,11 @@
  *
  * ## No record is read here
  *
- * Bump records live in the state home, which neither CI nor a commit holds, and a pull request may also commit
- * its manifest under `COMMITTED_BUMP_DIR`, where the landing verbs read it. What this module still refuses is a
- * file under `.baselines/` that nothing judges, at either commit — bar that directory, where a change may add a
- * manifest, leave main's byte-identical or delete one, and is refused only for rewriting one main holds, whose
- * bytes changed or which became a tree.
+ * Bump records live in the state home, which neither CI nor a commit holds, and nowhere else: the landing verbs
+ * read no record from the tree. What this module still refuses is a file under `.baselines/` that nothing judges,
+ * at either commit — bar `COMMITTED_BUMP_DIR`, the history of manifests committed before records moved to the
+ * home, where a change may leave main's byte-identical or delete one, and is refused for ADDING any file there or
+ * rewriting one main holds, whose bytes changed or which became a tree.
  */
 
 import { err, ok, type Result } from "../lib/result.js";
@@ -39,10 +39,19 @@ export type BaselineComparisonError =
   | { readonly code: "COMMIT_UNREACHABLE"; readonly message: string }
   | { readonly code: "UNREADABLE"; readonly message: string; readonly path: string }
   | { readonly code: "UNREGISTERED_BASELINE"; readonly message: string; readonly path: string }
-  | { readonly code: "REWRITTEN_BUMP_MANIFEST"; readonly message: string; readonly path: string };
+  | { readonly code: "REWRITTEN_BUMP_MANIFEST"; readonly message: string; readonly path: string }
+  | { readonly code: "ADDED_BUMP_MANIFEST"; readonly message: string; readonly path: string };
 
 /** The factory for this module's own failures. */
 export const BaselineComparisonErrors = {
+  addedBumpManifest: ({ path }: { path: string }): BaselineComparisonError => ({
+    code: "ADDED_BUMP_MANIFEST",
+    message:
+      `${path}: a change never adds a file under .baselines/bumps/, since no landing verb reads a declaration ` +
+      "from the tree — delete it, and declare the rows with `slopweaver dev baseline-bump`, which records them " +
+      "in the state home",
+    path,
+  }),
   commitUnreachable: ({ rev }: { rev: string }): BaselineComparisonError => ({
     code: "COMMIT_UNREACHABLE",
     message: `commit ${rev} is not in this checkout — fetch it (CI does, at depth 1)`,
@@ -101,14 +110,16 @@ function textAt({
 /**
  * The first committed file under `.baselines/` that the comparison refuses, or none. Pure.
  *
- * A path under the bump directory is refused only when the change REWRITES one main holds — its blob at the head
- * is not the one main has at that path. One the change adds is a declaration the landing verbs read
- * (`src/codex/committedBumpManifests.ts`), and main's own untouched or deleted ones are history. Any other file
- * no registry row names is refused at either end.
+ * A path under the bump directory is refused when the change REWRITES one main holds — its blob at the head is
+ * not the one main has at that path — and when the change ADDS one main does not hold, a rename inside the
+ * directory and a file where main's record was included: bump records come only from the state home, so a file
+ * committed there declares nothing and would read as though it did. Main's own untouched or deleted ones are
+ * history. Any other file no registry row names is refused at either end.
  *
  * @param base every repo-relative file under `.baselines/` at main's commit, with its blob id
  * @param head the same at the change's commit
- * @returns the refusal, or `undefined` when every file is accounted for
+ * @returns the refusal — a rewrite before an addition when a change does both — or `undefined` when every file
+ *   is accounted for
  */
 export function committedBaselineRefusal({
   base,
@@ -117,12 +128,17 @@ export function committedBaselineRefusal({
   base: ReadonlyMap<string, string>;
   head: ReadonlyMap<string, string>;
 }): BaselineComparisonError | undefined {
-  const written = [...head].find(([path, blob]) => {
+  const bumps = [...head].filter(([path]) => isCommittedBumpPath({ path }));
+  const written = bumps.find(([path, blob]) => {
     const kept = base.get(path);
-    return isCommittedBumpPath({ path }) && kept !== undefined && kept !== blob;
+    return kept !== undefined && kept !== blob;
   });
   if (written !== undefined) {
     return BaselineComparisonErrors.rewrittenBumpManifest({ path: written[0] });
+  }
+  const added = bumps.find(([path]) => !base.has(path));
+  if (added !== undefined) {
+    return BaselineComparisonErrors.addedBumpManifest({ path: added[0] });
   }
   for (const listed of [base, head]) {
     const stray = strayBaselinesOf({ paths: [...listed.keys()].filter((path) => !isCommittedBumpPath({ path })) })[0];

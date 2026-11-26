@@ -105,12 +105,12 @@ export const QUALITY_LINT_GATE_DECLARATIONS = {
   },
   "baseline-against-main": {
     caught:
-      "a bump manifest main holds under .baselines/bumps/ is rewritten, so the bytes its Codex witness judged are no longer the bytes in the tree",
+      "a file is added under .baselines/bumps/, which no landing verb reads as a declaration, or a bump manifest main holds there is rewritten, so the bytes its Codex witness judged are no longer the bytes in the tree",
     correction:
-      "restore the file to main's bytes or delete it, and declare the rise again with `slopweaver dev baseline-bump --reason`, which writes a new record into $SLOPWEAVER_HOME/ledgers/baseline-bumps/ and prints the Codex witness the landing verbs will require; a loosening itself passes this gate and is owed at landing",
+      "delete an added file, and restore a rewritten one to main's bytes or delete it; then declare the rise with `slopweaver dev baseline-bump --reason`, which writes a record into $SLOPWEAVER_HOME/ledgers/baseline-bumps/ and prints the Codex witness the landing verbs will require; a loosening itself passes this gate and is owed at landing",
     exceptions: [
-      "a manifest the change adds under .baselines/bumps/, which the landing verbs read beside the state home's records",
       "one of main's manifests left byte-identical or deleted by the change, which the comparison passes over as history",
+      "a loosening of a ratchet baseline with no file under .baselines/bumps/ touched, which this gate reports as a landing obligation rather than refuses",
     ],
     gate: "baseline-against-main",
   },

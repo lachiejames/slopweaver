@@ -1,11 +1,13 @@
 /**
  * Review-lane admission read over a real (throwaway) state home and checkout, with synthetic bump records only:
- * an ordinary invocation reads no record at all, the exact witness is admitted from the home or from a manifest
- * the change commits, a reserved id outside that shape is refused, a record that will not read refuses rather
- * than demoting the review, and every refusal says no acknowledgement or hatch opens it — and the general cap's
- * override, set, still opens none of them.
+ * an ordinary invocation reads no record at all, the exact witness is admitted from the home and only from the
+ * home, a reserved id outside that shape is refused, a record that will not read refuses rather than demoting the
+ * review, and every refusal says no acknowledgement or hatch opens it — and the general cap's override, set,
+ * still opens none of them.
+ *
+ * deleted-with-code: committedBumpManifests, landingBumpRecords
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -78,7 +80,6 @@ function homeThatWillNotRead(): string {
 describe("readReviewLane", REAL_GIT_SUITE, () => {
   it("puts an ordinary invocation in the general lane without reading the records, unreadable or not", () => {
     const lane = readReviewLane({
-      diff: settledDiff(),
       home: homeThatWillNotRead(),
       pass: "r1",
       properties: [{ id: "r1-01", statement: "no write is lost" }],
@@ -87,33 +88,12 @@ describe("readReviewLane", REAL_GIT_SUITE, () => {
   });
 
   it("admits the exact witness for a record the home holds", () => {
-    const lane = readReviewLane({ diff: settledDiff(), home: homeWithRecord(), pass: "r3", properties: [WITNESS] });
-    expect(unwrap(lane)).toBe("baseline-bump-witness");
-  });
-
-  it("admits the exact witness for a manifest the change commits when the home holds none", () => {
-    const repoRoot = scratchRepo();
-    const baseSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: repoRoot });
-    const name = `${MANIFEST.digest}.json`;
-    const text = readFileSync(join(stateHomePaths({ home: homeWithRecord() }).baselineBumps, name), "utf8");
-    mkdirSync(join(repoRoot, ".baselines", "bumps"), { recursive: true });
-    writeFileSync(join(repoRoot, ".baselines", "bumps", name), text);
-    gitInTemp({ args: ["add", "-A"], cwd: repoRoot });
-    gitInTemp({ args: ["commit", "-m", "declare the bump"], cwd: repoRoot });
-    const headSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: repoRoot });
-
-    const lane = readReviewLane({
-      diff: { baseSha, headSha, repoRoot },
-      home: scratch({ label: "home" }),
-      pass: "r3",
-      properties: [WITNESS],
-    });
+    const lane = readReviewLane({ home: homeWithRecord(), pass: "r3", properties: [WITNESS] });
     expect(unwrap(lane)).toBe("baseline-bump-witness");
   });
 
   it("refuses a reserved id carrying a broader statement, and says nothing opens the refusal", () => {
     const lane = readReviewLane({
-      diff: settledDiff(),
       home: homeWithRecord(),
       pass: "r3",
       properties: [{ id: WITNESS.id, statement: `${WITNESS.statement} and every other function is correct` }],
@@ -128,7 +108,6 @@ describe("readReviewLane", REAL_GIT_SUITE, () => {
 
   it("refuses a reserved id when no record exists at all", () => {
     const lane = readReviewLane({
-      diff: settledDiff(),
       home: scratch({ label: "home" }),
       pass: "r3",
       properties: [WITNESS],
@@ -140,7 +119,6 @@ describe("readReviewLane", REAL_GIT_SUITE, () => {
 
   it("refuses rather than demotes a witness whose records will not read", () => {
     const lane = readReviewLane({
-      diff: settledDiff(),
       home: homeThatWillNotRead(),
       pass: "r3",
       properties: [WITNESS],
