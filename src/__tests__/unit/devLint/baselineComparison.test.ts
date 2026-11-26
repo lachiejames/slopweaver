@@ -2,12 +2,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cleanLine } from "../../../devLint/baselineAgainstMain.js";
+import { cleanLine, isBumpDirectoryRefusal } from "../../../devLint/baselineAgainstMain.js";
 import {
   BaselineComparisonErrors,
   committedBaselineRefusal,
   compareAgainstBase,
 } from "../../../devLint/baselineComparison.js";
+import { lintDeclarationFor } from "../../../devLint/refusal/registry.js";
+import { lintGateRefusal } from "../../../devLint/refusal/render.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../tempGitRepo.js";
 
@@ -272,6 +274,41 @@ describe("committedBaselineRefusal", () => {
         "from the tree — delete it, and declare the rows with `slopweaver dev baseline-bump`, which records them " +
         "in the state home",
     );
+  });
+});
+
+describe("the gate's bump-directory refusal", () => {
+  it("renders an added manifest as the gate's four-line refusal, naming the file and where a rise is declared", () => {
+    const error = BaselineComparisonErrors.addedBumpManifest({ path: ADDED });
+    const detail = error.message;
+    const lines = lintGateRefusal({ declaration: lintDeclarationFor({ id: "baseline-against-main" }), detail }).split(
+      "\n",
+    );
+
+    expect(isBumpDirectoryRefusal({ error })).toBe(true);
+    expect(lines).toHaveLength(4);
+    expect(lines[0]).toBe(
+      "Passing dev lint is blocked because the `baseline-against-main` gate a file is added under .baselines/bumps/, " +
+        "which no landing verb reads as a declaration, or a bump manifest main holds there is rewritten, so the " +
+        `bytes its Codex witness judged are no longer the bytes in the tree (${detail}).`,
+    );
+    expect(lines[1]).toBe(
+      "Legitimate exceptions may include one of main's manifests left byte-identical or deleted by the change, " +
+        "which the comparison passes over as history; a loosening of a ratchet baseline with no file under " +
+        ".baselines/bumps/ touched, which this gate reports as a landing obligation rather than refuses.",
+    );
+    expect(lines[2]).toContain("delete an added file, and restore a rewritten one to main's bytes or delete it");
+  });
+
+  it("refuses a rewritten manifest the same way, and leaves every other failure to be reported as a fact", () => {
+    expect(isBumpDirectoryRefusal({ error: BaselineComparisonErrors.rewrittenBumpManifest({ path: LEGACY }) })).toBe(
+      true,
+    );
+    expect(isBumpDirectoryRefusal({ error: BaselineComparisonErrors.unreadable({ path: SIZE }) })).toBe(false);
+    expect(
+      isBumpDirectoryRefusal({ error: BaselineComparisonErrors.unregistered({ path: ".baselines/x.json" }) }),
+    ).toBe(false);
+    expect(isBumpDirectoryRefusal({ error: BaselineComparisonErrors.commitUnreachable({ rev: "abc" }) })).toBe(false);
   });
 });
 

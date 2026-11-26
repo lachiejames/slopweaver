@@ -50,6 +50,7 @@ const made: string[] = [];
 let base = "";
 let raised = "";
 let committed = "";
+let addedOnly = "";
 let manifest: BumpManifest;
 
 /** A fresh empty directory, removed after the file. */
@@ -86,6 +87,9 @@ beforeAll(() => {
   manifest = manifestAgainst({ base });
   put({ path: `.baselines/bumps/${manifest.digest}.json`, text: `${JSON.stringify(manifest, null, 2)}\n` });
   committed = commit({ message: "the rise, with a declaration committed beside it" });
+  git("checkout", "-q", "--detach", base);
+  put({ path: `.baselines/bumps/${"0".repeat(64)}.json`, text: "{}\n" });
+  addedOnly = commit({ message: "no rise, only a file added under the bump directory" });
 }, REAL_GIT_TIMEOUT_MS);
 
 afterAll(() => {
@@ -201,6 +205,23 @@ describe("readBaselineBumpWitness reads records from the state home only", { tim
       details: [
         "the baselines could not be compared against the base: " +
           BaselineComparisonErrors.addedBumpManifest({ path: `.baselines/bumps/${manifest.digest}.json` }).message,
+      ],
+      kind: "refused",
+    });
+  });
+
+  it("refuses a change that loosens nothing but adds a file under .baselines/bumps/, before any quiet clear", async () => {
+    const verdict = await readBaselineBumpWitness({
+      cwd: root,
+      head: headOf({ headSha: addedOnly }),
+      home: scratch(),
+      supersessions: memorySupersessionPort(),
+    });
+
+    expect(verdict).toEqual({
+      details: [
+        "the baselines could not be compared against the base: " +
+          BaselineComparisonErrors.addedBumpManifest({ path: `.baselines/bumps/${"0".repeat(64)}.json` }).message,
       ],
       kind: "refused",
     });

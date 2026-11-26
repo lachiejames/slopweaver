@@ -32,7 +32,7 @@
  * says so and passes; `dev baseline-bump --dry-run` is the local reading.
  */
 
-import { compareAgainstBase } from "./baselineComparison.js";
+import { type BaselineComparisonError, compareAgainstBase } from "./baselineComparison.js";
 import { resolveFloorBase } from "./gitAtCommit.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
 import { lintGateRefusal } from "./refusal/render.js";
@@ -59,6 +59,17 @@ export function cleanLine({ count, base }: { count: number; base: string }): str
 }
 
 /**
+ * Whether a comparison failure is this gate's POLICY refusal — a file under `.baselines/bumps/` a change added, or
+ * one of main's it rewrote — rather than a fact about the inputs. Pure.
+ *
+ * @param error why the comparison did not return a verdict
+ * @returns `true` when the gate renders its four-line refusal for it
+ */
+export function isBumpDirectoryRefusal({ error }: { error: BaselineComparisonError }): boolean {
+  return error.code === "ADDED_BUMP_MANIFEST" || error.code === "REWRITTEN_BUMP_MANIFEST";
+}
+
+/**
  * IO edge: compare against the event's base and report what the change loosened.
  *
  * @returns 0 clean or skipped with no base, 1 refused or unable to read an input
@@ -77,7 +88,7 @@ export function runBaselineAgainstMain(): number {
   }
   const compared = compareAgainstBase({ base: base.sha, head: "HEAD", root: repoRoot() });
   if (compared.isErr()) {
-    if (compared.error.code === "ADDED_BUMP_MANIFEST" || compared.error.code === "REWRITTEN_BUMP_MANIFEST") {
+    if (isBumpDirectoryRefusal({ error: compared.error })) {
       process.stderr.write(
         `${lintGateRefusal({ declaration: lintDeclarationFor({ id: GATE }), detail: compared.error.message })}\n`,
       );
