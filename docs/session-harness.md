@@ -131,10 +131,10 @@ DONE, never its words or a tool's input, output or title: [the facts picture](se
   through the `--via-card` click. A failed reload is tried once more and never counts as shown.
 - **One worker per session**, picked by the spec's `vendor` (`desktop/src/workerLaunchOf.ts`). Electron run as
   Node, detached as its own process group, speaking IPC to the app; the card names the vendor beside the state.
-  - **Codex**: one Agent Client Protocol connection to the pinned `codex-acp` adapter, which runs the native
-    `codex` the app ships in `Resources/session-harness/`. The seat's routed `CODEX_HOME` is set and every API
-    credential and `NODE_OPTIONS` dropped (`codexEnvironmentPolicy.ts`, the CLI client's own list), at the
-    worker's launch and again at the adapter's.
+  - **Codex**: one Agent Client Protocol connection to the pinned `codex-acp` adapter, which runs the native `codex`
+    the app ships in `Resources/session-harness/`. The seat's routed `CODEX_HOME` is set and every API credential
+    and `NODE_OPTIONS` dropped (`codexEnvironmentPolicy.ts`, the CLI client's own list), at the worker's launch
+    and again at the adapter's. Each session opens in its `agent-full-access` preset: approval `never`, no sandbox.
   - **Claude**: one Agent SDK `query` (`claudeAgentWorker.ts`) over the native `claude` the app ships in
     `Resources/session-harness/claude/`, the worker starting that process itself so it can check the SDK's request
     against the launch and attach a setup token on descriptor 3, never in an environment or argument

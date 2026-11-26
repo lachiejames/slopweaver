@@ -9,8 +9,9 @@
  * The adapter and the Codex app-server it starts stay in this worker's process group, which a card's Stop ends whole
  * (`../sessionProcessGroup.ts`).
  *
- * A permission request is DECLINED: slice 1's card has no way to ask the owner yet, and a request nobody saw is not
- * one anybody granted. The session runs in the adapter's workspace-write preset (`adapterEnvironment.ts`).
+ * The session runs in the adapter's full-access preset (`adapterEnvironment.ts`): approval `never`, no sandbox, so no
+ * permission request is expected. One that arrives anyway is DECLINED: the card has no way to ask the owner, and a
+ * request nobody saw is not one anybody granted.
  */
 import { type ChildProcess, spawn } from "node:child_process";
 import { Readable, Writable } from "node:stream";

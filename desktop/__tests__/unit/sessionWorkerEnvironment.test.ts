@@ -86,6 +86,13 @@ describe("codexSessionEnvironment", () => {
 });
 
 describe("adapterEnvironment", () => {
+  it("opens every session in the adapter's full-access preset: approval never, no sandbox", () => {
+    expect(ADAPTER_AGENT_MODE).toBe("agent-full-access");
+    expect(adapterEnvironment({ config: CONFIG, guardian: undefined, inherited: {} })["INITIAL_AGENT_MODE"]).toBe(
+      "agent-full-access",
+    );
+  });
+
   it("names the native codex, the agent mode and the model, and never passes the worker's config on", () => {
     const environment = adapterEnvironment({
       config: { ...CONFIG, model: "gpt-5" },
