@@ -142,7 +142,9 @@ function insertionIndex<Key extends string>({
   keyOrder: readonly Key[];
   paste: PastedMediaBlock<Key>;
 }): number {
-  if (paste.after === "start") {
+  // `Key` may itself admit "start", so the `after` comparison cannot narrow the union; the field the keyed arm alone
+  // carries can.
+  if (!("occurrence" in paste)) {
     return 0;
   }
   const after = paste.after;
