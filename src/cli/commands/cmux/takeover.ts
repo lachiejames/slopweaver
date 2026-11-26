@@ -3,7 +3,7 @@
  * is genuinely sweeping (its own hook events, else its own transcript — `./takeoverTranscript.ts`), resolve the
  * predecessor from cmux's own pin, confirm its run has actually finished, then unpin/pin/title/close in that order.
  * Either side may be a session the desktop app hosts instead of a cmux workspace; `./takeoverHosts.ts` holds those
- * steps for every pairing of hosts, and the name stays `cmux takeover` so every caller keeps working. Refuses loudly (no `--force`) on any check failing — unpinning,
+ * gates and `./takeoverSteps.ts` steps 4–6 for every pairing of hosts, and the name stays `cmux takeover` so every caller keeps working. Refuses loudly (no `--force`) on any check failing — unpinning,
  * pinning and closing are the same destructive triad `docs/cmux-client/socket-and-measured-facts.md` § 2(e) already warns cmux enforces
  * no safety net over, and the whole point of this verb is that a successor stops skipping the last of those
  * steps (measured twice: `ws:402`, `ws:459`).
@@ -51,7 +51,8 @@ import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
 import { OWNER_TURN_WINDOW_DAYS, unreadOwnerTurns } from "../supervisor/ownerTurnsRun.js";
 import { parseCmuxVerb, stringFlag } from "./core.js";
 import { targetWorkspaceId } from "./run.js";
-import { appCallerSweepGate, performTakeover, predecessorGates, takeoverDryRunLine } from "./takeoverHosts.js";
+import { appCallerSweepGate, predecessorGates, takeoverDryRunLine } from "./takeoverHosts.js";
+import { performTakeover } from "./takeoverSteps.js";
 import { readTranscriptLeg } from "./takeoverTranscript.js";
 
 /** How long with no new frame before gate (a)'s drain decides nothing else is coming. */

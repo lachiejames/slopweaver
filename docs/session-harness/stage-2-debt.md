@@ -22,7 +22,13 @@ A cmux record reads exactly as it always did, so no record is migrated.
   (`SLOPWEAVER_APP_SESSION_ID`) and the vendor session id it runs as, and the app answers only when that app session
   runs exactly that vendor session (`src/sessionHarness/appSessionOrigin.ts`, `desktop/src/sessionOrigin.ts`).
 - **`cmux takeover`** hands the seat across either host (`src/cli/commands/cmux/takeoverHosts.ts`), and closes an app
-  predecessor only through the harness, never through cmux and never by a kill.
+  predecessor only through the harness, never through cmux and never by a kill. A **gone** predecessor, a pin record
+  whose host no longer holds the session (cmux no longer lists the workspace, or the app answers
+  `SESSION_NOT_FOUND`), is taken over too: it pairs to the ONE open ledger row carrying the record's exact id, its
+  run must still read terminal (a chair that died mid-run gets there by `handover reap`'s `orphaned`, never by its
+  host's silence), and step 5 ends that row instead of closing anything (`src/supervisor/gonePredecessor.ts`).
+  Before this a dead chair's record deadlocked the seat: takeover found no predecessor and `cmux pin` refused the
+  record.
 - **The chair gate** reads an app chair through the app and judges that one session's transcript. An app that does
   not answer is `app-chair-unread`, which never opens the cmux-silent caller-only pass.
 

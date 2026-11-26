@@ -97,7 +97,8 @@ every time:
    `handover close` line that repairs it and still exits 0, because a non-zero exit would invite a re-run of a
    verb whose own gates now read a world that has already moved.
 
-**Either side may be a session the desktop app hosts** (`src/cli/commands/cmux/takeoverHosts.ts`; the pure
+**Either side may be a session the desktop app hosts** (`src/cli/commands/cmux/takeoverHosts.ts` and
+`takeoverSteps.ts`; the pure
 resolution and witnesses in `src/supervisor/takeoverSeat.ts`). An app caller is vouched for by the app first
 (`session.origin`), and its step 1 witness is the app's picture of this session, a `ScheduleWakeup` call in flight or
 among the last ended ones, else its transcript. Step 2 takes the predecessor from cmux's `pinned: true` row when one
@@ -107,6 +108,17 @@ app reports for it now. Step 4 removes an app predecessor's record instead of un
 successor in the pin record instead of pinning. Step 5 closes an app predecessor through the harness alone
 (`SessionHarness.close`), never through cmux and never by a kill. cmux must still answer for an app caller, since
 step 2 reads its pins.
+
+**A predecessor its host no longer holds is taken over too** (`src/supervisor/gonePredecessor.ts`,
+`src/cli/commands/cmux/takeoverGone.ts`): a cmux record whose workspace cmux no longer lists, or an app record the
+app answers `SESSION_NOT_FOUND` for. A cmux one is called gone only once `listWorkspacesStrict` also reads whole
+and lists no workspace with its id, since the everyday inventory drops a malformed row or window silently and would
+read a live chair as unlisted. Step 3 pairs it to the one open ledger row carrying the record's exact id under
+the same host and still requires its run terminal, so a chair that died mid-run is retired only after `handover
+reap` writes `orphaned`; a journal holding a line this checkout cannot decode, or ending on a dispatch nothing
+answered, refuses, since either may hide a newer attempt. Step 4 removes its exact record and step 5 ends that one
+row, refused unless folding the close over the ledger ends exactly that row, checked at step 3 and again just
+before the append; the append is not locked, so the second check narrows that window rather than closing it.
 
 `slopweaver cmux takeover --dry-run` runs steps 1-3 and reports what steps 4-6 would do, without touching
 anything — the check to run before trusting the real one.
