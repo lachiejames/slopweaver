@@ -3,11 +3,9 @@
  * an ordinary invocation reads no record at all, the exact witness is admitted from the home and only from the
  * home, a reserved id outside that shape is refused, a record that will not read refuses rather than demoting the
  * review, and every refusal says no acknowledgement or hatch opens it — and the general cap's override, set,
- * still opens none of them.
- *
- * deleted-with-code: committedBumpManifests, landingBumpRecords
+ * still opens none of them, nor admits a witness for a manifest the change commits in place of a home record.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -162,6 +160,31 @@ describe("refusedByLaneOrCap with the cap's override open", REAL_GIT_SUITE, () =
   it("still refuses the witness id carrying a claim that is not the record's", async () => {
     const properties = [{ id: WITNESS.id, statement: `${WITNESS.statement} and every other function is correct` }];
     expect(await askedWithCapOverride({ properties })).toBe(true);
+  });
+
+  it("refuses the exact witness for a manifest the change commits when the home holds none", async () => {
+    const repoRoot = scratchRepo();
+    const baseSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: repoRoot });
+    const name = `${MANIFEST.digest}.json`;
+    const text = readFileSync(join(stateHomePaths({ home: homeWithRecord() }).baselineBumps, name), "utf8");
+    mkdirSync(join(repoRoot, ".baselines", "bumps"), { recursive: true });
+    writeFileSync(join(repoRoot, ".baselines", "bumps", name), text);
+    gitInTemp({ args: ["add", "-A"], cwd: repoRoot });
+    gitInTemp({ args: ["commit", "-m", "declare the bump"], cwd: repoRoot });
+    const headSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: repoRoot });
+
+    const refused = await refusedByLaneOrCap({
+      branch: "feature",
+      diff: { baseSha, bytes: 10, headSha, repoRoot, sha256: "d".repeat(64), text: "synthetic" },
+      env: { [ALLOW_CODEX_REVIEW_PASS_CAP_ENV]: "1" },
+      fallbackPort: memoryFallbackRegisterPort(),
+      home: scratch({ label: "home" }),
+      pass: "r3",
+      properties: [WITNESS],
+      supersessions: memorySupersessionPort(),
+      verb: "codex review",
+    });
+    expect(refused).toBe(true);
   });
 });
 

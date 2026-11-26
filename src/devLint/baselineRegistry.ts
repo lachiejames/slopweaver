@@ -150,6 +150,7 @@ export const BASELINE_POLICY_FILES: readonly string[] = [
   "src/codex/baselineBumpWitnessRun.ts",
   "src/codex/branchEvidenceRoots.ts",
   "src/codex/bumpRecordStore.ts",
+  "src/codex/committedBumpManifests.ts",
   "src/codex/ledgerUnion.ts",
   "src/devLint/baselineAgainstMain.ts",
   "src/devLint/baselineBump.ts",
@@ -161,12 +162,12 @@ export const BASELINE_POLICY_FILES: readonly string[] = [
 export const POLICY_ENTRY = "policy";
 
 /**
- * Where bump manifests were COMMITTED before records moved to the state home (`src/codex/bumpRecordStore.ts`).
- * What is here is history: no landing verb reads it, so it declares nothing. The comparison passes over one of
- * main's files a change leaves byte-identical or deletes, and refuses any file a change adds here or one of
- * main's it rewrites (`./baselineComparison.ts`).
+ * Where bump manifests are COMMITTED, beside the records in the state home (`src/codex/bumpRecordStore.ts`). A
+ * landing CLI that predates the home reads a declaration only here, so a pull request may still add one, and the
+ * current landing verbs read it too (`src/codex/committedBumpManifests.ts`). The stray check passes over a file
+ * here a change adds, leaves byte-identical or deletes, and refuses one of main's it rewrites.
  */
-const COMMITTED_BUMP_DIR = ".baselines/bumps/";
+export const COMMITTED_BUMP_DIR = ".baselines/bumps/";
 
 /**
  * Whether a path sits where bump records used to be committed. Pure.
