@@ -3,6 +3,12 @@
  * whose header says what each table proves.
  */
 
+import {
+  parseStoreAssessmentDueArgs,
+  parseStoreAssessmentRecordArgs,
+  STORE_ASSESSMENT_DUE_FLAG_NAMES,
+  STORE_ASSESSMENT_RECORD_FLAG_NAMES,
+} from "../../../../cli/commands/store/assessmentArgs.js";
 import { parseStoreBotsArgs, STORE_BOTS_FLAG_NAMES } from "../../../../cli/commands/store/bots.js";
 import { parseStoreClassifyArgs, STORE_CLASSIFY_FLAG_NAMES } from "../../../../cli/commands/store/classifyCore.js";
 import { parseDetectArgs } from "../../../../cli/commands/store/detect.js";
@@ -28,6 +34,8 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "store edges": STORE_EDGES_FLAG_NAMES,
   "store bots": STORE_BOTS_FLAG_NAMES,
   "store classify": STORE_CLASSIFY_FLAG_NAMES,
+  "store assessment-due": STORE_ASSESSMENT_DUE_FLAG_NAMES,
+  "store assessment-record": STORE_ASSESSMENT_RECORD_FLAG_NAMES,
   "store slack-asks": ["--stranded", "--home", "--json"],
   // The progressive-disclosure ladder. Each takes a closed flag set off one pure parser, so every one of
   // them is guarded rather than listed as unguarded — see `src/cli/commands/store/probeCore.ts`.
@@ -79,6 +87,20 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--home": ["--home", "/tmp"],
     "--json": ["--json"],
     "--sample": ["--sample", "10"],
+  },
+  "store assessment-due": {
+    "--check": ["--check"],
+    "--home": ["--home", "/tmp"],
+    "--json": ["--json"],
+    "--limit": ["--limit", "25"],
+    "--now": ["--now", "2026-10-08T23:00:00Z"],
+    "--with-calls": ["--with-calls"],
+  },
+  "store assessment-record": {
+    "--home": ["--verdicts-file", "v.json", "--home", "/tmp"],
+    "--json": ["--verdicts-file", "v.json", "--json"],
+    "--now": ["--verdicts-file", "v.json", "--now", "2026-10-08T23:00:00Z"],
+    "--verdicts-file": ["--verdicts-file", "v.json"],
   },
   "store identity": {
     "--home": ["--home", "/tmp"],
@@ -176,6 +198,10 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
     parseStoreBotsArgs({ rest: [...fragment] }).mapErr((error) => storeCommandErrorLines({ error })),
   "store classify": ({ fragment }) =>
     parseStoreClassifyArgs({ rest: [...fragment] }).mapErr((error) => storeCommandErrorLines({ error })),
+  "store assessment-due": ({ fragment }) =>
+    parseStoreAssessmentDueArgs({ rest: fragment }).mapErr((error) => [error.message]),
+  "store assessment-record": ({ fragment }) =>
+    parseStoreAssessmentRecordArgs({ rest: fragment }).mapErr((error) => [error.message]),
   // Each ladder verb is probed against its own required arguments plus the fragment under test, so a flag
   // that the usage advertises and the parser refuses fails here rather than in a detective's hands.
   "store probe": ({ fragment }) =>

@@ -14,8 +14,13 @@ import { unwrap, unwrapErr } from "#lib/result.js";
 import {
   assessmentRegisterPath,
   type RecordedCallAssessment,
+  type RecordedStoredRowAssessment,
   readRecordedAssessments,
   recordCallAssessment,
+  recordedAssessmentFor,
+  recordStoredRowAssessment,
+  storedRowAssessmentIndex,
+  storedRowAssessmentKey,
 } from "../../../store/recordedDataClassAssessment.js";
 
 const CALL = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
@@ -80,6 +85,66 @@ describe("recordCallAssessment", () => {
       DIGEST,
       "b".repeat(64),
     ]);
+  });
+});
+
+const ROW = "1f2e3d4c-5b6a-4978-8695-a4b3c2d1e0f9";
+
+/** One stored row's recorded assessment, under the private-lane default. */
+const rowAssessment = ({
+  dataClass = "personal",
+  requestSha256 = DIGEST,
+}: {
+  dataClass?: "internal" | "personal";
+  requestSha256?: string;
+} = {}): RecordedStoredRowAssessment => ({
+  recordedAtIso: "2026-11-20T21:30:00.000Z",
+  requestSha256,
+  ruleId: "default:private-lane",
+  subject: { kind: "stored-row", rowId: ROW, table: "content" },
+  verdict: { dataClass, kind: "classified", reason: "a family arrangement" },
+  version: 2,
+});
+
+describe("recordStoredRowAssessment", () => {
+  it("appends a version-2 line beside a call's, holding no text, and reads both back", () => {
+    unwrap(recordCallAssessment({ assessment: assessment(), home }));
+    const written = unwrap(recordStoredRowAssessment({ assessment: rowAssessment(), home }));
+    expect(written.written).toBe(true);
+    expect(unwrap(readRecordedAssessments({ home }))).toEqual([assessment(), rowAssessment()]);
+    expect(readFileSync(assessmentRegisterPath({ home }), "utf8")).not.toContain('"body"');
+  });
+
+  it("answers the line already there for the identical verdict, writing nothing", () => {
+    unwrap(recordStoredRowAssessment({ assessment: rowAssessment(), home }));
+    expect(unwrap(recordStoredRowAssessment({ assessment: rowAssessment(), home })).written).toBe(false);
+    expect(unwrap(readRecordedAssessments({ home })).length).toBe(1);
+  });
+
+  it("refuses a different verdict for the same row, rule and words, naming the row", () => {
+    unwrap(recordStoredRowAssessment({ assessment: rowAssessment(), home }));
+    const error = unwrapErr(recordStoredRowAssessment({ assessment: rowAssessment({ dataClass: "internal" }), home }));
+    expect(error.code).toBe("ASSESSMENT_CONFLICT");
+    expect(error.message).toContain(`content/${ROW} already has a different verdict`);
+  });
+
+  it("appends a second line once the row's words moved on", () => {
+    unwrap(recordStoredRowAssessment({ assessment: rowAssessment(), home }));
+    unwrap(recordStoredRowAssessment({ assessment: rowAssessment({ requestSha256: "b".repeat(64) }), home }));
+    expect(unwrap(readRecordedAssessments({ home })).length).toBe(2);
+  });
+});
+
+describe("storedRowAssessmentIndex", () => {
+  it("indexes stored-row lines by table, row, rule and digest, and never a call's", () => {
+    const index = storedRowAssessmentIndex({ records: [assessment(), rowAssessment()] });
+    expect([...index.keys()]).toEqual([
+      storedRowAssessmentKey({ requestSha256: DIGEST, rowId: ROW, ruleId: "default:private-lane", table: "content" }),
+    ]);
+  });
+
+  it("does not answer a call's verdict for a stored row", () => {
+    expect(recordedAssessmentFor({ callId: ROW, records: [rowAssessment()], requestSha256: DIGEST })).toBeUndefined();
   });
 });
 

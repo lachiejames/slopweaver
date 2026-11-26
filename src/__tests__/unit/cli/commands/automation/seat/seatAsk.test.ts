@@ -181,7 +181,7 @@ describe("seatAsk", () => {
     );
     expect(lines[command - 1]).toBe(
       "  (call-assessment: follow skills/automation/reference/call-assessment.md — classify and record every due " +
-        "call FIRST, then run this command LAST to settle the firing)",
+        "call, then the day's slice of stored rows, FIRST, then run this command LAST to settle the firing)",
     );
   });
 

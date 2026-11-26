@@ -164,13 +164,15 @@ export const OWED_REPLY_KIND = "owed-reply";
 
 /**
  * The kind that classifies what the owner said on the day's calls, passage by passage, and records what was learned,
- * in a session seated for it once a day.
+ * then classifies the day's slice of stored rows the data-class rules send for assessment, in a session seated for it
+ * once a day.
  *
  * The owner ruled one daily visible reader on the plans already owned, with no new spend, so no model is called in
- * a process: the row's run is the `talk assessment-due` worklist, read from the call files in seconds, while
- * deciding each passage's class and what it teaches is judgement a session the owner can watch makes (`AGENTS.md`
- * rule 2). It writes only local state — the verdict register (`talk assessment-record`) and knowledge rows — never
- * rewords a word, and never moves the public switch. `skills/automation/reference/call-assessment.md` is what the
+ * a process: the row's run is the `store assessment-due --with-calls` check, read from the call files and the store
+ * in seconds, while deciding each class and what a call teaches is judgement a session the owner can watch makes
+ * (`AGENTS.md` rule 2). It writes only local state — the verdict register (`talk assessment-record`,
+ * `store assessment-record`) and knowledge rows — never rewords a word, never writes a stored row's class (that is
+ * `store classify`'s), and never moves the public switch. `skills/automation/reference/call-assessment.md` is what the
  * seated session follows.
  */
 export const CALL_ASSESSMENT_KIND = "call-assessment";

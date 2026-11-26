@@ -1,27 +1,33 @@
 /**
- * The register of the verdicts the owner's daily visible session recorded about calls — what the data-class
- * assessment port answers from (`../talk/callAssessmentPort.ts`, which reads the call's current words itself).
+ * The register of the verdicts the owner's daily visible session recorded — about calls, and about stored rows a
+ * rule sent for assessment. It is what the data-class assessment port answers from (`../talk/callAssessmentPort.ts`).
  *
- * The owner ruled who classifies what the owner says on calls: ONE daily visible reader, on the plans already
- * owned, with no new spend. So nothing here calls a model. The session reads a call's exact words, decides one class
- * per passage, and records them through `talk assessment-record`; this module writes that down. A call nobody has
- * assessed answers `undecided` at the port, which every reader treats as `unknown` and so as `restricted`
+ * The owner ruled who classifies personal material: ONE daily visible reader, on the plans already owned, with no
+ * new spend. So nothing here calls a model. The session reads the exact words, decides, and records through
+ * `talk assessment-record` (a call) or `store assessment-record` (a stored row); this module writes that down. Anything
+ * nobody has assessed answers `undecided` at the port, which every reader treats as `unknown` and so as `restricted`
  * (`./dataClass.ts`).
  *
- * ## One line per assessed call, bound to the words it read
+ * ## One line per assessment, bound to the words it read
  *
- * `$SLOPWEAVER_HOME/judgement/data-class-assessments.jsonl`, `0600`. Each line names the call, the digest of the exact
- * passages assessed (`../talk/callAssessment.ts`), one verdict per passage and the call's verdict derived from them.
- * It holds NO passage text: the call file stays the one copy of the owner's words, so nothing here can drift from
- * or reword them. A verdict answers only the digest it was recorded against, so words added to a call after it was
- * assessed make that call due again rather than borrowing the earlier class.
+ * `$SLOPWEAVER_HOME/judgement/data-class-assessments.jsonl`, `0600`. Two line shapes share it:
+ *
+ * - **version 1, a call** — the call, the digest of the exact passages assessed (`../talk/callAssessment.ts`), one
+ *   verdict per passage and the call's verdict derived from them.
+ * - **version 2, a stored row** — the table and row id, the rule that sent it for assessment, the digest of the row's
+ *   exact words as the store computes it (`./storedRowAssessmentRead.ts`), and the one verdict.
+ *
+ * Neither holds any text: the call file and the store row stay the one copy of the words, so nothing here can drift
+ * from or reword them. A verdict answers only the digest it was recorded against, so words that change after a verdict
+ * make that subject due again rather than borrowing the earlier class. A stored-row verdict also answers only the rule
+ * it was recorded under: a routing change asks again rather than borrowing a judgement made for another reason.
  *
  * ## Exactly one truth per digest
  *
- * Recording the same verdicts for the same digest again writes nothing and answers the line already there. Recording
- * DIFFERENT verdicts for a digest that already has some is refused: two answers about the same words would make the
- * class depend on which line a reader met first. A line that will not parse refuses every read rather than being
- * skipped, because the line skipped could be the one that answers. The check-then-append is not locked: the one
+ * Recording the same verdicts for the same subject and digest again writes nothing and answers the line already
+ * there. Recording DIFFERENT verdicts for one that already has some is refused: two answers about the same words would
+ * make the class depend on which line a reader met first. A line that will not parse refuses every read rather than
+ * being skipped, because the line skipped could be the one that answers. The check-then-append is not locked: the one
  * writer is the seated session, and the automation's slot ledger seats one at a time.
  */
 import { chmodSync, existsSync } from "node:fs";
@@ -37,7 +43,7 @@ import { ensureDirectory } from "#lib/writeAtomic.js";
 import { readJsonlLines } from "../corpus/corpusStore.js";
 import { stateHomePaths } from "../stateHome.js";
 
-import { ASSIGNABLE_DATA_CLASSES } from "./dataClassRules.js";
+import { ASSIGNABLE_DATA_CLASSES, DATA_CLASS_RULE_TABLES, type DataClassRuleTable } from "./dataClassRules.js";
 
 /** One passage's verdict as the register holds it. */
 const passageVerdictSchema = z.discriminatedUnion("kind", [
@@ -72,8 +78,28 @@ const recordedAssessmentSchema = z
   })
   .strict();
 
+/** One line of the register, version 2: one stored row a rule sent for assessment. */
+const recordedStoredRowSchema = z
+  .object({
+    recordedAtIso: z.string().refine((value) => !Number.isNaN(Date.parse(value)), { message: "not an ISO instant" }),
+    requestSha256: z.string().regex(/^[0-9a-f]{64}$/u),
+    ruleId: z.string().min(1),
+    subject: z
+      .object({ kind: z.literal("stored-row"), rowId: z.string().min(1), table: z.enum(DATA_CLASS_RULE_TABLES) })
+      .strict(),
+    verdict: callVerdictSchema,
+    version: z.literal(2),
+  })
+  .strict();
+
 /** One assessed call, as the register holds it. */
 export type RecordedCallAssessment = z.infer<typeof recordedAssessmentSchema>;
+
+/** One assessed stored row, as the register holds it. */
+export type RecordedStoredRowAssessment = z.infer<typeof recordedStoredRowSchema>;
+
+/** Any line the register holds. */
+export type RecordedDataClassAssessment = RecordedCallAssessment | RecordedStoredRowAssessment;
 
 /** The register could not be read, or a line of it is not a recorded assessment. */
 interface AssessmentRegisterUnreadableError {
@@ -86,7 +112,8 @@ interface AssessmentRegisterUnreadableError {
 interface AssessmentConflictError {
   readonly code: "ASSESSMENT_CONFLICT";
   readonly message: string;
-  readonly callId: string;
+  /** The call id, or `<table>/<row id>` for a stored row. */
+  readonly subject: string;
   readonly requestSha256: string;
 }
 
@@ -108,16 +135,32 @@ export type RecordedAssessmentError =
  */
 export const RecordedAssessmentErrors = {
   conflict: ({ callId, requestSha256 }: { callId: string; requestSha256: string }): AssessmentConflictError => ({
-    callId,
     code: "ASSESSMENT_CONFLICT",
     message:
       `call ${callId} already has different verdicts recorded for these exact words (${requestSha256.slice(0, 12)}), ` +
       "so nothing was written: one answer per set of words",
     requestSha256,
+    subject: callId,
+  }),
+  storedRowConflict: ({
+    table,
+    rowId,
+    requestSha256,
+  }: {
+    table: DataClassRuleTable;
+    rowId: string;
+    requestSha256: string;
+  }): AssessmentConflictError => ({
+    code: "ASSESSMENT_CONFLICT",
+    message:
+      `${table}/${rowId} already has a different verdict recorded for these exact words ` +
+      `(${requestSha256.slice(0, 12)}), so nothing was written: one answer per set of words`,
+    requestSha256,
+    subject: `${table}/${rowId}`,
   }),
   unreadable: ({ path, detail }: { path: string; detail: string }): AssessmentRegisterUnreadableError => ({
     code: "ASSESSMENT_REGISTER_UNREADABLE",
-    message: `the assessment register at ${path} could not be read (${detail}), so no call reads as assessed`,
+    message: `the assessment register at ${path} could not be read (${detail}), so nothing reads as assessed`,
     path,
   }),
   unwritable: ({ path, detail }: { path: string; detail: string }): AssessmentRegisterUnwritableError => ({
@@ -147,12 +190,12 @@ export function readRecordedAssessments({
   home,
 }: {
   home: string;
-}): Result<readonly RecordedCallAssessment[], AssessmentRegisterUnreadableError> {
+}): Result<readonly RecordedDataClassAssessment[], AssessmentRegisterUnreadableError> {
   const path = assessmentRegisterPath({ home });
   if (!existsSync(path)) {
     return ok([]);
   }
-  const records: RecordedCallAssessment[] = [];
+  const records: RecordedDataClassAssessment[] = [];
   const problems: string[] = [];
   try {
     readJsonlLines({
@@ -184,13 +227,17 @@ export function readRecordedAssessments({
  *
  * @returns the record, or `undefined`
  */
-function parseRecordLine({ line }: { line: string }): RecordedCallAssessment | undefined {
+function parseRecordLine({ line }: { line: string }): RecordedDataClassAssessment | undefined {
   const value = parseJson({ text: line });
   if (value.isErr()) {
     return undefined;
   }
-  const parsed = recordedAssessmentSchema.safeParse(value.value);
-  return parsed.success ? parsed.data : undefined;
+  const call = recordedAssessmentSchema.safeParse(value.value);
+  if (call.success) {
+    return call.data;
+  }
+  const storedRow = recordedStoredRowSchema.safeParse(value.value);
+  return storedRow.success ? storedRow.data : undefined;
 }
 
 /**
@@ -205,16 +252,131 @@ export function recordedAssessmentFor({
   callId,
   requestSha256,
 }: {
-  records: readonly RecordedCallAssessment[];
+  records: readonly RecordedDataClassAssessment[];
   callId: string;
   requestSha256: string;
 }): RecordedCallAssessment | undefined {
-  return records.find((record) => record.callId === callId && record.requestSha256 === requestSha256);
+  for (const record of records) {
+    if (record.version === 1 && record.callId === callId && record.requestSha256 === requestSha256) {
+      return record;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The key one stored-row verdict is filed under: the row, the rule that sent it and the digest of its words.
+ *
+ * @param requestSha256 the digest of the row's words, as the store computes it
+ * @returns `<table>|<row id>|<rule id>|<digest>`
+ */
+export function storedRowAssessmentKey({
+  table,
+  rowId,
+  ruleId,
+  requestSha256,
+}: {
+  table: DataClassRuleTable;
+  rowId: string;
+  ruleId: string;
+  requestSha256: string;
+}): string {
+  return [table, rowId, ruleId, requestSha256].join("|");
+}
+
+/**
+ * Every stored-row verdict the register holds, keyed by {@link storedRowAssessmentKey}: the one lookup the port, the
+ * due list and the recording verb all read, so none of them can match a verdict on fewer fields than the others.
+ *
+ * @param records the register's assessments
+ * @returns the stored-row verdicts by key
+ */
+export function storedRowAssessmentIndex({
+  records,
+}: {
+  records: readonly RecordedDataClassAssessment[];
+}): ReadonlyMap<string, RecordedStoredRowAssessment> {
+  const index = new Map<string, RecordedStoredRowAssessment>();
+  for (const record of records) {
+    if (record.version === 2) {
+      index.set(
+        storedRowAssessmentKey({
+          requestSha256: record.requestSha256,
+          rowId: record.subject.rowId,
+          ruleId: record.ruleId,
+          table: record.subject.table,
+        }),
+        record,
+      );
+    }
+  }
+  return index;
 }
 
 /** Two recorded assessments say the same thing about the same words: same verdicts, in the same order. */
 function sameVerdicts({ held, next }: { held: RecordedCallAssessment; next: RecordedCallAssessment }): boolean {
   return JSON.stringify([held.passageVerdicts, held.verdict]) === JSON.stringify([next.passageVerdicts, next.verdict]);
+}
+
+/**
+ * Append one line to the register, owner-only.
+ *
+ * @param line the assessment to append
+ * @returns nothing, or why the register could not be written
+ */
+function appendAssessment({
+  home,
+  line,
+}: {
+  home: string;
+  line: RecordedDataClassAssessment;
+}): Result<void, AssessmentRegisterUnwritableError> {
+  const path = assessmentRegisterPath({ home });
+  try {
+    ensureDirectory({ directory: dirname(path) });
+    appendLines({ durable: true, mode: 0o600, path, text: JSON.stringify(line) });
+    chmodSync(path, 0o600);
+  } catch (cause) {
+    return err(RecordedAssessmentErrors.unwritable({ detail: String(cause), path }));
+  }
+  return ok(undefined);
+}
+
+/**
+ * Record one stored row's assessment: append it, answer the identical line already there, or refuse a different
+ * verdict for a row, rule and digest that already has one.
+ *
+ * @param assessment the assessment to record
+ * @returns the line the register now holds for these words, and whether this call wrote it
+ */
+export function recordStoredRowAssessment({
+  home,
+  assessment,
+}: {
+  home: string;
+  assessment: RecordedStoredRowAssessment;
+}): Result<{ readonly record: RecordedStoredRowAssessment; readonly written: boolean }, RecordedAssessmentError> {
+  const held = readRecordedAssessments({ home });
+  if (held.isErr()) {
+    return err(held.error);
+  }
+  const { subject, requestSha256, ruleId } = assessment;
+  const existing = storedRowAssessmentIndex({ records: held.value }).get(
+    storedRowAssessmentKey({ requestSha256, rowId: subject.rowId, ruleId, table: subject.table }),
+  );
+  if (existing !== undefined) {
+    if (JSON.stringify(existing.verdict) === JSON.stringify(assessment.verdict)) {
+      return ok({ record: existing, written: false });
+    }
+    return err(
+      RecordedAssessmentErrors.storedRowConflict({ requestSha256, rowId: subject.rowId, table: subject.table }),
+    );
+  }
+  const appended = appendAssessment({ home, line: assessment });
+  if (appended.isErr()) {
+    return err(appended.error);
+  }
+  return ok({ record: assessment, written: true });
 }
 
 /**
@@ -248,13 +410,9 @@ export function recordCallAssessment({
       RecordedAssessmentErrors.conflict({ callId: assessment.callId, requestSha256: assessment.requestSha256 }),
     );
   }
-  const path = assessmentRegisterPath({ home });
-  try {
-    ensureDirectory({ directory: dirname(path) });
-    appendLines({ durable: true, mode: 0o600, path, text: JSON.stringify(assessment) });
-    chmodSync(path, 0o600);
-  } catch (cause) {
-    return err(RecordedAssessmentErrors.unwritable({ detail: String(cause), path }));
+  const appended = appendAssessment({ home, line: assessment });
+  if (appended.isErr()) {
+    return err(appended.error);
   }
   return ok({ record: assessment, written: true });
 }

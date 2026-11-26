@@ -10,7 +10,7 @@ import { asc, eq, gt, type SQL, sql } from "drizzle-orm";
 
 import { err, ok, type Result } from "#lib/result.js";
 
-import type { StoreClient } from "./client.js";
+import type { StoreClient, StoreReader } from "./client.js";
 import {
   contentDataClassFactsFromFields,
   ownerCaptureDataClassFacts,
@@ -160,7 +160,7 @@ function storeTable({ table }: { table: string }): SQL {
 /**
  * Write one page's derived classes back in a single statement, touching only rows whose stored class still differs.
  *
- * @param client the open store
+ * @param client the open store, or the transaction the page's assessed rows are locked in
  * @param table the classified table
  * @param decisions the page's decisions that should be written
  * @returns how many rows the statement changed
@@ -170,7 +170,7 @@ export async function writeClasses({
   table,
   decisions,
 }: {
-  client: StoreClient;
+  client: StoreReader;
   table: DataClassRuleTable;
   decisions: readonly DataClassDecision[];
 }): Promise<number> {

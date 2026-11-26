@@ -11,7 +11,9 @@
  * `catchUp: false`, so a command promising not to write never applies a pending migration on its way in.
  *
  * An installation rules file that exists but cannot be used refuses the pass, exactly as it refuses an ingest:
- * rows sorted under rules the owner did not mean would be wrongly classified with nothing to show it.
+ * rows sorted under rules the owner did not mean would be wrongly classified with nothing to show it. An assessment
+ * register that cannot be read refuses it too: a row a rule sends for assessment takes the class the daily visible
+ * session recorded for its current words, and a torn register read as empty would write `unknown` over every one.
  */
 
 import { progressJsonEnabled } from "../../../config.js";
@@ -21,8 +23,10 @@ import { safeJsonStringify } from "../../../lib/safeJson.js";
 import { connectStore } from "../../../store/client.js";
 import { loadDataClassRules } from "../../../store/dataClassRulesFile.js";
 import { type DataClassificationReport, resolveDataClasses } from "../../../store/resolveDataClasses.js";
+import { recordedDataClassAssessment } from "../../../talk/callAssessmentPort.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
+import { resolveHome } from "../../optionParsers.js";
 import {
   CLASSIFY_USAGE,
   classifyFailureLine,
@@ -74,6 +78,11 @@ export async function runStoreClassify(argv: readonly string[]): Promise<number>
     logger.error({ msg: rules.error.message });
     return EXIT_ERROR;
   }
+  const assessment = recordedDataClassAssessment({ home: resolveHome({ named: home }), nowMs: () => Date.now() });
+  if (assessment.isErr()) {
+    logger.error({ msg: assessment.error.message });
+    return EXIT_ERROR;
+  }
   const opened = await connectStore({ ...where, catchUp: !dryRun });
   if (opened.isErr()) {
     logger.error({ msg: opened.error.message });
@@ -86,6 +95,7 @@ export async function runStoreClassify(argv: readonly string[]): Promise<number>
   });
   try {
     const report = await resolveDataClasses({
+      assessment: assessment.value,
       client: opened.value,
       dryRun,
       onProgress: ({ table, done, total }) => {

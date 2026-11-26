@@ -229,10 +229,22 @@ function sqlStateOf({ cause }: { cause: unknown }): string | undefined {
  * @returns the line to print
  */
 export function classifyFailureLine({ error }: { error: StoreError }): string {
+  return storeFailureLine({ error, verb: "store classify" });
+}
+
+/**
+ * The one line a failed store read prints for any verb whose output must never carry a stored value: a failure the
+ * database raised prints its SQLSTATE only, one the verb raised itself prints whole (see {@link classifyFailureLine}).
+ *
+ * @param error the verb's typed store failure
+ * @param verb the verb, named at the start of the line
+ * @returns the line to print
+ */
+export function storeFailureLine({ error, verb }: { error: StoreError; verb: string }): string {
   if (error.code !== "STORE_QUERY_FAILED" || !(error.cause instanceof Error)) {
     return error.message;
   }
   const state = sqlStateOf({ cause: error.cause });
   const named = state === undefined ? "with no SQLSTATE" : `with SQLSTATE ${state}`;
-  return `store classify failed: the database refused a statement ${named}; its message is withheld because it can quote a stored value`;
+  return `${verb} failed: the database refused a statement ${named}; its message is withheld because it can quote a stored value`;
 }

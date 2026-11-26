@@ -91,17 +91,37 @@ implemented by a reader of written verdicts (`src/talk/callAssessmentPort.ts`, o
 reads each call's owner passages verbatim with `talk assessment-due`, decides one class per passage, and records them
 with `talk assessment-record`. The call carries the highest passage class, computed by the verb. Each verdict is bound
 to a SHA-256 of the exact passages it read, and the port names only the call: it reads the call's current passages
-itself, so words added later make the call due again rather than borrowing the earlier class. The register (`judgement/data-class-assessments.jsonl`) holds no passage text. A call nobody assessed,
-and every stored-row subject, answers `undecided`, so nothing at intake waits on it and an `assess` outcome is still
-written `unknown`. It is the intake assessment of a stored record, separate from the outbound check's assessment of
+itself, so words added later make the call due again rather than borrowing the earlier class. The register (`judgement/data-class-assessments.jsonl`) holds no passage text. A call nobody assessed
+answers `undecided`. It is the intake assessment of a stored record, separate from the outbound check's assessment of
 text about to leave.
+
+**The same reader assesses stored rows, a day's slice at a time.** A row the rules send to `assess` (by default every
+`owner_capture` and `owner_turn` row, and every private-lane `content` row) is due until the register holds a verdict
+for that row, under that rule, over a SHA-256 of its current words. The store computes that digest and nothing else
+does: `owner_capture` and `owner_turn` already carry `body_sha256`, and a `content` row's is the SHA-256 of
+`jsonb_build_array(1, title, body)` as text (`src/store/storedRowAssessmentRead.ts`). After the calls, the seat reads
+`store assessment-due`, the newest due rows with their title and body verbatim, and records one class per row with
+`store assessment-record`, which re-reads each row `FOR UPDATE` and refuses, by name, one whose words or rule moved
+since, appending the verdict before that transaction ends so the row cannot move between the check and the line. The
+day's slice is 25 rows (`src/store/storedRowAssessment.ts`), because private-lane mail alone is far more than one
+visible session reads in an evening: `store assessment-due` lists at most 25 less the stored-row verdicts already
+stamped today, and its `--check` settles once none of that slice is due. That is a cap on what the reader is shown,
+not on what is recorded: `store assessment-record` takes every verdict in its file, and stamps each at its `--now`
+when one is passed. The older backlog is reported, never a reason to seat the reader again that day. Changed words,
+or a rules change that sends a row by another rule, make it due again. Nothing at intake waits on any of this: an
+`assess` outcome is written `unknown` until a verdict exists.
 
 ## Classifying what is already stored: `store classify`
 
 `slopweaver store classify` sorts every row the store already holds by the same rules and the same facts intake uses
 (`src/store/resolveDataClasses.ts`; the facts builders are shared in `src/store/dataClassIntake.ts`). It reads each
 `content` row's source, kind, visibility, container native id and `author_native_id`, and each `owner_capture` and
-`owner_turn` row's key and capturing app, never a body. It re-derives in both directions and writes only the rows
+`owner_turn` row's key and capturing app, never a body. A row the rules send to `assess` takes the class recorded for
+its current words through the assessment port, asked with its table, key, rule and digest, and `unknown` when none is
+recorded. Those rows alone are read a second time, facts and digest but never the words, `FOR UPDATE` inside the
+transaction that writes the page, and routed again over that read, so a class lands only on the rule and words its
+verdict names; a register that cannot
+be read refuses the whole pass rather than writing `unknown` over rows that were assessed. It re-derives in both directions and writes only the rows
 whose stored class differs, so a rules change narrows as readily as it widens and a second run writes nothing. A
 `NULL` is always rewritten as an explicit `unknown`, so a row the pass reached is distinguishable from one it never
 did, and an applying pass reads the three tables back and exits 1 if any `NULL` still stands (an import landed
@@ -122,8 +142,10 @@ message or pull request. An unusable rules file refuses the pass exactly as it r
   `data_class` column; carrying the register's verdict onto them is the step after this one, and until then every
   call reads `unknown`.
 - **`owner_capture` and `owner_turn` rows are not sorted at write yet.** They are written `NULL` and read as `unknown`,
-  which is what the default rule's `assess` outcome writes anyway; the daily reader assesses calls, not these rows;
-  `store classify` writes their explicit class afterwards.
+  which is what the default rule's `assess` outcome writes anyway; `store classify` writes their explicit class
+  afterwards, the recorded verdict where the daily reader has assessed one.
+- **A recorded stored-row verdict reaches the column only when `store classify` runs.** The reader writes the
+  register, never `data_class`; an applying pass carries the verdicts onto the rows.
 - **The row-level security policies do not read the class yet.** A policy edit is not additive, so the door would
   refuse to catch a store up to it; it lands with the step that makes a narrower reader identity actually use those
   policies.

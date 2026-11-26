@@ -37,7 +37,7 @@ const WORKLIST_PREAMBLES: Readonly<Record<string, string>> = {
     "then run this command LAST to settle the firing)",
   [CALL_ASSESSMENT_KIND]:
     "  (call-assessment: follow skills/automation/reference/call-assessment.md — classify and record every " +
-    "due call FIRST, then run this command LAST to settle the firing)",
+    "due call, then the day's slice of stored rows, FIRST, then run this command LAST to settle the firing)",
   [INBOX_TRIAGE_KIND]:
     "  (inbox-triage: follow skills/automation/reference/inbox-triage.md — card the inbox FIRST, " +
     "then run this command LAST to settle the firing)",
