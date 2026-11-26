@@ -100,7 +100,7 @@ export interface AssertionCounts {
 }
 
 /** The local names `expect` and the suite functions are bound to in ONE file, after import aliasing. */
-interface Bindings {
+export interface Bindings {
   readonly expects: ReadonlySet<string>;
   readonly lastWins: ReadonlySet<string>;
   readonly suites: ReadonlySet<string>;
@@ -125,7 +125,7 @@ function aliasesOf({ statement }: { statement: ts.ImportDeclaration }): readonly
  * @param source the parsed test file
  * @returns the local names to treat as assertions, as suite functions, and as last-wins suite functions
  */
-function bindingsOf({ source }: { source: ts.SourceFile }): Bindings {
+export function bindingsOf({ source }: { source: ts.SourceFile }): Bindings {
   const expects = new Set<string>(["expect"]);
   const suites = new Set<string>(SUITE_FUNCTIONS);
   const lastWins = new Set<string>(LAST_WINS_FUNCTIONS);
@@ -138,8 +138,12 @@ function bindingsOf({ source }: { source: ts.SourceFile }): Bindings {
   return { expects, lastWins, suites };
 }
 
-/** Whether a call is `expect(...)`, by callee identifier. */
-function isExpectCall({ node, bindings }: { node: ts.CallExpression; bindings: Bindings }): boolean {
+/**
+ * Whether a call is `expect(...)`, by callee identifier.
+ *
+ * @returns true when the callee, wrappers stripped, is a name this file binds to `expect`
+ */
+export function isExpectCall({ node, bindings }: { node: ts.CallExpression; bindings: Bindings }): boolean {
   const callee = unwrapWrappers({ node: node.expression });
   return ts.isIdentifier(callee) && bindings.expects.has(callee.text);
 }
@@ -149,8 +153,10 @@ function isExpectCall({ node, bindings }: { node: ts.CallExpression; bindings: B
  *
  * Reading the CHAIN rather than the bare matcher name is what keeps `.not.toBe(…)` counted and a
  * same-named method on an unrelated object out — the root of the chain has to be `expect`.
+ *
+ * @returns true when the call is an exact-value matcher hanging off this file's `expect`
  */
-function isStrongMatcherCall({ node, bindings }: { node: ts.CallExpression; bindings: Bindings }): boolean {
+export function isStrongMatcherCall({ node, bindings }: { node: ts.CallExpression; bindings: Bindings }): boolean {
   // Unwrap BEFORE the shape test, not after. The previous spelling broke on
   // `(it.only)(…)`: parenthesising the WHOLE callee makes this expression a ParenthesizedExpression, so a
   // guard that demands a property access here rejects it and never reaches the unwrap inside
