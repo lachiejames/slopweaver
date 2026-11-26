@@ -1,6 +1,9 @@
 /**
- * One whole pass of `slopweaver fleet recover`: close anything an earlier pass left, then open a throwaway session per
- * vendor until one answers, closing each before the next opens.
+ * One whole pass of `slopweaver fleet recover`: close anything an earlier pass left (`./recoveryLeftovers.ts`), read
+ * whether the supervisor is
+ * down, then open a throwaway session per vendor until one answers, closing each before the next opens. While the
+ * supervisor is down, the first plan that answers seats a new chair (`./recoveryRestart.ts`); a chair that never
+ * opened, or ended before it took the pin, falls back to the vendor's next plan, then the next vendor's.
  *
  * **Every session is a visible card, and there is one pass.** Each plan is tried at most once, one session at a time, so
  * the fallback is a short row of cards the owner can watch and stop, never a retry running behind them (rule 2).
@@ -12,7 +15,12 @@
  */
 import { errorMessage } from "#lib/errorMessage.js";
 
-import type { AppSessionSnapshot } from "../sessionHarness/appProtocol.js";
+import {
+  type RecoveryChairReading,
+  type RecoveryRestartAttempt,
+  recoveryChairResultOf,
+  restartFallsBack,
+} from "./recoveryChair.js";
 import {
   boundedReason,
   type FleetRecoveryResult,
@@ -30,13 +38,9 @@ import {
   recoveryChallenge,
   recoveryResultOf,
 } from "./recoveryCheck.js";
-import type {
-  RecoveryHost,
-  RecoveryOpenFailure,
-  RecoveryPassDeps,
-  RecoveryScratch,
-  RecoverySession,
-} from "./recoveryPassDeps.js";
+import { type AttemptDone, clearScratch, closeAll, settleLeftovers, settleRefusedLaunch } from "./recoveryLeftovers.js";
+import type { RecoveryPassDeps, RecoverySession } from "./recoveryPassDeps.js";
+import { reconfirmLastRestart, restartChair } from "./recoveryRestart.js";
 
 /** One pass as it runs: what it has read and done so far. */
 interface PassState {
@@ -45,76 +49,27 @@ interface PassState {
   readonly startedMs: number;
   readonly attempts: RecoveryAttempt[];
   readonly evidence: RecoveryEvidence[];
+  /** What the pass read of the supervisor, once it has. */
+  chair: RecoveryChairReading | undefined;
+  readonly restarts: RecoveryRestartAttempt[];
+}
+
+/** What the pass read of the supervisor, or that it stopped before reading it. */
+function chairReadingOf({ state }: { state: PassState }): RecoveryChairReading {
+  if (state.chair === undefined) {
+    return { kind: "unknown", why: "the check stopped before the supervisor was read, so nothing was restarted" };
+  }
+  return state.chair;
+}
+
+/** Whether the chair is down and no chair this pass opened is restarted or still starting. */
+function chairWanted({ state }: { state: PassState }): boolean {
+  return state.chair?.kind === "down" && state.restarts.every((attempt) => restartFallsBack({ attempt }));
 }
 
 /** An instant as ISO 8601. */
 function isoOf({ ms }: { ms: number }): string {
   return new Date(ms).toISOString();
-}
-
-/** Whether the app still runs this session: neither of the two states an ended one is kept under. */
-function isUp({ snapshot }: { snapshot: AppSessionSnapshot }): boolean {
-  return snapshot.state !== "closed" && snapshot.state !== "failed";
-}
-
-/** Close each of these, or say which one could not be. */
-async function closeAll({
-  host,
-  sessions,
-}: {
-  host: RecoveryHost;
-  sessions: readonly RecoverySession[];
-}): Promise<string | undefined> {
-  for (const session of sessions) {
-    const closed = await host.close({ session });
-    if (closed.isErr()) {
-      return `the throwaway session ${session.handle} could not be closed: ${closed.error}`;
-    }
-  }
-  return undefined;
-}
-
-/**
- * Close what an earlier pass left and clear its directories: the app's own sessions first, then any row the ledger still
- * holds open for a session the app no longer has.
- *
- * A session is an earlier pass's only when its ledger key is a Recovery key AND it runs inside this home's scratch, so a
- * pass under one state home never closes another's.
- */
-async function settleLeftovers({ deps }: { deps: RecoveryPassDeps }): Promise<string | undefined> {
-  const { host, scratch } = deps;
-  const listed = await host.list();
-  if (listed.isErr()) {
-    return listed.error;
-  }
-  const standing = listed.value.filter(
-    (snapshot) =>
-      isUp({ snapshot }) &&
-      snapshot.ledgerKey.startsWith(RECOVERY_KEY_PREFIX) &&
-      scratch.holds({ directory: snapshot.directory }),
-  );
-  const unclosed = await closeAll({ host, sessions: standing });
-  if (unclosed !== undefined) {
-    return unclosed;
-  }
-  const rows = host.leftOpen();
-  if (rows.isErr()) {
-    return rows.error;
-  }
-  const unsettled = await closeAll({ host, sessions: rows.value });
-  if (unsettled !== undefined) {
-    return unsettled;
-  }
-  return clearScratch({ scratch });
-}
-
-/** Remove the scratch, or say why it could not be. */
-function clearScratch({ scratch }: { scratch: RecoveryScratch }): string | undefined {
-  const cleared = scratch.clear();
-  if (cleared.isErr()) {
-    return cleared.error.message;
-  }
-  return undefined;
 }
 
 /** Watch one session until it passes, fails or runs out of time. A list the app did not answer is one look missed. */
@@ -158,54 +113,6 @@ function verdictFields({
     return { outcome: "passed", reason: "it answered" };
   }
   return { outcome: verdict.kind, reason: verdict.reason };
-}
-
-/** One attempt, and why the pass must stop after it when its session could not be settled. */
-interface AttemptDone {
-  readonly attempt: RecoveryAttempt;
-  readonly infrastructure?: string;
-}
-
-/**
- * A launch that left no session it named: close anything the app nonetheless holds under this attempt's own key and
- * in this home's scratch. A launch the app never answered may still open its card after that look, so the pass stops
- * there rather than open the next one beside it; the next pass closes it as a leftover.
- */
-async function settleRefusedLaunch({
-  deps,
-  base,
-  ledgerKey,
-  failure,
-}: {
-  deps: RecoveryPassDeps;
-  base: Pick<RecoveryAttempt, "alias" | "attemptId" | "vendor">;
-  ledgerKey: string;
-  failure: RecoveryOpenFailure;
-}): Promise<AttemptDone> {
-  const attempt: RecoveryAttempt = {
-    ...base,
-    outcome: "launch-refused",
-    reason: boundedReason({ text: failure.message }),
-  };
-  const listed = await deps.host.list();
-  if (listed.isErr()) {
-    return { attempt, infrastructure: listed.error };
-  }
-  const stragglers = listed.value.filter(
-    (snapshot) =>
-      isUp({ snapshot }) && snapshot.ledgerKey === ledgerKey && deps.scratch.holds({ directory: snapshot.directory }),
-  );
-  const unclosed = await closeAll({ host: deps.host, sessions: stragglers });
-  if (unclosed !== undefined) {
-    return { attempt, infrastructure: unclosed };
-  }
-  if (failure.unanswered === true) {
-    return {
-      attempt,
-      infrastructure: `the app never answered the launch on ${base.alias}, so its card may still open; the check stopped rather than open another beside it`,
-    };
-  }
-  return { attempt };
 }
 
 /** Open one throwaway session, judge its turn and close it. */
@@ -276,11 +183,54 @@ async function checkVendor({
     }
     const done = await tryCandidate({ attemptId, candidate, directory: directory.value, state });
     attempts.push(done.attempt);
-    if (done.infrastructure !== undefined || done.attempt.outcome === "passed") {
-      return done.infrastructure;
+    const next = await afterAttempt({ candidate, done, state });
+    if (next !== "next-plan") {
+      return next;
     }
   }
   return undefined;
+}
+
+/**
+ * After one attempt: stop on a session it could not settle, try the next plan after one that did not pass, and after
+ * one that passed, restart the chair on it when the chair is down. Answers `next-plan` when the vendor's next plan may
+ * be tried; otherwise why the pass must stop, or nothing.
+ */
+async function afterAttempt({
+  state,
+  candidate,
+  done,
+}: {
+  state: PassState;
+  candidate: RecoveryCandidate;
+  done: AttemptDone;
+}): Promise<string | undefined | "next-plan"> {
+  if (done.infrastructure !== undefined) {
+    return done.infrastructure;
+  }
+  if (done.attempt.outcome !== "passed") {
+    return "next-plan";
+  }
+  if (!chairWanted({ state })) {
+    return undefined;
+  }
+  // Read again right before opening: a chair that came up during the checks is reported as read now, never doubled.
+  const chair = await state.deps.chair.read();
+  if (chair.kind !== "down") {
+    state.chair = chair;
+    return undefined;
+  }
+  const restart = await restartChair({
+    candidate,
+    deps: state.deps,
+    predecessor: chair.predecessor,
+    startedMs: state.startedMs,
+  });
+  state.restarts.push(restart.attempt);
+  if (restart.infrastructure !== undefined) {
+    return restart.infrastructure;
+  }
+  return restartFallsBack({ attempt: restart.attempt }) ? "next-plan" : undefined;
 }
 
 /** Every vendor in turn. Answers why the pass stopped short, when it did. */
@@ -303,7 +253,9 @@ async function runSettled({ state }: { state: PassState }): Promise<string | und
   if (left !== undefined) {
     return left;
   }
+  state.chair = await deps.chair.read();
   const stopped = await checkVendors({ state });
+  await reconfirmLastRestart({ deps, restarts: state.restarts });
   if (stopped !== undefined) {
     // Whatever stopped it may still be running in its directory, so nothing is removed.
     return stopped;
@@ -335,10 +287,11 @@ export async function runRecoveryPass({
   runId: string;
 }): Promise<FleetRecoveryResult> {
   const startedMs = deps.nowMs();
-  const state: PassState = { attempts: [], deps, evidence: [], runId, startedMs };
+  const state: PassState = { attempts: [], chair: undefined, deps, evidence: [], restarts: [], runId, startedMs };
   const infrastructure = await runGuarded({ state });
   return recoveryResultOf({
     attempts: state.attempts,
+    chair: recoveryChairResultOf({ reading: chairReadingOf({ state }), restarts: state.restarts }),
     evidence: state.evidence,
     finishedAtIso: isoOf({ ms: deps.nowMs() }),
     infrastructure,

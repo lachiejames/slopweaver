@@ -3,7 +3,8 @@
  * press's state, which lets one pass run at a time; and the lines the Sessions page and the menu bar draw. Pure.
  *
  * The check opens one visible throwaway Claude card, then one Codex card, each closed again
- * (`src/fleet/recoveryPass.ts`). The owner starts it by pressing Recovery, in the menu bar or on the Sessions page,
+ * (`src/fleet/recoveryPass.ts`); while the supervisor is down, the first plan that answers seats a new one in a
+ * visible card of its own (`./fleetRecoveryChair.ts` reads what came of it). The owner starts it by pressing Recovery, in the menu bar or on the Sessions page,
  * and nothing else does: no launch, no timer, no calendar. The wire shape is the CLI's `FleetRecoveryResult`
  * (`src/fleet/recoveryCheck.ts`), restated here because this package cannot import `src/`, the way `fleetHealth.ts`
  * restates `fleet health`'s.
@@ -16,6 +17,7 @@ import { err, ok, type Result } from "neverthrow";
 
 import { isRecord } from "./desktopBridge";
 import { type FleetRecoveryError, FleetRecoveryErrors } from "./errors";
+import { parseRecoveryChair, type RecoveryChair, recoveryChairLines } from "./fleetRecoveryChair";
 
 /** The two vendors a pass checks, in the order it checks them. */
 export type RecoveryVendor = "claude" | "codex";
@@ -52,6 +54,7 @@ export interface FleetRecoveryResult {
   readonly attempts: readonly RecoveryAttempt[];
   readonly signIn?: RecoverySignIn;
   readonly infrastructure?: string;
+  readonly chair: RecoveryChair;
 }
 
 /** Where the Recovery check stands. Memory only: the app opens on `idle`. */
@@ -242,8 +245,13 @@ function parseBody({ value }: { value: Record<string, unknown> }): Result<FleetR
   if (badOptional({ key: "infrastructure", record: value })) {
     return err(FleetRecoveryErrors.unreadable({ field: "infrastructure" }));
   }
+  const chair = parseRecoveryChair({ value: value["chair"] });
+  if (chair === undefined) {
+    return err(FleetRecoveryErrors.unreadable({ field: "chair" }));
+  }
   return ok({
     attempts,
+    chair,
     status,
     vendors,
     ...signIn,
@@ -252,8 +260,8 @@ function parseBody({ value }: { value: Record<string, unknown> }): Result<FleetR
 }
 
 /**
- * The result off what `fleet recover` printed on stdout: exactly one non-empty line, holding a schema-1 document
- * that names each vendor once. Its exit code is not read.
+ * The result off what `fleet recover` printed on stdout: exactly one non-empty line, holding a schema-2 document
+ * that names each vendor once and says what the press did about the supervisor. Its exit code is not read.
  *
  * @param text everything the verb printed on stdout
  * @returns the result, or which part of it was malformed
@@ -269,7 +277,7 @@ export function parseFleetRecovery({ text }: { text: string }): Result<FleetReco
   } catch {
     return err(FleetRecoveryErrors.unreadable({ field: "the output (not JSON)" }));
   }
-  if (!isRecord(value) || value["schemaVersion"] !== 1) {
+  if (!isRecord(value) || value["schemaVersion"] !== 2) {
     return err(FleetRecoveryErrors.unreadable({ field: "schemaVersion" }));
   }
   return parseBody({ value });
@@ -326,15 +334,16 @@ const RESULT_HEADLINES: Readonly<Record<FleetRecoveryResult["status"], string>> 
 };
 
 /**
- * The lines one finished pass draws: a verdict per vendor, then the check's own failure and the sign-in command
- * when it printed them.
+ * The lines one finished pass draws: the supervisor's first, then a verdict per vendor, then the check's own failure
+ * and the sign-in command when it printed them.
  *
  * @returns the lines, in order
  */
 function resultLines({ result }: { result: FleetRecoveryResult }): string[] {
-  const lines = VENDORS.map((vendor) => result.vendors.find((entry) => entry.vendor === vendor)!).map((verdict) =>
-    vendorLine({ verdict }),
-  );
+  const lines = recoveryChairLines({ chair: result.chair });
+  for (const vendor of VENDORS) {
+    lines.push(vendorLine({ verdict: result.vendors.find((entry) => entry.vendor === vendor)! }));
+  }
   if (result.infrastructure !== undefined) {
     lines.push(`What stopped it: ${result.infrastructure}`);
   }
@@ -355,7 +364,11 @@ export function fleetRecoveryPresentation({ state }: { state: FleetRecoveryState
     return { canRun: true, headline: "Recovery check: not run since the app opened.", lines: [] };
   }
   if (state.kind === "running") {
-    return { canRun: false, headline: "Recovery check: checking Claude, then Codex…", lines: [] };
+    return {
+      canRun: false,
+      headline: "Recovery check: checking Claude, then Codex, and restarting the supervisor if it is down…",
+      lines: [],
+    };
   }
   if (state.kind === "no-result") {
     return { canRun: true, headline: "Recovery check: no result.", lines: [state.error.message] };

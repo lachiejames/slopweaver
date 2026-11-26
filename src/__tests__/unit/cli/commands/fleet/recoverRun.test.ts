@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type FleetRecoverDeps, fleetRecover } from "../../../../../cli/commands/fleet/recoverRun.js";
 import { EXIT_DEFERRED, EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
 import { acquireFleetRecoverLock } from "../../../../../fleet/locks.js";
+import type { RecoveryChairReading } from "../../../../../fleet/recoveryChair.js";
 import type { RecoveryEvidence } from "../../../../../fleet/recoveryCheck.js";
 import type { RecoveryHost } from "../../../../../fleet/recoveryPassDeps.js";
 import { recoveryScratchRoot } from "../../../../../fleet/recoveryScratch.js";
@@ -81,18 +82,31 @@ function evidenceOf({ codexPlans }: { codexPlans: boolean }): FleetRecoverDeps["
   };
 }
 
+/** A chair read as `reading` that is never opened: these cases leave a down chair's restart to the pass's own tests. */
+function chairReadAs({ reading }: { reading: RecoveryChairReading }): FleetRecoverDeps["chair"] {
+  return () => ({
+    open: async () => err({ reason: "these cases open no chair" }),
+    pin: () => ({ kind: "none" }),
+    read: async () => reading,
+    retire: () => ok(undefined),
+  });
+}
+
 /** The verb's deps over the scripted app, recording every directory a session opened in. */
 function depsOf({
+  chair = { kind: "live", label: "app:the-chair" },
   codexPlans = true,
   opened,
   reachable = true,
 }: {
+  chair?: RecoveryChairReading;
   codexPlans?: boolean;
   opened: string[];
   reachable?: boolean;
 }): FleetRecoverDeps {
   let ms = Date.parse("2026-11-25T10:00:00.000Z");
   return {
+    chair: chairReadAs({ reading: chair }),
     evidence: evidenceOf({ codexPlans }),
     host: () => answeringHost({ opened, reachable }),
     nowMs: () => ms,
@@ -123,6 +137,14 @@ describe("fleetRecover", () => {
     });
     expect(code).toBe(EXIT_EXPECTED_EMPTY);
     expect(opened.length).toBe(1);
+  });
+
+  it("answers 3 when both vendors answered but a supervisor it could not read was not restarted", async () => {
+    const opened: string[] = [];
+    const chair: RecoveryChairReading = { kind: "unknown", why: "the supervisor pin could not be read" };
+    const code = await fleetRecover({ argv: argvOf({ rest: ["--home", home] }), deps: depsOf({ chair, opened }) });
+    expect(code).toBe(EXIT_EXPECTED_EMPTY);
+    expect(opened.length).toBe(2);
   });
 
   it("answers 1 when the app cannot be reached, opening nothing", async () => {

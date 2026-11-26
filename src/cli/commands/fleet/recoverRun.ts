@@ -1,6 +1,7 @@
 /**
  * `slopweaver fleet recover` — whether each vendor can start a session in the desktop app, the plan it worked on and why
- * not otherwise. It is run from the command line, or by the desktop app when the owner presses Recovery
+ * not otherwise, and, when the supervisor is down, a new one seated on the first plan that passed (`./recoverChair.ts`).
+ * It is run from the command line, or by the desktop app when the owner presses Recovery
  * (`desktop/src/fleetProcess.ts`'s `recoverFleet`, the one app child that causes visible app sessions). It works with no model running,
  * because nothing in it is one. What a pass does lives in `../../../fleet/recoveryPass.ts`; this file is the flag, the
  * lock, the real effects and the exit code.
@@ -26,7 +27,7 @@ import { readClaudeRecoveryEvidence } from "../../../fleet/recoveryClaude.js";
 import { readCodexRecoveryEvidence } from "../../../fleet/recoveryCodex.js";
 import { appRecoveryHost, recoveryLaunchDeps } from "../../../fleet/recoveryHost.js";
 import { runRecoveryPass } from "../../../fleet/recoveryPass.js";
-import type { RecoveryHost, RecoveryPassDeps } from "../../../fleet/recoveryPassDeps.js";
+import type { RecoveryChairDeps, RecoveryHost, RecoveryPassDeps } from "../../../fleet/recoveryPassDeps.js";
 import { clearRecoveryScratch, makeRecoveryScratch, recoveryScratchRoot } from "../../../fleet/recoveryScratch.js";
 import { planRegisterPort } from "../../../plans/port.js";
 import { APP_SOCKET_ROOT, socketAppTransport } from "../../../sessionHarness/appSocketTransport.js";
@@ -36,6 +37,7 @@ import { EXIT_DEFERRED, EXIT_ERROR, EXIT_EXPECTED_EMPTY, EXIT_OK } from "../../e
 import { resolveHome } from "../../optionParsers.js";
 import { stringFlag } from "./core.js";
 import { fleetFlagsOnly } from "./flagsOnly.js";
+import { realRecoveryChair } from "./recoverChair.js";
 
 /** How long between two looks at a session. */
 const LOOK_EVERY_MS = 1000;
@@ -49,6 +51,13 @@ export interface FleetRecoverDeps extends Pick<RecoveryPassDeps, "nowMs" | "paus
    * @returns the host
    */
   readonly host: (options: { home: string; holds: (options: { directory: string }) => boolean }) => RecoveryHost;
+  /**
+   * The supervisor chair.
+   *
+   * @param options the state home, and the app the chair is read through
+   * @returns the chair
+   */
+  readonly chair: (options: { home: string; host: RecoveryHost }) => RecoveryChairDeps;
   /**
    * What routing says about one vendor's plans.
    *
@@ -64,11 +73,11 @@ export interface FleetRecoverDeps extends Pick<RecoveryPassDeps, "nowMs" | "paus
   readonly runId: () => string;
 }
 
-/** The exit code a result reads as. */
+/** The exit code a result reads as: a pass that left the supervisor down unrestarted is no success. */
 function recoverExit({ result }: { result: FleetRecoveryResult }): number {
   switch (result.status) {
     case "passed":
-      return EXIT_OK;
+      return result.chair.outcome === "not-restarted" ? EXIT_EXPECTED_EMPTY : EXIT_OK;
     case "partial":
     case "failed":
       return EXIT_EXPECTED_EMPTY;
@@ -86,8 +95,8 @@ function recoverExit({ result }: { result: FleetRecoveryResult }): number {
  *
  * @param argv the full process argv
  * @param deps the app, the plans and the clock
- * @returns 0 when both vendors answered, 3 when one or neither did, 1 when the check itself could not run or clean up,
- *   and 4 when another check is running
+ * @returns 0 when both vendors answered and the supervisor runs or is starting, 3 when one or neither did or a down
+ *   supervisor was not restarted, 1 when the check itself could not run or clean up, and 4 when another check is running
  */
 export async function fleetRecover({
   argv,
@@ -111,10 +120,12 @@ export async function fleetRecover({
   const root = recoveryScratchRoot({ home });
   const holds = ({ directory }: { directory: string }): boolean => isContained({ candidate: directory, root });
   try {
+    const host = deps.host({ holds, home });
     const result = await runRecoveryPass({
       deps: {
+        chair: deps.chair({ home, host }),
         evidence: async ({ vendor }) => deps.evidence({ home, vendor }),
-        host: deps.host({ holds, home }),
+        host,
         lockHeld: lock.value.stillHeld,
         nowMs: deps.nowMs,
         pause: deps.pause,
@@ -186,6 +197,7 @@ export async function runFleetRecover(argv: readonly string[]): Promise<number> 
   return fleetRecover({
     argv,
     deps: {
+      chair: realRecoveryChair,
       evidence: realEvidence,
       host: realHost,
       nowMs: () => Date.now(),

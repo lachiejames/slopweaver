@@ -11,6 +11,7 @@
  * a plan routing excluded is reported with its reason and never launched. Nothing here retries.
  */
 import type { AppSessionSnapshot } from "../sessionHarness/appProtocol.js";
+import type { RecoveryChairResult } from "./recoveryChair.js";
 
 /** A vendor the check proves a turn on. */
 export type RecoveryVendor = "claude" | "codex";
@@ -87,7 +88,7 @@ export interface RecoverySignIn {
 
 /** The whole answer `fleet recover` prints, as one JSON line. */
 export interface FleetRecoveryResult {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly runId: string;
   /** `infrastructure-failed` is no verdict on either vendor: the check itself could not run or clean up. */
   readonly status: "passed" | "partial" | "failed" | "infrastructure-failed";
@@ -96,6 +97,8 @@ export interface FleetRecoveryResult {
   /** Exactly one entry per vendor, always. */
   readonly vendors: readonly RecoveryVendorResult[];
   readonly attempts: readonly RecoveryAttempt[];
+  /** Whether the supervisor was running, restarted, still starting or not restarted, and every chair opened for it. */
+  readonly chair: RecoveryChairResult;
   readonly signIn?: RecoverySignIn;
   /** Why the check itself could not run or clean up, when it could not. */
   readonly infrastructure?: string;
@@ -341,6 +344,7 @@ function evidenceFor({
  * @param finishedAtIso when it ended
  * @param evidence what routing said about each vendor it was asked about
  * @param attempts every session the pass opened, in order
+ * @param chair the supervisor's line
  * @param infrastructure why the check itself could not run or clean up, when it could not
  * @returns the result, with exactly one entry per vendor
  */
@@ -350,6 +354,7 @@ export function recoveryResultOf({
   finishedAtIso,
   evidence,
   attempts,
+  chair,
   infrastructure,
 }: {
   runId: string;
@@ -357,6 +362,7 @@ export function recoveryResultOf({
   finishedAtIso: string;
   evidence: readonly RecoveryEvidence[];
   attempts: readonly RecoveryAttempt[];
+  chair: RecoveryChairResult;
   infrastructure: string | undefined;
 }): FleetRecoveryResult {
   const vendors = RECOVERY_VENDORS.map((vendor) =>
@@ -365,9 +371,10 @@ export function recoveryResultOf({
   const signIn = recoverySignInStep({ attempts, evidence });
   return {
     attempts,
+    chair,
     finishedAtIso,
     runId,
-    schemaVersion: 1,
+    schemaVersion: 2,
     startedAtIso,
     status: statusOf({ infrastructure, vendors }),
     vendors,

@@ -142,6 +142,11 @@ line ([plan-routing.md](plan-routing.md) § The chair's hand-off cadence). The s
 gauge`'s `chair:` line — never `claude auth status` or `userEmail`, which read the shared account record
 ([setup-tokens.md](setup-tokens.md)).
 
+**A chair that went down writes no doc, so a Recovery press writes a mechanical one.** It carries the same
+invocation, `role: supervisor` and sweep arming, takes the pin (`cmux takeover`, or a bare `cmux pin` when none was
+pinned) before anything else, and points at the predecessor's doc rather than copying it
+(`src/fleet/recoverySuccessor.ts`, [recovery-check.md](../../fleet/reference/recovery-check.md) § The supervisor).
+
 **And the successor's own FIRST SWEEP confirms it happened**, because a doc that says "invoke it" is worth
 exactly as much as the last one was. The witness is mechanical: `slopweaver cmux events --name
 agent.hook.PreToolUse --workspace <its own ws>` prints the tool name per call, so a `Skill` line for this
