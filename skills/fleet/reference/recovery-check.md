@@ -60,7 +60,8 @@ resume`'s, so a resume pass never holds a check off. A second check gets exit 4.
   with a later pin. A refused spawn, or a chair that ended before it took the pin, has its board row closed and falls
   back to the vendor's next passing plan, then the other vendor's; the result keeps each reason. A chair seen
   holding the pin before it ended is `lost`: its run is a supervisor's own, so its row is left and nothing opens
-  after it. The pass keeps no pin history, so one that takes and loses the pin between two looks reads `ended`. A
+  after it. The pass keeps no pin history, so one that takes and loses the pin between two looks, then ends,
+  reads `ended`. A
   restarted chair is looked at once more as the pass ends, and is `lost` if it has since ended or the pin moved off
   it, or `starting` if the app cannot be asked. A spawn that exits non-zero but leaves its seat open, its pickup not
   proven, is watched as an open chair. A spawn whose ledger names no open seat is checked against the app before it
