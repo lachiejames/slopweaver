@@ -26,9 +26,10 @@ Part of [Toolchain](../toolchain.md).
   text — `expect(` appears inside this repository's own gate fixtures, which embed sample test sources as
   string literals, so a text count would be wrong on exactly the files that matter. Renames are followed
   (`git diff --name-status -M`), so moving a test file is not read as deleting one, and so is a case split
-  into a sibling (`testCaseMoves.ts`): a whole case reappearing verbatim in a same-directory sibling that
+  into a sibling (`testCaseMoves.ts`, registration in `testCaseRegistration.ts`): a whole case reappearing verbatim in a same-directory sibling that
   skips and focuses nothing is credited back to the file it left, while the same assertions in a different
-  case are not. Only imports, plain declarations and other suite calls may stand beside the received case;
+  case are not. A changed sibling that receives the case is judged without it, so the case never counts
+  twice. Only imports, plain declarations and other suite calls may stand beside the received case;
   a hook, a `vi.*` call or any other statement refuses it.
   **The one marker it takes is CHECKED, not trusted.** A file whose cases went out with the production code
   they covered carries `deleted-with-code: <symbol>` in a comment, and the gate asks git whether that symbol

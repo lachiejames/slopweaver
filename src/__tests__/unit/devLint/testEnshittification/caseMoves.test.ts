@@ -103,13 +103,23 @@ describe("moveCredits — a case moved verbatim into a same-directory sibling", 
     expect(moveCredits({ added, compared }).get(SHRUNK)).toEqual({ expects: 2, strong: 2 });
   });
 
-  it("credits a case moved into an existing sibling's gain", () => {
+  it("credits a case moved into an existing sibling's gain, and takes it off that sibling's head", () => {
     const sibling = {
       baseText: suite({ cases: [KEPT_CASE], title: "line" }),
       headText: suite({ cases: [KEPT_CASE, MOVED_CASE], title: "line" }),
       path: SIBLING,
     };
-    expect(moveCredits({ added: [], compared: [...compared, sibling] }).get(SHRUNK)).toEqual({ expects: 2, strong: 2 });
+    const credits = moveCredits({ added: [], compared: [...compared, sibling] });
+    expect([credits.get(SHRUNK), credits.get(SIBLING)]).toEqual([
+      { expects: 2, strong: 2 },
+      { expects: -2, strong: -2 },
+    ]);
+  });
+
+  it("still credits beside a const of literals, names, functions and nested literals", () => {
+    const table = 'const TABLE = [{ a: 1, b: -2, c: "x", d: null, e: () => 1 }, OTHER] as const;';
+    const text = [table, ...MOVED_CASE, ""].join("\n");
+    expect(moveCredits({ added: [{ path: SIBLING, text }], compared }).get(SHRUNK)).toEqual({ expects: 2, strong: 2 });
   });
 });
 
@@ -218,6 +228,22 @@ describe("moveCredits — a real deletion stays a deletion", () => {
   it("credits nothing beside a const whose initialiser calls something at load", () => {
     const text = ["const ready = setup();", ...MOVED_CASE, ""].join("\n");
     expect(moveCredits({ added: [{ path: SIBLING, text }], compared }).get(SHRUNK)).toEqual(nothing);
+  });
+
+  // The whole-diff read's open question: an initialiser that runs code without calling anything.
+  it("credits nothing beside an initialiser that assigns, reads a property, coerces or spreads", () => {
+    const running = [
+      "const v = (expect = lenient);",
+      "const v = holder.value;",
+      "const v = `${holder}`;",
+      "const v = [...items];",
+      "const v = { [key]: 1 };",
+    ];
+    const credited = running.map((line) => {
+      const text = [line, ...MOVED_CASE, ""].join("\n");
+      return moveCredits({ added: [{ path: SIBLING, text }], compared }).get(SHRUNK);
+    });
+    expect(credited).toEqual([nothing, nothing, nothing, nothing, nothing]);
   });
 
   it("credits nothing beside an import kept only for its side effects", () => {

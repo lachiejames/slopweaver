@@ -77,8 +77,9 @@
  * what moved. {@link compareAll} credits a shrunk file back with every whole test case that reappears
  * VERBATIM in a same-directory sibling — an added file, or another changed file's gain over its base — whose
  * head skips and focuses nothing and where nothing but a closed list of inert statements stands beside it,
- * all-or-none per case when two files lost the same one. The credit is
- * applied before {@link weakenings}, so a refusal's numbers are the file's counts PLUS what it was credited.
+ * all-or-none per case when two files lost the same one. A changed receiver is weighed WITHOUT what it
+ * supplied, so a moved case is never counted twice. The net is applied before {@link weakenings}, so a
+ * refusal's numbers are the file's counts plus what it was credited, less what it supplied.
  * An identical assertion in an unrelated new case credits nothing, which is the point: the mechanism, its
  * key and its residue are `./testCaseMoves.ts`'s header.
  *
@@ -447,14 +448,40 @@ function compareAll({
   sha: string;
 }): Comparison {
   const loaded = loadAll({ added, pairs, root, sha });
-  const credits = moveCredits({ added: loaded.added, compared: loaded.compared });
+  const findings = compareLoaded({
+    added: loaded.added,
+    compared: loaded.compared,
+    settle: ({ headText }) =>
+      settleDeletedWithCode({ root, sha, symbols: declaredDeletedSymbols({ content: headText }) }),
+  });
+  return { compared: loaded.compared.length, findings, unreadable: loaded.unreadable };
+}
+
+/**
+ * Judge every compared file from its texts, the move credit and debit applied — everything {@link compareAll}
+ * decides once git has handed it the texts. Pure but for `settle`, the one git-backed step, passed in.
+ *
+ * @param compared every test file present at both ends
+ * @param added every test file only at the head
+ * @param settle the `deleted-with-code:` claims of one head, checked against git
+ * @returns every finding, in compared-file order
+ */
+export function compareLoaded({
+  compared,
+  added,
+  settle,
+}: {
+  compared: readonly ComparedText[];
+  added: readonly AddedText[];
+  settle: (file: { headText: string }) => {
+    readonly verified: readonly string[];
+    readonly unproven: readonly string[];
+  };
+}): readonly string[] {
+  const credits = moveCredits({ added, compared });
   const findings: string[] = [];
-  for (const file of loaded.compared) {
-    const claim = settleDeletedWithCode({
-      root,
-      sha,
-      symbols: declaredDeletedSymbols({ content: file.headText }),
-    });
+  for (const file of compared) {
+    const claim = settle({ headText: file.headText });
     for (const line of claim.unproven) {
       findings.push(`${file.path}: ${line}`);
     }
@@ -469,7 +496,7 @@ function compareAll({
       }),
     );
   }
-  return { compared: loaded.compared.length, findings, unreadable: loaded.unreadable };
+  return findings;
 }
 
 /**

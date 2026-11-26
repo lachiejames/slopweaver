@@ -38,26 +38,27 @@
  * - Allocation is all-or-none per (directory, key): when two files lose the same case and only one copy
  *   arrived, NEITHER is credited. First-in-git-order would pick an owner arbitrarily; refusing both is the
  *   only answer that does not depend on an order nothing guarantees.
+ * - **A changed receiver keeps nothing it supplied.** It is compared against its own base too, so every unit
+ *   it holds in a credited (directory, key) is taken off its head before it is judged. Without that, a case
+ *   moved into an existing sibling counted twice and hid a different case the sibling deleted (move X from
+ *   A into B, delete B's Y: A credited, B unchanged in count, Y gone). An added receiver is judged against
+ *   nothing, so there is nothing to take off it.
  *
  * ## Its residue, stated rather than discovered
  *
  * - **Verbatim is not judging.** A case reappearing in a sibling whose imports or a same-named helper bind a
  *   name the case calls to something else is credited although it may now assert about something else, and
- *   so is one beside an import of a module that registers a hook when IT loads. That is the gate's own
+ *   so is one beside an import of a module that registers a hook when IT loads, or beside another case whose
+ *   own body calls `expect.extend` when it runs. That is the gate's own
  *   "counting is not judging" residue widened from a file to a directory, and narrower than what the gate
  *   already allows inside one file, where any new assertion anywhere offsets a deleted one.
  * - **An `expect` no suite call encloses belongs to no unit**, so moving a module-scope helper that asserts
  *   still refuses — one pull request got round the ratchet by moving helpers and keeping the assertions where they were.
  * - **A case edited while it moved is not the same case** and refuses, as does one moved into a sibling
  *   that already carried a `.skip` anywhere, or into another directory.
- * - **A received case must be registered when its file loads**, decided by a whitelist of what may sit
- *   above it (statements, blocks, callbacks handed straight to a case call). A case under `if (false)` in
- *   a sibling never runs and was credited until review pass r1 found it; now an `if`, a loop, a `try`, a
- *   named function or an assignment above a received case refuses it, a genuine move into one included.
- *   Review pass r2 then found `describe("w", () => { return; it(…) })`, so every statement list above the
- *   case is held to a CLOSED list of inert statements (declarations, call-free `const`s, other suite calls)
- *   and anything else refuses: a hook, a `vi.*` call, a `return`, a kind not yet invented. The list sits
- *   above `callsOnLoad` below.
+ * - **A received case must be registered when its file loads**, decided by closed whitelists of what may
+ *   sit above it, stand beside it and be evaluated at load (`./testCaseRegistration.ts`, which names the
+ *   review finding behind each). A genuine move into a shape none of them names refuses, the safe direction.
  * - **A split git does not report as a rename** (`D` plus two `A`s, below `-M`'s similarity threshold) has
  *   no pair at all, so the gate compares nothing for it — unchanged by this module.
  */
@@ -68,13 +69,12 @@ import { forEachChild, isStringLiteralLikeNode, type NodeVisitor, ts, withSource
 
 import {
   type AssertionCounts,
-  type Bindings,
   bindingsOf,
   countAssertions,
   isExpectCall,
   isStrongMatcherCall,
 } from "./testAssertionCounts.js";
-import { isChainBuildingCall, rootIdentifier } from "./testChainWalk.js";
+import { isCaseCall, registersOnLoad } from "./testCaseRegistration.js";
 
 /** One test case that asserts something, as the key a move is matched on and the force it carries. */
 export interface CaseUnit {
@@ -102,173 +102,6 @@ export interface ComparedText {
 export interface AddedText {
   readonly path: string;
   readonly text: string;
-}
-
-/**
- * Whether a call RUNS a suite function — the outermost call of a chain whose root this file binds to `it`,
- * `describe` and friends.
- *
- * @returns true for the call that registers a case or suite
- */
-function isCaseCall({ node, bindings }: { node: ts.CallExpression; bindings: Bindings }): boolean {
-  if (isChainBuildingCall({ node })) return false;
-  const root = rootIdentifier({ node: node.expression });
-  return root !== undefined && bindings.suites.has(root);
-}
-
-/** The only suite names a received case may sit inside: each calls its callback once, at load. */
-const SUITE_HOSTS: ReadonlySet<string> = new Set(["describe", "suite"]);
-
-/**
- * Whether a case call is REGISTERED when its file loads: every node between it and the file is a statement,
- * a block, or a callback handed straight to another case call.
- *
- * Codex review pass r1 broke the first version with `if (false) { it("c", …) }` in an added sibling: a
- * verbatim case that never runs, credited because nothing asked whether it was reachable. Deciding
- * reachability in general needs dataflow, so this is a whitelist rather than a judgement — an `if`, a loop,
- * a `try`, a named function or an assignment anywhere above the case means it offers nothing, however
- * plainly it would run. Each suite callback above it must be a plain one handed to a BARE suite name, and every
- * statement list above it must hold only the closed list of inert statements, so the whole rule fails closed.
- * That refuses a genuine move into such a shape, which is the safe direction.
- *
- * @param node the case call
- * @returns true when nothing but statements, blocks and suite callbacks sit above it, each list beside it inert
- */
-function registersOnLoad({ node, bindings }: { node: ts.CallExpression; bindings: Bindings }): boolean {
-  let child: ts.Node = node;
-  let current: ts.Node = node.parent;
-  for (;;) {
-    const statements = ts.isSourceFile(current) || ts.isBlock(current) ? current.statements : undefined;
-    if (statements !== undefined && !onlyInertBeside({ bindings, holder: child, statements })) return false;
-    if (ts.isSourceFile(current)) return true;
-    const holder =
-      ts.isExpressionStatement(current) || ts.isBlock(current) ? current : hostingSuite({ callback: current });
-    if (holder === undefined) return false;
-    child = holder;
-    current = holder.parent;
-  }
-}
-
-/**
- * The suite call a callback above a received case is handed to, when that call is one that runs it exactly
- * once at load.
- *
- * @param callback the node the walk up from the case reached
- * @returns the hosting `describe`/`suite` call, or undefined where the case may not register
- */
-function hostingSuite({ callback }: { callback: ts.Node }): ts.CallExpression | undefined {
-  if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) return undefined;
-  // A generator's body never runs when vitest calls it, and a parameter could rebind `it` or `expect`.
-  if (callback.asteriskToken !== undefined || callback.parameters.length > 0) return undefined;
-  const host: ts.Node = callback.parent;
-  if (!ts.isCallExpression(host) || host.expression === callback) return undefined;
-  // A bare `describe`/`suite` only: `describe.each([])(…)` or `describe.runIf(false)(…)` may never call it.
-  if (!ts.isIdentifier(host.expression) || !SUITE_HOSTS.has(host.expression.text)) return undefined;
-  // Titles only beside the callback: an options object can carry `fails` or `skip` by a computed name.
-  const titlesOnly = host.arguments.every((argument) => argument === callback || isStringLiteralLikeNode(argument));
-  if (!titlesOnly) return undefined;
-  return host;
-}
-
-/*
- * What may stand beside a received case, in EVERY statement list above it, is a closed list — anything it does
- * not name refuses the case, so a shape nobody has thought of yet fails closed rather than open. Codex review
- * pass r2 found `describe("w", () => { return; it("c", …) })` after the ancestor whitelist had passed it, and
- * refusing `return` by name would only have waited for the next early exit to be found. The list:
- *
- * - an empty statement, an interface or a type alias;
- * - a function declaration, and an import that binds a name (a bare `import "./x.js"` exists only for its
- *   side effects) — neither binding `expect` or a suite name, unless the import is from `vitest`;
- * - a `const`/`let`/`var` of plain names, none of them `expect` or a suite name, whose initialisers call
- *   nothing at load (a function value's own body is not run);
- * - another suite or case call (`describe`, `it`, `test`, `suite`, `bench`, an alias of one), which calls
- *   nothing at load outside its own chain and callbacks.
- *
- * So a hook (`beforeEach(({ skip }) => skip())` skips every case beside it at runtime), a `vi.*` call, a
- * local `expect`, an `if`, a loop, a `try`, a `return`, a `throw`, a label, a class and any kind TypeScript
- * adds next year all refuse it, before or after the case, because a hook registered after a case still runs
- * for it. Each suite callback above the case must also be a parameterless, non-generator function handed to
- * a bare `describe` or `suite` beside nothing but string titles.
- */
-
-/**
- * Whether anything under `node` calls, constructs or tags a template when it is evaluated, a nested
- * function's body excepted, and a suite or case call's own chain excepted.
- *
- * @returns true when evaluating `node` would run code
- */
-function callsOnLoad({ node, bindings }: { node: ts.Node; bindings: Bindings }): boolean {
-  const visit: NodeVisitor<true> = (child) => {
-    const isFunction = ts.isArrowFunction(child) || ts.isFunctionExpression(child) || ts.isClassExpression(child);
-    if (isFunction) return undefined;
-    const root = ts.isCallExpression(child) ? rootIdentifier({ node: child.expression }) : undefined;
-    const isSuiteCall = root !== undefined && bindings.suites.has(root);
-    const runsCode = ts.isCallExpression(child) || ts.isNewExpression(child) || ts.isTaggedTemplateExpression(child);
-    if (runsCode && !isSuiteCall) return true;
-    return forEachChild({ node: child, visit });
-  };
-  return visit(node) === true;
-}
-
-/**
- * Every value name one import binds in this file: its default, its namespace and each named element.
- *
- * @returns the local names, empty for a bare side-effect import
- */
-function importedNames({ statement }: { statement: ts.ImportDeclaration }): readonly string[] {
-  const clause = statement.importClause;
-  if (clause === undefined) return [];
-  const names = clause.name === undefined ? [] : [clause.name.text];
-  const named = clause.namedBindings;
-  if (named === undefined) return names;
-  if (ts.isNamespaceImport(named)) return [...names, named.name.text];
-  return [...names, ...named.elements.map((element) => element.name.text)];
-}
-
-/**
- * Whether one statement beside a received case is on the closed list above.
- *
- * @returns true only for a kind the list names, in the form it names
- */
-function isInertStatement({ statement, bindings }: { statement: ts.Statement; bindings: Bindings }): boolean {
-  // A local `expect`, `it` or `describe` would swap what the moved case calls for something that asserts nothing.
-  const shadows = ({ name }: { name: string }): boolean => bindings.expects.has(name) || bindings.suites.has(name);
-  const typesOnly =
-    ts.isEmptyStatement(statement) || ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement);
-  if (typesOnly) return true;
-  if (ts.isFunctionDeclaration(statement))
-    return statement.name !== undefined && !shadows({ name: statement.name.text });
-  if (ts.isImportDeclaration(statement)) {
-    if (statement.importClause === undefined) return false;
-    const fromVitest = ts.isStringLiteral(statement.moduleSpecifier) && statement.moduleSpecifier.text === "vitest";
-    return fromVitest || !importedNames({ statement }).some((name) => shadows({ name }));
-  }
-  if (ts.isVariableStatement(statement)) {
-    const declared = statement.declarationList.declarations.map((declaration) => declaration.name);
-    const plainNames = declared.every((name) => ts.isIdentifier(name) && !shadows({ name: name.text }));
-    return plainNames && !callsOnLoad({ bindings, node: statement });
-  }
-  if (!ts.isExpressionStatement(statement) || !ts.isCallExpression(statement.expression)) return false;
-  return isCaseCall({ bindings, node: statement.expression }) && !callsOnLoad({ bindings, node: statement });
-}
-
-/**
- * Whether every statement in a list above a received case, bar the one holding it, is inert.
- *
- * @param holder the statement holding the case, directly in `statements`
- * @param statements the block's or file's whole statement list
- * @returns true only when every other statement is on the closed list
- */
-function onlyInertBeside({
-  holder,
-  statements,
-  bindings,
-}: {
-  holder: ts.Node;
-  statements: readonly ts.Statement[];
-  bindings: Bindings;
-}): boolean {
-  return statements.every((statement) => statement === holder || isInertStatement({ bindings, statement }));
 }
 
 /**
@@ -399,6 +232,8 @@ export function unitsMinus({
 interface MoveSide {
   readonly path: string;
   readonly units: readonly CaseUnit[];
+  /** A receiver that existed at the base, so it is judged too and must give back what it supplied. */
+  readonly judged: boolean;
 }
 
 /**
@@ -419,11 +254,17 @@ function tally({ sides }: { sides: readonly MoveSide[] }): ReadonlyMap<string, n
 }
 
 /**
- * Credit each shrunk file's lost cases against what same-directory receivers gained — all-or-none per key.
+ * Credit each shrunk file's lost cases against what same-directory receivers gained — all-or-none per key —
+ * and debit a judged receiver every unit it holds in a credited slot.
+ *
+ * The debit is what keeps the gate's invariant (no compared file's count falls, so the total cannot): without
+ * it a case moved into an EXISTING sibling counted twice, once as the loser's credit and again in the
+ * receiver's own head, where it hid a different case that sibling deleted. A judged receiver is therefore
+ * weighed without anything it supplied, all of a credited slot's units at once, which can only refuse more.
  *
  * @param lost per file, the cases its head no longer holds
  * @param offered per eligible receiver, the cases it gained
- * @returns per path in `lost`, the counts credited back to its head
+ * @returns per path in `lost`, the net counts to add to its head: credit received, less every unit supplied
  */
 function creditedMoves({
   lost,
@@ -434,21 +275,25 @@ function creditedMoves({
 }): ReadonlyMap<string, MoveCredit> {
   const demand = tally({ sides: lost });
   const supply = tally({ sides: offered });
-  const credits = new Map<string, MoveCredit>();
-  for (const side of lost) {
-    let expects = 0;
-    let strong = 0;
+  const settled = ({ slot }: { slot: string }): boolean => {
+    const wanted = demand.get(slot);
+    const arrived = supply.get(slot);
+    return wanted !== undefined && arrived !== undefined && arrived >= wanted;
+  };
+  const net = new Map<string, MoveCredit>(lost.map((side) => [side.path, { expects: 0, strong: 0 }]));
+  const shift = ({ side, sign }: { side: MoveSide; sign: 1 | -1 }): void => {
     for (const unit of side.units) {
-      const slot = `${dirname(side.path)}\u0000${unit.key}`;
-      const wanted = demand.get(slot)!;
-      const arrived = supply.get(slot);
-      if (arrived === undefined || arrived < wanted) continue;
-      expects += unit.expects;
-      strong += unit.strong;
+      if (!settled({ slot: `${dirname(side.path)}\u0000${unit.key}` })) continue;
+      const before = net.get(side.path)!;
+      net.set(side.path, {
+        expects: before.expects + sign * unit.expects,
+        strong: before.strong + sign * unit.strong,
+      });
     }
-    credits.set(side.path, { expects, strong });
-  }
-  return credits;
+  };
+  for (const side of lost) shift({ side, sign: 1 });
+  for (const side of offered.filter((receiver) => receiver.judged)) shift({ side, sign: -1 });
+  return net;
 }
 
 /**
@@ -465,7 +310,8 @@ function runsEverything({ counts }: { counts: AssertionCounts }): boolean {
  *
  * @param compared every test file present at both ends
  * @param added every test file only at the head
- * @returns per compared path, the counts to add back to its head before judging it
+ * @returns per compared path, the net counts to add to its head before judging it — negative for a changed
+ *   receiver that supplied more than it was credited
  */
 export function moveCredits({
   compared,
@@ -479,15 +325,16 @@ export function moveCredits({
   for (const file of compared) {
     const base = caseUnits({ content: file.baseText });
     const head = caseUnits({ content: file.headText });
-    lost.push({ path: file.path, units: unitsMinus({ from: base, take: head }) });
+    lost.push({ judged: true, path: file.path, units: unitsMinus({ from: base, take: head }) });
     if (runsEverything({ counts: countAssertions({ content: file.headText }) })) {
       const gained = unitsMinus({ from: head, take: base });
-      offered.push({ path: file.path, units: gained.filter((unit) => unit.registered) });
+      offered.push({ judged: true, path: file.path, units: gained.filter((unit) => unit.registered) });
     }
   }
   for (const file of added) {
     if (!runsEverything({ counts: countAssertions({ content: file.text }) })) continue;
-    offered.push({ path: file.path, units: caseUnits({ content: file.text }).filter((unit) => unit.registered) });
+    const units = caseUnits({ content: file.text }).filter((unit) => unit.registered);
+    offered.push({ judged: false, path: file.path, units });
   }
   return creditedMoves({ lost, offered });
 }
