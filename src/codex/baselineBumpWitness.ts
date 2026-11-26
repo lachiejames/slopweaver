@@ -2,9 +2,8 @@
  * Whether every ratchet bump a pull request declares has an independent witness — the AUTHORITY half of the
  * rule that the session implementing a pull request must not be the one deciding to bump its ratchet, for the
  * same reason Codex plans and reviews every pull request. CI holds the structure
- * (`src/devLint/baselineAgainstMain.ts`: what a change loosens, and no declaration committed in the tree); this
- * holds the authority, at the two landing verbs, from the bump records and pass records OUTSIDE the tree being
- * judged.
+ * (`src/devLint/baselineAgainstMain.ts`: every loosening is declared by a committed manifest); this holds the
+ * authority, at the two landing verbs, from the pass records OUTSIDE the tree being judged.
  *
  * ## What counts as a witness, and why each condition is there
  *
