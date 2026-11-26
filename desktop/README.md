@@ -216,8 +216,10 @@ resume` into a new cmux tab, once per episode, remembered across a restart of th
   supervisor. The first launch asks macOS to let it control cmux. The verbs: [skills/fleet](../skills/fleet/SKILL.md).
 - **Recovery, on your press only.** The menu bar's Recovery item and the Sessions page's Recovery button run
   `bin/slopweaver fleet recover`, which opens one throwaway Claude card in the app, then one Codex card, and closes
-  each. The page then says per vendor whether it started a session, on which plan, and why not. One check runs at a
-  time: the item is disabled and the button gone until it ends. Nothing runs it at launch or on a timer:
+  each. When the supervisor is down it seats a new one, as a visible card, on the first plan that answered, falling
+  back to the next plan or vendor with each reason kept. The page opens on whether the supervisor is running,
+  restarted, starting or not restarted, then says per vendor whether it started a session, on which plan, and why
+  not. One check runs at a time: the item is disabled and the button gone until it ends. Nothing runs it at launch or on a timer:
   [the Recovery check](../skills/fleet/reference/recovery-check.md).
 - **The console's glass contract**: every load the shell starts carries
   `?sw-surface=native` (`src/surface.ts`), `<html data-shell="main|overlay">` names the window, and the console's
@@ -261,6 +263,7 @@ Pure decisions are tested in `__tests__/unit/` (the unit lane collects them, the
 | `fleetAutomation*.ts`      | one automatic recovery per down episode, a deferral continued, every line it types      |
 | `fleetPage.ts`             | the sessions page and the floating note, as script-free HTML                            |
 | `fleetRecoveryCheck.ts`    | the Recovery check's one stdout line read strictly, one press at a time, and its words  |
+| `fleetRecoveryChair.ts`    | the supervisor's half of that line, and why each restart fell back                      |
 | `buildIdentity.ts`         | which Slopweaver this is — packaged or a dev build of which checkout — and every title  |
 | `consoleNote.ts`           | the failed console's floating note: what failed, what to do, its links and its place    |
 | `consoleRestartHold.ts`    | how long a console not answering is waited out as an update's restart before the note   |

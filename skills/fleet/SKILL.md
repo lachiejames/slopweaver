@@ -8,7 +8,7 @@ The owner's steer, after a restart took the fleet and the console down with nobo
 wants something that can gracefully allow them to resume operations with as little effort and thinking as possible.
 So the desktop app does it, and the owner is asked only for what a machine cannot do for them. And quietly — the
 owner's ruling: the owner wants the details of the fleet abstracted away from them, and does not want to be on the
-hook for dealing with it. The page never raises itself; the owner sees the fleet when they open it. The Recovery check, `slopweaver fleet recover`, proves in one visible throwaway turn per vendor which of Claude and Codex can still start a session, falling back plan by plan; it runs from the command line or on the owner's Recovery press in the app, never on its own: [the Recovery check](reference/recovery-check.md).
+hook for dealing with it. The page never raises itself; the owner sees the fleet when they open it. The Recovery check, `slopweaver fleet recover`, proves in one visible throwaway turn per vendor which of Claude and Codex can still start a session, falling back plan by plan, and seats a new supervisor on the first plan that passes when the chair is down; it runs from the command line or on the owner's Recovery press in the app, never on its own: [the Recovery check](reference/recovery-check.md).
 
 ## The verbs
 

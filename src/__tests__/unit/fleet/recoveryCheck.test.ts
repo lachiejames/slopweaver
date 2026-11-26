@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 
+import type { RecoveryChairResult } from "../../../fleet/recoveryChair.js";
 import {
   boundedReason,
   judgeRecoverySnapshot,
@@ -226,9 +227,19 @@ describe("recoverySignInStep", () => {
 });
 
 describe("recoveryResultOf", () => {
-  const times = { finishedAtIso: "2026-11-25T10:05:00.000Z", runId: "run", startedAtIso: "2026-11-25T10:00:00.000Z" };
+  const chair: RecoveryChairResult = {
+    outcome: "live",
+    reason: "the supervisor is running on app:the-chair, so nothing was restarted",
+    restarts: [],
+  };
+  const times = {
+    chair,
+    finishedAtIso: "2026-11-25T10:05:00.000Z",
+    runId: "run",
+    startedAtIso: "2026-11-25T10:00:00.000Z",
+  };
 
-  it("reports partial when one vendor answered, the other's line carrying why not", () => {
+  it("reports partial when one vendor answered, the other's line carrying why not, and carries the chair", () => {
     const passed: RecoveryAttempt = { ...CODEX_FAILED, outcome: "passed", reason: "it answered" };
     const result = recoveryResultOf({
       ...times,
@@ -239,7 +250,7 @@ describe("recoveryResultOf", () => {
     expect(result).toEqual({
       ...times,
       attempts: [passed],
-      schemaVersion: 1,
+      schemaVersion: 2,
       status: "partial",
       vendors: [
         {

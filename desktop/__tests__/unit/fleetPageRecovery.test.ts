@@ -34,6 +34,11 @@ const PARTIAL: FleetRecoveryResult = {
     { alias: "claude-2", outcome: "passed", reason: "it answered", sessionId: "s-1", vendor: "claude" },
     { alias: "codex-1", outcome: "launch-refused", reason: "signed out <x>", vendor: "codex" },
   ],
+  chair: {
+    outcome: "live",
+    reason: "the supervisor is running on app:the-chair, so nothing was restarted",
+    restarts: [],
+  },
   signIn: { alias: "codex-1", command: "codex login", vendor: "codex" },
   status: "partial",
   vendors: [
@@ -56,7 +61,9 @@ describe("the Sessions page's Recovery check", () => {
 
   it("draws no Recovery button while a check runs, so the page cannot start a second", () => {
     const html = pageFor({ recovery: { kind: "running" } });
-    expect(html).toContain('<p class="title">Recovery check: checking Claude, then Codex…</p>');
+    expect(html).toContain(
+      '<p class="title">Recovery check: checking Claude, then Codex, and restarting the supervisor if it is down…</p>',
+    );
     expect(html).not.toContain("slopweaver-fleet://recover");
     expect(html).not.toContain('class="act"');
   });
@@ -64,6 +71,7 @@ describe("the Sessions page's Recovery check", () => {
   it("names each vendor's verdict and the sign-in command, escaped, and offers the button again", () => {
     expect(pageFor({ recovery: { kind: "result", result: PARTIAL } })).toContain(
       '<p class="title">Recovery check: only one vendor can start a session.</p><ul class="why">' +
+        "<li>Supervisor: running. The supervisor is running on app:the-chair, so nothing was restarted</li>" +
         "<li>Claude started a session on plan claude-2.</li>" +
         "<li>Codex did not pass: signed out &lt;x&gt;</li>" +
         "<li>To sign codex-1 back in, run codex login</li>" +

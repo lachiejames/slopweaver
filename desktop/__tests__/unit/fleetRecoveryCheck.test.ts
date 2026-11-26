@@ -27,9 +27,23 @@ const PRINTED = {
     },
     { alias: "codex-1", attemptId: "a-2", outcome: "passed", reason: "it answered", sessionId: "s-2", vendor: "codex" },
   ],
+  chair: {
+    outcome: "restarted",
+    reason: "the supervisor restarted on Codex plan codex-1",
+    restarts: [
+      {
+        alias: "codex-1",
+        outcome: "restarted",
+        reason: "it took the supervisor pin",
+        sessionId: "chair-1",
+        slug: "fresh-supervisor-handoff-9041",
+        vendor: "codex",
+      },
+    ],
+  },
   finishedAtIso: "2026-11-26T01:10:00.000Z",
   runId: "run-1",
-  schemaVersion: 1,
+  schemaVersion: 2,
   startedAtIso: "2026-11-26T01:05:00.000Z",
   status: "partial",
   vendors: [
@@ -65,7 +79,9 @@ describe("parseFleetRecovery", () => {
   it("names the field that is malformed", () => {
     const cases: readonly { readonly text: string; readonly field: string }[] = [
       { field: "the output (not JSON)", text: "not json\n" },
-      { field: "schemaVersion", text: lineWith({ schemaVersion: 2 }) },
+      { field: "schemaVersion", text: lineWith({ schemaVersion: 1 }) },
+      { field: "chair", text: lineWith({ chair: undefined }) },
+      { field: "chair", text: lineWith({ chair: { ...PRINTED.chair, outcome: "fine" } }) },
       { field: "status", text: lineWith({ status: "fine" }) },
       { field: "vendors", text: lineWith({ vendors: [PRINTED.vendors[0]] }) },
       { field: "attempts", text: lineWith({ attempts: [{ ...PRINTED.attempts[0], sessionId: 7 }] }) },
@@ -110,6 +126,7 @@ describe("fleetRecoveryPresentation", () => {
   it("never says a vendor whose verdict failed started a session, even when its card opened", () => {
     const result = unwrap(parseFleetRecovery({ text: lineWith({}) }));
     expect(fleetRecoveryPresentation({ state: { kind: "result", result } }).lines).toEqual([
+      "Supervisor: restarted. The supervisor restarted on Codex plan codex-1",
       "Claude did not pass: no answer in 3 minutes",
       "Codex started a session on plan codex-1.",
     ]);
@@ -118,6 +135,11 @@ describe("fleetRecoveryPresentation", () => {
   it("says what stopped a check that could not run, and never reads it as a pass", () => {
     const broken: FleetRecoveryResult = {
       attempts: [],
+      chair: {
+        outcome: "not-restarted",
+        reason: "the check stopped before the supervisor was read, so nothing was restarted",
+        restarts: [],
+      },
       infrastructure: "the app is not serving its session socket",
       status: "infrastructure-failed",
       vendors: [
@@ -129,6 +151,7 @@ describe("fleetRecoveryPresentation", () => {
       canRun: true,
       headline: "Recovery check: the check itself could not run.",
       lines: [
+        "Supervisor: not restarted. The check stopped before the supervisor was read, so nothing was restarted",
         "Claude did not pass: not tried",
         "Codex did not pass: not tried",
         "What stopped it: the app is not serving its session socket",
