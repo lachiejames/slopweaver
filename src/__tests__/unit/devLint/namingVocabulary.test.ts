@@ -317,6 +317,13 @@ describe("judgeNamingDoctrine, the whole gate", () => {
     expect(run.err.join("")).toContain("src/new.ts:1: interface `NewProvider` carries a retired word");
   });
 
+  it("refuses a concept named two ways, with no register that could hold it", () => {
+    const run = tree({ baseline: empty, files: { "skills/handovers/SKILL.md": "" } });
+    expect(judgeNamingDoctrine({ inputs: { ...run.inputs, rebaseline: false } })).toBe(1);
+    expect(run.err.join("")).toContain("1 concept(s) named two ways");
+    expect(run.err.join("")).toContain("identity: command-surface noun:handover skill:handovers");
+  });
+
   it("is clean when the register records it", () => {
     const recorded = JSON.stringify({ identifiers: [{ count: 1, name: "NewProvider", path: "src/new.ts" }] });
     const run = tree({ baseline: recorded, files: { "src/new.ts": "export interface NewProvider {}" } });

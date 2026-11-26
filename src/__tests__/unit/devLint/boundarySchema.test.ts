@@ -1,10 +1,11 @@
 /**
- * `boundary-schema`: a source that fetches and reads JSON owes a `defineBoundary`, and the debt list only shrinks.
+ * `boundary-schema`: a source that fetches and reads JSON owes a `defineBoundary`, a plain rule with no debt list.
+ *
+ * deleted-with-code: judgeBoundaryDebt, BOUNDARY_SCHEMA_DEBT
  */
 import { describe, expect, it } from "vitest";
 
-import { judgeBoundaryDebt, owesBoundary } from "../../../devLint/boundarySchema.js";
-import { BOUNDARY_SCHEMA_DEBT } from "../../../devLint/boundarySchemaDebt.js";
+import { owesBoundary } from "../../../devLint/boundarySchema.js";
 
 /** Where every fixture sits, so a relative import of the boundary module resolves to src/lib/boundary.js. */
 const CLIENT_PATH = "src/datadog/client.ts";
@@ -371,28 +372,5 @@ describe("owesBoundary", () => {
     const escaped = String.raw`const response = await fetch(url);` + "\nconst body = await response.json();";
     expect(owesBoundary({ path: CLIENT_PATH, content: escaped })).toBe(true);
     expect(owesBoundary({ path: CLIENT_PATH, content: String.raw`const x = "A";` })).toBe(false);
-  });
-});
-
-describe("judgeBoundaryDebt", () => {
-  it("names a new client and a debt row that stopped firing", () => {
-    const debt = [
-      { owes: "a boundary", path: "src/a.ts" },
-      { owes: "a boundary", path: "src/b.ts" },
-    ];
-
-    expect(judgeBoundaryDebt({ debt, firing: ["src/c.ts", "src/a.ts"] })).toEqual({
-      fresh: ["src/c.ts"],
-      stale: ["src/b.ts"],
-    });
-  });
-
-  it("records no debt, since every recorded client now declares its boundary", () => {
-    expect(BOUNDARY_SCHEMA_DEBT).toEqual([]);
-  });
-
-  it("judges a firing client against an empty debt list as fresh, and nothing as clean", () => {
-    expect(judgeBoundaryDebt({ debt: [], firing: ["src/c.ts"] })).toEqual({ fresh: ["src/c.ts"], stale: [] });
-    expect(judgeBoundaryDebt({ debt: [], firing: [] })).toEqual({ fresh: [], stale: [] });
   });
 });

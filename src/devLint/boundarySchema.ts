@@ -62,17 +62,18 @@
  *   ([provider SDKs](../../docs/provider-sdks.md#validate-what-you-read)). A hand-written SDK over a bound
  *   transport — Vanta's `src/atlas/vanta/sdk/` — is not this blind spot: it calls `transport.request(`.
  *
- * ## The debt
+ * ## A plain rule
  *
- * `./boundarySchemaDebt.ts` lists every file that met the criterion when the gate landed. An entry that stops
- * firing FAILS the gate, so a converted client deletes its own row and the list only shrinks.
+ * Every client that met the criterion when the gate landed has since declared its boundary, so the gate keeps no
+ * debt list: any file that meets the criterion fails it. Converting one is not a text edit — its strict schema
+ * has to be READ against the live endpoint, because the key set a provider actually sends is only known from an
+ * answer — which is why a new client declares its boundary from the start.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { repoRootOf, workingTreeFilesOf } from "../lib/gitRepo.js";
 import { reportEmptySelection } from "../lib/textFileScan.js";
-import { BOUNDARY_SCHEMA_DEBT } from "./boundarySchemaDebt.js";
 import {
   callsFetch,
   declaresBoundary,
@@ -82,13 +83,6 @@ import {
 } from "./boundarySchemaSyntax.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
 import { gateOutcome, lintGateRefusal } from "./refusal/render.js";
-
-/** A module recorded as owing a boundary when the gate landed. */
-export interface BoundaryDebt {
-  readonly path: string;
-  /** What converting it means, specifically enough to act on. */
-  readonly owes: string;
-}
 
 /**
  * A word every fetch spelling `callsFetch` recognises holds verbatim — `fetch`, `requestRawText…`,
@@ -129,31 +123,9 @@ export function owesBoundary({ content, path }: { content: string; path: string 
 }
 
 /**
- * Split what fired into what the debt list already carries, what is new, and which debt rows no longer fire.
+ * Scan every source, print each client that reads JSON with no boundary, and return an exit code.
  *
- * @param firing every path that met the criterion
- * @param debt the recorded debt
- * @returns fresh hits and stale debt rows, each sorted
- */
-export function judgeBoundaryDebt({ firing, debt }: { firing: readonly string[]; debt: readonly BoundaryDebt[] }): {
-  readonly fresh: readonly string[];
-  readonly stale: readonly string[];
-} {
-  const recorded = new Set(debt.map((row) => row.path));
-  const fired = new Set(firing);
-  return {
-    fresh: firing.filter((path) => !recorded.has(path)).toSorted(),
-    stale: debt
-      .map((row) => row.path)
-      .filter((path) => !fired.has(path))
-      .toSorted(),
-  };
-}
-
-/**
- * Scan every source, print each fresh hit and stale debt row, and return an exit code.
- *
- * @returns 0 when clean, 1 when a client reads JSON with no boundary, a debt row is stale, or the scan could not run
+ * @returns 0 when clean, 1 when a client reads JSON with no boundary or the scan could not run
  */
 export function runBoundarySchema(): number {
   let root: string;
@@ -187,31 +159,30 @@ export function runBoundarySchema(): number {
         process.stderr.write(text);
       },
     });
-  return report({ judged: judgeBoundaryDebt({ debt: BOUNDARY_SCHEMA_DEBT, firing }), unreadable, unseen });
+  return report({ firing: firing.toSorted(), scanned: selected.length, unreadable, unseen });
 }
 
 /** Print the outcome. */
 function report({
-  judged,
+  firing,
+  scanned,
   unreadable,
   unseen,
 }: {
-  judged: { readonly fresh: readonly string[]; readonly stale: readonly string[] };
+  firing: readonly string[];
+  scanned: number;
   unreadable: readonly string[];
   unseen: number;
 }): number {
-  for (const path of judged.fresh) {
+  for (const path of firing) {
     process.stderr.write(`  ${path}  fetches and reads JSON with no defineBoundary\n`);
-  }
-  for (const path of judged.stale) {
-    process.stderr.write(`  ${path}  is on the debt list but no longer fires — delete its row\n`);
   }
   for (const path of unreadable) {
     process.stderr.write(`  ${path}  (unreadable — not checked)\n`);
   }
-  const outcome = gateOutcome({ refused: judged.fresh.length + judged.stale.length, unseen });
+  const outcome = gateOutcome({ refused: firing.length, unseen });
   if (outcome === "clean") {
-    process.stdout.write(`boundary-schema: clean (${String(BOUNDARY_SCHEMA_DEBT.length)} recorded debt)\n`);
+    process.stdout.write(`boundary-schema: clean (${String(scanned)} sources scanned)\n`);
     return 0;
   }
   if (outcome === "incomplete") {
@@ -223,7 +194,7 @@ function report({
   process.stderr.write(
     `${lintGateRefusal({
       declaration: lintDeclarationFor({ id: "boundary-schema" }),
-      detail: `${String(judged.fresh.length)} client(s) read JSON with no boundary, ${String(judged.stale.length)} stale debt row(s)`,
+      detail: `${String(firing.length)} client(s) read JSON with no boundary`,
     })}\n`,
   );
   return 1;

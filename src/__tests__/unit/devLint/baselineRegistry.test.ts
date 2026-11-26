@@ -23,6 +23,10 @@ const EXPORTS = RATCHET_BASELINES.find((row) => row.file === ".baselines/interna
 const HEAP = RATCHET_BASELINES.find((row) => row.file === ".baselines/heap-ceilings.json")!;
 const APPROVED = RATCHET_BASELINES.find((row) => row.file === ".baselines/ci-job-seconds-approved.json")!;
 const TRADEOFFS = RATCHET_BASELINES.find((row) => row.file === ".baselines/file-size-tradeoffs.json")!;
+const NO_PYTHON = RATCHET_BASELINES.find((row) => row.file === ".baselines/no-python-baseline.json")!;
+const SYNC_CHILD = RATCHET_BASELINES.find((row) => row.file === ".baselines/sync-child-timeout-baseline.json")!;
+const TORN_TAIL = RATCHET_BASELINES.find((row) => row.file === ".baselines/torn-tail-append-baseline.json")!;
+const WHOLE_JSON = RATCHET_BASELINES.find((row) => row.file === ".baselines/whole-file-json-baseline.json")!;
 
 const loosened = ({ baseline, base, head }: { baseline: RatchetBaseline; base: unknown; head: unknown }) =>
   unwrap(loosenings({ base: JSON.stringify(base), baseline, head: JSON.stringify(head) }));
@@ -143,6 +147,49 @@ describe("loosenings", () => {
       loosened({ base: vocabularyBase, baseline: VOCABULARY, head: grown }),
       loosened({ base: vocabularyBase, baseline: VOCABULARY, head: shrunk }),
     ]).toEqual([[{ entry: "identifiers:x.ts#provider", file: VOCABULARY.file, from: 2, to: 3 }], []]);
+  });
+
+  it("keys a no-python instruction on its path and exact line, and reads a second copy as a rise", () => {
+    const row = { count: 1, matchedLine: "python3 x.py", owes: "a verb", path: "a.ts" };
+    expect(
+      loosened({ base: { instructions: [row] }, baseline: NO_PYTHON, head: { instructions: [{ ...row, count: 2 }] } }),
+    ).toEqual([{ entry: "instructions:a.ts#python3 x.py", file: NO_PYTHON.file, from: 1, to: 2 }]);
+  });
+
+  it("reads a sync-child-timeout file's count rise and a new file as loosenings, and a fall as none", () => {
+    const before = {
+      files: [
+        { count: 2, path: "a.ts", reason: "r" },
+        { count: 1, path: "c.ts", reason: "r" },
+      ],
+    };
+    const head = {
+      files: [
+        { count: 1, path: "a.ts", reason: "r" },
+        { count: 1, path: "b.ts", reason: "r" },
+        { count: 2, path: "c.ts", reason: "r" },
+      ],
+    };
+    expect(loosened({ base: before, baseline: SYNC_CHILD, head })).toEqual([
+      { entry: "files:b.ts", file: SYNC_CHILD.file, from: null, to: 1 },
+      { entry: "files:c.ts", file: SYNC_CHILD.file, from: 1, to: 2 },
+    ]);
+  });
+
+  it("keys a torn-tail append on path and shape, so a new shape in a recorded file is a new row", () => {
+    const before = { appends: [{ count: 1, guard: "g", path: "a.ts", shape: "append-open" }] };
+    const head = { appends: [...before.appends, { count: 1, guard: "g", path: "a.ts", shape: "append-call" }] };
+    expect(loosened({ base: before, baseline: TORN_TAIL, head })).toEqual([
+      { entry: "appends:a.ts#append-call", file: TORN_TAIL.file, from: null, to: 1 },
+    ]);
+  });
+
+  it("reads whole-file-json as a set: only a new path and shape loosens it", () => {
+    const before = { sites: [{ owes: "o", path: "a.ts", shape: "jsonl-read-whole" }] };
+    const head = { sites: [...before.sites, { owes: "o", path: "b.ts", shape: "jsonl-read-whole" }] };
+    expect(loosened({ base: before, baseline: WHOLE_JSON, head })).toEqual([
+      { entry: "sites:b.ts#jsonl-read-whole", file: WHOLE_JSON.file, from: null, to: 1 },
+    ]);
   });
 
   it("reports only a NEW member of a measureless set", () => {

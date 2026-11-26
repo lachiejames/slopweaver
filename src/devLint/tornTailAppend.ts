@@ -59,8 +59,12 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { z } from "zod";
+import type { Result } from "#lib/result.js";
 import { withSourceFile } from "#lib/tsSyntax.js";
 import { reportScanIntegrity, scanTextFiles } from "../lib/textFileScan.js";
+import { decodeDebtList, identitiesAreUnique, readCommittedInput } from "./decodeDebtList.js";
+import type { DevLintInputError } from "./errors.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
 import { lintGateRefusal } from "./refusal/render.js";
 import {
@@ -126,44 +130,56 @@ export function scanTornTailAppend({ path, content }: { path: string; content: s
 }
 
 /**
- * Today's DEBT — the descriptor appends that keep their own torn-tail guard on a descriptor they must hold across
- * other checks, measured by running this gate (`yarn tsx src/devLint/tornTailAppend.entry.ts`).
+ * The committed DEBT — the descriptor appends that keep their own torn-tail guard on a descriptor they must hold
+ * across other checks, measured by running this gate (`yarn tsx src/devLint/tornTailAppend.entry.ts`).
  *
  * **A debt list, not an allowlist.** Each entry is an append outside the one primitive, recorded with the guard it
  * keeps instead; none is a shape the criterion should not have matched. `count` is how many times it fires in its
  * file, so a SECOND append added beside a recorded one is still a new hit, and an entry that fires fewer times than
- * it records is stale and fails the gate as loudly, so the list only shrinks.
+ * it records is stale and fails the gate as loudly, so the list only shrinks. Being a registered baseline, a row
+ * added or raised is also a loosening against main that only a witnessed bump record lands.
  */
-const DEBT: readonly TornTailAppendDebt[] = [
-  {
-    count: 1,
-    guard: "probes the tail only once fstat says the non-blocking descriptor is a regular file, never a FIFO",
-    path: "src/worktree/pruneTriggerDetach.ts",
-    shape: "append-open",
-  },
-  {
-    count: 2,
-    guard: "create-exclusive open, then its own tail read and a rollback of a torn append on the same descriptor",
-    path: "src/workstreams/ledgerAppend.ts",
-    shape: "append-open",
-  },
-  {
-    count: 1,
-    guard: "truncates a torn row before appending, and rolls its own append back on a failed write",
-    path: "src/outbound/github/walkthroughLedger.ts",
-    shape: "append-open",
-  },
-  {
-    count: 1,
-    guard:
-      "holds an O_NOFOLLOW descriptor pinned to a sole-link regular file across its checks, then probes the tail with descriptorNeedsSeparator",
-    path: "src/talk/callThreadFiles.ts",
-    shape: "append-open",
-  },
-];
+const BASELINE_FILE = ".baselines/torn-tail-append-baseline.json";
 
 /**
- * Split a scan's hits into the ones today's {@link DEBT} already records and the ones it does not, plus the debt
+ * One row of the committed list: a shape this gate names, a positive count, and a non-blank guard. Strict, and one
+ * row per path and shape, so an unread field or a second row for one identity is refused rather than dropped or
+ * folded into the first.
+ */
+const BaselineSchema = z.strictObject({
+  appends: z
+    .array(
+      z.strictObject({
+        count: z.number().int().positive(),
+        guard: z.string().trim().min(1),
+        path: z.string().min(1),
+        shape: z.enum(["append-call", "append-open", "append-flag-write", "append-method"]),
+      }),
+    )
+    .refine((rows) => identitiesAreUnique({ identity: (row) => `${row.path} ${row.shape}`, rows })),
+});
+
+/**
+ * Decode the committed debt list's text. Pure.
+ *
+ * @param text the contents of `.baselines/torn-tail-append-baseline.json`
+ * @returns the recorded appends, or which half of the decode failed
+ */
+export function parseTornTailAppendBaseline({
+  text,
+}: {
+  text: string;
+}): Result<readonly TornTailAppendDebt[], DevLintInputError> {
+  return decodeDebtList({
+    label: "torn-tail-append baseline",
+    schema: BaselineSchema,
+    shape: "{ appends: [{ path, shape, count, guard }, …] }, one row per path and shape",
+    text,
+  }).map((baseline) => baseline.appends);
+}
+
+/**
+ * Split a scan's hits into the ones the committed list already records and the ones it does not, plus the debt
  * entries that fire fewer times than they record. Keyed on `path` + `shape` and compared by COUNT, so moving a
  * recorded call within its file is not a failure, while a second append added beside it is.
  *
@@ -254,7 +270,7 @@ function reportStale({ stale }: { stale: readonly string[] }): void {
 }
 
 /**
- * IO edge: scan every source file, judge it against today's {@link DEBT}, print whichever halves of the verdict have
+ * IO edge: scan every source file, judge it against the committed debt list, print whichever halves of the verdict have
  * something to say, and return 0 (clean) or 1 (a new append, a stale debt entry, or an incomplete scan).
  *
  * @returns the process exit code
@@ -288,7 +304,15 @@ export function runTornTailAppend(): number {
       process.stderr.write(text);
     },
   });
-  const { fresh, stale } = partitionAgainstDebt({ debt: DEBT, hits });
+  const debt = readCommittedInput({ kind: "debt list", path: join(root, BASELINE_FILE) }).andThen((text) =>
+    parseTornTailAppendBaseline({ text }),
+  );
+  if (debt.isErr()) {
+    // devlint: not-a-refusal -- the committed debt list could not be READ, so the gate has nothing to judge against
+    process.stderr.write(`torn-tail-append: ${debt.error.message}\n`);
+    return 1;
+  }
+  const { fresh, stale } = partitionAgainstDebt({ debt: debt.value, hits });
   if (fresh.length > 0) {
     reportFresh({ fresh });
   }
@@ -299,7 +323,7 @@ export function runTornTailAppend(): number {
     return 1;
   }
   process.stdout.write(
-    `torn-tail-append: clean (${String(readCount)} sources scanned, ${String(hits.length)} recorded in DEBT)\n`,
+    `torn-tail-append: clean (${String(readCount)} sources scanned, ${String(hits.length)} recorded in ${BASELINE_FILE})\n`,
   );
   return 0;
 }

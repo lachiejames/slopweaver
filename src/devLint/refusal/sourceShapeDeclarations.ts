@@ -157,7 +157,7 @@ export const SOURCE_SHAPE_LINT_GATE_DECLARATIONS = {
     correction:
       "declare the endpoint with defineBoundary and a z.strictObject schema read against the live answer, or reach the provider through its official SDK",
     exceptions: [
-      "a body that is not a provider's answer at all, which is a sharpening of the criterion rather than a debt row",
+      "a body that is not a provider's answer at all, which is a sharpening of the criterion rather than an exemption",
     ],
     gate: "boundary-schema",
   },
@@ -226,7 +226,7 @@ export const SOURCE_SHAPE_LINT_GATE_DECLARATIONS = {
     caught:
       "a registered whole-payload site stopped firing, so the debt list now describes something that is no longer there",
     correction:
-      "remove the stale entry from the debt list, which is how that list stays a measurement rather than a memory",
+      "remove the stale entry from `.baselines/whole-file-json-baseline.json`, which is how that list stays a measurement rather than a memory",
     exceptions: ["an entry that still fires, which is the list doing its job"],
     gate: "whole-file-json",
   },

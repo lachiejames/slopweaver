@@ -97,9 +97,19 @@ export const RATCHET_BASELINES: readonly RatchetBaseline[] = [
     file: ".baselines/naming-vocabulary-baseline.json",
     shapes: [{ ...counted({ key: "identifiers" }), identity: ["path", "name"] }],
   },
+  // One row per instruction: the exact path and trimmed line, counted, so a second identical line is a rise.
+  {
+    file: ".baselines/no-python-baseline.json",
+    shapes: [{ ...counted({ key: "instructions" }), identity: ["path", "matchedLine"] }],
+  },
   {
     file: ".baselines/no-silent-fallback-baseline.json",
     shapes: [{ ...counted({ key: "sites" }), identity: ["path", "operator"] }],
+  },
+  { file: ".baselines/sync-child-timeout-baseline.json", shapes: [counted({ key: "files" })] },
+  {
+    file: ".baselines/torn-tail-append-baseline.json",
+    shapes: [{ ...counted({ key: "appends" }), identity: ["path", "shape"] }],
   },
   // One entry per file AND class, so a class's row moving is judged on its own and a cut in one never pays for a
   // rise in another.
@@ -109,6 +119,11 @@ export const RATCHET_BASELINES: readonly RatchetBaseline[] = [
   },
   { file: ".baselines/unnamed-failure-assertion-baseline.json", shapes: [counted({ key: "sites" })] },
   { file: ".baselines/untested-modules-baseline.json", shapes: [{ key: "modules", kind: "string-set" }] },
+  // A set: a second hit in a recorded file and shape is covered by its row, so only a NEW row loosens it.
+  {
+    file: ".baselines/whole-file-json-baseline.json",
+    shapes: [{ identity: ["path", "shape"], key: "sites", kind: "keyed-array" }],
+  },
 ];
 
 /**

@@ -1,14 +1,14 @@
 /**
  * The naming-doctrine gate's effectful shell: read the CLI nouns, the skill directories, the sidebar table and
- * every TypeScript source, judge the first three with the pure criterion in `./namingDoctrine.ts` against the
- * shrinking register in `./namingDoctrineDebt.ts`, and the sources with the vocabulary half
- * (`./namingVocabularyRun.ts`) against `.baselines/naming-vocabulary-baseline.json`.
+ * every TypeScript source, judge the first three with the pure criterion in `./namingDoctrine.ts` as a plain
+ * rule — every divergence it finds fails — and the sources with the vocabulary half (`./namingVocabularyRun.ts`)
+ * against `.baselines/naming-vocabulary-baseline.json`.
  *
- * Three endings, decided by `gateOutcome`: a finding a register does not hold, or a register row that no
- * longer fires, is a REFUSAL; an input the gate could not see (no nouns, no skills, a sidebar table it could
- * not extract, an unread source or register) is INCOMPLETE, a fact rather than four lines claiming a rule
- * caught something; anything else is clean. Each half judges its own staleness only over its own complete
- * read, because an unseen input makes every row naming it look stale.
+ * Three endings, decided by `gateOutcome`: a divergence, a vocabulary finding the register does not hold, or a
+ * register row that no longer fires, is a REFUSAL; an input the gate could not see (no nouns, no skills, a
+ * sidebar table it could not extract, an unread source or register) is INCOMPLETE, a fact rather than four
+ * lines claiming a rule caught something; anything else is clean. The vocabulary half judges its staleness
+ * only over its own complete read, because an unseen input makes every row naming it look stale.
  *
  * `--rebaseline` writes the vocabulary register from a complete scan and judges nothing; a rise it writes is
  * then refused by the landing verbs until a bump record and its witness declare it.
@@ -29,7 +29,6 @@ import {
   type SidebarNameDeclaration,
   sidebarDivergences,
 } from "./namingDoctrine.js";
-import { NAMING_DOCTRINE_DEBT, type NamingDoctrineDebt } from "./namingDoctrineDebt.js";
 import { extractSidebarEntries, SIDEBAR_SOURCE } from "./namingDoctrineSidebar.js";
 import { judgeNamingVocabulary, NAMING_VOCABULARY_BASELINE, reportNamingVocabulary } from "./namingVocabularyRun.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
@@ -40,36 +39,6 @@ const NOUN_SOURCE = "src/cli/manifests/index.ts";
 
 /** A skill's own file: `skills/<name>/SKILL.md`, the name being its directory. */
 const SKILL_FILE = /^skills\/([^/]+)\/SKILL\.md$/u;
-
-/**
- * Split findings into the ones the register does not hold and the register rows nothing matched any more.
- *
- * One row covers exactly ONE finding. Two findings can share an identity (a sidebar row duplicated whole, a
- * noun declared twice), and a row matched by identity alone would let the second ride the first's record;
- * so each row is spent on the first finding it matches, and a later finding with the same identity is fresh.
- *
- * @param divergences every finding this run produced
- * @param debt the register
- * @returns the unrecorded findings, and each stale row's identity
- */
-export function partitionAgainstDebt({
-  divergences,
-  debt,
-}: {
-  divergences: readonly NamingDivergence[];
-  debt: readonly NamingDoctrineDebt[];
-}): { readonly fresh: readonly NamingDivergence[]; readonly stale: readonly string[] } {
-  const unspent = debt.map((row) => row.identity);
-  const fresh = divergences.filter((divergence) => {
-    const at = unspent.indexOf(divergenceIdentity({ divergence }));
-    if (at === -1) {
-      return true;
-    }
-    unspent.splice(at, 1);
-    return false;
-  });
-  return { fresh, stale: unspent };
-}
 
 /**
  * Every skill directory under `skills/` as a command-surface name.
@@ -123,31 +92,20 @@ function readSidebar({
   return rows.value;
 }
 
-/** Write the divergence half's refusal for whichever side of its verdict has anything in it. */
+/** Write the divergence half's refusal when it found anything. */
 function refuseDivergences({
-  fresh,
-  stale,
+  divergences,
   write,
 }: {
-  fresh: readonly NamingDivergence[];
-  stale: readonly string[];
+  divergences: readonly NamingDivergence[];
   write: (text: string) => void;
 }): void {
-  for (const divergence of fresh) {
+  for (const divergence of divergences) {
     write(`  ${describeDivergence({ divergence })}\n    identity: ${divergenceIdentity({ divergence })}\n`);
   }
-  if (fresh.length > 0) {
+  if (divergences.length > 0) {
     const declaration = lintDeclarationFor({ id: "naming-doctrine" });
-    write(
-      `${lintGateRefusal({ declaration, detail: `${String(fresh.length)} concept(s) named two ways, not in the debt register` })}\n`,
-    );
-  }
-  for (const identity of stale) {
-    write(`  ${identity}: recorded in the debt register and no longer present — remove the row\n`);
-  }
-  if (stale.length > 0) {
-    const declaration = lintDeclarationFor({ id: "naming-doctrine-debt" });
-    write(`${lintGateRefusal({ declaration, detail: `${String(stale.length)} debt row(s) no longer fire` })}\n`);
+    write(`${lintGateRefusal({ declaration, detail: `${String(divergences.length)} concept(s) named two ways` })}\n`);
   }
 }
 
@@ -204,12 +162,10 @@ export function judgeNamingDoctrine({ inputs }: { inputs: NamingDoctrineInputs }
     ...commandSurfaceDivergences({ names: [...nouns, ...skills] }),
     ...sidebarDivergences({ entries: sidebarRows }),
   ];
-  const partition = partitionAgainstDebt({ debt: NAMING_DOCTRINE_DEBT, divergences });
-  const stale = unseen === 0 ? partition.stale : [];
-  const refused = partition.fresh.length + stale.length + vocabulary.fresh.length + vocabulary.stale.length;
+  const refused = divergences.length + vocabulary.fresh.length + vocabulary.stale.length;
   const outcome = gateOutcome({ refused, unseen: unseen + vocabulary.unseen });
   if (outcome === "refused") {
-    refuseDivergences({ fresh: partition.fresh, stale, write });
+    refuseDivergences({ divergences, write });
     reportNamingVocabulary({ verdict: vocabulary, write });
     return 1;
   }
@@ -219,7 +175,7 @@ export function judgeNamingDoctrine({ inputs }: { inputs: NamingDoctrineInputs }
   inputs.out(
     `naming-doctrine: clean (${String(nouns.length)} nouns, ${String(skills.length)} skills, ` +
       `${String(sidebarRows.length)} sidebar rows, ${String(vocabulary.scanned)} sources; ` +
-      `${String(divergences.length)} divergence(s) and ${String(vocabulary.debtCount)} retired-word declaration(s) recorded in debt)\n`,
+      `${String(vocabulary.debtCount)} retired-word declaration(s) recorded in debt)\n`,
   );
   return 0;
 }

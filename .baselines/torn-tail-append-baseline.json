@@ -1,0 +1,28 @@
+{
+  "appends": [
+    {
+      "count": 1,
+      "guard": "probes the tail only once fstat says the non-blocking descriptor is a regular file, never a FIFO",
+      "path": "src/worktree/pruneTriggerDetach.ts",
+      "shape": "append-open"
+    },
+    {
+      "count": 2,
+      "guard": "create-exclusive open, then its own tail read and a rollback of a torn append on the same descriptor",
+      "path": "src/workstreams/ledgerAppend.ts",
+      "shape": "append-open"
+    },
+    {
+      "count": 1,
+      "guard": "truncates a torn row before appending, and rolls its own append back on a failed write",
+      "path": "src/outbound/github/walkthroughLedger.ts",
+      "shape": "append-open"
+    },
+    {
+      "count": 1,
+      "guard": "holds an O_NOFOLLOW descriptor pinned to a sole-link regular file across its checks, then probes the tail with descriptorNeedsSeparator",
+      "path": "src/talk/callThreadFiles.ts",
+      "shape": "append-open"
+    }
+  ]
+}

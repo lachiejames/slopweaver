@@ -1,0 +1,59 @@
+{
+  "files": [
+    {
+      "count": 1,
+      "path": "desktop/src/makeSystemAudioPermission.ts",
+      "reason": "`swiftc` compiling the desktop permission helper: a cold build's ceiling is unmeasured."
+    },
+    {
+      "count": 1,
+      "path": "src/checkouts/refMoveBuildRun.ts",
+      "reason": "The dev build a ref move runs; its sibling in `src/worktree/shell.ts` is bounded, this one is not yet measured."
+    },
+    {
+      "count": 1,
+      "path": "src/cli/commands/checkout/syncRun.ts",
+      "reason": "The console refresh script a checkout sync runs."
+    },
+    {
+      "count": 1,
+      "path": "src/cli/commands/desktop/installSeams.ts",
+      "reason": "The desktop app's install tooling."
+    },
+    {
+      "count": 2,
+      "path": "src/cli/commands/dev/build.ts",
+      "reason": "esbuild and its smoke run."
+    },
+    {
+      "count": 1,
+      "path": "src/cli/commands/dev/profile.ts",
+      "reason": "An arbitrary verb run under the profiler, whose duration is the measurement."
+    },
+    {
+      "count": 3,
+      "path": "src/corpus/chatgpt/archive.ts",
+      "reason": "`unzip` listing and extracting a ChatGPT export, whose size is the export's."
+    },
+    {
+      "count": 1,
+      "path": "src/corpus/self/eventTime.ts",
+      "reason": "A whole-history `git log`; a guessed bound would turn a large history into the empty-map fallback."
+    },
+    {
+      "count": 1,
+      "path": "src/devLint/internalExports.ts",
+      "reason": "knip over the whole tree."
+    },
+    {
+      "count": 1,
+      "path": "src/store/generate.ts",
+      "reason": "drizzle migration generation; its seam leaves `timeout` optional and its caller supplies none."
+    },
+    {
+      "count": 1,
+      "path": "src/testLanes/unitMerge.ts",
+      "reason": "The Vitest merge lane, whose duration is the suite's own."
+    }
+  ]
+}

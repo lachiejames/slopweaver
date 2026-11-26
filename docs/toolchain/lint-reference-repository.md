@@ -199,7 +199,7 @@ A narrow run is never the push bar — `yarn validate` runs the lot. There is no
   passphrase on `/dev/tty` or a held lock holds the whole session for good. Last member wins, a same-file
   `const` spread is followed, `timeout: 0` is unbounded, and a shape it cannot resolve is refused, never
   passed. 74 such calls stood at measurement; the rest are per-file debt that only shrinks
-  (`src/devLint/syncChildTimeoutDebt.ts`). `sync-child-timeout-exempt: <reason>` above the statement keeps a
+  (`.baselines/sync-child-timeout-baseline.json`). `sync-child-timeout-exempt: <reason>` above the statement keeps a
   call meant to wait on a human it can see. Blind spots, named in the header: `require`, dynamic `import()`,
   a call reached through a wrapper in another module, and a `timeout` value decided outside the file (an
   imported constant, a parameter, a call), which is trusted, and an extra argument past the options Node

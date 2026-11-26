@@ -52,8 +52,8 @@ store, because the store refuses on an outage and a ledger write must never stop
 `foldSessions` closes a row by `sessionId` first, which survives a cmux restart renumbering refs, and falls back
 to the ref only for a row that recorded no id. The `session-harness-lifecycle` gate refuses, outside
 `src/sessionHarness/`, a `spawnCmuxSession` call or the function handed on as a value, a hand-appended `spawned` row, and a cmux client constructed
-(`withCmuxClient`, `realCmuxClient`, `cmuxClientOver`; `src/cmux/client.ts`, which defines them, excepted). Its
-debt list is empty. A session booted in two halves, the turn lane's worker and reviewer and a witness worker,
+(`withCmuxClient`, `realCmuxClient`, `cmuxClientOver`; `src/cmux/client.ts`, which defines them, excepted), as a
+plain rule with no debt list. A session booted in two halves, the turn lane's worker and reviewer and a witness worker,
 writes its row through the same recorder (`recordBootedSession`), since no launcher ran to write it; every
 witness close parks through `recordingSessionHarness` (`src/live/witness/close.ts`), forced for the worker's own
 seat and bounded otherwise, so no witness row is left open by a raw close. Both drawdown investigations open

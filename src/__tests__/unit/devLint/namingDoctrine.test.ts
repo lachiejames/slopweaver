@@ -2,6 +2,8 @@
  * The naming-doctrine gate's own tests (AGENTS.md rule 11). Two halves, and the second is the load-bearing
  * one: it must catch a concept named two ways, and it must NOT catch two distinct concepts whose names merely
  * share letters — the workflow skills, `org`/`org-health`, `hand`/`handover`.
+ *
+ * deleted-with-code: NAMING_DOCTRINE_DEBT, NamingDoctrineDebt
  */
 
 import { describe, expect, it } from "vitest";
@@ -16,8 +18,7 @@ import {
   type SidebarNameDeclaration,
   sidebarDivergences,
 } from "../../../devLint/namingDoctrine.js";
-import { NAMING_DOCTRINE_DEBT } from "../../../devLint/namingDoctrineDebt.js";
-import { partitionAgainstDebt, skillNamesOf } from "../../../devLint/namingDoctrineRun.js";
+import { skillNamesOf } from "../../../devLint/namingDoctrineRun.js";
 import { extractSidebarEntries } from "../../../devLint/namingDoctrineSidebar.js";
 
 const noun = ({ name }: { name: string }): CommandSurfaceName => ({
@@ -180,47 +181,18 @@ describe("skillNamesOf", () => {
   });
 });
 
-describe("partitionAgainstDebt", () => {
-  const vulnfix = commandSurfaceDivergences({
-    names: [noun({ name: "vulnfix" }), skill({ name: "vulnerability-fix" })],
-  });
-
-  it("holds a recorded divergence and reports nothing", () => {
-    const debt = [{ canonical: "x", identity: "command-surface noun:vulnfix skill:vulnerability-fix" }];
-    expect(partitionAgainstDebt({ debt, divergences: vulnfix })).toEqual({ fresh: [], stale: [] });
-  });
-
-  it("refuses a divergence the register does not hold", () => {
-    expect(partitionAgainstDebt({ debt: [], divergences: vulnfix }).fresh).toEqual(vulnfix);
-  });
-
-  it("refuses a register row nothing fires any more", () => {
-    const debt = [{ canonical: "x", identity: "sidebar setup href=getting-started label=setup" }];
-    expect(partitionAgainstDebt({ debt, divergences: [] }).stale).toEqual([
-      "sidebar setup href=getting-started label=setup",
-    ]);
-  });
-
-  it("spends one row on one finding, so a duplicate with the same identity is still fresh", () => {
-    const setup = row({ href: "/getting-started", key: "setup", label: "Setup" });
-    const twice = sidebarDivergences({ entries: [setup, { ...setup, line: 2 }] });
-    const debt = [{ canonical: "setup", identity: "sidebar setup href=getting-started label=setup" }];
-    const partition = partitionAgainstDebt({ debt, divergences: twice });
-    expect(twice.length).toBe(2);
-    expect(partition.fresh).toEqual([twice[1]]);
-    expect(partition.stale).toEqual([]);
-  });
-});
-
-describe("NAMING_DOCTRINE_DEBT", () => {
-  it("is paid: every divergence it was measured with is renamed, and a list that only shrinks gains no row", () => {
-    expect(NAMING_DOCTRINE_DEBT).toEqual([]);
-  });
-
-  it("refuses the last divergence it held, a vulnfix noun beside the vulnerability-fix skill, were it back", () => {
+describe("the last divergence the rule was measured with", () => {
+  it("is found again were it back: a vulnfix noun beside the vulnerability-fix skill", () => {
     const reintroduced = commandSurfaceDivergences({
       names: [noun({ name: "vulnfix" }), skill({ name: "vulnerability-fix" })],
     });
-    expect(partitionAgainstDebt({ debt: NAMING_DOCTRINE_DEBT, divergences: reintroduced }).fresh).toEqual(reintroduced);
+    expect(reintroduced.map((divergence) => divergenceIdentity({ divergence }))).toEqual([
+      "command-surface noun:vulnfix skill:vulnerability-fix",
+    ]);
+  });
+
+  it("reports a sidebar row duplicated whole once per copy, so neither copy can ride the other", () => {
+    const setup = row({ href: "/getting-started", key: "setup", label: "Setup" });
+    expect(sidebarDivergences({ entries: [setup, { ...setup, line: 2 }] }).length).toBe(2);
   });
 });

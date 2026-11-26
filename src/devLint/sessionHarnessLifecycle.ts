@@ -36,8 +36,12 @@
  * stage-2 debt `docs/session-harness.md` carries, and the connection it rides was opened by the seam, which this gate
  * does hold.
  *
- * Pure {@link scanSessionHarnessLifecycle} + {@link partitionAgainstDebt}, and an effectful
- * {@link runSessionHarnessLifecycle} edge, matching the other gates in this directory.
+ * A plain rule: every opener, row writer and connection is behind the seam, so the gate keeps no debt list and any
+ * hit fails it. A reach a later stage genuinely cannot move yet is a sharpening of the criterion or a move behind
+ * the seam, never an exemption.
+ *
+ * Pure {@link scanSessionHarnessLifecycle}, and an effectful {@link runSessionHarnessLifecycle} edge, matching the
+ * other gates in this directory.
  */
 
 import { readFileSync } from "node:fs";
@@ -66,19 +70,6 @@ export interface SessionHarnessLifecycleHit {
   readonly path: string;
   readonly line: number;
   readonly shape: SessionHarnessLifecycleShape;
-}
-
-/**
- * One recorded reach past the seam, and how many times it fires in its file.
- *
- * @internal — the debt list's own row shape; nothing outside this gate names it.
- */
-export interface SessionHarnessLifecycleDebt {
-  readonly path: string;
-  readonly shape: SessionHarnessLifecycleShape;
-  readonly count: number;
-  /** The board row that moves it behind the seam. */
-  readonly movedBy: string;
 }
 
 /** The seam's own tree, the one place a cmux connection, a cmux launch and a session row may be written. */
@@ -225,48 +216,6 @@ export function scanSessionHarnessLifecycle({
   });
 }
 
-/**
- * Today's DEBT — EMPTY: every opener, row writer and connection is behind the seam, measured by running this gate
- * (`yarn tsx src/devLint/sessionHarnessLifecycle.entry.ts`).
- *
- * **A debt list, not an allowlist.** `count` is how many times each fires in its file, so a SECOND reach added beside
- * a recorded one is still a new hit, and an entry that fires fewer times than it records is stale and fails the gate
- * as loudly, so the list only shrinks. It stays as the mechanism rather than being deleted, so a reach a later stage
- * genuinely cannot move yet is recorded by name with its `movedBy` row instead of being exempted in the criterion.
- */
-const DEBT: readonly SessionHarnessLifecycleDebt[] = [];
-
-/**
- * Split a scan's hits into the ones the debt already records and the ones it does not, plus the debt entries that
- * fire fewer times than they record. Grouped on `path` + `shape` and compared by COUNT, so moving a recorded call
- * within its file is not a failure, while a second one added beside it is.
- *
- * @param hits every hit the scan produced
- * @param debt the recorded debt
- * @returns every hit in a group larger than its record, and each over-recorded entry
- */
-export function partitionAgainstDebt({
-  hits,
-  debt,
-}: {
-  hits: readonly SessionHarnessLifecycleHit[];
-  debt: readonly SessionHarnessLifecycleDebt[];
-}): { readonly fresh: readonly SessionHarnessLifecycleHit[]; readonly stale: readonly string[] } {
-  const groupOf = ({ path, shape }: { path: string; shape: SessionHarnessLifecycleShape }): readonly unknown[] =>
-    hits.filter((hit) => hit.path === path && hit.shape === shape);
-  const allowanceOf = ({ path, shape }: { path: string; shape: SessionHarnessLifecycleShape }): number =>
-    debt.filter((entry) => entry.path === path && entry.shape === shape).reduce((sum, entry) => sum + entry.count, 0);
-  const fresh = hits.filter((hit) => groupOf(hit).length > allowanceOf(hit));
-  const stale = debt.flatMap((entry) => {
-    const fires = groupOf(entry).length;
-    if (fires >= entry.count) {
-      return [];
-    }
-    return [`${entry.path} (${entry.shape}): records ${String(entry.count)}, fires ${String(fires)}`];
-  });
-  return { fresh, stale };
-}
-
 /** This gate's declared scan predicate: every non-test `.ts` under `src/`, minus this gate's own files. */
 const SCOPE: ScanScope = {
   excludeTests: true,
@@ -286,46 +235,28 @@ export function isScannablePath({ path }: { path: string }): boolean {
 }
 
 /**
- * Print a verdict on stderr: each reach past the seam and its refusal, then each over-recorded debt entry under its
- * own refusal — nothing, for a clean verdict.
+ * Print each reach past the seam and the refusal on stderr — nothing, for a clean scan.
  *
  * @returns whether anything was refused
  */
-function reportVerdict({
-  fresh,
-  stale,
-}: {
-  fresh: readonly SessionHarnessLifecycleHit[];
-  stale: readonly string[];
-}): boolean {
-  for (const hit of fresh) {
+function reportVerdict({ hits }: { hits: readonly SessionHarnessLifecycleHit[] }): boolean {
+  for (const hit of hits) {
     process.stderr.write(`  ${hit.path}:${String(hit.line)} (${hit.shape})\n`);
   }
-  if (fresh.length > 0) {
+  if (hits.length > 0) {
     process.stderr.write(
       `${lintGateRefusal({
         declaration: lintDeclarationFor({ id: "session-harness-lifecycle" }),
-        detail: `${String(fresh.length)} session lifecycle act(s) outside the seam`,
+        detail: `${String(hits.length)} session lifecycle act(s) outside the seam`,
       })}\n`,
     );
   }
-  if (stale.length > 0) {
-    process.stderr.write(
-      `${lintGateRefusal({
-        declaration: lintDeclarationFor({ id: "session-harness-lifecycle-debt" }),
-        detail: `${String(stale.length)} DEBT entr(ies) over-recorded`,
-      })}\n`,
-    );
-  }
-  for (const entry of stale) {
-    process.stderr.write(`  ${entry}\n`);
-  }
-  return fresh.length > 0 || stale.length > 0;
+  return hits.length > 0;
 }
 
 /**
- * IO edge: scan every product source file, judge it against today's {@link DEBT}, print whichever halves of the
- * verdict have something to say, and return 0 (clean) or 1 (a new reach, a stale debt entry, or an incomplete scan).
+ * IO edge: scan every product source file, print any reach past the seam, and return 0 (clean) or 1 (a reach, or
+ * an incomplete scan).
  *
  * @returns the process exit code
  */
@@ -358,12 +289,10 @@ export function runSessionHarnessLifecycle(): number {
       process.stderr.write(text);
     },
   });
-  const refused = reportVerdict(partitionAgainstDebt({ debt: DEBT, hits }));
+  const refused = reportVerdict({ hits });
   if (refused || !complete) {
     return 1;
   }
-  process.stdout.write(
-    `session-harness-lifecycle: clean (${String(readCount)} sources scanned, ${String(hits.length)} recorded in DEBT)\n`,
-  );
+  process.stdout.write(`session-harness-lifecycle: clean (${String(readCount)} sources scanned)\n`);
   return 0;
 }

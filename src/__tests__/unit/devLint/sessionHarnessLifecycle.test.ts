@@ -2,14 +2,12 @@
  * The session-harness-lifecycle gate's criterion: a cmux client constructed, a cmux launch or a hand-written `spawned`
  * session row outside the seam. The negative cases matter as much as the positive ones — the seam's own tree, a `closed` append and an event
  * passed by name are all outside it, and there is no exemption marker.
+ *
+ * deleted-with-code: SessionHarnessLifecycleDebt
  */
 import { describe, expect, it } from "vitest";
 
-import {
-  isScannablePath,
-  partitionAgainstDebt,
-  scanSessionHarnessLifecycle,
-} from "../../../devLint/sessionHarnessLifecycle.js";
+import { isScannablePath, scanSessionHarnessLifecycle } from "../../../devLint/sessionHarnessLifecycle.js";
 
 /** The shape and line of every hit in `content`, scanned as if it lived at `path`. */
 function hitsIn({ path = "src/cli/commands/example.ts", content }: { path?: string; content: string }): string[] {
@@ -86,25 +84,6 @@ describe("scanSessionHarnessLifecycle", () => {
       "await withOpener(spawnCmuxSession);",
     ].join("\n");
     expect(hitsIn({ content })).toEqual(["1:spawn-direct", "2:spawn-direct", "3:spawn-direct", "4:spawn-direct"]);
-  });
-});
-
-describe("partitionAgainstDebt", () => {
-  const debt = [{ count: 1, movedBy: "a-row", path: "src/a.ts", shape: "spawn-direct" as const }];
-
-  it("passes a recorded hit and refuses a second one beside it", () => {
-    const one = { line: 3, path: "src/a.ts", shape: "spawn-direct" as const };
-    const two = { line: 9, path: "src/a.ts", shape: "spawn-direct" as const };
-    expect(partitionAgainstDebt({ debt, hits: [one] })).toEqual({ fresh: [], stale: [] });
-    expect(partitionAgainstDebt({ debt, hits: [one, two] }).fresh).toEqual([one, two]);
-  });
-
-  it("refuses an unrecorded hit, and a recorded entry that stopped firing", () => {
-    const elsewhere = { line: 1, path: "src/b.ts", shape: "spawned-append" as const };
-    expect(partitionAgainstDebt({ debt, hits: [elsewhere] })).toEqual({
-      fresh: [elsewhere],
-      stale: ["src/a.ts (spawn-direct): records 1, fires 0"],
-    });
   });
 });
 

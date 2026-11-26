@@ -146,9 +146,8 @@ whatever the provider serves today; the rule below is the precedent for the clie
   refuses on each new codename until one line declares it (`src/claude/resetStatus.ts`).
 
 **`boundary-schema` in `yarn lint`** refuses a source that calls a bare `fetch(`, the Datadog raw-text
-transport or a bound `transport.request(` and reads JSON in the same file without `defineBoundary`, over a debt
-list that only shrinks and is now empty (`src/devLint/boundarySchemaDebt.ts`): the last row, the Datadog atlas's
-329 operations, retired by generating one strict boundary per operation from the pinned specification and a
+transport or a bound `transport.request(` and reads JSON in the same file without `defineBoundary`, as a plain
+rule with no debt list: the last offender, the Datadog atlas's 329 operations, retired by generating one strict boundary per operation from the pinned specification and a
 census (`src/atlas/datadog/responseCodegen.ts`). Vanta has no official SDK, so `src/atlas/vanta/sdk/` is ours: every
 operation, write client and the token mint reads through its own strict boundary, the document detail included,
 because the owner wants it to stay strict: when the upstream provider changes, this codebase is updated to match.

@@ -52,6 +52,25 @@ export function decodeDebtList<T>({
 }
 
 /**
+ * Whether no two rows of a debt list share an identity — the refinement a list keyed by identity carries, so a
+ * duplicated row is a malformed list the gate refuses rather than a second allowance it quietly sums or folds,
+ * which `baselineRegistry.ts` would then read as a shape error instead of a loosening.
+ *
+ * @param rows the decoded rows
+ * @param identity the key one row is recorded under, the same parts the registry row names
+ * @returns true when every identity appears once
+ */
+export function identitiesAreUnique<T>({
+  rows,
+  identity,
+}: {
+  rows: readonly T[];
+  identity: (row: T) => string;
+}): boolean {
+  return new Set(rows.map((row) => identity(row))).size === rows.length;
+}
+
+/**
  * Read a gate's committed debt list or floor file, naming it by kind when it cannot be read at all.
  *
  * @param kind how the gate names the file in its failure line
