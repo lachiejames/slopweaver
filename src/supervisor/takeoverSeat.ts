@@ -11,13 +11,27 @@
  * lets only an app record name the predecessor. One cmux pin beside an unreadable record resolves as it always did,
  * because the record never decided a cmux predecessor and the app pin itself refuses while cmux holds a pin
  * (`./appPin.ts`).
+ *
+ * ## A chair whose host no longer holds it
+ *
+ * A record naming a cmux workspace cmux no longer lists at all is a GONE predecessor, resolved as such rather than as
+ * no predecessor: before, a dead chair's record answered `NO_PREDECESSOR` here while `cmux pin` refused the same
+ * record as another supervisor's (`./appPin.ts`), so no successor could take the seat by any verb. Gone is a claim
+ * about the host only; the verb still owes gate (c), the chair's own run reaching a terminal phase, before it
+ * forgets the record (`./gonePredecessor.ts`). A workspace cmux still lists but no longer pins is not gone, and
+ * answers as it always did.
  */
 import { err, ok, type Result } from "#lib/result.js";
 import type { CmuxWorkspaceSummary } from "../cmux/client.js";
 import { describeTranscriptLeg, SWEEP_ARM_TOOL_NAME, type TranscriptLeg } from "../cmux/takeover.js";
 import type { AppSessionPicture } from "../sessionHarness/pictureWire.js";
 import type { SessionItem } from "../sessions/session.js";
-import { type AppSupervisorPinRecord, appHeldPin } from "../sessions/supervisorPin.js";
+import {
+  type AppSupervisorPinRecord,
+  appHeldPin,
+  type CmuxSupervisorPinRecord,
+  cmuxHeldPin,
+} from "../sessions/supervisorPin.js";
 import type { SupervisorPinDisposition } from "../sessions/supervisorPinStore.js";
 import { appPinLabel } from "./appPin.js";
 
@@ -25,10 +39,14 @@ import { appPinLabel } from "./appPin.js";
 export type TakeoverCaller =
   { readonly kind: "cmux"; readonly workspaceId: string } | { readonly kind: "app"; readonly appSessionId: string };
 
-/** The predecessor, before an app one is resolved live: cmux's own pinned workspace, or the app record. */
+/**
+ * The predecessor, before an app one is resolved live: cmux's own pinned workspace, the app record, or a cmux record
+ * whose workspace cmux no longer lists.
+ */
 export type TakeoverPredecessorChoice =
   | { readonly kind: "cmux"; readonly workspace: CmuxWorkspaceSummary }
-  | { readonly kind: "app"; readonly pin: AppSupervisorPinRecord };
+  | { readonly kind: "app"; readonly pin: AppSupervisorPinRecord }
+  | { readonly kind: "gone-cmux"; readonly pin: CmuxSupervisorPinRecord };
 
 /** Why no predecessor can be taken over. */
 export type TakeoverResolutionError =
@@ -38,7 +56,9 @@ export type TakeoverResolutionError =
   | { readonly code: "PREDECESSOR_IS_CALLER"; readonly message: string }
   | { readonly code: "PIN_RECORD_UNREADABLE"; readonly message: string }
   | { readonly code: "APP_PREDECESSOR_NOT_LIVE"; readonly message: string }
-  | { readonly code: "APP_PREDECESSOR_ROW_UNMATCHED"; readonly message: string };
+  | { readonly code: "APP_PREDECESSOR_ROW_UNMATCHED"; readonly message: string }
+  | { readonly code: "GONE_PREDECESSOR_ROW_UNMATCHED"; readonly message: string }
+  | { readonly code: "GONE_PREDECESSOR_UNCONFIRMED"; readonly message: string };
 
 /** The one constructor per refusal, so every line names its case in the same words. */
 export const TakeoverResolutionErrors = {
@@ -55,6 +75,14 @@ export const TakeoverResolutionErrors = {
     message:
       `cmux has ${workspaceRef} pinned while the supervisor pin record names ${appLabel} — two supervisors on two ` +
       "hosts; resolve the collision by hand first",
+  }),
+  goneRowUnmatched: ({ label, why }: { label: string; why: string }): TakeoverResolutionError => ({
+    code: "GONE_PREDECESSOR_ROW_UNMATCHED",
+    message: `the supervisor pin record names ${label}, which its host no longer holds, but it answers to no single ledger row (${why}), so its run cannot be confirmed finished — repair the record by hand first`,
+  }),
+  goneUnconfirmed: ({ label, why }: { label: string; why: string }): TakeoverResolutionError => ({
+    code: "GONE_PREDECESSOR_UNCONFIRMED",
+    message: `the supervisor pin record names ${label}, which the everyday inventory does not list, but cmux's strict inventory cannot confirm it gone (${why}) — nothing moved`,
   }),
   isCaller: ({ label, host }: { label: string; host: TakeoverCaller["kind"] }): TakeoverResolutionError => ({
     code: "PREDECESSOR_IS_CALLER",
@@ -115,7 +143,7 @@ export function resolveTakeoverPredecessor({
     return err(TakeoverResolutionErrors.unreadable({ why: disposition.why }));
   }
   if (recordedApp === undefined) {
-    return err(TakeoverResolutionErrors.none());
+    return cmuxRecordChoice({ disposition, workspaces });
   }
   if (caller.kind === "app" && recordedApp.appSessionId === caller.appSessionId) {
     return err(
@@ -123,6 +151,30 @@ export function resolveTakeoverPredecessor({
     );
   }
   return ok({ kind: "app", pin: recordedApp });
+}
+
+/**
+ * The choice when cmux pins nothing and no app record stands: a cmux record whose workspace cmux no longer lists is a
+ * GONE predecessor; anything else (no record, or one naming a workspace cmux still lists unpinned) is no predecessor.
+ */
+function cmuxRecordChoice({
+  disposition,
+  workspaces,
+}: {
+  disposition: SupervisorPinDisposition;
+  workspaces: readonly CmuxWorkspaceSummary[];
+}): Result<TakeoverPredecessorChoice, TakeoverResolutionError> {
+  if (disposition.kind !== "pin") {
+    return err(TakeoverResolutionErrors.none());
+  }
+  const recordedCmux = cmuxHeldPin({ pin: disposition.record });
+  if (recordedCmux === undefined) {
+    return err(TakeoverResolutionErrors.none());
+  }
+  if (workspaces.some((workspace) => workspace.workspaceId === recordedCmux.workspaceId)) {
+    return err(TakeoverResolutionErrors.none());
+  }
+  return ok({ kind: "gone-cmux", pin: recordedCmux });
 }
 
 /** What an app-hosted caller's own picture says about its sweep. */

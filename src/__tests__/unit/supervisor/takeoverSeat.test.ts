@@ -105,14 +105,29 @@ describe("resolveTakeoverPredecessor, a cmux caller (the path before the app arm
     expect(unwrap(resolved)).toEqual({ kind: "cmux", workspace: predecessor });
   });
 
-  it("refuses a stale cmux record with no live pin, as the absent case, rather than trusting the file", () => {
+  it("resolves a cmux record whose workspace cmux no longer lists as a GONE predecessor, never as absent", () => {
+    const record = { pinnedAtIso: AT, session: SESSION, workspaceId: "gone", workspaceRef: "workspace:9" };
+    const resolved = resolveTakeoverPredecessor({
+      caller: CMUX_CALLER,
+      disposition: { kind: "pin", record },
+      workspaces: [workspace({ workspaceId: "own", workspaceRef: "workspace:1" })],
+    });
+    expect(unwrap(resolved)).toEqual({ kind: "gone-cmux", pin: record });
+  });
+
+  it("still refuses a cmux record whose workspace cmux lists unpinned, since that chair is not gone", () => {
     const stale: SupervisorPinDisposition = {
       kind: "pin",
-      record: { pinnedAtIso: AT, session: SESSION, workspaceId: "gone", workspaceRef: "workspace:9" },
+      record: { pinnedAtIso: AT, session: SESSION, workspaceId: "unpinned", workspaceRef: "workspace:9" },
     };
-    expect(
-      unwrapErr(resolveTakeoverPredecessor({ caller: CMUX_CALLER, disposition: stale, workspaces: [] })).code,
-    ).toBe("NO_PREDECESSOR");
+    const refused = unwrapErr(
+      resolveTakeoverPredecessor({
+        caller: CMUX_CALLER,
+        disposition: stale,
+        workspaces: [workspace({ workspaceId: "unpinned", workspaceRef: "workspace:9" })],
+      }),
+    );
+    expect(refused.code).toBe("NO_PREDECESSOR");
   });
 });
 

@@ -1,7 +1,7 @@
 /**
- * `cmux takeover`'s steps 1–6 for every pairing of hosts: a cmux workspace or a session the desktop app hosts, as
- * the predecessor and as the successor. `./takeover.ts` keeps the gates that never depended on the host and calls
- * in here for the rest.
+ * `cmux takeover`'s host-dependent gates for every pairing of hosts: a cmux workspace or a session the desktop app
+ * hosts, as the predecessor and as the successor. `./takeover.ts` keeps the gates that never depended on the host and
+ * calls in here for the rest; steps 4–6 are `./takeoverSteps.ts`.
  *
  * | Predecessor | Successor | Step 4 |
  * | ----------- | --------- | ------ |
@@ -9,21 +9,22 @@
  * | cmux | app | unpin it, forget its record, record this app session; no title, the app titled the card at launch |
  * | app | cmux | remove its exact record, pin and title this workspace, record it |
  * | app | app | remove its exact record, record this app session |
+ * | gone, either host | either | remove its exact record, seat this session as above; step 5 ends its ledger row |
  *
  * No cmux pin, unpin or rename is ever called for an app session, and an app predecessor is closed only through
  * the session harness's own close (`./takeoverClose.ts`): nothing here reads a pid or kills a process. The app owns
  * its sessions' process groups.
  */
 import type { CmuxWorkspaceSummary } from "../../../cmux/client.js";
-import { SUPERVISOR_WORKSPACE_TITLE } from "../../../cmux/supervisorWorkspace.js";
 import { logger } from "../../../lib/logger.js";
-import { readProcessTableWhole } from "../../../live/standing/inspect.js";
 import { type AppSessionClaim, verifyAppSessionOrigin } from "../../../sessionHarness/appSessionOrigin.js";
 import type { AppTransport } from "../../../sessionHarness/appSocketTransport.js";
 import type { CmuxHostSurface } from "../../../sessionHarness/cmuxHost.js";
 import type { HarnessTarget, SessionHarness } from "../../../sessionHarness/sessionHarness.js";
+import type { CmuxSupervisorPinRecord, SupervisorPinTarget } from "../../../sessions/supervisorPin.js";
 import { readSupervisorPinDisposition } from "../../../sessions/supervisorPinStore.js";
 import { appPinLabel } from "../../../supervisor/appPin.js";
+import { goneCmuxConfirmation, gonePredecessorLabel } from "../../../supervisor/gonePredecessor.js";
 import type { VisibleSupervisorSession } from "../../../supervisor/session.js";
 import {
   type AppSweepLeg,
@@ -34,21 +35,14 @@ import {
   TakeoverResolutionErrors,
 } from "../../../supervisor/takeoverSeat.js";
 import { claudeProjectsDir } from "../../../transcripts/source.js";
-import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
+import { EXIT_ERROR } from "../../exitCodes.js";
 import { answeredPictureOf } from "./picture.js";
-import {
-  forgetAppSupervisor,
-  forgetUnpinnedSupervisor,
-  recordAppSupervisorPin,
-  recordSupervisorPin,
-} from "./recordPin.js";
-import { runAppTakeoverStep5, runTakeoverStep5 } from "./takeoverClose.js";
+import { type GonePredecessorRun, gonePredecessorRunGate } from "./takeoverGone.js";
 import {
   type AppPredecessorRun,
   appPredecessorRunGate,
   type PredecessorRun,
   predecessorRunGate,
-  recordPredecessorRowClosed,
 } from "./takeoverRow.js";
 import { readTranscriptLeg } from "./takeoverTranscript.js";
 
@@ -114,12 +108,16 @@ export type GatedPredecessor =
       readonly label: string;
       readonly target: HarnessTarget;
       readonly run: AppPredecessorRun;
-    };
+    }
+  | { readonly kind: "gone"; readonly target: SupervisorPinTarget; readonly run: GonePredecessorRun };
 
 /**
  * Gates (b) and (c): resolve the predecessor from cmux's own pin or the app record
  * (`../../../supervisor/takeoverSeat.ts`), resolve an app one live by its exact id, then confirm its run finished.
- * The cmux inventory is read once and paired against the ledger whole, as before.
+ * The cmux inventory is read once and paired against the ledger whole, as before. A record whose host no longer
+ * holds the session — cmux no longer lists the workspace, or the app answers `SESSION_NOT_FOUND` — is a GONE
+ * predecessor, gated by the same terminal-run test (`./takeoverGone.ts`). A cmux one is called gone only once the
+ * STRICT inventory, which fails where the everyday one drops a row, also lists no workspace with its id.
  *
  * @param appHarness the app session harness, of which only `resolve` is used here
  * @param caller the session taking the seat
@@ -157,9 +155,15 @@ export async function predecessorGates({
     const run = predecessorRunGate({ home, predecessor, workspaces: workspaces.value });
     return "refusal" in run ? refused({ line: run.refusal }) : { kind: "cmux", run, workspace: predecessor };
   }
+  if (choice.value.kind === "gone-cmux") {
+    return goneCmuxGate({ client, home, pin: choice.value.pin });
+  }
   const { appSessionId } = choice.value.pin;
   const label = appPinLabel({ appSessionId });
   const resolved = await appHarness.resolve({ handle: label });
+  if (resolved.isErr() && resolved.error.code === "SESSION_NOT_FOUND") {
+    return goneGate({ home, target: { appSessionId, kind: "app" } });
+  }
   if (resolved.isErr()) {
     return refused({ line: TakeoverResolutionErrors.appNotLive({ label, why: resolved.error.message }).message });
   }
@@ -171,15 +175,85 @@ export async function predecessorGates({
   return { appSessionId, kind: "app", label, run, target: resolved.value };
 }
 
+/**
+ * Gates (b) and (c) for a cmux record the everyday inventory does not list: called gone only once the strict
+ * inventory reads whole and lists no workspace with its id, then gated as any gone predecessor.
+ */
+async function goneCmuxGate({
+  client,
+  home,
+  pin,
+}: {
+  client: CmuxHostSurface;
+  home: string | undefined;
+  pin: CmuxSupervisorPinRecord;
+}): Promise<GatedPredecessor | number> {
+  const target = { kind: "cmux", workspaceId: pin.workspaceId, workspaceRef: pin.workspaceRef } as const;
+  const confirmed = goneCmuxConfirmation({ inventory: await client.listWorkspacesStrict(), target });
+  if (confirmed.isErr()) {
+    return refused({ line: confirmed.error.message });
+  }
+  return goneGate({ home, target });
+}
+
+/** Gates (b) and (c) for a predecessor its host no longer holds: resolved as gone, then its run read finished. */
+function goneGate({
+  home,
+  target,
+}: {
+  home: string | undefined;
+  target: SupervisorPinTarget;
+}): GatedPredecessor | number {
+  logger.out({
+    line: `cmux takeover: step 2/6 — predecessor resolved: ${gonePredecessorLabel({ target })}, which its host no longer holds`,
+  });
+  const run = gonePredecessorRunGate({ home, target });
+  return "refusal" in run ? refused({ line: run.refusal }) : { kind: "gone", run, target };
+}
+
 /** Print one refusal and answer the exit code that stops the takeover. */
 function refused({ line }: { line: string }): number {
   logger.error({ msg: `cmux takeover: refusing — ${line}` });
   return EXIT_ERROR;
 }
 
-/** The predecessor's name as every step line prints it. */
-function predecessorLabel({ predecessor }: { predecessor: GatedPredecessor }): string {
-  return predecessor.kind === "cmux" ? predecessor.workspace.workspaceRef : predecessor.label;
+/**
+ * The predecessor's name as every step line prints it.
+ *
+ * @param predecessor the gated predecessor
+ * @returns its workspace ref, or its app or gone label
+ */
+export function predecessorLabel({ predecessor }: { predecessor: GatedPredecessor }): string {
+  if (predecessor.kind === "cmux") {
+    return predecessor.workspace.workspaceRef;
+  }
+  if (predecessor.kind === "gone") {
+    return predecessor.run.label;
+  }
+  return predecessor.label;
+}
+
+/** What `--dry-run` names for releasing the predecessor and closing it, per where it is. */
+function releaseAndClose({ predecessor, name }: { predecessor: GatedPredecessor; name: string }): {
+  readonly release: string;
+  readonly close: string;
+} {
+  if (predecessor.kind === "cmux") {
+    return {
+      close: `close ${name} (forced only when its screen proves it idle, or its one background work is a keep-alive another watch covers)`,
+      release: `unpin ${name}`,
+    };
+  }
+  if (predecessor.kind === "gone") {
+    return {
+      close: `end ${name}'s ledger row, since its host no longer holds it`,
+      release: `remove ${name}'s supervisor pin record`,
+    };
+  }
+  return {
+    close: `close ${name} through the desktop app, which holds a session it cannot prove finished`,
+    release: `remove ${name}'s supervisor pin record`,
+  };
 }
 
 /**
@@ -197,180 +271,10 @@ export function takeoverDryRunLine({
   predecessor: GatedPredecessor;
 }): string {
   const name = predecessorLabel({ predecessor });
-  const release = predecessor.kind === "cmux" ? `unpin ${name}` : `remove ${name}'s supervisor pin record`;
+  const { release, close } = releaseAndClose({ name, predecessor });
   const seat =
     caller.kind === "cmux"
       ? "pin+title this session"
       : `record ${appPinLabel({ appSessionId: caller.appSessionId })} as the supervisor`;
-  const close =
-    predecessor.kind === "cmux"
-      ? `close ${name} (forced only when its screen proves it idle, or its one background work is a keep-alive another watch covers)`
-      : `close ${name} through the desktop app, which holds a session it cannot prove finished`;
   return `cmux takeover: --dry-run — would ${release}, ${seat}, ${close}, then close ${predecessor.run.slug}'s board row either way`;
-}
-
-/**
- * Step 4's first half: take the seat off the predecessor. A cmux workspace is unpinned and its record forgotten; an
- * app session's exact record is removed, which is the only pin it ever had.
- *
- * @returns true when the seat is free, false when the step printed why it stopped
- */
-async function releasePredecessor({
-  client,
-  home,
-  predecessor,
-}: {
-  client: CmuxHostSurface;
-  home: string | undefined;
-  predecessor: GatedPredecessor;
-}): Promise<boolean> {
-  const homeOption = home === undefined ? {} : { home };
-  if (predecessor.kind === "cmux") {
-    const unpinned = await client.unpinWorkspace({ workspaceId: predecessor.workspace.workspaceId });
-    if (unpinned.isErr()) {
-      logger.error({ msg: `cmux takeover: ${unpinned.error.message}` });
-      return false;
-    }
-    forgetUnpinnedSupervisor({ unpinnedWorkspaceId: predecessor.workspace.workspaceId, ...homeOption });
-    logger.out({ line: `cmux takeover: step 4/6 — unpinned ${predecessor.workspace.workspaceRef}` });
-    return true;
-  }
-  if (forgetAppSupervisor({ appSessionId: predecessor.appSessionId, ...homeOption }) === "failed") {
-    logger.error({ msg: `cmux takeover: ${predecessor.label}'s supervisor pin record would not go, so nothing moved` });
-    return false;
-  }
-  logger.out({ line: `cmux takeover: step 4/6 — removed ${predecessor.label}'s supervisor pin record` });
-  return true;
-}
-
-/**
- * Step 4's second half for a cmux successor: pin and title THIS workspace, then scope the supervisor depth guard to
- * it. It answers with the ref the successor is really known by, for step 6's witness; `resolveWorkspace` failing
- * is not a reason to stop a handoff whose pin has already moved, since the id names the same workspace.
- *
- * @returns this session's label, or the message that stops the takeover
- */
-async function seatCmuxSession({
-  client,
-  home,
-  ownWorkspaceId,
-  session,
-}: {
-  client: CmuxHostSurface;
-  home: string | undefined;
-  ownWorkspaceId: string;
-  session: VisibleSupervisorSession;
-}): Promise<{ readonly failure: string } | { readonly label: string }> {
-  const pinned = await client.pinWorkspace({ workspaceId: ownWorkspaceId });
-  if (pinned.isErr()) {
-    return { failure: pinned.error.message };
-  }
-  const renamed = await client.renameWorkspace({ title: SUPERVISOR_WORKSPACE_TITLE, workspaceId: ownWorkspaceId });
-  if (renamed.isErr()) {
-    return { failure: renamed.error.message };
-  }
-  logger.out({ line: `cmux takeover: step 4/6 — pinned and titled this session (${SUPERVISOR_WORKSPACE_TITLE})` });
-  const resolved = await client.resolveWorkspace({ ref: ownWorkspaceId });
-  const ownRef = resolved.isOk() ? resolved.value.workspaceRef : ownWorkspaceId;
-  const recorded = recordSupervisorPin({
-    detection: { kind: "active", session },
-    nowIso: new Date().toISOString(),
-    ownWorkspaceId,
-    ...(home === undefined ? {} : { home }),
-    pinnedWorkspaceId: ownWorkspaceId,
-    workspaceRef: ownRef,
-  });
-  logger.out({
-    line: `cmux takeover: step 4/6 — supervisor depth guard ${recorded ? "now scoped to this session" : "NOT recorded (the write failed, see above) — this session is unguarded"}`,
-  });
-  return { label: ownRef };
-}
-
-/**
- * Step 4's second half for an app successor: write its pin record. That record IS the seat, since cmux cannot pin
- * an app session, so a write that fails stops the takeover before the predecessor is closed.
- *
- * @returns this session's label, or the message that stops the takeover
- */
-function seatAppSession({
-  appSessionId,
-  home,
-  session,
-}: {
-  appSessionId: string;
-  home: string | undefined;
-  session: VisibleSupervisorSession;
-}): { readonly failure: string } | { readonly label: string } {
-  const label = appPinLabel({ appSessionId });
-  const recorded = recordAppSupervisorPin({
-    appSessionId,
-    nowIso: new Date().toISOString(),
-    session,
-    ...(home === undefined ? {} : { home }),
-  });
-  if (!recorded) {
-    return { failure: `${label}'s supervisor pin record would not write, so no session holds the seat now` };
-  }
-  logger.out({ line: `cmux takeover: step 4/6 — recorded ${label} as the supervisor` });
-  return { label };
-}
-
-/**
- * Steps 4–6 for any pairing of hosts: release the predecessor, seat this session, close the predecessor, and record
- * its board row closed. Step 6 runs whatever step 5 did: the seat has moved and gate (c) read the run finished, so the
- * chair is retired whether or not it closed (`./takeoverRow.ts`).
- *
- * @param appHarness the app session harness, of which only `close` is used here
- * @param caller the session taking the seat
- * @param client the takeover's cmux connection
- * @param home the state home everything is recorded under
- * @param predecessor the gated predecessor
- * @param session the visible session the pin record names
- * @returns the process exit code
- */
-export async function performTakeover({
-  appHarness,
-  caller,
-  client,
-  home,
-  predecessor,
-  session,
-}: {
-  appHarness: Pick<SessionHarness, "close">;
-  caller: TakeoverCaller;
-  client: CmuxHostSurface;
-  home: string | undefined;
-  predecessor: GatedPredecessor;
-  session: VisibleSupervisorSession;
-}): Promise<number> {
-  if (!(await releasePredecessor({ client, home, predecessor }))) {
-    return EXIT_ERROR;
-  }
-  const seated =
-    caller.kind === "cmux"
-      ? await seatCmuxSession({ client, home, ownWorkspaceId: caller.workspaceId, session })
-      : seatAppSession({ appSessionId: caller.appSessionId, home, session });
-  if ("failure" in seated) {
-    logger.error({ msg: `cmux takeover: ${seated.failure}` });
-    return EXIT_ERROR;
-  }
-  const closed =
-    predecessor.kind === "cmux"
-      ? await runTakeoverStep5({
-          client,
-          home,
-          predecessorId: predecessor.workspace.workspaceId,
-          predecessorRef: predecessor.workspace.workspaceRef,
-          predecessorRow: predecessor.run.row,
-          processTable: readProcessTableWhole,
-        })
-      : await runAppTakeoverStep5({
-          harness: appHarness,
-          home,
-          label: predecessor.label,
-          row: predecessor.run.row,
-          target: predecessor.target,
-        });
-  recordPredecessorRowClosed({ home, predecessorSlug: predecessor.run.slug, successorLabel: seated.label });
-  return closed ? EXIT_OK : EXIT_ERROR;
 }

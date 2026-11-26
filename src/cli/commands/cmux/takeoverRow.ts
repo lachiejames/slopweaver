@@ -58,7 +58,7 @@ function predecessorRunPhase({ home, slug }: { home: string | undefined; slug: s
  * @param slug the predecessor's handover slug, absent when the ledger never registered it
  * @returns what to print after "predecessor run:"
  */
-function runNote({ runPhase, slug }: { runPhase: RunPhase | undefined; slug: string | undefined }): string {
+export function runNote({ runPhase, slug }: { runPhase: RunPhase | undefined; slug: string | undefined }): string {
   if (slug === undefined) {
     return "no slug on record";
   }
