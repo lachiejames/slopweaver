@@ -4,7 +4,8 @@
  *
  * ## The class is a function of a row's facts and the rules, so it is re-derived both ways
  *
- * Every row a classified table holds is sorted again by `./dataClassRules.ts`, and a row is written whenever its
+ * Every row a classified table holds is sorted again by `./dataClassRules.ts` — a row a rule sends for assessment
+ * taking the class the assessment port answers for its current words — and a row is written whenever its
  * derived class differs from the one stored, narrower or wider, exactly as `./resolveBots.ts` clears a flag an older
  * rule set: intake's own conflict refresh replaces `data_class` the same way, so no stored class is a verdict the
  * rules cannot revisit. A stored `NULL` always differs, because `unknown` is written EXPLICITLY: the comparison is on
@@ -20,6 +21,7 @@ import { err, ok, type Result } from "#lib/result.js";
 
 import { DATA_CLASSES, type DataClass } from "./dataClass.js";
 import {
+  type AssignedDataClass,
   type DataClassFacts,
   type DataClassOutcome,
   type DataClassRule,
@@ -56,23 +58,61 @@ export const SAMPLED_DATA_CLASSES: readonly DataClass[] = ["restricted", "person
 /** The most row refs one sample holds per class, so a diagnostic can never become a corpus-sized id list. */
 export const MAX_SAMPLE_PER_CLASS = 100;
 
+/** One row of a page a rule sent for assessment: which row, and which rule sent it. */
+export interface DataClassAssessmentAsk {
+  readonly ref: DataClassRowRef;
+  readonly ruleId: string;
+}
+
 /**
- * Decide one page: sort each row and say whether its stored class must be rewritten.
+ * The rows of one page the rules send for assessment — the only rows the pass asks the assessment port about.
  *
  * @param page one keyset-ordered read
  * @param rules the run's composed rules, loaded once
- * @returns one decision per row, in page order
+ * @returns one ask per row sent for assessment, in page order
  */
-export function dataClassPageDecisions({
+export function dataClassAssessmentAsks({
   page,
   rules,
 }: {
   page: readonly DataClassCandidate[];
   rules: readonly DataClassRule[];
+}): readonly DataClassAssessmentAsk[] {
+  const asks: DataClassAssessmentAsk[] = [];
+  for (const row of page) {
+    const outcome = sortDataClass({ facts: row.facts, rules });
+    if (outcome.kind === "needs-assessment") {
+      asks.push({ ref: row.ref, ruleId: outcome.ruleId });
+    }
+  }
+  return asks;
+}
+
+/**
+ * Decide one page: sort each row and say whether its stored class must be rewritten. A row the rules send for
+ * assessment takes the class a visible session recorded for its current words, and `unknown` when none is recorded.
+ *
+ * @param page one keyset-ordered read
+ * @param rules the run's composed rules, loaded once
+ * @param assessed the class the assessment port answered for each row it classified, by row id
+ * @returns one decision per row, in page order
+ */
+export function dataClassPageDecisions({
+  page,
+  rules,
+  assessed,
+}: {
+  page: readonly DataClassCandidate[];
+  rules: readonly DataClassRule[];
+  assessed: ReadonlyMap<string, AssignedDataClass>;
 }): readonly DataClassDecision[] {
   return page.map((row) => {
     const outcome = sortDataClass({ facts: row.facts, rules });
-    const derived = storedDataClass({ outcome });
+    let derived = storedDataClass({ outcome });
+    const recorded = assessed.get(row.ref.id);
+    if (outcome.kind === "needs-assessment" && recorded !== undefined) {
+      derived = recorded;
+    }
     return { derived, outcome, ref: row.ref, shouldWrite: row.stored !== derived };
   });
 }

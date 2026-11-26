@@ -5,6 +5,7 @@
  * by accident, the same rule `lexical` follows for the same reason.
  */
 import { DEFAULT_VERB, lazy, type VerbManifestEntry } from "../manifest.js";
+import { assessmentVerbs } from "./storeAssessmentMeta.js";
 import { storeAuthoredManifest } from "./storeAuthored.js";
 import { backfillVerbs } from "./storeBackfillMeta.js";
 import * as backupFamily from "./storeBackup.js";
@@ -248,6 +249,7 @@ export const storeManifest: Readonly<Record<string, VerbManifestEntry>> = {
   }),
   load: lazy({ load: () => import("../commands/store/load.js").then((m) => m.storeLoadCommand), meta: loadMeta }),
   ...backfillVerbs,
+  ...assessmentVerbs,
   // The progressive-disclosure ladder, in the order a detective climbs it. See `src/cli/commands/store/probe.ts`
   // for the counting rungs and `src/cli/commands/store/probeDisclose.ts` for the reading rungs.
   probe: lazy({ load: () => import("../commands/store/probe.js").then((m) => m.storeProbeCommand), meta: probeMeta }),

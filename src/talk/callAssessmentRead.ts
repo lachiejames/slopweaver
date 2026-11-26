@@ -30,7 +30,7 @@ import { err, ok, type Result } from "#lib/result.js";
 
 import type { DataClassAssessmentVerdict } from "../store/dataClassRules.js";
 import {
-  type RecordedCallAssessment,
+  type RecordedDataClassAssessment,
   readRecordedAssessments,
   recordedAssessmentFor,
 } from "../store/recordedDataClassAssessment.js";
@@ -198,7 +198,7 @@ function callAssessmentWorklist({
   records,
 }: {
   standings: readonly CallStanding[];
-  records: readonly RecordedCallAssessment[];
+  records: readonly RecordedDataClassAssessment[];
 }): CallAssessmentWorklist {
   const due: { request: CallAssessmentRequest; openedIso: string }[] = [];
   const assessed: AssessedCall[] = [];

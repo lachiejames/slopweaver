@@ -10,6 +10,7 @@ import { contentDataClassFactsFromFields, ownerTurnDataClassFacts } from "../../
 import {
   type DataClassCandidate,
   type DataClassRowRef,
+  dataClassAssessmentAsks,
   dataClassPageDecisions,
   decodeRowCount,
   decodeStoredClassCounts,
@@ -19,7 +20,7 @@ import {
   tallyPage,
   zeroDataClassCounts,
 } from "../../../store/dataClassResolution.js";
-import { composeDataClassRules, type DataClassRule } from "../../../store/dataClassRules.js";
+import { type AssignedDataClass, composeDataClassRules, type DataClassRule } from "../../../store/dataClassRules.js";
 
 /** A stored public Slack content row in the fixture channel, its stored class overridable. */
 const contentRow = ({
@@ -43,34 +44,49 @@ const contentRow = ({
 });
 
 const DEFAULTS = composeDataClassRules({ installation: [] });
+/** No row the port classified. */
+const NONE: ReadonlyMap<string, AssignedDataClass> = new Map();
 const ENG_PUBLIC: DataClassRule[] = [
   { action: "public", id: "install:eng", match: { container: ["slack/C0FIXTURE"] } },
 ];
 
 describe("dataClassPageDecisions", () => {
   it("writes an explicit unknown over a row that holds no class", () => {
-    const [decision] = dataClassPageDecisions({ page: [contentRow()], rules: DEFAULTS });
+    const [decision] = dataClassPageDecisions({ assessed: NONE, page: [contentRow()], rules: DEFAULTS });
     expect(decision!.derived).toBe("unknown");
     expect(decision!.shouldWrite).toBe(true);
   });
 
   it("leaves a row already holding the class it derives", () => {
-    const [decision] = dataClassPageDecisions({ page: [contentRow({ stored: "unknown" })], rules: DEFAULTS });
+    const [decision] = dataClassPageDecisions({
+      assessed: NONE,
+      page: [contentRow({ stored: "unknown" })],
+      rules: DEFAULTS,
+    });
     expect(decision!.shouldWrite).toBe(false);
   });
 
   it("widens a row when a rule now classes it, and narrows it back when the rule is gone", () => {
     const widened = dataClassPageDecisions({
+      assessed: NONE,
       page: [contentRow({ stored: "unknown" })],
       rules: composeDataClassRules({ installation: ENG_PUBLIC }),
     });
     expect(widened.map((one) => [one.derived, one.shouldWrite])).toEqual([["public", true]]);
-    const narrowed = dataClassPageDecisions({ page: [contentRow({ stored: "public" })], rules: DEFAULTS });
+    const narrowed = dataClassPageDecisions({
+      assessed: NONE,
+      page: [contentRow({ stored: "public" })],
+      rules: DEFAULTS,
+    });
     expect(narrowed.map((one) => [one.derived, one.shouldWrite])).toEqual([["unknown", true]]);
   });
 
   it("stores an assess outcome as unknown and keeps the rule that sent it", () => {
-    const [decision] = dataClassPageDecisions({ page: [contentRow({ visibility: "private" })], rules: DEFAULTS });
+    const [decision] = dataClassPageDecisions({
+      assessed: NONE,
+      page: [contentRow({ visibility: "private" })],
+      rules: DEFAULTS,
+    });
     expect(decision!.derived).toBe("unknown");
     expect(decision!.outcome).toEqual({ kind: "needs-assessment", ruleId: "default:private-lane" });
   });
@@ -79,8 +95,42 @@ describe("dataClassPageDecisions", () => {
     const page: DataClassCandidate[] = [
       { facts: ownerTurnDataClassFacts(), ref: { id: "a".repeat(64), table: "owner_turn" }, stored: null },
     ];
-    const [decision] = dataClassPageDecisions({ page, rules: DEFAULTS });
+    const [decision] = dataClassPageDecisions({ assessed: NONE, page, rules: DEFAULTS });
     expect(decision!.outcome).toEqual({ kind: "needs-assessment", ruleId: "default:owner-captured-speech" });
+  });
+
+  it("writes the class the port answered for a row sent for assessment, keeping the rule that sent it", () => {
+    const [decision] = dataClassPageDecisions({
+      assessed: new Map([["c-1", "personal"]]),
+      page: [contentRow({ stored: "unknown", visibility: "private" })],
+      rules: DEFAULTS,
+    });
+    expect(decision!.derived).toBe("personal");
+    expect(decision!.shouldWrite).toBe(true);
+    expect(decision!.outcome).toEqual({ kind: "needs-assessment", ruleId: "default:private-lane" });
+  });
+
+  it("never lets an assessed class override a rule that classifies the row itself", () => {
+    const [decision] = dataClassPageDecisions({
+      assessed: new Map([["c-1", "restricted"]]),
+      page: [contentRow({ stored: "public" })],
+      rules: composeDataClassRules({ installation: ENG_PUBLIC }),
+    });
+    expect([decision!.derived, decision!.shouldWrite]).toEqual(["public", false]);
+  });
+});
+
+describe("dataClassAssessmentAsks", () => {
+  it("asks about exactly the rows a rule sends for assessment, naming the rule", () => {
+    const asks = dataClassAssessmentAsks({
+      page: [contentRow(), contentRow({ id: "c-2", visibility: "private" })],
+      rules: DEFAULTS,
+    });
+    expect(asks).toEqual([{ ref: { id: "c-2", table: "content" }, ruleId: "default:private-lane" }]);
+  });
+
+  it("asks nothing of an empty page", () => {
+    expect(dataClassAssessmentAsks({ page: [], rules: DEFAULTS })).toEqual([]);
   });
 });
 
@@ -88,6 +138,7 @@ describe("tallyPage", () => {
   it("counts scanned, differing and written rows, every derived class and each outcome", () => {
     const tally = emptyTally({ table: "content" });
     const decisions = dataClassPageDecisions({
+      assessed: NONE,
       page: [
         contentRow(),
         contentRow({ id: "c-2", stored: "unknown" }),
@@ -107,6 +158,7 @@ describe("tallyPage", () => {
   it("samples only the most private classes, as table and id alone, up to the cap", () => {
     const samples = emptySamples();
     const decisions = dataClassPageDecisions({
+      assessed: NONE,
       page: [contentRow(), contentRow({ id: "c-2" }), contentRow({ id: "c-3" })],
       rules: DEFAULTS,
     });
@@ -122,6 +174,7 @@ describe("tallyPage", () => {
   it("never samples a public row", () => {
     const samples = emptySamples();
     const decisions = dataClassPageDecisions({
+      assessed: NONE,
       page: [contentRow()],
       rules: composeDataClassRules({ installation: ENG_PUBLIC }),
     });

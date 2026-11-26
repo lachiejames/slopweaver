@@ -315,13 +315,16 @@ export function composeDataClassRules({
  * The session reads the record's exact words, decides, and writes its verdict down; the implementation of this port
  * is a READER of those written verdicts (`../talk/callAssessmentPort.ts`, which reads the call's current words
  * itself and the register in `./recordedDataClassAssessment.ts`), and a record nobody has assessed reads
- * `undecided`, which fails closed. Rule 2 is why: judgement happens in a session the owner can see. This is the
+ * `undecided`, which fails closed. `store classify` is its production caller: a row a rule sent for assessment is
+ * written with the class a session recorded for its current words, and `unknown` otherwise. Rule 2 is why: judgement
+ * happens in a session the owner can see. This is the
  * INTAKE assessment (what class a record has), separate from the outbound privacy check's own assessment of text
  * about to leave.
  *
- * The first records it assesses are the owner's calls (`talk/calls/<callId>.jsonl`), which the store holds only as
- * whole authored files, never as a row with a `data_class` column — so the request names its SUBJECT rather than
- * claiming a table the record is not in. A stored row sent by a rule is the other subject; nothing assesses one yet.
+ * It assesses two subjects. The owner's calls (`talk/calls/<callId>.jsonl`) are held only as whole authored files,
+ * never as a row with a `data_class` column, so a call is named by its id. A stored row a rule sent for assessment
+ * (`owner_capture`, `owner_turn`, a private-lane `content` row) is named by its table, row id, rule and the digest of
+ * its words — never its words, so `store classify` can ask without ever selecting a body.
  */
 
 /**
@@ -332,9 +335,15 @@ export function composeDataClassRules({
 export type DataClassAssessmentSubject =
   | {
       readonly kind: "stored-row";
-      readonly facts: DataClassFacts;
-      /** The rule that sent it for assessment. */
+      readonly table: DataClassRuleTable;
+      readonly rowId: string;
+      /** The rule that sent it for assessment: a verdict recorded under another rule does not answer. */
       readonly ruleId: string;
+      /**
+       * The digest of the row's words, read in the SAME statement as its facts (`./storedRowAssessmentRead.ts`'s
+       * shared expression), so a verdict recorded over earlier words does not answer.
+       */
+      readonly requestSha256: string;
     }
   | {
       readonly kind: "talk-call";
@@ -346,14 +355,13 @@ export type DataClassAssessmentSubject =
     };
 
 /**
- * What an assessment is asked about one record.
+ * What an assessment is asked about one record. It carries no text: the assessment was made in a visible session
+ * that read the words, and the port only reads what that session recorded.
  *
  * @internal — the input of {@link DataClassAssessment}.
  */
 export interface DataClassAssessmentRequest {
   readonly subject: DataClassAssessmentSubject;
-  readonly title: string | null;
-  readonly body: string;
 }
 
 /**

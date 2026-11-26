@@ -6,7 +6,10 @@
  * The same reason `./resolveBots.ts` gives: the migration adding `data_class` is a catalog change that finishes
  * instantly, while sorting every stored row is a data pass that must be safe to interrupt and safe to run again.
  * Intake writes a class on every new `content` row (`./ingest.ts`); this exists for the rows written before it did,
- * for `owner_capture` and `owner_turn`, which are not sorted at write yet, and for a rules change.
+ * for `owner_capture` and `owner_turn`, which are not sorted at write yet, for a rules change, and for the verdicts the
+ * daily visible session recorded since (`store assessment-record`): a row a rule sends for assessment takes the class
+ * the assessment port answers for the digest of its current words (`./storedRowAssessmentRead.ts`), `unknown` without
+ * one. The port's register is read once per pass, and a register that cannot be read refuses the pass.
  *
  * ## The sorting is NOT repeated here
  *
@@ -30,22 +33,30 @@
  */
 import { err, ok, type Result } from "#lib/result.js";
 
-import type { StoreClient } from "./client.js";
+import type { StoreClient, StoreReader } from "./client.js";
 import type { DataClass } from "./dataClass.js";
 import { dataClassCensus } from "./dataClassCensus.js";
 import {
   type DataClassCandidate,
   type DataClassCounts,
+  type DataClassDecision,
   type DataClassOutcomeCount,
   type DataClassRowRef,
   type DataClassTableTally,
+  dataClassAssessmentAsks,
   dataClassPageDecisions,
   emptySamples,
   emptyTally,
   MAX_SAMPLE_PER_CLASS,
   tallyPage,
 } from "./dataClassResolution.js";
-import type { DataClassRule, DataClassRuleTable } from "./dataClassRules.js";
+import {
+  type AssignedDataClass,
+  type DataClassAssessment,
+  type DataClassRule,
+  type DataClassRuleTable,
+  sortDataClass,
+} from "./dataClassRules.js";
 import {
   CLASSIFY_BATCH_ROWS,
   countRows,
@@ -58,6 +69,7 @@ import {
 import { declaredTableNames } from "./declared.js";
 import { type StoreError, StoreErrors } from "./errors.js";
 import { HOME_REGISTERS } from "./homeRegisters.js";
+import { readStoredRowsCurrent } from "./storedRowAssessmentRead.js";
 
 /** The classified tables, in the order the pass walks them. */
 const CLASSIFIED_TABLES: readonly DataClassRuleTable[] = ["content", "owner_capture", "owner_turn"];
@@ -96,6 +108,7 @@ export type DataClassProgress = (event: { table: DataClassRuleTable; done: numbe
 interface WalkSettings {
   readonly client: StoreClient;
   readonly rules: readonly DataClassRule[];
+  readonly assessment: DataClassAssessment;
   readonly dryRun: boolean;
   readonly batch: number;
   /** The run's sample buckets, or undefined when none was asked for. */
@@ -106,12 +119,100 @@ interface WalkSettings {
 }
 
 /**
+ * Ask the assessment port about every row of one page the rules send for assessment. Those rows are read again, facts
+ * and digest together and locked (`./storedRowAssessmentRead.ts`), and routed again over what that read returned, so
+ * the port is asked about the rule and words the row holds while the page's write runs. Never their words.
+ *
+ * @param settings the run's rules and assessment port
+ * @param reader the transaction the page's write runs in, or the pool on a dry run
+ * @param table the classified table
+ * @param page the page just read
+ * @returns the class answered for each row the port classified, by row id, or the port's failure
+ */
+async function assessedClasses({
+  settings,
+  reader,
+  table,
+  page,
+}: {
+  settings: WalkSettings;
+  reader: StoreReader;
+  table: DataClassRuleTable;
+  page: readonly DataClassCandidate[];
+}): Promise<Result<ReadonlyMap<string, AssignedDataClass>>> {
+  const { assessment, rules } = settings;
+  const asks = dataClassAssessmentAsks({ page, rules });
+  const classes = new Map<string, AssignedDataClass>();
+  if (asks.length === 0) {
+    return ok(classes);
+  }
+  const ids = asks.map((ask) => ask.ref.id);
+  const current = await readStoredRowsCurrent({ ids, lock: !settings.dryRun, reader, table });
+  for (const ask of asks) {
+    const row = current.get(ask.ref.id);
+    // A row gone since the page read has nothing to class; one whose facts moved off this rule keeps the page's
+    // fail-closed `unknown`. Either way the port is never asked about a rule or words the row no longer holds.
+    if (row === undefined) {
+      continue;
+    }
+    const routed = sortDataClass({ facts: row.facts, rules });
+    if (routed.kind !== "needs-assessment" || routed.ruleId !== ask.ruleId) {
+      continue;
+    }
+    const verdict = await assessment({
+      request: {
+        subject: { kind: "stored-row", requestSha256: row.requestSha256, rowId: ask.ref.id, ruleId: ask.ruleId, table },
+      },
+    });
+    if (verdict.isErr()) {
+      return err([verdict.error.message]);
+    }
+    if (verdict.value.kind === "classified") {
+      classes.set(ask.ref.id, verdict.value.dataClass);
+    }
+  }
+  return ok(classes);
+}
+
+/**
+ * Decide one page and, unless a dry run, write it — over one reader, so on an applying pass the assessed rows' lock
+ * holds from their re-read until their class is written.
+ *
+ * @param settings the run's rules, assessment port and mode
+ * @param reader the transaction the page runs in, or the pool on a dry run
+ * @param table the classified table
+ * @param page the page just read
+ * @returns the page's decisions and how many rows the write changed, or the assessment port's failure
+ */
+async function decidePage({
+  settings,
+  reader,
+  table,
+  page,
+}: {
+  settings: WalkSettings;
+  reader: StoreReader;
+  table: DataClassRuleTable;
+  page: readonly DataClassCandidate[];
+}): Promise<Result<{ readonly decisions: readonly DataClassDecision[]; readonly written: number }>> {
+  const assessed = await assessedClasses({ page, reader, settings, table });
+  if (assessed.isErr()) {
+    return err(assessed.error);
+  }
+  const decisions = dataClassPageDecisions({ assessed: assessed.value, page, rules: settings.rules });
+  const toWrite = decisions.filter((decision) => decision.shouldWrite);
+  const skipWrite = settings.dryRun || toWrite.length === 0;
+  const written = skipWrite ? 0 : await writeClasses({ client: reader, decisions: toWrite, table });
+  return ok({ decisions, written });
+}
+
+/**
  * Walk one classified table, page by page, deciding and (unless a dry run) writing each page.
  *
- * @param settings the run's store, rules, mode, page size, sample buckets and progress callback
+ * @param settings the run's store, rules, assessment port, mode, page size, sample buckets and progress callback
  * @param table the classified table
  * @param total the table's row count, for progress
- * @returns the table's tally
+ * @returns the table's tally, or the assessment port's failure
  */
 async function walkTable({
   settings,
@@ -121,19 +222,23 @@ async function walkTable({
   settings: WalkSettings;
   table: DataClassRuleTable;
   total: number;
-}): Promise<DataClassTableTally> {
-  const { batch, client, dryRun, onProgress, rules, sampleCap, samples } = settings;
+}): Promise<Result<DataClassTableTally>> {
+  const { batch, client, dryRun, onProgress, sampleCap, samples } = settings;
   const tally = emptyTally({ table });
   let after: string | null = null;
   for (;;) {
     const page: readonly DataClassCandidate[] = await PAGE_READERS[table]({ after, batch, client });
     const last = page.at(-1);
     if (last === undefined) {
-      return tally;
+      return ok(tally);
     }
-    const decisions = dataClassPageDecisions({ page, rules });
-    const toWrite = decisions.filter((decision) => decision.shouldWrite);
-    const written = dryRun || toWrite.length === 0 ? 0 : await writeClasses({ client, decisions: toWrite, table });
+    const decided = dryRun
+      ? await decidePage({ page, reader: client, settings, table })
+      : await client.db.transaction(async (tx) => decidePage({ page, reader: { db: tx }, settings, table }));
+    if (decided.isErr()) {
+      return err(decided.error);
+    }
+    const { decisions, written } = decided.value;
     tallyPage({ decisions, sampleCap, samples, tally, written });
     onProgress?.({ done: tally.scanned, table, total });
     after = last.ref.id;
@@ -199,7 +304,10 @@ async function classifyTable({
     return err(before.error);
   }
   const tally = await walkTable({ settings, table, total: total.value });
-  return tableReport({ client, dryRun, nullsBefore: before.value.nulls, tally });
+  if (tally.isErr()) {
+    return err(tally.error);
+  }
+  return tableReport({ client, dryRun, nullsBefore: before.value.nulls, tally: tally.value });
 }
 
 /**
@@ -207,6 +315,7 @@ async function classifyTable({
  *
  * @param client the open store
  * @param rules the composed rules, loaded once for the whole pass
+ * @param assessment the port answering a row the rules send for assessment, its register read once for the pass
  * @param dryRun compute and report everything, write nothing
  * @param batch rows per page
  * @param sample how many row refs to keep per most-private class; absent keeps none
@@ -216,6 +325,7 @@ async function classifyTable({
 export async function resolveDataClasses({
   client,
   rules,
+  assessment,
   dryRun,
   batch = CLASSIFY_BATCH_ROWS,
   sample,
@@ -223,6 +333,7 @@ export async function resolveDataClasses({
 }: {
   client: StoreClient;
   rules: readonly DataClassRule[];
+  assessment: DataClassAssessment;
   dryRun: boolean;
   batch?: number;
   sample?: number;
@@ -237,7 +348,7 @@ export async function resolveDataClasses({
   }
   const samples = sample === undefined ? undefined : emptySamples();
   const sampleCap = sample === undefined ? 0 : Math.min(sample, MAX_SAMPLE_PER_CLASS);
-  const settings: WalkSettings = { batch, client, dryRun, onProgress, rules, sampleCap, samples };
+  const settings: WalkSettings = { assessment, batch, client, dryRun, onProgress, rules, sampleCap, samples };
   try {
     const tables: DataClassTableReport[] = [];
     for (const table of CLASSIFIED_TABLES) {

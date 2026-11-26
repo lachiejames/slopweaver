@@ -11,7 +11,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { unwrap, unwrapErr } from "#lib/result.js";
 
-import { assessmentRegisterPath, recordCallAssessment } from "../../../store/recordedDataClassAssessment.js";
+import {
+  assessmentRegisterPath,
+  recordCallAssessment,
+  recordStoredRowAssessment,
+} from "../../../store/recordedDataClassAssessment.js";
 import { callAssessmentDigest } from "../../../talk/callAssessment.js";
 import { recordedDataClassAssessment } from "../../../talk/callAssessmentPort.js";
 import type { CallEntry } from "../../../talk/callRecord.js";
@@ -63,10 +67,37 @@ function assessedPublic(): void {
   );
 }
 
-/** The port's answer about the call. */
+/** The port's answer about the call, the port built (and the register read) now. */
 const answer = async () =>
-  recordedDataClassAssessment({ home, nowMs: () => LATER_MS })({
-    request: { body: "", subject: { callId: CALL, kind: "talk-call" }, title: null },
+  unwrap(recordedDataClassAssessment({ home, nowMs: () => LATER_MS }))({
+    request: { subject: { callId: CALL, kind: "talk-call" } },
+  });
+
+const ROW = "1f2e3d4c-5b6a-4978-8695-a4b3c2d1e0f9";
+const DIGEST = "a".repeat(64);
+const RULE = "default:private-lane";
+
+/** Record `personal` for one stored row, under {@link RULE}, over {@link DIGEST}. */
+function rowAssessedPersonal(): void {
+  unwrap(
+    recordStoredRowAssessment({
+      assessment: {
+        recordedAtIso: "2026-09-25T21:30:00.000Z",
+        requestSha256: DIGEST,
+        ruleId: RULE,
+        subject: { kind: "stored-row", rowId: ROW, table: "content" },
+        verdict: { dataClass: "personal", kind: "classified", reason: "a family arrangement" },
+        version: 2,
+      },
+      home,
+    }),
+  );
+}
+
+/** The port's answer about the stored row, under a rule and over a digest. */
+const rowAnswer = async ({ ruleId, requestSha256 }: { ruleId: string; requestSha256: string }) =>
+  unwrap(recordedDataClassAssessment({ home, nowMs: () => LATER_MS }))({
+    request: { subject: { kind: "stored-row", requestSha256, rowId: ROW, ruleId, table: "content" } },
   });
 
 describe("recordedDataClassAssessment — the port", () => {
@@ -105,33 +136,32 @@ describe("recordedDataClassAssessment — the port", () => {
     });
   });
 
-  it("answers undecided for a stored row, which no session assesses yet", async () => {
-    const stored = await recordedDataClassAssessment({ home, nowMs: () => LATER_MS })({
-      request: {
-        body: "",
-        subject: {
-          facts: {
-            author: null,
-            container: null,
-            kind: "message",
-            source: "slack",
-            table: "content",
-            visibility: "private",
-          },
-          kind: "stored-row",
-          ruleId: "default-assess",
-        },
-        title: null,
-      },
+  it("answers undecided for a stored row nobody assessed", async () => {
+    expect(unwrap(await rowAnswer({ requestSha256: DIGEST, ruleId: RULE }))).toEqual({
+      kind: "undecided",
+      reason: "no visible session has assessed this row's current words under this rule",
     });
-    expect(unwrap(stored)).toEqual({ kind: "undecided", reason: "no visible session assesses stored rows yet" });
   });
 
-  it("fails rather than answering undecided over an unreadable register", async () => {
-    call({ lines: [said({ at: "01:00", id: "s-1", open: undefined, text: FIRST.text }), CLOSED] });
+  it("answers the verdict recorded for a stored row's current words under its rule", async () => {
+    rowAssessedPersonal();
+    expect(unwrap(await rowAnswer({ requestSha256: DIGEST, ruleId: RULE }))).toEqual({
+      dataClass: "personal",
+      kind: "classified",
+      reason: "a family arrangement",
+    });
+  });
+
+  it("stops answering a stored row's class once its words change, or another rule sends it", async () => {
+    rowAssessedPersonal();
+    expect(unwrap(await rowAnswer({ requestSha256: "b".repeat(64), ruleId: RULE })).kind).toBe("undecided");
+    expect(unwrap(await rowAnswer({ requestSha256: DIGEST, ruleId: "install:other" })).kind).toBe("undecided");
+  });
+
+  it("refuses to build a port over an unreadable register, rather than answering undecided", () => {
     mkdirSync(join(home, "judgement"), { recursive: true });
     writeFileSync(assessmentRegisterPath({ home }), "not json\n");
-    const error = unwrapErr(await answer());
+    const error = unwrapErr(recordedDataClassAssessment({ home, nowMs: () => LATER_MS }));
     expect(error.code).toBe("DATA_CLASS_ASSESSMENT_FAILED");
     expect(error.message).toContain("line 1 is not a recorded assessment");
   });

@@ -22,11 +22,16 @@ describe("CALL_ASSESSMENT_DAILY", () => {
       enabled: true,
       kind: CALL_ASSESSMENT_KIND,
       onMissed: "skip",
-      params: { argv: ["talk", "assessment-due", "--check"] },
+      params: { argv: ["store", "assessment-due", "--check", "--with-calls"] },
       recipeId: "call-assessment-daily",
       schemaVersion: RECIPE_DEFINITION_SCHEMA_VERSION,
     });
-    expect(CALL_ASSESSMENT_DAILY.supersedes).toBeUndefined();
+  });
+
+  it("supersedes the calls-only check an install may already hold, so the stored rows are not left unread", () => {
+    expect(CALL_ASSESSMENT_DAILY.supersedes).toEqual([
+      { ...CALL_ASSESSMENT_DAILY.definition, params: { argv: ["talk", "assessment-due", "--check"] } },
+    ]);
   });
 
   it("runs the call reader's check itself, and refuses its argv drifted to a verb that sends", () => {
