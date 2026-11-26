@@ -53,8 +53,9 @@ describe("writeRecoverySuccessor", () => {
       repo: "/repo",
       writtenAtIso: "2026-11-25T10:01:00.000Z",
     });
-    const failure = unwrapErr(written);
-    expect(failure.code).toBe("IO_FAILED");
-    expect(failure.path).toBe(join(stateHomePaths({ home }).handovers, `${SUCCESSOR_SLUG_PREFIX}1.md`));
+    expect(unwrapErr(written)).toMatchObject({
+      code: "IO_FAILED",
+      path: join(stateHomePaths({ home }).handovers, `${SUCCESSOR_SLUG_PREFIX}1.md`),
+    });
   });
 });
