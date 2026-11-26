@@ -13,20 +13,25 @@ import { GUARDIAN_PID_ENV, GUARDIAN_START_ENV, type ProcessGuardian } from "./pr
 import { type CodexWorkerLaunchConfig, WORKER_CONFIG_ENV } from "./workerWire";
 
 /**
- * The approval and sandbox preset the adapter opens every session in: edit the workspace, ask before anything wider.
- * A permission request is declined by the worker until a card can ask the owner (`codexAcpWorker.ts`), so a wider
- * preset would be granted by nobody.
+ * The approval and sandbox preset the adapter opens every session in, new and resumed alike: the pinned adapter's
+ * full-access preset — approval `never`, no sandbox (`dangerFullAccess`), so network is open and the model may write
+ * any path the user's account can. It is the adapter's only preset with approval `never`, and the adapter sends the
+ * preset's approval and sandbox on every turn, so no Codex config can narrow it. Claude sessions are unaffected.
+ *
+ * An id the adapter does not know falls back silently to its default preset, so an adapter upgrade re-reads its
+ * preset table before keeping this id.
  */
-export const ADAPTER_AGENT_MODE = "workspace-write";
+export const ADAPTER_AGENT_MODE = "agent-full-access";
 
 /**
  * The adapter's environment.
  *
  * The worker's guardian identity (`processGuardian.ts`) rides two fields every command the model runs inherits: the
- * adapter spawns the Codex app-server with its own environment, and Codex's default shell policy inherits it whole —
- * measured on the app's bundled codex, `codex sandbox -c 'sandbox_mode="workspace-write"' -- /usr/bin/printenv
- * SLOPWEAVER_SESSION_GUARDIAN_START` prints the stamp, double-spaced day intact. An inherited pair is always dropped
- * first, so the only guardian a session ever carries is the worker that started its adapter.
+ * adapter spawns the Codex app-server with its own environment, and Codex's default shell policy inherits it whole,
+ * whatever the sandbox — measured on the app's bundled codex even under its writable sandbox, `codex sandbox -c
+ * 'sandbox_mode="workspace-write"' -- /usr/bin/printenv SLOPWEAVER_SESSION_GUARDIAN_START` prints the stamp,
+ * double-spaced day intact. An inherited pair is always dropped first, so the only guardian a session ever carries is
+ * the worker that started its adapter.
  *
  * The session's app id ({@link APP_SESSION_ID_ENV}) rides the same way, so a `slopweaver` verb the model runs can claim
  * the session it is in; an inherited one is dropped first, so the only id a session carries is its own.

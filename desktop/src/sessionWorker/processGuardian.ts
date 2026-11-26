@@ -2,12 +2,13 @@
  * The Codex worker's own identity, read once before it starts the ACP adapter and handed down as the GUARDIAN of every
  * command the session's model runs (`adapterEnvironment.ts`).
  *
- * Inside Codex's seatbelt sandbox `/bin/ps` cannot be exec'd at all — `codex sandbox -c
- * 'sandbox_mode="workspace-write"' -- /bin/ps -o lstart= -p 1` exits 71, "execvp() of '/bin/ps' failed: Operation not
- * permitted" — so a `slopweaver` verb the model runs cannot stamp its own operation lock, and was refused every
- * never-stale lease. The worker runs outside the sandbox, so it reads its OWN exact start stamp here and the verb
- * records it beside its pid (`src/admit/processGuardian.ts`). It is not an override: it can only keep a live holder's
- * lease standing, never declare a holder dead.
+ * It is the fallback for a `slopweaver` verb that cannot stamp its own operation lock. Inside a Codex seatbelt sandbox
+ * `/bin/ps` cannot be exec'd at all — `codex sandbox -c 'sandbox_mode="workspace-write"' -- /bin/ps -o lstart= -p 1`
+ * exits 71, "execvp() of '/bin/ps' failed: Operation not permitted" — and such a verb was refused every never-stale
+ * lease. App sessions open with no sandbox (`adapterEnvironment.ts`), so a verb there normally stamps itself and
+ * this stays dormant; it is kept because a stamp that cannot be read must still not cost a live holder its lease. The
+ * worker reads its OWN exact start stamp here and the verb records it beside its pid (`src/admit/processGuardian.ts`).
+ * It is not an override: it can only keep a live holder's lease standing, never declare a holder dead.
  *
  * The stamp must be byte-identical to what the CLI's one probe reads later (`src/talk/relayLease.ts`
  * `processStartOf`): the same `/bin/ps` by path, the same fields, in UTC and the C locale and inheriting nothing else,
