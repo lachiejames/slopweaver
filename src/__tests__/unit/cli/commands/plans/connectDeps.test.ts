@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { productionCodexConnectDeps } from "../../../../../cli/commands/plans/connectDeps.js";
+import { codeCheckoutRoot } from "../../../../../lib/gitRepo.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { CONNECT_RESERVATION_FILE } from "../../../../../plans/connectPlan.js";
 
@@ -22,6 +23,18 @@ afterEach(() => {
 
 /** The permission bits of a path, as an octal string. */
 const modeOf = ({ path }: { path: string }): string => (statSync(path).mode & 0o777).toString(8);
+
+describe("productionCodexConnectDeps syncCodexPluginHome", () => {
+  it("hands the install the code's own checkout and the worker's state home, so a home with no profile skips", () => {
+    const codexHome = join(home, "codex-accounts", "codex-1");
+
+    expect(productionCodexConnectDeps({ home }).syncCodexPluginHome({ codexHome })).toEqual({
+      did: "skipped",
+      why: `${codeCheckoutRoot()!} is not a declared main checkout, and only one publishes the Codex install`,
+    });
+    expect(existsSync(codexHome)).toBe(false);
+  });
+});
 
 describe("productionCodexConnectDeps reserveStoreDir", () => {
   it("creates a fresh store owner-only, parent included, holding the attempt's reservation", () => {

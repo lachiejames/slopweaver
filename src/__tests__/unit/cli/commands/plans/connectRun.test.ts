@@ -16,6 +16,8 @@ import {
   workerExitCode,
 } from "../../../../../cli/commands/plans/connectRun.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
+import { CodexPluginSyncErrors } from "../../../../../codexPlugin/errors.js";
+import type { SyncOutcome } from "../../../../../codexPlugin/plan.js";
 import type { ConnectionPhase, PlanConnection } from "../../../../../plans/connection.js";
 
 /** One stored attempt in the given phase. */
@@ -98,14 +100,43 @@ describe("plans connections", () => {
 });
 
 describe("workerExitCode", () => {
+  const connected = attemptIn({ phase: "connected" });
+  const homeFailed: SyncOutcome = {
+    did: "synced",
+    homes: [
+      {
+        codexHome: connected.storeDir,
+        did: "failed",
+        error: CodexPluginSyncErrors.addFailed({ detail: "exit 1" }),
+      },
+    ],
+  };
+
   it("fails a worker whose attempt ended failed, even though the record was written", () => {
-    expect(workerExitCode({ connection: { ...attemptIn({ phase: "failed" }), failure: "CLI_MISSING" } })).toBe(
-      EXIT_ERROR,
-    );
+    expect(
+      workerExitCode({
+        outcome: { connection: { ...attemptIn({ phase: "failed" }), failure: "CLI_MISSING" }, sync: undefined },
+      }),
+    ).toBe(EXIT_ERROR);
   });
 
-  it("succeeds for a connected attempt and for one the owner cancelled", () => {
-    expect(workerExitCode({ connection: attemptIn({ phase: "connected" }) })).toBe(EXIT_OK);
-    expect(workerExitCode({ connection: attemptIn({ phase: "cancelled" }) })).toBe(EXIT_OK);
+  it("succeeds for a connected attempt whose install was current or skipped, and for one the owner cancelled", () => {
+    const current: SyncOutcome = {
+      did: "synced",
+      homes: [{ codexHome: connected.storeDir, did: "current", trusted: undefined, why: "on HEAD" }],
+    };
+    expect([
+      workerExitCode({ outcome: { connection: connected, sync: current } }),
+      workerExitCode({ outcome: { connection: connected, sync: { did: "skipped", why: "not a main checkout" } } }),
+      workerExitCode({ outcome: { connection: attemptIn({ phase: "cancelled" }), sync: undefined } }),
+    ]).toEqual([EXIT_OK, EXIT_OK, EXIT_OK]);
+  });
+
+  it("fails a connected attempt whose install failed, before any home or at its one home", () => {
+    const beforeAny: SyncOutcome = { did: "failed", error: CodexPluginSyncErrors.exportFailed({ detail: "no HEAD" }) };
+    expect([
+      workerExitCode({ outcome: { connection: connected, sync: beforeAny } }),
+      workerExitCode({ outcome: { connection: connected, sync: homeFailed } }),
+    ]).toEqual([EXIT_ERROR, EXIT_ERROR]);
   });
 });

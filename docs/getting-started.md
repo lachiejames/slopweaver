@@ -145,11 +145,11 @@ bin/slopweaver claude signin --status
 ```
 
 A **Codex** plan connects from the console with no terminal: **Settings → Models → Connect** runs `plans connect
---provider codex`, which opens Codex's own sign-in page in your browser and registers the plan once you sign in there
-(`plans connections` reports the attempt; `plans connect-cancel --id <id>` ends one). By hand, `plans add --provider
-codex --plan <alias> --store-dir <absolute dir>` prints the `codex login` line to run, then installs Slopweaver
-into that one home as a foreground `codex plugin-sync` would ([Codex](#codex)); a failed install keeps the row,
-prints its own line and exits non-zero, so rerun `codex plugin-sync`. To give the fleet only part of
+--provider codex`, which opens Codex's own sign-in page in your browser, registers the plan once you sign in there,
+and installs Slopweaver into its home (`plans connections` reports the attempt; `plans connect-cancel --id <id>` ends
+one). By hand, `plans add --provider codex --plan <alias> --store-dir <absolute dir>` prints the `codex login` line to
+run, then installs Slopweaver into that one home as a foreground `codex plugin-sync` would ([Codex](#codex)). Either
+way a failed install keeps the row and exits non-zero, so rerun `codex plugin-sync`. To give the fleet only part of
 a plan, record a usage limit on its row, such as `plans set-usage-limit --provider claude --plan plan-one --percent
 50 --allowance weekly-window`, or pick its percentage in Settings → Models, one drop-down per plan; routing stops at
 it. The house bars every plan is routed against (95% by default for Claude, 99% for Codex) are the

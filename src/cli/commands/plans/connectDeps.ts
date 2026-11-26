@@ -1,7 +1,8 @@
 /**
  * The production effects behind `plans connect` and `plans connect-worker`: the store directory a Codex sign-in is
- * written into (reserved, marked, retired and removed owner-only), the liveness probe, the worker launch and the
- * sign-in exchange. `connectRun.ts` parses flags and prints; this file is the effectful shell it hands the behaviour.
+ * written into (reserved, marked, retired and removed owner-only), the liveness probe, the worker launch, the
+ * sign-in exchange and the Slopweaver install into the home once its row commits. `connectRun.ts` parses flags and
+ * prints; this file is the effectful shell it hands the behaviour.
  */
 import { randomBytes } from "node:crypto";
 import {
@@ -26,6 +27,8 @@ import { launchConnectWorker } from "../../../plans/connectLaunch.js";
 import { CONNECT_RESERVATION_FILE } from "../../../plans/connectPlan.js";
 import { planRegisterPort } from "../../../plans/port.js";
 import { stateHomePaths } from "../../../stateHome.js";
+
+import { liveConnectWorkerCheckout, syncCodexPluginHomeLive } from "./codexPluginSyncLive.js";
 
 /** The program that opens a sign-in page in the default browser. */
 const PAGE_OPENER = "/usr/bin/open";
@@ -206,6 +209,8 @@ export function productionCodexConnectDeps({ home }: { home: string }): CodexCon
     retireStoreDir,
     runSignIn: ({ cancelPath, codexHome, deadlineMs, signInUrlPath }) =>
       runCodexLoginExchange({ cancelPath, codexHome, deadlineMs, opener: PAGE_OPENER, signInUrlPath }),
+    syncCodexPluginHome: ({ codexHome }) =>
+      syncCodexPluginHomeLive({ checkout: liveConnectWorkerCheckout(), codexHome, stateHome: home }),
     wait: ({ ms }) =>
       new Promise((resolve) => {
         setTimeout(resolve, ms);

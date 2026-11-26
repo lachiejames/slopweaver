@@ -9,6 +9,7 @@
 import { err, type Result } from "#lib/result.js";
 
 import type { CodexLoginRun } from "../codex/loginExchange.js";
+import type { SyncOutcome } from "../codexPlugin/plan.js";
 
 import type { ConnectionFailure, PlanConnection } from "./connection.js";
 import { type PlanConnectionError, PlanConnectionErrors } from "./connectionErrors.js";
@@ -67,6 +68,11 @@ export interface CodexConnectDeps {
     readonly signInUrlPath: string;
     readonly deadlineMs: number;
   }) => CodexLoginRun;
+  /**
+   * Install Slopweaver into the Codex home a committed row now names — the one-home sync `plans add` runs — so a
+   * seat booted on it carries Slopweaver's skills and hooks; never throws.
+   */
+  readonly syncCodexPluginHome: (input: { readonly codexHome: string }) => SyncOutcome;
 }
 
 /**

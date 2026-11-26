@@ -170,7 +170,7 @@ describe("runCodexConnectWorker's store ownership", () => {
       },
     });
     const started = unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: started.id }));
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: started.id })).connection;
     expect([done.phase, done.detail, journal.removed]).toEqual([
       "cancelled",
       `${ownStore} was left behind: it does not carry this attempt's reservation, so it was not removed`,
@@ -193,7 +193,7 @@ describe("runCodexConnectWorker's store ownership", () => {
       },
     };
     const started = unwrap(await startCodexConnect({ deps, home }));
-    const done = unwrap(await runCodexConnectWorker({ deps, home, id: started.id }));
+    const done = unwrap(await runCodexConnectWorker({ deps, home, id: started.id })).connection;
     // The store stays in its holding directory, named in the detail; nothing was removed.
     const heldAt = join(`${ownStore}.retired-${ATTEMPT_ID}`, "store");
     expect([done.phase, done.detail, journal.removed, journal.moved]).toEqual([

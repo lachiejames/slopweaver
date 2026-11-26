@@ -34,8 +34,8 @@ Two things follow, and both are properties of the code rather than conventions:
 ## The one hard line
 
 **No field in the register can hold a credential**; the code a provider mails the owner is the owner's to enter. From the console,
-`plans connect --provider codex` opens Codex's own sign-in page in the browser, the owner's sign-in the consent, and registers
-the plan once it lands ([connect](reference/connect.md)); by hand, `add` prints the `CODEX_HOME=<dir> codex login`
+`plans connect --provider codex` opens Codex's own sign-in page in the browser, the owner's sign-in the consent, registers
+the plan once it lands and installs Slopweaver into its home as `add` does ([connect](reference/connect.md)); by hand, `add` prints the `CODEX_HOME=<dir> codex login`
 line for the owner's own terminal and stops there; the token behind a registered directory is the provider CLI's business,
 never read, copied or rendered here. A Claude plan's setup token is minted by a seat with `slopweaver claude mint
 --plan <alias>`, which pre-fills the plan's enrolled address so the owner never needs to know which address a plan is:
