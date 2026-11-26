@@ -29,7 +29,7 @@ export interface RecoveryRestartAttempt {
   readonly slug?: string;
   readonly sessionId?: string;
   /**
-   * `lost` is a chair that took the pin and then ended or lost it: its run is a supervisor's own, so its row is never
+   * `lost` is a chair a look saw holding the pin that then ended or lost it: its run is a supervisor's own, so its row is never
    * closed as one that never sat, and nothing is opened after it, since a new chair would take over from that run.
    */
   readonly outcome: "restarted" | "starting" | "spawn-refused" | "ended" | "lost" | "deadline";

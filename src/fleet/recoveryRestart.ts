@@ -5,7 +5,7 @@
  * **A chair that is still running is never left beside another.** A refused spawn, or a chair that ended before it
  * took the pin, leaves nothing running, so the next plan may be tried; a chair still running at the deadline is
  * `starting`, and nothing else is opened beside it. A doc whose chair never took the pin has its board row closed,
- * so nothing reads it as a supervisor waiting to be seated; one that took the pin and then ended is `lost`, its row
+ * so nothing reads it as a supervisor waiting to be seated; one a look saw holding the pin before it ended is `lost`, its row
  * left as a supervisor's own and nothing opened after it.
  */
 import type { AppSessionSnapshot } from "../sessionHarness/appProtocol.js";
