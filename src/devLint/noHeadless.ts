@@ -5,7 +5,8 @@
  *
  * Unlike `schedulerBypass.ts`, which this file otherwise copies the shape of, there is **no allowlist and
  * no exemption marker**. The doctrine is a total ban: nothing in this repository may start a model, full
- * stop, and a marker or a sanctioned-file map would just be a second way to write the thing being banned.
+ * stop, and a marker or a sanctioned-file map would just be a second way to write the thing being banned. One
+ * recognised desktop call causes visible app sessions, and only those (NH008 below).
  *
  * Five independent rules, each with a falsifiable trap that motivated it:
  *
@@ -54,7 +55,8 @@
  *   MEASURED: `desktop/` held ten hits in five files and `tools/` none, so a headless `spawn("claude", …)`
  *   written in either would have passed). `desktop/` now takes NH008 with its own recognized shapes
  *   (`RECOGNIZED_DESKTOP_CHILDREN`, `noHeadlessCapability.ts`) — never the console's, never a file list — and
- *   `tools/` takes the plain NH001/NH002. Reproduce the measurement by running `scanNoHeadless` over every
+ *   `tools/` takes the plain NH001/NH002. One of those shapes, the owner's Recovery press running `fleet
+ *   recover`, causes visible app sessions: throwaway cards the owner sees and can stop, never a headless model. Reproduce the measurement by running `scanNoHeadless` over every
  *   non-test `.ts` under `desktop/` and `tools/`.
  *
  * The trap shared by NH003/NH004: the WORDS "launchd", "launchctl" and ".plist" legitimately appear in this

@@ -1,6 +1,6 @@
 /**
- * The fleet's effects: read its health, knock on cmux and revive it when hung, open cmux, and type one line into a
- * new cmux tab. The decisions are `fleetAutomation.ts`, `fleetHealth.ts` and `cmuxRevive.ts`; this file only runs
+ * The fleet's effects: read its health, knock on cmux and revive it when hung, open cmux, type one line into a
+ * new cmux tab, and run the Recovery check on the owner's press. The decisions are `fleetAutomation.ts`, `fleetHealth.ts` and `cmuxRevive.ts`; this file only runs
  * processes and files.
  *
  * ## Why AppleScript, and not the cmux socket
@@ -21,15 +21,30 @@ import { err, ok, ResultAsync } from "neverthrow";
 
 import { type CmuxReviveReading, parseCmuxRevive } from "./cmuxRevive";
 import { childEnv } from "./consoleEndpoint";
-import { type FleetError, FleetErrors, lastLine, type StateError, StateErrors } from "./errors";
+import {
+  type FleetError,
+  FleetErrors,
+  type FleetRecoveryError,
+  FleetRecoveryErrors,
+  lastLine,
+  type StateError,
+  StateErrors,
+} from "./errors";
 import { decodeFleetAutomation, type FleetAutomation, NO_EPISODE } from "./fleetAutomationEpisode";
 import { type FleetHealth, parseFleetHealth } from "./fleetHealth";
+import { type FleetRecoveryResult, parseFleetRecovery } from "./fleetRecoveryCheck";
 
 /** `fleet health` reads processes, sessions and the board: seconds, bounded well above. */
 const HEALTH_TIMEOUT_MS = 60_000;
 
 /** `cmux revive`: a knock is seconds, a restart a quit's grace plus five minutes waiting for the reopened app. */
 const REVIVE_TIMEOUT_MS = 6 * 60_000;
+
+/**
+ * `fleet recover`: two cards, each given its own deadline to start and answer, then closed — the limit on the owner's
+ * card, above the verb's own worst case.
+ */
+const RECOVERY_TIMEOUT_MS = 14 * 60_000;
 
 /** `osascript` opening a tab, or `open -a cmux`: seconds. */
 const BRIDGE_TIMEOUT_MS = 30_000;
@@ -170,6 +185,38 @@ export function readFleetHealth({ checkout }: { checkout: string }): ResultAsync
       const parsed = parseFleetHealth({ text: ran.stdout });
       if (parsed.isErr() && ran.code !== 0 && ran.code !== 3) {
         return err(FleetErrors.unreadable({ detail: ran.stderr }));
+      }
+      return parsed;
+    });
+}
+
+/**
+ * Run the Recovery check through the checkout's own CLI, on the owner's press and nothing else. This is the one
+ * call in the app that causes model sessions, and every one is a visible throwaway card in this app that the owner
+ * can watch and stop, opened one at a time by the verb (`src/fleet/recoveryPass.ts`). The verb exits 1 or 3 beside a
+ * perfectly good result, so the exit code decides nothing; whether stdout carries the one document does.
+ *
+ * @param checkout the checkout whose `bin/slopweaver` runs
+ * @returns the result, or why the press produced none
+ */
+export function recoverFleet({ checkout }: { checkout: string }): ResultAsync<FleetRecoveryResult, FleetRecoveryError> {
+  const label = join(checkout, "bin", "slopweaver");
+  return run({
+    cwd: checkout,
+    label,
+    launch: ({ done, options }) => execFile(join(checkout, "bin", "slopweaver"), ["fleet", "recover"], options, done),
+    timeoutMs: RECOVERY_TIMEOUT_MS,
+  })
+    .mapErr((detail) =>
+      // `run` words a timeout exactly this way, and that is the only failure it words without the child's stderr.
+      detail === `${label} did not finish in ${String(RECOVERY_TIMEOUT_MS / 1000)}s`
+        ? FleetRecoveryErrors.timeout({ seconds: RECOVERY_TIMEOUT_MS / 1000 })
+        : FleetRecoveryErrors.didNotRun({ detail }),
+    )
+    .andThen((ran) => {
+      const parsed = parseFleetRecovery({ text: ran.stdout });
+      if (parsed.isErr() && ran.stdout.trim().length === 0) {
+        return err(FleetRecoveryErrors.didNotRun({ detail: ran.stderr }));
       }
       return parsed;
     });

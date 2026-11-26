@@ -1,11 +1,12 @@
 /**
- * The sessions page: every value escaped, one button at most, the producer's text only under the fold, and no
- * control but that button.
+ * The sessions page: every value escaped, at most one button for the reason, the producer's text only under the
+ * fold, and no control but that button and the page's own Recovery button (`fleetPageRecovery.test.ts`).
  */
 import { describe, expect, it } from "vitest";
 
 import type { FleetHealth } from "../../src/fleetHealth";
 import { fleetLinkOf, fleetNoteUrl, fleetPageHtml } from "../../src/fleetPage";
+import { RECOVERY_IDLE } from "../../src/fleetRecoveryCheck";
 
 const HEALTH: FleetHealth = {
   capacity: { configured: 15, online: 1 },
@@ -59,7 +60,7 @@ const HEALTH: FleetHealth = {
 };
 
 describe("fleetPageHtml", () => {
-  const html = fleetPageHtml({ health: HEALTH, timeZone: "Australia/Sydney" });
+  const html = fleetPageHtml({ health: HEALTH, recovery: RECOVERY_IDLE, timeZone: "Australia/Sydney" });
 
   it("names the supervisor's last sign of working on its row, as a clock time and never an age", () => {
     expect(html).toContain(
@@ -75,8 +76,8 @@ describe("fleetPageHtml", () => {
     );
   });
 
-  it("draws exactly one button, and it names the hand step standing now", () => {
-    expect(html.match(/class="act"/gu)!.length).toBe(1);
+  it("draws exactly one button for the reason, and it names the hand step standing now", () => {
+    expect(html.match(/href="slopweaver-fleet:\/\/act\//gu)!.length).toBe(1);
     expect(html).toContain('href="slopweaver-fleet://act/policy-override%3AALLOW_FABLE_OVERRIDE"');
   });
 

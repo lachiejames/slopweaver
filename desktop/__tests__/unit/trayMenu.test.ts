@@ -5,7 +5,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { MenuView } from "../../src/shellState";
-import { type TrayMenuActs, type TrayMenuItem, type TrayMenuParts, trayMenuItems } from "../../src/trayMenu";
+import {
+  type TrayFleet,
+  type TrayMenuActs,
+  type TrayMenuItem,
+  type TrayMenuParts,
+  trayMenuItems,
+} from "../../src/trayMenu";
 
 /** Every press records its own name, so a test reads which act an item is wired to. */
 const pressed: string[] = [];
@@ -19,6 +25,9 @@ const ACTS: TrayMenuActs = {
   reopen: ({ path }) => pressed.push(`reopen:${path}`),
   retry: () => pressed.push("retry"),
 };
+
+/** The owner's fleet with no Recovery check running. */
+const FLEET: TrayFleet = { line: "Fleet: 3 sessions", recover: () => pressed.push("recover"), recoveryRunning: false };
 
 const VIEW: MenuView = {
   icon: "ready",
@@ -35,7 +44,7 @@ const labelOf = (item: TrayMenuItem): string => (item.type === "separator" ? "--
 describe("trayMenuItems", () => {
   it("draws the owner's app's whole menu, in order", () => {
     const parts: TrayMenuParts<TrayMenuItem> = {
-      fleetLine: "Fleet: 3 sessions",
+      fleet: FLEET,
       lines: ["Console serving"],
       permissions: { label: "Turn on Screen Recording…" },
       planUsageItems: [{ label: "Plans: 2 of 3 open" }],
@@ -51,6 +60,7 @@ describe("trayMenuItems", () => {
       "---",
       "Update now",
       "Open Sessions",
+      "Recovery",
       "Turn on Screen Recording…",
       "Mouse & keyboard control…",
       "Start voice",
@@ -65,7 +75,7 @@ describe("trayMenuItems", () => {
 
   it("drops the fleet, the permissions items and triage from a test instance's own icon, and keeps the rest", () => {
     const parts: TrayMenuParts<TrayMenuItem> = {
-      fleetLine: undefined,
+      fleet: undefined,
       lines: ["Test instance · Slopweaver Dev", "Console serving"],
       permissions: undefined,
       planUsageItems: [{ label: "Plans: reading…" }],
@@ -88,7 +98,7 @@ describe("trayMenuItems", () => {
 
   it("keeps mouse and keyboard control in the owner's menu while every voice permission is on", () => {
     const parts: TrayMenuParts<TrayMenuItem> = {
-      fleetLine: undefined,
+      fleet: undefined,
       lines: [],
       permissions: { label: undefined },
       planUsageItems: [],
@@ -108,7 +118,7 @@ describe("trayMenuItems", () => {
 
   it("wires each item to its own act, Quit on Command+Q", () => {
     const parts: TrayMenuParts<TrayMenuItem> = {
-      fleetLine: "Fleet: 3 sessions",
+      fleet: FLEET,
       lines: [],
       permissions: { label: "Turn on Microphone…" },
       planUsageItems: [],
@@ -124,6 +134,7 @@ describe("trayMenuItems", () => {
     }
     expect(pressed).toEqual([
       "sessions",
+      "recover",
       "guide",
       "input-control",
       "voice:activate",
@@ -133,5 +144,22 @@ describe("trayMenuItems", () => {
       "quit",
     ]);
     expect(items.at(-1)!.accelerator).toBe("Command+Q");
+  });
+
+  it("disables Recovery while a check runs, and enables it otherwise", () => {
+    const partsFor = ({ recoveryRunning }: { recoveryRunning: boolean }): TrayMenuParts<TrayMenuItem> => ({
+      fleet: { ...FLEET, recoveryRunning },
+      lines: [],
+      permissions: undefined,
+      planUsageItems: [],
+      quitLabel: "Quit Slopweaver",
+      triageItems: [],
+      updateItems: [],
+      view: VIEW,
+    });
+    const recoveryItem = ({ recoveryRunning }: { recoveryRunning: boolean }): TrayMenuItem =>
+      trayMenuItems({ acts: ACTS, parts: partsFor({ recoveryRunning }) }).find((item) => item.label === "Recovery")!;
+    expect(recoveryItem({ recoveryRunning: true }).enabled).toBe(false);
+    expect(recoveryItem({ recoveryRunning: false }).enabled).toBe(true);
   });
 });

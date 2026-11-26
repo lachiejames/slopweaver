@@ -2,7 +2,7 @@
 
 The owner's spec is "never locked out": when the fleet is down, the owner can find out in plain words which vendor can
 still start a session, and what the one step is when neither can. `slopweaver fleet recover` is that check. It runs
-from the command line only: the desktop app has no item or button for it yet.
+from the command line, or when the owner presses Recovery in the desktop app.
 
 ```bash
 slopweaver fleet recover [--home <dir>]   # one JSON line; exit 0 both vendors, 3 one or none, 1 the check itself failed, 4 another check runs
@@ -47,10 +47,23 @@ one entry per vendor naming the plan it answered on or why it did not start, the
 every attempt in order, and the one sign-in command when that is the fix (`FleetRecoveryResult`,
 `src/fleet/recoveryCheck.ts`).
 
+## Recovery in the desktop app
+
+- **Pressed, never scheduled.** The menu bar's Recovery item and the Sessions page's Recovery button run this verb
+  as the app's child (`recoverFleet`, `desktop/src/fleetProcess.ts`), bounded at fourteen minutes. Nothing else
+  starts it: not the app's launch, not a timer, not a calendar.
+- **One pass at a time.** Both presses go through one press step (`stepFleetRecovery`,
+  `desktop/src/fleetRecoveryCheck.ts`), so a press on either while a check runs starts nothing; the item is
+  disabled and the button absent until it ends.
+- **The one app child that causes model sessions.** Every one is a visible throwaway card in the app. The
+  no-headless gate recognises exactly this call, from `desktop/` alone, by the owner's ruling (rule 2).
+- **What it shows.** The Sessions page reads the one stdout line and says, per vendor, whether it started a
+  session, the plan, and the reason when not, then the sign-in command when that is the fix. A timeout, a line it
+  cannot read or a verb that never printed one says no success was recorded. The state is memory only, so the app
+  opens on "not run since the app opened".
+
 ## What it does not do yet, stated
 
-- **The desktop app neither runs it nor shows it.** A menu bar item, a Sessions-page line and button, and the app
-  running the verb as its own child wait on the owner's ruling, because no-headless (rule 2) has no allowlist.
 - **The app does not start the supervisor itself, and runs no check at launch.** The check neither restarts the
   chair nor reseats a seat.
 - **A pass proves one turn, on the plan that answered, at that moment.** A plan the ranker placed later is not

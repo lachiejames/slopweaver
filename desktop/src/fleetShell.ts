@@ -1,6 +1,6 @@
 /**
  * The fleet's half of the shell, applied to Electron: apply each reading of the fleet, decide what the sessions page
- * and the floating note show, launch the episode's one automatic recovery, and act on the page's one button. The
+ * and the floating note show, launch the episode's one automatic recovery, and act on the page's buttons. The
  * decisions are `fleetAutomation.ts`, `fleetHealth.ts` and `fleetPage.ts`; the processes are `fleetProcess.ts`. The
  * windows are `fleetWindows.ts`, the saved memory `fleetMemoryShell.ts`, and the timers `fleetPollingShell.ts`.
  *
@@ -29,8 +29,10 @@ import { readFleetMemory, saveFleetMemory, startFleetMemory } from "./fleetMemor
 import { type FleetLink, fleetNoteUrl, fleetPageUrl, fleetUnreadableUrl } from "./fleetPage";
 import { checkFleet, fleetPollingBlocksLaunch, startFleetPolling } from "./fleetPollingShell";
 import { launchInCmux, openCmux, readFleetHealth } from "./fleetProcess";
+import { fleetRecoveryState, pressFleetRecovery, startFleetRecoveryShell } from "./fleetRecoveryShell";
 import { drawFleetNote, drawFleetPage, startFleetWindows } from "./fleetWindows";
 import { startSessionControl } from "./sessionControlBoot";
+import type { TrayFleet } from "./trayMenu";
 
 // The rest of the shell reaches the fleet's half through this module alone; the sessions window is drawn there.
 export { fleetWindowOpen, showFleetWindow } from "./fleetWindows";
@@ -108,12 +110,23 @@ function shownHealth(): FleetHealth | undefined {
  *
  * @returns the line
  */
-export function fleetTrayLine(): string {
+function fleetTrayLine(): string {
   const health = shownHealth();
   if (health === undefined) {
     return fleetProblem === undefined ? "Fleet: reading…" : "Fleet: could not be read";
   }
   return `Fleet: ${String(health.capacity.online)} of ${String(health.capacity.configured)} online · ${health.reason.headline}`;
+}
+
+/**
+ * The fleet's part of the menu: its line, and the Recovery item, whose press is the same one the Sessions page's
+ * button makes.
+ *
+ * @returns the part
+ */
+export function fleetTray(): TrayFleet {
+  const recoveryRunning = fleetRecoveryState().kind === "running";
+  return { line: fleetTrayLine(), recover: pressFleetRecovery, recoveryRunning };
 }
 
 /**
@@ -189,11 +202,12 @@ function drawNote(): void {
 /** Draw the sessions page, the note and the menu line from the current reading; an unchanged one reloads nothing. */
 function draw(): void {
   const health = shownHealth();
-  let url = fleetUnreadableUrl({ problem: "No reading yet." });
+  const recovery = fleetRecoveryState();
+  let url = fleetUnreadableUrl({ problem: "No reading yet.", recovery });
   if (health !== undefined) {
-    url = fleetPageUrl({ health, timeZone: undefined });
+    url = fleetPageUrl({ health, recovery, timeZone: undefined });
   } else if (fleetProblem !== undefined) {
-    url = fleetUnreadableUrl({ problem: fleetProblem });
+    url = fleetUnreadableUrl({ problem: fleetProblem, recovery });
   }
   drawFleetPage({ url });
   drawNote();
@@ -237,12 +251,17 @@ function launch({ launch: what, automatic }: { launch: FleetLaunch; automatic: b
 }
 
 /**
- * Act on a link the page or the note navigated to — only when it names the hand step standing now, so a stale page
- * can never press a button the fleet no longer offers.
+ * Act on a link the page or the note navigated to — a hand step's only when it names the step standing now, so a
+ * stale page can never press a button the fleet no longer offers. Recovery is the owner's press on the page, the
+ * same press as the menu's item, which starts nothing while a check runs.
  *
  * @param link what was clicked
  */
 function actOnLink({ link }: { link: FleetLink }): void {
+  if (link.kind === "recover") {
+    pressFleetRecovery();
+    return;
+  }
   const step = shownHealth()?.reason.handStep;
   if (step === undefined || step.id !== link.stepId) {
     return;
@@ -372,6 +391,8 @@ function fleetReadSucceeded({ health }: { readonly health: FleetHealth }): void 
  */
 export async function startFleetShell({ shellHost }: { shellHost: FleetShellHost }): Promise<void> {
   host = shellHost;
+  // Starts no check: one runs only when the owner presses Recovery.
+  startFleetRecoveryShell({ recoveryHost: { changed: draw, checkout: () => shellHost.checkout() } });
   startFleetWindows({
     windowsHost: {
       actOnLink,

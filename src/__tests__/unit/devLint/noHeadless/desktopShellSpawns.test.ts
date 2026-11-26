@@ -47,8 +47,9 @@ describe("NH008 — the desktop shell and tools/ are inside the scan", () => {
     const helper = `${EXEC_FILE}const child = execFile(helperPath, [verb], { encoding: "utf8" }, cb);\n`;
     const front = `${EXEC_FILE}execFile(\n  "/usr/bin/osascript",\n  ["-l", "JavaScript", "-e", FRONT_WINDOW_PROGRAM],\n  { timeout },\n  cb,\n);\n`;
     const exported = `${EXEC_FILE}execFile(\n  join(checkout, "bin", "slopweaver"),\n  ["page", "export", slug, "--out", file, "--json"],\n  options,\n  done,\n);\n`;
-    const fixtures = [docs, update, health, revive, exported, open, osascript, helper, front];
-    expect(fixtures.length).toBe(9);
+    const recover = `${EXEC_FILE}execFile(join(checkout, "bin", "slopweaver"), ["fleet", "recover"], options, done);\n`;
+    const fixtures = [docs, update, health, revive, recover, exported, open, osascript, helper, front];
+    expect(fixtures.length).toBe(10);
     expect(fixtures.map((content) => scanNoHeadless({ content, path: "desktop/src/x.ts" }))).toEqual(
       fixtures.map(() => []),
     );
