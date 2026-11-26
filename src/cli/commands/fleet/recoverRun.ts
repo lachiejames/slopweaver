@@ -1,6 +1,7 @@
 /**
  * `slopweaver fleet recover` — whether each vendor can start a session in the desktop app, the plan it worked on and why
- * not otherwise. It is run from the command line; the desktop app does not run it. It works with no model running,
+ * not otherwise. It is run from the command line, or by the desktop app when the owner presses Recovery
+ * (`desktop/src/fleetProcess.ts`'s `recoverFleet`, the one app child that causes visible app sessions). It works with no model running,
  * because nothing in it is one. What a pass does lives in `../../../fleet/recoveryPass.ts`; this file is the flag, the
  * lock, the real effects and the exit code.
  *

@@ -66,7 +66,7 @@ import {
 } from "./desktopBridge";
 import { desktopBootPolicy, desktopE2eMode, isDesktopTestInstance } from "./e2eMode";
 import { type EdgeGlowShell, startEdgeGlowShell } from "./edgeGlowShell";
-import { fleetTrayLine, fleetWindowOpen, showFleetWindow, startFleetShell } from "./fleetShell";
+import { fleetTray, fleetWindowOpen, showFleetWindow, startFleetShell } from "./fleetShell";
 import { launchDesktop } from "./launch";
 import {
   EMPTY_MEDIA_LEDGER,
@@ -273,7 +273,7 @@ function drawTray(): void {
   tray.setTitle(named.title);
   // The same menu the owner's app draws, less what a test instance never started: fleet, permissions guide, triage.
   const parts: TrayMenuParts<MenuItemConstructorOptions> = {
-    fleetLine: bootPolicy.fleet ? fleetTrayLine() : undefined,
+    fleet: bootPolicy.fleet ? fleetTray() : undefined,
     lines: named.identityLine === undefined ? view.lines : [named.identityLine, ...view.lines],
     permissions: bootPolicy.permissionGuide ? { label: permissionGuideMenuLabel() } : undefined,
     // Each plan's recorded usage after the fleet line: a headline, one line per plan behind it (`planUsageShell.ts`).

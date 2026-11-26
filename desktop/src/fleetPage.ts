@@ -2,24 +2,32 @@
  * The sessions page and its floating note, as self-contained HTML. Pure.
  *
  * The page is the ONE panel the shell shows for the fleet: a capacity line, every seat as a coloured dot with its
- * band and the row it runs, the reason in plain words, and at most one button. There is no priority control and no
- * reseat button — recovery is the shell's, and a seat's priority is its board row's. The producer's own text sits
- * under a fold and is never the headline.
+ * band and the row it runs, the reason in plain words with at most one button for it, and the Recovery check's
+ * line with the page's one Recovery button of its own. There is no priority control and no reseat button —
+ * recovery is the shell's, and a seat's priority is its board row's. The producer's own text sits under a fold and
+ * is never the headline.
  *
- * Both documents carry no script and a policy that allows none. The one button is a link on the
- * `slopweaver-fleet:` scheme, which the main process intercepts and acts on only when it names the hand step
- * standing at that moment (`fleetLinkOf`); every value drawn is escaped.
+ * Both documents carry no script and a policy that allows none. Each button is a link on the `slopweaver-fleet:`
+ * scheme, which the main process intercepts: the reason's acts only when it names the hand step standing at that
+ * moment (`fleetLinkOf`), and Recovery's is drawn only while no check runs and starts nothing while one does. Every
+ * value drawn is escaped.
  */
 import { clockTime } from "./fleetAutomation";
 import { RESUME_COMMAND } from "./fleetAutomationLaunch";
 import type { FleetHealth, FleetReason, FleetSeat } from "./fleetHealth";
+import { type FleetRecoveryState, fleetRecoveryPresentation } from "./fleetRecoveryCheck";
 
-/** The scheme the page's one button and the note's two links navigate to. */
+/** The scheme the page's buttons and the note's two links navigate to. */
 export const FLEET_SCHEME = "slopweaver-fleet:";
+
+/** The Recovery button's link: one fixed address, carrying nothing a stale page could get wrong. */
+const RECOVER_URL = `${FLEET_SCHEME}//recover`;
 
 /** What a link on the page asks for. */
 export type FleetLink =
-  { readonly kind: "act"; readonly stepId: string } | { readonly kind: "dismiss"; readonly stepId: string };
+  | { readonly kind: "act"; readonly stepId: string }
+  | { readonly kind: "dismiss"; readonly stepId: string }
+  | { readonly kind: "recover" };
 
 /**
  * Escape text for HTML content and double-quoted attributes.
@@ -46,6 +54,9 @@ export function fleetLinkOf({ url }: { url: string }): FleetLink | undefined {
   if (!url.startsWith(FLEET_SCHEME)) {
     return undefined;
   }
+  if (url === RECOVER_URL) {
+    return { kind: "recover" };
+  }
   const match = /^slopweaver-fleet:\/\/(act|dismiss)\/([^/?#]{1,200})$/u.exec(url);
   if (match === null) {
     return undefined;
@@ -55,11 +66,11 @@ export function fleetLinkOf({ url }: { url: string }): FleetLink | undefined {
 }
 
 /**
- * The href for one link.
+ * The href for one hand-step link.
  *
  * @returns the `slopweaver-fleet://…` URL
  */
-function hrefOf({ link }: { link: FleetLink }): string {
+function hrefOf({ link }: { link: Extract<FleetLink, { readonly stepId: string }> }): string {
   return `${FLEET_SCHEME}//${link.kind}/${encodeURIComponent(link.stepId)}`;
 }
 
@@ -257,6 +268,24 @@ function reasonBlock({ reason, unmapped }: { reason: FleetReason; unmapped: read
   return parts.join("");
 }
 
+/**
+ * The Recovery check's block: its headline, a line per vendor, and the page's own Recovery button, which is absent
+ * while a check runs, the way the menu's item is disabled.
+ *
+ * @param recovery where the check stands
+ * @returns the block's HTML
+ */
+function recoveryBlock({ recovery }: { recovery: FleetRecoveryState }): string {
+  const shown = fleetRecoveryPresentation({ state: recovery });
+  const lines = shown.lines.map((line) => `<li>${escapeHtml({ text: line })}</li>`).join("");
+  const button = shown.canRun ? `<a class="act" href="${escapeHtml({ text: RECOVER_URL })}">Recovery</a>` : "";
+  return [
+    `<p class="title">${escapeHtml({ text: shown.headline })}</p>`,
+    lines.length > 0 ? `<ul class="why">${lines}</ul>` : "",
+    button,
+  ].join("");
+}
+
 /** The capacity line: online over configured, the console, and the attempt underway. */
 function capacityLine({ health }: { health: FleetHealth }): string {
   const parts = [
@@ -273,15 +302,25 @@ function capacityLine({ health }: { health: FleetHealth }): string {
  * The sessions page for one reading.
  *
  * @param health the reading, with the shell's own failure already folded in
+ * @param recovery where the Recovery check stands, drawn under the seats
  * @param timeZone the zone times are read in; the machine's own when undefined
  * @returns the page's HTML
  */
-export function fleetPageHtml({ health, timeZone }: { health: FleetHealth; timeZone: string | undefined }): string {
+export function fleetPageHtml({
+  health,
+  recovery,
+  timeZone,
+}: {
+  health: FleetHealth;
+  recovery: FleetRecoveryState;
+  timeZone: string | undefined;
+}): string {
   const nowIso = health.observedAtIso;
   const body = [
     reasonBlock({ reason: health.reason, unmapped: health.unmapped }),
     capacityLine({ health }),
     `<ul>${health.seats.map((seat) => seatRow({ nowIso, seat, timeZone })).join("")}</ul>`,
+    recoveryBlock({ recovery }),
   ].join("");
   return documentOf({ body, title: "Sessions" });
 }
@@ -290,20 +329,31 @@ export function fleetPageHtml({ health, timeZone }: { health: FleetHealth; timeZ
  * The sessions page as a `data:` URL.
  *
  * @param health the reading
+ * @param recovery where the Recovery check stands
  * @param timeZone the zone times are read in; the machine's own when undefined
  * @returns the URL the window loads
  */
-export function fleetPageUrl({ health, timeZone }: { health: FleetHealth; timeZone: string | undefined }): string {
-  return dataUrl({ html: fleetPageHtml({ health, timeZone }) });
+export function fleetPageUrl({
+  health,
+  recovery,
+  timeZone,
+}: {
+  health: FleetHealth;
+  recovery: FleetRecoveryState;
+  timeZone: string | undefined;
+}): string {
+  return dataUrl({ html: fleetPageHtml({ health, recovery, timeZone }) });
 }
 
 /**
- * The sessions page while no reading exists: why, in one line, with the producer's text under the fold.
+ * The sessions page while no reading exists: why, in one line, with the producer's text under the fold, and the
+ * Recovery check, which needs no reading of the fleet to run.
  *
  * @param problem why `fleet health` produced nothing usable
+ * @param recovery where the Recovery check stands
  * @returns the URL the window loads
  */
-export function fleetUnreadableUrl({ problem }: { problem: string }): string {
+export function fleetUnreadableUrl({ problem, recovery }: { problem: string; recovery: FleetRecoveryState }): string {
   const body = reasonBlock({
     reason: {
       code: "FLEET_UNREADABLE",
@@ -314,7 +364,7 @@ export function fleetUnreadableUrl({ problem }: { problem: string }): string {
     },
     unmapped: [],
   });
-  return dataUrl({ html: documentOf({ body, title: "Sessions" }) });
+  return dataUrl({ html: documentOf({ body: body + recoveryBlock({ recovery }), title: "Sessions" }) });
 }
 
 /**

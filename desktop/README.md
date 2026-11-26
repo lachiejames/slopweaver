@@ -3,7 +3,8 @@
 The console in a native window, the voice over your whole desktop, a sessions page that brings the fleet back
 after a restart, and a menu bar icon that says how it stands. It is a shell around the console your checkout
 already serves (`scripts/docs-site.sh`): it loads `http://localhost:<port>` and its own fleet pages and nothing
-else, starts no model out of your sight — every seat recovery resumes runs in a cmux tab — and sends nothing off
+else, starts no model out of your sight — every seat recovery resumes runs in a cmux tab, and the Recovery check's
+throwaway sessions are cards in the app itself — and sends nothing off
 this machine. Electron, for fast feedback loops in the TypeScript this repository
 already is; another architecture only if performance is measured to be a problem.
 
@@ -213,6 +214,11 @@ resume` into a new cmux tab, once per episode, remembered across a restart of th
   and however the episode's attempts ended), whose note waits until the fleet has read down for two minutes, names what it READS as down and when it first read the fleet down, says only what the journal shows recovery did, and folds why. A seat that keeps falling over after being brought back is held and handed to
   the supervisor to investigate, never respawned again. No priority control and no reseat button: those go to the
   supervisor. The first launch asks macOS to let it control cmux. The verbs: [skills/fleet](../skills/fleet/SKILL.md).
+- **Recovery, on your press only.** The menu bar's Recovery item and the Sessions page's Recovery button run
+  `bin/slopweaver fleet recover`, which opens one throwaway Claude card in the app, then one Codex card, and closes
+  each. The page then says per vendor whether it started a session, on which plan, and why not. One check runs at a
+  time: the item is disabled and the button gone until it ends. Nothing runs it at launch or on a timer:
+  [the Recovery check](../skills/fleet/reference/recovery-check.md).
 - **The console's glass contract**: every load the shell starts carries
   `?sw-surface=native` (`src/surface.ts`), `<html data-shell="main|overlay">` names the window, and the console's
   light or dark choice drives the native appearance, never the system's. The console window is OPAQUE, with no
@@ -254,6 +260,7 @@ Pure decisions are tested in `__tests__/unit/` (the unit lane collects them, the
 | `fleetHealth.ts`           | the fleet's health off `fleet health --json`, an alias refused unless a plain name      |
 | `fleetAutomation*.ts`      | one automatic recovery per down episode, a deferral continued, every line it types      |
 | `fleetPage.ts`             | the sessions page and the floating note, as script-free HTML                            |
+| `fleetRecoveryCheck.ts`    | the Recovery check's one stdout line read strictly, one press at a time, and its words  |
 | `buildIdentity.ts`         | which Slopweaver this is — packaged or a dev build of which checkout — and every title  |
 | `consoleNote.ts`           | the failed console's floating note: what failed, what to do, its links and its place    |
 | `consoleRestartHold.ts`    | how long a console not answering is waited out as an update's restart before the note   |

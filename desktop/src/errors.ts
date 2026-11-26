@@ -304,6 +304,33 @@ export const FleetErrors = {
 } as const;
 
 /**
+ * The owner's Recovery press produced no result the app can show as one. Each `message` is the Sessions page's
+ * Recovery line, and every one says no success was recorded, so none reads as a pass.
+ */
+export type FleetRecoveryError =
+  | { readonly code: "RECOVERY_TIMEOUT"; readonly message: string; readonly seconds: number }
+  | { readonly code: "RECOVERY_DID_NOT_RUN"; readonly message: string }
+  | { readonly code: "RECOVERY_UNREADABLE"; readonly message: string; readonly field: string };
+
+/** Build a {@link FleetRecoveryError}. */
+export const FleetRecoveryErrors = {
+  didNotRun: ({ detail }: { detail: string }): FleetRecoveryError => ({
+    code: "RECOVERY_DID_NOT_RUN",
+    message: `fleet recover gave no result, so no success was recorded: ${lastLine({ text: detail })}`,
+  }),
+  timeout: ({ seconds }: { seconds: number }): FleetRecoveryError => ({
+    code: "RECOVERY_TIMEOUT",
+    message: `fleet recover did not finish in ${String(seconds / 60)} minutes, so no success was recorded`,
+    seconds,
+  }),
+  unreadable: ({ field }: { field: string }): FleetRecoveryError => ({
+    code: "RECOVERY_UNREADABLE",
+    field,
+    message: `fleet recover printed a result malformed at ${field}, so no success was recorded`,
+  }),
+} as const;
+
+/**
  * The last non-empty line of a process's output, which is where a script says what went wrong.
  *
  * @param text everything the process printed

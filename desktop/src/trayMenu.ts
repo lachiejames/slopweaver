@@ -1,5 +1,5 @@
 /**
- * The menu bar icon's menu, in order: what it says, the fleet, each plan's usage, the update, Open Sessions, the permissions items, the
+ * The menu bar icon's menu, in order: what it says, the fleet, each plan's usage, the update, Open Sessions, Recovery, the permissions items, the
  * voice, triage, the Queue, a reopen, a retry and Quit. A test instance's own icon draws the same menu less what it
  * never started — the fleet, the permissions guide, triage — so each of those is passed in only when it runs.
  * `main.ts` supplies the acts and sets the menu; nothing here touches Electron, nor imports its types — the unit lane
@@ -30,12 +30,21 @@ export interface TrayMenuActs {
   readonly retry: () => void;
 }
 
+/** The fleet's part of the menu: its line, and the Recovery item, which exists only beside a fleet. */
+export interface TrayFleet {
+  readonly line: string;
+  /** A Recovery check is running, so its item is disabled until it finishes. */
+  readonly recoveryRunning: boolean;
+  /** The owner's Recovery press: the same press as the Sessions page's button. */
+  readonly recover: () => void;
+}
+
 /** What the menu shows, each part the owner's app's alone left `undefined` (or empty) in a test instance. */
 export interface TrayMenuParts<Item> {
   /** The lines above the first separator, the build's own first when it has one. */
   readonly lines: readonly string[];
-  /** The fleet's line; `undefined` with no fleet, which also drops Open Sessions. */
-  readonly fleetLine: string | undefined;
+  /** The fleet's part; `undefined` with no fleet, which also drops Open Sessions and Recovery. */
+  readonly fleet: TrayFleet | undefined;
   readonly updateItems: readonly Item[];
   /** The permissions guide's item label, `undefined` while every voice permission is on; the whole entry `undefined` with no guide. */
   readonly permissions: { readonly label: string | undefined } | undefined;
@@ -82,14 +91,17 @@ export function trayMenuItems<Item>({
   parts: TrayMenuParts<Item>;
   acts: TrayMenuActs;
 }): (Item | TrayMenuItem)[] {
-  const { fleetLine, view } = parts;
+  const { fleet, view } = parts;
   const items: (Item | TrayMenuItem)[] = parts.lines.map((label) => ({ enabled: false, label }));
-  if (fleetLine !== undefined) {
-    items.push({ enabled: false, label: fleetLine });
+  if (fleet !== undefined) {
+    items.push({ enabled: false, label: fleet.line });
   }
   items.push(...parts.planUsageItems, { type: "separator" }, ...parts.updateItems);
-  if (fleetLine !== undefined) {
-    items.push({ click: acts.openSessions, label: "Open Sessions" });
+  if (fleet !== undefined) {
+    items.push(
+      { click: acts.openSessions, label: "Open Sessions" },
+      { click: fleet.recover, enabled: !fleet.recoveryRunning, label: "Recovery" },
+    );
   }
   items.push(...permissionItems({ acts, permissions: parts.permissions }));
   if (view.voice !== undefined) {
