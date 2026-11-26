@@ -1,0 +1,30 @@
+{
+  "sites": [
+    { "owes": "unowned — no run", "path": "src/footprint/ledger.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/admit/painPoint.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/cli/commands/turn/freeze.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/handover/runStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/live/turn/progressLog.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/live/turn/workerLog.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/outbound/notion/pageLedger.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/outbound/proposal/register/store.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/reflect/seen.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/sessionStart/lockIn.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/sessionStart/runStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/admit/queueStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/admit/reachGrantStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/hatch/grantStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/live/ask/ignoreStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/live/ask/ignoredConversationStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/live/ask/store.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/live/turn/completionStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/sessions/sessionStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/supervisor/chainStore.ts", "shape": "jsonl-read-whole" },
+    { "owes": "unowned — no run", "path": "src/supervisor/intakeStore.ts", "shape": "jsonl-read-whole" },
+    {
+      "owes": "stream-the-dense-vector-leg-off-a-flat",
+      "path": "src/silver/derive/pipeline.ts",
+      "shape": "corpus-payload-whole"
+    }
+  ]
+}

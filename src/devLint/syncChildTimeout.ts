@@ -45,19 +45,29 @@
  *
  * ## The debt list only shrinks
  *
- * `SYNC_CHILD_TIMEOUT_DEBT` (`./syncChildTimeoutDebt.ts`) records, per file, how many calls the criterion
- * refuses today. The gate fails on a file whose count is ABOVE its entry and on one BELOW it (a migrated call
- * whose entry was not lowered), and on a malformed list, so the list can only be tightened. It is a NET-GROWTH
+ * `.baselines/sync-child-timeout-baseline.json` records, per file, how many calls the criterion refuses today
+ * and why each is still unbounded. The gate fails on a file whose count is ABOVE its entry and on one BELOW it (a
+ * migrated call whose entry was not lowered), and on a malformed list, so the list can only be tightened; a row
+ * added or raised is also a loosening against main that only a witnessed bump record lands. It is a NET-GROWTH
  * ratchet, keyed on a count rather than a line: removing one call and adding another in the same file keeps the
  * count, so it proves the debt did not grow, never that no new call was written.
+ *
+ * A debt list, not an allowlist: every entry is a real unbounded call waiting on a MEASURED ceiling — a build,
+ * an archive extraction, a test lane — where a guessed bound would kill a legitimate slow run. A shape the
+ * criterion should not match is fixed by sharpening the criterion, never by an entry. Re-measure with
+ * `yarn tsx src/devLint/syncChildTimeout.entry.ts` against an emptied list.
  *
  * Pure {@link scanSyncChildTimeout} + {@link judgeAgainstDebt}, effectful {@link runSyncChildTimeout} edge.
  */
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { z } from "zod";
+import type { Result } from "#lib/result.js";
 import { forEachChild, type NodeVisitor, ts, withSourceFile } from "#lib/tsSyntax.js";
 import { reportScanIntegrity, scanTextFiles } from "../lib/textFileScan.js";
+import { decodeDebtList, readCommittedInput } from "./decodeDebtList.js";
+import type { DevLintInputError } from "./errors.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
 import { lintGateRefusal } from "./refusal/render.js";
 import {
@@ -67,8 +77,44 @@ import {
   scopedScanFiles,
   isScannablePath as scopeIsScannablePath,
 } from "./scanScope.js";
-import { SYNC_CHILD_TIMEOUT_DEBT, type SyncChildTimeoutDebt } from "./syncChildTimeoutDebt.js";
 import { callIsBounded, importsChildProcess, launcherOf, type SyncApi } from "./syncChildTimeoutSyntax.js";
+
+/** One file's standing debt: how many calls the criterion refused there when the entry was last tightened. */
+export interface SyncChildTimeoutDebt {
+  readonly path: string;
+  readonly count: number;
+}
+
+/** The committed debt list, repo-relative. */
+const BASELINE_FILE = ".baselines/sync-child-timeout-baseline.json";
+
+/**
+ * The list's row types only, strict so a field the gate does not read is refused rather than dropped: a
+ * non-positive count, a repeated path and path order are {@link judgeAgainstDebt}'s to name, entry by entry.
+ * `reason` says why that file's calls are still unbounded.
+ */
+const BaselineSchema = z.strictObject({
+  files: z.array(z.strictObject({ count: z.number(), path: z.string(), reason: z.string().trim().min(1) })),
+});
+
+/**
+ * Decode the committed debt list's text. Pure.
+ *
+ * @param text the contents of `.baselines/sync-child-timeout-baseline.json`
+ * @returns one row per file, each with why its calls are still unbounded, or which half of the decode failed
+ */
+export function parseSyncChildTimeoutBaseline({
+  text,
+}: {
+  text: string;
+}): Result<readonly (SyncChildTimeoutDebt & { readonly reason: string })[], DevLintInputError> {
+  return decodeDebtList({
+    label: "sync-child-timeout baseline",
+    schema: BaselineSchema,
+    shape: "{ files: [{ path, count, reason }, …] }",
+    text,
+  }).map((baseline) => baseline.files);
+}
 
 /**
  * One synchronous child-process call with no visible `timeout`.
@@ -249,7 +295,7 @@ function reportVerdict({ fresh, stale, invalid }: SyncChildTimeoutVerdict): void
 }
 
 /**
- * IO edge: scan every in-scope file, judge it against `SYNC_CHILD_TIMEOUT_DEBT`, print the verdict.
+ * IO edge: scan every in-scope file, judge it against the committed debt list, print the verdict.
  *
  * @returns the process exit code (0 clean, 1 a new unbounded call, a stale or malformed entry, or an incomplete scan)
  */
@@ -282,7 +328,15 @@ export function runSyncChildTimeout(): number {
       process.stderr.write(text);
     },
   });
-  const verdict = judgeAgainstDebt({ debt: SYNC_CHILD_TIMEOUT_DEBT, hits });
+  const debt = readCommittedInput({ kind: "debt list", path: join(root, BASELINE_FILE) }).andThen((text) =>
+    parseSyncChildTimeoutBaseline({ text }),
+  );
+  if (debt.isErr()) {
+    // devlint: not-a-refusal -- the committed debt list could not be READ, so the gate has nothing to judge against
+    process.stderr.write(`sync-child-timeout: ${debt.error.message}\n`);
+    return 1;
+  }
+  const verdict = judgeAgainstDebt({ debt: debt.value, hits });
   reportVerdict(verdict);
   const failed = verdict.fresh.length > 0 || verdict.stale.length > 0 || verdict.invalid.length > 0;
   if (failed || !complete) {

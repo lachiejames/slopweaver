@@ -36,9 +36,9 @@ string too. **The stated blind spot**: a `||` falling back to an identifier or a
 receives `undefined` and still has to handle it — and `.claude/rules/testing.md` explicitly permits it inside
 a predicate. A different class, and folding it in would blunt this one.
 
-**Why a committed baseline rather than a hand-written `DEBT` array.** The rule is no allowlist, and a debt list for
-standing sites; `whole-file-json`'s `DEBT` shape works at thirty entries and not at four thousand. So the debt list
-is the `file-size-ratchet` shape: `.baselines/no-silent-fallback-baseline.json` names every standing
+**Why a count ratchet rather than a hand-kept row per site.** The rule is no allowlist, and a debt list for
+standing sites; `whole-file-json`'s one row per site, each owing a named fix, works at thirty entries and not at
+four thousand. So the debt list is the `file-size-ratchet` shape: `.baselines/no-silent-fallback-baseline.json` names every standing
 `{ path, operator, count }`, the gate refuses a pair that is new or whose count grew, and `--rebaseline` refuses
 to raise any existing entry. A list that cannot be widened by hand is not an allowlist — nothing an author writes
 can excuse a new site, and the tree's total can only fall. **Its residue, stated rather than discovered**: the unit

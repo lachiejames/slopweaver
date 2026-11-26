@@ -5,10 +5,26 @@
  * green here. The negative cases matter as much as the positive ones: a shape the gate wrongly flags is a
  * correct call somebody has to bend, and a shape it wrongly passes is the hung seat it exists to prevent.
  */
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { isScannablePath, judgeAgainstDebt, scanSyncChildTimeout } from "../../../devLint/syncChildTimeout.js";
-import { SYNC_CHILD_TIMEOUT_DEBT as DEBT } from "../../../devLint/syncChildTimeoutDebt.js";
+import {
+  isScannablePath,
+  judgeAgainstDebt,
+  parseSyncChildTimeoutBaseline,
+  scanSyncChildTimeout,
+} from "../../../devLint/syncChildTimeout.js";
+import { unwrap, unwrapErr } from "../../../lib/result.js";
+
+const DEBT = unwrap(
+  parseSyncChildTimeoutBaseline({
+    text: readFileSync(
+      fileURLToPath(new URL("../../../../.baselines/sync-child-timeout-baseline.json", import.meta.url)),
+      "utf8",
+    ),
+  }),
+);
 
 /** Scan a snippet as an ordinary production source file, answering `line:api` per hit. */
 function hits({ content, path = "src/example.ts" }: { content: string; path?: string }): readonly string[] {
@@ -309,9 +325,43 @@ describe("judgeAgainstDebt", () => {
   });
 });
 
+describe("parseSyncChildTimeoutBaseline", () => {
+  it("decodes a well-formed list into its rows, each keeping its reason", () => {
+    const row = { count: 2, path: "src/a.ts", reason: "a build whose ceiling is unmeasured" };
+
+    expect(unwrap(parseSyncChildTimeoutBaseline({ text: JSON.stringify({ files: [row] }) }))).toEqual([row]);
+  });
+
+  it("names a file that is not JSON as malformed", () => {
+    expect(unwrapErr(parseSyncChildTimeoutBaseline({ text: "[" })).code).toBe("BASELINE_MALFORMED");
+  });
+
+  it("refuses a row carrying a field the gate does not read, rather than dropping it", () => {
+    const row = { count: 1, path: "src/a.ts", reason: "r", tightenedAt: "x" };
+
+    expect(unwrapErr(parseSyncChildTimeoutBaseline({ text: JSON.stringify({ files: [row] }) })).code).toBe(
+      "BASELINE_SHAPE_INVALID",
+    );
+  });
+
+  it("refuses a row with a blank reason as the wrong shape, so an entry cannot lose why it is unbounded", () => {
+    const error = unwrapErr(
+      parseSyncChildTimeoutBaseline({ text: JSON.stringify({ files: [{ count: 1, path: "src/a.ts", reason: " " }] }) }),
+    );
+
+    expect(error.code).toBe("BASELINE_SHAPE_INVALID");
+    expect(error.message).toContain("{ files: [{ path, count, reason }, …] }");
+  });
+});
+
 describe("the committed debt list", () => {
   it("is non-empty, so the per-entry checks below are about real rows", () => {
     expect(DEBT.length).toBeGreaterThan(0);
+  });
+
+  it("holds 14 calls across 11 files", () => {
+    expect(DEBT.length).toBe(11);
+    expect(DEBT.reduce((sum, entry) => sum + entry.count, 0)).toBe(14);
   });
 
   it("is well formed — one row per path, positive counts, path order — and inside the gate's own scope", () => {

@@ -37,8 +37,9 @@ measurement's reproduction command in a doc comment — which this repo's own ru
 carry. Replacing one is not a text edit: the replacement has to be run and shown to give the same number, and
 several need private corpus files or live provider state. Rewriting them from inspection would have put 21
 unverified commands into canon to clear a lint, which is the failure the reproduction rule exists to prevent. So
-they are recorded in `src/devLint/noPythonDebt.ts`, keyed by exact path and trimmed line with a count, and a
-converted one goes STALE and fails the gate — the list can only shrink. There is no exemption marker: a false
+they are recorded in `.baselines/no-python-baseline.json`, keyed by exact path and trimmed line with a count, and a
+converted one goes STALE and fails the gate — the list can only shrink, and a new row is a witnessed bump
+against main. There is no exemption marker: a false
 positive is retired by sharpening the criterion.
 
 **The runtime half is enforced by the admit hook.** `src/admit/pythonInvocation.ts` refuses a Python invocation

@@ -80,7 +80,7 @@ export const REACH_LINT_GATE_DECLARATIONS = {
     caught:
       "a recorded Python instruction no longer fires as often as its debt entry says, or an entry is malformed, so the list describes something that is not there",
     correction:
-      "delete or correct the entry, which is how the list stays a measurement; never raise a count to fit a new instruction",
+      "delete or correct the entry in `.baselines/no-python-baseline.json`, which is how the list stays a measurement; never raise a count to fit a new instruction",
     exceptions: ["an entry that still fires exactly its recorded count, which is the list doing its job"],
     gate: "no-python",
   },
@@ -155,23 +155,14 @@ export const REACH_LINT_GATE_DECLARATIONS = {
       "a file under src/sessionHarness itself, which is the seam",
       "src/cmux/client.ts naming its own constructors, which is where they are defined",
       "a session-ledger append of any kind but spawned, which this stage leaves to the verbs that close rows",
-      "an opener the next stage moves behind the seam, recorded in the debt list with the row that moves it",
     ],
-    gate: "session-harness-lifecycle",
-  },
-  "session-harness-lifecycle-debt": {
-    caught:
-      "a recorded reach past the session harness seam stopped firing, so the debt list now describes something that is no longer there",
-    correction:
-      "remove the stale entry from the debt list, which is how that list stays a measurement rather than a memory",
-    exceptions: ["an entry that still fires, which is the list doing its job"],
     gate: "session-harness-lifecycle",
   },
   "torn-tail-append-debt": {
     caught:
       "a recorded descriptor append stopped firing, so the debt list now describes something that is no longer there",
     correction:
-      "remove the stale entry from the debt list, which is how that list stays a measurement rather than a memory",
+      "lower or remove the stale entry in `.baselines/torn-tail-append-baseline.json`, which is how that list stays a measurement rather than a memory",
     exceptions: ["an entry that still fires, which is the list doing its job"],
     gate: "torn-tail-append",
   },
@@ -191,7 +182,7 @@ export const REACH_LINT_GATE_DECLARATIONS = {
     caught:
       "a debt entry no longer describes the tree: its file now has fewer unbounded synchronous child calls than it records, or the entry itself is malformed (a count that is not a positive integer, a path listed twice, the list out of path order)",
     correction:
-      "lower that file's count in `src/devLint/syncChildTimeoutDebt.ts`, or delete the entry at zero, keeping one row per path in path order; the list only ever shrinks",
+      "lower that file's count in `.baselines/sync-child-timeout-baseline.json`, or delete the entry at zero, keeping one row per path in path order; the list only ever shrinks",
     exceptions: ["an entry whose count still matches, which is the list doing its job"],
     gate: "sync-child-timeout",
   },

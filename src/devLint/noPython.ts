@@ -46,14 +46,24 @@
  * ## No marker, and a debt list rather than an allowlist
  *
  * There is no exemption marker. A false positive is retired by SHARPENING the criterion. The instructions
- * that stood when the gate landed are recorded in `./noPythonDebt.ts`, keyed by exact path and trimmed line
- * text with an occurrence count, so a second identical instruction is fresh and a converted one is STALE —
- * and stale fails as loudly as fresh, which is what keeps the list shrinking.
+ * that stood when the gate landed are recorded in `.baselines/no-python-baseline.json`, keyed by exact path and
+ * trimmed line text with an occurrence count, so a second identical instruction is fresh and a converted one is
+ * STALE — and stale fails as loudly as fresh, which is what keeps the list shrinking. Being a registered
+ * baseline, a row added or raised is also a loosening against main that only a witnessed bump record lands.
+ *
+ * Almost every entry is a measurement's reproduction command in a doc comment, which a measured comment must
+ * carry. Replacing one is not a text edit: the replacement has to be RUN and shown to reproduce the same number,
+ * which is why they were recorded rather than rewritten from inspection. Delete an entry when its instruction is
+ * converted; never add one — a new hit is converted, or the criterion is sharpened.
  */
 
 import { readFileSync } from "node:fs";
 import { extname, join } from "node:path";
+import { z } from "zod";
+import type { Result } from "../lib/result.js";
 import { reportScanIntegrity, scanTextFiles } from "../lib/textFileScan.js";
+import { decodeDebtList, readCommittedInput } from "./decodeDebtList.js";
+import type { DevLintInputError } from "./errors.js";
 import {
   isPythonShebang,
   pythonCommandColumns,
@@ -61,7 +71,6 @@ import {
   type ShellQuote,
   shebangProgram,
 } from "./noPythonCommands.js";
-import { NO_PYTHON_DEBT } from "./noPythonDebt.js";
 import { hitAt, type PythonHit } from "./noPythonHit.js";
 import { scanTypeScript } from "./noPythonTypeScript.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
@@ -77,6 +86,35 @@ export interface PythonDebt {
   readonly count: number;
   /** What replacing the instruction with a typed route actually requires. */
   readonly owes: string;
+}
+
+/** The committed debt list, repo-relative. */
+const BASELINE_FILE = ".baselines/no-python-baseline.json";
+
+/**
+ * The list's row types only, strict so a field the gate does not read is refused rather than dropped: a count
+ * that is not a positive integer, a blank `owes` or a repeated identity is {@link partitionPythonDebt}'s to name,
+ * entry by entry, rather than one shape error for the whole file.
+ */
+const BaselineSchema = z.strictObject({
+  instructions: z.array(
+    z.strictObject({ count: z.number(), matchedLine: z.string(), owes: z.string(), path: z.string() }),
+  ),
+});
+
+/**
+ * Decode the committed debt list's text. Pure.
+ *
+ * @param text the contents of `.baselines/no-python-baseline.json`
+ * @returns the recorded instructions, or which half of the decode failed
+ */
+export function parseNoPythonBaseline({ text }: { text: string }): Result<readonly PythonDebt[], DevLintInputError> {
+  return decodeDebtList({
+    label: "no-python baseline",
+    schema: BaselineSchema,
+    shape: "{ instructions: [{ path, matchedLine, count, owes }, …] }",
+    text,
+  }).map((baseline) => baseline.instructions);
 }
 
 /** A debt entry that fires fewer times than it records, and how many times it did fire. */
@@ -389,8 +427,16 @@ export function runNoPython(): number {
     process.stderr.write("no-python: not a git checkout (git ls-files failed)\n");
     return 1;
   }
+  const debt = readCommittedInput({ kind: "debt list", path: join(root, BASELINE_FILE) }).andThen((text) =>
+    parseNoPythonBaseline({ text }),
+  );
+  if (debt.isErr()) {
+    // devlint: not-a-refusal -- the committed debt list could not be READ, so the gate has nothing to judge against
+    process.stderr.write(`no-python: ${debt.error.message}\n`);
+    return 1;
+  }
   return checkNoPython({
-    debt: NO_PYTHON_DEBT,
+    debt: debt.value,
     paths,
     readText: ({ path }) => readFileSync(join(root, path), "utf8"),
     writeError: (text) => {

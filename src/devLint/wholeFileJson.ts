@@ -106,9 +106,13 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { z } from "zod";
+import type { Result } from "#lib/result.js";
 import type { NodeVisitor } from "#lib/tsSyntax.js";
 import { forEachChild, ts, withSourceFile } from "#lib/tsSyntax.js";
 import { reportScanIntegrity, scanTextFiles } from "../lib/textFileScan.js";
+import { decodeDebtList, identitiesAreUnique, readCommittedInput } from "./decodeDebtList.js";
+import type { DevLintInputError } from "./errors.js";
 import { calleeName, indexLocalJsonlPaths, type JsonlNameIndex, pathNamesJsonl } from "./jsonlPathResolution.js";
 import { lintDeclarationFor } from "./refusal/registry.js";
 import { lintGateRefusal } from "./refusal/render.js";
@@ -121,7 +125,11 @@ import {
 } from "./scanScope.js";
 import { indexJsonlNames } from "./wholeFileJsonIndex.js";
 
-/** Which of the three shapes a hit is. */
+/**
+ * Which of the three shapes a hit is.
+ *
+ * @internal — the scanner's and the debt list's own shape name; nothing outside this gate names it.
+ */
 export type WholeFileJsonShape = "jsonl-read-whole" | "jsonl-write-whole" | "corpus-payload-whole";
 
 /** One whole-file-JSON hit. */
@@ -272,11 +280,11 @@ function shapeOfCall({
 }
 
 /**
- * Today's DEBT — every site the criterion above already refuses on this tree, measured by
- * running this gate (`yarn tsx src/devLint/wholeFileJson.entry.ts`). Reproduce it on any branch with that
- * command against an empty baseline.
+ * The committed DEBT, in `.baselines/whole-file-json-baseline.json` — every site the criterion above already
+ * refuses on this tree, measured by running this gate (`yarn tsx src/devLint/wholeFileJson.entry.ts`).
+ * Reproduce it on any branch with that command against an empty baseline.
  *
- * **This is a debt list, not an allowlist, and the distinction is the whole point.** Every entry here is a
+ * **This is a debt list, not an allowlist, and the distinction is the whole point.** Every entry there is a
  * real defect the criterion correctly names; none is a shape the criterion should not have matched. A false
  * positive is fixed by sharpening the criterion (see {@link isAppend}, which retired the one shape B found
  * that was genuinely bounded), never by adding a line here. `owes` names the handover run that owns the
@@ -296,7 +304,7 @@ function shapeOfCall({
  * property that was missing.
  *
  * Sixteen more — every `*Store.ts` from `src/admit/queueStore.ts` to
- * `src/supervisor/intakeStore.ts` below — are what following a helper made visible: each reads its ledger
+ * `src/supervisor/intakeStore.ts` in that file — are what following a helper made visible: each reads its ledger
  * through a `<name>Path()` that returns `stateHomePaths(…).<x>Jsonl` or `join(dir, <CONST>)`, and not one of
  * them spells `.jsonl` at the read. Before them 9 of 26
  * whole-file `.jsonl` reads were recorded, and the list roughly tripled: it went from 12
@@ -310,43 +318,59 @@ function shapeOfCall({
  *
  * `src/live/listen/handoffInboxStore.ts` was a seventeenth, caught on a rebase as the class REGENERATED
  * rather than being discovered. It is GONE: the burst queue it carried survivors for was removed because every
- * tag is judged, so the whole transport went with it and its row here went with that. A debt that stops firing because its file no longer exists is the honest way off this list.
+ * tag is judged, so the whole transport went with it and its row went with that. A debt that stops firing because its file no longer exists is the honest way off this list.
  *
- * The gate refuses a STALE entry as loudly as a new hit: once a run lands its fix, its lines here must go,
- * or `whole-file-json` fails. That is what makes this a ratchet that tightens on its own rather than a
- * baseline that quietly outlives the debt it records.
+ * The gate refuses a STALE entry as loudly as a new hit: once a run lands its fix, its rows must go, or
+ * `whole-file-json` fails. That is what makes this a ratchet that tightens on its own rather than a baseline
+ * that quietly outlives the debt it records; and being a registered baseline, a row added there is a loosening
+ * against main that only a witnessed bump record lands.
  */
-const DEBT: readonly { readonly path: string; readonly shape: WholeFileJsonShape; readonly owes: string }[] = [
-  { owes: "unowned — no run", path: "src/footprint/ledger.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/admit/painPoint.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/cli/commands/turn/freeze.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/handover/runStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/live/turn/progressLog.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/live/turn/workerLog.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/outbound/notion/pageLedger.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/outbound/proposal/register/store.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/reflect/seen.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/sessionStart/lockIn.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/sessionStart/runStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/admit/queueStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/admit/reachGrantStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/hatch/grantStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/live/ask/ignoreStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/live/ask/ignoredConversationStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/live/ask/store.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/live/turn/completionStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/sessions/sessionStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/supervisor/chainStore.ts", shape: "jsonl-read-whole" },
-  { owes: "unowned — no run", path: "src/supervisor/intakeStore.ts", shape: "jsonl-read-whole" },
-  {
-    owes: "stream-the-dense-vector-leg-off-a-flat",
-    path: "src/silver/derive/pipeline.ts",
-    shape: "corpus-payload-whole",
-  },
-];
+const BASELINE_FILE = ".baselines/whole-file-json-baseline.json";
+
+/** One recorded site: a module's relationship to one shape, and the run that owns its fix. */
+interface WholeFileJsonDebt {
+  readonly path: string;
+  readonly shape: WholeFileJsonShape;
+  readonly owes: string;
+}
 
 /**
- * Split a scan's hits into the ones today's {@link DEBT} already records and the ones it does not, plus the
+ * One row of the committed list: a shape this gate names, and a non-blank owner. Strict, and one row per path and
+ * shape, so an unread field or a second row for one identity is refused rather than dropped or folded into the first.
+ */
+const BaselineSchema = z.strictObject({
+  sites: z
+    .array(
+      z.strictObject({
+        owes: z.string().trim().min(1),
+        path: z.string().min(1),
+        shape: z.enum(["jsonl-read-whole", "jsonl-write-whole", "corpus-payload-whole"]),
+      }),
+    )
+    .refine((rows) => identitiesAreUnique({ identity: (row) => `${row.path} ${row.shape}`, rows })),
+});
+
+/**
+ * Decode the committed debt list's text. Pure.
+ *
+ * @param text the contents of `.baselines/whole-file-json-baseline.json`
+ * @returns the recorded sites, or which half of the decode failed
+ */
+export function parseWholeFileJsonBaseline({
+  text,
+}: {
+  text: string;
+}): Result<readonly WholeFileJsonDebt[], DevLintInputError> {
+  return decodeDebtList({
+    label: "whole-file-json baseline",
+    schema: BaselineSchema,
+    shape: "{ sites: [{ path, shape, owes }, …] }, one row per path and shape",
+    text,
+  }).map((baseline) => baseline.sites);
+}
+
+/**
+ * Split a scan's hits into the ones the committed list already records and the ones it does not, plus the
  * debt entries nothing matched any more. Keyed on `path` + `shape` rather than a line number, so moving a
  * call within its file is not a gate failure and adding a second one in the same file and shape is not
  * either — the unit of debt is a module's relationship to a class, not a coordinate.
@@ -360,7 +384,7 @@ export function partitionAgainstDebt({
   debt,
 }: {
   hits: readonly WholeFileJsonHit[];
-  debt: readonly { readonly path: string; readonly shape: WholeFileJsonShape; readonly owes: string }[];
+  debt: readonly WholeFileJsonDebt[];
 }): { readonly fresh: readonly WholeFileJsonHit[]; readonly stale: readonly string[] } {
   const keyOf = ({ path, shape }: { path: string; shape: WholeFileJsonShape }): string => `${path} ${shape}`;
   const recorded = new Set(debt.map((entry) => keyOf(entry)));
@@ -494,7 +518,7 @@ function scanTree({ root, scanned }: { root: string; scanned: readonly string[] 
 }
 
 /**
- * IO edge: scan the tree, judge it against today's {@link DEBT}, print whichever halves of the verdict have
+ * IO edge: scan the tree, judge it against the committed debt list, print whichever halves of the verdict have
  * something to say, and return 0 (clean) or 1 (a new hit, a stale debt entry, or an incomplete scan).
  *
  * @returns the process exit code
@@ -511,8 +535,16 @@ export function runWholeFileJson(): number {
     process.stderr.write("whole-file-json: not a git checkout (git ls-files failed)\n");
     return 1;
   }
+  const debt = readCommittedInput({ kind: "debt list", path: join(root, BASELINE_FILE) }).andThen((text) =>
+    parseWholeFileJsonBaseline({ text }),
+  );
+  if (debt.isErr()) {
+    // devlint: not-a-refusal -- the committed debt list could not be READ, so the gate has nothing to judge against
+    process.stderr.write(`whole-file-json: ${debt.error.message}\n`);
+    return 1;
+  }
   const { hits, complete, readCount } = scanTree({ root, scanned });
-  const { fresh, stale } = partitionAgainstDebt({ debt: DEBT, hits });
+  const { fresh, stale } = partitionAgainstDebt({ debt: debt.value, hits });
   if (stale.length > 0) {
     reportStale({ stale });
   }
@@ -523,7 +555,7 @@ export function runWholeFileJson(): number {
     return 1;
   }
   process.stdout.write(
-    `whole-file-json: clean (${String(readCount)} sources scanned, ${String(hits.length)} recorded in DEBT)\n`,
+    `whole-file-json: clean (${String(readCount)} sources scanned, ${String(hits.length)} recorded in ${BASELINE_FILE})\n`,
   );
   return 0;
 }

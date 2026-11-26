@@ -158,15 +158,7 @@ export const CLAIM_LINT_GATE_DECLARATIONS = {
       "rename every surface to the one name the concept carries, canon included, in one pull request; when the two really are distinct concepts, rename one so the names stop reading as the same thing",
     exceptions: [
       "two genuinely different concepts whose names happen to relate, which a rename of one should make obvious",
-      "a divergence measured before the rule existed, recorded in the shrinking debt register with its canonical name",
     ],
-    gate: "naming-doctrine",
-  },
-  "naming-doctrine-debt": {
-    caught:
-      "a recorded naming divergence stopped firing, so the debt register now describes something that is no longer there",
-    correction: "remove the row from the debt register in the same pull request as the rename that cleared it",
-    exceptions: ["a row that still fires, which is the register doing its job"],
     gate: "naming-doctrine",
   },
   "naming-vocabulary": {
