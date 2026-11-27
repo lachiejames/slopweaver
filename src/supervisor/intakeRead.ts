@@ -62,6 +62,7 @@ import {
 import { pinAsLink, resolveIntakeScope } from "./intakeScope.js";
 import { supervisorSessionKey, supervisorSessionLabel, type VisibleSupervisorSession } from "./session.js";
 import { linkKey } from "./supervisorLink.js";
+import { readTypedIntake } from "./typedIntakeRead.js";
 
 /** The pointer-bearing fields of every board row. */
 function rowAnchorsOf({ docs }: { docs: readonly HandoverDoc[] }): readonly RowAnchors[] {
@@ -306,13 +307,14 @@ export function readSupervisorChainIntake({
     walked: readable.map((item) => item.leg.sessionId),
   };
   const turns = sortedTurnsOf({ readable });
+  const rows = rowAnchorsOf({ docs });
   return {
     finding: witnessTurns({
       coverage,
       legs: readable.map((item) => item.leg),
       marks,
       nowIso,
-      rows: rowAnchorsOf({ docs }),
+      rows,
       sinceIso,
       turns,
     }),
@@ -323,6 +325,8 @@ export function readSupervisorChainIntake({
       nowIso,
     }),
     kind: "read",
+    // The owner's typed console turns: a second source the chair's transcripts never hold (`./typedIntake.ts`).
+    typed: readTypedIntake({ home, marks, nowIso, rows, sinceIso }),
   };
 }
 
@@ -454,5 +458,6 @@ export function readSupervisorIntake({
     }),
     inbound: judgeInbound({ chairs: [chair], graceMs: INTAKE_GRACE_MS, marks, nowIso }),
     kind: "read",
+    typed: { kind: "excluded", why: "--session reads one chair's transcript; the typed console turns are the chain's" },
   };
 }

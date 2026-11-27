@@ -30,6 +30,11 @@ import {
 } from "../../../supervisor/intake.js";
 import { readSupervisorChainIntake, readSupervisorIntake } from "../../../supervisor/intakeRead.js";
 import { readIntakeMarks } from "../../../supervisor/intakeStore.js";
+import {
+  type TypedIntakeReport,
+  typedRegisterCommandFor,
+  type WitnessedTypedTurn,
+} from "../../../supervisor/typedIntake.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
 import { parseFlagTail, resolveHome, verbTail } from "../../optionParsers.js";
@@ -125,17 +130,81 @@ function runIntake(argv: readonly string[]): number {
   const report = intakeReport({ docs: scan.value.docs, home, options });
   if (options.json) {
     logger.out({ line: JSON.stringify(report) });
-    return report.kind === "read" && report.finding.unwitnessed.length === 0 && report.inbound.carried.length === 0
-      ? EXIT_OK
-      : EXIT_ERROR;
+    const clean =
+      report.kind === "read" &&
+      report.finding.unwitnessed.length === 0 &&
+      report.inbound.carried.length === 0 &&
+      typedClean({ typed: report.typed });
+    return clean ? EXIT_OK : EXIT_ERROR;
   }
   logger.out({ line: intakeClause({ report }) });
   if (report.kind === "unavailable") {
     return EXIT_ERROR;
   }
   const turnsExit = printFinding({ finding: report.finding });
+  const typedExit = printTyped({ typed: report.typed });
   const inboundExit = printInbound({ inbound: report.inbound });
-  return turnsExit === EXIT_OK && inboundExit === EXIT_OK ? EXIT_OK : EXIT_ERROR;
+  return [turnsExit, typedExit, inboundExit].every((code) => code === EXIT_OK) ? EXIT_OK : EXIT_ERROR;
+}
+
+/** Whether the typed half leaves nothing owed: absent, excluded, or read with every pending turn witnessed or in grace. */
+function typedClean({ typed }: { typed: TypedIntakeReport | undefined }): boolean {
+  if (typed === undefined || typed.kind === "excluded") {
+    return true;
+  }
+  return typed.kind === "read" && typed.finding.unwitnessed.length === 0;
+}
+
+/** One typed console turn as a report line: its verdict, when, and its pointer. Never its words. */
+function typedTurnLine({ item }: { item: WitnessedTypedTurn }): string {
+  let verdict: string;
+  if (item.witness !== undefined) {
+    verdict = `${item.witness.kind}: ${item.witness.witness}`;
+  } else if (item.inGrace) {
+    verdict = "in grace";
+  } else {
+    verdict = "UNWITNESSED";
+  }
+  return `  ${item.turn.timestamp}  [${verdict}]  ${item.turn.pointer}`;
+}
+
+/**
+ * Print the owner's typed console turns still pending as this read began, and the register lines for the unwitnessed.
+ * Pointers and instants only: `talk unread` is where a chair reads what one says.
+ *
+ * @param typed the typed half of the report
+ * @returns the process exit code — non-zero when a typed turn is unwitnessed or the half could not be read
+ */
+function printTyped({ typed }: { typed: TypedIntakeReport | undefined }): number {
+  if (typed === undefined || typed.kind === "excluded") {
+    return EXIT_OK;
+  }
+  logger.out({ line: "" });
+  if (typed.kind === "unavailable") {
+    logger.error({ msg: `  TYPED CONSOLE TURNS UNREADABLE: ${typed.why}` });
+    return EXIT_ERROR;
+  }
+  const { finding } = typed;
+  logger.out({
+    line: `typed console turns, read since ${finding.discoveredFromIso} and remembered past it: ${String(finding.turns.length)} pending`,
+  });
+  finding.unreadable.forEach((gap) => {
+    logger.error({ msg: `  UNREADABLE ${gap}` });
+  });
+  finding.turns.forEach((item) => {
+    logger.out({ line: typedTurnLine({ item }) });
+  });
+  if (finding.unwitnessed.length === 0) {
+    return EXIT_OK;
+  }
+  logger.out({ line: "" });
+  logger.out({
+    line: "read each with `talk unread`, then witness it with a row (the line below), a settlement, or `supervisor intake-mark`:",
+  });
+  finding.unwitnessed.forEach((turn) => {
+    logger.out({ line: `  ${typedRegisterCommandFor({ turn })}` });
+  });
+  return EXIT_ERROR;
 }
 
 /** How much of a peer message's body one report line carries. */

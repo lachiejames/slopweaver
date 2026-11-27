@@ -376,6 +376,9 @@ export const OPERATIONAL_SEAMS = {
   // Same directory, class and `0700`/`0600` treatment as the break-glass journal above: an append-only local
   // record of a decision, never a provider write.
   "src/supervisor/intakeStore.ts": "local-state",
+  // The typed console intake ledger beside it — pointers and instants of the owner's typed console turns, never a
+  // word. Same directory, class and `0700`/`0600` treatment: an append-only local record, never a provider write.
+  "src/supervisor/typedIntakeRead.ts": "local-state",
   // The supervisor-chain journal — which sessions have held the pin. Same directory, class and `0700`/`0600`
   // treatment as the intake ledger it sits beside: an append-only local record of a succession that happened
   // on this machine, never a provider write.

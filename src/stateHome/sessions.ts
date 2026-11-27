@@ -203,6 +203,12 @@ export interface SessionsStateHomePaths {
    */
   readonly intakeMarksJsonl: string;
   /**
+   * `$home/sessions/typed-intake.jsonl` — the owner's typed console turns as intake obligations: pointers, instants and
+   * the witness that cleared each, never a word (`supervisor/typedIntake.ts`). Append-only, so an obligation survives
+   * the 24-hour window and a change of chair.
+   */
+  readonly typedIntakeJsonl: string;
+  /**
    * `$home/skill-reminders.json` — which `CLAUDE_CODE_SESSION_ID`s have already been reminded, this
    * session, that a governed CLI verb has an owning skill whose contract they should load first (see
    * `cli/skillReminder.ts`). Deliberately its OWN file rather than a row inside `sessions/sessions.jsonl` —
@@ -268,6 +274,7 @@ export function sessionsStateHomePaths({ home }: { home: string }): SessionsStat
     reachGrantsJsonl: join(home, "sessions", "reach-grants.jsonl"),
     voiceBriefReceipts: join(home, "sessions", "voice-brief-receipts"),
     intakeMarksJsonl: join(home, "sessions", "intake-marks.jsonl"),
+    typedIntakeJsonl: join(home, "sessions", "typed-intake.jsonl"),
     skillRemindersJson: join(home, "skill-reminders.json"),
     staleSeatNoticesJson: join(home, "stale-seat-notices.json"),
   };

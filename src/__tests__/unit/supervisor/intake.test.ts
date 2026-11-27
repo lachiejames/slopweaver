@@ -586,7 +586,7 @@ describe("the headline clause", () => {
   });
 
   /**
-   * The widest clause this can emit: every witnessed, some dismissed, a floor stated, and BOTH coverage gaps
+   * The widest clause the chair half can emit (a typed console count follows as its own sentence): every witnessed, some dismissed, a floor stated, and BOTH coverage gaps
    * disclosed at once. This is the measurement `../../../briefing/caps.ts`'s `ALIGNMENT_MAX_WORDS` cites for
    * why the intake sentence is folded rather than counted against the alignment line.
    */

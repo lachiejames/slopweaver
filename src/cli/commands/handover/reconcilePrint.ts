@@ -14,6 +14,7 @@ import { type BoardRow } from "../../../handover/rank.js";
 import { emptyBandLine, type Reconciliation } from "../../../handover/reconcile.js";
 import { type IntakeReport, intakeClause, registerCommandFor } from "../../../supervisor/intake.js";
 import { type OutcomeReport } from "../../../supervisor/outcomes/coverage.js";
+import { typedRegisterCommandFor } from "../../../supervisor/typedIntake.js";
 import { relayMarkCommand, type VoiceRelayIntake, voiceRelayClause } from "../../../talk/relayIntake.js";
 import { type BoardHolds, heldLines } from "./reconcileRows.js";
 
@@ -123,6 +124,16 @@ function voiceRelayLines({ voice }: { voice: VoiceRelayIntake }): readonly strin
   });
 }
 
+/** Each unwitnessed typed console turn, by pointer and instant, with the line that registers it. Never its words. */
+function typedTurnLines({ intake }: { intake: IntakeReport }): readonly string[] {
+  if (intake.kind !== "read" || intake.typed?.kind !== "read") {
+    return [];
+  }
+  return intake.typed.finding.unwitnessed.map(
+    (turn) => `unwitnessed typed console turn at ${turn.timestamp}: ${typedRegisterCommandFor({ turn })}`,
+  );
+}
+
 /** Every non-empty finding, capped, in the order a reader acts on them. */
 function findingLines({
   result,
@@ -156,6 +167,7 @@ function findingLines({
           (turn) => `unwitnessed owner turn at ${turn.timestamp}: ${registerCommandFor({ turn })}`,
         )
       : [],
+    typedTurnLines({ intake }),
     voiceRelayLines({ voice }),
   ];
   return findings.flatMap((lines) => capped({ full, lines }));
