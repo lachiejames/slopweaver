@@ -96,8 +96,8 @@ verdict on it), never in the tree, so a fork starts with the rules and none of t
   review passes can still take it. Every `baseline-bump-` property id is reserved. `codex review` admits one only
   as the exact witness: pass `r3`, one property, an existing record's full id and its exact claim. Any other
   invocation carrying one is refused before spend, and no acknowledgement or hatch opens that refusal; a
-  fallback review refuses every reserved id. The lane holds two distinct diffs, and a third is refused like a
-  third general pass. A witness row spends no general slot and never satisfies the pairing floor. **The residue,
+  fallback review refuses every reserved id. The lane holds two distinct diffs, past them only the exact diff the
+  pinned supervisor's `codex extend --lane baseline-bump-witness --diff <sha256>` names. A witness row spends no general slot and never satisfies the pairing floor. **The residue,
   stated:** a review recorded before admission existed, typed by hand with a full witness id and a statement
   opening `Ratchet bump <digest>:` that then claimed more, is read as witness lane.
 

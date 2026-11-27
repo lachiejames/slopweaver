@@ -57,6 +57,7 @@ describe("accountsStateHomePaths", () => {
       "codexBurnClaims",
       "codexBurnJsonl",
       "codexFallback",
+      "codexPassExtensionsJsonl",
       "codexQuotaDir",
       "codexQuotaJson",
       "codexResetClaimsJsonl",
@@ -67,6 +68,7 @@ describe("accountsStateHomePaths", () => {
     ]);
     expect(area.codexBurnClaims).toBe("/tmp/sw-home/codex-burn/claims");
     expect(area.codexAccountsDir).toBe("/tmp/sw-home/codex-accounts");
+    expect(area.codexPassExtensionsJsonl).toBe("/tmp/sw-home/codex-pass-extensions/extensions.jsonl");
   });
 
   it("is composed into the entry with identical values", () => {

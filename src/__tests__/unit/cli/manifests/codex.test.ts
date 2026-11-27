@@ -16,6 +16,7 @@ describe("codexManifest", () => {
   it("declares exactly these verbs, with no bare-noun row", () => {
     expect(Object.keys(codexManifest).toSorted()).toEqual([
       "burn",
+      "extend",
       "gauge",
       "hooks",
       "plan",
@@ -42,6 +43,14 @@ describe("codexManifest", () => {
         diagnostic: true,
         doorRouted: false,
         dryParseSafe: false,
+        effect: "local-state",
+        parseRejectIsIoFree: true,
+      },
+      extend: {
+        createsWorkItem: false,
+        diagnostic: false,
+        doorRouted: false,
+        dryParseSafe: true,
         effect: "local-state",
         parseRejectIsIoFree: true,
       },

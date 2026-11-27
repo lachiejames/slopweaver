@@ -53,6 +53,12 @@ export interface AccountsStateHomePaths {
    */
   readonly codexResetClaimsJsonl: string;
   /**
+   * `$home/codex-pass-extensions/extensions.jsonl` — every review pass past the two-pass cap the pinned supervisor
+   * approved, one row per extra pass, naming the run, branch, lane and reason. Written by `codex extend` and read
+   * by the review-pass cap (`codex/passExtensionStore.ts`), so a seat's third pass needs no owner card.
+   */
+  readonly codexPassExtensionsJsonl: string;
+  /**
    * `$home/claude-reset/claims.jsonl` — every `claude reset` claim's request id, journalled before the claim is
    * sent, and the answer or close that settled it. Written and read by `claude/resetJournalStore.ts`.
    */
@@ -138,6 +144,7 @@ export function accountsStateHomePaths({ home }: { home: string }): AccountsStat
     codexQuotaJson: join(home, "codex-quota.json"),
     codexSignInDir: join(home, "codex-signin"),
     codexResetClaimsJsonl: join(home, "codex-reset", "claims.jsonl"),
+    codexPassExtensionsJsonl: join(home, "codex-pass-extensions", "extensions.jsonl"),
     claudeResetClaimsJsonl: join(home, "claude-reset", "claims.jsonl"),
     claudeMemory: join(home, "claude-memory"),
     plansJson: join(home, "plans.json"),

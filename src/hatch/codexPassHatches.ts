@@ -67,15 +67,13 @@ export const CODEX_PASS_HATCHES = [
   },
   {
     caught:
-      "this diff would be, or cannot be shown not to be, a third review pass on its branch — a pass is one distinct " +
-      "diff reviewed to a CLEAN or BROKEN verdict, Codex and Claude fallback alike (the owner's ruling: one " +
-      "plan, at most two review passes, then land with every standing finding acknowledged as " +
-      "codex-loop-incomplete)",
+      "the branch's review fold could not be read, so this diff cannot be shown not to be a review pass past its " +
+      "cap of two — a pass is one distinct diff reviewed to a CLEAN or BROKEN verdict, Codex and Claude fallback " +
+      "alike; a diff KNOWN to be past the cap is a hold no hatch opens, and runs only when the pinned supervisor " +
+      "named it with `codex extend --diff`",
     command: "slopweaver codex review / slopweaver codex review-fallback prepare",
     exceptions: [
-      "a ledger row is corrupt or misattributed — a pass recorded against this branch was really another branch's",
       "a ledger source is unreadable and you have checked by hand that this branch has had fewer than two passes",
-      "the owner gave an explicit steer for a third pass on this one change",
     ],
     id: "codex-review-pass-cap",
     key: { kind: "env", variable: "SLOPWEAVER_ALLOW_CODEX_REVIEW_PASS_CAP" },
