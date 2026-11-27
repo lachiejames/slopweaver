@@ -42,6 +42,7 @@ import { type ClaudeFallbackPlanReceipt, parseFallbackPlanReceipt, planReceiptBi
 import { isFallbackPlanDocument } from "./fallbackPlanGround.js";
 import { type ClaudeFallbackReviewReceipt, receiptBindingFailure } from "./fallbackReview.js";
 import { parseFallbackReceipt } from "./fallbackReviewParse.js";
+import { embeddedOriginTrusted } from "./originBinding.js";
 import { POLICY_REFUSAL_REVIEW_MODE } from "./policyFallback.js";
 import { CODEX_UNREGISTERED_REVIEW_MODE } from "./providerUnregistered.js";
 
@@ -259,7 +260,12 @@ function boundPlanReceipt({
   if (unbound !== undefined) {
     return placedUnbound({ documents, embedded: parsed.value.request, problem: `${label}: ${unbound}` });
   }
-  return { kind: "bound-plan", receipt: parsed.value };
+  if (originTrustedBeside({ documents, embedded: parsed.value.request })) {
+    return { kind: "bound-plan", receipt: parsed.value };
+  }
+  // An embedded origin the hash-bound file does not back is dropped, so adoption can never read it.
+  const { originRepository: _untrusted, ...request } = parsed.value.request;
+  return { kind: "bound-plan", receipt: { ...parsed.value, request } };
 }
 
 /** A review receipt, parsed and checked against its request's bytes. */
@@ -286,7 +292,23 @@ function boundReviewReceipt({
   if (unbound !== undefined) {
     return placedUnbound({ documents, embedded: parsed.value.request, problem: `${label}: ${unbound}` });
   }
-  return { kind: "bound", receipt: parsed.value };
+  if (originTrustedBeside({ documents, embedded: parsed.value.request })) {
+    return { kind: "bound", receipt: parsed.value };
+  }
+  const { originRepository: _untrusted, ...request } = parsed.value.request;
+  return { kind: "bound", receipt: { ...parsed.value, request } };
+}
+
+/** Whether a bound receipt's embedded origin is backed by the request file beside it (`./originBinding.ts`). */
+function originTrustedBeside({
+  documents,
+  embedded,
+}: {
+  documents: FallbackDocuments;
+  embedded: Parameters<typeof embeddedOriginTrusted>[0]["embedded"];
+}): boolean {
+  const onDisk = parsedReceipt({ label: "fallback request", receiptText: documents.requestText });
+  return onDisk.isOk() && embeddedOriginTrusted({ embedded, onDisk: onDisk.value });
 }
 
 /**

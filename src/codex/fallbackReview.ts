@@ -100,6 +100,8 @@ export interface FallbackReviewRequestCore {
   readonly createdAtIso: string;
   /** The checkout the review is about — the grain the ledger is keyed at, exactly as a pass record's is. */
   readonly repoRoot: string;
+  /** That checkout's `origin` as `owner/name`, read at prepare time (`./originBinding.ts`); absent on older requests. */
+  readonly originRepository?: string;
   /** The tree the diff was cut from. Compared against the tree being landed, like a pass record's `tree`. */
   readonly tree: CodexPassTree;
   /** Which review slot this stands in for. */
@@ -291,6 +293,17 @@ export function validateFallbackReview({
 }
 
 /**
+ * A request as binding compares it: without `originRepository`, on BOTH sides. Binding judges what was asked, and
+ * the origin is a placement fact only adoption reads, so a receipt binds exactly as it did before the field existed.
+ * Whether an embedded origin may be trusted is a separate question, asked against the hash-bound request file
+ * (`./fallbackDocuments.ts`'s `originTrusted`).
+ */
+function comparableRequest({ request }: { request: ClaudeFallbackReviewRequest }): object {
+  const { originRepository: _placement, ...asked } = request;
+  return asked;
+}
+
+/**
  * Why a receipt read off disk cannot be trusted to speak for its request, or `undefined` when it can.
  *
  * A receipt is only evidence when it still binds to the request bytes beside it: an edited request, or a
@@ -319,7 +332,10 @@ export function receiptBindingFailure({
   if (onDisk.isErr()) {
     return `receipt ${receipt.receiptId} binds to request ${receipt.requestId}, which does not parse`;
   }
-  if (stableStringify({ value: onDisk.value }) !== stableStringify({ value: receipt.request })) {
+  if (
+    stableStringify({ value: comparableRequest({ request: onDisk.value }) }) !==
+    stableStringify({ value: comparableRequest({ request: receipt.request }) })
+  ) {
     return `receipt ${receipt.receiptId} embeds a copy of ${receipt.requestId} that disagrees with the request file`;
   }
   if (receipt.answer.propertyId !== receipt.request.property.id) {

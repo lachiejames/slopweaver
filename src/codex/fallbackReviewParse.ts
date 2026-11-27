@@ -20,6 +20,7 @@ import type {
   FallbackReviewRequestCore,
   VisibleClaudeReviewer,
 } from "./fallbackReview.js";
+import { originRepositoryField } from "./originBinding.js";
 import { parseReviewAnswer } from "./output.js";
 import { POLICY_REFUSAL_REVIEW_MODE, type PolicyRefusalEvidence } from "./policyFallback.js";
 import { CODEX_UNREGISTERED_REVIEW_MODE, parseProviderUnregisteredEvidence } from "./providerUnregistered.js";
@@ -193,7 +194,19 @@ function parseRequestScalars({
   ) {
     return err(CodexErrors.documentInvalid({ reasons: errors }));
   }
-  return ok({ baseRef, baseSha, createdAtIso, diffBytes, diffSha256, headSha, pass, repoRoot, requestId });
+  return ok({
+    baseRef,
+    baseSha,
+    createdAtIso,
+    diffBytes,
+    diffSha256,
+    headSha,
+    // Validated as `owner/name`; a malformed value reads as absent, never as a binding (`./originBinding.ts`).
+    ...originRepositoryField({ value: value["originRepository"] }),
+    pass,
+    repoRoot,
+    requestId,
+  });
 }
 
 /** Decode the single property a request names. */

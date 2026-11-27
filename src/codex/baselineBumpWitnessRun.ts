@@ -30,7 +30,8 @@
  * A full-history checkout of the pull request's repository holding both commits, chosen and if need be fetched
  * into by `./baselineBumpCheckouts.ts`, which asks the candidates lazily and stops at the first that will do. The
  * ledger is then read across every checkout holding the head commit that has a pass record on the branch, exactly
- * as the pairing floor reads it (`./landingGateRun.ts`, `./branchEvidenceRoots.ts`). The ledger takes no
+ * as the pairing floor reads it (`./landingGateRun.ts`, `./branchEvidenceRoots.ts`), a deleted worktree's witness
+ * re-proved into one of those checkouts by the same rule (`./orphanedEvidence.ts`). The ledger takes no
  * landing-base carry; `./baselineBumpFloor.ts` reads the pinned review bases, the landing patch and each
  * manifest's held floor from the full-history checkout, and the witness predicate alone decides what they carry.
  */
@@ -54,6 +55,7 @@ import { noQualifyingCheckoutReason, type QualifyingCheckout, relevantFirstQuali
 import { type BranchLedger, ledgerForBranch } from "./ledger.js";
 import { type LedgerScan, scanPassRecords } from "./ledgerStore.js";
 import { unionLedger } from "./ledgerUnion.js";
+import { reprovedRecords } from "./orphanedEvidenceProbes.js";
 import type { Supersession } from "./supersession.js";
 import type { SupersessionPort } from "./supersessionPort.js";
 import { supersessionPort } from "./supersessionStore.js";
@@ -323,7 +325,6 @@ async function unwitnessedOf({
       detail: `${String(scan.unreadable)} pass record(s) could not be parsed, so a witness or a BROKEN review may be missing`,
     });
   }
-  const { records } = scan;
   const retired = await supersessions.read({ home });
   if (retired.isErr()) {
     return refused({ detail: `could not read the supersession register: ${retired.error.message}` });
@@ -333,11 +334,13 @@ async function unwitnessedOf({
     fallbackScan: undefined,
     head,
     ownRoot: candidates.ownRoot,
-    records,
+    records: scan.records,
   });
   if (qualified.length === 0) {
     return refused({ detail: noQualifyingCheckoutReason({ considered: candidates.roots, head }) });
   }
+  // The floor's re-proof (`./orphanedEvidence.ts`) places only: every witness clause below still judges the copy.
+  const records = reprovedRecords({ qualified, records: scan.records, subject: head });
   const ledger = qualifiedLedger({ head, qualified, records, retired: retired.value });
   const { headSha } = head;
   const evidence = readBaselineBumpCarryEvidence({ baseSha, headSha, manifests: eligible, records, root });

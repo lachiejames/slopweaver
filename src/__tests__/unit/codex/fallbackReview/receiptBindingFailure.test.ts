@@ -36,6 +36,19 @@ describe("receiptBindingFailure", () => {
     expect(failure).toBe("receipt rcpt-1 embeds a copy of req-1 that disagrees with the request file");
   });
 
+  it("still binds a receipt whose embedded copy predates the origin binding its request file carries", () => {
+    const onDisk = request({ originRepository: "acme/widget" });
+    const { originRepository: _absent, ...older } = onDisk;
+    const receipt = { ...receiptFor({ req: onDisk }), request: older };
+    expect(receiptBindingFailure({ receipt, requestBytes: JSON.stringify(onDisk) })).toBeUndefined();
+  });
+
+  it("binds as it always did when only the embedded copy carries an origin — the origin is never what binding judges", () => {
+    const onDisk = request();
+    const embedded = { ...receiptFor({ req: onDisk }), request: request({ originRepository: "acme/widget" }) };
+    expect(receiptBindingFailure({ receipt: embedded, requestBytes: JSON.stringify(onDisk) })).toBeUndefined();
+  });
+
   it("fails a receipt whose request file does not parse as a request", () => {
     const req = request();
     const receipt = receiptFor({ req });

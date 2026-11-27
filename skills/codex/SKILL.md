@@ -143,19 +143,19 @@ slopweaver codex status
 ```
 
 It lists every pass in the loop for the current branch **of THIS checkout**, marks each `CURRENT`, `STALE` or
-`UNKNOWN`, and —
-this is the part that matters — lists the passes with **no record on this branch at all**. A table of what happened cannot
-show an absence, and an absence is what went wrong on the PR it was built after: a plan and every
-review were skipped in silence and nobody noticed until after the merge.
+`UNKNOWN`, and — this is the part that matters — lists the passes with **no record on this branch at all**. A table
+of what happened cannot show an absence, and an absence is what went wrong on the PR it was built after: a plan and
+every review were skipped in silence and nobody noticed until after the merge.
 
 Do not cite a `STALE` CLEAN over code you have since changed: it goes into your next pass, while one is left. A review row's tree is its
 **DIFF's** tree, read once and shared by every property of the fan-out, so `CURRENT` means the diff it judged
 still describes yours and no two properties can disagree (rationale doc § Rule 9).
 
-**`codex status` is keyed by CHECKOUT as well as branch**: a pass from a DIFFERENT worktree reads `NOT RUN` here,
-and an `OTHER CHECKOUTS:` line names where it is. **The LANDING floor is not**: both landing verbs fold every
-checkout holding the PR's head commit with a pass or receipt on its branch; a waiver prints each failure it waives.
-A git-proven predecessor's passes (`branch -m`, a `checkout -b` cut; never the default branch's) count as its own.
+**`codex status` is keyed by CHECKOUT as well as branch**: another worktree's pass reads `NOT RUN` here, and an
+`OTHER CHECKOUTS:` line names where it is. **The LANDING floor is not**: both landing verbs fold every checkout holding
+the PR's head commit with a pass or receipt on its branch; a waiver prints each failure it waives. A git-proven
+predecessor's passes (`branch -m`, a `checkout -b` cut; never the default branch's) count as its own, as do a DELETED
+worktree's re-proved by recorded origin, branch and head; records from before that binding stay `NOT RUN` ([why](../../docs/doctrine-rationale/deleted-worktree-evidence.md)).
 
 ## Watch a long pass without waiting on it
 

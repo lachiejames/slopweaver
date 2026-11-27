@@ -24,6 +24,12 @@
  * measurement — 965 candidates took 176s to qualify). Every candidate is asked only when none of those
  * qualifies, so the "no checkout holds that commit" refusal is unchanged.
  *
+ * A checkout that has since been DELETED can never qualify — git cannot be asked anything in a directory that is
+ * gone — so its records are re-proved instead: re-homed into a qualifying checkout only when their recorded path is
+ * definitely missing, their recorded `originRepository` is the pull request's repository, and that checkout holds
+ * their recorded head as the pull request's head or an ancestor of it (`./orphanedEvidence.ts`). Records written
+ * before that binding existed stay NOT RUN once their path is gone.
+ *
  * Kept apart from `./landingGate.ts` so the policy stays testable with plain values, per the pure-core /
  * effectful-shell split in `.claude/rules/testing.md`.
  *
@@ -54,6 +60,7 @@ import type { LocalCodexLoopRead } from "./landingGateTypes.js";
 import { assessCodexLoop, ledgerForBranch } from "./ledger.js";
 import { type LedgerScan, scanPassRecords } from "./ledgerStore.js";
 import { unionLedger } from "./ledgerUnion.js";
+import { reprovedLandingEvidence } from "./orphanedEvidenceProbes.js";
 import type { CodexQuotaEvidence } from "./quotaTypes.js";
 import { incompleteScanReason } from "./scanReasons.js";
 import { type CodexSignInPort, codexSignInPort } from "./signInPort.js";
@@ -137,6 +144,9 @@ export async function readLocalCodexLoop({
   if (first === undefined) {
     return { kind: "unreadable", reason: noQualifyingCheckoutReason({ considered, head }) };
   }
+  // A deleted worktree's evidence, re-proved into a qualifying checkout or left out (`./orphanedEvidence.ts`).
+  const scanned = { receipts: receipts.value, scan: scan.value };
+  const placed = reprovedLandingEvidence({ evidence: evidence.value, qualified, scanned, subject: head });
   // Fail closed: a register that cannot be read leaves which passes are retired UNKNOWN, never "none".
   const retired = await supersessions.read({ home });
   if (retired.isErr()) {
@@ -151,10 +161,10 @@ export async function readLocalCodexLoop({
     // The checkout the OLD reader consulted, and the only one whose fail-closed count must never be dropped.
     // An unresolvable cwd leaves it undefined, which matches no root and so privileges nothing.
     ownRoot,
-    receipts: evidence.value.receipts,
+    receipts: placed.receipts,
     retired: retired.value,
     roots: qualified.map((checkout) => checkout.root),
-    scan: evidence.value.scan,
+    scan: { ...evidence.value.scan, records: placed.records },
     signInPort,
   });
 }

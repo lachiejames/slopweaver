@@ -66,7 +66,7 @@ verdict on it), never in the tree, so a fork starts with the rules and none of t
   renamed inside it, and a rewrite of one main holds (a record turned into a tree included), each as the one
   `REWRITTEN_BUMP_MANIFEST` refusal whose message names which write it was, while one left byte-identical or
   deleted passes. A change to a file in `BASELINE_POLICY_FILES` (the registry,
-  the comparator, the store, the witness) that main already holds is itself a `policy` row, so the rules that
+  the comparator, the store, the witness and what places it, a deleted worktree's re-proof included) that main already holds is itself a `policy` row, so the rules that
   judge a rise are witnessed like a rise. Run with no base it fails and prints the command that supplies one.
 - **`slopweaver dev baseline-bump --reason "<why>" [--cwd <dir>] [--home <dir>]`** writes the record (one
   write-once file named for its digest) from the committed `HEAD` of the checkout holding `--cwd` (else the working

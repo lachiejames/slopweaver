@@ -101,13 +101,30 @@ afterAll(() => {
  * A home holding the record, and a CLEAN r3 Codex review of its exact claim recorded against the raised head —
  * current there, with no uncommitted bytes, its base pinned to the pull request's base commit.
  *
+ * @param repoRoot the checkout the witness says it ran in; a path that does not exist is a deleted worktree
+ * @param originRepository the recorded origin binding, or `undefined` for a record written before it existed
+ * @param stale whether the witness read an older tree AND a different diff, so neither freshness nor diff carry
+ *   holds at the raised head
  * @returns the home
  */
-function homeWithWitnessedRecord(): string {
+function homeWithWitnessedRecord({
+  repoRoot,
+  originRepository,
+  stale,
+}: {
+  repoRoot: string;
+  originRepository: string | undefined;
+  stale: boolean;
+}): string {
   const home = scratch();
   unwrap(writeBumpRecord({ home, manifest }));
-  const atHead = unwrap(commitTreeFingerprint({ commit: raised, cwd: root }));
-  const diffSha256 = commitDiffsNow({ baseRefs: [base], commit: raised, cwd: root }).get(base)!;
+  let treeAt = raised;
+  let diffSha256 = commitDiffsNow({ baseRefs: [base], commit: raised, cwd: root }).get(base)!;
+  if (stale) {
+    treeAt = base;
+    diffSha256 = "0".repeat(64);
+  }
+  const atHead = unwrap(commitTreeFingerprint({ commit: treeAt, cwd: root }));
   const propertyId = witnessPropertyId({ digest: manifest.digest });
   const run = join(stateHomePaths({ home }).orchestration, "witness-1");
   mkdirSync(run, { recursive: true });
@@ -120,12 +137,13 @@ function homeWithWitnessedRecord(): string {
       bound: { conclusionWindowMs: 150, totalMs: 1000, warnAfterMs: 850 },
       createdAtIso: "2026-11-02T01:00:00.000Z",
       observedElapsedMs: 10,
+      ...(originRepository === undefined ? {} : { originRepository }),
       outcome: {
         answer: { counterexample: "", evidence: "read", propertyId, summary: "", verdict: "CLEAN" },
         kind: "answered",
         rawFinalResponse: "{}",
       },
-      repoRoot: unwrap(resolveRepoRoot({ cwd: root })),
+      repoRoot,
       requestedApprovalPolicy: "never",
       requestedModel: "m",
       requestedNetworkAccess: true,
@@ -144,7 +162,7 @@ function homeWithWitnessedRecord(): string {
         pass: "r3",
         property: { id: propertyId, statement: witnessClaim({ manifest }) },
       },
-      tree: { branch: "feature", dirtyBytes: 0, fingerprint: atHead.digest, headSha: raised, treeSha: atHead.treeSha },
+      tree: { branch: "feature", dirtyBytes: 0, fingerprint: atHead.digest, headSha: treeAt, treeSha: atHead.treeSha },
     }),
   );
   return home;
@@ -163,11 +181,46 @@ describe("readBaselineBumpWitness reads records from the state home only", { tim
     const verdict = await readBaselineBumpWitness({
       cwd: root,
       head: headOf({ headSha: raised }),
-      home: homeWithWitnessedRecord(),
+      home: homeWithWitnessedRecord({
+        originRepository: undefined,
+        repoRoot: unwrap(resolveRepoRoot({ cwd: root })),
+        stale: false,
+      }),
       supersessions: memorySupersessionPort(),
     });
 
     expect(verdict).toEqual({ kind: "clear" });
+  });
+
+  it("clears on a witness from a DELETED worktree only when its origin binding is this repository", async () => {
+    const gone = join(scratch(), "deleted-worktree");
+    const kinds: string[] = [];
+    for (const originRepository of ["acme/widget", undefined, "fork/widget"]) {
+      const verdict = await readBaselineBumpWitness({
+        cwd: root,
+        head: headOf({ headSha: raised }),
+        home: homeWithWitnessedRecord({ originRepository, repoRoot: gone, stale: false }),
+        supersessions: memorySupersessionPort(),
+      });
+      kinds.push(verdict.kind);
+    }
+
+    expect(kinds).toEqual(["clear", "refused", "refused"]);
+  });
+
+  it("refuses a STALE witness from a deleted worktree exactly as from a standing one: re-proof never freshens", async () => {
+    const kinds: string[] = [];
+    for (const repoRoot of [unwrap(resolveRepoRoot({ cwd: root })), join(scratch(), "deleted-worktree")]) {
+      const verdict = await readBaselineBumpWitness({
+        cwd: root,
+        head: headOf({ headSha: raised }),
+        home: homeWithWitnessedRecord({ originRepository: "acme/widget", repoRoot, stale: true }),
+        supersessions: memorySupersessionPort(),
+      });
+      kinds.push(verdict.kind);
+    }
+
+    expect(kinds).toEqual(["refused", "refused"]);
   });
 
   it("names the home's record when no witness judged it, so the record is what the landing read", async () => {

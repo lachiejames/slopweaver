@@ -59,6 +59,8 @@ export function reviewScope({
  *
  * @param artifactId the pass id
  * @param bound the requested bound
+ * @param originRepository the checkout's `origin` as `owner/name`, already read and validated; omitted when it
+ *   could not be read, which leaves the record unable to be re-proved once its checkout is deleted
  * @param passResult the completed pass
  * @param repoRoot the repository the pass was pointed at
  * @param requestedModel the model the pass's client asked for — read off the client, never retyped
@@ -71,6 +73,7 @@ export function reviewScope({
 export function toArtifactRecord({
   artifactId,
   bound,
+  originRepository,
   passResult,
   repoRoot,
   requestedModel,
@@ -81,6 +84,7 @@ export function toArtifactRecord({
 }: {
   artifactId: string;
   bound: PassBound;
+  originRepository?: string;
   passResult: BoundedPassResult;
   repoRoot: string;
   requestedModel: string;
@@ -110,6 +114,7 @@ export function toArtifactRecord({
     createdAtIso: runtime.nowIso(),
     observedElapsedMs: passResult.observedElapsedMs,
     outcome: passResult.outcome,
+    ...(originRepository === undefined ? {} : { originRepository }),
     repoRoot,
     // DERIVED, never retyped. These were duplicated literals, so changing the policy in `client.ts` left the
     // artifact confidently reporting the old one — a disclosure that lies is worse than no disclosure.
