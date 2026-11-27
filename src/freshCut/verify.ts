@@ -14,7 +14,7 @@ import { loadDenylistResult, unreadableDenylistMessage } from "../hygiene/scan.j
 import { err, ok, type Result } from "../lib/result.js";
 import { findOwnerTurn } from "../supervisor/chairTranscript.js";
 import { parseTurnPointer } from "../transcripts/pointer.js";
-import { parseCatFileBatch } from "../worktree/salvageScan.js";
+import { parseCatFileBatch } from "../worktree/salvageCatFile.js";
 import {
   type CutExemptionCounts,
   type CutFile,

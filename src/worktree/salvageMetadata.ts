@@ -1,23 +1,26 @@
 /**
  * The raw metadata walk a salvage scan reads beside the blobs — split out of `./salvageScan` along the seam between
  * reading git's object listing and reading its per-path history. It answers two things the push publishes and no
- * blob holds: every changed path's NAME, scanned as text, and every path each new blob is WRITTEN at.
+ * blob holds: every changed path's NAME, scanned as text, and every path each blob a range commit writes is WRITTEN at.
  *
  * The second exists because `rev-list --objects` names an object once, at the first path its walk meets, while the
  * repository-content identifier scanner forgives by path (`../hygiene/ownRepository.ts`: a `.github/CODEOWNERS`
  * account row, the README's one owner reference). Judged at its first path alone, a byte-identical copy of a
- * forgiven file at any other path inherited that forgiveness (reproduced in
- * `src/__tests__/unit/worktree/salvageScan/realGitPaths.test.ts`).
+ * forgiven file at any other path inherited that forgiveness, and a copy of a blob the destination's default branch
+ * already reaches was never judged at all, since the listing leaves that blob out (both reproduced in
+ * `src/__tests__/unit/worktree/salvageScan/realGitPaths.test.ts`). The map covers both: `./salvageScan` reads every
+ * blob in it, listed or not, for its identifiers.
  */
 
 /**
  * Every changed path in the range with the blob it writes, raw and NUL-separated: the `log` behind
- * `./salvageScan`'s metadata edge. Three flags carry the claim that every path a new blob is published at is in
+ * `./salvageScan`'s metadata edge. Three flags carry the claim that every path a range commit writes a blob at is in
  * it: `-r` walks into every directory, `--diff-merges=separate` diffs a merge against each parent, so a resolution
  * that differs from all of them is listed, and `--root` diffs a parentless commit against the empty tree whatever
- * `log.showRoot` says. A blob a range commit carries unchanged from every parent came from one that wrote it, or from
- * the destination, whose objects the listing never holds. `--no-show-signature` keeps `log.showSignature`'s prose
- * out of the stream; the commit object itself is scanned raw beside the blobs.
+ * `log.showRoot` says. A path a range commit carries unchanged from every parent was written by a range commit, so
+ * it is listed there, or came from the destination's default branch, which already publishes it at that path.
+ * `--no-show-signature` keeps `log.showSignature`'s prose out of the stream; the commit object itself is scanned raw
+ * beside the blobs.
  */
 export const METADATA_LOG = [
   "--no-replace-objects",

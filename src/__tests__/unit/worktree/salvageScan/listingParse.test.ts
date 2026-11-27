@@ -4,8 +4,9 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { parseCatFileBatch, parseCatFileObjects } from "../../../../worktree/salvageCatFile.js";
 import { parseSalvageMetadata } from "../../../../worktree/salvageMetadata.js";
-import { newBlobsIn, parseCatFileBatch, remoteTips, revListInput } from "../../../../worktree/salvageScan.js";
+import { newBlobsIn, remoteTips, revListInput } from "../../../../worktree/salvageScan.js";
 import { batchOf, NO_SHA, rawRecord, SHA_A, SHA_B } from "./harness.js";
 
 const MALFORMED = "the paths it would push were in a git listing the scan could not read — nothing was pushed";
@@ -120,6 +121,25 @@ describe("parseCatFileBatch", () => {
 
   it("answers null for a truncated answer", () => {
     expect(parseCatFileBatch({ output: Buffer.from(`${SHA_A} blob 10\nshort`) })).toBe(null);
+  });
+
+  it("answers null for a name answered with two different objects, so a second copy cannot hide the first's bytes", () => {
+    expect(parseCatFileObjects({ output: Buffer.from(`${SHA_A} blob 3\nbad\n${SHA_A} blob 2\nok\n`) })).toBe(null);
+    expect(parseCatFileBatch({ output: Buffer.from(`${SHA_A} blob 3\nbad\n${SHA_A} blob 2\nok\n`) })).toBe(null);
+    expect(parseCatFileObjects({ output: Buffer.from(`${SHA_A} blob 2\nok\n${SHA_A} tree 2\nok\n`) })).toBe(null);
+  });
+
+  it("keeps a name asked twice and answered twice alike once, as a tree with two identical files asks", () => {
+    const parsed = parseCatFileBatch({ output: Buffer.from(`${SHA_A} blob 2\nok\n${SHA_A} blob 2\nok\n`) });
+    expect([...parsed!.entries()].map(([sha, body]) => [sha, body.toString("utf8")])).toEqual([[SHA_A, "ok"]]);
+  });
+
+  it("keeps the type each header names, so a reader can refuse an object of the wrong kind", () => {
+    const parsed = parseCatFileObjects({ output: Buffer.from(`${SHA_A} tree 0\n\n${SHA_B} blob 2\nok\n`) });
+    expect([...parsed!.entries()].map(([sha, object]) => [sha, object.type, object.content.toString("utf8")])).toEqual([
+      [SHA_A, "tree", ""],
+      [SHA_B, "blob", "ok"],
+    ]);
   });
 });
 
