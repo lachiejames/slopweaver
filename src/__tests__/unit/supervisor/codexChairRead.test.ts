@@ -95,6 +95,21 @@ describe("readCodexChairOwnerTurns", () => {
     expect(turns[0]!.turnUuid).toBe(turns[0]!.pointer.slice(`codex-rollout:${THREAD}#`.length));
   });
 
+  it("counts a turn inside the same millisecond as a successor's pin, but before it, to the predecessor", () => {
+    writeRollout({ lines: [meta(), said({ at: "2026-11-27T10:00:00.000200Z", text: "just before the pin" })] });
+    const pin = "2026-11-27T10:00:00.000500Z";
+
+    const predecessor = unwrap(
+      readCodexChairOwnerTurns({ codexHome, sinceIso: undefined, threadId: THREAD, untilIso: pin }),
+    );
+    const successor = unwrap(
+      readCodexChairOwnerTurns({ codexHome, sinceIso: pin, threadId: THREAD, untilIso: undefined }),
+    );
+
+    expect(predecessor.map((turn) => turn.text)).toEqual(["just before the pin"]);
+    expect(successor).toEqual([]);
+  });
+
   it("fails the read on a bad line outside the tenure, because placing it outside needed it read", () => {
     writeRollout({ lines: [meta(), "{torn", said({ at: "2026-11-20T09:05:00.000Z", text: "in" })] });
 
