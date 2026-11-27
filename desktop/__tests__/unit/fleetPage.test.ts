@@ -5,8 +5,19 @@
 import { describe, expect, it } from "vitest";
 
 import type { FleetHealth } from "../../src/fleetHealth";
-import { fleetLinkOf, fleetNoteUrl, fleetPageHtml } from "../../src/fleetPage";
+import {
+  fleetLinkOf,
+  fleetNoteUrl,
+  fleetPageHtml,
+  noteFoldOpen,
+  noteLoadUrl,
+  sameDocumentMove,
+} from "../../src/fleetPage";
 import { RECOVERY_IDLE } from "../../src/fleetRecoveryCheck";
+
+/** The note fold's two controls: real links with plain text, the open one shown until the fold is the URL's target. */
+const FOLD_LINKS =
+  '<a href="#why" class="fold-open">Why it reads this way</a><a href="#" class="fold-close">Why it reads this way</a>';
 
 const HEALTH: FleetHealth = {
   capacity: { configured: 15, online: 1 },
@@ -187,8 +198,19 @@ describe("fleetNoteUrl", () => {
 
   it("folds the fleet's own reason under a step the fleet named", () => {
     expect(noteHtml({ health: HEALTH })).toContain(
-      '<details><summary>Why it reads this way</summary><ul class="why"><li>This seat was running on Fable.</li></ul></details>',
+      `${FOLD_LINKS}<ul class="why fold"><li>This seat was running on Fable.</li></ul>`,
     );
+  });
+
+  it("draws the fold as a script-free target of the whole note, so its open state is the URL's fragment", () => {
+    const html = noteHtml({ health: STALLED });
+    expect(html).toContain('<main><div id="why"><p class="title">n</p>');
+    expect(html).toContain("<pre>slopweaver fleet resume</pre></div></main>");
+    expect(html).toContain(
+      ".fold,.fold-close{display:none}\n#why:target .fold{display:block}\n#why:target .fold-close{display:inline}\n#why:target .fold-open{display:none}",
+    );
+    expect(html).not.toContain("<details>");
+    expect(html).not.toContain("<script");
   });
 
   it("shows the command under Start recovery again, the one step you could run yourself", () => {
@@ -199,11 +221,11 @@ describe("fleetNoteUrl", () => {
 
   it("folds why it reads down: the red seat's words, its last sign, and what recovery did", () => {
     expect(noteHtml({ health: STALLED })).toContain(
-      '<details><summary>Why it reads this way</summary><ul class="why">' +
+      `${FOLD_LINKS}<ul class="why fold">` +
         "<li>Supervisor: The supervisor is not running.</li>" +
         "<li>Last sign it was working: it closed a sweep at Friday 10:05 am.</li>" +
         "<li>Recovery was sent to cmux 4 times, and no attempt has recorded starting.</li>" +
-        "</ul></details>",
+        "</ul>",
     );
   });
 
@@ -238,5 +260,59 @@ describe("fleetNoteUrl", () => {
     expect(fleetNoteUrl({ health: later, timeZone: "Australia/Sydney" })).toBe(
       fleetNoteUrl({ health: STALLED, timeZone: "Australia/Sydney" }),
     );
+  });
+});
+
+describe("the note's fold across a changed reading", () => {
+  const before = fleetNoteUrl({ health: STALLED, timeZone: "Australia/Sydney" })!;
+  const changed = fleetNoteUrl({ health: { ...STALLED, console: "down" }, timeZone: "Australia/Sydney" })!;
+
+  it("reads the fold open only off the #why fragment", () => {
+    expect(noteFoldOpen({ url: `${before}#why` })).toBe(true);
+    expect(noteFoldOpen({ url: `${before}#` })).toBe(false);
+    expect(noteFoldOpen({ url: before })).toBe(false);
+  });
+
+  it("reads an address a window has not committed, or failed to load, as the fold closed, never a throw", () => {
+    expect(noteFoldOpen({ url: "" })).toBe(false);
+    expect(noteFoldOpen({ url: "not a url" })).toBe(false);
+    expect(noteFoldOpen({ url: "data:text/html;charset=utf-8,%3Cp%3En%3C%2Fp%3E" })).toBe(false);
+    expect(noteFoldOpen({ url: "data:text/html;charset=utf-8,%3Cp%3En%3C%2Fp%3E#why" })).toBe(true);
+    expect(noteFoldOpen({ url: "data:text/html;charset=utf-8,%3Cp%3En%3C%2Fp%3E#" })).toBe(false);
+  });
+
+  it("loads a changed reading onto the fold when it was open, and closed when it was closed", () => {
+    expect(changed === before).toBe(false);
+    const foldOpen = noteFoldOpen({ url: `${before}#why` });
+    expect(noteLoadUrl({ foldOpen, url: changed })).toBe(`${changed}#why`);
+    expect(noteLoadUrl({ foldOpen: false, url: changed })).toBe(changed);
+  });
+});
+
+describe("sameDocumentMove", () => {
+  const note = fleetNoteUrl({ health: STALLED, timeZone: "Australia/Sydney" })!;
+  const other = fleetNoteUrl({ health: HEALTH, timeZone: "Australia/Sydney" })!;
+
+  it("lets the fold's own two links move within the note", () => {
+    expect(sameDocumentMove({ from: note, to: `${note}#why` })).toBe(true);
+    expect(sameDocumentMove({ from: `${note}#why`, to: `${note}#` })).toBe(true);
+  });
+
+  it("guards every other navigation, Not now and the step's button included", () => {
+    expect(sameDocumentMove({ from: note, to: "slopweaver-fleet://dismiss/resume-4" })).toBe(false);
+    expect(sameDocumentMove({ from: note, to: "slopweaver-fleet://act/resume-4" })).toBe(false);
+    expect(sameDocumentMove({ from: note, to: "https://example.com/#why" })).toBe(false);
+    expect(sameDocumentMove({ from: note, to: `${other}#why` })).toBe(false);
+    expect(sameDocumentMove({ from: note, to: note })).toBe(false);
+    expect(sameDocumentMove({ from: `${note}#why`, to: note })).toBe(false);
+    expect(fleetLinkOf({ url: "slopweaver-fleet://dismiss/resume-4" })).toEqual({
+      kind: "dismiss",
+      stepId: "resume-4",
+    });
+  });
+
+  it("makes both fold controls real links with plain text, so Tab reaches them", () => {
+    const html = decodeURIComponent(note.slice("data:text/html;charset=utf-8,".length));
+    expect(html).toContain(FOLD_LINKS);
   });
 });
