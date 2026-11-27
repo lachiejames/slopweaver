@@ -137,7 +137,7 @@ describe("reseatWorkspace", () => {
       error: {
         code: "NO_LIVE_SESSION",
         message:
-          "no live Claude session runs in workspace:1, and its tab was not a bare shell to resume the pin into (no-process) — once the tab shows a shell prompt, run `slopweaver fleet resume` again or `slopweaver cmux reseat workspace:1` from another tab; `session re-seat` never seats the chair",
+          "no live Claude session runs in workspace:1, and its tab was not a bare shell to resume the pin into (no-process) — once the tab shows a shell prompt, run `slopweaver fleet resume` again or `slopweaver cmux reseat workspace:1` from a different cmux workspace (another entry in the sidebar); `session re-seat` never seats the chair",
       },
       kind: "refused",
       workspaceRef: "workspace:1",

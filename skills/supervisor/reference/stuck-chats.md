@@ -47,7 +47,7 @@ in `src/cmux/client.ts` carries none), which is filed as `session-watch-misses-a
   `--resume` on a routed plan, the chair included, so the seat keeps its context. Then run `slopweaver session re-seat`
   for whatever WORKER reseat refused `NO_LIVE_SESSION`: that verb closes the seat and fresh-spawns its ledger row, and
   never seats the chair — a chair's refusal names why its tab was not a bare shell, and `cmux reseat <its ref>` from
-  another tab once it shows a prompt is the way back. Account
+  a different workspace (another sidebar entry) once it shows a prompt is the way back. Account
   for every seat either one reports it could not handle. Never `/login`, and never type into a retrying prompt: it
   cannot leave the spent plan.
 - **`silent` outranks `needs-input` for suspicion** — it went quiet WITHOUT ever finishing a turn, which is

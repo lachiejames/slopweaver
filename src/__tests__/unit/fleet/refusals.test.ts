@@ -90,6 +90,21 @@ describe("mapFleetRefusal", () => {
     expect(reason.handStep).toBeUndefined();
   });
 
+  // A workspace with a second tab open is a shape the owner clears by closing it, never "could not read cmux".
+  it("names a split workspace as tabs to close, never as a failed cmux read, with no button for the owner", () => {
+    const error = ReseatErrors.splitSurfaces({ surfaces: 2, workspaceRef: "workspace:7" });
+    const reason = mapFleetRefusal({
+      accounts: ACCOUNTS,
+      refusal: { code: error.code, message: error.message, workspaceRef: "workspace:7" },
+    });
+    expect([reason.headline, reason.detail, reason.raw, reason.handStep]).toEqual([
+      "A seat's workspace has more than one tab open.",
+      "This seat's workspace has more than one tab open (workspace:7), and a typed line would reach only one of them, so nothing was typed. Close the extra tabs until one is left, then run recovery again from a different workspace.",
+      error.message,
+      undefined,
+    ]);
+  });
+
   it("gives every known code a headline and a detail that are not the producer's text, with or without a plan", () => {
     expect(FLEET_REFUSAL_CODES.length).toBeGreaterThan(0);
     const leaked = FLEET_REFUSAL_CODES.flatMap((code) =>

@@ -133,6 +133,28 @@ export function makeHome(): string {
   return mkdtempSync(join(tmpdir(), "fleet-"));
 }
 
+/** A session id no live process on any machine carries: the chair's pin in the supervisor tests. */
+export const UNUSED_SESSION = "00000000-0000-4000-8000-00000000dead";
+
+/**
+ * The pinned session's registry record, as the relaunch would write it.
+ *
+ * @param pid the process the record names
+ * @returns the record
+ */
+export function chairLiveRecord({ pid }: { pid: number }): SessionRecord {
+  return {
+    cwd: "/w/chair-id",
+    entrypoint: "cli",
+    kind: "interactive",
+    name: "chair",
+    pid,
+    sessionId: UNUSED_SESSION,
+    startedAtMs: 0,
+    status: "idle",
+  };
+}
+
 /**
  * One live workspace as `cmux list` reports it.
  *

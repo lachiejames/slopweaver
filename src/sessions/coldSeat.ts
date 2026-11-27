@@ -92,7 +92,9 @@ export type ColdSeatVerdict =
       /** The pin's id and the binding's, when they named different sessions. */
       readonly mismatch: { readonly pinned: string; readonly bound: string } | undefined;
     }
-  | { readonly kind: "not-cold"; readonly why: NotColdReason }
+  | { readonly kind: "not-cold"; readonly why: Exclude<NotColdReason, "split-surfaces"> }
+  /** More than one tab: the count travels with it, so the chair's refusal names it without a second cmux read. */
+  | { readonly kind: "not-cold"; readonly why: "split-surfaces"; readonly surfaces: number }
   /** A bare shell with a saved session whose transcript is not under the tab's directory, so nothing resumes there. */
   | { readonly kind: "unresumable"; readonly sessionId: string; readonly cwd: string };
 
@@ -212,7 +214,7 @@ function notPromptWhy({
   tree: readonly CmuxProcess[];
   sessionId: string | undefined;
   liveElsewhere: boolean;
-}): NotColdReason {
+}): Exclude<NotColdReason, "split-surfaces"> {
   if (promptCandidate({ tree }) === undefined || sessionId === undefined) {
     return "not-a-bare-shell";
   }
