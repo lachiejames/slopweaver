@@ -17,10 +17,11 @@
  * The pin record is the authority for one pairing only: an app caller taking over from the app session the record
  * names. That pairing resolves without cmux, so a chair the desktop app restarts can take over while cmux refuses
  * the app's child its socket. Every other pairing still needs cmux's own pin and refuses. The cmux arm of `cmux pin`
- * refuses over an app record (`./appPin.ts`). The residue: a pin set by hand in cmux's own UI beside an app record,
- * or one older than the record, goes unseen while cmux cannot be read. So does a cmux pin that raced a verb
- * rewriting the record (an app session's own `cmux pin`, or a takeover between removing the old record and writing
- * the new one), since nothing locks the record between its read and the pin.
+ * refuses over an app record (`./appPin.ts`), and every verb that reads the seat and moves it — both arms of
+ * `cmux pin`, `cmux unpin` and the takeover itself — holds the supervisor-pin lock (`./pinLock.ts`) from that read to
+ * its last write, so none of them can land beside a record another is rewriting. The residue is the writer that never
+ * asks for the lock: a pin set by hand in cmux's own UI beside an app record, or one older than the record, goes unseen
+ * while cmux cannot be read, and so does a pin made from another home.
  *
  * ## A chair whose host no longer holds it
  *
