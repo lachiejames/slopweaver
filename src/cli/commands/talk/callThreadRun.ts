@@ -3,6 +3,7 @@
  * what the thread was told at its start, each turn frame and completed item, and every tool answer the console handed
  * it (`src/talk/callThreadStore.ts`). Auditability is a core property, and the
  * thread itself is ephemeral. An AUDIT read: nothing else reads this journal, and it never feeds recall or continuity.
+ * An entry the desktop test instance's call wrote carries `instance=e2e` on its header, and `instance` in `--json`.
  * A call with no journal is an error, never an empty page.
  */
 import { logger } from "../../../lib/logger.js";

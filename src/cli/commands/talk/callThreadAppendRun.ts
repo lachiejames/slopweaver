@@ -5,7 +5,9 @@
  * (`site/lib/talkCallThreadJournal.ts`), so nothing unmasked is written anywhere on the way here.
  *
  * A console that is not theirs is refused before anything is read, exactly as `talk transcript` refuses one writing their
- * live home (`./consoleOrigin.ts`); the journal types into no chat, so the hatch may open it. Exit codes are what the
+ * live home (`./consoleOrigin.ts`); the journal types into no chat, so the hatch may open it. The desktop test
+ * instance's call through the owner's own console (`--console-instance e2e`) records, every entry stamped
+ * `instance: "e2e"` so `talk call-thread` never shows it as the owner's. Exit codes are what the
  * console's queue reads: `EXIT_USAGE` is a batch refused for good, never retried; `EXIT_ERROR` a write that may
  * succeed if tried again, whose `writeId`s make that retry safe.
  */
@@ -21,7 +23,7 @@ import { resolveHandoverDir } from "../handover/commandSupport.js";
 import { talkHomeOf } from "./args.js";
 import { parseCallThreadAppendArgs } from "./callThreadArgs.js";
 import { TALK_CALL_THREAD_APPEND_USAGE } from "./callThreadUsage.js";
-import { consoleWriteRefusal, resolveConsoleOrigin } from "./consoleOrigin.js";
+import { consoleRecordGate } from "./consoleOrigin.js";
 
 /** How many argv entries precede the verb's own flags: `[node, bin, "talk", "call-thread-append", ...]`. */
 const VERB_ARG_OFFSET = 4;
@@ -73,16 +75,14 @@ export async function runTalkCallThreadAppend(argv: readonly string[]): Promise<
   }
   const { callId, consoleOrigin, entriesFile, json } = parsed.value;
   const home = talkHomeOf({ home: parsed.value.home });
-  if (consoleOrigin !== undefined) {
-    const origin = resolveConsoleOrigin({ args: consoleOrigin });
-    const handoverDir = resolveHandoverDir({ dir: undefined, home });
-    const verb = "talk call-thread-append";
-    const refusal = consoleWriteRefusal({ handoverDir, home, origin, typesIntoChair: false, verb });
-    if (refusal !== undefined) {
-      logger.error({ msg: refusal });
-      return EXIT_USAGE;
-    }
+  const handoverDir = resolveHandoverDir({ dir: undefined, home });
+  const gate = consoleRecordGate({ consoleOrigin, handoverDir, home, verb: "talk call-thread-append" });
+  if (gate.isErr()) {
+    logger.error({ msg: gate.error });
+    return EXIT_USAGE;
   }
+  // Read off the resolved origin the gate passed, never off an entry: the page cannot claim a call is the walk's.
+  const instance = gate.value?.instance;
   const read =
     entriesFile === STDIN_FILE
       ? parseCallThreadBatch({ callId, text: await readStdin() })
@@ -103,6 +103,7 @@ export async function runTalkCallThreadAppend(argv: readonly string[]): Promise<
     denylist: denylist.kind === "loaded" ? denylist.lines : [],
     entries: read.value,
     home,
+    instance,
   });
   if (appended.isErr()) {
     return notAppended({ error: appended.error, json });

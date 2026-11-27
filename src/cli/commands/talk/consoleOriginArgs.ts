@@ -2,7 +2,8 @@
  * The three flags a console server passes `talk transcript` and `talk relay` to say where it is serving from —
  * `--console-root`, `--console-port`, `--console-default-port` — and their pure parser. All three or none: a console
  * passes the whole group, and a hand-run verb passes none (`./consoleOrigin.ts` says what each case means). Beside
- * them, `talk transcript` alone takes `--console-instance e2e` for a batch the desktop test instance posted.
+ * them, the two recording verbs `talk transcript` and `talk call-thread-append` alone take `--console-instance e2e` for
+ * a batch the desktop test instance's call posted.
  */
 import { isAbsolute } from "node:path";
 
@@ -13,9 +14,10 @@ import { stringOf } from "./flagValues.js";
 export const CONSOLE_ORIGIN_FLAGS = ["console-root", "console-port", "console-default-port"] as const;
 
 /**
- * The one flag `talk transcript` alone takes beside the group: `--console-instance e2e`, which the console server adds
- * when the desktop TEST instance posted the batch. Never `talk relay`'s or `talk wake-chair`'s, so either refuses it
- * as an unknown flag: a test instance relays nothing and wakes nobody.
+ * The one flag the recording verbs `talk transcript` and `talk call-thread-append` alone take beside the group:
+ * `--console-instance e2e`, which the console server adds when the desktop TEST instance's call posted the batch.
+ * Never `talk relay`'s or `talk wake-chair`'s, so either refuses it as an unknown flag: a test instance relays nothing
+ * and wakes nobody.
  */
 export const CONSOLE_INSTANCE_FLAG = "console-instance";
 
@@ -99,7 +101,7 @@ export function consoleOriginOf({
 }
 
 /**
- * The console-origin group and `--console-instance` out of `talk transcript`'s parsed flags, noting every problem.
+ * The console-origin group and `--console-instance` out of a recording verb's parsed flags, noting every problem.
  *
  * @param values the verb's parsed flags
  * @param problems where each problem is noted

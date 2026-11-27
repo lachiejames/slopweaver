@@ -59,6 +59,9 @@ const storedSchema = z.strictObject({
   binaryStandIns: z.number().int().min(0),
   callId: callIdSchema,
   capture: json,
+  // The desktop TEST instance's call or typed conversation (`slopweaver desktop e2e`), stamped by the append verb from
+  // `--console-instance e2e`, never by the page; absent on the owner's, and on every line written before it existed.
+  instance: z.literal("e2e").optional(),
   kind: z.enum(["thread-start-requested", "thread-started", "notification", "tool-answer"]),
   receivedAtIso: z.iso.datetime(),
   redactions: z.array(z.strictObject({ count: z.number().int().min(1), label: z.string().min(1) })),

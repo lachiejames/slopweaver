@@ -28,6 +28,7 @@ beforeEach(() => {
     appendCallThreadEntries({
       callId: CALL,
       denylist: [],
+      instance: undefined,
       entries: [
         {
           callId: CALL,

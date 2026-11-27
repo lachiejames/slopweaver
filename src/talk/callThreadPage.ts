@@ -53,13 +53,25 @@ export function callThreadPage({
 }
 
 /**
- * A capture's identifiers worth a header: its method, thread, turn, item type and id, tool, whichever it carries.
+ * An entry's identifiers worth a header: `instance=e2e` first on the desktop test instance's, then its capture's
+ * method, thread, turn, item type and id, tool, whichever it carries. The mark is per entry, never per page: one
+ * journal can hold both.
  *
  * @param entry the stored entry
  * @returns `key=value` pairs, in a fixed order
  */
 function headerFields({ entry }: { entry: StoredCallThreadEntry }): string[] {
-  const capture = entry.capture;
+  const marked = entry.instance === undefined ? [] : [`instance=${entry.instance}`];
+  return [...marked, ...captureFields({ capture: entry.capture })];
+}
+
+/**
+ * A capture's identifiers worth a header.
+ *
+ * @param capture the stored capture
+ * @returns `key=value` pairs, in a fixed order
+ */
+function captureFields({ capture }: { capture: StoredCallThreadEntry["capture"] }): string[] {
   if (!isRecord(capture)) {
     return [];
   }

@@ -108,7 +108,7 @@ whatever value that argument has as `window.slopweaverDesktop.instance`, and the
 test instance's, its bridge kept or refused (`site/lib/desktopShell.ts` `instanceMarkOf`), so a malformed one is never dropped into the owner's words; it
 sends `instance: "e2e"` with every transcript batch, retries included. The route passes `talk transcript
 --console-instance e2e` beside the server-derived origin flags, never in place of them, and the verb stamps
-`origin.instance: "e2e"` on the open line (`src/talk/callOrigin.ts`). A marked origin is never the owner's: `talk unread` sets
+`origin.instance: "e2e"` on the open line (`src/talk/callOrigin.ts`); its thread journal likewise (`talk call-thread-append --console-instance e2e`, each entry headed `instance=e2e`). A marked origin is never the owner's: `talk unread` sets
 it aside as `NOT THEIRS` (`the desktop e2e test instance, through …`), and continuity, the chat thread and card landing
 pass the call over — once ANY open line of a call is marked, a later unmarked open does not make what follows the
 owner's (`src/talk/callOpened.ts`, `callOrigin.ts`'s `originAfterOpen`), so nor does it wake the chair. A renderer crash's

@@ -168,6 +168,8 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
   "talk call-thread-append": {
     "--call": [...TRANSCRIPT_BASE],
     "--console-default-port": [...TRANSCRIPT_BASE, ...CONSOLE_ORIGIN],
+    // `--console-instance` qualifies a whole console-origin group, and is exactly `e2e`.
+    "--console-instance": [...TRANSCRIPT_BASE, ...CONSOLE_ORIGIN, "--console-instance", "e2e"],
     "--console-port": [...TRANSCRIPT_BASE, ...CONSOLE_ORIGIN],
     "--console-root": [...TRANSCRIPT_BASE, ...CONSOLE_ORIGIN],
     "--entries-file": [...TRANSCRIPT_BASE],

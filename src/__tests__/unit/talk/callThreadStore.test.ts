@@ -60,6 +60,7 @@ const append = (over: Partial<Parameters<typeof appendCallThreadEntries>[0]>) =>
     denylist: [],
     entries: [wire({ n: 1 })],
     home,
+    instance: undefined,
     pid: 101,
     startOf: (pid) => (pid === 101 ? { running: true, start: "t101" } : { running: false, start: undefined }),
     ...over,
@@ -127,6 +128,32 @@ describe("appendCallThreadEntries", () => {
     const read = unwrap(readCallThreadEntries({ callId: CALL, home }));
     expect(read.entries.map((e) => e.writeId)).toEqual([wire({ n: 1 }).writeId]);
     expect(unwrap(append({ entries: [wire({ n: 1, text: "first capture" })] })).repeated).toBe(1);
+  });
+
+  it("stamps every entry of the desktop test instance's batch, and reads the owner's back with no instance", () => {
+    unwrap(append({ entries: [wire({ n: 1 }), wire({ n: 2 })], instance: "e2e" }));
+    unwrap(append({ entries: [wire({ n: 3 })] }));
+    const read = unwrap(readCallThreadEntries({ callId: CALL, home }));
+    expect(read.entries.map((e) => [e.writeId, e.instance])).toEqual([
+      [wire({ n: 1 }).writeId, "e2e"],
+      [wire({ n: 2 }).writeId, "e2e"],
+      [wire({ n: 3 }).writeId, undefined],
+    ]);
+    const lines = readFileSync(join(threadsDir({ home }), `${CALL}.jsonl`), "utf8")
+      .trimEnd()
+      .split("\n");
+    expect(lines.map((line) => line.includes('"instance":"e2e"'))).toEqual([true, true, false]);
+    expect(lines[2]).not.toContain('"instance"');
+    expect(read.skipped).toBe(0);
+  });
+
+  it("writes a test instance's retry once, and refuses its writeId arriving as the owner's", () => {
+    unwrap(append({ entries: [wire({ n: 1 })], instance: "e2e" }));
+    expect(unwrap(append({ entries: [wire({ n: 1 })], instance: "e2e" })).repeated).toBe(1);
+    expect(unwrapErr(append({ entries: [wire({ n: 1 })] }))).toEqual(
+      CallThreadErrors.writeIdCollision({ writeId: wire({ n: 1 }).writeId }),
+    );
+    expect(unwrap(readCallThreadEntries({ callId: CALL, home })).entries.map((e) => e.instance)).toEqual(["e2e"]);
   });
 
   it("refuses an id that is not a call's", () => {

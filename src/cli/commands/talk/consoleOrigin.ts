@@ -308,28 +308,34 @@ export function consoleWriteRefusal({
   });
 }
 
+/** The two verbs that RECORD a console call, and so may record the desktop test instance's through the owner's console. */
+export type ConsoleRecordVerb = "talk transcript" | "talk call-thread-append";
+
 /**
- * {@link consoleWriteRefusal} for `talk transcript`, with the one allowance only an APPEND gets: the desktop test
- * instance recording through the owner's own console writes into the owner's live home, since that call file is what
- * `slopweaver desktop e2e --call` proves. Its open lines carry `instance: "e2e"`, so no reader of the owner's words takes them,
- * and the verb lands nothing from them (`./transcriptRun.ts`). Attribution stays {@link isOwnerConsoleOrigin}'s:
- * this answers only whether the bytes may be written. The marker on any other console is judged as that console.
+ * {@link consoleWriteRefusal} for a verb that records a call, with the one allowance only an APPEND gets: the desktop
+ * test instance recording through the owner's own console writes into the owner's live home, since that call's file
+ * and thread journal are what `slopweaver desktop e2e --call` proves. Both carry `instance: "e2e"` — a call file's open
+ * lines, every thread journal entry — so no reader takes them for the owner's, and `talk transcript` lands nothing
+ * from them (`./transcriptRun.ts`). Attribution stays {@link isOwnerConsoleOrigin}'s: this answers only whether the
+ * bytes may be written. The marker on any other console is judged as that console.
  *
+ * @param verb the recording verb, as the refusal names it
  * @param origin the console asking to write, marked when the test instance posted the batch
  * @param home the home the write would land in
  * @param handoverDir the handover directory a landing from the write would touch
  * @returns the refusal, or `undefined`
  */
-export function transcriptWriteRefusal({
+export function consoleRecordWriteRefusal({
+  verb,
   origin,
   home,
   handoverDir,
 }: {
+  verb: ConsoleRecordVerb;
   origin: CallOrigin;
   home: string;
   handoverDir: string;
 }): string | undefined {
-  const verb = "talk transcript";
   const testInstanceOnOwnerConsole = origin.instance === "e2e" && servedByOwnerConsole({ origin });
   if (testInstanceOnOwnerConsole && callOriginSchema.safeParse(origin).success) {
     return undefined;
@@ -338,20 +344,24 @@ export function transcriptWriteRefusal({
 }
 
 /**
- * The console a `talk transcript` batch came from, resolved — or the refusal for a console not the owner's writing the
- * owner's live home, made before anything is read or written: no call file, no landing, no wake. The desktop test
- * instance through the owner's own console is the one exception, and it only records ({@link transcriptWriteRefusal}).
+ * The console a recording verb's batch came from, resolved — or the refusal for a console not the owner's writing the
+ * owner's live home, made before anything is read or written: no call file or thread journal, no landing, no wake. The
+ * desktop test instance through the owner's own console is the one exception, and it only records
+ * ({@link consoleRecordWriteRefusal}).
  *
+ * @param verb the recording verb, as a refusal names it
  * @param consoleOrigin the console's flags, absent on a hand run, which is neither gated nor stamped
  * @param handoverDir the handover directory a landing would write
  * @param home the home the batch would land in
  * @returns the origin, `undefined` on a hand run, or the four-line refusal
  */
-export function transcriptConsoleGate({
+export function consoleRecordGate({
+  verb,
   consoleOrigin,
   handoverDir,
   home,
 }: {
+  verb: ConsoleRecordVerb;
   consoleOrigin: ConsoleOriginArgs | undefined;
   handoverDir: string;
   home: string;
@@ -360,7 +370,7 @@ export function transcriptConsoleGate({
     return ok(undefined);
   }
   const origin = resolveConsoleOrigin({ args: consoleOrigin });
-  const refusal = transcriptWriteRefusal({ handoverDir, home, origin });
+  const refusal = consoleRecordWriteRefusal({ handoverDir, home, origin, verb });
   if (refusal !== undefined) {
     return err(refusal);
   }

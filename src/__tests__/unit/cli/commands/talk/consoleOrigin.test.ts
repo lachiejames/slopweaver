@@ -10,10 +10,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  consoleRecordWriteRefusal,
   consoleWriteRefusal,
   liveHomeReach,
   resolveConsoleOrigin,
-  transcriptWriteRefusal,
 } from "../../../../../cli/commands/talk/consoleOrigin.js";
 import { gitInTemp } from "../../../../tempGitRepo.js";
 
@@ -277,17 +277,21 @@ describe("the desktop test instance's writes", () => {
     expect(origin).toEqual({ checkoutRoot: root, defaultPort: 3000, instance: "e2e", mainWorktree: false, port: 3000 });
   });
 
-  it("lets a transcript through the owner's own console record where any other console would be refused", () => {
+  const recordVerbs = ["talk transcript", "talk call-thread-append"] as const;
+
+  it("lets a transcript or a thread journal through the owner's own console record where any other would be refused", () => {
     const { home, handoverDir } = linkedHome();
-    expect(transcriptWriteRefusal({ handoverDir, home, origin: testOnOwnerConsole })).toBe(undefined);
+    expect(
+      recordVerbs.map((verb) => consoleRecordWriteRefusal({ handoverDir, home, origin: testOnOwnerConsole, verb })),
+    ).toEqual([undefined, undefined]);
   });
 
-  it("judges the marker on any other console as that console", () => {
+  it("judges the marker on any other console as that console, for either recording verb", () => {
     const { home, handoverDir } = linkedHome();
     const onSeat = { ...testOnOwnerConsole, checkoutRoot: "/w/seat", mainWorktree: false, port: 3001 };
-    expect(transcriptWriteRefusal({ handoverDir, home, origin: onSeat })).toContain(
-      `: ${join(home, "talk")} is a symlink`,
-    );
+    const refusals = recordVerbs.map((verb) => consoleRecordWriteRefusal({ handoverDir, home, origin: onSeat, verb }));
+    expect(refusals.map((refusal) => refusal!.includes(`: ${join(home, "talk")} is a symlink`))).toEqual([true, true]);
+    expect(refusals[1]).toContain("talk call-thread-append from ");
   });
 
   it("never types into the owner's chair, even through the owner's own console", () => {
