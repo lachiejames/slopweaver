@@ -213,6 +213,73 @@ const NON_REPLAYABLE_METHODS: ReadonlySet<string> = new Set([
   "workspace.create",
 ]);
 
+/**
+ * The methods a `rate_limited` answer is resent for, after cmux's own `retry_after_ms`: the reads measured meeting
+ * it, which change nothing however often they are asked (`./errors.ts`'s `CmuxRateLimitedError`). One
+ * `session close-done --dry-run` over a fleet of twenty seats met it on all three: the screen read, the process
+ * tree read and the inventory re-read. No measurement says a refused ACTION was refused before it ran, so a
+ * keystroke or a create is never resent on it.
+ */
+const RATE_LIMIT_RESENT_METHODS: ReadonlySet<string> = new Set(["surface.read_text", "system.top", "workspace.list"]);
+
+/**
+ * How many times a rate-limited call is sent on one connection: the first try and two resends. A resend can meet the window
+ * again when other calls on the same connection used it during the wait, so this bounds the loop rather than the
+ * window.
+ */
+const CMUX_RATE_LIMIT_ATTEMPTS = 3;
+
+/**
+ * The longest hint this client waits out, in ms. A policy bound, not cmux's: the measured hints were under 100ms,
+ * and a hint above this is returned to the caller as the failure, never shortened, because waiting less than cmux
+ * asked only meets the same refusal again.
+ */
+const CMUX_RATE_LIMIT_MAX_WAIT_MS = 1_000;
+
+/**
+ * The delay a `rate_limited` failure may be resent after, or `undefined` when it may not be: the method is not one
+ * {@link RATE_LIMIT_RESENT_METHODS} names, the frame carried no usable hint, or the hint exceeds the cap.
+ */
+function rateLimitWaitMs({ error, method }: { error: CmuxError; method: string }): number | undefined {
+  if (error.code !== "RATE_LIMITED" || !RATE_LIMIT_RESENT_METHODS.has(method)) {
+    return undefined;
+  }
+  if (error.retryAfterMs === undefined || error.retryAfterMs > CMUX_RATE_LIMIT_MAX_WAIT_MS) {
+    return undefined;
+  }
+  return error.retryAfterMs;
+}
+
+/**
+ * One call on one live connection, resent on that same connection after cmux's own hint while
+ * {@link rateLimitWaitMs} allows it and fewer than {@link CMUX_RATE_LIMIT_ATTEMPTS} have gone. The pacing half of
+ * {@link withSocketRetry}: it never retires the connection and spends none of the reconnect budget, so a dead
+ * transport met after a rate limit still gets every reconnect.
+ */
+async function callPaced({
+  method,
+  params,
+  used,
+  wait,
+}: {
+  method: string;
+  params: Readonly<Record<string, unknown>>;
+  used: CmuxSocket;
+  wait: (options: { delayMs: number }) => Promise<void>;
+}): Promise<Result<unknown, CmuxError>> {
+  for (let sent = 1; ; sent++) {
+    const result = await used.call({ method, params });
+    if (result.isOk() || result.error.code !== "RATE_LIMITED") {
+      return result;
+    }
+    const delayMs = rateLimitWaitMs({ error: result.error, method });
+    if (delayMs === undefined || sent >= CMUX_RATE_LIMIT_ATTEMPTS) {
+      return result;
+    }
+    await wait({ delayMs });
+  }
+}
+
 /** The `id` a reply frame carries, or `undefined` when it carries none this client can match. */
 function replyId({ line }: { line: string }): string | undefined {
   try {
@@ -261,6 +328,11 @@ const CMUX_SOCKET_RETRY_BACKOFF_MS = [250, 750, 1_500] as const;
  * opens lazily, after the backoff, and a connection is retired only while it is still the current one, so two calls
  * failing on the same dead connection open ONE replacement and never close the other's.
  *
+ * A `RATE_LIMITED` answer is the other retry, and a separate one: the connection is live and stays current, so
+ * nothing is retired and the reconnect budget is untouched. {@link callPaced} resends it on the same connection after
+ * cmux's own `retry_after_ms`, at most {@link CMUX_RATE_LIMIT_ATTEMPTS} sends per connection, and only where
+ * {@link rateLimitWaitMs} allows it; anything else returns the failure as it came.
+ *
  * Pure with respect to I/O: `openFresh` and `wait` are the only effects, so this is testable with a fake
  * {@link CmuxSocket} factory and no real connection — see `src/__tests__/unit/cmux/socket.test.ts`.
  *
@@ -307,7 +379,7 @@ export function withSocketRetry({
     call: async ({ method, params = {} }) => {
       for (let attempt = 0; ; attempt++) {
         const used = connection();
-        const result = await used.call({ method, params });
+        const result = await callPaced({ method, params, used, wait });
         if (result.isOk() || !transportUnavailable({ error: result.error })) {
           return result;
         }

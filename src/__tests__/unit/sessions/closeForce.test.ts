@@ -122,6 +122,14 @@ describe("closeForceDecision", () => {
     ]);
   });
 
+  // A retired chair: a diff line that is only its line number, read as Codex's, held it `busy` on every tick.
+  it("forces a Claude Code seat at rest whose transcript holds a bare line number, and holds the same line with no prompt", () => {
+    const transcript = "⏺ Update(notes.md)\n      41  - a line\n      42 \n⏺ Done.\n";
+
+    expect(closeForceDecision({ screen: `${transcript}${IDLE}` })).toEqual({ kind: "force" });
+    expect(closeForceDecision({ screen: `${transcript}$ ` })).toEqual({ kind: "held", verdict: "busy" });
+  });
+
   // Codex v0.157.1 — before this a Codex seat at rest could only ever be held `unproven`.
   it("forces a Codex seat at rest and holds one running, queued or holding a background terminal", () => {
     const screens = [CODEX_IDLE_AFTER_TURNS, CODEX_RUNNING, CODEX_QUEUED, CODEX_AFTER_INTERRUPT, CODEX_TRUST_MENU];

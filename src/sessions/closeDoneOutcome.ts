@@ -6,9 +6,10 @@
  * immediately), so the summary counts parked seats beside closed ones
  * and keeps printing nothing for the working fleet.
  */
-import type { CloseDonePlanItem, KeepReason, ScreenVerdict } from "./closeDone.js";
+import type { CloseDonePlanItem, KeepReason } from "./closeDone.js";
 import type { DoneEvidence } from "./dispatchDoneEvidence.js";
 import { type ParkKeepReason, QUIET_PARK_KEEPS } from "./parkSeat.js";
+import type { ScreenVerdict } from "./screenVerdict.js";
 import type { SessionItem } from "./session.js";
 
 /** A run seat with no done evidence, live in cmux — parked when it proves at rest. */

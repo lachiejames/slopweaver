@@ -94,10 +94,8 @@
  */
 import { basename } from "node:path";
 
-import { backgroundWorkOf } from "../cmux/backgroundWork.js";
 import type { CmuxWorkspaceSummary } from "../cmux/client.js";
 import { dispatchSessionName, dispatchWorkspaceName } from "../cmux/planNames.js";
-import { screenShowsQueuedMessage, screenShowsRunningTurn } from "../cmux/turnBusy.js";
 import { derivedRowState } from "../handover/derivedRowState.js";
 import { type HandoverDoc, isTerminalDocStatus } from "../handover/doc.js";
 import type { RunEvent, RunState } from "../handover/ledger.js";
@@ -445,7 +443,7 @@ function workerWorkspaceLookup({
 /**
  * Place every ledger row this sweep may act on: a close candidate, a drifted row, or kept with a reason.
  *
- * Pure and total — the screen reads that decide a candidate's fate come after, in {@link judgeScreen}, so a
+ * Pure and total — the screen reads that decide a candidate's fate come after, in `./screenVerdict.ts`'s `judgeScreen`, so a
  * dry run can print this plan without reading a single surface.
  *
  * Every OPEN row is placed, as it always was. A CLOSED row is placed only when it is a dispatch child that
@@ -514,31 +512,4 @@ export function planCloseDone({
         workspace,
       });
     });
-}
-
-/** What a candidate's screen said when it was read. Only `idle` closes. */
-export type ScreenVerdict = "idle" | "busy" | "queued" | "unreadable";
-
-/**
- * Judge one candidate's screen. A turn visibly running, a background shell or Monitor on its footer
- * (`../cmux/backgroundWork.ts` — work that will complete and wake it), or a line queued
- * behind one keeps the workspace; a screen that could not be read keeps it too, because a guess is the expensive
- * direction to be wrong in.
- *
- * @param screen the surface's rendered text, or `undefined` when it could not be read
- * @returns the verdict
- */
-export function judgeScreen({ screen }: { screen: string | undefined }): ScreenVerdict {
-  if (screen === undefined) {
-    return "unreadable";
-  }
-  if (screenShowsQueuedMessage({ screen })) {
-    return "queued";
-  }
-  const background = backgroundWorkOf({ host: undefined, screen });
-  const backgroundRuns = background !== undefined && background.shells + background.monitors > 0;
-  if (screenShowsRunningTurn({ screen }) || backgroundRuns) {
-    return "busy";
-  }
-  return "idle";
 }

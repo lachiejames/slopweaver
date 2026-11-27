@@ -154,3 +154,123 @@ describe("withSocketRetry", () => {
     expect(closed()).toEqual([true, true]);
   });
 });
+
+/** cmux's rate-limit answer to a screen read, with a hint, as `./socketFrames.ts` decodes the measured frame. */
+const READ_PACED = CmuxErrors.rateLimited({
+  message: "Polling rate limited for this connection",
+  method: "surface.read_text",
+  retryAfterMs: 92,
+});
+
+/**
+ * ONE live connection answering each send with the next scripted answer, wrapped in {@link withSocketRetry}: the
+ * shape a rate limit has, where the connection is fine and only the pacing refused.
+ */
+function pacedSocket({ answers }: { answers: readonly Result<unknown, CmuxError>[] }): {
+  socket: CmuxSocket;
+  waits: number[];
+  sends: () => number;
+  opensCount: () => number;
+  closed: () => boolean;
+} {
+  const waits: number[] = [];
+  let sends = 0;
+  let opens = 0;
+  let closed = false;
+  const socket = withSocketRetry({
+    openFresh: () => {
+      opens += 1;
+      return {
+        call: () => {
+          const answer = answers[sends];
+          sends += 1;
+          return Promise.resolve(answer!);
+        },
+        close: () => {
+          closed = true;
+        },
+      };
+    },
+    wait: ({ delayMs }) => {
+      waits.push(delayMs);
+      return Promise.resolve();
+    },
+  });
+  return { closed: () => closed, opensCount: () => opens, sends: () => sends, socket, waits };
+}
+
+describe("withSocketRetry on a rate-limited screen read", () => {
+  it("waits cmux's own hint and asks the same connection again, retiring nothing", async () => {
+    const { closed, opensCount, sends, socket, waits } = pacedSocket({ answers: [err(READ_PACED), ok("screen")] });
+
+    const result = await socket.call({ method: "surface.read_text", params: {} });
+
+    expect(result.isOk()).toBe(true);
+    expect(sends()).toBe(2);
+    expect(waits).toEqual([92]);
+    expect(opensCount()).toBe(1);
+    expect(closed()).toBe(false);
+  });
+
+  it("stops after three sends in all, returning the rate limit as it came", async () => {
+    const { sends, socket, waits } = pacedSocket({
+      answers: [err(READ_PACED), err(READ_PACED), err(READ_PACED), ok("never reached")],
+    });
+
+    const result = await socket.call({ method: "surface.read_text", params: {} });
+
+    expect(unwrapErr(result)).toEqual(READ_PACED);
+    expect(sends()).toBe(3);
+    expect(waits).toEqual([92, 92]);
+  });
+
+  it("returns a rate limit with no hint, or a hint over the cap, without waiting", async () => {
+    const noHint = CmuxErrors.rateLimited({ message: "m", method: "surface.read_text", retryAfterMs: undefined });
+    const longHint = CmuxErrors.rateLimited({ message: "m", method: "surface.read_text", retryAfterMs: 1_001 });
+
+    for (const paced of [noHint, longHint]) {
+      const { sends, socket, waits } = pacedSocket({ answers: [err(paced), ok("never reached")] });
+      expect(unwrapErr(await socket.call({ method: "surface.read_text", params: {} }))).toEqual(paced);
+      expect(sends()).toBe(1);
+      expect(waits).toEqual([]);
+    }
+  });
+
+  it("resends the process tree and inventory reads the same way, each after its own hint", async () => {
+    const sent = ["system.top", "workspace.list"].map(async (method) => {
+      const paced = CmuxErrors.rateLimited({ message: "m", method, retryAfterMs: 40 });
+      const { sends, socket, waits } = pacedSocket({ answers: [err(paced), ok("read")] });
+      const result = await socket.call({ method, params: {} });
+      return { ok: result.isOk(), sends: sends(), waits };
+    });
+
+    expect(await Promise.all(sent)).toEqual([
+      { ok: true, sends: 2, waits: [40] },
+      { ok: true, sends: 2, waits: [40] },
+    ]);
+  });
+
+  it("never resends a rate-limited keystroke, which no measurement says cmux refused before running", async () => {
+    const paced = CmuxErrors.rateLimited({ message: "m", method: "surface.send_key", retryAfterMs: 92 });
+    const { sends, socket, waits } = pacedSocket({ answers: [err(paced), ok("typed twice")] });
+
+    const result = await socket.call({ method: "surface.send_key", params: {} });
+
+    expect(unwrapErr(result)).toEqual(paced);
+    expect(sends()).toBe(1);
+    expect(waits).toEqual([]);
+  });
+
+  it("spends no reconnect on a rate limit: a dead transport after one still gets its full reconnect budget", async () => {
+    const { closed, sends, socket, waits } = pacedSocket({
+      answers: [err(READ_PACED), err(SOCKET_DOWN), err(SOCKET_DOWN), ok("screen")],
+    });
+
+    const result = await socket.call({ method: "surface.read_text", params: {} });
+
+    expect(result.isOk()).toBe(true);
+    expect(sends()).toBe(4);
+    expect(waits).toEqual([92, 250, 750]);
+    expect(closed()).toBe(true);
+  });
+});

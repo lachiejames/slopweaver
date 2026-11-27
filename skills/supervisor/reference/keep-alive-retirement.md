@@ -35,6 +35,19 @@ Claude Code 2.1.323 writes its Bash-tool shell as `&& \builtin setopt …`, whic
 admit, so no keep-alive (a bare one included) read as one; and every chair's boot chain pipes its watch through
 `grep`, which a bare-only rule refused. `close-done` now prints the judgement's own reason on a held retired chair.
 
+**Measured**: a retired chair idle at its prompt, its run finished and no `claude watch` under it, was held `busy`
+by step 5, `cmux close` and `session close-done` on every tick. Two causes were stacked. The screen judgement
+(`judgeScreen`, `src/sessions/screenVerdict.ts`) read both hosts' markers anywhere on the screen, and an Edit diff in
+the frozen transcript drew a blank source line as a bare line number, which Codex's terminal count read as 202
+background terminals. It now reads only the markers of the host whose own composer and footer are the bottom of the
+screen (`screenHostAtBottom`, `src/cmux/turnState.ts`), keeping the summed, hold-leaning read for a screen with
+neither. And cmux paces polls per connection (nine back to back, then `rate_limited` with a `retry_after_ms` under
+100ms), so a sweep's later screen, process-tree and inventory reads came back refused and its oldest seats, the
+retired chairs among them, read `screen unreadable`. Those three reads are now resent on the same connection after
+cmux's hint, three sends a connection at most, and a hint over a second is returned as the failure (`src/cmux/socket.ts`).
+Re-check: `slopweaver cmux read-screen --workspace <retired chair>`, then `slopweaver session close-done --dry-run`,
+which should print the chair as `would close … screen idle` with no `rate_limited` row.
+
 **Measured**: with step 5 unforced, every takeover stopped there (two successive chairs printed
 `cmux workspace.close failed (confirmation_required)`), and four `/slopweaver:supervisor` workspaces were open at
 once. Re-check with `slopweaver cmux list --json` — one pinned chair, plus at most one successor mid-handover.

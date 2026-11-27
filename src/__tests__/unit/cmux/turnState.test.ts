@@ -4,7 +4,12 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { classifyTurnScreen, claudeComposerAtBottom, screenProvesAtRest } from "../../../cmux/turnState.js";
+import {
+  classifyTurnScreen,
+  claudeComposerAtBottom,
+  screenHostAtBottom,
+  screenProvesAtRest,
+} from "../../../cmux/turnState.js";
 import {
   CODEX_AFTER_INTERRUPT,
   CODEX_IDLE_AFTER_TURNS,
@@ -151,5 +156,31 @@ describe("claudeComposerAtBottom", () => {
   it("finds Claude's own idle layout and never Codex's composer", () => {
     expect(claudeComposerAtBottom({ screen: CLAUDE_IDLE })).toBe(true);
     expect(claudeComposerAtBottom({ screen: CODEX_IDLE_AFTER_TURNS })).toBe(false);
+  });
+});
+
+describe("screenHostAtBottom", () => {
+  it("names the host whose own composer layout is the bottom, mid-turn and with background work included", () => {
+    const screens = [CLAUDE_IDLE, ONE_SHELL, CODEX_IDLE_BOOT, CODEX_IDLE_AFTER_TURNS, CODEX_RUNNING, CODEX_QUEUED];
+
+    expect(screens.map((screen) => screenHostAtBottom({ screen }))).toEqual([
+      "claude-code",
+      "claude-code",
+      "codex",
+      "codex",
+      "codex",
+      "codex",
+    ]);
+  });
+
+  it("names no host for a shell, a selection menu, or a footer printed above the last line", () => {
+    const screens = ["$ ", "", CODEX_TRUST_MENU, `${CLAUDE_IDLE}\n$ `];
+
+    expect(screens.map((screen) => screenHostAtBottom({ screen }))).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
   });
 });

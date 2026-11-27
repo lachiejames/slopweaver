@@ -186,31 +186,58 @@ export function splitFrames({ buffer }: { buffer: string }): {
  * @param method the method that was called
  * @param cmuxCode the `error.code` cmux returned
  * @param message the `error.message` cmux returned
+ * @param retryAfterMs the frame's `error.data.retry_after_ms`, when it carried a usable one
  * @returns the typed error
  */
 export function classifyCallError({
   method,
   cmuxCode,
   message,
+  retryAfterMs,
 }: {
   method: string;
   cmuxCode: string;
   message: string;
+  retryAfterMs?: number | undefined;
 }): CmuxError {
   if (message.toLowerCase().includes(TERMINAL_TEXT_UNREADABLE_NEEDLE)) {
     return CmuxErrors.terminalTextUnreadable({ detail: message, method });
   }
+  if (cmuxCode === "rate_limited") {
+    return CmuxErrors.rateLimited({ message, method, retryAfterMs });
+  }
   return CmuxErrors.callFailed({ cmuxCode, message, method });
 }
 
-/** Pull `{code, message}` out of a reply's `error` field, defaulting both when cmux sends something odd. */
-function errorFields({ value }: { value: unknown }): { readonly cmuxCode: string; readonly message: string } {
+/**
+ * The `retry_after_ms` an error frame's `data` carries, only as a non-negative whole number of milliseconds:
+ * anything else is no hint at all, never a guessed delay.
+ */
+function retryAfterOf({ error }: { error: Readonly<Record<string, unknown>> }): number | undefined {
+  const data = error["data"];
+  if (!isRecord(data)) {
+    return undefined;
+  }
+  const hint = data["retry_after_ms"];
+  if (typeof hint !== "number" || !Number.isSafeInteger(hint) || hint < 0) {
+    return undefined;
+  }
+  return hint;
+}
+
+/** Pull `{code, message}` and any retry hint out of a reply's `error` field, defaulting both when cmux sends something odd. */
+function errorFields({ value }: { value: unknown }): {
+  readonly cmuxCode: string;
+  readonly message: string;
+  readonly retryAfterMs: number | undefined;
+} {
   if (!isRecord(value)) {
-    return { cmuxCode: "unknown", message: "cmux reported a failure with no error object" };
+    return { cmuxCode: "unknown", message: "cmux reported a failure with no error object", retryAfterMs: undefined };
   }
   return {
     cmuxCode: typeof value["code"] === "string" ? value["code"] : "unknown",
     message: typeof value["message"] === "string" ? value["message"] : "cmux reported a failure with no message",
+    retryAfterMs: retryAfterOf({ error: value }),
   };
 }
 
