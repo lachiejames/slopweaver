@@ -344,3 +344,75 @@ describe("parsePrBody — media pasted on github.com", () => {
     expect(unwrapErr(parsePrBody({ body: bytes })).code).toBe("STRUCTURE");
   });
 });
+
+/** The feature body with no Not-checked list and no fold, so in layout 1 it ends on its open run of checks. */
+const OPEN_CHECKS_BODY: PrBody = { ...FEATURE_BODY, notChecked: [], rerun: [] };
+
+/** {@link OPEN_CHECKS_BODY} rendered in layout 1. */
+const OPEN_CHECKS_BYTES = unwrap(renderBodyIn({ body: OPEN_CHECKS_BODY, layout: 1 }));
+
+/** The layout-1 render's second check paragraph, the last block it writes. */
+const SECOND_CHECK = "<p>A sign-in saved before still reads.</p>";
+
+/** The layout-1 render with `inserted` written immediately before its second check. */
+function insertedBeforeSecondCheck({ inserted }: { inserted: string }): string {
+  return OPEN_CHECKS_BYTES.replace(SECOND_CHECK, `${inserted}${SECOND_CHECK}`);
+}
+
+describe("parsePrBody — a layout-1 body ending on its checks", () => {
+  it.each([
+    ["as its own block", "NOT AN ATTACHMENT\n\n"],
+    ["on the line above the check", "NOT AN ATTACHMENT\n"],
+    ["on the check's own line", "NOT AN ATTACHMENT "],
+    ["indenting the check", "NOT AN ATTACHMENT\n\n "],
+    ["behind a comment", "NOT AN ATTACHMENT\n\n<!-- x -->"],
+  ])("refuses prose inserted between two checks %s, never reading the second check as a footer", (_, inserted) => {
+    const bytes = insertedBeforeSecondCheck({ inserted });
+    expect(bytes).toContain(`${inserted}${SECOND_CHECK}\n`);
+    expect(unwrapErr(parsePrBody({ body: bytes })).code).toBe("STRUCTURE");
+  });
+
+  it("refuses prose and then a check after a body with no check at all, which ends on the solution proof", () => {
+    const body: PrBody = { ...OPEN_CHECKS_BODY, checks: [] };
+    const bytes = `${unwrap(renderBodyIn({ body, layout: 1 }))}\nNOT AN ATTACHMENT\n\n${SECOND_CHECK} x\n`;
+    expect(unwrapErr(parsePrBody({ body: bytes })).code).toBe("TRAILING_MARKUP");
+  });
+
+  it.each([
+    ["inside its opening tag", "<pX>A sign-in saved before still reads.</p>", "STRUCTURE"],
+    ["inside its closing tag", "<p>A sign-in saved before still reads.</pX>", "TRAILING_MARKUP"],
+  ])("refuses an edit %s to the last check, which keeps the other tag whole", (_, edited, code) => {
+    const bytes = OPEN_CHECKS_BYTES.replace(SECOND_CHECK, edited);
+    expect(bytes).toContain(`</p>\n\n${edited}\n`);
+    expect(unwrapErr(parsePrBody({ body: bytes })).code).toBe(code);
+  });
+
+  it("refuses a footer carrying a check's paragraph tag, which reads the same as an inserted block", () => {
+    const bytes = `${OPEN_CHECKS_BYTES}\n---\n<p>Bot status: passed.</p>\n`;
+    expect(unwrapErr(parsePrBody({ body: bytes })).code).toBe("STRUCTURE");
+  });
+
+  it("reads a paragraph-free footer as the remainder, the body whole", () => {
+    const parsed = unwrap(parsePrBody({ body: `${OPEN_CHECKS_BYTES}\n---\nA bot footer.\n` }));
+    expect([parsed.body, parsed.layout, parsed.remainder]).toStrictEqual([
+      OPEN_CHECKS_BODY,
+      1,
+      "\n---\nA bot footer.\n",
+    ]);
+  });
+
+  it("leaves a paste after the last check in the remainder", () => {
+    const parsed = unwrap(parsePrBody({ body: `${OPEN_CHECKS_BYTES}\n${PASTE}\n` }));
+    expect([parsed.body, parsed.pasted, parsed.remainder]).toStrictEqual([OPEN_CHECKS_BODY, [], `\n${PASTE}\n`]);
+  });
+
+  it("still reads a paragraph footer after a layout-2 body, whose checks list is closed", () => {
+    const bytes = unwrap(renderBodyIn({ body: OPEN_CHECKS_BODY, layout: 2 }));
+    const parsed = unwrap(parsePrBody({ body: `${bytes}\n---\n<p>Bot status: passed.</p>\n` }));
+    expect([parsed.body, parsed.layout, parsed.remainder]).toStrictEqual([
+      OPEN_CHECKS_BODY,
+      2,
+      "\n---\n<p>Bot status: passed.</p>\n",
+    ]);
+  });
+});

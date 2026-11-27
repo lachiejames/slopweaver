@@ -225,6 +225,20 @@ describe("gatePrBody — an owned body", () => {
     expect(verdict.errors[0]).toContain("The description is not a canonical C3 body");
   });
 
+  it("refuses prose inserted between a layout-1 body's two closing checks, never reading one as a footer", () => {
+    const rendered = unwrap(renderBodyIn({ body: { ...FEATURE_BODY, notChecked: [], rerun: [] }, layout: 1 }));
+    const second = "<p>A sign-in saved before still reads.</p>";
+    const body = rendered.replace(second, `NOT AN ATTACHMENT\n\n${second}`);
+    expect(body).toContain(`</p>\n\nNOT AN ATTACHMENT\n\n${second}\n`);
+    expect(gatePrBody({ body, owned: true })).toEqual({
+      errors: [
+        "The description is not a canonical C3 body: the description is not in the C3 shape this renderer emits " +
+          "(stopped at: the checks). Rewrite it whole with a complete --form or --file.",
+      ],
+      shape: "c3",
+    });
+  });
+
   it("refuses a hand edit to the render's layout as not canonical", () => {
     const edited = FIX_RENDERED.replace("\n\n", "\n\n\n");
     const verdict = gatePrBody({ body: edited, owned: true });
