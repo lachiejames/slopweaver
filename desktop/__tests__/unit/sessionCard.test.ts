@@ -10,6 +10,7 @@ import {
   sessionCardFrameUrl,
   sessionCardHtml,
   sessionCardUrl,
+  sessionCardWindowOptions,
   sessionLinkOf,
   stopControlPoint,
   stopLink,
@@ -30,6 +31,37 @@ const SNAPSHOT: AppSessionSnapshot = {
   title: "abc-1",
   vendor: "codex",
 };
+
+describe("sessionCardWindowOptions", () => {
+  const WORK_AREA = { height: 1055, width: 1856, x: -1856, y: 25 };
+
+  it("builds the first card to take a first click on an unfocused window, with its page's JavaScript off", () => {
+    expect(sessionCardWindowOptions({ stacked: 0, title: "abc-1", workArea: WORK_AREA })).toEqual({
+      acceptFirstMouse: true,
+      backgroundColor: "#0f1115",
+      height: 360,
+      minHeight: 220,
+      minWidth: 320,
+      show: false,
+      title: "abc-1",
+      webPreferences: { contextIsolation: true, javascript: false, nodeIntegration: false, sandbox: true },
+      width: 420,
+      x: -436,
+      y: 89,
+    });
+  });
+
+  it("stacks each further card one step down and left, inside the display's own origin", () => {
+    const placed = [1, 2].map((stacked) => {
+      const { x, y } = sessionCardWindowOptions({ stacked, title: "abc-1", workArea: WORK_AREA });
+      return { x, y };
+    });
+    expect(placed).toEqual([
+      { x: -460, y: 113 },
+      { x: -484, y: 137 },
+    ]);
+  });
+});
 
 describe("escapeHtml", () => {
   it("replaces every markup character", () => {

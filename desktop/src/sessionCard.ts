@@ -32,6 +32,62 @@ export function stopControlPoint({ contentHeight }: { contentHeight: number }): 
   };
 }
 
+/** A card window's width, in points. */
+const CARD_WIDTH = 420;
+
+/** How far each further card is stacked down and left of the one before it, in points. */
+const CARD_STACK_STEP = 24;
+
+/**
+ * A card window's construction, hidden until its page is ready and stacked beside the cards already open. Its page
+ * runs with JavaScript off, sandboxed, with no Node, so the Stop link is the only ask the page can make. The shape is
+ * structural, so this module imports nothing from Electron; the window's `new BrowserWindow` checks it against
+ * Electron's own type.
+ *
+ * @param title the window's title
+ * @param workArea the primary display's work area the card is placed inside
+ * @param stacked how many cards are already open, so this one sits one step past the last
+ * @returns the options the card's window is built from
+ */
+export function sessionCardWindowOptions({
+  title,
+  workArea,
+  stacked,
+}: {
+  title: string;
+  workArea: { readonly height: number; readonly width: number; readonly x: number; readonly y: number };
+  stacked: number;
+}): {
+  acceptFirstMouse: true;
+  backgroundColor: string;
+  height: number;
+  minHeight: number;
+  minWidth: number;
+  show: false;
+  title: string;
+  webPreferences: { contextIsolation: true; javascript: false; nodeIntegration: false; sandbox: true };
+  width: number;
+  x: number;
+  y: number;
+} {
+  const offset = CARD_STACK_STEP * stacked;
+  return {
+    // macOS otherwise spends the first click on an unfocused card bringing its window forward and the page never
+    // hears it, so the owner's first press on Stop left the session running and only a second one stopped it.
+    acceptFirstMouse: true,
+    backgroundColor: "#0f1115",
+    height: 360,
+    minHeight: 220,
+    minWidth: 320,
+    show: false,
+    title,
+    webPreferences: { contextIsolation: true, javascript: false, nodeIntegration: false, sandbox: true },
+    width: CARD_WIDTH,
+    x: workArea.x + workArea.width - CARD_WIDTH - 16 - offset,
+    y: workArea.y + 64 + offset,
+  };
+}
+
 /** What a card's link asks for. */
 export interface SessionLink {
   readonly act: "stop";
