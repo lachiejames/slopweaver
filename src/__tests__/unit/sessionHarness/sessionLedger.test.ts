@@ -10,8 +10,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { sessionFromCmux } from "../../../sessionHarness/cmuxSession.js";
 import type { HarnessLaunchSpec } from "../../../sessionHarness/launch.js";
-import { spawnedEventOf } from "../../../sessionHarness/recordingHarness.js";
 import { linesNamingSession, sessionLedgerDeps } from "../../../sessionHarness/sessionLedger.js";
+import { spawnedEventOf } from "../../../sessionHarness/spawnedEvent.js";
 import { sessionLogPath } from "../../../sessions/sessionStore.js";
 import { workspaceRow } from "./fakeCmux.js";
 

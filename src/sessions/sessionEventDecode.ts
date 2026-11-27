@@ -5,6 +5,7 @@
  * reports rather than drops.
  */
 import { isRecord } from "../lib/parsers.js";
+import { decodePlanChoice, type SessionPlanChoice } from "./planChoice.js";
 import type { BootModel, SessionEvent, SessionOpenedBy } from "./session.js";
 
 /** Every {@link SessionOpenedBy}, for the decoder. */
@@ -65,6 +66,10 @@ function spawnedEventOf({
   if (harnessFields === undefined) {
     return undefined;
   }
+  const planChoiceField = planChoiceFieldOf({ parsed });
+  if (planChoiceField === undefined) {
+    return undefined;
+  }
   const bootModel = bootModelOf({ value: parsed["bootModel"] });
   return {
     branch,
@@ -77,8 +82,33 @@ function spawnedEventOf({
     workspaceRef,
     ...(slug === undefined ? {} : { slug }),
     ...(workspaceId === undefined ? {} : { workspaceId }),
+    ...planChoiceField,
     ...harnessFields,
   };
+}
+
+/**
+ * A `spawned` line's `planChoice` field: absent on a row written before it existed, which is ordinary. Unlike
+ * `bootModel`, one present but malformed makes the line unreadable — it is the record of a routing decision, and
+ * reading a corrupt one as unrecorded would hide which plan the session actually spends.
+ *
+ * @param parsed the already-JSON-parsed line
+ * @returns the field when present and valid, nothing when absent, or `undefined` when it is malformed
+ */
+function planChoiceFieldOf({
+  parsed,
+}: {
+  parsed: Record<string, unknown>;
+}): { readonly planChoice?: SessionPlanChoice } | undefined {
+  const raw = parsed["planChoice"];
+  if (raw === undefined) {
+    return {};
+  }
+  const planChoice = decodePlanChoice({ value: raw });
+  if (planChoice === undefined) {
+    return undefined;
+  }
+  return { planChoice };
 }
 
 /**

@@ -12,10 +12,10 @@
  *
  * **The successor is a visible app card.** `cmux spawn --harness app` opens it on the plan that just passed the
  * check, exactly as a chair's own hand-off seats one (`../../../supervisor/chairSuccessor.ts`'s
- * `successorSpawnLine`): Fable on a Claude plan, the fleet's Codex model on a Codex one.
+ * `successorSpawnLine`): Fable on a Claude plan, the fleet's Codex model on a Codex one. The spawn itself is
+ * `../supervisor/chairSuccessorLaunch.ts`, shared with the control plane's chair hand-off.
  */
 
-import { CODEX_MODEL } from "../../../codex/profiles.js";
 import type { RecoveryChairReading, RecoveryPinLook } from "../../../fleet/recoveryChair.js";
 import {
   type CmuxChairPresence,
@@ -31,22 +31,21 @@ import { applyRowEvent } from "../../../handover/rowEvent.js";
 import { currentSessionIds } from "../../../handover/runOwner.js";
 import { readRunJournal } from "../../../handover/runStore.js";
 import { collectOutput } from "../../../lib/outputCollect.js";
-import { err, ok, type Result } from "../../../lib/result.js";
+import { err, type Result } from "../../../lib/result.js";
 import { checkoutForRunningRepo } from "../../../live/checkout/checkoutForRepo.js";
 import { withCmuxSessionHost } from "../../../sessionHarness/cmuxHost.js";
-import { foldSessions, parseSessionLog, type SessionItem } from "../../../sessions/session.js";
+import { foldSessions, parseSessionLog } from "../../../sessions/session.js";
 import { readSessionLogText } from "../../../sessions/sessionStore.js";
 import type { SupervisorPinTarget } from "../../../sessions/supervisorPin.js";
 import { readSupervisorPinDisposition } from "../../../sessions/supervisorPinStore.js";
 import { stateHomePaths } from "../../../stateHome.js";
 import { gonePredecessorLabel, gonePredecessorLedgerRow } from "../../../supervisor/gonePredecessor.js";
-import { runCmuxSpawn, spawnExitWhy } from "../cmux/run.js";
 import { gonePredecessorRunGate } from "../cmux/takeoverGone.js";
 import { appPredecessorRunGate } from "../cmux/takeoverRow.js";
 import { applyReap, reapLivenessSeams } from "../handover/reapRun.js";
+import { launchChairSuccessor, realSuccessorSpawn } from "../supervisor/chairSuccessorLaunch.js";
 
-/** How much of a nested verb's stderr a reason keeps. */
-const KEPT_ERR_CHARS = 2_000;
+export { spawnedChairOf } from "../supervisor/chairSuccessorLaunch.js";
 
 /** What cmux's strict inventory says of the workspace a cmux record names. */
 async function cmuxPresenceOf({
@@ -192,75 +191,6 @@ async function readRecoveryChair({
   return downOverPredecessor({ home, target: verdict.target, verdict });
 }
 
-/** The spawn's arguments for one plan, as a chair's own hand-off spells them. */
-function spawnArgv({ slug, candidate, home }: { slug: string; candidate: RecoveryCandidate; home: string }): string[] {
-  const model = candidate.vendor === "claude" ? "fable" : CODEX_MODEL;
-  return [
-    slug,
-    "--harness",
-    "app",
-    "--driver",
-    candidate.vendor,
-    "--model",
-    model,
-    "--plan",
-    candidate.alias,
-    "--home",
-    home,
-  ];
-}
-
-/** The app session the spawn recorded for a slug: its newest open app row. */
-function spawnedSessionId({ home, slug }: { home: string; slug: string }): string | undefined {
-  const rows = foldSessions(parseSessionLog({ text: readSessionLogText({ home }) }));
-  const row: SessionItem | undefined = rows.findLast(
-    (one) => one.slug === slug && one.harness === "app" && one.status === "open",
-  );
-  return row?.sessionId;
-}
-
-/** The last line a nested verb wrote to stderr, for a reason. */
-function lastLine({ text }: { text: string }): string {
-  const lines = text.split("\n").filter((line) => line.trim() !== "");
-  const last = lines.at(-1);
-  if (last === undefined) {
-    return "it printed nothing";
-  }
-  return last;
-}
-
-/**
- * What a finished spawn opened. A spawn whose pickup was not proven submitted leaves its seat OPEN and exits non-zero
- * (`cmux/spawn.ts`'s `spawnFailureKeepsWorkspaceOpen`), so an open app row the ledger names is a chair to watch
- * whatever the exit code: calling it refused would close its row and open a second chair beside it. No row is not
- * proof of no chair, since the ledger append is best-effort, so a failure carries the slug and the pass asks the app
- * for a running session under it before counting the spawn refused (`../../../fleet/recoveryRestart.ts`).
- *
- * @param exitCode the spawn's exit code
- * @param sessionId the open app session the ledger names for the doc, when it names one
- * @param failure why the spawn exited non-zero, as its own output said
- * @returns the doc's slug and the new chair's app session, or why no chair opened
- */
-export function spawnedChairOf({
-  exitCode,
-  failure,
-  sessionId,
-  slug,
-}: {
-  exitCode: number;
-  failure: string;
-  sessionId: string | undefined;
-  slug: string;
-}): Result<{ readonly slug: string; readonly sessionId: string }, RecoveryChairOpenFailure> {
-  if (sessionId !== undefined) {
-    return ok({ sessionId, slug });
-  }
-  if (exitCode !== 0) {
-    return err({ reason: boundedReason({ text: failure }), slug });
-  }
-  return err({ reason: `the spawn exited 0 and the ledger names no open app session for ${slug}`, slug });
-}
-
 /**
  * Write a successor doc and seat a supervisor from it in a visible app card.
  *
@@ -291,16 +221,12 @@ async function openRecoveryChair({
   if (written.isErr()) {
     return err({ reason: boundedReason({ text: written.error.message }) });
   }
-  const { slug } = written.value;
-  const ran = await collectOutput({
-    keepErrChars: KEPT_ERR_CHARS,
-    run: async () => runCmuxSpawn(["node", "slopweaver", "cmux", "spawn", ...spawnArgv({ candidate, home, slug })]),
-  });
-  return spawnedChairOf({
-    exitCode: ran.value,
-    failure: `${spawnExitWhy({ exitCode: ran.value })}: ${lastLine({ text: ran.err })}`,
-    sessionId: spawnedSessionId({ home, slug }),
-    slug,
+  return launchChairSuccessor({
+    alias: candidate.alias,
+    home,
+    runSpawn: realSuccessorSpawn,
+    slug: written.value.slug,
+    vendor: candidate.vendor,
   });
 }
 

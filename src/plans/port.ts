@@ -24,8 +24,8 @@
 import type { Result } from "#lib/result.js";
 
 import type { PlanRegisterError } from "./errors.js";
-import { storePlanRegisterPort } from "./storePort.js";
-import { productionPlanRegisterSeams } from "./storeRows.js";
+import { readOnlyStorePlanRegisterPort, storePlanRegisterPort } from "./storePort.js";
+import { productionPlanRegisterSeams, readOnlyPlanRegisterSeams } from "./storeRows.js";
 import type { PlanMutation, PlanRegisterSnapshot } from "./types.js";
 
 /**
@@ -86,4 +86,15 @@ export interface PlanRegisterPort {
  */
 export function planRegisterPort(): PlanRegisterPort {
   return storePlanRegisterPort({ seams: productionPlanRegisterSeams() });
+}
+
+/**
+ * The port a reader promised to change nothing reads through: the store row or the derived picture, never an
+ * import, a write, or a catch-up of a `behind` store (each refused as `REGISTER_STORE_UNAVAILABLE`). Opening the
+ * store still selects it (`../store/config.ts`'s `storeUrlSelection`), as every store read does.
+ *
+ * @returns the read-only production port
+ */
+export function readOnlyPlanRegisterPort(): PlanRegisterPort {
+  return readOnlyStorePlanRegisterPort({ seams: readOnlyPlanRegisterSeams() });
 }

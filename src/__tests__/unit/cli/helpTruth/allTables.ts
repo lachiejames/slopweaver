@@ -54,6 +54,7 @@ import { storeBackupSlice } from "./storeBackup.js";
 import { storeCorpusSlice } from "./storeCorpus.js";
 import { storeProjectionsSlice } from "./storeProjections.js";
 import { storeReadsSlice } from "./storeReads.js";
+import { supervisorChairSlice } from "./supervisorChair.js";
 import { supervisorStateSlice } from "./supervisorState.js";
 import { supervisorTickSlice } from "./supervisorTick.js";
 import { talkCallsSlice } from "./talkCalls.js";
@@ -114,6 +115,7 @@ const SLICES: readonly HelpTruthSlice[] = [
   storeCorpusSlice,
   storeProjectionsSlice,
   storeReadsSlice,
+  supervisorChairSlice,
   supervisorStateSlice,
   supervisorTickSlice,
   talkCallsSlice,

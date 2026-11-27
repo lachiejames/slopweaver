@@ -125,6 +125,11 @@ export type ClaudeSpawnRoute =
        * spawn log carries so the decision is re-checkable.
        */
       readonly plan: ClaudeRankedPlan;
+      /**
+       * Every OTHER plan that could have taken the spawn, best first — kept so the session's recorded plan choice
+       * (`../sessions/planChoice.ts`) names each reading the decision used, not only the winner and the losers.
+       */
+      readonly eligible: readonly ClaudeRankedPlan[];
       readonly excluded: readonly ClaudeExclusion[];
     }
   | {
@@ -176,7 +181,33 @@ export function routeSpawnToPlan({
     );
     return { excluded, kind: "no-plan", modelClass, ...(earliest === undefined ? {} : { earliestResetIso: earliest }) };
   }
-  return { excluded, kind: "route", modelClass, plan: best, to: best.alias };
+  return { eligible: ranked.slice(1), excluded, kind: "route", modelClass, plan: best, to: best.alias };
+}
+
+/**
+ * A weekly plan's gauge as the windows a spawn of this budget is judged on — percentages only, never an address.
+ *
+ * A Fable seat walls on whichever week runs out first, so its text names both — the Fable week alone hid a plan-wide
+ * week at 95% behind `fable-week 44%` (`fableSeatBars.ts`). No five-hour window is the measured shape of every plan
+ * now (`contracts.ts`): the plan has no such limit, so the text names none rather than an "unread" one.
+ *
+ * @param gauge the plan's reading
+ * @param modelClass which budget the spawn will spend
+ * @returns e.g. `fable-week 44%, all-models week 30%`
+ */
+export function gaugeWindowsText({
+  gauge,
+  modelClass,
+}: {
+  gauge: ClaudeAccountGauge;
+  modelClass: ClaudeModelClass;
+}): string {
+  const spent = (window: ClaudeWindowReading | undefined): string =>
+    window === undefined ? "unread" : `${String(Math.round(window.utilization * 100))}%`;
+  const allModels = `all-models week ${spent(gauge.sevenDay)}`;
+  const ranked = modelClass === "fable" ? `fable-week ${spent(gauge.sevenDayFable)}, ${allModels}` : allModels;
+  const fiveHour = gauge.fiveHour === undefined ? "" : `, 5h ${spent(gauge.fiveHour)}`;
+  return `${ranked}${fiveHour}`;
 }
 
 /**
@@ -243,16 +274,8 @@ export function renderSpawnRoute({ route }: { route: ClaudeSpawnRoute }): string
     return `claude routing: ${route.to} for a ${route.modelClass} spawn — monthly spend: ${plan.spend.verdict.reason}${passedOver}`;
   }
   const { gauge } = plan;
-  const spent = (window: ClaudeWindowReading | undefined): string =>
-    window === undefined ? "unread" : `${String(Math.round(window.utilization * 100))}%`;
-  // A Fable seat walls on whichever week runs out first, so its line names both — the Fable week alone hid a
-  // plan-wide week at 95% behind `fable-week 44%` (`fableSeatBars.ts`).
-  const allModels = `all-models week ${spent(gauge.sevenDay)}`;
-  const ranked = route.modelClass === "fable" ? `fable-week ${spent(gauge.sevenDayFable)}, ${allModels}` : allModels;
-  // No five-hour window is the measured shape of every plan now (`contracts.ts`): the plan has no such limit, so the
-  // line names none, rather than a standing "no 5h limit" or an "unread" that would send a reader looking for one.
-  const fiveHour = gauge.fiveHour === undefined ? "" : `, 5h ${spent(gauge.fiveHour)}`;
-  return `claude routing: ${route.to} for a ${route.modelClass} spawn — ${ranked}${fiveHour}, read ${gauge.observedAtIso}${passedOver}`;
+  const windows = gaugeWindowsText({ gauge, modelClass: route.modelClass });
+  return `claude routing: ${route.to} for a ${route.modelClass} spawn — ${windows}, read ${gauge.observedAtIso}${passedOver}`;
 }
 
 /**

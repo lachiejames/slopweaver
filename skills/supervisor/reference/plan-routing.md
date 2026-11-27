@@ -48,7 +48,8 @@ Reproduce both: `slopweaver claude gauge --json | jq '.plans[].gauge | {sevenDay
   its reset (100% at the reset inside those five hours), so a plan's reset is weighed and plans stay level against
   their own lines. It is points, never points per hour: ranked per hour, plan-four
   at 78% Fable 22 hours from its reset outranked an empty plan-three for the chair. It prints the choice with the reading it was made from
-  (`claude routing: <plan> for a <class> spawn — …`). Whether that routing outlasts the week: [plan-survival.md](plan-survival.md).
+  (`claude routing: <plan> for a <class> spawn — …`), and keeps that choice, every reading beside it, on the session's
+  ledger row as `planChoice` (`session list`, `cmux usage`). Whether that routing outlasts the week: [plan-survival.md](plan-survival.md).
 - **It REPAIRS an expired store on the way.** A plan the provider answers `401` to is a CACHE MISS, not a signed-out plan:
   every store's credential carries a refresh grant weeks out beside its eight-hour access token (27 to 29 days on all four,
   measured). So the gate reads twice — probe, and for a store the provider actually REFUSED whose token has expired and whose
@@ -159,9 +160,8 @@ transcript) than PATH's `claude`; or its process has run 36h AND `origin/main` h
 `chairCanon.ts`). The plan is each session's BOOT credential (descriptor-3 token, else its store) as `claude gauge`'s
 `*` reads it — never telemetry's `organization.id`. **A Codex chair is judged on stale canon alone**, from the instant its pin or chain link took the chair, and its plan budget, Codex CLI freshness and auto-compactions print UNMEASURED ([codexChairCadence.ts](../../../src/supervisor/codexChairCadence.ts)). **Advice, never a refusal**; an unmeasured half is named; a re-run of a recorded close never re-judges.
 **Its LAST line is then the hand-off, IN PLACE of the sweep prompt** (`chairHandOffPrompt.ts`; a chair once re-armed
-past plan-one's 97% Fable week into the wall). Its `--driver claude|codex` is the plan register's, read only on a
-hand-off (one plan of either provider): [chairSuccessor.ts](../../../src/supervisor/chairSuccessor.ts),
-Claude only on a route that PICKS, a Codex or ambient-Claude pick confirmed by the spawn's own live read; no seatable host keeps the sweep prompt under `HAND-OFF TARGET UNAVAILABLE — <why>`. The successor owns the re-arm. A chair SEATED on Codex is judged on stale canon alone: the other five read Claude sessions only.
+past plan-one's 97% Fable week into the wall). Where its successor lands, and `slopweaver supervisor chair-watch`, the
+control plane's read-only pass of this judgement: [chair-watch.md](chair-watch.md).
 Five staggered plans never wall a window; the chair held on one does (`unit/claude/routingSpreadSimulation.test.ts`). **Auto-compactions, never depth** (the owner's ruling): every model compacts at one shared window, so only a `compact_boundary` whose trigger is `auto` counts, a manual `/compact` never does, and a transcript that cannot vouch for a count under five reads UNMEASURED and decides nothing ([chairAutoCompaction.ts](../../../src/supervisor/chairAutoCompaction.ts)). Five is the owner's guess, run as a trial; what settles it is in [ledger-and-gauges](ledger-and-gauges.md) § Do not hand off early.
 
 ## A cap is routed around, never bought out of

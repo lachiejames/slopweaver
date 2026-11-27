@@ -23,6 +23,7 @@ import { applyCodexBrowserDoor } from "../codex/browserDoor.js";
 import { slopweaverHome } from "../homeDir.js";
 import { err, ok } from "../lib/result.js";
 import { type PlanRegisterPort, planRegisterPort } from "../plans/port.js";
+import type { SessionPlanChoice } from "../sessions/planChoice.js";
 import { DEFAULT_DEPS_MODE, type DepsMode } from "../worktree/deps.js";
 import { renderDevBuildOutcome } from "../worktree/devBuild.js";
 import { productionProvisionDeps, provisionWorktree } from "../worktree/provision.js";
@@ -273,8 +274,30 @@ export function credentialGateFor({
     if (gated.refusal !== undefined) {
       return err(gated.refusal);
     }
-    return gated.storeDir === undefined ? ok(plan) : seatPlan({ home, plan, storeDir: gated.storeDir });
+    const chosen = withClaudeChoice({ choice: gated.choice, plan });
+    return gated.storeDir === undefined ? ok(chosen) : seatPlan({ home, plan: chosen, storeDir: gated.storeDir });
   };
+}
+
+/**
+ * The plan carrying the gate's recorded plan choice — on a Claude seat only. The gate runs for every host, and a
+ * Codex seat's choice was already set where its seat route was decided, so a Claude routing pass never replaces it.
+ *
+ * @param choice what the gate concluded, absent when it recorded none
+ * @param plan the plan the gate allowed
+ * @returns the plan, carrying the choice when it is a Claude seat's
+ */
+export function withClaudeChoice({
+  choice,
+  plan,
+}: {
+  choice: SessionPlanChoice | undefined;
+  plan: VisibleSessionPlan;
+}): VisibleSessionPlan {
+  if (plan.host === "codex" || choice === undefined) {
+    return plan;
+  }
+  return { ...plan, planChoice: choice };
 }
 
 /**

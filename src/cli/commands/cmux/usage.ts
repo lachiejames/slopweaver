@@ -17,9 +17,11 @@ import {
   type AppTransportFailure,
   socketAppTransport,
 } from "../../../sessionHarness/appSocketTransport.js";
-import { type UsagePlanEntry, usageViewOf } from "../../../sessionHarness/appUsage.js";
+import { recordedPlanChoices, type UsagePlanEntry, usageViewOf } from "../../../sessionHarness/appUsage.js";
 import { parseHarnessFlag } from "../../../sessionHarness/harnessChoice.js";
 import type { AppUsageReport } from "../../../sessionHarness/usageWire.js";
+import { foldSessions, parseSessionLog } from "../../../sessions/session.js";
+import { readSessionLogText } from "../../../sessions/sessionStore.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { cmuxUsage, parseCmuxArgs, stringFlag, VERB_ARG_OFFSET } from "./core.js";
@@ -129,7 +131,11 @@ export async function runCmuxUsage(argv: readonly string[]): Promise<number> {
   if (register.value !== undefined) {
     plans = register.value.plans;
   }
-  const view = usageViewOf({ plans, report: answered.report });
+  // Each session's recorded plan choice comes off its ledger row: the app's session id is the row's `sessionId`.
+  // A line the ledger could not read just leaves its session without one; `session list` is where that is reported.
+  const { events } = parseSessionLog({ text: readSessionLogText({ home }) });
+  const recorded = recordedPlanChoices({ items: foldSessions({ events }) });
+  const view = usageViewOf({ plans, recorded, report: answered.report });
   if (ask.json) {
     logger.out({ line: JSON.stringify(view) });
     return EXIT_OK;

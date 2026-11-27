@@ -3,6 +3,8 @@
  * files rather than in a prompt a successor retypes, and the intake check over what the owner typed into it
  * (see `cli/manifest.ts`).
  */
+import { CHAIR_HAND_OFF_USAGE } from "../commands/supervisor/chairHandOffUsage.js";
+import { CHAIR_WATCH_USAGE } from "../commands/supervisor/chairWatchUsage.js";
 import { lazy, type VerbManifestEntry } from "../manifest.js";
 import { supervisorStateDocManifest } from "./supervisorStateDoc.js";
 
@@ -23,6 +25,41 @@ export const supervisorManifest: Readonly<Record<string, VerbManifestEntry>> = {
       summary:
         "List every session that has held the supervisor pin — the succession `intake` walks — and rescan the transcripts to repair it",
       usage: "usage: slopweaver supervisor chain [--rescan] [--home <dir>] [--json]",
+    },
+  }),
+  "chair-watch": lazy({
+    load: () => import("../commands/supervisor/chairWatchRun.js").then((m) => m.supervisorChairWatchCommand),
+    meta: {
+      createsWorkItem: false,
+      diagnostic: true,
+      doorRouted: false,
+      // Every flag is optional: a bare `chair-watch` reads the home's records and the chair, and prints the report.
+      dryParseSafe: false,
+      effect: "none",
+      example: "slopweaver supervisor chair-watch --json",
+      parseRejectIsIoFree: true,
+      summary:
+        "One read-only pass over the chair's hand-off cadence on recorded plan readings: stay, hand-off, held, unmeasured or unsupported, with reasons, overrides and a usage watch",
+      usage: CHAIR_WATCH_USAGE,
+    },
+  }),
+  "hand-off": lazy({
+    load: () => import("../commands/supervisor/chairHandOffRun.js").then((m) => m.supervisorHandOffCommand),
+    meta: {
+      createsWorkItem: false,
+      // Exits 3 when the watch says stay and 4 when it cannot measure yet: a verdict, not a broken tool.
+      diagnostic: true,
+      doorRouted: false,
+      // A bare run hands the chair off when the watch says so, so it acts rather than printing usage.
+      dryParseSafe: false,
+      // Messages the outgoing chair in the desktop app, closes its run row, writes the successor doc and its journal
+      // under the home, and opens one visible app session through `cmux spawn`, as `fleet recover` does.
+      effect: "local-state",
+      example: "slopweaver supervisor hand-off --plan plan-four",
+      parseRejectIsIoFree: true,
+      summary:
+        "Replace the pinned app chair when chair-watch says hand-off: ask it for a note, close its run, write the successor doc and seat the successor on the plan with room",
+      usage: CHAIR_HAND_OFF_USAGE,
     },
   }),
   intake: lazy({

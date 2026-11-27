@@ -468,6 +468,30 @@ describe("appSessionLauncherOver", () => {
     });
   });
 
+  it("hands the plan choice the credential gate decided back on the opened session, and never to the app", async () => {
+    const choice = {
+      alias: "plan-two",
+      basis: "routed",
+      kind: "named",
+      alternative: "--plan <alias>",
+      readings: [{ alias: "plan-two", reading: "all-models week 30%", state: "chosen" }],
+      reason: "ranked first of 1 eligible plan(s) for a all-models spawn",
+      vendor: "claude",
+    } as const;
+    const deps: AppLaunchDeps = {
+      ...NO_WORKTREE,
+      gateClaudeCredential: async ({ plan }) =>
+        ok({ ...plan, credentialStoreDir: "/home/claude-plan-2", planChoice: choice }),
+    };
+    const { asked, transport } = scripted({ answers: { "launch.deliver": DELIVERED, "launch.prepare": PREPARED } });
+    const opened = unwrap(
+      await appSessionLauncherOver({ deps, ledgerHome: undefined, transport }).open({ spec: SPEC }),
+    );
+    expect(opened.planChoice).toStrictEqual(choice);
+    expect(asked[0]!.kind).toBe("launch.prepare");
+    expect(JSON.stringify(asked)).not.toContain("planChoice");
+  });
+
   it("leaves no worktree and asks the app nothing when a Claude seat's credential gate refuses", async () => {
     const log: string[] = [];
     const { asked, transport } = scripted({ answers: {} });

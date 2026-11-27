@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { buildSpawnPlan } from "../../../../../cli/commands/cmux/spawnPlanBuild.js";
+import { resumedCodexChoice } from "../../../../../codex/seatPlanChoice.js";
 import { parseHandoverDoc } from "../../../../../handover/doc.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 import { memoryPlanRegisterPort, unavailablePlanRegisterPort } from "../../../../planRegisterFixture.js";
@@ -126,6 +127,34 @@ describe("buildSpawnPlan", () => {
 
     expect(plan.codexHome).toBe("/home/acme/.codex-two");
     expect(plan.continuingAppSessionId).toBe("0b5e");
+    // A route that recorded no choice leaves the plan with none, rather than one invented here.
+    expect(Object.keys(plan).includes("planChoice")).toBe(false);
+  });
+
+  it("carries the choice the Codex seat route decided onto the plan", async () => {
+    const repoRoot = gitRepo();
+    const doc = parseHandoverDoc({ path: join(repoRoot, "a-doc.md"), text: DOC_TEXT });
+    const choice = resumedCodexChoice({ alias: "codex-two" });
+
+    const plan = unwrap(
+      await buildSpawnPlan({
+        codexSeat: {
+          choice,
+          destination: { alias: "codex-two", codexHome: "/home/acme/.codex-two" },
+          why: "app session 0b5e resumes on the plan it was opened on",
+        },
+        continuation: { kind: "resume", sessionId: "0b5e" },
+        doc,
+        namedStore: undefined,
+        parsed: { positionals: ["a-doc"], values: {} },
+        pins: { driver: "codex" },
+        port: memoryPlanRegisterPort(),
+        preflight: { repo: repoRoot, runEvents: [] },
+        template: "research",
+      }),
+    );
+
+    expect(plan.planChoice).toStrictEqual(choice);
   });
 
   it("opens a new session on the routed home when the recorded plan could not take the seat", async () => {

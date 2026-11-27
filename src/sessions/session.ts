@@ -42,6 +42,7 @@
  * that session's own transcript.
  */
 import { pushInto } from "#lib/collections.js";
+import type { SessionPlanChoice } from "./planChoice.js";
 import { sessionEventOf } from "./sessionEventDecode.js";
 import { rowSessionId } from "./sessionRow.js";
 
@@ -111,6 +112,11 @@ export type SessionEvent =
       readonly branch: string;
       /** Which model the boot line pinned. Absent only on rows written before this field existed. */
       readonly bootModel?: BootModel | undefined;
+      /**
+       * Which plan the session started on and every reading routing chose it from (`./planChoice.ts`). Absent on a
+       * row written before this field existed, and on a launch whose gate concluded no plan it could name.
+       */
+      readonly planChoice?: SessionPlanChoice | undefined;
     }
   | { readonly kind: "noted"; readonly sessionKey: string; readonly tsIso: string; readonly note: string }
   /**
@@ -172,6 +178,8 @@ export interface SessionItem {
    * `spawned` row written before this field existed — never "no model was pinned", which is `inherited`.
    */
   readonly bootModel?: BootModel | undefined;
+  /** Which plan the session started on, and why, when its `spawned` row recorded it — see that event's field. */
+  readonly planChoice?: SessionPlanChoice | undefined;
   /** The most recent `noted` text. Absent until something has been recorded. */
   readonly latestNote?: string | undefined;
   /** The timestamp of whichever event last touched this session. */
@@ -270,6 +278,7 @@ function applySpawned({ ledger, event }: { ledger: RowLedger; event: SessionEven
       ...(event.sessionId === undefined ? {} : { sessionId: event.sessionId }),
       ...(event.openedBy === undefined ? {} : { openedBy: event.openedBy }),
       ...(event.harness === undefined ? {} : { harness: event.harness }),
+      ...(event.planChoice === undefined ? {} : { planChoice: event.planChoice }),
     },
     ledger,
     sessionKey: event.sessionKey,

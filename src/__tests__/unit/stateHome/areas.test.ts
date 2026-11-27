@@ -356,6 +356,8 @@ describe("sessionsStateHomePaths", () => {
       "skillRemindersJson",
       "staleSeatNoticesJson",
       "supervisorChainJsonl",
+      "supervisorHandOffHoldsJsonl",
+      "supervisorHandOffs",
       "supervisorPinJson",
       "supervisorScratch",
       "typedIntakeJsonl",

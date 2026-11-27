@@ -287,7 +287,7 @@ type NotRespawnableReason =
   | "no-pinned-model"
   /**
    * The row's pinned model names no Claude tier — a Codex seat records the repository's Codex pin
-   * (`../sessionHarness/recordingHarness.ts`'s `bootModelForLaunch`) — and this verb re-boots only onto Claude, where
+   * (`../sessionHarness/spawnedEvent.ts`'s `bootModelForLaunch`) — and this verb re-boots only onto Claude, where
    * `--model gpt-…` would boot nothing.
    */
   | "not-a-claude-model";

@@ -4,11 +4,11 @@
  * The file is created EXCLUSIVELY: a number another writer took between the scan and the write fails the create,
  * so the home is scanned again and the next number tried, and no doc anybody else wrote is ever overwritten.
  */
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { err, ok, type Result } from "#lib/result.js";
-import { createFileExclusive } from "#lib/writeAtomic.js";
+import { createFileExclusive, ensureDirectory } from "#lib/writeAtomic.js";
 
 import { stateHomePaths } from "../stateHome.js";
 import { type FleetError, FleetErrors } from "./errors.js";
@@ -36,6 +36,59 @@ function slugsIn({ dir, extension }: { dir: string; extension: string }): readon
 /** Whether a thrown write failed only because the file was already there. */
 function alreadyThere({ cause }: { cause: unknown }): boolean {
   return cause instanceof Error && "code" in cause && cause.code === "EEXIST";
+}
+
+/**
+ * Every handover slug the home holds, from its docs and its run journals both — what the chain's next number is
+ * counted over.
+ *
+ * @param home the state home
+ * @returns the slugs, unordered
+ */
+export function occupiedSuccessorSlugs({ home }: { home: string }): readonly string[] {
+  const { handovers, runs } = stateHomePaths({ home });
+  return [...slugsIn({ dir: handovers, extension: ".md" }), ...slugsIn({ dir: runs, extension: ".jsonl" })];
+}
+
+/** What an exclusive create at a reserved slug found: the doc written, or another file already there. */
+export type SuccessorDocCreate =
+  | { readonly kind: "written"; readonly path: string }
+  | { readonly kind: "taken"; readonly path: string; readonly existing: string };
+
+/**
+ * Create a successor doc at a slug a caller already reserved, exclusively: a file already at the path is read
+ * back and handed to the caller, which decides whether it is its own earlier write or another writer's.
+ *
+ * @param home the state home
+ * @param slug the reserved slug
+ * @param text the doc
+ * @returns written, taken with what is there, or the filesystem failure
+ */
+export function createSuccessorDocAt({
+  home,
+  slug,
+  text,
+}: {
+  home: string;
+  slug: string;
+  text: string;
+}): Result<SuccessorDocCreate, FleetError> {
+  const { handovers } = stateHomePaths({ home });
+  const path = join(handovers, `${slug}.md`);
+  try {
+    ensureDirectory({ directory: handovers });
+    createFileExclusive({ contents: text, path });
+    return ok({ kind: "written", path });
+  } catch (cause: unknown) {
+    if (!alreadyThere({ cause })) {
+      return err(FleetErrors.io({ cause, path }));
+    }
+  }
+  try {
+    return ok({ existing: readFileSync(path, "utf8"), kind: "taken", path });
+  } catch (cause: unknown) {
+    return err(FleetErrors.io({ cause, path }));
+  }
 }
 
 /**

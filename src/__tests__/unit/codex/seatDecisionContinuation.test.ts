@@ -103,10 +103,27 @@ describe("decideContinuingCodexSeat", () => {
     expect(unwrap(decided)).toEqual({
       kind: "resume",
       route: {
+        choice: {
+          alias: "codex-two",
+          basis: "resumed",
+          kind: "named",
+          alternative: "a resume stays on its recorded plan; open a fresh session to route again",
+          readings: [
+            {
+              alias: "codex-two",
+              reading: "the plan its session was opened on, admitted by the seat preflight",
+              state: "chosen",
+            },
+          ],
+          reason: "the session resumes on the plan it was opened on, since its transcript lives under that home",
+          vendor: "codex",
+        },
         destination: { alias: "codex-two", codexHome: two },
         why: "app session 0b5e resumes on the plan it was opened on",
       },
     });
+    // The home is a path, so it rides the destination and never the recorded choice.
+    expect(JSON.stringify(unwrap(decided).route.choice)).not.toContain(two);
   });
 
   it("resumes when --plan names the recorded plan itself", async () => {

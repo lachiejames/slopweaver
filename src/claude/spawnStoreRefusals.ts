@@ -12,6 +12,7 @@ import { hatchRefusal } from "../hatch/render.js";
 import { logger } from "../lib/logger.js";
 import type { ClaudeThresholds } from "../plans/thresholds.js";
 import { decodePlanAllowance, decodeUsageLimitPercent, type UsageLimitPercent } from "../plans/usageLimit.js";
+import type { SessionPlanChoice } from "../sessions/planChoice.js";
 import {
   type ClaudeAccount,
   type ClaudeExclusionKind,
@@ -129,14 +130,17 @@ export function pinnedPlanPaused({ alias, storeDir }: { alias: string; storeDir:
  * so the hatch boots only an unlimited plan, and when only limited ones are left it refuses as `usage-limit`.
  *
  * @param accounts the configured, unpaused plans, in configured order
+ * @param choiceFor builds the plan choice the session records when the hatch names a plan, from its alias
  * @param hatchOpen whether {@link ALLOW_UNREADABLE_PLAN_ENV} is set
  * @returns the gate's conclusion for the no-gauge case
  */
 export function noGaugeReadable({
   accounts,
+  choiceFor,
   hatchOpen,
 }: {
   accounts: readonly ClaudeAccount[];
+  choiceFor?: (options: { alias: string }) => SessionPlanChoice;
   hatchOpen: boolean;
 }): SpawnStoreRouting {
   const measurable = accounts.filter((account) => probedClaudeAccount({ account }));
@@ -167,7 +171,11 @@ export function noGaugeReadable({
       `${fallback.alias} because it is FIRST IN CONFIGURED ORDER, not because anything measured it. Its ` +
       `remaining budget is unknown.`,
   });
-  return { basis: "unreadable-override", storeDir: fallback.storeDir };
+  return {
+    basis: "unreadable-override",
+    storeDir: fallback.storeDir,
+    ...(choiceFor === undefined ? {} : { choice: choiceFor({ alias: fallback.alias }) }),
+  };
 }
 
 /**
@@ -193,14 +201,18 @@ const NO_MONTHLY_RELEASE = "no override boots a monthly-spend plan the provider 
  * {@link ALLOW_SPENT_PLAN_ENV} has anything to release onto.
  *
  * @param accounts the configured plans, in configured order
+ * @param choiceFor builds the plan choice a release onto the named spent plan records, from its alias; the gate
+ *   drops it unless the release happens
  * @param route what the router concluded, for the refusal's own wording and each plan's typed exclusion
  * @returns the refusal, and the store a release would use when one may
  */
 export function everyPlanSpent({
   accounts,
+  choiceFor,
   route,
 }: {
   accounts: readonly ClaudeAccount[];
+  choiceFor?: (options: { alias: string }) => SessionPlanChoice;
   route: ClaudeSpawnRoute;
 }): SpawnStoreRouting {
   const bypassable = new Set(
@@ -219,6 +231,7 @@ export function everyPlanSpent({
     refusalKind: "spent-plan",
     route,
     storeDir: spentCandidate.storeDir,
+    ...(choiceFor === undefined ? {} : { choice: choiceFor({ alias: spentCandidate.alias }) }),
   };
 }
 

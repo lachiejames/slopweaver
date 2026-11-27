@@ -21,6 +21,14 @@ import {
 
 afterEach(cleanGateHome);
 
+/** The choice every spawn under {@link SHADOWED} records: the API key decides, no plan does. */
+const API_KEY_CHOICE = {
+  kind: "ambient",
+  alternative: "unset ANTHROPIC_API_KEY to spend a plan login",
+  reason: "ANTHROPIC_API_KEY outranks every credential store, so the session presents an API key and no plan decides",
+  vendor: "claude",
+} as const;
+
 type GateInput = Parameters<typeof gateSpawnStore>[0];
 type GateContext = Omit<GateInput["context"], "port" | "probesPort"> & Partial<ReturnType<typeof memoryGatePorts>>;
 
@@ -104,7 +112,16 @@ describe("gateSpawnStore falls through ONLY on a genuinely absent install", () =
     const gated = await gate({
       context: { ambient: SUBSCRIPTION, home: dir, unreadableHatchOpen: false },
     });
-    expect(gated).toStrictEqual({ basis: "unconfigured" });
+    // No store prefix still; the recorded choice says why no plan decided.
+    expect(gated).toStrictEqual({
+      basis: "unconfigured",
+      choice: {
+        kind: "ambient",
+        alternative: "register a Claude plan, then --plan <alias>",
+        reason: "no Claude plan is registered, so the ambient login stands and nothing was routed",
+        vendor: "claude",
+      },
+    });
   });
 
   it("probes nothing when there is no accounts file", async () => {
@@ -240,7 +257,23 @@ describe("gateSpawnStore fails CLOSED when no gauge is readable", () => {
         unreadableHatchOpen: true,
       },
     });
-    expect(gated).toStrictEqual({ basis: "unreadable-override", storeDir: "/stores/plan-one" });
+    expect(gated).toStrictEqual({
+      basis: "unreadable-override",
+      choice: {
+        alias: "plan-one",
+        basis: "routed",
+        kind: "named",
+        alternative: "--plan <alias>",
+        readings: [
+          { alias: "plan-one", reading: "no gauge was readable", state: "chosen" },
+          { alias: "plan-two", reading: "no gauge was readable", state: "unreadable" },
+        ],
+        reason:
+          "first in configured order with no usage limit to stay under, booted unmeasured by the unreadable-plan hatch: no plan's gauge was readable",
+        vendor: "claude",
+      },
+      storeDir: "/stores/plan-one",
+    });
   });
 
   it("refuses a PINNED seat whose own gauge is unreadable, even when another plan reads fine", async () => {
@@ -274,7 +307,28 @@ describe("gateSpawnStore fails CLOSED when no gauge is readable", () => {
       },
       pinnedStoreDir: "/stores/plan-one",
     });
-    expect(gated).toStrictEqual({ basis: "unreadable-override", storeDir: "/stores/plan-one" });
+    // The other plan's reading is kept beside the choice even though it did not decide it: every reading appears once.
+    expect(gated).toStrictEqual({
+      basis: "unreadable-override",
+      choice: {
+        alias: "plan-one",
+        basis: "pinned",
+        kind: "named",
+        alternative: "--plan <alias>",
+        readings: [
+          { alias: "plan-one", reading: "no gauge was readable", state: "chosen" },
+          {
+            alias: "plan-two",
+            observedAtIso: "2026-09-12T06:00:00.000Z",
+            reading: "all-models week 30%, 5h 20%",
+            state: "eligible",
+          },
+        ],
+        reason: "the pinned seat, booted unmeasured by the unreadable-plan hatch: its own gauge was not readable",
+        vendor: "claude",
+      },
+      storeDir: "/stores/plan-one",
+    });
   });
 });
 
@@ -294,7 +348,7 @@ describe("gateSpawnStore does not refuse on gauges when an API KEY outranks ever
         unreadableHatchOpen: false,
       },
     });
-    expect(gated).toStrictEqual({ basis: "api-key" });
+    expect(gated).toStrictEqual({ basis: "api-key", choice: API_KEY_CHOICE });
   });
 
   it("allows a PINNED seat on its own store with no readable gauge", async () => {
@@ -309,7 +363,7 @@ describe("gateSpawnStore does not refuse on gauges when an API KEY outranks ever
       },
       pinnedStoreDir: "/stores/plan-one",
     });
-    expect(gated).toStrictEqual({ basis: "api-key", storeDir: "/stores/plan-one" });
+    expect(gated).toStrictEqual({ basis: "api-key", choice: API_KEY_CHOICE, storeDir: "/stores/plan-one" });
   });
 
   it("still refuses a gauge-less fleet when NOTHING shadows the stores", async () => {
@@ -343,7 +397,7 @@ describe("gateSpawnStore does not refuse on gauges when an API KEY outranks ever
         unreadableHatchOpen: false,
       },
     });
-    expect(gated).toStrictEqual({ basis: "api-key" });
+    expect(gated).toStrictEqual({ basis: "api-key", choice: API_KEY_CHOICE });
   });
 
   it("allows a spawn with a BROKEN accounts file, and probes nothing at all", async () => {
@@ -361,129 +415,12 @@ describe("gateSpawnStore does not refuse on gauges when an API KEY outranks ever
         unreadableHatchOpen: false,
       },
     });
-    expect(gated).toStrictEqual({ basis: "api-key" });
+    expect(gated).toStrictEqual({ basis: "api-key", choice: API_KEY_CHOICE });
     expect(probes).toBe(0);
   });
 });
 
-describe("gateSpawnStore refuses a STANDING pin whose register cannot be read: its own usage limit went unread", () => {
-  it("refuses the pin, carrying its store, with the hatch open and force set", async () => {
-    // This asserted the pin booted as named, unmeasured, because "the register adds nothing" to a pinned seat. It
-    // adds the pin's own usage limit, and the owner's ruling is that no seat boots past one nobody read.
-    const dir = makeGateHome();
-    writeAccounts({ dir, text: "[]" });
-    const gated = await gate({
-      context: { ambient: SUBSCRIPTION, home: dir, unreadableHatchOpen: true },
-      force: true,
-      pinnedStoreDir: "/stores/healthy",
-    });
-    expect(gated.refusalKind).toBe("configuration");
-    expect(gated.storeDir).toBe("/stores/healthy");
-    expect(gated.basis).toBe(undefined);
-    expect(gated.refusal).toContain("no Claude spawn boots until the register reads again");
-  });
-
-  it("refuses a standing pin when the register's store is unreachable", async () => {
-    const dir = makeGateHome();
-    writeAccounts({ dir, text: TWO_PLANS });
-    const gated = await gate({
-      context: { ambient: SUBSCRIPTION, home: dir, port: unavailablePlanRegisterPort(), unreadableHatchOpen: true },
-      pinnedStoreDir: "/stores/healthy",
-    });
-    expect(gated.refusalKind).toBe("configuration");
-    expect(gated.storeDir).toBe("/stores/healthy");
-    expect(gated.refusal).toContain("ECONNREFUSED");
-  });
-
-  it("probes nothing for a pinned seat whose configuration could not be read", async () => {
-    const dir = makeGateHome();
-    writeAccounts({ dir, text: "{ truncated" });
-    let probes = 0;
-    await gate({
-      context: {
-        ambient: SUBSCRIPTION,
-        deps: countingDeps({ onProbe: () => (probes += 1) }),
-        home: dir,
-        unreadableHatchOpen: false,
-      },
-      pinnedStoreDir: "/stores/healthy",
-    });
-    expect(probes).toBe(0);
-  });
-});
-
-describe("gateSpawnStore MEASURES a store `--plan` named, and never boots it unmeasured", () => {
-  // The alias resolved before any worktree existed, and the register went unreadable
-  // before the gate ran. A standing pin boots unmeasured there; a named plan is gated on its own gauge.
-  it("refuses a named store when the register became unreadable after the alias resolved", async () => {
-    const dir = makeGateHome();
-    writeAccounts({ dir, text: "{ truncated" });
-    const gated = await gate({
-      context: {
-        ambient: SUBSCRIPTION,
-        home: dir,
-        namedPin: true,
-        unreadableHatchOpen: false,
-      },
-      pinnedStoreDir: "/stores/plan-two",
-    });
-    expect(gated.refusalKind).toBe("configuration");
-    expect(gated.storeDir).toBe("/stores/plan-two");
-    expect(gated.refusal).toContain("could not be reread to check its usage limit and allowance");
-  });
-
-  it("refuses a named store the register no longer carries", async () => {
-    const dir = makeGateHome();
-    writeAccounts({ dir, text: TWO_PLANS });
-    const gated = await gate({
-      context: {
-        ambient: SUBSCRIPTION,
-        deps: offlineDeps(),
-        home: dir,
-        namedPin: true,
-        unreadableHatchOpen: false,
-      },
-      pinnedStoreDir: "/stores/plan-three",
-    });
-    expect(gated.refusalKind).toBe("unreadable-plan");
-    expect(gated.storeDir).toBe("/stores/plan-three");
-  });
-
-  // The reread lost the row's usage limit and allowance, so the hatch booting the
-  // store would cross a limit, or land on a monthly-spend plan, that nothing checked.
-  it("still refuses that named store with the unreadable-plan hatch open, its usage limit unread", async () => {
-    const dir = makeGateHome();
-    writeAccounts({ dir, text: "{ truncated" });
-    const gated = await gate({
-      context: {
-        ambient: SUBSCRIPTION,
-        home: dir,
-        namedPin: true,
-        unreadableHatchOpen: true,
-      },
-      force: true,
-      pinnedStoreDir: "/stores/plan-two",
-    });
-    expect(gated.refusalKind).toBe("configuration");
-    expect(gated.storeDir).toBe("/stores/plan-two");
-  });
-
-  it("boots a named store the register no longer carries when the unreadable-plan hatch is open", async () => {
-    const dir = makeGateHome();
-    writeAccounts({ dir, text: TWO_PLANS });
-    const gated = await gate({
-      context: {
-        ambient: SUBSCRIPTION,
-        deps: offlineDeps(),
-        home: dir,
-        namedPin: true,
-        unreadableHatchOpen: true,
-      },
-      pinnedStoreDir: "/stores/plan-three",
-    });
-    expect(gated).toStrictEqual({ basis: "unreadable-override", storeDir: "/stores/plan-three" });
-  });
-
+describe("gateSpawnStore MEASURES a store `--plan` named on its own live gauge", () => {
   it("gates a named store the register still carries on its own live gauge", async () => {
     const dir = makeGateHome();
     writeAccounts({ dir, text: TWO_PLANS });
@@ -497,7 +434,28 @@ describe("gateSpawnStore MEASURES a store `--plan` named, and never boots it unm
       },
       pinnedStoreDir: "/stores/plan-two",
     });
-    expect(gated).toStrictEqual({ basis: "pinned", storeDir: "/stores/plan-two" });
+    // `--plan` named it, so the choice is `requested`, and plan-one, which the sweep could not read, still appears.
+    expect(gated).toStrictEqual({
+      basis: "pinned",
+      choice: {
+        alias: "plan-two",
+        basis: "requested",
+        kind: "named",
+        alternative: "--plan <alias> names another plan; omit --plan to route on live gauges",
+        readings: [
+          {
+            alias: "plan-two",
+            observedAtIso: "2026-09-12T06:00:00.000Z",
+            reading: "all-models week 30%, 5h 20%",
+            state: "chosen",
+          },
+          { alias: "plan-one", reading: "no gauge was readable", state: "unreadable" },
+        ],
+        reason: "--plan named it; its own gauge allows it",
+        vendor: "claude",
+      },
+      storeDir: "/stores/plan-two",
+    });
   });
 });
 

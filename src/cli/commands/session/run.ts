@@ -3,6 +3,7 @@
  */
 
 import { logger } from "../../../lib/logger.js";
+import { planChoiceLine } from "../../../sessions/planChoice.js";
 import { foldSessions, parseSessionLog, type SessionEvent, type SessionItem } from "../../../sessions/session.js";
 import { appendSessionEvent, readSessionLogText } from "../../../sessions/sessionStore.js";
 import { defineCommand } from "../../defineCommand.js";
@@ -82,8 +83,14 @@ function renderBootModel({ item }: { item: SessionItem }): string {
   return item.bootModel.kind === "pinned" ? `model=${item.bootModel.model}` : "model=inherited-default";
 }
 
-/** One line per session, human-readable. */
-function renderSession({ item }: { item: SessionItem }): string {
+/**
+ * One session, human-readable: its row, then — when the spawn recorded one — the plan it started on and the readings
+ * that chose it, indented on a line of their own so the row itself stays one line.
+ *
+ * @param item the folded session
+ * @returns the row, and the plan line beneath it when there is one
+ */
+export function renderSession({ item }: { item: SessionItem }): string {
   const parts = [`${item.sessionKey} — ${item.status}`];
   if (item.slug !== undefined) {
     parts.push(`slug=${item.slug}`);
@@ -95,7 +102,11 @@ function renderSession({ item }: { item: SessionItem }): string {
   if (item.latestNote !== undefined) {
     parts.push(`note: ${item.latestNote}`);
   }
-  return parts.join("  ");
+  const row = parts.join("  ");
+  if (item.planChoice === undefined) {
+    return row;
+  }
+  return `${row}\n    ${planChoiceLine({ choice: item.planChoice })}`;
 }
 
 /**

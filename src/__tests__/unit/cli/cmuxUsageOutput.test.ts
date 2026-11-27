@@ -6,7 +6,8 @@
 import { describe, expect, it } from "vitest";
 
 import { planLine, rateText, sessionLines, usageLines } from "../../../cli/commands/cmux/usageOutput.js";
-import { usageViewOf } from "../../../sessionHarness/appUsage.js";
+import { rankedCodexChoice } from "../../../codex/seatPlanChoice.js";
+import { recordedPlanChoices, usageViewOf } from "../../../sessionHarness/appUsage.js";
 import type { AppSessionUsage } from "../../../sessionHarness/usageWire.js";
 
 const AT = "2026-11-11T02:00:00.000Z";
@@ -126,5 +127,55 @@ describe("planLine and usageLines", () => {
     expect(usageLines({ view: usageViewOf({ plans: [], report: { atIso: AT, sessions: [] } }) })).toEqual([
       `no sessions hosted in this run of the app (read ${AT})`,
     ]);
+  });
+});
+
+describe("the plan choice each session's ledger row recorded", () => {
+  const choice = rankedCodexChoice({
+    alias: "codex-b",
+    basis: "routed",
+    forced: false,
+    ranking: {
+      basis: "weekly",
+      deferredUnmeasured: [],
+      excluded: [],
+      ranked: [{ alias: "codex-b", codexHome: "/plans/b" }],
+    },
+  });
+
+  it("is printed right under the session it chose, and only that session", () => {
+    const other: AppSessionUsage = { ...QUIET, ledgerKey: "abc-2", sessionId: "s2" };
+    const view = usageViewOf({
+      plans: [{ alias: "codex-b", provider: "codex", storeDir: "/plans/b" }],
+      recorded: recordedPlanChoices({
+        items: [{ planChoice: choice, sessionId: "s1" }, { sessionId: "s2" }, { planChoice: choice }],
+      }),
+      report: { atIso: AT, sessions: [QUIET, other] },
+    });
+    expect(usageLines({ view })).toEqual([
+      `usage read ${AT}, this run of the app only; spend lands at each turn's end`,
+      "plan codex-b · codex · 2 session(s), 0 reporting, 0 incomplete, 0 off the model asked · total not-reported",
+      "  abc-1 · abc-1 title · codex · starting",
+      "    plan: codex-b (codex, routed) — ranked first of 1 eligible destination(s), on weekly; readings: codex-b " +
+        "chosen (ranked 1 of 1 eligible, on weekly); alternative: --plan <alias> names another Codex plan; omit --plan " +
+        "to take the ranked best",
+      "    model: asked none · ran unknown · charged none yet",
+      "    tokens: not-reported · 0 turn(s) counted",
+      "    last turn: none yet · rate not-ready",
+      "  abc-2 · abc-1 title · codex · starting",
+      "    model: asked none · ran unknown · charged none yet",
+      "    tokens: not-reported · 0 turn(s) counted",
+      "    last turn: none yet · rate not-ready",
+    ]);
+  });
+
+  it("rides the JSON view on the session it chose, and never the home its plan lives in", () => {
+    const view = usageViewOf({
+      plans: [],
+      recorded: [{ planChoice: choice, sessionId: "s1" }],
+      report: { atIso: AT, sessions: [QUIET] },
+    });
+    expect(view.sessions[0]!.planChoice).toStrictEqual(choice);
+    expect(JSON.stringify(view.sessions[0]!.planChoice)).not.toContain("/plans/b");
   });
 });
