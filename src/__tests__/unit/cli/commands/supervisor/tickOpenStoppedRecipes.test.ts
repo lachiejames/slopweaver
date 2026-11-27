@@ -59,6 +59,7 @@ function recording({ spawnExit = 0 }: { spawnExit?: number } = {}): {
 } {
   const launched: (readonly string[])[] = [];
   const deps: ScratchDeps = {
+    ambientHome: () => "/ambient/home",
     autonomy: memoryAutonomyLedgerPort(),
     defaultBin: () => "slopweaver",
     defaultRepo: () => ok("o/r"),

@@ -34,6 +34,8 @@ slopweaver supervisor successor-summary --reconcile <json> --out <path>  # DERIV
 slopweaver cmux spawn <slug> [--full]                       # open + boot + verify + auto-record; one receipt line, --full for worktree and boot detail
 slopweaver cmux spawn <slug> --model <m> --plan <alias>     # boot on the plan you name over routing and any role pin, judged on its own gauge (a Codex destination on --driver codex)
 slopweaver cmux spawn <slug> --template research           # a seat that never edits code boots without the three code-standards rules (code|research|supervisor|bot)
+slopweaver cmux spawn <slug> --dir <docs> --home <scratch>   # the pickup's lifecycle verb carries both flags, and an app seat's verbs run under SLOPWEAVER_HOME=<scratch>
+slopweaver supervisor tick open --dir <scratch> --home <h>   # a home not the ambient one CONFINES the tick: children under <h>, monitors rehearsed without firing, world-acting readings and seating withheld, each named
 slopweaver cmux templates [--json]                          # each launch template, what it leaves out, and the bytes and approx tokens it loads
 slopweaver cmux close <workspace>                           # close + auto-close the matching session, if tracked; forces once on an idle screen when cmux asks, holds a busy one (exit 1); reap its fleet worktree's orphaned node processes
 slopweaver cmux send --workspace <ws> [--interrupt] "<text>"  # one line in; says submitted vs QUEUED; --interrupt stops the turn

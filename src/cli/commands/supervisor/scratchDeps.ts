@@ -16,6 +16,7 @@ import { type BuiltState, builtRootOfBin } from "../../../builtCli/builtState.js
 import { readBuiltState, waitForBuiltTree } from "../../../builtCli/builtStateRead.js";
 import type { RebuildWaitOutcome } from "../../../builtCli/consoleRebuildWait.js";
 import { resolveRepository } from "../../../config.js";
+import { slopweaverHome } from "../../../homeDir.js";
 import { recordReading } from "../../../readings/store.js";
 import type { ChildOutcome } from "../../../supervisor/scratch/childOutcome.js";
 import type { ScratchError } from "../../../supervisor/scratch/errors.js";
@@ -38,6 +39,8 @@ export interface ScratchDeps {
     stdoutPath: string;
     stderrPath: string;
     timeoutMs: number;
+    /** The child's whole environment; absent, it runs with the quiet launcher environment of this process. */
+    env?: NodeJS.ProcessEnv;
   }) => Promise<ChildOutcome>;
   /** Where the built tree a `slopweaver` binary runs stands against its source, now. */
   readonly readBuild: (args: { bin: string }) => BuiltState;
@@ -47,6 +50,8 @@ export interface ScratchDeps {
   readonly now: () => string;
   /** The `slopweaver` binary a child is launched from when `--bin` is absent. */
   readonly defaultBin: () => string;
+  /** The ambient state home, which a `--home` naming another directory confines every child away from. */
+  readonly ambientHome: () => string;
   /** The `owner/name` a bare reference belongs to when `--repo` is absent. */
   readonly defaultRepo: () => Result<string>;
   /**
@@ -115,6 +120,7 @@ export function chosenBin({ bin, deps }: { bin: string | undefined; deps: Scratc
  */
 export function productionScratchDeps(): ScratchDeps {
   return {
+    ambientHome: slopweaverHome,
     autonomy: autonomyLedgerPort(),
     defaultBin: () => join(installedTreeRoot({ importMetaUrl: import.meta.url }), "bin", "slopweaver"),
     defaultRepo: () => resolveRepository().map((repository) => `${repository.owner}/${repository.repo}`),

@@ -55,12 +55,14 @@ function claudeDraftOf({
   pluginDir,
   operation,
   ledgerHome,
+  stateHome,
 }: {
   spec: HarnessLaunchSpec;
   gated: VisibleSessionPlan;
   pluginDir: string | undefined;
   operation: HarnessLaunchOperation;
   ledgerHome: string | undefined;
+  stateHome: string | undefined;
 }): Result<ClaudeAppLaunchSpec, SessionLaunchFailedError> {
   const credential = credentialRouteOf({ gated });
   if (credential === undefined) {
@@ -81,6 +83,7 @@ function claudeDraftOf({
     ...(spec.effort === undefined ? {} : { effort: spec.effort }),
     ...(pluginDir === undefined ? {} : { pluginDir }),
     ...(ledgerHome === undefined ? {} : { ledgerHome }),
+    ...(stateHome === undefined ? {} : { stateHome }),
   });
 }
 
@@ -92,6 +95,8 @@ function claudeDraftOf({
  * @param pluginDir the plugin directory a Claude seat loads, when the spawn resolved one
  * @param operation the launch act it is for, which a refusal names
  * @param ledgerHome the state home the ledger row is written under, when the spawn named one, for the card's close
+ * @param stateHome the state home the session's own verbs run under, only when the spawn was EXPLICITLY given
+ *   `--home`; absent, the spec carries no key, so an app from before the field opens it as before
  * @returns the draft spec, or the launch failure refusing it
  */
 export function appLaunchSpecOf({
@@ -100,15 +105,17 @@ export function appLaunchSpecOf({
   pluginDir,
   operation,
   ledgerHome,
+  stateHome,
 }: {
   spec: HarnessLaunchSpec;
   gated: VisibleSessionPlan;
   pluginDir: string | undefined;
   operation: HarnessLaunchOperation;
   ledgerHome: string | undefined;
+  stateHome: string | undefined;
 }): Result<AppLaunchDraft, SessionLaunchFailedError> {
   if (spec.host === "claude-code") {
-    return claudeDraftOf({ gated, ledgerHome, operation, pluginDir, spec });
+    return claudeDraftOf({ gated, ledgerHome, operation, pluginDir, spec, stateHome });
   }
   if (spec.codexHome === undefined) {
     const message = "the session has no routed CODEX_HOME, so the app cannot say which plan it spends";
@@ -122,5 +129,6 @@ export function appLaunchSpecOf({
     title: spec.title,
     vendor: "codex",
     ...(ledgerHome === undefined ? {} : { ledgerHome }),
+    ...(stateHome === undefined ? {} : { stateHome }),
   });
 }

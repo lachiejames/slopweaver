@@ -45,6 +45,7 @@ export function workerLaunchOf({
 }): WorkerLaunch {
   const model = spec.model === undefined ? {} : { model: spec.model };
   const resumed = resumeVendorSessionId === undefined ? {} : { resumeVendorSessionId };
+  const stateHome = spec.stateHome === undefined ? {} : { stateHome: spec.stateHome };
   if (spec.vendor === "claude") {
     return {
       config: {
@@ -58,6 +59,7 @@ export function workerLaunchOf({
         vendorSessionId: resumeVendorSessionId ?? claudeTranscriptId,
         ...resumed,
         ...model,
+        ...stateHome,
         ...(spec.effort === undefined ? {} : { effort: spec.effort }),
         ...(spec.pluginDir === undefined ? {} : { pluginDir: spec.pluginDir }),
       },
@@ -79,6 +81,7 @@ export function workerLaunchOf({
       vendor: "codex",
       ...resumed,
       ...model,
+      ...stateHome,
     },
     kind: "launch",
     workerEntry: paths.codex.workerEntry,

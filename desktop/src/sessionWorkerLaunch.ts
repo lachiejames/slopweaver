@@ -12,8 +12,36 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { claudeWorkerEnvironment } from "./sessionWorker/claudeEnvironmentPolicy";
 import { codexSessionEnvironment } from "./sessionWorker/codexEnvironmentPolicy";
-import { WORKER_CONFIG_ENV } from "./sessionWorker/workerWire";
+import { confineToStateHome, WORKER_CONFIG_ENV, type WorkerLaunchConfig } from "./sessionWorker/workerWire";
 import { type VisibleSessionLease, visibleWorkerArgv } from "./visibleSessionLease";
+
+/**
+ * The environment one worker runs in: the vendor's scrub of the app's own, then the state home a confined launch
+ * names, then the worker's own two variables.
+ *
+ * @param config the worker's launch configuration, whose vendor picks the scrub
+ * @param inherited the app's environment, unscrubbed: credentials are dropped and the config's CODEX_HOME set here
+ * @returns the environment to start the worker with
+ */
+export function workerEnvironment({
+  config,
+  inherited,
+}: {
+  config: WorkerLaunchConfig;
+  inherited: Readonly<Record<string, string | undefined>>;
+}): Record<string, string> {
+  // Set on the scrubbed object itself, never spread into a fresh `{}`: that object's prototype is null on purpose.
+  const environment =
+    config.vendor === "codex"
+      ? codexSessionEnvironment({ codexHome: config.codexHome, inherited })
+      : claudeWorkerEnvironment({ inherited });
+  // After the scrub, so the vendor policy can neither drop nor keep the app's own home in its place: a seat spawned
+  // with --home runs every verb against that home, never the one the app itself was started with.
+  confineToStateHome({ config, environment });
+  environment["ELECTRON_RUN_AS_NODE"] = "1";
+  environment[WORKER_CONFIG_ENV] = JSON.stringify(config);
+  return environment;
+}
 
 /**
  * Start the worker a lease clears.
@@ -30,13 +58,7 @@ export function launchSessionWorker({
   inherited: Readonly<Record<string, string | undefined>>;
 }): ChildProcess {
   const { config } = lease;
-  // Set on the scrubbed object itself, never spread into a fresh `{}`: that object's prototype is null on purpose.
-  const environment =
-    config.vendor === "codex"
-      ? codexSessionEnvironment({ codexHome: config.codexHome, inherited })
-      : claudeWorkerEnvironment({ inherited });
-  environment["ELECTRON_RUN_AS_NODE"] = "1";
-  environment[WORKER_CONFIG_ENV] = JSON.stringify(config);
+  const environment = workerEnvironment({ config, inherited });
   return spawn(process.execPath, visibleWorkerArgv({ lease }), {
     cwd: config.directory,
     detached: true,

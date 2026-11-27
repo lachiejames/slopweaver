@@ -185,6 +185,7 @@ describe("supervisorWindowOf", () => {
   it("hands the voice neither the spawn pickup typed to boot the chair nor one queued mid-turn", () => {
     const pickup = pickupLine({
       docPath: "/home/handovers/fresh-supervisor-handoff-9342.md",
+      location: {},
       slug: "fresh-supervisor-handoff-9342",
       verb: "start",
     });

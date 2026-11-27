@@ -40,6 +40,16 @@ describe("isAppLaunchSpec", () => {
     ).toEqual([true, true, true, true]);
   });
 
+  it("accepts a state home on either vendor's arm, and refuses one that is not a string", () => {
+    expect(
+      [
+        { ...CODEX, stateHome: "/scratch/home" },
+        { ...CLAUDE, stateHome: "/scratch/home" },
+        { ...CODEX, stateHome: 7 },
+      ].map((spec) => isAppLaunchSpec(spec)),
+    ).toEqual([true, true, false]);
+  });
+
   it("refuses a field from the other vendor's arm, an unknown effort, or an unknown vendor", () => {
     expect(
       [

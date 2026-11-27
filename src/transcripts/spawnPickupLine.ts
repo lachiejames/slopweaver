@@ -20,8 +20,19 @@
  * residue, stated rather than discovered: a person who pastes a generated pickup verbatim into a chat reads as the
  * fleet, because no record field tells the two apart. What that drops is the generated instruction, never words of the owner's.
  *
- * Pure, and imports nothing: `../cmux/pickupCommand.ts` imports the line it emits from here.
+ * A seat spawned with `cmux spawn --dir` or `--home` is told the SAME lifecycle command with the same flags, so its
+ * `handover start` reads the board and the state home its doc was found on. MEASURED: a `--dir` seat was typed a bare
+ * `slopweaver handover start <slug>`, which resolved the ambient board, could not find the doc, and failed
+ * (`spawnPickupLine.test.ts` composes the located line). The flags are shell-quoted (`#lib/shellCommandLine.js`) and read back with the
+ * repo's own lexer (`../admit/shellLexing.ts`), so a path holding a space or an apostrophe survives the round trip;
+ * the byte-for-byte rebuild still decides. Residue: a quoted flag value that itself holds the words
+ * `, then execute the doc. It is complete;` splits early and reads as a person's turn.
+ *
+ * Pure: `../cmux/pickupCommand.ts` imports the line it emits from here.
  */
+import { shellCommandLine } from "#lib/shellCommandLine.js";
+
+import { shellWords } from "../admit/shellLexing.js";
 
 /**
  * The one sentence every spawned session is told about waiting on something else to finish.
@@ -86,7 +97,57 @@ const RETIRED_SIDEBAR_SENTENCE =
  * that itself holds this head's words still splits at the real one. The byte-for-byte rebuild, not the head, decides.
  */
 const PICKUP_HEAD =
-  /^Read ([\s\S]*\.md) end to end, then run: slopweaver handover (start|resume) ([A-Za-z0-9][A-Za-z0-9._-]*), then execute the doc\. /u;
+  /^Read ([\s\S]*\.md) end to end, then run: slopweaver handover (start|resume) ([A-Za-z0-9][A-Za-z0-9._-]*)((?: [\s\S]*?)?), then execute the doc\. It is complete; /u;
+
+/**
+ * Where a spawned seat's lifecycle verb must look: the docs directory and the state home `cmux spawn` was EXPLICITLY
+ * given. An absent member is a flag the spawn was not given, so the seat resolves its default exactly as before.
+ */
+export interface SpawnPickupLocation {
+  readonly dir?: string;
+  readonly home?: string;
+}
+
+/**
+ * The location flags, in their one order, as argv words.
+ *
+ * @returns `--dir <dir>` then `--home <home>`, each only when present
+ */
+function locationArgv({ location }: { location: SpawnPickupLocation }): readonly string[] {
+  return [
+    ...(location.dir === undefined ? [] : ["--dir", location.dir]),
+    ...(location.home === undefined ? [] : ["--home", location.home]),
+  ];
+}
+
+/**
+ * The location a generated tail spells, or `undefined` when it is not exactly one the generator writes: nothing,
+ * `--dir X`, `--home X`, or both in that order, every value literal.
+ */
+function locationOfTail({ tail }: { tail: string }): SpawnPickupLocation | undefined {
+  if (tail === "") {
+    return {};
+  }
+  const lexed = shellWords({ text: tail });
+  if (lexed.unterminated || lexed.splitsWord || lexed.words.some((word) => word.dynamic)) {
+    return undefined;
+  }
+  const words = lexed.words.map((word) => word.text);
+  let location: { dir?: string; home?: string } = {};
+  let index = 0;
+  if (words[index] === "--dir" && words[index + 1] !== undefined) {
+    location = { dir: words[index + 1]! };
+    index += 2;
+  }
+  if (words[index] === "--home" && words[index + 1] !== undefined) {
+    location = { ...location, home: words[index + 1]! };
+    index += 2;
+  }
+  if (index !== words.length) {
+    return undefined;
+  }
+  return location;
+}
 
 /**
  * One complete paste wrapper as Claude Code writes it round a long typed line: an optional id on the opening tag,
@@ -103,19 +164,25 @@ const PASTE_WRAPPER = /^<pasted_content(?: id="([^"]*)")?>\n?([\s\S]*?)\n?<\/pas
  * @param docPath the doc's absolute path, named so a freshly booted session is told to READ it
  * @param verb `start` for a doc with no resumable run, `resume` for one with
  * @param slug the doc's slug, for the lifecycle verb
- * @returns the exact line
+ * @param location the `--dir` and `--home` the spawn was explicitly given, carried onto the lifecycle verb
+ * @returns the exact line; with an empty location, the line every earlier seat received
  */
 export function pickupLine({
   docPath,
   verb,
   slug,
+  location,
 }: {
   docPath: string;
   verb: "start" | "resume";
   slug: string;
+  location: SpawnPickupLocation;
 }): string {
+  const lifecycle = shellCommandLine({
+    command: ["slopweaver", "handover", verb, slug, ...locationArgv({ location })],
+  });
   return (
-    `Read ${docPath} end to end, then run: slopweaver handover ${verb} ${slug}, then execute the doc. ` +
+    `Read ${docPath} end to end, then run: ${lifecycle}, then execute the doc. ` +
     `It is complete; do not re-plan or ask what it covers. ${WAIT_RULE_INSTRUCTION}`
   );
 }
@@ -149,8 +216,17 @@ export function isSpawnPickupLine({ text }: { text: string }): boolean {
   if (head === null) {
     return false;
   }
-  const [, docPath, verb, slug] = head;
-  const current = pickupLine({ docPath: docPath!, slug: slug!, verb: verb === "start" ? "start" : "resume" });
+  const [, docPath, verb, slug, tail] = head;
+  const location = locationOfTail({ tail: tail!.trimStart() });
+  if (location === undefined) {
+    return false;
+  }
+  const current = pickupLine({
+    docPath: docPath!,
+    location,
+    slug: slug!,
+    verb: verb === "start" ? "start" : "resume",
+  });
   const lead = current.slice(0, -WAIT_RULE_INSTRUCTION.length);
   const templates = [current, `${lead}${RETIRED_WAIT_RULE}`, `${lead}${RETIRED_SIDEBAR_SENTENCE} ${RETIRED_WAIT_RULE}`];
   return templates.includes(body);

@@ -192,7 +192,7 @@ DONE, never its words or a tool's input, output or title: [the facts picture](se
   same browser-off overrides a cmux boot line's `-c` flags do (`desktop/src/sessionWorker/codexBrowserOff.ts`,
   held to `src/codex/browserSurface.ts` by a test), since the door judges the server list as if they applied. Boot and delivery evidence is the app's own report (witness `event`). A launch token acts only
   once prepare has answered with it, and a launch nothing settles within 120s (a lost abort, a spawning CLI that
-  died) is ended by the app itself.
+  died) is ended by the app itself. A `--home` spawn sets the worker's `SLOPWEAVER_HOME`, no protocol bump: [the state home](session-harness/state-home.md).
 
 The app serves the socket only as the owner's installed app, never a test instance, so the app harness is
 proven on the installed app.

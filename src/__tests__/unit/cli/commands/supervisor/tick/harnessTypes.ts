@@ -23,6 +23,8 @@ export interface Fake {
   readonly launched: string[];
   /** Every child's whole argv, in launch order. */
   readonly children: (readonly string[])[];
+  /** The `SLOPWEAVER_HOME` each child was handed, in launch order; `undefined` when it was handed no environment. */
+  readonly childHomes: (string | undefined)[];
 }
 
 /** Every option of a fake run with its default applied; only the render seam may stay unset. */

@@ -27,6 +27,7 @@ import type { AppTransport } from "./appSocketTransport.js";
 import { planFromLaunchSpec } from "./cmuxLaunch.js";
 import { type HarnessLaunchOperation, SessionHarnessErrors, type SessionLaunchFailedError } from "./errors.js";
 import type { HarnessLaunchSpec, HarnessOpenedSession, InitialMessageResolver, SessionLauncher } from "./launch.js";
+import { stateHomeRefusalClause } from "./stateHomeRefusal.js";
 
 /** A prepare waits on a card, a worker, the adapter and the vendor's session: the app bounds that at 120s. */
 const PREPARE_TIMEOUT_MS = 180_000;
@@ -146,12 +147,14 @@ async function decidedSpec({
   transport,
   operation,
   ledgerHome,
+  stateHome,
 }: {
   spec: HarnessLaunchSpec;
   deps: AppLaunchDeps;
   transport: AppTransport;
   operation: HarnessLaunchOperation;
   ledgerHome: string | undefined;
+  stateHome: string | undefined;
 }): Promise<Result<AppLaunchSpec, SessionLaunchFailedError>> {
   let gated = planFromLaunchSpec({ spec });
   let pluginDir: string | undefined;
@@ -163,7 +166,7 @@ async function decidedSpec({
     gated = allowed.value;
     pluginDir = deps.resolvePluginDir({ plan: gated });
   }
-  const draft = appLaunchSpecOf({ gated, ledgerHome, operation, pluginDir, spec });
+  const draft = appLaunchSpecOf({ gated, ledgerHome, operation, pluginDir, spec, stateHome });
   if (draft.isErr()) {
     return err(draft.error);
   }
@@ -208,7 +211,7 @@ async function prepareSession({
     // Only the app's own refusal settles it. With no readable answer the app may still be preparing, and open the
     // card after this caller gave up.
     const which = continuing === undefined ? "" : ` (resuming app session ${continuing})`;
-    const message = `${prepared.error.message}${which}`;
+    const message = `${prepared.error.message}${which}${stateHomeRefusalClause({ appSpec, error: prepared.error })}`;
     if (prepared.error.kind === "refused") {
       return err(failed({ message, operation }));
     }
@@ -314,6 +317,7 @@ async function deliverInitialMessage({
  *   through the app's own Codex binary
  * @param ledgerHome the state home the spawn records under, when it named one, so the card's Stop closes there too
  * @param continuing the app session a `resume` continues: the id the run's open app ledger row records, when one does
+ * @param stateHome the state home the session's verbs run under, only when the spawn was EXPLICITLY given `--home`
  * @returns the launcher
  */
 export function appSessionLauncherOver({
@@ -321,11 +325,13 @@ export function appSessionLauncherOver({
   deps,
   ledgerHome,
   continuing,
+  stateHome,
 }: {
   transport: AppTransport;
   deps: AppLaunchDeps;
   ledgerHome: string | undefined;
   continuing?: string | undefined;
+  stateHome?: string | undefined;
 }): SessionLauncher {
   const launch = async ({
     spec,
@@ -336,7 +342,7 @@ export function appSessionLauncherOver({
     resolveInitialMessage: InitialMessageResolver | undefined;
     operation: HarnessLaunchOperation;
   }): Promise<Result<HarnessOpenedSession, SessionLaunchFailedError>> => {
-    const appSpec = await decidedSpec({ deps, ledgerHome, operation, spec, transport });
+    const appSpec = await decidedSpec({ deps, ledgerHome, operation, spec, stateHome, transport });
     if (appSpec.isErr()) {
       return err(appSpec.error);
     }

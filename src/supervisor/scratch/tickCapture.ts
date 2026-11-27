@@ -14,6 +14,7 @@
 import { DRAFTED_SOURCE_KINDS, DRAFTED_SOURCES, type DraftedSourceKind } from "../tickDraftShapes.js";
 import { type ChildOutcome, describeChildOutcome } from "./childOutcome.js";
 import { FLEET_READINGS } from "./fleetReadings.js";
+import { type ConfinedReadingDisposition, KEEP, withhold } from "./tickConfinement.js";
 
 /** The idle threshold every sweep has read `session watch` at since the sweep contract named it. */
 const WATCH_IDLE_MINUTES = "10";
@@ -96,6 +97,11 @@ export interface TickReading {
    * list`, then that tick's `capture.json`).
    */
   readonly ledgered?: false;
+  /**
+   * What a CONFINED tick — one whose `--home` is not the ambient home — does with this reading
+   * (`./tickConfinement.ts`). Required, so a reading added without that decision fails to compile.
+   */
+  readonly confined: ConfinedReadingDisposition;
 }
 
 /**
@@ -153,12 +159,14 @@ function landingReadings({ landingRepos }: { landingRepos: readonly string[] }):
   return [
     {
       argv: [...selection, "--if-due", "--press", "--register", "--json"],
+      confined: withhold({ reason: "it presses, enqueues and registers the owner's pull requests on GitHub" }),
       format: "json",
       name: LANDING_READING,
       timeoutMs: LANDING_TIMEOUT_MS,
     },
     {
       argv: [...selection, "--if-due", "--drafts-only", "--register", "--json"],
+      confined: withhold({ reason: "it registers the owner's draft pull requests from GitHub onto the board" }),
       format: "json",
       // A drafts slice is never the readings ledger's whole picture of the owner's pull requests (`landingDraftsOnly.ts`).
       ledgered: false,
@@ -201,6 +209,7 @@ function bumpDriveReadingName({ repo }: { repo: string }): string {
 function bumpDriveReadings({ repos }: { repos: readonly string[] }): readonly TickReading[] {
   return repos.map((repo) => ({
     argv: ["github", "bump-drive", "--repo", repo, "--json"],
+    confined: withhold({ reason: "it drives the repository's dependency-bump pull requests on GitHub toward merge" }),
     format: "json",
     name: bumpDriveReadingName({ repo }),
     producer: `github bump-drive ${repo}`,
@@ -232,11 +241,18 @@ export function tickReadings({
   return [
     // `events tail` exits 3 when it FOUND an alert or a gap (`../../cli/commands/events/tail.ts`); counting that as a
     // failed reading hid every alert from the digest exactly when there was one.
-    { argv: ["events", "tail", "--cursor", "supervisor"], completedExits: [0, 3], format: "text", name: "events" },
-    { argv: ["cmux", "list", "--json"], format: "json", name: "cmux" },
+    {
+      argv: ["events", "tail", "--cursor", "supervisor"],
+      completedExits: [0, 3],
+      confined: withhold({ reason: "it advances the chair's own events cursor" }),
+      format: "text",
+      name: "events",
+    },
+    { argv: ["cmux", "list", "--json"], confined: KEEP, format: "json", name: "cmux" },
     {
       argv: ["session", "close-done", "--json"],
       completedExits: [0, 1],
+      confined: withhold({ reason: "it closes finished seats' workspaces and prunes their worktrees" }),
       draftSource: "closeDone",
       format: "json",
       name: "close-done",
@@ -250,32 +266,54 @@ export function tickReadings({
     {
       argv: ["handover", "wake", "--json"],
       completedExits: [0, 1, 3, 4],
+      confined: withhold({ reason: "it runs a real cmux spawn for every due parked seat" }),
       format: "json",
       name: "handover-wake",
       timeoutMs: WAKE_READING_TIMEOUT_MS,
     },
+    ...sessionReadings({ loopSessionKey }),
+    ...FLEET_READINGS,
+    ...landingReadings({ landingRepos }),
+    ...bumpDriveReadings({ repos: bumpDriveRepos }),
+  ];
+}
+
+/**
+ * The live-session readings: the idle watch, its JSON report, and the bot loop's depth and standing. Each only reads
+ * the cmux socket and the ledger, so a confined tick keeps them.
+ *
+ * @param loopSessionKey the bot loop's session key, which `session depth` and `session standing` read
+ * @returns the readings, in run order
+ */
+function sessionReadings({ loopSessionKey }: { loopSessionKey: string }): readonly TickReading[] {
+  return [
     {
       argv: ["session", "watch", "--idle-minutes", WATCH_IDLE_MINUTES],
+      confined: KEEP,
       format: "text",
       name: "watch",
       retryWhenEmpty: true,
     },
     {
       argv: ["session", "watch", "--idle-minutes", WATCH_IDLE_MINUTES, "--json-report"],
+      confined: KEEP,
       draftSource: "watch",
       format: "json",
       name: "watch-report",
       retryWhenEmpty: true,
     },
-    { argv: ["session", "depth", "--loop-session-key", loopSessionKey, "--json"], format: "json", name: "depth" },
+    {
+      argv: ["session", "depth", "--loop-session-key", loopSessionKey, "--json"],
+      confined: KEEP,
+      format: "json",
+      name: "depth",
+    },
     {
       argv: ["session", "standing", "--loop-session-key", loopSessionKey, "--json"],
+      confined: KEEP,
       format: "json",
       name: "standing",
     },
-    ...FLEET_READINGS,
-    ...landingReadings({ landingRepos }),
-    ...bumpDriveReadings({ repos: bumpDriveRepos }),
   ];
 }
 

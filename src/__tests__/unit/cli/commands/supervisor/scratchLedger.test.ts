@@ -24,7 +24,12 @@ afterEach(() => {
 });
 
 /** The landing reading a sweep tick takes, as `tickReadings` declares it. */
-const LANDING: TickReading = { argv: ["github", "landing", "--if-due", "--json"], format: "json", name: "landing" };
+const LANDING: TickReading = {
+  argv: ["github", "landing", "--if-due", "--json"],
+  confined: { kind: "keep" },
+  format: "json",
+  name: "landing",
+};
 
 /** A recorded tick document, verbatim: the skip that stood as the latest landing for half an hour. */
 const SKIP =

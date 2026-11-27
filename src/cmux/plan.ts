@@ -16,7 +16,7 @@ import type { VisibleSessionHost } from "../supervisor/session.js";
 import { worktreePath } from "../worktree/location.js";
 import type { LaunchTemplate } from "./launchTemplate.js";
 import { newTreeBranch } from "./newTreeBranch.js";
-import { type CmuxDriver, resolveSpawnPickupCommand } from "./pickupCommand.js";
+import { type CmuxDriver, resolveSpawnPickupCommand, type SpawnPickupLocation } from "./pickupCommand.js";
 import {
   deriveWorkspaceTitle,
   dispatchSessionName,
@@ -93,6 +93,12 @@ export interface VisibleSessionPlan {
   readonly respondingToHandle: string | undefined;
   /** The exact line to send once the session has booted. */
   readonly pickupCommand: string;
+  /**
+   * The `--dir` and `--home` the spawn was EXPLICITLY given, absolute — the location {@link pickupCommand} carries
+   * onto the lifecycle verb, and the one the delivery re-read carries too, so the line previewed is the line sent.
+   * Absent when it was given neither, and on every spawn that is not a handover's own.
+   */
+  readonly pickupLocation?: SpawnPickupLocation;
   /** Which real, interactive CLI to boot, in `pickupCommand.ts`'s vocabulary — see {@link host}. */
   readonly driver: CmuxDriver;
   /**
@@ -247,16 +253,20 @@ function spawnWorktree({
 function docDerivedPlanFields({
   docPath,
   docRole,
+  pickupLocation,
   runEvents,
   slug,
 }: {
   docPath: string;
   docRole: SessionRole | undefined;
+  pickupLocation: SpawnPickupLocation;
   runEvents: readonly RunEvent[];
   slug: string;
-}): Pick<SpawnPlan, "pickupCommand" | "respondingToHandle" | "role" | "sessionName"> {
+}): Pick<SpawnPlan, "pickupCommand" | "pickupLocation" | "respondingToHandle" | "role" | "sessionName"> {
+  const located = pickupLocation.dir !== undefined || pickupLocation.home !== undefined;
   return {
-    pickupCommand: resolveSpawnPickupCommand({ docPath, runEvents, slug }),
+    pickupCommand: resolveSpawnPickupCommand({ docPath, location: pickupLocation, runEvents, slug }),
+    ...(located ? { pickupLocation } : {}),
     // No single addressed user for a handover's own spawn — it is purely slug-driven.
     respondingToHandle: undefined,
     // A handover's own spawn is classified from its doc: an explicit `role:` when it declares one, else the
@@ -288,6 +298,7 @@ function docDerivedPlanFields({
  * @param effort how hard the session should think, or absent for Claude Code's own default
  * @param docRole the role this spawn's row wears, already classified from the doc by the caller
  * @param template the launch template this seat boots from, already resolved by the caller
+ * @param pickupLocation the `--dir` and `--home` the spawn was explicitly given, absolute; empty when neither
  * @returns the complete plan
  */
 export function planSpawn({
@@ -306,7 +317,9 @@ export function planSpawn({
   effort,
   model,
   template,
+  pickupLocation = {},
 }: {
+  pickupLocation?: SpawnPickupLocation;
   codexHome?: string | undefined;
   credentialStoreDir?: string | undefined;
   effort?: string;
@@ -337,7 +350,7 @@ export function planSpawn({
     host: driver === "codex" ? "codex" : "claude-code",
     model,
     repoRoot,
-    ...docDerivedPlanFields({ docPath, docRole, runEvents, slug }),
+    ...docDerivedPlanFields({ docPath, docRole, pickupLocation, runEvents, slug }),
     slug,
     spawnedAt,
     template,

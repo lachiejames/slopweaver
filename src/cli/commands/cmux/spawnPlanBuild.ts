@@ -23,6 +23,7 @@ import type { PlanRegisterPort } from "../../../plans/port.js";
 import { type AppContinuationPlan, continuingSessionOf } from "../../../sessionHarness/appContinuation.js";
 import type { ParsedFlags } from "../../parseFlags.js";
 
+import { spawnPickupLocation } from "./core.js";
 import { resolveSpawnModel, type SpawnPins } from "./spawnPins.js";
 
 /**
@@ -118,7 +119,7 @@ export type ContinuingSpawnPlan = SpawnPlan & {
  * @param namedStore the store `--plan` named for a claude seat, which wins over the role's pin; undefined lets the
  * role pin or routing decide
  * @param pins the already-refused-or-not boot pins, carrying the driver and the optional `--effort` level
- * @param parsed the verb's parsed flags, for the `--model` pin
+ * @param parsed the verb's parsed flags, for the `--model` pin and the `--dir`/`--home` the pickup line carries
  * @param port where the plan register is read for the role's pin
  * @param preflight the declared repo (the main checkout the worktree belongs to) and the doc's run journal, already read
  * @param template the launch template the seat boots from, already resolved and printed
@@ -168,6 +169,7 @@ export async function buildSpawnPlan({
     // boot line stays byte-identical to the one this repo has always sent.
     ...(pins.effort === undefined ? {} : { effort: pins.effort }),
     model: resolveSpawnModel({ doc, parsed }),
+    pickupLocation: spawnPickupLocation({ parsed }),
     repoRoot: preflight.repo,
     runEvents: preflight.runEvents,
     slug: doc.slug,

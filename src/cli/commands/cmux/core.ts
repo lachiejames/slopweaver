@@ -4,7 +4,9 @@
  * The specs are exported so the help-truth ratchet compares the manifest's literal usage lines against the
  * REAL parser, not against a copy of them — see `fleet/core.ts` for the sibling this mirrors.
  */
-import type { CmuxDriver } from "../../../cmux/pickupCommand.js";
+import { resolve } from "node:path";
+
+import type { CmuxDriver, SpawnPickupLocation } from "../../../cmux/pickupCommand.js";
 import { currentSessionId } from "../../../handover/runOwner.js";
 import { logger } from "../../../lib/logger.js";
 import { EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
@@ -283,6 +285,24 @@ export function repeatedFlag({ rest, name }: { rest: readonly string[]; name: st
  */
 export function cmuxHandoverDir({ parsed }: { parsed: ParsedFlags }): string {
   return resolveHandoverDir({ dir: stringFlag({ name: "dir", parsed }), home: stringFlag({ name: "home", parsed }) });
+}
+
+/**
+ * The `--dir` and `--home` this spawn was EXPLICITLY given, each made absolute, for the seat's lifecycle verb to
+ * carry. Absolute because the seat runs in its worktree, not this shell's directory, so a relative path would name
+ * a different place there. Nothing is derived for an omitted flag: the seat then resolves its default exactly as
+ * every earlier seat did.
+ *
+ * @param parsed the verb's parsed flags
+ * @returns the location; empty when the spawn was given neither flag
+ */
+export function spawnPickupLocation({ parsed }: { parsed: ParsedFlags }): SpawnPickupLocation {
+  const dir = stringFlag({ name: "dir", parsed });
+  const home = stringFlag({ name: "home", parsed });
+  return {
+    ...(dir === undefined ? {} : { dir: resolve(dir) }),
+    ...(home === undefined ? {} : { home: resolve(home) }),
+  };
 }
 
 /**

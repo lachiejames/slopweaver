@@ -92,7 +92,8 @@ desktop update` from the main checkout: it waits up to 75s for a call the app ju
   closes the row of one no app hosts any longer. `cmux usage --harness app` reads what each hosted session spent this run, by plan, counted at each turn's
   end, so poll it until the session is idle; `cmux picture app:<id> --harness app` reads which tools one session has
   called, never their input, output or title ([facts picture](../../docs/session-harness/facts-picture.md)). So the app harness is proven on the installed app, never `desktop e2e`:
-  [the app implementation](../../docs/session-harness.md#the-app-implementation).
+  [the app implementation](../../docs/session-harness.md#the-app-implementation). A trial of a seat or a chair on
+  synthetic state confines it to a scratch home: [the confined harness trial](reference/confined-harness-trial.md).
 - **Where the code is.** The decisions are pure in `src/desktop/installPlan.ts`; the verb is
   `src/cli/commands/desktop/installRun.ts`, and every effect on the Mac goes through `installSeams.ts` beside
   it, which is what lets the tests in `unit/cli/commands/desktop/installRun/` run the whole install over a fake Mac.

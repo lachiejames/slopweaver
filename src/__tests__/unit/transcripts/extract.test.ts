@@ -217,7 +217,7 @@ describe("classifyRecord — every wrapper kind that wears the user role", () =>
   // Read as the owner's, it had the voice tell the owner they pasted a handover.
   it("strips the pickup line cmux spawn typed, recorded as a paste with a human origin like the owner's own turn", () => {
     const typed = { origin: { kind: "human" }, promptSource: "typed" };
-    const pickup = pickupLine({ docPath: "/home/handovers/a-doc.md", slug: "a-doc", verb: "start" });
+    const pickup = pickupLine({ docPath: "/home/handovers/a-doc.md", location: {}, slug: "a-doc", verb: "start" });
     const line = userLine({
       content: `\n\n<pasted_content id="b2c9">\n${pickup}\n</pasted_content id="b2c9">\n`,
       extra: typed,
@@ -238,7 +238,7 @@ describe("classifyRecord — every wrapper kind that wears the user role", () =>
   });
 
   it("keeps the owner's own turn that carries a pickup line with more said", () => {
-    const pickup = pickupLine({ docPath: "/home/handovers/a-doc.md", slug: "a-doc", verb: "resume" });
+    const pickup = pickupLine({ docPath: "/home/handovers/a-doc.md", location: {}, slug: "a-doc", verb: "resume" });
     const reading = classifyRecord({
       record: decode({
         line: userLine({

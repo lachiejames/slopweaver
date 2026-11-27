@@ -10,7 +10,7 @@ import { APP_SESSION_ID_ENV } from "../sessionControlProtocol";
 import { codexBrowserOffConfig } from "./codexBrowserOff";
 import { codexSessionEnvironment } from "./codexEnvironmentPolicy";
 import { GUARDIAN_PID_ENV, GUARDIAN_START_ENV, type ProcessGuardian } from "./processGuardian";
-import { type CodexWorkerLaunchConfig, WORKER_CONFIG_ENV } from "./workerWire";
+import { type CodexWorkerLaunchConfig, confineToStateHome, WORKER_CONFIG_ENV } from "./workerWire";
 
 /**
  * The approval and sandbox preset the adapter opens every session in, new and resumed alike: the pinned adapter's
@@ -69,5 +69,6 @@ export function adapterEnvironment({
     sessionConfig["model"] = config.model;
   }
   environment["CODEX_CONFIG"] = JSON.stringify(sessionConfig);
+  confineToStateHome({ config, environment });
   return environment;
 }

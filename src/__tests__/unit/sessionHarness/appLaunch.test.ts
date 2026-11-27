@@ -203,6 +203,42 @@ describe("appSessionLauncherOver", () => {
     });
   });
 
+  it("sends an explicit state home on the prepare, and names an old app's BAD_REQUEST as predating it", async () => {
+    const asked: AppHarnessRequest[] = [];
+    const transport: AppTransport = async ({ request }) => {
+      asked.push(request);
+      if (request.kind === "ping") {
+        return ok(PONG);
+      }
+      return err({ code: "BAD_REQUEST", kind: "refused", message: "the request is not one this app reads" });
+    };
+    const launcher = appSessionLauncherOver({
+      deps: NO_WORKTREE,
+      ledgerHome: "/scratch/home",
+      stateHome: "/scratch/home",
+      transport,
+    });
+    const failed = unwrapErr(await launcher.open({ spec: CODEX_SPEC }));
+    expect(asked[1]).toMatchObject({ kind: "launch.prepare", spec: { stateHome: "/scratch/home" } });
+    expect(failed.message).toBe(
+      "app harness: the request is not one this app reads — this launch carries stateHome (cmux spawn --home), so the " +
+        "installed app most likely predates stateHome: install the current desktop app before a confined seat can open on it",
+    );
+  });
+
+  it("leaves a BAD_REQUEST on an unconfined launch as the app said it", async () => {
+    const transport: AppTransport = async ({ request }) => {
+      if (request.kind === "ping") {
+        return ok(PONG);
+      }
+      return err({ code: "BAD_REQUEST", kind: "refused", message: "the request is not one this app reads" });
+    };
+    const failed = unwrapErr(
+      await appSessionLauncherOver({ deps: NO_WORKTREE, ledgerHome: undefined, transport }).open({ spec: CODEX_SPEC }),
+    );
+    expect(failed.message).toBe("app harness: the request is not one this app reads");
+  });
+
   it("says the prepare went unanswered when the app never answered it, so a card may still open", async () => {
     const transport: AppTransport = async ({ request }) => {
       if (request.kind === "ping") {

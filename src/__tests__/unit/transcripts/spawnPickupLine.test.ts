@@ -38,13 +38,68 @@ const OLD_WAIT_RULE =
 
 describe("pickupLine", () => {
   it("composes the current start line, byte for byte", () => {
-    expect(pickupLine({ docPath: DOC, slug: "fresh-supervisor-handoff-9342", verb: "start" })).toBe(START_LINE);
+    expect(pickupLine({ docPath: DOC, location: {}, slug: "fresh-supervisor-handoff-9342", verb: "start" })).toBe(
+      START_LINE,
+    );
   });
 
   it("composes the resume line with only the verb changed", () => {
-    expect(pickupLine({ docPath: DOC, slug: "fresh-supervisor-handoff-9342", verb: "resume" })).toBe(
+    expect(pickupLine({ docPath: DOC, location: {}, slug: "fresh-supervisor-handoff-9342", verb: "resume" })).toBe(
       START_LINE.replace("slopweaver handover start", "slopweaver handover resume"),
     );
+  });
+
+  it("carries an explicit --dir and --home onto the lifecycle verb, in that order", () => {
+    expect(
+      pickupLine({
+        docPath: DOC,
+        location: { dir: "/scratch/docs", home: "/scratch/home" },
+        slug: "fresh-supervisor-handoff-9342",
+        verb: "start",
+      }),
+    ).toBe(
+      START_LINE.replace(
+        "fresh-supervisor-handoff-9342, then",
+        "fresh-supervisor-handoff-9342 --dir /scratch/docs --home /scratch/home, then",
+      ),
+    );
+  });
+});
+
+describe("isSpawnPickupLine — a located spawn", () => {
+  const located = ({ tail }: { tail: string }): string =>
+    START_LINE.replace("fresh-supervisor-handoff-9342, then", `fresh-supervisor-handoff-9342 ${tail}, then`);
+
+  it("reads every location the generator writes as the spawn's, quoted values included", () => {
+    expect([
+      isSpawnPickupLine({ text: located({ tail: "--dir /scratch/docs" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--home /scratch/home" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--dir /scratch/docs --home /scratch/home" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--home '/scratch/my home'" }) }),
+      isSpawnPickupLine({ text: located({ tail: `--dir '/scratch/it'\\''s here'` }) }),
+    ]).toEqual([true, true, true, true, true]);
+  });
+
+  it("round-trips a generated located line through the reader", () => {
+    const line = pickupLine({
+      docPath: DOC,
+      location: { dir: "/scratch/a b", home: "/scratch/c'd" },
+      slug: "fresh-supervisor-handoff-9342",
+      verb: "resume",
+    });
+    expect(isSpawnPickupLine({ text: line })).toBe(true);
+  });
+
+  it("refuses a flag order, a duplicate, an unknown flag, a missing value or a needless quote the generator never writes", () => {
+    expect([
+      isSpawnPickupLine({ text: located({ tail: "--home /scratch/home --dir /scratch/docs" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--dir /a --dir /b" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--force" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--dir" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--dir '/scratch/docs'" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--dir $(pwd)" }) }),
+      isSpawnPickupLine({ text: located({ tail: "--dir /a; rm -rf /b" }) }),
+    ]).toEqual([false, false, false, false, false, false, false]);
   });
 });
 

@@ -48,6 +48,14 @@ interface AppLaunchCommon {
    * through the verb under the same home, so the close lands on that row.
    */
   readonly ledgerHome?: string;
+  /**
+   * The state home the session's own verbs must run under, when the spawn was EXPLICITLY given `--home`: the worker
+   * exports it as `SLOPWEAVER_HOME`, so a seat confined to a scratch home never reads or writes the ambient one.
+   * Absent on every other launch, so an app that predates this field still opens every launch it opened before; it
+   * refuses only one that carries it, a refusal the CLI names (`./appLaunch.ts`). No protocol bump, on purpose: a
+   * bump would refuse EVERY launch on an app one release behind, to protect the one launch that needs the field.
+   */
+  readonly stateHome?: string;
 }
 
 /**
@@ -83,7 +91,15 @@ export interface ClaudeAppLaunchSpec extends AppLaunchCommon {
 /** What the control plane needs to open one session — never a credential, never the ledger. */
 export type AppLaunchSpec = CodexAppLaunchSpec | ClaudeAppLaunchSpec;
 
-const COMMON_LAUNCH_KEYS: readonly string[] = ["vendor", "title", "directory", "ledgerKey", "model", "ledgerHome"];
+const COMMON_LAUNCH_KEYS: readonly string[] = [
+  "vendor",
+  "title",
+  "directory",
+  "ledgerKey",
+  "model",
+  "ledgerHome",
+  "stateHome",
+];
 
 function isClaudeLaunchSpec(value: Readonly<Record<string, unknown>>): boolean {
   const excludes = value["claudeMdExcludes"];
@@ -127,7 +143,7 @@ export function isAppLaunchSpec(value: unknown): value is AppLaunchSpec {
   if (
     !isObject(value) ||
     !hasStrings({ keys: ["title", "directory", "ledgerKey"], value }) ||
-    !hasOptionalStrings({ keys: ["model", "ledgerHome"], value }) ||
+    !hasOptionalStrings({ keys: ["model", "ledgerHome", "stateHome"], value }) ||
     overlongLaunchField({ value }) !== undefined
   ) {
     return false;
