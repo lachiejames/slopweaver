@@ -153,7 +153,7 @@ describe("preparePageReview", () => {
     const failure = unwrapErr(result);
     expect(failure.code).toBe("FILE_NOT_TEXT");
     expect(failure.message).toBe(
-      "capture.md holds a NUL byte, so git would diff it as binary and the review would read none of it — pass it as text",
+      "capture.md holds a NUL byte, and the diff a reviewer reads is text, so it would arrive as a raw control byte or as a binary marker — pass it as text",
     );
     expect(existsSync(pageReviewSlugDirectory({ home, slug: "queue" }))).toBe(false);
   });

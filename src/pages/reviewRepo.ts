@@ -168,8 +168,8 @@ function commitPreparation({
 
 /**
  * The first file the review's diff could not carry as text, named as the author passed it, or `undefined` when none.
- * Git calls a blob binary when it holds a NUL byte and then diffs it as `Binary files … differ`, no contents at all;
- * any NUL is refused rather than only one in git's first 8000 bytes, so the rule never depends on where it sits.
+ * A NUL byte would reach the diff raw under `GITATTRIBUTES`, or as `Binary files … differ` under an attributes file
+ * outranking it; any NUL is refused rather than only one in git's first 8000 bytes, so the rule never depends on where it sits.
  */
 function firstNonTextFile({
   fragment,

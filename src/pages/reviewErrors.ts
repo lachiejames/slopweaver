@@ -20,8 +20,8 @@ export interface InputUnreadableError {
 }
 
 /**
- * An input or the page holding a NUL byte, which git's diff shows as `Binary files … differ` with none of its
- * contents, so the review's diff would not carry it.
+ * An input or the page holding a NUL byte. The review's `.gitattributes` forces a text diff, so the raw byte would
+ * land in the text a reviewer reads; an attributes file outranking it would show `Binary files … differ` instead.
  */
 export interface FileNotTextError {
   readonly code: "FILE_NOT_TEXT";
@@ -102,7 +102,7 @@ export const PageReviewErrors = {
   fileNotText: ({ file }: { file: string }): FileNotTextError => ({
     code: "FILE_NOT_TEXT",
     file,
-    message: `${file} holds a NUL byte, so git would diff it as binary and the review would read none of it — pass it as text`,
+    message: `${file} holds a NUL byte, and the diff a reviewer reads is text, so it would arrive as a raw control byte or as a binary marker — pass it as text`,
   }),
   inputUnreadable: ({ path, detail }: { path: string; detail: string }): InputUnreadableError => ({
     code: "INPUT_UNREADABLE",
