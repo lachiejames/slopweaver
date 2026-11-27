@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { scanNoHeadless } from "../../../../devLint/noHeadless.js";
 
 /**
- * The owner's Recovery press, `fleet recover`: the one desktop child that causes model sessions, each a visible app
+ * The owner's Recovery press, `fleet recover`: a desktop child that causes model sessions, each a visible app
  * card. It is recognised by exactly one call shape, in `desktop/` alone, so every near miss still fails.
  */
 describe("NH008 — the desktop shell's one fleet recover call", () => {
