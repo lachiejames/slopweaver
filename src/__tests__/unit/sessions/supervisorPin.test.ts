@@ -12,6 +12,7 @@ import {
   cmuxHeldPin,
   isRegisteredSupervisor,
   parseSupervisorPin,
+  sessionsNamedByPinText,
   supervisorPinLabel,
   supervisorPinTarget,
 } from "../../../sessions/supervisorPin.js";
@@ -147,6 +148,38 @@ describe("parseSupervisorPin", () => {
 
     expect(parseSupervisorPin({ text: JSON.stringify(noSession) })).toBeUndefined();
     expect(parseSupervisorPin({ text: JSON.stringify(noInstant) })).toBeUndefined();
+  });
+});
+
+describe("sessionsNamedByPinText", () => {
+  const CODEX = { host: "codex", id: "thread-1" } as const;
+
+  it("names both sessions of a record carrying both shapes, in the record's own key order", () => {
+    expect(sessionsNamedByPinText({ text: JSON.stringify({ claudeSessionId: SUPER.id, session: CODEX }) })).toEqual([
+      SUPER,
+      CODEX,
+    ]);
+    expect(sessionsNamedByPinText({ text: JSON.stringify({ session: CODEX, claudeSessionId: SUPER.id }) })).toEqual([
+      CODEX,
+      SUPER,
+    ]);
+  });
+
+  it("names a session once when both shapes carry the same Claude session", () => {
+    expect(sessionsNamedByPinText({ text: JSON.stringify({ claudeSessionId: SUPER.id, session: SUPER }) })).toEqual([
+      SUPER,
+    ]);
+  });
+
+  it("leaves out a malformed identity beside a well-formed one", () => {
+    const text = JSON.stringify({ claudeSessionId: "../escape", session: CODEX });
+    expect(sessionsNamedByPinText({ text })).toEqual([CODEX]);
+  });
+
+  it("names nobody for text that is not one JSON object, or an object naming no session", () => {
+    expect(sessionsNamedByPinText({ text: "not json" })).toEqual([]);
+    expect(sessionsNamedByPinText({ text: JSON.stringify([{ session: CODEX }]) })).toEqual([]);
+    expect(sessionsNamedByPinText({ text: JSON.stringify({ workspaceId: "03A2AD7A" }) })).toEqual([]);
   });
 });
 

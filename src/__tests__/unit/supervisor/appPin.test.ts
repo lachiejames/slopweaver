@@ -56,7 +56,7 @@ describe("appPinPlan", () => {
     const refused = unwrapErr(
       appPinPlan({
         appSessionId: APP_ID,
-        disposition: { kind: "unreadable", why: "the supervisor pin does not parse as one record shape" },
+        disposition: { kind: "unreadable", named: [], why: "the supervisor pin does not parse as one record shape" },
         pinnedWorkspaceRefs: [],
       }),
     );

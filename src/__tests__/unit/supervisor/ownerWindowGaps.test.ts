@@ -21,6 +21,7 @@ function home(): string {
   return dir;
 }
 
+const CLAUDE = "a0000013-0000-4000-8000-000000000014";
 const REFUSAL = "chair codex:thread-1: CODEX_HOME_UNRECORDED: no Codex home is recorded for it";
 
 describe("ownerWindowGaps", () => {
@@ -78,6 +79,36 @@ describe("ownerWindowGaps", () => {
 
     expect(ownerWindowGaps({ chainProblems: [], codexRefusals: [REFUSAL], home: dir, rulingProblems: [] })).toMatch(
       new RegExp(`^supervisor pin: .+; ${REFUSAL}$`),
+    );
+  });
+
+  it("names both sessions a pin carrying both shapes names, as candidates rather than a Codex chair's tenure", () => {
+    const dir = home();
+    const path = supervisorPinPath({ home: dir });
+    mkdirSync(dirname(path), { recursive: true });
+    const mixed = {
+      claudeSessionId: CLAUDE,
+      pinnedAtIso: "2026-09-05T03:00:00.000Z",
+      session: { host: "codex", id: "thread-3" },
+      workspaceId: "ws",
+      workspaceRef: "workspace:1",
+    };
+    writeFileSync(path, JSON.stringify(mixed), "utf8");
+
+    expect(ownerWindowGaps({ chainProblems: [], codexRefusals: [], home: dir, rulingProblems: [] })).toBe(
+      `supervisor pin: the supervisor pin does not parse as one record shape; it names ${CLAUDE}, codex:thread-3, ` +
+        "but the unreadable record does not establish which session held the chair",
+    );
+  });
+
+  it("says only why a pin that names no session would not read", () => {
+    const dir = home();
+    const path = supervisorPinPath({ home: dir });
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, "not json", "utf8");
+
+    expect(ownerWindowGaps({ chainProblems: [], codexRefusals: [], home: dir, rulingProblems: [] })).toBe(
+      "supervisor pin: the supervisor pin does not parse as one record shape",
     );
   });
 });

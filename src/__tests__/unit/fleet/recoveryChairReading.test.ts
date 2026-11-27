@@ -113,7 +113,7 @@ describe("recoveryChairVerdictOf", () => {
   });
 
   it("restarts nothing over a pin record it cannot read", () => {
-    const disposition: SupervisorPinDisposition = { kind: "unreadable", why: "it holds both shapes" };
+    const disposition: SupervisorPinDisposition = { kind: "unreadable", named: [], why: "it holds both shapes" };
     expect(recoveryChairVerdictOf({ cmux: undefined, disposition, sessions: [] })).toEqual({
       kind: "unknown",
       why: "the supervisor pin record could not be read: it holds both shapes",

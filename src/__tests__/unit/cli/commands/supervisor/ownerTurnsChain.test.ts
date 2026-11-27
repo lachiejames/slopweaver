@@ -85,7 +85,10 @@ describe("readOwnerTurnWindow over the chain journal", () => {
 
     const window = readOwnerTurnWindow({ claudeHome: emptyClaudeHome(), days: 7, home, nowIso: NOW_ISO });
 
-    expect(window.unreadable).toContain("supervisor pin: ");
+    expect(window.unreadable).toContain(
+      `supervisor pin: the supervisor pin does not parse as one record shape; it names ${CLAUDE_ID}, ` +
+        "codex:019a1a98-9b15-7482-8000-000000000001, but the unreadable record does not establish which session held the chair",
+    );
   });
 
   it("names no chain problem when every line decodes", () => {

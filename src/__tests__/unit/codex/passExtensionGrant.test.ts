@@ -56,7 +56,7 @@ describe("passExtensionGrantVerdict", () => {
     expect(
       passExtensionGrantVerdict({
         detection: { kind: "active", session: CHAIR },
-        pin: { kind: "unreadable", why: "the supervisor pin does not parse as one record shape" },
+        pin: { kind: "unreadable", named: [], why: "the supervisor pin does not parse as one record shape" },
       }),
     ).toEqual({
       kind: "refused",

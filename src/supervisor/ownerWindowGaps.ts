@@ -9,16 +9,37 @@
  * it as `unreadChairs` (`./intakeRead.ts`), which a reader discloses.
  *
  * A damaged pin is a gap, never absence: read as absent, a mixed-shape Codex pin let an older Claude chain link
- * stand as the whole window and read clean.
+ * stand as the whole window and read clean. Its gap names every session the record names, without picking one, so a
+ * takeover refusal says whose turns went unread rather than only that the pin would not read.
  */
 import { readSupervisorPinDisposition } from "../sessions/supervisorPinStore.js";
 import type { SupervisorLink } from "./chain.js";
+import { supervisorSessionLabel } from "./session.js";
 
 /** The owner window over the chain: every link the journal holds, the home its pin lives in, and the floor. */
 export interface ChainWindow {
   readonly chain: readonly SupervisorLink[];
   readonly home: string;
   readonly sinceIso: string;
+}
+
+/**
+ * The gap an untrusted pin leaves, naming every session its record names so a chair knows whose turns went unread.
+ * Those names never reach a chair read: an untrusted record proves neither which of them held the chair nor for how
+ * long, so it is said as a candidate list rather than a tenure.
+ */
+function unreadablePinGap({ home }: { home: string }): readonly string[] {
+  const pin = readSupervisorPinDisposition({ home });
+  if (pin.kind !== "unreadable") {
+    return [];
+  }
+  if (pin.named.length === 0) {
+    return [`supervisor pin: ${pin.why}`];
+  }
+  const labels = pin.named.map((session) => supervisorSessionLabel({ session })).join(", ");
+  return [
+    `supervisor pin: ${pin.why}; it names ${labels}, but the unreadable record does not establish which session held the chair`,
+  ];
 }
 
 /**
@@ -47,8 +68,7 @@ export function ownerWindowGaps({
     chainProblems.length === 0
       ? []
       : [`the supervisor chain journal would not read cleanly: ${chainProblems.join("; ")}`];
-  const pin = readSupervisorPinDisposition({ home });
-  const pinGap = pin.kind === "unreadable" ? [`supervisor pin: ${pin.why}`] : [];
+  const pinGap = unreadablePinGap({ home });
   const rulingGap = rulingProblems.length === 0 ? [] : [`ruling archive: ${rulingProblems.join("; ")}`];
   const gaps = [...chainGap, ...pinGap, ...rulingGap, ...codexRefusals];
   return gaps.length === 0 ? undefined : gaps.join("; ");

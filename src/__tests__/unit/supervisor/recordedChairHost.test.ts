@@ -91,7 +91,7 @@ describe("recordedChairOf", () => {
   it("is unresolved, never the older Claude link, when the pin is there and does not parse", () => {
     const chain = clean({ links: [link({ at: "2026-11-05T01:00:00.000Z", session: CLAUDE })] });
 
-    expect(recordedChairOf({ chain, pin: { kind: "unreadable", why: "pin shape" } })).toEqual({
+    expect(recordedChairOf({ chain, pin: { kind: "unreadable", named: [], why: "pin shape" } })).toEqual({
       kind: "unresolved",
       why: "pin shape",
     });

@@ -256,6 +256,47 @@ export function parseSupervisorPin({ text }: { text: string }): SupervisorPinRec
 }
 
 /**
+ * Every holder identity a pin's text names, for a message about a pin {@link parseSupervisorPin} refused — never for a
+ * guard. A record carrying both the canonical `session` and the legacy `claudeSessionId` names two sessions, and the
+ * reader that refused it still owes the chair a name for each, or nobody can tell whose turns went unread.
+ *
+ * Nothing here picks one: candidates come back in the record's own key order, each well-formed identity once.
+ *
+ * @param text the file's contents
+ * @returns the candidates, none chosen as the holder; empty for text that is not one JSON object or names none
+ */
+export function sessionsNamedByPinText({ text }: { text: string }): readonly VisibleSupervisorSession[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return [];
+  }
+  if (!isRecord(parsed)) {
+    return [];
+  }
+  const named: VisibleSupervisorSession[] = [];
+  for (const [key, value] of Object.entries(parsed)) {
+    const session = namedIdentity({ key, value });
+    if (session !== undefined && !named.some((seen) => sameSupervisorSession({ left: seen, right: session }))) {
+      named.push(session);
+    }
+  }
+  return named;
+}
+
+/** The identity one pin field names: the canonical `session`, or the legacy `claudeSessionId`; nothing else. */
+function namedIdentity({ key, value }: { key: string; value: unknown }): VisibleSupervisorSession | undefined {
+  if (key === "session") {
+    return parseVisibleSession({ value });
+  }
+  if (key === "claudeSessionId" && typeof value === "string" && isBareSessionId({ sessionId: value })) {
+    return { host: "claude-code", id: value };
+  }
+  return undefined;
+}
+
+/**
  * Whether a given session is the one recorded as holding the supervisor pin.
  *
  * @param record the parsed registration, or `undefined` when none exists
