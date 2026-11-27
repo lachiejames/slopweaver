@@ -47,6 +47,23 @@ describe("ownerWindowGaps", () => {
     ).toBe(`ruling archive: a.md: torn; ${REFUSAL}; chair codex:t2: x`);
   });
 
+  it("names the ruling archive alone when it is the only gap", () => {
+    expect(
+      ownerWindowGaps({
+        chainProblems: [],
+        codexRefusals: [],
+        home: home(),
+        rulingProblems: ["a.md: torn", "b.md: x"],
+      }),
+    ).toBe("ruling archive: a.md: torn; b.md: x");
+  });
+
+  it("names a torn chain journal alone when every chair read", () => {
+    expect(
+      ownerWindowGaps({ chainProblems: ["line 2: torn"], codexRefusals: [], home: home(), rulingProblems: [] }),
+    ).toBe("the supervisor chain journal would not read cleanly: line 2: torn");
+  });
+
   it("names a torn chain journal first without hiding the Codex chair that also refused", () => {
     expect(
       ownerWindowGaps({ chainProblems: ["line 2: torn"], codexRefusals: [REFUSAL], home: home(), rulingProblems: [] }),

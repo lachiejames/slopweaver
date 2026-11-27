@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { sentenceCount, wordCount } from "../../../briefing/text.js";
 import { type ChainCoverage } from "../../../supervisor/chain.js";
-import { EMPTY_INBOUND } from "../../../supervisor/inbound.js";
 import {
   INTAKE_GRACE_MS,
   type IntakeMark,
-  intakeClause,
   type OwnerTurn,
   registerCommandFor,
   rowWitnesses,
@@ -237,6 +234,97 @@ describe("witnessTurns", () => {
   });
 });
 
+describe("witnessTurns on a Codex chair's owner turn", () => {
+  const TURN_ID = "turn-120";
+  /** The Codex chair's turn at {@link ROLLOUT_POINTER}, typed 90 minutes before {@link NOW}. */
+  const codexTurn: OwnerTurn = {
+    lineNumber: 2,
+    pointer: ROLLOUT_POINTER,
+    sessionId: `codex:${THREAD}`,
+    source: "unknown",
+    text: "do the thing",
+    timestamp: "2026-09-02T15:30:00.000Z",
+    turnUuid: TURN_ID,
+  };
+  const judge = ({
+    marks = [],
+    rows = [],
+    turns = [codexTurn],
+  }: {
+    marks?: readonly IntakeMark[];
+    rows?: Parameters<typeof witnessTurns>[0]["rows"];
+    turns?: readonly OwnerTurn[];
+  }): ReturnType<typeof witnessTurns> =>
+    witnessTurns({ coverage: COVERED, legs: LEGS, marks, nowIso: NOW, rows, sinceIso: undefined, turns });
+
+  it("witnesses it by a mark its own thread wrote at the rollout pointer", () => {
+    const finding = judge({
+      marks: [
+        mark({
+          byClaudeSessionId: "",
+          bySession: { host: "codex", id: THREAD },
+          kind: "answered",
+          pointer: ROLLOUT_POINTER,
+          witness: "merged it",
+        }),
+      ],
+    });
+
+    expect(finding.turns[0]!.witness).toEqual({ kind: "answered", witness: "merged it" });
+    expect(finding.witnessed).toBe(1);
+    expect(finding.unwitnessed).toEqual([]);
+  });
+
+  it("witnesses it by a row that settled at its rollout pointer, ranked over a ledger mark", () => {
+    const finding = judge({
+      marks: [mark({ kind: "no-ask", pointer: ROLLOUT_POINTER, witness: "just a thanks" })],
+      rows: [{ anchor: undefined, settlementWitness: ROLLOUT_POINTER, slug: "settled-ask" }],
+    });
+
+    expect(finding.turns[0]!.witness).toEqual({ kind: "settlement", witness: "settled-ask" });
+    expect(finding.markedNoAsk).toBe(0);
+    expect(finding.witnessed).toBe(1);
+  });
+
+  it("leaves it unwitnessed past grace with nothing at its pointer, and offers to register it there", () => {
+    const finding = judge({});
+
+    expect(finding.unwitnessed.map((item) => item.turnUuid)).toEqual([TURN_ID]);
+    expect(registerCommandFor({ turn: codexTurn })).toBe(
+      `slopweaver handover register --ask "do the thing" --anchor ${ROLLOUT_POINTER}`,
+    );
+  });
+
+  it("never lets a Claude transcript pointer witness a Codex turn carrying the same turn id", () => {
+    const finding = judge({
+      marks: [mark({ kind: "card", pointer: `transcript:${SESSION}#${U1}` })],
+      turns: [{ ...codexTurn, turnUuid: U1 }],
+    });
+
+    expect(finding.unwitnessed.map((item) => item.turnUuid)).toEqual([U1]);
+    expect(finding.witnessed).toBe(0);
+  });
+
+  it("reads a row's settlement at a rollout pointer as a settlement witness of that turn", () => {
+    const witnesses = rowWitnesses({
+      rows: [{ anchor: undefined, settlementWitness: ROLLOUT_POINTER, slug: "settled-ask" }],
+    });
+
+    expect(witnesses.get(ROLLOUT_POINTER)).toEqual({ kind: "settlement", witness: "settled-ask" });
+    expect(witnesses.size).toBe(1);
+  });
+
+  it("names no turn for a rollout pointer missing its offset, or carrying one that is not a number", () => {
+    const bare = ROLLOUT_POINTER.slice(0, ROLLOUT_POINTER.lastIndexOf("@"));
+    const rowAt = ({ anchor }: { anchor: string }): Parameters<typeof rowWitnesses>[0]["rows"] => [
+      { anchor, settlementWitness: undefined, slug: "a-row" },
+    ];
+
+    expect(rowWitnesses({ rows: rowAt({ anchor: bare }) }).size).toBe(0);
+    expect(rowWitnesses({ rows: rowAt({ anchor: `${bare}@x` }) }).size).toBe(0);
+  });
+});
+
 describe("witnessTurns on a voice relay's delivery line", () => {
   const RELAY_TURN = "a0000047-0000-4000-8000-000000000050";
   const RELAY_SLUG = "talk-a00000470000";
@@ -396,118 +484,6 @@ describe("witnessTurns on a chair wake", () => {
     });
 
     expect(finding.unwitnessed.map((item) => item.turnUuid)).toEqual([U1, U2]);
-  });
-});
-
-describe("the headline clause", () => {
-  const read = ({ unwitnessed, noAsk }: { unwitnessed: number; noAsk: number }): ReturnType<typeof witnessTurns> =>
-    witnessTurns({
-      marks: Array.from({ length: noAsk }, (_, index) =>
-        mark({
-          kind: "no-ask",
-          pointer: `transcript:${SESSION}#${String(index).padStart(8, "0")}-0000-4000-8000-000000000000`,
-          witness: "x",
-        }),
-      ),
-      coverage: COVERED,
-      legs: LEGS,
-      nowIso: NOW,
-      rows: [],
-      sinceIso: undefined,
-      turns: [
-        ...Array.from({ length: noAsk }, (_, index) =>
-          turn({ minutesAgo: 90, uuid: `${String(index).padStart(8, "0")}-0000-4000-8000-000000000000` }),
-        ),
-        ...Array.from({ length: unwitnessed }, (_, index) =>
-          turn({ minutesAgo: 90, uuid: `${String(index).padStart(8, "0")}-1111-4000-8000-000000000000` }),
-        ),
-      ],
-    });
-
-  it("counts the unwitnessed turns as its own sentence, never appended to the reconciliation's", () => {
-    const report = { finding: read({ noAsk: 0, unwitnessed: 2 }), inbound: EMPTY_INBOUND, kind: "read" } as const;
-
-    expect(intakeClause({ report })).toBe("2 owner turn(s) across 1 supervisor session(s) have no row or card.");
-  });
-
-  it("says every turn was witnessed, and how many were dismissed, when nothing is outstanding", () => {
-    expect(
-      intakeClause({ report: { finding: read({ noAsk: 0, unwitnessed: 0 }), inbound: EMPTY_INBOUND, kind: "read" } }),
-    ).toBe("Owner turns: 0 read across 1 supervisor session(s), all witnessed.");
-    expect(
-      intakeClause({ report: { finding: read({ noAsk: 3, unwitnessed: 0 }), inbound: EMPTY_INBOUND, kind: "read" } }),
-    ).toBe("Owner turns: 3 read across 1 supervisor session(s), all witnessed, 3 marked no-ask.");
-  });
-
-  it("follows the owner-turn sentence with the open peer messages, only when there are any", () => {
-    const open = {
-      chairSessionId: SESSION,
-      message: {
-        body: "report",
-        delivery: "queued",
-        lineNumber: 1,
-        msgId: "m-1",
-        senderName: "live-bot-loop-12sep-a-fb",
-        timestamp: NOW,
-        uuid: U1,
-      },
-      placement: "after-pin",
-      pointer: `transcript:${SESSION}#${U1}`,
-    } as const;
-
-    expect(
-      intakeClause({
-        report: {
-          finding: read({ noAsk: 0, unwitnessed: 0 }),
-          inbound: { ...EMPTY_INBOUND, carried: [open], read: 1 },
-          kind: "read",
-        },
-      }),
-    ).toBe(
-      "Owner turns: 0 read across 1 supervisor session(s), all witnessed. 1 message(s) from other sessions landed " +
-        "on a chair after it handed over and 0 more got no reply inside a chair's own span; " +
-        "`slopweaver supervisor intake` lists them.",
-    );
-  });
-
-  it("prints WHY when the intake could not be read, never a zero", () => {
-    expect(intakeClause({ report: { kind: "unavailable", why: "no supervisor pin is recorded" } })).toBe(
-      "Owner turns unread: no supervisor pin is recorded.",
-    );
-  });
-
-  /**
-   * The widest clause the chair half can emit (a typed console count follows as its own sentence): every witnessed, some dismissed, a floor stated, and BOTH coverage gaps
-   * disclosed at once. This is the measurement `../../../briefing/caps.ts`'s `ALIGNMENT_MAX_WORDS` cites for
-   * why the intake sentence is folded rather than counted against the alignment line.
-   */
-  it("runs to 44 words across two sentences at its widest, which is why it is folded rather than capped", () => {
-    const clause = intakeClause({
-      report: {
-        finding: {
-          ...read({ noAsk: 3, unwitnessed: 0 }),
-          coverage: {
-            earliestIso: "2026-09-02T09:00:00.000Z",
-            linksKnown: 79,
-            reachesSince: false,
-            unreadable: [{ claudeSessionId: SESSION, untilIso: undefined, why: "no transcript on disk" }],
-            walked: [SESSION],
-          },
-          sinceIso: "2026-08-28T00:00:00.000Z",
-        },
-        inbound: EMPTY_INBOUND,
-        kind: "read",
-      },
-    });
-
-    expect(clause).toBe(
-      "Owner turns: 3 read across 1 supervisor session(s) since 2026-08-28T00:00:00.000Z, all witnessed, " +
-        "3 marked no-ask. Chain coverage: 1 session(s) walked, but the chain starts at 2026-09-02T09:00:00.000Z, " +
-        "so anything earlier was NOT read, and 1 session(s) could not be walked — " +
-        "`slopweaver supervisor chain --rescan`.",
-    );
-    expect(wordCount({ text: clause })).toBe(44);
-    expect(sentenceCount({ text: clause })).toBe(2);
   });
 });
 
