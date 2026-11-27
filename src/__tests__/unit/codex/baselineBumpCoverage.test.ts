@@ -53,6 +53,23 @@ describe("unprovenWideningLines", () => {
       [],
     );
   });
+
+  it("names a widening row whose path holds # when the change touched that exact path, and only then", () => {
+    const hashed: BumpRow = {
+      cause: "widening",
+      entry: "sites:src/a#b.ts#jsonl-read-whole",
+      file: ".baselines/whole-file-json-baseline.json",
+      from: null,
+      identityTuple: ["sites", "src/a#b.ts", "jsonl-read-whole"],
+      to: 1,
+    };
+    const one = record({ rows: [hashed] });
+    expect(unprovenWideningLines({ changedPaths: new Set(["src/a#b.ts"]), record: one })).toEqual([
+      `  ${one.path}: declares ${hashed.file} ${hashed.entry} as widening, but the change touches the file it ` +
+        "names, so this record cannot cover the row",
+    ]);
+    expect(unprovenWideningLines({ changedPaths: new Set(["src/other.ts"]), record: one })).toEqual([]);
+  });
 });
 
 describe("coverageRefusalLines", () => {

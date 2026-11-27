@@ -8,14 +8,13 @@ import {
   parseBumpManifest,
   pathOfEntry,
   provenUnchanged,
+  rowKey,
   rowsUnmeasured,
   witnessClaim,
   witnessCommand,
   witnessPropertyId,
 } from "../../../devLint/baselineBump.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
-
-// deleted-with-code: mismatchesOf
 
 /** The main commit every fixture manifest is declared against. */
 const BASE = "a".repeat(40);
@@ -26,6 +25,108 @@ const GROW: BumpRow = { cause: "growth", entry: "exempt:src/reg.ts", file: FILE,
 
 const manifestText = ({ rows, reason = "tools/ joined the cap" }: { rows: readonly BumpRow[]; reason?: string }) =>
   JSON.stringify({ base: BASE, digest: digestOf({ base: BASE, rows }), loosenings: rows, reason });
+
+/**
+ * A row whose path holds `#`, and the different row that SHOWS the same entry: `src/a`+`b.ts#jsonl-read-whole`.
+ * Only the first carries a tuple, so the two must never key, digest or prove alike.
+ */
+const WHOLE = ".baselines/whole-file-json-baseline.json";
+const HASHED_TUPLE = ["sites", "src/a#b.ts", "jsonl-read-whole"];
+const LOOKALIKE: BumpRow = {
+  cause: "growth",
+  entry: "sites:src/a#b.ts#jsonl-read-whole",
+  file: WHOLE,
+  from: null,
+  to: 1,
+};
+const HASHED: BumpRow = { ...LOOKALIKE, identityTuple: HASHED_TUPLE };
+
+/**
+ * The digest the pre-tuple `baselineBump.ts` gives `[WIDE, GROW]` at `BASE` — measured by running this case with
+ * that file's copy from before tuples existed checked out
+ * (`git checkout <that commit> -- src/devLint/baselineBump.ts src/devLint/baselineRegistry.ts`).
+ */
+const LEGACY_DIGEST = "d83cda32df9efa98100c52eb74a375f3d3c7ba4f597a2ed8fb3c1c20b1659b36";
+
+describe("rows without a tuple are byte-identical to before tuples existed", () => {
+  it("keeps the legacy row key, canonical text and digest", () => {
+    expect(rowKey({ row: WIDE })).toBe(`${FILE}\u0000offenders:tools/gen.ts\u0000null\u0000319`);
+    expect(canonicalText({ base: BASE, rows: [WIDE, GROW] })).toBe(
+      `base\t${BASE}\n${FILE}\texempt:src/reg.ts\t400\t410\tgrowth\n${FILE}\toffenders:tools/gen.ts\tnull\t319\twidening`,
+    );
+    expect(digestOf({ base: BASE, rows: [WIDE, GROW] })).toBe(LEGACY_DIGEST);
+  });
+});
+
+describe("a row whose path holds #", () => {
+  it("keys, renders and digests apart from the different row showing the same entry", () => {
+    expect(rowKey({ row: HASHED })).toBe(
+      `${WHOLE}\u0000sites:src/a#b.ts#jsonl-read-whole\u0000null\u00001\u0000["sites","src/a#b.ts","jsonl-read-whole"]`,
+    );
+    expect(rowKey({ row: LOOKALIKE })).toBe(`${WHOLE}\u0000sites:src/a#b.ts#jsonl-read-whole\u0000null\u00001`);
+    expect(canonicalText({ base: BASE, rows: [HASHED] })).toBe(
+      `base\t${BASE}\n${WHOLE}\tsites:src/a#b.ts#jsonl-read-whole\tnull\t1\tgrowth\t["sites","src/a#b.ts","jsonl-read-whole"]`,
+    );
+    expect(digestOf({ base: BASE, rows: [HASHED] })).not.toBe(digestOf({ base: BASE, rows: [LOOKALIKE] }));
+  });
+
+  it("is never covered by a record of the lookalike row, nor covers one", () => {
+    const record = ({ rows }: { rows: readonly BumpRow[] }) => ({
+      base: BASE,
+      digest: digestOf({ base: BASE, rows }),
+      loosenings: rows,
+      reason: "r",
+    });
+    expect(rowsUnmeasured({ manifest: record({ rows: [LOOKALIKE] }), measured: [HASHED] })).toEqual([LOOKALIKE]);
+    expect(rowsUnmeasured({ manifest: record({ rows: [HASHED] }), measured: [LOOKALIKE] })).toEqual([HASHED]);
+    expect(rowsUnmeasured({ manifest: record({ rows: [HASHED] }), measured: [{ ...HASHED }] })).toEqual([]);
+  });
+
+  it("parses an honest record, and refuses one whose tuple is not its entry's or was not needed", () => {
+    const honest = manifestFileName({ digest: digestOf({ base: BASE, rows: [HASHED] }) });
+    expect(
+      unwrap(parseBumpManifest({ name: honest, path: "p", text: manifestText({ rows: [HASHED] }) })).loosenings,
+    ).toEqual([HASHED]);
+    const forged: BumpRow = { ...HASHED, identityTuple: ["sites", "src/a#c.ts", "jsonl-read-whole"] };
+    const needless: BumpRow = { ...WIDE, identityTuple: ["offenders", "tools/gen.ts"] };
+    for (const bad of [forged, needless]) {
+      const named = manifestFileName({ digest: digestOf({ base: BASE, rows: [bad] }) });
+      expect(
+        unwrapErr(parseBumpManifest({ name: named, path: "p", text: manifestText({ rows: [bad] }) })).message,
+      ).toBe("p: not a bump manifest (expected { base, reason, loosenings: [...], digest })");
+    }
+  });
+
+  it("names its exact path, and a tuple that is not its entry's names nothing", () => {
+    expect(pathOfEntry({ entry: HASHED.entry, identityTuple: HASHED_TUPLE })).toBe("src/a#b.ts");
+    expect(pathOfEntry({ entry: HASHED.entry })).toBe("src/a");
+    expect(pathOfEntry({ entry: HASHED.entry, identityTuple: ["sites", "src/x.ts", "jsonl-read-whole"] })).toBe(
+      undefined,
+    );
+  });
+
+  it("is disproved by a change to its exact path, and proved by a change elsewhere", () => {
+    const proven = ({ changed }: { changed: string }) =>
+      provenUnchanged({ changedPaths: new Set([changed]), entry: HASHED.entry, identityTuple: HASHED_TUPLE });
+    expect(proven({ changed: "src/a#b.ts" })).toBe(false);
+    expect(proven({ changed: "src/other.ts" })).toBe(true);
+  });
+
+  it("shows the witness which row the entry is", () => {
+    const manifest = {
+      base: BASE,
+      digest: digestOf({ base: BASE, rows: [HASHED] }),
+      loosenings: [HASHED],
+      reason: "r",
+    };
+    expect(
+      witnessClaim({ manifest }).endsWith(
+        `Rows (file entry main->now (cause)): ${WHOLE} sites:src/a#b.ts#jsonl-read-whole identity ` +
+          '["sites","src/a#b.ts","jsonl-read-whole"] null->1 (growth)',
+      ),
+    ).toBe(true);
+  });
+});
 
 describe("rowsUnmeasured", () => {
   const manifest = {

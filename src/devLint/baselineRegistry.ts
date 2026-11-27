@@ -219,6 +219,12 @@ export interface Loosening {
   readonly from: number | null;
   /** The measure now; `null` when the file is gone. */
   readonly to: number | null;
+  /**
+   * `[part, ...identity]`, carried ONLY when a non-final identity part holds `#` — the one case where `entry` alone
+   * could name two different rows (`src/a.ts#b.ts`+`c` and `src/a.ts`+`b.ts#c`). Absent everywhere else, so every
+   * other row's entry, record and digest stay what they were.
+   */
+  readonly identityTuple?: readonly string[] | undefined;
 }
 
 /** A baseline that could not be read as its declared shape. */
@@ -234,40 +240,62 @@ const shapeError = ({ file, detail }: { file: string; detail: string }): Baselin
   message: `${file}: ${detail}`,
 });
 
-/** One part of a file flattened to identity → measure (a set's rows measure 1). */
-type Flat = ReadonlyMap<string, number>;
+/** One flattened row: the entry it is shown and declared as, its measure, and its tuple when the entry is not enough. */
+interface FlatRow {
+  readonly entry: string;
+  readonly measure: number;
+  readonly identityTuple?: readonly string[];
+}
 
 /**
- * Flatten one keyed array, refusing a duplicate identity and an ambiguous one. A compound identity is joined
- * with `#`, so a `#` in any part but the last would let two different rows share one key — `src/a.ts#b.ts`+`c`
- * and `src/a.ts`+`b.ts#c` — and a row swapped for another read as unchanged. Refusing it
- * keeps the join one-to-one, and keeps `pathOfEntry`'s split at the first `#` exact.
+ * One part of a file flattened to internal identity → row (a set's rows measure 1). The internal key is the
+ * identity TUPLE for a keyed array and the entry for every other shape, in disjoint namespaces, so two rows
+ * compare equal only when they ARE the same row — never because their joined entries happen to match.
+ */
+type Flat = ReadonlyMap<string, FlatRow>;
+
+/** The internal key of a keyed-array row: its tuple, one-to-one whatever its parts hold. */
+const tupleKey = ({ tuple }: { tuple: readonly string[] }): string => `tuple:${JSON.stringify(tuple)}`;
+
+/** The internal key of every other shape's row, whose entry is already one-to-one. */
+const entryKey = ({ entry }: { entry: string }): string => `entry:${entry}`;
+
+/**
+ * Flatten one keyed array, refusing a duplicate identity and a real collision. A compound identity is SHOWN
+ * joined with `#`, and a `#` is legal in a path, so `src/a.ts#b.ts`+`c` and `src/a.ts`+`b.ts#c` both show as
+ * `symbols:src/a.ts#b.ts#c`. Comparison keys on the tuple, so a row swapped for that other one is NEW rather than
+ * unchanged; a row whose non-final part holds `#` carries its tuple so a bump record cannot match the other; and
+ * the two present in one copy at once are refused, because one entry cannot name both.
  */
 function flattenKeyed({ value, shape }: { value: unknown; shape: KeyedArrayShape }): Flat | string {
   const rows = z.array(z.record(z.string(), z.unknown())).safeParse(value);
   if (!rows.success) {
     return `\`${shape.key}\` is not an array of rows`;
   }
-  const flat = new Map<string, number>();
+  const flat = new Map<string, FlatRow>();
   for (const row of rows.data) {
     const parts = shape.identity.map((field) => row[field]);
     const measured = shape.measure === undefined ? 1 : row[shape.measure];
-    if (parts.some((part) => typeof part !== "string") || typeof measured !== "number") {
+    if (!parts.every((part): part is string => typeof part === "string") || typeof measured !== "number") {
       return `a \`${shape.key}\` row lacks its identity or its number`;
     }
-    if (parts.slice(0, -1).some((part) => String(part).includes("#"))) {
-      return `a \`${shape.key}\` row's ${shape.identity.slice(0, -1).join("/")} holds "#", so its identity is ambiguous`;
-    }
-    const id = `${shape.key}:${parts.join("#")}`;
+    const entry = `${shape.key}:${parts.join("#")}`;
+    const tuple = [shape.key, ...parts];
+    const id = tupleKey({ tuple });
     if (flat.has(id)) {
-      return `duplicate row ${id}`;
+      return `duplicate row ${entry}`;
     }
-    flat.set(id, measured);
+    const ambiguous = parts.slice(0, -1).some((part) => part.includes("#"));
+    flat.set(id, ambiguous ? { entry, identityTuple: tuple, measure: measured } : { entry, measure: measured });
   }
   return flat;
 }
 
-/** Flatten one part of a parsed file to identity → measure. */
+/** A part whose entries are already one-to-one, keyed by entry. */
+const byEntry = ({ rows }: { rows: readonly (readonly [string, number])[] }): Flat =>
+  new Map(rows.map(([entry, measure]) => [entryKey({ entry }), { entry, measure }]));
+
+/** Flatten one part of a parsed file to internal identity → row. */
 function flattenPart({ json, shape }: { json: Record<string, unknown>; shape: BaselineShape }): Flat | string {
   if (shape.kind === "keyed-array") {
     return flattenKeyed({ shape, value: json[shape.key] });
@@ -277,21 +305,23 @@ function flattenPart({ json, shape }: { json: Record<string, unknown>; shape: Ba
     if (!set.success || new Set(set.data).size !== set.data.length) {
       return `\`${shape.key}\` is not a list of distinct strings`;
     }
-    return new Map(set.data.map((item) => [`${shape.key}:${item}`, 1]));
+    return byEntry({ rows: set.data.map((item) => [`${shape.key}:${item}`, 1] as const) });
   }
   if (shape.kind === "scalar") {
     const scalar = json[shape.key];
-    return typeof scalar === "number" ? new Map([[shape.key, scalar]]) : `\`${shape.key}\` is not a number`;
+    return typeof scalar === "number" ? byEntry({ rows: [[shape.key, scalar]] }) : `\`${shape.key}\` is not a number`;
   }
   if (shape.key === undefined) {
     const map = z.record(z.string(), z.number()).safeParse(json);
-    return map.success ? new Map(Object.entries(map.data)) : "not a map of names to numbers";
+    return map.success ? byEntry({ rows: Object.entries(map.data) }) : "not a map of names to numbers";
   }
   const nested = z.record(z.string(), z.number()).safeParse(json[shape.key]);
   if (!nested.success) {
     return `\`${shape.key}\` is not a map of names to numbers`;
   }
-  return new Map(Object.entries(nested.data).map(([name, value]) => [`${shape.key}:${name}`, value]));
+  return byEntry({
+    rows: Object.entries(nested.data).map(([name, value]) => [`${shape.key}:${name}`, value] as const),
+  });
 }
 
 /**
@@ -313,14 +343,22 @@ export function flattenBaseline({
   if (json === undefined || !json.success) {
     return err(shapeError({ detail: "not a JSON object", file: baseline.file }));
   }
-  const flat = new Map<string, number>();
+  const flat = new Map<string, FlatRow>();
+  // Which internal identity each shown entry belongs to: two different rows behind one entry, in any parts of one
+  // copy, is a file no declaration could name exactly, so it is refused rather than either row hiding the other.
+  const owners = new Map<string, string>();
   for (const shape of baseline.shapes) {
     const part = flattenPart({ json: json.data, shape });
     if (typeof part === "string") {
       return err(shapeError({ detail: part, file: baseline.file }));
     }
-    for (const [id, measure] of part) {
-      flat.set(id, measure);
+    for (const [id, row] of part) {
+      const owner = owners.get(row.entry);
+      if (owner !== undefined && owner !== id) {
+        return err(shapeError({ detail: `two different rows both read as ${row.entry}`, file: baseline.file }));
+      }
+      owners.set(row.entry, id);
+      flat.set(id, row);
     }
   }
   return ok(flat);
@@ -368,12 +406,13 @@ export function loosenings({
  */
 function grownRows({ file, base, head }: { file: string; base: Flat; head: Flat }): readonly Loosening[] {
   return [...head]
-    .toSorted(([a], [b]) => a.localeCompare(b))
-    .flatMap(([entry, to]): Loosening[] => {
-      const from = base.get(entry);
+    .toSorted(([a, rowA], [b, rowB]) => rowA.entry.localeCompare(rowB.entry) || a.localeCompare(b))
+    .flatMap(([id, row]): Loosening[] => {
+      const tuple = row.identityTuple === undefined ? {} : { identityTuple: row.identityTuple };
+      const from = base.get(id)?.measure;
       if (from === undefined) {
-        return [{ entry, file, from: null, to }];
+        return [{ entry: row.entry, file, from: null, to: row.measure, ...tuple }];
       }
-      return to > from ? [{ entry, file, from, to }] : [];
+      return row.measure > from ? [{ entry: row.entry, file, from, to: row.measure, ...tuple }] : [];
     });
 }

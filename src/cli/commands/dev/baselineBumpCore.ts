@@ -85,7 +85,8 @@ export function bumpManifestFor({
   reason: string;
 }): BumpManifest | undefined {
   const rows: BumpRow[] = loosened.map((row) => {
-    const cause: BumpCause = provenUnchanged({ changedPaths, entry: row.entry }) ? "widening" : "growth";
+    const proven = provenUnchanged({ changedPaths, entry: row.entry, identityTuple: row.identityTuple });
+    const cause: BumpCause = proven ? "widening" : "growth";
     return { ...row, cause };
   });
   if (rows.length === 0) {

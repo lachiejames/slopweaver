@@ -85,18 +85,32 @@ function hasControlCharacter({ text }: { text: string }): boolean {
   return false;
 }
 
+/**
+ * Whether a row's identity tuple is the one canonical tuple behind its entry: it renders to the entry exactly,
+ * and a non-final identity part holds `#` — the only case a tuple is carried, so a row has one spelling. Pure.
+ */
+const tupleNamesEntry = ({ tuple, entry }: { tuple: readonly string[]; entry: string }): boolean =>
+  tuple.length >= 2 &&
+  `${tuple[0]!}:${tuple.slice(1).join("#")}` === entry &&
+  tuple.slice(1, -1).some((part) => part.includes("#"));
+
 const manifestSchema = z.object({
   base: z.string().regex(/^[0-9a-f]{40}$/u),
   digest: z.string().regex(/^[0-9a-f]{64}$/u),
   loosenings: z
     .array(
-      z.object({
-        cause: z.enum(["widening", "growth"]),
-        entry: fieldText,
-        file: fieldText,
-        from: z.number().nullable(),
-        to: z.number().nullable(),
-      }),
+      z
+        .object({
+          cause: z.enum(["widening", "growth"]),
+          entry: fieldText,
+          file: fieldText,
+          from: z.number().nullable(),
+          identityTuple: z.array(fieldText).min(2).optional(),
+          to: z.number().nullable(),
+        })
+        .refine(
+          (row) => row.identityTuple === undefined || tupleNamesEntry({ entry: row.entry, tuple: row.identityTuple }),
+        ),
     )
     .min(1),
   reason: z.string().trim().min(1),
@@ -126,11 +140,15 @@ export const BumpManifestErrors = {
 /**
  * The identity of one row, cause excluded — what a comparison computes and a record must match. Pure.
  *
+ * A row carrying an identity tuple appends it, so it never matches a different row that shows the same entry; a
+ * row without one keys exactly as it always has.
+ *
  * @param row the loosening or declared row
- * @returns its file, entry and both measures joined by NUL, which no field may carry
+ * @returns its file, entry and both measures joined by NUL, which no field may carry, then its tuple when it has one
  */
 export function rowKey({ row }: { row: Loosening }): string {
-  return `${row.file}\u0000${row.entry}\u0000${String(row.from)}\u0000${String(row.to)}`;
+  const key = `${row.file}\u0000${row.entry}\u0000${String(row.from)}\u0000${String(row.to)}`;
+  return row.identityTuple === undefined ? key : `${key}\u0000${JSON.stringify(row.identityTuple)}`;
 }
 
 /**
@@ -153,7 +171,8 @@ export function rowsUnmeasured({
 
 /**
  * The canonical text a digest is taken over: the base line, then rows sorted by file then entry, every field in
- * a fixed order. Pure — the same rows in any order give the same text.
+ * a fixed order, and a sixth field only on a row carrying an identity tuple — so every other row's text, and every
+ * digest recorded before tuples existed, is unchanged. Pure — the same rows in any order give the same text.
  *
  * @param rows the declared loosenings
  * @param base the main commit they were measured against
@@ -164,7 +183,10 @@ export function canonicalText({ rows, base }: { rows: readonly BumpRow[]; base: 
     `base\t${base}`,
     ...rows
       .toSorted((a, b) => rowKey({ row: a }).localeCompare(rowKey({ row: b })))
-      .map((row) => `${row.file}\t${row.entry}\t${String(row.from)}\t${String(row.to)}\t${row.cause}`),
+      .map((row) => {
+        const line = `${row.file}\t${row.entry}\t${String(row.from)}\t${String(row.to)}\t${row.cause}`;
+        return row.identityTuple === undefined ? line : `${line}\t${JSON.stringify(row.identityTuple)}`;
+      }),
   ].join("\n");
 }
 
@@ -238,15 +260,28 @@ export function parseBumpManifest({
  * `sites:src/a.ts#??` both name a path; a scalar, a CI job and a heap ceiling (`ceilingsMiB:…`, a part in
  * `NAME_KEYED_PARTS`) do not. Pure.
  *
+ * A row carrying an identity tuple names its path exactly — `sites:src/a#b.ts#jsonl-read-whole` is `src/a#b.ts`,
+ * never `src/a` — and one whose tuple does not render to its entry names nothing, so it can prove nothing.
+ *
  * @param entry the row's entry
+ * @param identityTuple the row's tuple, when its entry alone is ambiguous
  * @returns the path, or `undefined` when the entry names no file
  */
-export function pathOfEntry({ entry }: { entry: string }): string | undefined {
+export function pathOfEntry({
+  entry,
+  identityTuple,
+}: {
+  entry: string;
+  identityTuple?: readonly string[] | undefined;
+}): string | undefined {
   const colon = entry.indexOf(":");
   if (colon < 0 || NAME_KEYED_PARTS.has(entry.slice(0, colon))) {
     return undefined;
   }
-  const path = entry.slice(colon + 1).split("#")[0]!;
+  if (identityTuple !== undefined && !tupleNamesEntry({ entry, tuple: identityTuple })) {
+    return undefined;
+  }
+  const path = identityTuple === undefined ? entry.slice(colon + 1).split("#")[0]! : identityTuple[1]!;
   return path.includes("/") || path.includes(".") ? path : undefined;
 }
 
@@ -255,26 +290,36 @@ export function pathOfEntry({ entry }: { entry: string }): string | undefined {
  *
  * Matched against each changed path rather than by parsing the entry, because `#` joins a compound identity
  * AND is legal in a file name: `offenders:src/gen#v2.ts` must not read as `src/gen`. A changed path the
- * entry equals, or opens with followed by `#`, disproves it — so an ambiguous name fails closed.
+ * entry equals, or opens with followed by `#`, disproves it — so an ambiguous name fails closed. A row carrying an
+ * identity tuple is ALSO disproved by a change to the tuple's exact path; the tuple only ever adds a way to fail.
  *
  * @param entry the row's entry
+ * @param identityTuple the row's tuple, when its entry alone is ambiguous
  * @param changedPaths every path the change touched against main
  * @returns `true` only when the entry names a file and no changed path is that file
  */
 export function provenUnchanged({
   entry,
+  identityTuple,
   changedPaths,
 }: {
   entry: string;
+  identityTuple?: readonly string[] | undefined;
   changedPaths: ReadonlySet<string>;
 }): boolean {
-  if (pathOfEntry({ entry }) === undefined) {
+  const exact = pathOfEntry({ entry, identityTuple });
+  if (exact === undefined) {
     return false;
   }
   const named = entry.slice(entry.indexOf(":") + 1);
   // A directory-keyed row (`directories:src/devLint`) is touched by any change beneath it.
   return ![...changedPaths].some(
-    (path) => named === path || named.startsWith(`${path}#`) || path.startsWith(`${named}/`),
+    (path) =>
+      named === path ||
+      named.startsWith(`${path}#`) ||
+      path.startsWith(`${named}/`) ||
+      path === exact ||
+      path.startsWith(`${exact}/`),
   );
 }
 
@@ -300,7 +345,11 @@ export function witnessPropertyId({ digest }: { digest: string }): string {
 export function witnessClaim({ manifest }: { manifest: BumpManifest }): string {
   const inline = manifest.loosenings
     .toSorted((a, b) => rowKey({ row: a }).localeCompare(rowKey({ row: b })))
-    .map((row) => `${row.file} ${row.entry} ${String(row.from)}->${String(row.to)} (${row.cause})`)
+    .map((row) => {
+      // The witness must see WHICH row an ambiguous entry is, since the digest it answers for binds the tuple.
+      const which = row.identityTuple === undefined ? "" : ` identity ${JSON.stringify(row.identityTuple)}`;
+      return `${row.file} ${row.entry}${which} ${String(row.from)}->${String(row.to)} (${row.cause})`;
+    })
     .join("; ");
   const rows =
     inline.length <= WITNESS_INLINE_ROWS_MAX_CHARS

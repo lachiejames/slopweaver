@@ -187,7 +187,7 @@ describe("loosenings", () => {
   it("reads whole-file-json as a set: only a new path and shape loosens it", () => {
     const before = { sites: [{ owes: "o", path: "a.ts", shape: "jsonl-read-whole" }] };
     const head = { sites: [...before.sites, { owes: "o", path: "b.ts", shape: "jsonl-read-whole" }] };
-    expect(loosened({ base: before, baseline: WHOLE_JSON, head })).toEqual([
+    expect(loosened({ base: before, baseline: WHOLE_JSON, head })).toStrictEqual([
       { entry: "sites:b.ts#jsonl-read-whole", file: WHOLE_JSON.file, from: null, to: 1 },
     ]);
   });
@@ -267,19 +267,67 @@ describe("loosenings", () => {
     expect(unwrapErr(result).message).toBe(`${FILE_SIZE.file}: duplicate row offenders:b.ts`);
   });
 
-  it("refuses a # in a compound identity's first part, so a swapped row cannot share the old row's key", () => {
-    const swappedFrom = JSON.stringify({ symbols: [{ name: "c", path: "src/a.ts#b.ts" }] });
-    const swappedTo = JSON.stringify({ symbols: [{ name: "b.ts#c", path: "src/a.ts" }] });
-    const result = loosenings({ base: swappedFrom, baseline: EXPORTS, head: swappedTo });
-    expect(unwrapErr(result).message).toBe(
-      `${EXPORTS.file}: a \`symbols\` row's path holds "#", so its identity is ambiguous`,
-    );
+  it("reports a row swapped for another showing the same entry as NEW, never unchanged", () => {
+    const swappedFrom = { symbols: [{ name: "c", path: "src/a.ts#b.ts" }] };
+    const swappedTo = { symbols: [{ name: "b.ts#c", path: "src/a.ts" }] };
+    expect(loosened({ base: swappedFrom, baseline: EXPORTS, head: swappedTo })).toStrictEqual([
+      { entry: "symbols:src/a.ts#b.ts#c", file: EXPORTS.file, from: null, to: 1 },
+    ]);
+    expect(loosened({ base: swappedTo, baseline: EXPORTS, head: swappedFrom })).toStrictEqual([
+      {
+        entry: "symbols:src/a.ts#b.ts#c",
+        file: EXPORTS.file,
+        from: null,
+        identityTuple: ["symbols", "src/a.ts#b.ts", "c"],
+        to: 1,
+      },
+    ]);
   });
 
-  it("keeps a # in a compound identity's last part, which the join cannot confuse", () => {
+  it("refuses two different rows showing the same entry in one copy, since no declaration could name either", () => {
+    const both = {
+      symbols: [
+        { name: "c", path: "src/a.ts#b.ts" },
+        { name: "b.ts#c", path: "src/a.ts" },
+      ],
+    };
+    const result = loosenings({ base: undefined, baseline: EXPORTS, head: JSON.stringify(both) });
+    expect(unwrapErr(result).message).toBe(`${EXPORTS.file}: two different rows both read as symbols:src/a.ts#b.ts#c`);
+  });
+
+  it("names a new row whose path holds # in a compound identity as a loosening, never an unreadable file", () => {
+    const head = { sites: [{ owes: "x", path: "src/a#b.ts", shape: "jsonl-read-whole" }] };
+    expect(loosened({ base: { sites: [] }, baseline: WHOLE_JSON, head })).toStrictEqual([
+      {
+        entry: "sites:src/a#b.ts#jsonl-read-whole",
+        file: WHOLE_JSON.file,
+        from: null,
+        identityTuple: ["sites", "src/a#b.ts", "jsonl-read-whole"],
+        to: 1,
+      },
+    ]);
+  });
+
+  it("compares a counted row whose path holds # with itself, so its growth reads as a grown count", () => {
+    const row = { count: 1, operator: "??", path: "src/a#b.ts" };
+    expect(
+      loosened({ base: { sites: [row] }, baseline: FALLBACK, head: { sites: [{ ...row, count: 2 }] } }),
+    ).toStrictEqual([
+      {
+        entry: "sites:src/a#b.ts#??",
+        file: FALLBACK.file,
+        from: 1,
+        identityTuple: ["sites", "src/a#b.ts", "??"],
+        to: 2,
+      },
+    ]);
+    expect(loosened({ base: { sites: [row] }, baseline: FALLBACK, head: { sites: [row] } })).toStrictEqual([]);
+  });
+
+  it("keeps a # in a compound identity's last part, which the join cannot confuse, and carries no tuple", () => {
     expect(
       loosened({ base: { symbols: [] }, baseline: EXPORTS, head: { symbols: [{ name: "b#c", path: "a.ts" }] } }),
-    ).toEqual([{ entry: "symbols:a.ts#b#c", file: EXPORTS.file, from: null, to: 1 }]);
+    ).toStrictEqual([{ entry: "symbols:a.ts#b#c", file: EXPORTS.file, from: null, to: 1 }]);
   });
 
   it("refuses a file that is not its declared shape", () => {
