@@ -163,8 +163,8 @@ const RECOGNIZED_SITE_SPAWNS: readonly string[] = [
  * The desktop shell's child processes (`desktop/`), recognized the same way as {@link RECOGNIZED_SITE_SPAWNS}:
  * by the exact text of the call's opening with its whitespace collapsed ({@link callOpening}), so a call prettier
  * wrapped over several lines reads as it would on one. None starts a model; each is a bounded or fire-and-forget
- * helper of the shell itself, and the shell is not a place a headless session may hide. One call causes model
- * sessions, and only visible ones in this app: the bullet on `fleet recover` below.
+ * helper of the shell itself, and the shell is not a place a headless session may hide. Two calls cause model
+ * sessions, and only visible ones in this app: the bullets on `fleet recover` and `supervisor hand-off` below.
  *
  * - `execFile(join(checkout, "bin", "slopweaver"), ["fleet", "recover"],` is `fleetProcess.ts`'s `recoverFleet`,
  *   run only when the owner presses Recovery. This one call causes visible app sessions: the verb opens one
@@ -172,6 +172,11 @@ const RECOGNIZED_SITE_SPAWNS: readonly string[] = [
  *   owner can see and stop as it runs. The owner allowed exactly this row, by a ruling on the owner's own card. Its arguments are a
  *   literal pair, so another verb, another argument or a variable argv is not it, and it is recognised in `desktop/`
  *   alone.
+ * - `execFile(join(checkout, "bin", "slopweaver"), ["supervisor", "hand-off"],` is `chairWatchShell.ts` pressing the
+ *   chair's hand-off when its watch says one is due, the second call here that causes a model session, and only a
+ *   visible one: the verb seats the successor as a card in this app (`cmux spawn --harness app`). Beside it,
+ *   `["supervisor", "chair-watch", "--json"],` is the same file's read-only watch. Both are literal argv, so
+ *   `--now`, `--plan` or a variable argv is not either, and both are recognised in `desktop/` alone.
  * - `spawn("bash", [join("scripts", "docs-site.sh"), flag],` is `consoleServer.ts` running the checkout's
  *   `scripts/docs-site.sh --status|--serve` to find or start the console, killed at its own deadline.
  * - `spawn(join(checkout.value, "bin", "slopweaver"), ["desktop", "update",` is `updateShell.ts` running the
@@ -195,8 +200,11 @@ const RECOGNIZED_DESKTOP_CHILDREN: readonly string[] = [
   'spawn(join(checkout.value, "bin", "slopweaver"), ["desktop", "update",',
   'execFile(join(checkout, "bin", "slopweaver"), ["fleet", "health", "--json"],',
   'execFile(join(checkout, "bin", "slopweaver"), ["cmux", "revive", "--json"],',
-  // The owner's Recovery press: the one call here that causes model sessions, each a visible card in this app.
+  // The owner's Recovery press: it causes model sessions, each a visible card in this app.
   'execFile(join(checkout, "bin", "slopweaver"), ["fleet", "recover"],',
+  // The chair watch's hand-off press: the successor it seats is a visible card in this app, never headless.
+  'execFile(join(checkout, "bin", "slopweaver"), ["supervisor", "hand-off"],',
+  'execFile(join(checkout, "bin", "slopweaver"), ["supervisor", "chair-watch", "--json"],',
   // `pageRevealShell.ts` copying one page out of the store for Reveal in Finder: the checkout's own verb, bounded.
   'execFile(join(checkout, "bin", "slopweaver"), ["page", "export", slug, "--out", file, "--json"],',
   'execFile("open", [...openCmuxArgs({ raise })],',

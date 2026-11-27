@@ -27,7 +27,12 @@ const ACTS: TrayMenuActs = {
 };
 
 /** The owner's fleet with no Recovery check running. */
-const FLEET: TrayFleet = { line: "Fleet: 3 sessions", recover: () => pressed.push("recover"), recoveryRunning: false };
+const FLEET: TrayFleet = {
+  chair: [],
+  line: "Fleet: 3 sessions",
+  recover: () => pressed.push("recover"),
+  recoveryRunning: false,
+};
 
 const VIEW: MenuView = {
   icon: "ready",
@@ -42,6 +47,27 @@ const VIEW: MenuView = {
 const labelOf = (item: TrayMenuItem): string => (item.type === "separator" ? "---" : item.label!);
 
 describe("trayMenuItems", () => {
+  it("draws the chair watch's lines, disabled, directly under the fleet line", () => {
+    const parts: TrayMenuParts<TrayMenuItem> = {
+      fleet: { ...FLEET, chair: ["Chair: stays · week 20%", "Hand-off refused · no successor plan"] },
+      lines: [],
+      permissions: undefined,
+      planUsageItems: [{ label: "Plans: 2 of 3 open" }],
+      quitLabel: "Quit Slopweaver",
+      triageItems: [],
+      updateItems: [],
+      view: { ...VIEW, voice: undefined },
+    };
+    const items = trayMenuItems({ acts: ACTS, parts });
+    expect(items.slice(0, 4).map(labelOf)).toEqual([
+      "Fleet: 3 sessions",
+      "Chair: stays · week 20%",
+      "Hand-off refused · no successor plan",
+      "Plans: 2 of 3 open",
+    ]);
+    expect(items.slice(1, 3).map((item) => item.enabled)).toEqual([false, false]);
+  });
+
   it("draws the owner's app's whole menu, in order", () => {
     const parts: TrayMenuParts<TrayMenuItem> = {
       fleet: FLEET,

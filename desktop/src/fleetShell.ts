@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import { shell } from "electron";
 import type { Result } from "neverthrow";
 
+import { chairTray, startChairWatch } from "./chairWatchShell";
 import { type CheckoutError, type FleetError, FleetErrors } from "./errors";
 import { nextDownSince, stallNoteHeld, withStalledRecovery } from "./fleetAutomation";
 import {
@@ -126,7 +127,7 @@ function fleetTrayLine(): string {
  */
 export function fleetTray(): TrayFleet {
   const recoveryRunning = fleetRecoveryState().kind === "running";
-  return { line: fleetTrayLine(), recover: pressFleetRecovery, recoveryRunning };
+  return { chair: chairTray(), line: fleetTrayLine(), recover: pressFleetRecovery, recoveryRunning };
 }
 
 /**
@@ -427,4 +428,6 @@ export async function startFleetShell({ shellHost }: { shellHost: FleetShellHost
       },
     },
   });
+  // The chair rides the fleet's start for the same reason the control plane does: the owner's app only.
+  startChairWatch({ watchHost: shellHost });
 }

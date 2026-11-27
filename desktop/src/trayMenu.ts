@@ -33,6 +33,8 @@ export interface TrayMenuActs {
 /** The fleet's part of the menu: its line, and the Recovery item, which exists only beside a fleet. */
 export interface TrayFleet {
   readonly line: string;
+  /** The chair watch's lines, drawn under the fleet line: what it concluded, the chair's plan and the last hand-off. */
+  readonly chair: readonly string[];
   /** A Recovery check is running, so its item is disabled until it finishes. */
   readonly recoveryRunning: boolean;
   /** The owner's Recovery press: the same press as the Sessions page's button. */
@@ -94,7 +96,7 @@ export function trayMenuItems<Item>({
   const { fleet, view } = parts;
   const items: (Item | TrayMenuItem)[] = parts.lines.map((label) => ({ enabled: false, label }));
   if (fleet !== undefined) {
-    items.push({ enabled: false, label: fleet.line });
+    items.push({ enabled: false, label: fleet.line }, ...fleet.chair.map((label) => ({ enabled: false, label })));
   }
   items.push(...parts.planUsageItems, { type: "separator" }, ...parts.updateItems);
   if (fleet !== undefined) {
