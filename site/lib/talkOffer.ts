@@ -105,7 +105,7 @@ export function offerArgvOf({
 
 /**
  * The `slopweaver talk offer --typed` argv a typed open runs. The desktop test instance's carries `--test-instance e2e`,
- * so its composition reads no conversation typed into the messenger (`src/talk/continuityCalls.ts` `callsForMint`).
+ * so its composition reads none of the owner's state (`src/talk/mintContext.ts`).
  *
  * @param instance the owner's page, or the desktop test instance's
  * @returns the argv after `slopweaver`

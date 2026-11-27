@@ -12,7 +12,7 @@
  * One a rebuild ends is minted again on the owner's next send.
  *
  * The desktop test instance's page marks its body `instance: "e2e"`, as its offer does: its conversation is composed
- * with `--test-instance e2e`, so it reads no conversation typed into the messenger, is held as a test call, and opens
+ * with `--test-instance e2e`, so it reads none of the owner's state (`src/talk/mintContext.ts`), is held as a test call, and opens
  * beside nothing of the owner's (`lib/talkArbiter.ts`), so a test typed open never replaces the owner's conversation.
  */
 import { NextResponse } from "next/server";

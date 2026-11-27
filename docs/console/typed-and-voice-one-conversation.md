@@ -81,7 +81,10 @@ surfaces one conversation, each reading the same records rather than a copy. The
   conversation at rest (`typedAtRest`, nothing sent, started or written for `TYPED_AT_REST_MS`), ending nothing, and
   every owner surface reads past it — a send never waits on it, and the owner's voice call ends it. Its typed open marks
   `/api/talk/typed` with `instance: "e2e"` too, so it is composed with `--test-instance e2e`, held as a test call, and
-  refused beside any conversation of the owner's, at rest or not, rather than replacing one.
+  refused beside any conversation of the owner's, at rest or not, rather than replacing one. A test call, voice or
+  typed, is minted with none of the owner's state: no continuity, no context pack, no voice brief, no typed turn or
+  relay — the arm is picked before any of it is read (`src/talk/mintContext.ts`), and its offer report carries no
+  `continuity` field, so the relay gate reads no standing data rode in.
 - **Typing into a live call.** A Slack thread link pasted into the box mid-call has to be sendable. So with a call up the box's button
   reads **send to the call**, and it and Enter post the owner's words to `/api/talk/typed-in` (`site/components/voice/
 typedInClient.ts`), which finds the one live voice call of the sender's own instance itself — the window the owner types

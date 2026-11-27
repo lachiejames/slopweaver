@@ -180,28 +180,6 @@ export function callsSince({
 }
 
 /**
- * The calls a mint may read, by what it is minting for. Every surface for the owner's own; for the desktop test
- * instance's call, no conversation typed into the messenger, since a test call may now run beside one at rest
- * (`site/lib/talkArbiter.ts`) and is never to read what the owner typed there.
- *
- * @param calls the calls read (`./callStore.ts`'s `readCalls`)
- * @param typedCalls `keep` for the owner's mint, `drop` for a test call's
- * @returns the calls it may read, in the same order
- */
-export function callsForMint({
-  calls,
-  typedCalls,
-}: {
-  calls: readonly CallRecord[];
-  typedCalls: "keep" | "drop";
-}): readonly CallRecord[] {
-  if (typedCalls === "keep") {
-    return calls;
-  }
-  return calls.filter((call) => call.surface !== "typed");
-}
-
-/**
  * The desktop test instance's OWN calls in the window, newest first, shaped exactly as {@link callsSince} shapes the owner's.
  * Only a call whose record carries the test mark is kept, so nothing the owner said can ever reach a test call's reopen
  * reminder; and nothing here ever enters the owner's continuity, which keeps {@link callsSince} alone.

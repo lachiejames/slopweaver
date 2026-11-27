@@ -3,6 +3,10 @@
  * created with a settlement, an intake mark, and run journals carrying rulings. It proves the read finds a
  * relay's outcome by the row's exact slug, keeps a ruling only from a journal written inside the window, and
  * names the lessons half unread when the mint skips it — never as "no lessons".
+ *
+ * The read no longer drops typed conversations for a test call's mint: that mint reads nothing of the owner's at all
+ * (`src/talk/mintContext.ts`), so the drop case went out with the filter it held down.
+ * deleted-with-code: callsForMint
  */
 import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -10,7 +14,11 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { readContinuity } from "../../../talk/continuityRead.js";
+import { unwrap } from "../../../lib/result.js";
+import { readCalls } from "../../../talk/callStore.js";
+import { newestSpokenOf } from "../../../talk/continuityCalls.js";
+import { readContinuity, readTestCalls } from "../../../talk/continuityRead.js";
+import { reopenReminderFrom } from "../../../talk/reopenReminder.js";
 import type { SupervisorWindow } from "../../../talk/supervisorWindow.js";
 
 const TURN = "47aaaedf-b2e5-4c11-8a22-9b33c44d55e6";
@@ -96,7 +104,6 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
-      typedCalls: "keep",
     });
     expect(read.steers.map((steer) => [steer.slug, steer.outcome.settlement])).toEqual([
       [
@@ -114,7 +121,6 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
-      typedCalls: "keep",
     });
     expect(read.rulings.map((ruling) => `${ruling.slug}:${ruling.ruling}`)).toEqual(["recent-row:conflicts are yours"]);
   });
@@ -127,7 +133,6 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
-      typedCalls: "keep",
     });
     expect(read.unread).toEqual([
       { section: "typed", why: NO_CHAT },
@@ -161,14 +166,13 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
-      typedCalls: "keep",
     });
     expect(read.calls.map((kept) => [kept.callId, kept.lines.map((line) => line.text)])).toEqual([
       [call, ["and merge the"]],
     ]);
   });
 
-  it("reads a typed conversation for the owner's mint and never for a test call's", async () => {
+  it("reads the owner's typed conversations beside their spoken calls", async () => {
     const spoken = "a0000041-0000-4000-8000-000000000051";
     const typed = "a0000041-0000-4000-8000-000000000052";
     mkdirSync(join(home, "talk", "calls"), { recursive: true });
@@ -181,20 +185,15 @@ describe("readContinuity", () => {
         .join("");
     writeFileSync(join(home, "talk", "calls", `${spoken}.jsonl`), callFile({ surface: "voice", words: "spoken line" }));
     writeFileSync(join(home, "talk", "calls", `${typed}.jsonl`), callFile({ surface: "typed", words: "typed line" }));
-    const readFor = async ({ typedCalls }: { typedCalls: "keep" | "drop" }): Promise<readonly string[]> => {
-      const read = await readContinuity({
-        handoverDir,
-        home,
-        knowledge: "skip",
-        lookbackMs: WINDOW_MS,
-        nowIso: NOW,
-        supervisor: NO_CHAT,
-        typedCalls,
-      });
-      return read.calls.map((kept) => kept.callId).toSorted();
-    };
-    expect(await readFor({ typedCalls: "keep" })).toEqual([spoken, typed]);
-    expect(await readFor({ typedCalls: "drop" })).toEqual([spoken]);
+    const read = await readContinuity({
+      handoverDir,
+      home,
+      knowledge: "skip",
+      lookbackMs: WINDOW_MS,
+      nowIso: NOW,
+      supervisor: NO_CHAT,
+    });
+    expect(read.calls.map((kept) => kept.callId).toSorted()).toEqual([spoken, typed]);
   });
 
   it("reports a relay whose row is gone as present on no row", async () => {
@@ -206,7 +205,6 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
-      typedCalls: "keep",
     });
     expect(read.steers.map((steer) => steer.outcome.rowPresent)).toEqual([false]);
   });
@@ -221,9 +219,80 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: broken,
-      typedCalls: "keep",
     });
     expect(read.unread.map((entry) => entry.section)).toEqual(["steers", "typed", "calls", "rulings", "knowledge"]);
     expect(read.unread[0]!.why).toContain("the read threw: TypeError");
+  });
+});
+
+/*
+ * Review r2 on the test-instance mint change: the armed `call-reopen` arm read every recent call file and counted ANY
+ * unreadable one as `unread`, so a damaged call of the owner's switched the test call's reopen reminder off. The fixture
+ * holds both: a readable test call that ended forty seconds before the mint, and an owner call file none of whose
+ * lines parse. The first assertion is the witness that the owner's file really is unreadable to the read.
+ */
+describe("readTestCalls", () => {
+  const TEST_CALL = "a0000041-0000-4000-8000-000000000061";
+  const OWNER_CALL = "a0000041-0000-4000-8000-000000000062";
+  const ENDED = "2026-09-24T17:29:20.000Z";
+
+  it("keeps an unreadable owner call file from switching the test call's reopen reminder off", () => {
+    const calls = join(home, "talk", "calls");
+    mkdirSync(calls, { recursive: true });
+    const origin = {
+      checkoutRoot: "/checkouts/acme",
+      defaultPort: 3000,
+      instance: "e2e",
+      mainWorktree: true,
+      port: 3000,
+    };
+    writeFileSync(
+      join(calls, `${TEST_CALL}.jsonl`),
+      [
+        { atIso: "2026-09-24T17:29:00.000Z", kind: "open", model: "m", origin, sessionId: "s", voice: "marin" },
+        {
+          atIso: "2026-09-24T17:29:05.000Z",
+          final: true,
+          id: "s-1",
+          kind: "segment",
+          text: "the walk's line",
+          who: "owner",
+        },
+        {
+          atIso: "2026-09-24T17:29:10.000Z",
+          final: true,
+          id: "s-2",
+          kind: "segment",
+          text: "the voice's answer",
+          who: "voice",
+        },
+        { atIso: ENDED, kind: "closed", why: null },
+      ]
+        .map((line) => `${JSON.stringify(line)}\n`)
+        .join(""),
+    );
+    writeFileSync(join(calls, `${OWNER_CALL}.jsonl`), "not json\nnor this\n");
+    const sinceIso = new Date(Date.parse(NOW) - WINDOW_MS).toISOString();
+    expect(unwrap(readCalls({ home, keep: { sinceIso } })).unreadable).toEqual([
+      `${OWNER_CALL}: none of its 2 line(s) parsed`,
+    ]);
+    const test = readTestCalls({ home, sinceIso });
+    expect(test.unread).toBe(false);
+    expect(test.calls.map((call) => call.callId)).toEqual([TEST_CALL]);
+    const reminder = reopenReminderFrom({
+      builtIso: NOW,
+      callsUnread: test.unread,
+      last: newestSpokenOf({ calls: test.calls }),
+      mode: "fresh",
+    })!;
+    expect([reminder.previousCallId, reminder.previousEndedIso]).toEqual([TEST_CALL, ENDED]);
+  });
+
+  it("reads the test calls unread when the call directory itself cannot be listed", () => {
+    // A file where the directory belongs makes the listing fail, not just one file in it.
+    mkdirSync(join(home, "talk"), { recursive: true });
+    writeFileSync(join(home, "talk", "calls"), "");
+    const test = readTestCalls({ home, sinceIso: new Date(Date.parse(NOW) - WINDOW_MS).toISOString() });
+    expect(test).toEqual({ calls: [], unread: true });
   });
 });

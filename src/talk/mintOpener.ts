@@ -28,6 +28,44 @@ const RESUME_WINDOW_MS = 60 * 60 * 1000;
  */
 export type MintMode = "fresh" | "reconnect" | "rollover";
 
+/** What every reconnect is told, before any exchange it quotes. */
+const RECONNECT_LINES: readonly string[] = [
+  "This call is an AUTOMATIC RECONNECT: the owner's last call with you dropped a moment ago and the console reopened it on",
+  // "Say that you're back" is a status the owner never asked for; that it dropped is theirs to ask about.
+  "its own, so it is the same conversation carrying on. Never greet the owner as a new call, never say you are back or",
+  "reconnected unless they ask, and never ask them to repeat themselves. If they were showing their screen, the share carried",
+  "over, so read_screen works without asking them to share again.",
+];
+
+/** What every rollover is told, before any exchange it quotes. */
+const ROLLOVER_LINES: readonly string[] = [
+  "This call is an AUTOMATIC ROLLOVER: the console moved the owner's ongoing call with you onto this fresh one in a pause, so",
+  "it is the same conversation and, to the owner, nothing happened. Never greet them, never say you are back or",
+  "reconnected, and never ask them to repeat themselves; when they speak, answer as the same call. If they were showing",
+  "their screen, the share carried over, so read_screen works without asking them to share again.",
+];
+
+/** A rollover with no exchange to quote waits for the owner. */
+const ROLLOVER_SILENT = "Say NOTHING until they speak.";
+
+/**
+ * What a call the desktop test instance placed opens with: the mode's own transport lines and nothing read. It quotes no
+ * exchange, carries no typed turn and states no read floor, since a test mint reads none of the owner's state
+ * (`./mintContext.ts`), so a reconnect or a rollover reads exactly as one whose previous call left no file.
+ *
+ * @param mode whether the test pressed start, or the console is re-opening a dropped call or rolling one over
+ * @returns the lines, or `undefined` for an ordinary start, which has nothing to carry
+ */
+export function testInstanceOpener({ mode }: { mode: MintMode }): string | undefined {
+  if (mode === "reconnect") {
+    return RECONNECT_LINES.join("\n");
+  }
+  if (mode === "rollover") {
+    return [...ROLLOVER_LINES, ROLLOVER_SILENT].join("\n");
+  }
+  return undefined;
+}
+
 /**
  * The newest call, the one a reconnect or a rollover follows — or none when a call file could not be read, since that
  * file may be the newer call and quoting the readable one would resume from the wrong place.
@@ -93,13 +131,7 @@ export function previousExchange({
  * @returns the lines, which always say it is a reconnect, quoting the dropped call when there is one
  */
 export function reconnectOpener({ continuity }: { continuity: TalkContinuity }): string {
-  const lines = [
-    "This call is an AUTOMATIC RECONNECT: the owner's last call with you dropped a moment ago and the console reopened it on",
-    // "Say that you're back" is a status the owner never asked for; that it dropped is theirs to ask about.
-    "its own, so it is the same conversation carrying on. Never greet the owner as a new call, never say you are back or",
-    "reconnected unless they ask, and never ask them to repeat themselves. If they were showing their screen, the share carried",
-    "over, so read_screen works without asking them to share again.",
-  ];
+  const lines = [...RECONNECT_LINES];
   const exchange = previousExchange({ heading: "The dropped call", previous: newestKnownCall({ continuity }) });
   if (exchange.length === 0) {
     return lines.join("\n");
@@ -126,19 +158,14 @@ export function reconnectOpener({ continuity }: { continuity: TalkContinuity }):
  * @returns the lines, quoting the previous call when there is one, and always saying when to stay silent
  */
 export function rolloverOpener({ continuity }: { continuity: TalkContinuity }): string {
-  const lines = [
-    "This call is an AUTOMATIC ROLLOVER: the console moved the owner's ongoing call with you onto this fresh one in a pause, so",
-    "it is the same conversation and, to the owner, nothing happened. Never greet them, never say you are back or",
-    "reconnected, and never ask them to repeat themselves; when they speak, answer as the same call. If they were showing",
-    "their screen, the share carried over, so read_screen works without asking them to share again.",
-  ];
+  const lines = [...ROLLOVER_LINES];
   const exchange = previousExchange({
     end: "rolled over onto this call in a pause",
     heading: "The call before this one",
     previous: newestKnownCall({ continuity }),
   });
   if (exchange.length === 0) {
-    lines.push("Say NOTHING until they speak.");
+    lines.push(ROLLOVER_SILENT);
     return lines.join("\n");
   }
   lines.push(

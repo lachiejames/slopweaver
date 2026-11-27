@@ -86,7 +86,8 @@ measured, never two wall-clock stamps subtracted; `slopweaver talk call-tools --
 
 **Proven on the real app by `desktop e2e --call --only call-reopen`** ([the e2e reference](../../skills/desktop/reference/e2e.md)).
 A test call is never the owner's, so the owner's calls never remind a test one and a test call never reminds the owner's: `talk offer
---test-instance e2e`, which the console's `e2e-voice` mint passes, reads only the test instance's own calls
+--test-instance e2e`, which the console's `e2e-voice` mint passes, reads none of the owner's state
+(`src/talk/mintContext.ts`) and, for this reminder alone, only the test instance's own calls
 (`testCallsSince`, `src/talk/continuityCalls.ts`), and only while the scenario's arm file
 `$SLOPWEAVER_HOME/talk/e2e-reopen-probe.json` names an instant still ahead and a writer still running
 (`src/talk/e2eReopenProbe.ts`), and every call leg removes a leftover one the moment it holds its lock. Every other e2e

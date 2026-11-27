@@ -230,7 +230,6 @@ export async function gatherContextPack({
     lookbackMs: CONTINUITY_LOOKBACK_MS,
     nowIso: builtIso,
     supervisor: supervisorForContinuity({ home }),
-    typedCalls: "keep",
   });
   const recentlyLeft = readRecentlyLeft({ home, nowIso: builtIso, rows: isUnread(asks) ? undefined : asks.rows });
   const proofsUnread: PackUnread | undefined =
