@@ -80,6 +80,23 @@
  * not in this change: `./checksRead.ts`'s `CHECKS_ROLLUP_SELECTION` is shared with `./mergeQueue.ts`'s own
  * composed query, so a cursor lands in two readers at once and belongs in its own diff.
  *
+ * ## Why absence while a run is in flight is not yet "never ran"
+ *
+ * `lachiejames/slopweaver`'s required `build` is `ci.yml`'s aggregate job: it `needs` every leg and runs
+ * `if: always()`, and GitHub creates no check run for it until those needs finish. So for the whole of a
+ * healthy lap `build` is absent from the head, and every poll of `github checks --wait` printed `1 REQUIRED
+ * CONTEXT NEVER RAN: build` beside legs that were still running. The fact was right — the name is absent —
+ * and the claim was wrong: nothing had finished, so nothing had failed to run.
+ *
+ * {@link RequiredContextGate}'s `inFlight` carries the head's running and queued checks, and the clause and
+ * the refusal say `NOT YET CREATED` while it is non-empty, naming those checks and NO cause. Only the words
+ * move: `missing` is computed exactly as before, so `github checks` still exits non-zero and every landing
+ * verb still refuses the head. `NEVER RAN`, and the cause beside it, are kept for a read where nothing is in
+ * flight. **Stated residue:** the instant after the last leg finishes and before GitHub queues `build` still
+ * reads `NEVER RAN`, because nothing in one snapshot tells that instant apart; and an unrelated running check
+ * beside a required context that really never ran reads `NOT YET CREATED` until it finishes, which is why
+ * that wording never names a cause and never reads as satisfied.
+ *
  * This module is pure. The required set is read live by `./mergeQueue.ts`'s `requiredContexts` seam — both
  * classic branch protection and rulesets, unioned, because a branch may be governed by either.
  */
@@ -120,6 +137,17 @@ export type RequiredContextGate =
        * Non-empty implies {@link missing} is empty: the same absent set goes to one field or the other.
        */
       readonly unproven: readonly string[];
+      /**
+       * The head's checks still running or queued, by name, sorted and deduped — PRESENTATION evidence only.
+       *
+       * A required context that an aggregate job produces (`ci.yml`'s `build`: `needs` every leg, `if:
+       * always()`) has no check run at all until its needs finish, so it sits in {@link missing} for the
+       * whole of a healthy run. This field is what lets the clause and the refusal say "not yet created"
+       * instead of "never ran" while something is still going. Nothing may branch on it to decide: `missing`
+       * is the measured absence and stays populated exactly as before, so every landing verdict refuses the
+       * same head it refused before this field existed.
+       */
+      readonly inFlight: readonly string[];
       /**
        * What GitHub reports about building this pull request's merge ref, when this read selected it —
        * the discriminator {@link requiredContextRefusal} names the CAUSE from. `undefined` means no read
@@ -185,8 +213,12 @@ export function requiredContextGate({
   mergeable: GithubMergeable | undefined;
 }): RequiredContextGate {
   const absent = absentRequiredContexts({ checks, required });
+  const inFlight = checks
+    .filter((check) => check.state === "running" || check.state === "queued")
+    .map((check) => check.name);
   return {
     branch,
+    inFlight: [...new Set(inFlight)].toSorted(),
     kind: "read",
     mergeable,
     missing: truncated ? [] : absent,
@@ -274,7 +306,35 @@ export function requiredContextClause({ gate }: { gate: RequiredContextGate }): 
   if (gate.missing.length === 0) {
     return `${String(gate.required.length)}/${String(gate.required.length)} required present`;
   }
-  return `${String(gate.missing.length)} REQUIRED CONTEXT${gate.missing.length === 1 ? "" : "S"} NEVER RAN: ${gate.missing.join(", ")}`;
+  const contexts = `REQUIRED CONTEXT${gate.missing.length === 1 ? "" : "S"}`;
+  if (gate.inFlight.length > 0) {
+    return (
+      `${String(gate.missing.length)} ${contexts} NOT YET CREATED: ${gate.missing.join(", ")} ` +
+      `(${inFlightChecksClause({ names: gate.inFlight })})`
+    );
+  }
+  return `${String(gate.missing.length)} ${contexts} NEVER RAN: ${gate.missing.join(", ")}`;
+}
+
+/** How many in-flight check names a clause lists before folding the rest into `+K more`. */
+const IN_FLIGHT_NAME_LIMIT = 5;
+
+/**
+ * The clause naming the head's checks still running or queued — the total first, then at most
+ * {@link IN_FLIGHT_NAME_LIMIT} names, so a long list never hides how many there are.
+ *
+ * It says what the snapshot shows and nothing more: these checks are in flight. It never claims the missing
+ * context WAITS ON them, because a head's checks carry no dependency graph and another repository's required
+ * context may come from a workflow that has nothing to do with them.
+ *
+ * @param names the in-flight check names, already sorted and deduped
+ * @returns e.g. `7 checks still in flight: compile, lint, unit-1, unit-2, unit-3, +2 more`
+ */
+export function inFlightChecksClause({ names }: { names: readonly string[] }): string {
+  const shown = names.slice(0, IN_FLIGHT_NAME_LIMIT);
+  const more = names.length > shown.length ? [`+${String(names.length - shown.length)} more`] : [];
+  const noun = names.length === 1 ? "check" : "checks";
+  return `${String(names.length)} ${noun} still in flight: ${[...shown, ...more].join(", ")}`;
 }
 
 /**
@@ -319,12 +379,40 @@ function neverRanCauseClause({ mergeable }: { mergeable: GithubMergeable | undef
 }
 
 /**
+ * The refusal for required contexts absent while other checks are still in flight: it names each one and no
+ * cause, and still reads as not landable, because absence mid-lap may only mean not created yet.
+ *
+ * @param branch the base branch whose protection requires them
+ * @param missing the required contexts absent from the head
+ * @param inFlight the running or queued checks this read saw
+ * @returns the refusal line
+ */
+function inFlightRefusal({
+  branch,
+  missing,
+  inFlight,
+}: {
+  branch: string;
+  missing: readonly string[];
+  inFlight: readonly string[];
+}): string {
+  const one = missing.length === 1;
+  return (
+    `${branch} requires ${missing.join(", ")}, and ${one ? "it is" : "they are"} not on this head ` +
+    `while other checks are still in flight (${inFlightChecksClause({ names: inFlight })}). This read ` +
+    `holds NO verdict for ${one ? "it" : "them"} and names no cause: the head is NOT landable on this read, ` +
+    `and only a read with nothing in flight can say whether ${one ? "it" : "they"} never ran.`
+  );
+}
+
+/**
  * The refusal a missing required context earns, or `undefined` when there is none to raise.
  *
  * Stated as a refusal rather than a warning because the head this describes is exactly as unmergeable as one
  * with a failing check — the difference is only that GitHub reports the failure and reports nothing at all
  * for this. The remedy is named from what was MEASURED, because the causes have opposite ones and a session
- * that cannot tell them apart re-triggers CI on a branch that needs a rebase.
+ * that cannot tell them apart re-triggers CI on a branch that needs a rebase. While checks are still in flight
+ * the refusal names no cause at all: the context may simply not be created yet, and it is still a refusal.
  *
  * @param gate the gate this read concluded
  * @returns the refusal line, or `undefined` when every required context is on the head
@@ -345,6 +433,9 @@ export function requiredContextRefusal({ gate }: { gate: RequiredContextGate }):
   }
   if (gate.missing.length === 0) {
     return undefined;
+  }
+  if (gate.inFlight.length > 0) {
+    return inFlightRefusal({ branch: gate.branch, inFlight: gate.inFlight, missing: gate.missing });
   }
   return (
     `${gate.branch} requires ${gate.missing.join(", ")}, and ${gate.missing.length === 1 ? "it is" : "they are"} ` +

@@ -24,6 +24,7 @@ describe("landingTests", () => {
       state: state({
         requiredContexts: {
           branch: "staging",
+          inFlight: [],
           kind: "read",
           mergeable: undefined,
           missing: ["integration"],
@@ -34,7 +35,26 @@ describe("landingTests", () => {
     });
     const ci = tests.find((test) => test.id === "ci-green")!;
     expect(ci.verdict).toBe("fail");
-    expect(ci.why).toContain("integration");
+    expect(ci.why).toBe("1 context(s) staging REQUIRES never ran: integration");
+  });
+
+  it("still fails ci-green while checks are in flight, saying not yet created — every verdict unchanged", () => {
+    const gate = {
+      branch: "staging",
+      kind: "read" as const,
+      mergeable: undefined,
+      missing: ["integration"],
+      required: ["build", "integration"],
+      unproven: [],
+    };
+    const verdicts = ({ inFlight }: { inFlight: readonly string[] }) =>
+      landingTests({ queueAvailability: HAS_QUEUE, state: state({ requiredContexts: { ...gate, inFlight } }) });
+    const midLap = verdicts({ inFlight: ["unit-1"] });
+    const finished = verdicts({ inFlight: [] });
+    expect(midLap.map((test) => test.verdict)).toEqual(finished.map((test) => test.verdict));
+    const ci = midLap.find((test) => test.id === "ci-green")!;
+    expect(ci.verdict).toBe("fail");
+    expect(ci.why).toBe("1 context(s) staging REQUIRES not yet created: integration (1 check still in flight: unit-1)");
   });
 
   it("answers ci-green unknown, never pass, when the required set could not be read", () => {

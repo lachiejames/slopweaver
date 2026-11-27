@@ -29,6 +29,7 @@ describe("gateFor", () => {
     });
     expect(gateFor({ pr: head, sets })).toEqual({
       branch: "staging",
+      inFlight: [],
       kind: "read",
       mergeable: "CONFLICTING",
       missing: ["lint"],
@@ -41,6 +42,7 @@ describe("gateFor", () => {
     const head = pr({ checks: { ...pr().checks, checks: [...pr().checks.checks, LINT] }, number: 16379 });
     expect(gateFor({ pr: head, sets })).toEqual({
       branch: "staging",
+      inFlight: [],
       kind: "read",
       mergeable: "MERGEABLE",
       missing: [],
@@ -53,6 +55,7 @@ describe("gateFor", () => {
     const head = pr({ checks: { ...pr().checks, truncated: true } });
     expect(gateFor({ pr: head, sets })).toEqual({
       branch: "staging",
+      inFlight: [],
       kind: "read",
       mergeable: "MERGEABLE",
       missing: [],

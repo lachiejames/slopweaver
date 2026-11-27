@@ -25,7 +25,7 @@ function gate({
   missing?: readonly string[];
   unproven?: readonly string[];
 } = {}): RequiredContextGate {
-  return { branch: "main", kind: "read", mergeable: undefined, missing, required: ["build"], unproven };
+  return { branch: "main", inFlight: [], kind: "read", mergeable: undefined, missing, required: ["build"], unproven };
 }
 
 const PASSED: GithubCheck = { kind: "check-run", name: "build", state: "passed", url: undefined };

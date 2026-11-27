@@ -85,6 +85,7 @@ const PR_18226: Partial<PrReviewState> = {
   repoSlug: "acme/acme-admin",
   requiredContexts: {
     branch: "staging",
+    inFlight: [],
     kind: "read",
     mergeable: undefined,
     missing: [],
@@ -172,6 +173,7 @@ describe("an advisory red", () => {
       ...ADVISORY_RED,
       requiredContexts: {
         branch: "staging",
+        inFlight: [],
         kind: "read",
         mergeable: undefined,
         missing: [],
