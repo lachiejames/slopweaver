@@ -11,10 +11,9 @@
  *
  * Bump records live in the state home (`src/codex/bumpRecordStore.ts`), which CI cannot see, so a loosening
  * PASSES here: the gate prints how many there are and that landing owes a bump record and a Codex witness for
- * them. A manifest the change commits under `.baselines/bumps/` is one the landing verbs read too, so it passes.
- * What it still refuses is a change rewriting one of main's manifests there — its witness judged the old bytes —
- * and, as facts about the inputs, a baseline that will not decode, a file under `.baselines/` no registry row
- * names, and a base it cannot read.
+ * them. What it refuses is a file the change adds, renames or rewrites under `.baselines/bumps/`, where no
+ * landing verb reads a declaration (one left byte-identical or deleted passes), and, as facts about the inputs, a
+ * baseline that will not decode, a file under `.baselines/` no registry row names, and a base it cannot read.
  *
  * ## What this gate cannot do, and what does
  *
