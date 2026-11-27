@@ -10,7 +10,8 @@ import { mkdirSync, rmSync } from "node:fs";
 import { isAbsentError, nonBlockingFileBytes } from "../lib/presentFile.js";
 import { writeFileAtomic } from "../lib/writeAtomic.js";
 import { stateHomePaths } from "../stateHome.js";
-import { parseSupervisorPin, type SupervisorPinRecord } from "./supervisorPin.js";
+import type { VisibleSupervisorSession } from "../supervisor/session.js";
+import { parseSupervisorPin, type SupervisorPinRecord, sessionsNamedByPinText } from "./supervisorPin.js";
 
 /** Owner-only permissions, matching `./sessionStore.ts`. */
 const DIR_MODE = 0o700;
@@ -46,11 +47,15 @@ export function readSupervisorPin({ home }: { home?: string } = {}): SupervisorP
   }
 }
 
-/** What the pin file holds, for a judgement that must tell "nothing recorded" from "a record it cannot trust". */
+/**
+ * What the pin file holds, for a judgement that must tell "nothing recorded" from "a record it cannot trust". An
+ * untrusted record still says which sessions it `named`, none of them chosen as the holder, so a refusal can name
+ * the chairs whose turns it could not read; a file that would not read at all names none.
+ */
 export type SupervisorPinDisposition =
   | { readonly kind: "absent" }
   | { readonly kind: "pin"; readonly record: SupervisorPinRecord }
-  | { readonly kind: "unreadable"; readonly why: string };
+  | { readonly kind: "unreadable"; readonly named: readonly VisibleSupervisorSession[]; readonly why: string };
 
 /**
  * The pin file, read STRICTLY: {@link readSupervisorPin} folds absent, unreadable and malformed into one `undefined`,
@@ -69,11 +74,15 @@ export function readSupervisorPinDisposition({ home }: { home?: string } = {}): 
     if (isAbsentError({ error: cause, path })) {
       return { kind: "absent" };
     }
-    return { kind: "unreadable", why: `the supervisor pin would not read: ${String(cause)}` };
+    return { kind: "unreadable", named: [], why: `the supervisor pin would not read: ${String(cause)}` };
   }
   const record = parseSupervisorPin({ text });
   if (record === undefined) {
-    return { kind: "unreadable", why: "the supervisor pin does not parse as one record shape" };
+    return {
+      kind: "unreadable",
+      named: sessionsNamedByPinText({ text }),
+      why: "the supervisor pin does not parse as one record shape",
+    };
   }
   return { kind: "pin", record };
 }

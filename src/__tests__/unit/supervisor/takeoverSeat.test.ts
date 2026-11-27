@@ -100,7 +100,7 @@ describe("resolveTakeoverPredecessor, a cmux caller (the path before the app arm
     const predecessor = workspace({ pinned: true, workspaceId: "predecessor", workspaceRef: "workspace:2" });
     const resolved = resolveTakeoverPredecessor({
       caller: CMUX_CALLER,
-      disposition: { kind: "unreadable", why: "it does not parse" },
+      disposition: { kind: "unreadable", named: [], why: "it does not parse" },
       workspaces: [predecessor],
     });
     expect(unwrap(resolved)).toEqual({ kind: "cmux", workspace: predecessor });
@@ -179,7 +179,7 @@ describe("resolveTakeoverPredecessor, the app arm", () => {
     const refused = unwrapErr(
       resolveTakeoverPredecessor({
         caller: { appSessionId: OTHER_APP_ID, kind: "app" },
-        disposition: { kind: "unreadable", why: "it does not parse" },
+        disposition: { kind: "unreadable", named: [], why: "it does not parse" },
         workspaces: [],
       }),
     );
@@ -230,7 +230,7 @@ describe("resolveAppPredecessorPastUnreadableCmux", () => {
       resolveAppPredecessorPastUnreadableCmux({
         caller: { appSessionId: OTHER_APP_ID, kind: "app" },
         cmuxWhy: WHY,
-        disposition: { kind: "unreadable", why: "it does not parse" },
+        disposition: { kind: "unreadable", named: [], why: "it does not parse" },
       }),
     );
     expect(refused.code).toBe("CMUX_UNREADABLE");

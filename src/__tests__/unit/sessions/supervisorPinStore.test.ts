@@ -81,15 +81,20 @@ describe("readSupervisorPinDisposition", () => {
     expect(readSupervisorPin({ home })).toBe(undefined);
     expect(readSupervisorPinDisposition({ home })).toEqual({
       kind: "unreadable",
+      named: [
+        { host: "claude-code", id: "sess-super" },
+        { host: "codex", id: "thread-1" },
+      ],
       why: "the supervisor pin does not parse as one record shape",
     });
   });
 
-  it("reads a FIFO at the path as unreadable without blocking", () => {
+  it("reads a FIFO at the path as unreadable without blocking, naming no session since it read no text", () => {
     const home = freshHome();
     const path = supervisorPinPath({ home });
     mkdirSync(join(path, ".."), { recursive: true });
     execFileSync("mkfifo", [path]);
-    expect(readSupervisorPinDisposition({ home }).kind).toBe("unreadable");
+    const disposition = readSupervisorPinDisposition({ home });
+    expect(disposition).toEqual({ kind: "unreadable", named: [], why: expect.stringContaining("would not read: ") });
   });
 });
