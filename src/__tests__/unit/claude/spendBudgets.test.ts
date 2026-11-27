@@ -2,16 +2,18 @@
  * `readClaudePlanSpends` over a real readings ledger in a throwaway home: each monthly-spend plan gets the verdict its
  * newest hour-fresh reading earns under its own usage limit, and a plan with none is named not-measured, never left out.
  */
-import { mkdtempSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { unwrap } from "#lib/result.js";
+import { unwrap, unwrapErr } from "#lib/result.js";
 
 import type { ClaudeAccount } from "../../../claude/contracts.js";
 import { monthlySpendAccount, readClaudePlanSpends } from "../../../claude/spendBudgets.js";
 import { recordClaudeSpendReading } from "../../../claude/spendStore.js";
+import { readingsInWindow } from "../../../readings/store.js";
+import { stateHomePaths } from "../../../stateHome.js";
 
 const NOW = "2026-11-04T10:00:00.000Z";
 
@@ -93,6 +95,38 @@ describe("readClaudePlanSpends", () => {
     const [spend] = readClaudePlanSpends({ accounts: [ACCOUNTS[1]!], home, nowIso: NOW });
 
     expect(spend!.verdict.kind).toBe("usage-limit");
+  });
+
+  it("names a plan whose ledger cannot be read not-measured, its reason naming no path of the store it read", () => {
+    const paths = stateHomePaths({ home });
+    mkdirSync(paths.readings, { recursive: true });
+    writeFileSync(paths.readingsIndexJsonl, "");
+    chmodSync(paths.readings, 0o000);
+    try {
+      // The witness that the input carries the path: the ledger's own failure names it.
+      const raw = unwrapErr(
+        readingsInWindow({ fromIso: "2026-11-04T09:00:00.000Z", home, producer: "claude spend", toIso: NOW }),
+      );
+      expect(raw.code).toBe("STORE_UNREADABLE");
+      expect(raw.message).toContain(home);
+
+      const spends = readClaudePlanSpends({ accounts: [ACCOUNTS[1]!], home, nowIso: NOW });
+
+      expect(spends).toStrictEqual([
+        {
+          alias: "plan-two",
+          verdict: {
+            kind: "not-measured",
+            reason:
+              "its spend readings could not be read — a recorded spend reading could not be read: " +
+              "could not read the readings ledger — refusing rather than reporting it empty",
+          },
+        },
+      ]);
+      expect(JSON.stringify(spends)).not.toContain(home);
+    } finally {
+      chmodSync(paths.readings, 0o700);
+    }
   });
 
   it("returns nothing for a fleet with no monthly-spend plan", () => {
