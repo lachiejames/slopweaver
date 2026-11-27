@@ -9,7 +9,7 @@
  */
 import { app, BrowserWindow, screen } from "electron";
 
-import { type FleetLink, fleetLinkOf } from "./fleetPage";
+import { type FleetLink, fleetLinkOf, noteFoldOpen, noteLoadUrl, sameDocumentMove } from "./fleetPage";
 
 /** What the windows read from, and tell, the rest of the shell. */
 export interface FleetWindowsHost {
@@ -28,7 +28,10 @@ export interface FleetWindowsHost {
 let host: FleetWindowsHost | undefined;
 let fleetWindow: BrowserWindow | undefined;
 let noteWindow: BrowserWindow | undefined;
-/** What each window last loaded, so an unchanged reading never reloads it and closes the owner's fold. */
+/**
+ * What each window last loaded, fragment-free, so an unchanged reading never reloads it and closes the owner's fold;
+ * a changed one carries the note's fold over (`noteLoadUrl`).
+ */
 let fleetLoaded: string | undefined;
 let noteLoaded: string | undefined;
 
@@ -83,6 +86,10 @@ function guardNavigation({ target }: { target: BrowserWindow }): void {
   const contents = target.webContents;
   contents.setWindowOpenHandler(() => ({ action: "deny" }));
   contents.on("will-navigate", (event, url) => {
+    // The note's fold opens and closes on a fragment of its own page; that is never a page change to refuse.
+    if (sameDocumentMove({ from: contents.getURL(), to: url })) {
+      return;
+    }
     event.preventDefault();
     const link = fleetLinkOf({ url });
     if (link !== undefined) {
@@ -212,7 +219,10 @@ export function drawFleetNote({ url }: { readonly url: string | undefined }): vo
     noteWindow = created;
   }
   if (url !== noteLoaded) {
+    // A changed reading is a new document, so the fold's open state is read off the address showing now — its
+    // fragment, which the window keeps with no script — and carried onto the load.
+    const foldOpen = noteLoaded !== undefined && noteFoldOpen({ url: noteWindow.webContents.getURL() });
     noteLoaded = url;
-    void noteWindow.loadURL(url);
+    void noteWindow.loadURL(noteLoadUrl({ foldOpen, url }));
   }
 }

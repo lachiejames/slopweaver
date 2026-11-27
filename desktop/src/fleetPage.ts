@@ -106,7 +106,67 @@ li{display:grid;grid-template-columns:14px 74px 1fr;gap:8px;align-items:baseline
 .detail{display:block;font-size:12px;opacity:.7}
 .empty{opacity:.45}
 .why li{display:list-item;list-style:disc inside;padding:2px 0;border:0;font-size:12px}
+.fold-open,.fold-close{display:inline-block;margin:0 0 8px;color:inherit;font-size:12px;opacity:.75}
+.fold,.fold-close{display:none}
+#why:target .fold{display:block}
+#why:target .fold-close{display:inline}
+#why:target .fold-open{display:none}
 `;
+
+/**
+ * The fragment the note's fold is open under. The fold is CSS `:target`, not a native `<details>`, because a native
+ * fold's open state lives only in the document and a changed reading loads a new one; a fragment lives in the URL,
+ * which the shell reads back with no script and carries onto the next load.
+ */
+const NOTE_FOLD_FRAGMENT = "#why";
+
+/**
+ * Whether the note at a URL has its "Why it reads this way" fold open. Electron answers an empty address while a
+ * window's first load has not committed, and after a load that failed; no document is showing then, so no fold is
+ * open, and reading one never throws inside the shell's draw.
+ *
+ * @param url the address the note window is showing now, fragment included
+ * @returns true when its fragment is the fold's; false for an address that does not parse
+ */
+export function noteFoldOpen({ url }: { readonly url: string }): boolean {
+  if (!URL.canParse(url)) {
+    return false;
+  }
+  return new URL(url).hash === NOTE_FOLD_FRAGMENT;
+}
+
+/**
+ * The address to load a note at, so a fold the owner had open stays open across a changed reading.
+ *
+ * @param url the note's fragment-free `data:` URL, as `fleetNoteUrl` draws it
+ * @param foldOpen whether the note being replaced had its fold open
+ * @returns the URL, on the fold's fragment when it was open
+ */
+export function noteLoadUrl({ url, foldOpen }: { readonly url: string; readonly foldOpen: boolean }): string {
+  if (foldOpen) {
+    return `${url}${NOTE_FOLD_FRAGMENT}`;
+  }
+  return url;
+}
+
+/**
+ * Whether a navigation only moves to a fragment of the document already showing — the fold's own two links — so the
+ * guard lets it through rather than refusing it as a page change. A move needs a `#` on its target: without one the
+ * same address is a fresh load.
+ *
+ * @param from the address the window shows now
+ * @param to the address it is moving to
+ * @returns true for a same-document fragment move
+ */
+export function sameDocumentMove({ from, to }: { readonly from: string; readonly to: string }): boolean {
+  const hashAt = to.indexOf("#");
+  if (hashAt === -1) {
+    return false;
+  }
+  const fromHashAt = from.indexOf("#");
+  const fromDocument = fromHashAt === -1 ? from : from.slice(0, fromHashAt);
+  return to.slice(0, hashAt) === fromDocument;
+}
 
 /**
  * One script-free document around a body, in the shell's own style — the sessions page and both floating notes.
@@ -392,13 +452,15 @@ export function fleetNoteUrl({
     .map((line) => `<li>${escapeHtml({ text: line })}</li>`)
     .join("");
   const body = [
+    `<div id="${NOTE_FOLD_FRAGMENT.slice(1)}">`,
     `<p class="title">${escapeHtml({ text: step.note })}</p>`,
     `<a class="act" href="${escapeHtml({ text: hrefOf({ link: { kind: "act", stepId: step.id } }) })}">${escapeHtml({ text: step.label })}</a> `,
     `<a class="detail" href="${escapeHtml({ text: hrefOf({ link: { kind: "dismiss", stepId: step.id } }) })}">Not now</a>`,
-    `<details><summary>Why it reads this way</summary><ul class="why">${why}</ul></details>`,
+    `<a href="${NOTE_FOLD_FRAGMENT}" class="fold-open">Why it reads this way</a><a href="#" class="fold-close">Why it reads this way</a><ul class="why fold">${why}</ul>`,
     ...(step.action.kind === "resume"
       ? [`<p class="detail">Or run it yourself:</p><pre>${escapeHtml({ text: RESUME_COMMAND })}</pre>`]
       : []),
+    "</div>",
   ].join("");
   return dataUrl({ html: documentOf({ body, title: "Slopweaver fleet" }) });
 }
