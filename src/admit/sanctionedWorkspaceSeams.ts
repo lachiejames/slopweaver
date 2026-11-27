@@ -330,6 +330,10 @@ export const WORKSPACE_SEAMS = {
   // replacing one. Its read is the store's; this module writes that single file on this machine and nothing else.
   "src/cli/commands/page/exportRun.ts": "local-state",
   "src/codex/streamLog.ts": "local-state",
+  // Removes ONE snapshot pool, a description review's own one-shot packet pool, under every slot's lease: renames
+  // under the OS temp dir and its git worktree deregistration. The same class as `codex/snapshotPool.ts` — a
+  // local checkout on this machine, never a provider. Its ledger row goes through `home/reclaim/journalStore.ts`.
+  "src/codex/snapshotPoolReclaim.ts": "local-state",
   // Settings → Models' Connect: the attempt records, cancel and sign-in-page markers and the per-provider lock
   // under $SLOPWEAVER_HOME/live/plan-connections, the new store's 0700 directory and its reservation marker, and
   // one detached launch of this machine's own `slopweaver plans connect-worker`. No provider is reachable.

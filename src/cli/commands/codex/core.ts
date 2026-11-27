@@ -23,6 +23,7 @@ import type { CodexPassId, ReviewProperty } from "../../../codex/types.js";
 import { isRecord } from "../../../lib/parsers.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { parseFlagTail } from "../../optionParsers.js";
+import { type PoolReclaimOutcome, poolReclaimJson } from "./descriptionReviewPoolReclaim.js";
 import { type CodexCommandError, CodexCommandErrors } from "./errors.js";
 import { scratchReclaimJson } from "./scratchReclaimReport.js";
 
@@ -360,12 +361,21 @@ function passDestination({ pass }: { pass: CompletedPass }): string {
  * This — not the exit code — is what a caller must branch on, because `BROKEN` and `CLEAN` are both
  * successful passes and both exit 0. Every field a consuming agent needs to decide "may I proceed?" is
  * here explicitly, including the artifact path to read the full answer from. `scratchReclaim` says what
- * became of the pass's own scratch workspace; it is beside the verdict and never part of it.
+ * became of the pass's own scratch workspace; it is beside the verdict and never part of it. A review
+ * also carries a top-level `snapshotPoolReclaim`, what became of a description review's one-shot pool,
+ * beside every verdict in the same way; a plan carries none.
  *
  * @param passes every completed pass in this invocation
+ * @param poolReclaim the review's pool outcome, omitted from the document when absent
  * @returns the JSON document, as one line
  */
-export function codexResultJson({ passes }: { passes: readonly CompletedPass[] }): string {
+export function codexResultJson({
+  passes,
+  poolReclaim,
+}: {
+  passes: readonly CompletedPass[];
+  poolReclaim?: PoolReclaimOutcome | undefined;
+}): string {
   return JSON.stringify({
     passes: passes.map((pass) => ({
       artifactPath: publishedArtifactPath({ pass }),
@@ -376,6 +386,7 @@ export function codexResultJson({ passes }: { passes: readonly CompletedPass[] }
       verdict: verdictOf({ pass }),
     })),
     schemaVersion: 1,
+    ...(poolReclaim === undefined ? {} : { snapshotPoolReclaim: poolReclaimJson({ outcome: poolReclaim }) }),
   });
 }
 

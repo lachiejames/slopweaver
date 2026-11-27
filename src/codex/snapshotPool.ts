@@ -21,6 +21,13 @@
  * ## Why every operational worktree reader omits the slots
  *
  * They stay registered between passes. `../worktree/snapshotPoolPath.ts` has the reason and the predicate.
+ *
+ * ## The one pool that is removed
+ *
+ * An ordinary repository's pool stays, since its next pass reuses it. A description review's packet repository
+ * (`github pr review-prepare`) is a fresh git repository every time, so it mints a pool nothing ever reuses. Once
+ * every pass of that review has finished, `codex review` removes that one pool through `./snapshotPoolReclaim.ts`,
+ * from the `poolRoot` this module's acquire returned.
  */
 import { randomUUID } from "node:crypto";
 import {
@@ -82,6 +89,7 @@ export function acquirePooledSnapshot({
         commit: frozen.commit,
         contentTree: frozen.contentTree,
         path: held.tree,
+        poolRoot,
         release: () => {
           if (released) {
             return;

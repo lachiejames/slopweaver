@@ -8,6 +8,7 @@ import { reportAdmission } from "../../../codex/passAdmission.js";
 import { logger } from "../../../lib/logger.js";
 import { EXIT_ERROR, EXIT_USAGE } from "../../exitCodes.js";
 import { codexHumanLines, codexResultJson } from "./core.js";
+import { completedPassesOf, type PoolReclaimOutcome, poolReclaimFailureLines } from "./descriptionReviewPoolReclaim.js";
 import type { PassInvocation } from "./passRoute.js";
 import { scratchReclaimFailureLines } from "./scratchReclaimReport.js";
 
@@ -28,14 +29,28 @@ export function completedPassesExitCode({ passes }: { passes: readonly Completed
   return aggregateExitCode({ outcomes: passes.map((p) => p.record.outcome) });
 }
 
-/** Report a set of completed passes and pick the exit code. */
-function report({ passes }: { passes: readonly CompletedPass[] }): number {
+/**
+ * Report a set of completed passes and pick the exit code. The pool outcome is printed beside the verdicts and
+ * never read by the exit code.
+ */
+function report({
+  passes,
+  poolReclaim,
+}: {
+  passes: readonly CompletedPass[];
+  poolReclaim: PoolReclaimOutcome | undefined;
+}): number {
   for (const line of codexHumanLines({ passes })) {
     logger.info({ msg: line });
   }
-  logger.out({ line: codexResultJson({ passes }) });
+  logger.out({ line: codexResultJson({ passes, poolReclaim }) });
   for (const line of scratchReclaimFailureLines({ passes })) {
     logger.error({ msg: line });
+  }
+  if (poolReclaim !== undefined) {
+    for (const line of poolReclaimFailureLines({ outcome: poolReclaim })) {
+      logger.error({ msg: line });
+    }
   }
   if (passes.some((p) => p.persistError !== undefined)) {
     logger.error({ msg: "an artifact could not be written — the result above exists but was NOT persisted" });
@@ -52,19 +67,24 @@ function report({ passes }: { passes: readonly CompletedPass[] }): number {
  * report and a bare exit code. An unroutable pass printed its own refusal when routing made it.
  *
  * @param invocations what each pass returned
+ * @param poolReclaim a review's one-shot pool outcome, reported beside the verdicts; a plan passes none
  * @returns the exit code — the routing refusal's on any unroutable pass, usage on any duplicate, else whatever
  *   the completed passes aggregate to
  */
-export function reportInvocations({ invocations }: { invocations: readonly PassInvocation[] }): number {
+export function reportInvocations({
+  invocations,
+  poolReclaim,
+}: {
+  invocations: readonly PassInvocation[];
+  poolReclaim?: PoolReclaimOutcome | undefined;
+}): number {
   const refused = invocations.filter((invocation) => invocation.kind === "refused");
   for (const invocation of refused) {
     reportAdmission({ admission: invocation.admission });
   }
   const unrouted = invocations.find((invocation) => invocation.kind === "unrouted");
-  const passes = invocations
-    .filter((invocation) => invocation.kind === "completed")
-    .map((invocation) => invocation.pass);
-  const code = passes.length === 0 ? EXIT_USAGE : report({ passes });
+  const passes = completedPassesOf({ invocations });
+  const code = passes.length === 0 ? EXIT_USAGE : report({ passes, poolReclaim });
   if (unrouted !== undefined) {
     return unrouted.exitCode;
   }
