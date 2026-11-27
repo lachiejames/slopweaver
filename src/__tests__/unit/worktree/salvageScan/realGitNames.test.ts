@@ -187,7 +187,7 @@ describe("salvageScanDecline over a forbidden identifier in real git", REAL_GIT_
         refName: REF,
       });
       expect(line).toBe(
-        "what it would push could not be scanned for identifiers — rules unreadable; nothing was pushed",
+        "what it would push could not be scanned for identifiers — the identifier scanner threw, its message withheld; nothing was pushed",
       );
     },
     REAL_GIT_TIMEOUT_MS,

@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 
 import { type SalvageScanEdges, salvageScanDecline } from "../../../../worktree/salvageScan.js";
-import { batchOf, IDENTIFIERS, ORG, REF, SHA_A, SHA_B, TOKEN } from "./harness.js";
+import { batchOf, IDENTIFIERS, ORG, REF, rawRecord, SHA_A, SHA_B, TOKEN } from "./harness.js";
 
 /**
  * Scripted edges answering a fixed listing and a fixed set of blobs.
@@ -166,10 +166,41 @@ describe("salvageScanDecline over a forbidden identifier", () => {
   });
 
   it("declines the organisation in a changed path's NAME, whose blob is clean", () => {
-    const edges = scripted({ blobs: [{ content: "clean", path: "a.md", sha: SHA_A }], metadata: `${ORG}/a.md\u0000` });
+    const edges = scripted({
+      blobs: [{ content: "clean", path: "a.md", sha: SHA_A }],
+      metadata: rawRecord({ path: `${ORG}/a.md`, sha: SHA_A }),
+    });
     expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
       "the work it would push carries 1 forbidden-identifier hit(s) (forbidden-word-ci) in the changed paths, and the destination is public — nothing was pushed",
     );
+  });
+
+  it("declines a forbidden word at EVERY path its one blob is written at, counting each copy", () => {
+    const edges = scripted({
+      blobs: [{ content: `notes for ${ORG}\n`, path: "a.md", sha: SHA_A }],
+      metadata: rawRecord({ path: "a.md", sha: SHA_A }) + rawRecord({ path: "b.md", sha: SHA_A }),
+    });
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "the work it would push carries 2 forbidden-identifier hit(s) (forbidden-word-ci) in a.md, b.md, and the destination is public — nothing was pushed",
+    );
+  });
+});
+
+describe("salvageScanDecline over the raw metadata walk", () => {
+  it("scans a SECRET once per object, however many paths write it", () => {
+    const edges = scripted({
+      blobs: [{ content: `token=${TOKEN}\n`, path: "a.env", sha: SHA_A }],
+      metadata: rawRecord({ path: "a.env", sha: SHA_A }) + rawRecord({ path: "b.env", sha: SHA_A }),
+    });
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "the work it would push carries 1 secret-class line(s) (github-oauth-token) in a.env — nothing was pushed",
+    );
+  });
+
+  it("declines a walk it cannot parse without quoting it, since a partial map would leave a copy unjudged", () => {
+    const edges = scripted({ blobs: [{ content: "clean", path: "a.md", sha: SHA_A }], metadata: `${ORG}/a.md\u0000` });
+    const line = salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF });
+    expect(line).toBe("the paths it would push were in a git listing the scan could not read — nothing was pushed");
   });
 
   it("declines a secret first when a push carries both", () => {
