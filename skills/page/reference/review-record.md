@@ -12,8 +12,11 @@ slopweaver page review-prepare <slug> --page <fragment>.html --inputs <owner-wor
 ```
 
 It builds `$SLOPWEAVER_HOME/page-reviews/<slug>/<preparation-id>/repo`, a git repository whose base commit
-holds `inputs/` (numbered copies of each `--inputs` file) and whose head commit adds `page.html`, your fragment
-with every reference publish would link already linked: the bytes the page will carry. It prints, each with that repository's `--repo` and the home's `--home`:
+holds only a README and whose head commit adds `inputs/` (numbered copies of each `--inputs` file) and
+`page.html`, your fragment with every reference publish would link already linked: the bytes the page will carry.
+The inputs ride the head because a review's packet is the base-to-head diff and nothing else, Codex's and the
+fallback's alike; committed at the base, they never reached the reviewer. For the same reason an input or a page
+holding a NUL byte is refused (`FILE_NOT_TEXT`): git diffs it as binary, with none of its contents. It prints, each with that repository's `--repo` and the home's `--home`:
 
 1. the `codex review --pass r1 --property-id … --property "…" --base <base> …` to run;
 2. Codex capped, the `codex review-fallback prepare` and `record` pair, which a visible Claude session runs
