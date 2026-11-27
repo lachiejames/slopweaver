@@ -93,9 +93,9 @@ describe("planLintRun", () => {
   });
 
   it("reports laneScope over the WHOLE plan even when --only narrowed the run to one gate", () => {
-    // The lane line and the `--only` line answer different questions: how much of the bar this LANE is,
-    // against what this RUN actually spawned. A laneScope computed over the selection would make a narrow
-    // local run claim it had covered the lane.
+    // laneScope answers how much of the bar this LANE is; what a narrowed RUN spawned is counted by
+    // `lapClose` from its results, never by rewriting this field. A laneScope computed over the selection
+    // would make every whole-lane verdict read as narrow as the last `--only` plan.
     const run = unwrap(planLintRun({ checks: PLAN, rest: ["--only", "beta", "--lane", "local"] }));
     expect(run.running.map((c) => c.name)).toEqual(["beta"]);
     expect(run.laneScope).toEqual({ ran: 1, total: 3 });

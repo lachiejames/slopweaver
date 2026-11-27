@@ -16,6 +16,10 @@ import { concurrencyLine, secondsLabel } from "./gateRunner.js";
  * LAST. The recap and the re-check sit directly above the verdict so a read of the log's tail carries each
  * failed gate's finding and the command that re-checks it, not only its name.
  *
+ * On a narrowed run the verdict counts the gates this run reported, against the whole plan, never the lane's
+ * own scope: the last line is the one a caller reads, and a `--only` run of one gate once closed on "the seat
+ * lane ran 89 of 92 gates" directly under the scope line saying it ran 1.
+ *
  * @param concurrency the pool width this machine ran, which the witness ratio is read against
  * @param results every gate's outcome, in plan order
  * @param run the resolved plan: its lane, scope, `--only` flag and the gates it spawned
@@ -46,7 +50,8 @@ export function lapClose({
   lines.push(...failedGateRecapLines({ results }));
   lines.push(...failedRecheckLines({ lane, results }));
   const withheld = results.filter((result) => result.withheld !== undefined).map((result) => result.name);
-  lines.push(laneVerdictLine({ lane, laneScope, ok: exit !== EXIT_ERROR, uncovered, withheld }));
+  const scope = partial ? { ran: results.length, total: totalGates } : laneScope;
+  lines.push(laneVerdictLine({ lane, ok: exit !== EXIT_ERROR, partial, scope, uncovered, withheld }));
   return { exit, lines };
 }
 
@@ -233,8 +238,13 @@ export function onlyScopeLine({ ran, total }: { ran: readonly string[]; total: n
  * **A withheld gate turns a PASS into `INCOMPLETE`** and is named in the same line: every gate that ran passed,
  * and that is all the line may claim.
  *
+ * **A narrowed run counts what IT ran** ({@link narrowedVerdictLine}), so the scope is the run's and not the
+ * lane's; every whole-lane line below is unchanged by that branch.
+ *
  * @param ok whether every check in the lane that ran passed
- * @param laneScope how much of the whole plan this lane runs
+ * @param scope how much of the whole plan this verdict may claim: the lane's on a whole-lane run, the gates
+ *   the run reported on a narrowed one
+ * @param partial whether `--only` narrowed the run, so `scope` counts the run rather than the lane
  * @param lane which lane ran, deciding whether its gap is counted or named
  * @param uncovered what a `seat` run did not cover, by name
  * @param withheld the gates this run planned and then refused to spawn, by name
@@ -243,13 +253,15 @@ export function onlyScopeLine({ ran, total }: { ran: readonly string[]; total: n
  */
 export function laneVerdictLine({
   ok,
-  laneScope,
+  partial,
+  scope,
   lane,
   uncovered,
   withheld,
 }: {
   ok: boolean;
-  laneScope: { readonly ran: number; readonly total: number };
+  partial: boolean;
+  scope: { readonly ran: number; readonly total: number };
   lane: LintLane;
   uncovered: readonly string[];
   withheld: readonly string[];
@@ -258,7 +270,10 @@ export function laneVerdictLine({
   if (ok && withheld.length > 0) {
     verdict = `INCOMPLETE (${withheld.join(", ")} NOT run: withheld, the reason is above)`;
   }
-  const { ran, total } = laneScope;
+  if (partial) {
+    return narrowedVerdictLine({ lane, scope, uncovered, verdict });
+  }
+  const { ran, total } = scope;
   if (lane === "seat") {
     return (
       `dev lint: ${verdict} — the seat lane ran ${String(ran)} of ${String(total)} gates and did NOT cover: ` +
@@ -273,4 +288,44 @@ export function laneVerdictLine({
     `The other ${String(total - ran)} are CI's: watch \`build\` with \`slopweaver github checks --wait\`, ` +
     `and read a red leg with \`--log\`.`
   );
+}
+
+/**
+ * The verdict line of an `--only` run, counting the gates that run reported rather than its lane's.
+ *
+ * Each lane keeps its own pointer, worded so it stays true of a selection: the local lane's "the other N are
+ * CI's" would be false here, since some of the gates this run skipped are local ones it was simply not asked
+ * for; and the seat lane's `uncovered` names the lane's structural gap, not what `--only` left out, so the
+ * line attributes it to the lane.
+ *
+ * @param verdict the already-decided PASS, FAIL or INCOMPLETE word
+ * @param scope the gates this run reported, against the whole plan
+ * @param uncovered what the `seat` lane never covers, by name
+ * @returns the narrowed verdict line, without its trailing newline
+ */
+function narrowedVerdictLine({
+  lane,
+  scope,
+  uncovered,
+  verdict,
+}: {
+  lane: LintLane;
+  scope: { readonly ran: number; readonly total: number };
+  uncovered: readonly string[];
+  verdict: string;
+}): string {
+  const count = `${String(scope.ran)} of ${String(scope.total)} gates`;
+  if (lane === "seat") {
+    return (
+      `dev lint: ${verdict} — this narrowed seat run ran ${count}. The seat lane did NOT cover: ` +
+      `${uncovered.join(", ")}. CI, or \`slopweaver github lap\` where hosted Actions are off, runs them.`
+    );
+  }
+  if (lane === "local") {
+    return (
+      `dev lint: ${verdict} — this narrowed local run ran ${count}. Gates outside the local lane are CI's: ` +
+      `watch \`build\` with \`slopweaver github checks --wait\`, and read a red leg with \`--log\`.`
+    );
+  }
+  return `dev lint: ${verdict} — this narrowed run ran ${count}.`;
 }
