@@ -18,6 +18,7 @@ import { readGit } from "../../../admit/gitTransport.js";
 import { ok, unwrap, unwrapErr } from "../../../lib/result.js";
 import type { PruneVerdict } from "../../../worktree/pruneClassify.js";
 import { runSalvage } from "../../../worktree/pruneSalvage.js";
+import { confirmOnRemote } from "../../../worktree/salvagePush.js";
 import { SalvageTrunkErrors, trunkHistoryHead } from "../../../worktree/salvageTrunkHistory.js";
 import { HOME_WITHOUT_PUSH_ROOTS } from "../../pushRootFixture.js";
 import { gitInTemp, REAL_GIT_SUITE } from "../../tempGitRepo.js";
@@ -134,6 +135,34 @@ describe("a salvage of another history", REAL_GIT_SUITE, () => {
     expect(writes[0]).toBe(
       `-c core.hooksPath=/dev/null -c core.fsmonitor=false branch salvage/old-work-${head.slice(0, 8)} ${head}`,
     );
+  });
+});
+
+describe("the salvage push", REAL_GIT_SUITE, () => {
+  it("declines a tree reset off the checked HEAD before the push, and sends nothing", () => {
+    const { tree } = seed({ start: "origin/main" });
+    gitInTemp({ args: ["add", "-A"], cwd: tree });
+    gitInTemp({ args: [...COMMIT, "checked"], cwd: tree });
+    const checkedHead = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
+    // Another process resets the tree to the checked commit's parent, a commit the check never accepted as the push.
+    gitInTemp({ args: ["reset", "-q", "--hard", "HEAD~1"], cwd: tree });
+    const { deps, writes } = edges();
+
+    const outcome = confirmOnRemote({
+      checkedHead,
+      deps,
+      home: HOME_WITHOUT_PUSH_ROOTS,
+      path: tree,
+      remote: "origin",
+      scan: NO_SECRETS,
+      target: "salvage/old-work",
+    });
+
+    expect(outcome).toEqual({
+      branch: null,
+      declined: "the commit to push does not descend from the HEAD checked against the trunk — nothing was pushed",
+    });
+    expect(writes).toEqual([]);
   });
 });
 

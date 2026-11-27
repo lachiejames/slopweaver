@@ -548,10 +548,7 @@ function salvageOnce({
   // An IGNORED file is not asked about here: one no build writes again already holds the tree at classify
   // time (owner), and `changedSinceScan` rechecks it, so what reaches a salvage is build output.
   if (now.headSha !== checked.value) {
-    return {
-      branch: null,
-      declined: "its HEAD moved after its history was checked against the trunk — nothing was pushed",
-    };
+    return { branch: null, declined: HEAD_MOVED_SINCE_CHECK };
   }
   const free = freeSalvageName({ deps, headSha: now.headSha, path: verdict.path, remote });
   if (free === null) {
@@ -577,5 +574,8 @@ function salvageOnce({
       return { branch: null, declined: `could not ${step.what} — ${ran.error}` };
     }
   }
-  return confirmOnRemote({ deps, home, path: verdict.path, remote, scan, target });
+  return confirmOnRemote({ checkedHead: checked.value, deps, home, path: verdict.path, remote, scan, target });
 }
+
+/** The decline when a tree's HEAD is no longer the sha whose history was checked against the trunk. */
+const HEAD_MOVED_SINCE_CHECK = "its HEAD moved after its history was checked against the trunk — nothing was pushed";

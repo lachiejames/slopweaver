@@ -29,6 +29,7 @@ import { err, ok, type Result } from "#lib/result.js";
 import { writeFileAtomic } from "#lib/writeAtomic.js";
 
 import type { GitRunner } from "./pruneGit.js";
+import { PRUNE_REMOTE } from "./pruneRemote.js";
 
 /** The file the marker is written to, inside the tree's private gitdir. */
 export const LAP_TREE_MARKER_FILE = "slopweaver-lap.json";
@@ -221,10 +222,11 @@ export function unexpectedLapWork({ ignoredWork }: { ignoredWork: readonly strin
 /**
  * The ref namespaces whose refs count as somebody MEANING to keep a commit — an allowlist, so a namespace nobody
  * listed never admits a removal by default. Not counted: `refs/tmp/` (scratch, anything may delete it),
- * `refs/slopweaver/lap/` (the next lap of that pull request moves it), `refs/stash`, and every namespace not here.
+ * `refs/slopweaver/lap/` (the next lap of that pull request moves it), `refs/stash`, every namespace not here, and
+ * every remote but {@link PRUNE_REMOTE}: an `archive` remote of another history is not where this work is backed up.
  */
 const LAP_WITNESS_NAMESPACES: readonly string[] = [
-  "refs/remotes/",
+  `refs/remotes/${PRUNE_REMOTE}/`,
   "refs/tags/",
   "refs/heads/",
   "refs/slopweaver/pruned-lap/",

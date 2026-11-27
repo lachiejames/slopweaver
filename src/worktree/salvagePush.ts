@@ -282,6 +282,7 @@ function resolveDestination({
  * @returns the branch when the remote confirmed it, or why the tree must be kept
  */
 export function confirmOnRemote({
+  checkedHead,
   deps,
   home,
   path,
@@ -289,6 +290,8 @@ export function confirmOnRemote({
   scan,
   target,
 }: {
+  /** The HEAD whose history was checked against the trunk; the pushed sha must descend from it. */
+  checkedHead: string;
   deps: GithubPushEdges;
   /** The state home whose push-root register judges the salvage push: a salvage never bypasses the guard. */
   home: string;
@@ -297,13 +300,11 @@ export function confirmOnRemote({
   scan: SalvageScan;
   target: string;
 }): SalvageOutcome {
-  let localSha = "";
-  try {
-    localSha = deps.readGit({ args: [...HOOKS_OFF, "rev-parse", "HEAD"], cwd: path }).trim();
-  } catch (error: unknown) {
-    const why = error instanceof Error ? error.message : "git could not be asked";
-    return { branch: null, declined: `could not read the commit to push — ${why}` };
+  const read = pushShaFromChecked({ checkedHead, deps, path });
+  if ("declined" in read) {
+    return { branch: null, declined: read.declined };
   }
+  const localSha = read.sha;
   const destination = resolveDestination({ deps, path, remote });
   if (destination.isErr()) {
     return { branch: null, declined: `${destination.error.message} — nothing was pushed` };
@@ -335,4 +336,54 @@ export function confirmOnRemote({
     return { branch: target, declined: null };
   }
   return { branch: null, declined: `the remote did not confirm the work — ${pushed.reason}` };
+}
+
+/**
+ * The sha a salvage pushes, read now, and held to DESCEND from the HEAD whose history was checked against the trunk.
+ *
+ * The capture's commit is a child of that HEAD, so a salvage that ran undisturbed always passes. One whose tree was
+ * reset or re-pointed by another process after the check is pushing a commit nobody checked, and declines: a sibling
+ * of the checked HEAD, or a commit of another history, is never what reaches the remote.
+ *
+ * @param checkedHead the HEAD `trunkHistoryHead` accepted
+ * @param deps the git edges
+ * @param path the worktree to read in
+ * @returns the sha to push, or why nothing is pushed
+ */
+function pushShaFromChecked({
+  checkedHead,
+  deps,
+  path,
+}: {
+  checkedHead: string;
+  deps: GithubPushEdges;
+  path: string;
+}): { declined: string } | { sha: string } {
+  let sha = "";
+  try {
+    sha = deps.readGit({ args: [...HOOKS_OFF, "rev-parse", "HEAD"], cwd: path }).trim();
+  } catch (error: unknown) {
+    const why = error instanceof Error ? error.message : "git could not be asked";
+    return { declined: `could not read the commit to push — ${why}` };
+  }
+  try {
+    deps.readGit({
+      args: [
+        ...HOOKS_OFF,
+        "--no-replace-objects",
+        "-c",
+        "core.commitGraph=false",
+        "merge-base",
+        "--is-ancestor",
+        checkedHead,
+        sha,
+      ],
+      cwd: path,
+    });
+  } catch {
+    return {
+      declined: "the commit to push does not descend from the HEAD checked against the trunk — nothing was pushed",
+    };
+  }
+  return { sha };
 }
