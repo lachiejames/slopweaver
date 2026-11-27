@@ -84,6 +84,24 @@ unwitnessed in a 24-hour window were delivery lines with their rows present (`sl
 --since 2001-01-01T12:56:18Z --now 2001-01-02T12:56:18Z`). The witness says the owner's words were recorded, never that
 the row was acted on: that is still the row's own settle.
 
+## A typed console turn is an intake obligation
+
+Reading is not witnessing. A turn the owner types to the console (`typed-owner-<uuid>`, or `typed-in-<uuid>` into a live call)
+reaches a row only when the voice relays it, and the voice never relays because a picture says to, so an ask carried
+by a screenshot reached no row. MEASURED on a synthetic home: an attachment-only typed turn, then `talk unread --mark`,
+then `supervisor intake`, read clean. So `supervisor intake` (and the reconcile it feeds) counts every final typed
+owner turn on the owner's console until one of three covers it: a row anchored at its `talk-call:<call>#<segment>`
+pointer (`handover register --ask "Private console turn" --anchor talk-call:…`, the line the report prints), the relay
+row its own `relay_steer` registered, or `supervisor intake-mark --turn talk-call:…`. The report prints pointers,
+instants and a count, never the words; read them with `talk unread`. Spoken stretches stay out: they arrive as
+fragments by the hundred.
+
+The obligation outlives the 24h window. Discovery reads call files written since the last COMPLETED scan, less an
+hour (from a fixed bootstrap instant until one completes, so a first or a failed read loses nothing), and
+`$SLOPWEAVER_HOME/sessions/typed-intake.jsonl` remembers each turn by pointer until a witness clears it, so an ask
+nobody registered still counts a week later, and a successor chair inherits the count. A ledger present and unreadable
+makes the typed half unavailable, never zero. `--session` excludes it: those turns are the chain's, not one chair's.
+
 ## `tick-record` refuses a tick that did not read
 
 A tick is refused while any FINISHED word of the owner's is unread, however young, or while any unread call line did not

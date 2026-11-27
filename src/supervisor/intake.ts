@@ -50,6 +50,8 @@ import { batchWitness } from "./batchWitness.js";
 import { type ChainCoverage, coverageClause } from "./chain.js";
 import { type InboundFinding, inboundSentence } from "./inbound.js";
 import { preferredMarks } from "./intakeWitness.js";
+import type { TypedIntakeReport } from "./typedIntake.js";
+import { typedIntakeSentence } from "./typedIntakeSentence.js";
 
 /**
  * How long a turn may sit with no witness before it counts.
@@ -114,7 +116,7 @@ export interface IntakeMark {
  * Where a turn's witness came from. `row` and `settlement` are read off the board — `row` either a row anchored at
  * the turn or the relay row a delivery line names — `wake` off the turn itself, and the rest off the ledger.
  */
-type WitnessKind = "row" | "settlement" | "wake" | IntakeMarkKind;
+export type WitnessKind = "row" | "settlement" | "wake" | IntakeMarkKind;
 
 /** The witness one turn has. */
 export interface TurnWitness {
@@ -170,7 +172,14 @@ export interface IntakeFinding {
  * second is the lie this whole check exists to stop.
  */
 export type IntakeReport =
-  | { readonly kind: "read"; readonly finding: IntakeFinding; readonly inbound: InboundFinding }
+  // `typed` is the owner's typed console turns (`./typedIntake.ts`), kept apart because it carries no words; absent where
+  // a reader never asks for it.
+  | {
+      readonly kind: "read";
+      readonly finding: IntakeFinding;
+      readonly inbound: InboundFinding;
+      readonly typed?: TypedIntakeReport;
+    }
   | { readonly kind: "unavailable"; readonly why: string };
 
 /** The narrow view of a board row this check reads — a doc's slug and the two fields that can name a turn. */
@@ -515,14 +524,13 @@ export function intakeClause({ report }: { report: IntakeReport }): string {
   const floor = finding.sinceIso === undefined ? "" : ` since ${finding.sinceIso}`;
   const sessions = `across ${String(finding.legs.length)} supervisor session(s)${floor}`;
   const gap = coverageClause({ coverage: finding.coverage });
-  const disclosure = gap === "" ? "" : ` ${gap}`;
-  const open = inboundSentence({ finding: report.inbound });
-  const inbound = open === "" ? "" : ` ${open}`;
+  const parts = [typedIntakeSentence({ report: report.typed }), inboundSentence({ finding: report.inbound }), gap];
+  const tail = parts.flatMap((part) => (part === "" ? [] : [` ${part}`])).join("");
   if (finding.unwitnessed.length > 0) {
-    return `${String(finding.unwitnessed.length)} owner turn(s) ${sessions} have no row or card.${inbound}${disclosure}`;
+    return `${String(finding.unwitnessed.length)} owner turn(s) ${sessions} have no row or card.${tail}`;
   }
   const dismissed = finding.markedNoAsk > 0 ? `, ${String(finding.markedNoAsk)} marked no-ask` : "";
-  return `Owner turns: ${String(finding.turns.length)} read ${sessions}, all witnessed${dismissed}.${inbound}${disclosure}`;
+  return `Owner turns: ${String(finding.turns.length)} read ${sessions}, all witnessed${dismissed}.${tail}`;
 }
 
 /** How much of a turn's text the suggested `--ask` carries, in characters. */

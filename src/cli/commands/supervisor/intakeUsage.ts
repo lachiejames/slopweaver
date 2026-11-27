@@ -13,6 +13,12 @@ export const INTAKE_USAGE =
   "turn prints the `handover register` line that would witness it, and a window the chain cannot reach is\n" +
   "stated rather than counted clean. --session narrows the walk to one transcript.\n" +
   "\n" +
+  "Every final turn the owner TYPED to the console (`typed-owner-`, `typed-in-` segments on the owner's own\n" +
+  "console) counts too, until a row anchored at its talk-call:<call>#<segment> pointer, the relay row it\n" +
+  "registered, or an intake mark covers it. It is remembered by pointer in sessions/typed-intake.jsonl, so it\n" +
+  "stays owed past the 24h window and across chairs. Printed as pointer and instant only, never its words;\n" +
+  "`talk unread` reads them. --session leaves this half out.\n" +
+  "\n" +
   "The same walk reads every message another session sent a chair. One that landed AFTER that chair's\n" +
   "successor took the pin, with no SendMessage back to its sender from any chair, is CARRIED to the live\n" +
   "chair and exits non-zero; one inside the chair's own span with no reply is listed as unanswered. Clear\n" +

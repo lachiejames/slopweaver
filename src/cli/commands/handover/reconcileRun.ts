@@ -240,6 +240,8 @@ function foundSomething({
     result.starving.length > 0 ||
     result.staleAsks.length > 0 ||
     (intake.kind === "read" && intake.finding.unwitnessed.length > 0) ||
+    (intake.kind === "read" && intake.typed?.kind === "read" && intake.typed.finding.unwitnessed.length > 0) ||
+    (intake.kind === "read" && intake.typed?.kind === "unavailable") ||
     voice.kind === "unavailable" ||
     voice.relays.length > 0
   );

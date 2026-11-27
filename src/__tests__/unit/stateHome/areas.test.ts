@@ -358,9 +358,11 @@ describe("sessionsStateHomePaths", () => {
       "supervisorChainJsonl",
       "supervisorPinJson",
       "supervisorScratch",
+      "typedIntakeJsonl",
       "voiceBriefReceipts",
     ]);
     expect(area.grantJournalJsonl).toBe("/tmp/sw-home/grants/journal.jsonl");
+    expect(area.typedIntakeJsonl).toBe("/tmp/sw-home/sessions/typed-intake.jsonl");
   });
 
   it("is composed into the entry with identical values", () => {
