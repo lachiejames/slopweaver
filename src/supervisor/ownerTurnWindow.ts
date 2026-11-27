@@ -53,9 +53,11 @@ function rulingRows({ home, sinceMs }: { home: string; sinceMs: number }): {
 function chairTurns({ chain, claudeHome, home, sinceIso }: ChainWindow & { claudeHome: string }): {
   readonly turns: readonly ReadableTurn[];
   readonly unreadChairs: readonly string[];
+  readonly refusedChairs: readonly string[];
 } {
-  const { turns, unreadChairs } = readSupervisorChainTurns({ chain, claudeHome, home, sinceIso });
+  const { turns, unreadChairs, refusedChairs } = readSupervisorChainTurns({ chain, claudeHome, home, sinceIso });
   return {
+    refusedChairs,
     turns: turns.map((turn) => ({
       instantIso: turn.timestamp,
       pointer: turn.pointer,
@@ -70,7 +72,7 @@ function chairTurns({ chain, claudeHome, home, sinceIso }: ChainWindow & { claud
 export interface OwnerTurnWindow {
   readonly turns: readonly ReadableTurn[];
   readonly sinceIso: string;
-  /** What the gate refuses on: a journal, pin, ruling archive or Codex chair that would not read. */
+  /** What the gate refuses on: a journal, pin, ruling archive or Codex chair rollout that would not read. */
   readonly unreadable: string | undefined;
   /**
    * What a reader discloses and the gate does not refuse on: a chain that starts after the floor, then each Claude
@@ -129,14 +131,17 @@ export function readOwnerTurnWindow({
   const { links: chain, problems } = readSupervisorChainJournal({ home });
   const chairs = chairTurns({ chain, claudeHome, home, sinceIso });
   const turns = collapseRulingCopies({ turns: [...chairs.turns, ...rulings.turns] });
-  // An archive that will not read, or a Codex chair no reader opens, could hold a turn never shown, so the gate
-  // refuses rather than counting short. A Claude chair transcript that will not read stays out of
+  // An archive that will not read, or a Codex chair whose rollout would not read whole, could hold a turn never
+  // shown, so the gate refuses rather than counting short. A Claude chair transcript that will not read stays out of
   // `unreadable`, which the gate refuses on, and travels in `readerGaps` for a reader to disclose; so does a chain
   // that starts after the floor, which the gate never refused on either.
-  const unreadable =
-    problems.length > 0
-      ? `the supervisor chain journal would not read cleanly: ${problems.join("; ")}`
-      : ownerWindowGaps({ chain, home, rulingProblems: rulings.problems, sinceIso });
+  // Every gap is named together: a torn chain line must not hide which Codex chair also refused.
+  const unreadable = ownerWindowGaps({
+    chainProblems: problems,
+    codexRefusals: chairs.refusedChairs,
+    home,
+    rulingProblems: rulings.problems,
+  });
   const reach = chainReachGap({ chain, home, sinceIso });
   const readerGaps = reach === undefined ? chairs.unreadChairs : [reach, ...chairs.unreadChairs];
   return { readerGaps, sinceIso, turns, unreadable };

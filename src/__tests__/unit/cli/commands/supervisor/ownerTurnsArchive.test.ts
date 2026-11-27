@@ -9,8 +9,12 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { runSupervisorOwnerTurns, unreadOwnerTurns } from "../../../../../cli/commands/supervisor/ownerTurnsRun.js";
-import { EXIT_OK } from "../../../../../cli/exitCodes.js";
+import {
+  runSupervisorOwnerTurns,
+  sessionOf,
+  unreadOwnerTurns,
+} from "../../../../../cli/commands/supervisor/ownerTurnsRun.js";
+import { EXIT_OK, EXIT_USAGE } from "../../../../../cli/exitCodes.js";
 import { rulingArchiveDir } from "../../../../../handover/archivedRulings.js";
 import { sha256Text } from "../../../../../lib/hash.js";
 import { unwrap } from "../../../../../lib/result.js";
@@ -141,6 +145,51 @@ describe("the owner-turn gate over carried-forward archive rulings", () => {
     expect(
       unreadOwnerTurns({ session: { host: "claude-code", id: SESSION }, days: 7, home, nowIso: NOW_ISO }).unread,
     ).toBe(0);
+  });
+
+  it("records a Codex thread's receipts under its host, never as the Claude session sharing its id", () => {
+    const home = freshHome();
+    archive({ atIso: "2026-10-19T12:46:00.000Z", home, lines: [RULING], name: "state-1246.md" });
+    const printed = runSupervisorOwnerTurns([
+      "node",
+      "slopweaver",
+      "supervisor",
+      "owner-turns",
+      "--home",
+      home,
+      "--session",
+      `codex:${SESSION}`,
+      "--now",
+      "2026-10-19T13:00:00.000Z",
+    ]);
+
+    expect(printed).toBe(EXIT_OK);
+    expect(unwrap(readOwnerTurnReceipts({ home })).map((row) => row.session)).toEqual([{ host: "codex", id: SESSION }]);
+    expect(
+      unreadOwnerTurns({ session: { host: "claude-code", id: SESSION }, days: 7, home, nowIso: NOW_ISO }).unread,
+    ).toBe(1);
+  });
+
+  it("reads --session as a chain line prints it, and refuses one naming no session as the caller's mistake", () => {
+    expect(
+      ["chair-1", "codex:t-1", "claude-code:c-1", "explicit:x", "codex:../x"].map((flag) =>
+        sessionOf({ env: {}, flag }),
+      ),
+    ).toStrictEqual([
+      { host: "claude-code", id: "chair-1" },
+      { host: "codex", id: "t-1" },
+      { host: "claude-code", id: "c-1" },
+      {
+        exit: EXIT_USAGE,
+        refusal:
+          "supervisor owner-turns: --session explicit:x names no session — the form is <id> (a Claude Code session), claude-code:<id> or codex:<thread-id>",
+      },
+      {
+        exit: EXIT_USAGE,
+        refusal:
+          "supervisor owner-turns: --session codex:../x names no session — the form is <id> (a Claude Code session), claude-code:<id> or codex:<thread-id>",
+      },
+    ]);
   });
 
   it("reads a CRLF copy and an LF copy of one ruling as the same words", () => {

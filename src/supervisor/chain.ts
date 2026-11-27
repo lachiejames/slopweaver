@@ -45,11 +45,19 @@ export type { SupervisorLink } from "./supervisorLink.js";
 export const CHAIN_RESCAN_COMMAND = "slopweaver supervisor chain --rescan";
 
 /**
- * Why a Codex chair is a stated gap rather than a walk: its turns live in a Codex rollout, which the chain's readers
- * do not open yet, so its owner turns and peer messages are disclosed as unread rather than counted as none.
+ * Why a Codex chair is a stated gap to a reader that does not open its rollout (`../profile/supervisorWords.ts`):
+ * its owner turns and peer messages are disclosed as unread rather than counted as none. The chain's owner-turn
+ * read opens the rollout (`./codexChairRead.ts`) and names {@link CODEX_CHAIR_PEER_TRAFFIC_UNREAD} instead.
  */
 export const CODEX_CHAIR_UNREAD =
   "a Codex chair's rollout is not read yet, so its owner turns and peer messages are UNREAD";
+
+/**
+ * What a Codex chair whose owner turns DID read still leaves out: the messages other sessions sent it. Its rollout's
+ * peer traffic is not decoded, so the chain read names it in coverage rather than judging no message as answered.
+ */
+export const CODEX_CHAIR_PEER_TRAFFIC_UNREAD =
+  "a Codex chair's peer messages are not read from its rollout, so a report sent to it is UNREAD";
 
 /**
  * One link with the window it is responsible for.
@@ -206,7 +214,7 @@ export function chairTenures({
  * @param sinceIso the floor
  * @returns the Codex chairs inside the window, in `orderChain`'s order
  */
-export function codexChairsInWindow({
+function codexChairsInWindow({
   links,
   pinned,
   sinceIso,

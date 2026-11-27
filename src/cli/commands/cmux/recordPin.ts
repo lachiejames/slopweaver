@@ -67,16 +67,20 @@ export function recordSupervisorPin({
     return false;
   }
   const { session } = detection;
+  // A Codex holder's home rides on both records, so its rollout is read from the home it was written to.
+  const codexHome = detection.codexHome === undefined ? {} : { codexHome: detection.codexHome };
   const record: CmuxSupervisorPinRecord = {
     pinnedAtIso: nowIso,
     session,
     workspaceId: pinnedWorkspaceId,
     workspaceRef,
+    ...codexHome,
   };
   if (!writeLoudly({ home, record })) {
     return false;
   }
   appendChainLink({
+    ...codexHome,
     home,
     nowIso,
     session,
@@ -90,7 +94,8 @@ export function recordSupervisorPin({
  *
  * The caller must have verified the app session id is its own first (`verifyAppSessionOrigin`), because this
  * write is what the depth guard and the chair gate then read as the chair. It moves no cmux pin, launches
- * nothing and renames nothing: an app-hosted chair has no workspace to pin.
+ * nothing and renames nothing: an app-hosted chair has no workspace to pin. It records no Codex home: its caller
+ * holds the session, not the detection, so an app-hosted Codex chair's owner turns read as unrecorded until it does.
  *
  * @param appSessionId the desktop control plane's id for the caller's own hosted session, origin-verified
  * @param session the vendor session inside it, as detected at the verb's boundary
@@ -225,19 +230,28 @@ function forgetLoudly({
  * @param target where it is hosted: its cmux workspace or its desktop-app session
  * @param nowIso the instant the pin moved
  * @param home the state home (defaults to the resolved home)
+ * @param codexHome a Codex holder's absolute `CODEX_HOME`, when its process named one
  */
 function appendChainLink({
   session,
   target,
   nowIso,
   home,
+  codexHome,
 }: {
   session: VisibleSupervisorSession;
   target: SupervisorPinTarget;
   nowIso: string;
   home: string | undefined;
+  codexHome?: string;
 }): void {
-  const built = buildSupervisorLink({ pinnedAtIso: nowIso, session, source: "pin", target });
+  const built = buildSupervisorLink({
+    pinnedAtIso: nowIso,
+    session,
+    source: "pin",
+    target,
+    ...(codexHome === undefined ? {} : { codexHome }),
+  });
   if (built.isErr()) {
     logger.error({ msg: `cmux pin: the supervisor chain was not extended — ${built.error.message}` });
     return;

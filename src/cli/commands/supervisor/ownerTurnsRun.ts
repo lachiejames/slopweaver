@@ -52,6 +52,7 @@ import {
 import { chairClaudeHome, type OwnerTurnWindow, readOwnerTurnWindow } from "../../../supervisor/ownerTurnWindow.js";
 import {
   detectSupervisorSession,
+  parseSupervisorSessionLabel,
   supervisorSessionProblem,
   type VisibleSupervisorSession,
 } from "../../../supervisor/session.js";
@@ -63,13 +64,15 @@ import { parseFlagTail, verbTail } from "../../optionParsers.js";
 export const OWNER_TURN_WINDOW_DAYS = 7;
 
 export const OWNER_TURNS_USAGE =
-  "usage: slopweaver supervisor owner-turns [--days <n>] [--bytes <n>] [--session <id>] [--home <dir>] " +
-  "[--now <iso>] [--check] [--json]\n" +
+  "usage: slopweaver supervisor owner-turns [--days <n>] [--bytes <n>] [--session <id>|codex:<thread-id>] " +
+  "[--home <dir>] [--now <iso>] [--check] [--json]\n" +
   "\n" +
   "Prints every turn the owner typed into the supervisor chain in the window, oldest first, verbatim and in\n" +
   "bounded chunks, and records one receipt per printed turn against this session. Run it until it reports\n" +
   "nothing left; `slopweaver cmux takeover` refuses to move the pin until it does. `--check` reports what is\n" +
-  "unread and prints nothing, so a gate can ask without spending a receipt.\n" +
+  "unread and prints nothing, so a gate can ask without spending a receipt. A bare `--session <id>` is a Claude\n" +
+  "Code session; `codex:<thread-id>` (or `claude-code:<id>`) names the host. A Codex chair's turns are read off\n" +
+  "its rollout under the CODEX_HOME its pin recorded; one that will not read whole refuses the window.\n" +
   "\n" +
   "example: slopweaver supervisor owner-turns";
 
@@ -196,27 +199,37 @@ function budgetOf({ values }: { values: Readonly<Record<string, string | undefin
 /**
  * Whose reading this run records: the `--session` the caller named, or the visible session it is running inside.
  *
- * `--session <id>` names a CLAUDE session: the window this verb reads is the Claude chain, and a Codex thread's
- * rollout is not read before slice 4b-ii, which qualifies the flag by host. With no flag, the ambient session is
+ * `--session` names its host the way a chain line prints it: a bare id is a Claude Code session, as every flag typed
+ * before a chair could be Codex meant, and `claude-code:<id>` or `codex:<id>` names the host outright, so a Codex
+ * thread's receipts are never written as a Claude session's with the same id. With no flag, the ambient session is
  * whichever visible host this process runs in, and a process carrying neither host's variable, or both, is refused.
  *
  * @param flag the `--session` value, when one was typed
  * @param env the process environment
- * @returns the session, or the refusal naming what is missing
+ * @returns the session, or the refusal naming what is missing and the exit it earns: a malformed flag is the
+ *   caller's argv, a process in no visible session is the run's state
  */
-function sessionOf({
+export function sessionOf({
   flag,
   env,
 }: {
   flag: string | undefined;
   env: Readonly<Record<string, string | undefined>>;
-}): VisibleSupervisorSession | { readonly refusal: string } {
+}): VisibleSupervisorSession | { readonly refusal: string; readonly exit: number } {
   if (flag !== undefined && flag.trim().length > 0) {
-    return { host: "claude-code", id: flag };
+    const named = parseSupervisorSessionLabel({ text: flag });
+    if (named === undefined) {
+      return {
+        exit: EXIT_USAGE,
+        refusal: `supervisor owner-turns: --session ${flag} names no session — the form is <id> (a Claude Code session), claude-code:<id> or codex:<thread-id>`,
+      };
+    }
+    return named;
   }
   const detection = detectSupervisorSession({ env });
   if (detection.kind !== "active") {
     return {
+      exit: EXIT_ERROR,
       refusal:
         "supervisor owner-turns: no session id — this verb records what THIS session read, so it needs a visible " +
         `session or an explicit --session <id>: ${supervisorSessionProblem({ detection })}`,
@@ -287,7 +300,7 @@ export function runSupervisorOwnerTurns(argv: readonly string[]): number {
   const session = sessionOf({ env: process.env, flag: values["session"] });
   if ("refusal" in session) {
     logger.error({ msg: session.refusal });
-    return EXIT_ERROR;
+    return session.exit;
   }
   return deliver({ check: flags.has("check"), days, home, json: flags.has("json"), nowIso, session, values });
 }

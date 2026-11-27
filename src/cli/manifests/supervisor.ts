@@ -73,7 +73,7 @@ export const supervisorManifest: Readonly<Record<string, VerbManifestEntry>> = {
       summary:
         "Print every turn the owner typed into the supervisor chain in the last seven days, verbatim and in bounded chunks, recording one receipt per turn — the read `cmux takeover` refuses to move the pin without",
       usage:
-        "usage: slopweaver supervisor owner-turns [--days <n>] [--bytes <n>] [--session <id>] [--home <dir>] [--now <iso>] [--check] [--json]",
+        "usage: slopweaver supervisor owner-turns [--days <n>] [--bytes <n>] [--session <id>|codex:<thread-id>] [--home <dir>] [--now <iso>] [--check] [--json]",
     },
   }),
   reoriented: lazy({

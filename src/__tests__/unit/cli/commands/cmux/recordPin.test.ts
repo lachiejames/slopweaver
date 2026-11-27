@@ -12,9 +12,12 @@ import {
   recordAppSupervisorPin,
   recordSupervisorPin,
 } from "../../../../../cli/commands/cmux/recordPin.js";
+import { unwrapErr } from "../../../../../lib/result.js";
 import { pinnedCmuxWorkspaceId } from "../../../../../sessions/supervisorPin.js";
 import { readSupervisorPin, supervisorPinPath } from "../../../../../sessions/supervisorPinStore.js";
 import { readSupervisorChain } from "../../../../../supervisor/chainStore.js";
+import { recordedChairCodexHome } from "../../../../../supervisor/codexChairRead.js";
+import { pinAsLink } from "../../../../../supervisor/intakeScope.js";
 import type { SupervisorSessionDetection } from "../../../../../supervisor/session.js";
 
 // Every fixture directory this file has minted, so `afterEach` can remove them.
@@ -66,6 +69,29 @@ describe("recordSupervisorPin", () => {
       }),
     ).toBe(true);
     expect(readSupervisorPin({ home: dir })!.session).toStrictEqual({ host: "codex", id: "thread-1" });
+  });
+
+  it("records a Codex chair's CODEX_HOME on its pin and its chain link, so its rollout is read from that home", () => {
+    const dir = home();
+    const codexHome = join(dir, "codex-home");
+    const detection: SupervisorSessionDetection = {
+      codexHome,
+      kind: "active",
+      session: { host: "codex", id: "thread-1" },
+    };
+
+    expect(
+      recordSupervisorPin({
+        detection,
+        home: dir,
+        nowIso: "2026-09-02T04:47:00.000Z",
+        ownWorkspaceId: "ws-1",
+        pinnedWorkspaceId: "ws-1",
+        workspaceRef: "workspace:936",
+      }),
+    ).toBe(true);
+    expect(readSupervisorPin({ home: dir })!.codexHome).toBe(codexHome);
+    expect(readSupervisorChain({ home: dir }).map((link) => link.codexHome)).toStrictEqual([codexHome]);
   });
 
   it("records a pin of the caller's own workspace", () => {
@@ -224,6 +250,15 @@ describe("recordAppSupervisorPin", () => {
         source: "pin",
       },
     ]);
+    // The app-hosted Codex chair records no home, so its owner turns read as UNRECORDED rather than a guessed home.
+    expect(
+      unwrapErr(
+        recordedChairCodexHome({
+          links: [...readSupervisorChain({ home: dir }), ...pinAsLink({ home: dir })],
+          session: { host: "codex", id: "thread-1" },
+        }),
+      ).code,
+    ).toBe("CODEX_HOME_UNRECORDED");
   });
 
   it("is never forgotten by a cmux unpin or by a cmux pin of somebody else's workspace", () => {

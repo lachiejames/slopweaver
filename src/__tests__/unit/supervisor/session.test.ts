@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   CLAUDE_CODE_SESSION_ID_ENV,
+  CODEX_HOME_ENV,
   CODEX_THREAD_ID_ENV,
   claudeSessionIdOf,
   detectSupervisorSession,
   dispatchedWorkerLabel,
+  isRecordableCodexHome,
+  parseSupervisorSessionLabel,
   parseVisibleSession,
   recordedSupervisorSession,
   sameSupervisorSession,
@@ -76,6 +79,38 @@ describe("detectSupervisorSession", () => {
     });
   });
 
+  it("carries a Codex thread's absolute CODEX_HOME, and drops a relative or blank one rather than guessing", () => {
+    expect(detectSupervisorSession({ env: { [CODEX_HOME_ENV]: "/h/.codex", [CODEX_THREAD_ID_ENV]: "t1" } })).toEqual({
+      codexHome: "/h/.codex",
+      kind: "active",
+      session: { host: "codex", id: "t1" },
+    });
+    expect(
+      [".codex", "  "].map((home) =>
+        detectSupervisorSession({ env: { [CODEX_HOME_ENV]: home, [CODEX_THREAD_ID_ENV]: "t1" } }),
+      ),
+    ).toEqual([
+      { kind: "active", session: { host: "codex", id: "t1" } },
+      { kind: "active", session: { host: "codex", id: "t1" } },
+    ]);
+    expect(
+      detectSupervisorSession({ env: { [CLAUDE_CODE_SESSION_ID_ENV]: "c1", [CODEX_HOME_ENV]: "/h/.codex" } }),
+    ).toEqual({
+      kind: "active",
+      session: { host: "claude-code", id: "c1" },
+    });
+  });
+
+  it("knows a recordable home: a trimmed, non-empty absolute string", () => {
+    expect(["/h/.codex", " /h ", ".codex", "", 7].map((value) => isRecordableCodexHome({ value }))).toEqual([
+      true,
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+
   it("reports a missing visible supervisor", () => {
     const detection = detectSupervisorSession({ env: { [CODEX_THREAD_ID_ENV]: "   " } });
     expect(detection).toEqual({ kind: "missing" });
@@ -92,6 +127,22 @@ describe("detectSupervisorSession", () => {
     if (detection.kind !== "active") {
       expect(supervisorSessionProblem({ detection })).toContain("visible supervisor is ambiguous");
     }
+  });
+});
+
+describe("parseSupervisorSessionLabel", () => {
+  it("reads a bare id as Claude Code and a host-qualified one as that host, as a chain line prints it", () => {
+    expect(["abc", "codex:abc", "claude-code:abc"].map((text) => parseSupervisorSessionLabel({ text }))).toStrictEqual([
+      CLAUDE,
+      CODEX,
+      CLAUDE,
+    ]);
+  });
+
+  it("refuses an unknown host, a blank id and a path-shaped one", () => {
+    expect(
+      ["explicit:abc", "codex:", "codex:../x", "../x", ""].map((text) => parseSupervisorSessionLabel({ text })),
+    ).toStrictEqual([undefined, undefined, undefined, undefined, undefined]);
   });
 });
 

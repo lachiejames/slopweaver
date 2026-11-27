@@ -4,13 +4,10 @@ import { sentenceCount, wordCount } from "../../../briefing/text.js";
 import { type ChainCoverage } from "../../../supervisor/chain.js";
 import { EMPTY_INBOUND } from "../../../supervisor/inbound.js";
 import {
-  buildIntakeMark,
   INTAKE_GRACE_MS,
   type IntakeMark,
   intakeClause,
   type OwnerTurn,
-  parseIntakeMarkJournal,
-  parseIntakeMarkLine,
   registerCommandFor,
   rowWitnesses,
   witnessTurns,
@@ -20,6 +17,9 @@ import { chairWakeLine } from "../../../talk/chairWake.js";
 
 const SESSION = "a0000013-0000-4000-8000-000000000014";
 const NOW = "2026-09-02T17:00:00.000Z";
+/** A Codex thread, and a rollout pointer at one of its owner turns. */
+const THREAD = "a0000013-0000-4000-8000-0000000000c1";
+const ROLLOUT_POINTER = `codex-rollout:${THREAD}#rollout-2026-09-02T09-00-00-${THREAD}.jsonl@120`;
 
 /** A turn typed `minutesAgo` minutes before {@link NOW}. */
 const turn = ({
@@ -64,124 +64,15 @@ const mark = (over: Partial<IntakeMark> & { pointer: string }): IntakeMark => ({
   ...over,
 });
 
-describe("intake marks", () => {
-  it("round-trips a mark through the journal", () => {
-    const built = buildIntakeMark({
-      byClaudeSessionId: SESSION,
-      kind: "no-ask",
-      markedAtIso: NOW,
-      pointer: `transcript:${SESSION}#${U1}`,
-      witness: "  they said brief me  ",
-    });
-
-    expect("mark" in built).toBe(true);
-    const written = (built as { readonly mark: IntakeMark }).mark;
-    expect(written.witness).toBe("they said brief me");
-    expect(parseIntakeMarkJournal({ text: `${JSON.stringify(written)}\n\nnot json\n` })).toEqual([written]);
-  });
-
-  it("reads a hand-written spelling of a turn back in the form the writer stores, and leaves a non-pointer as written", () => {
-    const relay = "talk:a0000046-0000-4000-8000-000000000049";
-    const lines = [
-      { byClaudeSessionId: SESSION, kind: "answered", markedAtIso: NOW, pointer: relay.toUpperCase(), witness: " w " },
-      { byClaudeSessionId: SESSION, kind: "answered", markedAtIso: NOW, pointer: "not-a-pointer", witness: "w" },
-    ];
-
-    expect(
-      parseIntakeMarkJournal({ text: lines.map((line) => JSON.stringify(line)).join("\n") }).map((m) => [
-        m.pointer,
-        m.witness,
-      ]),
-    ).toEqual([
-      [relay, "w"],
-      ["not-a-pointer", "w"],
-    ]);
-  });
-
-  it("refuses a pointer that is not a turn pointer, and a witness that says nothing", () => {
-    const badPointer = buildIntakeMark({
-      byClaudeSessionId: SESSION,
-      kind: "card",
-      markedAtIso: NOW,
-      pointer: "https://github.com/o/r/pull/1",
-      witness: "x",
-    });
-    const blank = buildIntakeMark({
-      byClaudeSessionId: SESSION,
-      kind: "card",
-      markedAtIso: NOW,
-      pointer: `transcript:${SESSION}#${U1}`,
-      witness: "   ",
-    });
-
-    expect("refusal" in badPointer).toBe(true);
-    expect((badPointer as { readonly refusal: string }).refusal).toContain("not a turn pointer");
-    expect("refusal" in blank).toBe(true);
-    expect((blank as { readonly refusal: string }).refusal).toContain("--witness is required");
-  });
-
-  it("marks a voice relay by its talk: anchor, lower-cased — the pointer the sweep names an undelivered one by", () => {
-    const built = buildIntakeMark({
-      byClaudeSessionId: SESSION,
-      kind: "answered",
-      markedAtIso: NOW,
-      pointer: " TALK:A0000017-0000-4000-8000-000000000020 ",
-      witness: "talk-a00000170000",
-    });
-
-    expect((built as { readonly mark: IntakeMark }).mark.pointer).toBe("talk:a0000017-0000-4000-8000-000000000020");
-  });
-
-  it("refuses a talk: pointer whose turn id is not a v4 uuid", () => {
-    const built = buildIntakeMark({
-      byClaudeSessionId: SESSION,
-      kind: "answered",
-      markedAtIso: NOW,
-      pointer: "talk:not-a-turn",
-      witness: "x",
-    });
-
-    expect((built as { readonly refusal: string }).refusal).toBe(
-      "talk:not-a-turn is not a turn pointer — the form is transcript:<sessionId>#<turnUuid>, talk:<turnId> or talk-call:<callId>#<segmentId>",
-    );
-  });
-
-  it("marks a stretch of the owner's call speech by its talk-call: pointer — what talk unread prints, relayed or not", () => {
-    const built = buildIntakeMark({
-      byClaudeSessionId: SESSION,
-      kind: "no-ask",
-      markedAtIso: NOW,
-      pointer: ` talk-call:${"a0000035-0000-4000-8000-000000000038".toUpperCase()}#segment_0_163 `,
-      witness: "small talk, no steer",
-    });
-
-    expect((built as { readonly mark: IntakeMark }).mark.pointer).toBe(
-      "talk-call:a0000035-0000-4000-8000-000000000038#segment_0_163",
-    );
-  });
-
-  it("refuses a talk-call: pointer with no segment", () => {
-    const built = buildIntakeMark({
-      byClaudeSessionId: SESSION,
-      kind: "no-ask",
-      markedAtIso: NOW,
-      pointer: "talk-call:a0000035-0000-4000-8000-000000000038#",
-      witness: "x",
-    });
-
-    expect((built as { readonly refusal: string }).refusal).toContain("is not a turn pointer");
-  });
-
-  it("drops a line whose kind is not one this ledger knows, rather than reading it as something", () => {
-    const line = JSON.stringify({ ...mark({ pointer: `transcript:${SESSION}#${U1}` }), kind: "done" });
-
-    expect(parseIntakeMarkLine({ line })).toBeUndefined();
-    expect(parseIntakeMarkLine({ line: "" })).toBeUndefined();
-    expect(parseIntakeMarkLine({ line: "[]" })).toBeUndefined();
-  });
-});
-
 describe("rowWitnesses", () => {
+  it("lets a board row anchored at a Codex rollout turn witness that turn", () => {
+    const witnesses = rowWitnesses({
+      rows: [{ anchor: ROLLOUT_POINTER, settlementWitness: undefined, slug: "a-row" }],
+    });
+
+    expect([...witnesses]).toEqual([[ROLLOUT_POINTER, { kind: "row", witness: "a-row" }]]);
+  });
+
   it("reads a row's anchor as a row witness and a settlement pointer as a settlement witness", () => {
     const witnesses = rowWitnesses({
       rows: [

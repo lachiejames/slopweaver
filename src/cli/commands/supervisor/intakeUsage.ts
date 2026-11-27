@@ -37,6 +37,9 @@ export const MARK_USAGE =
   "On a talk:<turnId> pointer the relay's own row is settled too: filed into a card's row slug, else answered.\n" +
   "A transcript:<session>#<uuid> pointer must name one of the owner's turns or a message another session sent, read\n" +
   "off that transcript — a uuid naming any other record (an assistant reply, a tool result) is refused.\n" +
+  "A codex-rollout:<thread>#<rollout>@<offset> pointer must name one of a Codex chair's owner turns, read off its\n" +
+  "rollout under the CODEX_HOME its pin recorded; a rollout that will not read whole refuses the mark. The mark\n" +
+  "records the writing session by host, so a Codex chair's mark names its thread.\n" +
   "An `answered` witness naming a board row (its slug, alone or in prose) carries the owner's words at the pointer\n" +
   "onto that row as a steer before marking; when that write fails nothing is marked, and the refusal names\n" +
   "`handover quote <slug> --add-steer <pointer> --apply --home <home>`. `card` and `no-ask` carry nothing.\n" +

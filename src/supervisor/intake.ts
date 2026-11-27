@@ -36,20 +36,21 @@
  * is journalled with the marking session and a reason, and COUNTED separately in the finding, so a
  * supervisor that dismisses everything is visible as one.
  *
- * Pure: turns, rows and marks in, a finding out. No filesystem, no clock beyond the `nowIso` it is handed.
+ * Pure: turns, rows and marks in, a finding out. No filesystem, no clock beyond the `nowIso` it is handed. A ledger
+ * line's codec — decoding a mark and building one — is `./intakeMarkLine.ts`.
  */
 
-import { isRecord } from "../lib/parsers.js";
+import { formatCodexRolloutPointer, parseCodexRolloutPointer } from "../codex/rolloutOwnerTurnPointer.js";
 import { chairWakeCallId } from "../talk/chairWake.js";
 import { parseRelayAnchor, relaySlug } from "../talk/relayDraft.js";
 import { relayLineSlug } from "../talk/relayLine.js";
-import { parseCallPointer } from "../talk/unreadWords.js";
 import type { HumanTurnSource } from "../transcripts/extract.js";
 import { formatTurnPointer, parseTurnPointer } from "../transcripts/pointer.js";
 import { batchWitness } from "./batchWitness.js";
 import { type ChainCoverage, coverageClause } from "./chain.js";
 import { type InboundFinding, inboundSentence } from "./inbound.js";
 import { preferredMarks } from "./intakeWitness.js";
+import type { VisibleSupervisorSession } from "./session.js";
 import type { TypedIntakeReport } from "./typedIntake.js";
 import { typedIntakeSentence } from "./typedIntakeSentence.js";
 
@@ -108,8 +109,16 @@ export interface IntakeMark {
   /** The checkable thing behind it: a card's question, the slug or permalink an answer went to, or the reason a turn asked for nothing. */
   readonly witness: string;
   readonly markedAtIso: string;
-  /** The `CLAUDE_CODE_SESSION_ID` that wrote the mark — attributable, never authenticated. */
+  /**
+   * The `CLAUDE_CODE_SESSION_ID` that wrote the mark — attributable, never authenticated — or "" when no Claude Code
+   * session did (a Codex chair's mark, or one written outside any visible session).
+   */
   readonly byClaudeSessionId: string;
+  /**
+   * The visible session that wrote the mark, by host and id — present on every mark written from a detected session,
+   * so a Codex chair's mark names its thread. Absent on a row written before it, and on one from no visible session.
+   */
+  readonly bySession?: VisibleSupervisorSession;
 }
 
 /**
@@ -190,126 +199,6 @@ export interface RowAnchors {
 }
 
 /**
- * Read one ledger line, refusing anything that is not completely a mark.
- *
- * @param line one line of the journal
- * @returns the mark, or `undefined` for a blank, malformed or incomplete line
- */
-export function parseIntakeMarkLine({ line }: { line: string }): IntakeMark | undefined {
-  if (line.trim().length === 0) {
-    return undefined;
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(line);
-  } catch {
-    return undefined;
-  }
-  if (!isRecord(parsed)) {
-    return undefined;
-  }
-  const pointer = parsed["pointer"];
-  const kind = parsed["kind"];
-  const witness = parsed["witness"];
-  const markedAtIso = parsed["markedAtIso"];
-  const byClaudeSessionId = parsed["byClaudeSessionId"];
-  const knownKind = INTAKE_MARK_KINDS.find((known) => known === kind);
-  if (
-    typeof pointer !== "string" ||
-    knownKind === undefined ||
-    typeof witness !== "string" ||
-    typeof markedAtIso !== "string" ||
-    typeof byClaudeSessionId !== "string"
-  ) {
-    return undefined;
-  }
-  // Read back in the form the writer stores, so a hand-written spelling of one turn is the same turn to every
-  // reader (an upper-case relay anchor is a re-mark the reuse gate refuses). An unparseable pointer
-  // stays as written — it matches nothing, as before.
-  let stored = pointer;
-  const normalised = normalisedTurnPointer({ pointer });
-  if (normalised !== undefined) {
-    stored = normalised;
-  }
-  return { byClaudeSessionId, kind: knownKind, markedAtIso, pointer: stored, witness: witness.trim() };
-}
-
-/** A turn pointer in the one form a mark stores, or `undefined` when it is not one of the three forms. */
-function normalisedTurnPointer({ pointer }: { pointer: string }): string | undefined {
-  const parsed = parseTurnPointer({ text: pointer });
-  if (parsed !== undefined) {
-    return formatTurnPointer({ pointer: parsed });
-  }
-  const relay = parseRelayAnchor({ text: pointer });
-  if (relay !== undefined) {
-    return relay;
-  }
-  return parseCallPointer({ text: pointer });
-}
-
-/**
- * Every decodable mark in a journal, in file order.
- *
- * @param text the whole journal
- * @returns the marks; a line that will not decode is skipped rather than failing the read
- */
-export function parseIntakeMarkJournal({ text }: { text: string }): readonly IntakeMark[] {
-  return text
-    .split("\n")
-    .map((line) => parseIntakeMarkLine({ line }))
-    .filter((mark): mark is IntakeMark => mark !== undefined);
-}
-
-/**
- * Build one mark, refusing a pointer that is not a turn pointer or a witness that says nothing.
- *
- * Three pointer forms mark a turn: an owner turn in a supervisor transcript, a voice relay's `talk:<turnId>` —
- * the owner's word that reached the board without reaching the chat (`../talk/relayIntake.ts`) — and a stretch of
- * their speech on a call, `talk-call:<callId>#<segmentId>`, which `talk unread` prints whether or not it was relayed.
- *
- * @param pointer the turn being marked, in pointer form
- * @param kind what the turn became
- * @param witness the checkable thing behind the mark
- * @param markedAtIso when it is being written
- * @param byClaudeSessionId the session writing it
- * @returns the mark, or the one-line refusal
- */
-export function buildIntakeMark({
-  pointer,
-  kind,
-  witness,
-  markedAtIso,
-  byClaudeSessionId,
-}: {
-  pointer: string;
-  kind: IntakeMarkKind;
-  witness: string;
-  markedAtIso: string;
-  byClaudeSessionId: string;
-}): { readonly mark: IntakeMark } | { readonly refusal: string } {
-  const normalised = normalisedTurnPointer({ pointer });
-  if (normalised === undefined) {
-    return {
-      refusal: `${pointer} is not a turn pointer — the form is transcript:<sessionId>#<turnUuid>, talk:<turnId> or talk-call:<callId>#<segmentId>`,
-    };
-  }
-  if (witness.trim().length === 0) {
-    return {
-      refusal: "--witness is required — the card's question, where the answer went, or why the turn asked for nothing",
-    };
-  }
-  return {
-    mark: {
-      byClaudeSessionId,
-      kind,
-      markedAtIso,
-      pointer: normalised,
-      witness: witness.trim(),
-    },
-  };
-}
-
-/**
  * Every turn pointer the board names, and what names it.
  *
  * A row's `anchor:` is where the owner said it, so a row anchored to a turn IS that turn's witness. A settled ask's
@@ -329,6 +218,16 @@ export function rowWitnesses({ rows }: { rows: readonly RowAnchors[] }): Readonl
   return witnesses;
 }
 
+/** A chair turn's pointer — a Claude `transcript:` one or a Codex `codex-rollout:` one — in the form a turn carries. */
+function chairTurnKey({ text }: { text: string }): string | undefined {
+  const claude = parseTurnPointer({ text });
+  if (claude !== undefined) {
+    return formatTurnPointer({ pointer: claude });
+  }
+  const codex = parseCodexRolloutPointer({ text });
+  return codex === undefined ? undefined : formatCodexRolloutPointer({ pointer: codex });
+}
+
 /** Record `slug` as the `kind` witness of the turn `field` points at, when it points at one and nothing claimed it first. */
 function claimTurn({
   field,
@@ -341,11 +240,10 @@ function claimTurn({
   slug: string;
   witnesses: Map<string, TurnWitness>;
 }): void {
-  const pointer = field === undefined ? undefined : parseTurnPointer({ text: field });
-  if (pointer === undefined) {
+  const key = field === undefined ? undefined : chairTurnKey({ text: field });
+  if (key === undefined) {
     return;
   }
-  const key = formatTurnPointer({ pointer });
   if (!witnesses.has(key)) {
     witnesses.set(key, { kind, witness: slug });
   }
