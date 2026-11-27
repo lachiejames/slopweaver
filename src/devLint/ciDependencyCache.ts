@@ -17,6 +17,14 @@
  *   writers would also race for one immutable key with a timing-dependent winner.
  * - **An entry is always a cold install.** There are no `restore-keys`, so a miss restores nothing, and the
  *   writer saves only on a miss, straight after the install, before any command could write into it.
+ * - **An entry carries Yarn's package archives** (`~/.yarn/berry/cache`, the global cache `enableGlobalCache`
+ *   defaults to) beside `node_modules`, because Yarn fetches a package whenever its archive is absent, whatever
+ *   the installed tree holds. MEASURED on the entry that held no archives: every job on a hit printed
+ *   `YN0013: 953 packages were added to the project (+ 2.02 GiB)` — a registry download per job, which one
+ *   `write ECONNRESET` failed (desktop-e2e, job 140394290086). Re-read it with `slopweaver github run-log
+ *   <run-id> --job lint --from "Fetch step"`. The hardlink store (`~/.yarn/berry/store`) stays out: on an
+ *   unchanged layout the linker reads `node_modules/.yarn-state.yml` and links nothing. Hardened mode on a public
+ *   pull request still queries registry metadata; it downloads no archive.
  * - **The key names every file the install reads**, behind a schema salt a change of this shape bumps:
  *   the Node pin, the Yarn config and plugins, the manifest, the lockfile and the portal stubs' manifests.
  * - **The install still runs** over a restored tree, so a lockfile the tree does not satisfy fails the job.
@@ -92,10 +100,13 @@ const COLD_JOB_ACTIONS: ReadonlySet<string> = new Set(["actions/checkout", "acti
 /** The restore step's id, which the save step's condition reads. */
 const RESTORE_ID = "deps";
 
-/** The exact `with:` both cache steps carry. Bump `v1` whenever what an entry holds changes shape. */
+/**
+ * The exact `with:` both cache steps carry: the installed tree, Yarn's install state and Yarn's package archives.
+ * The key's `node-modules-vN` prefix is the schema salt, bumped whenever what an entry holds changes shape.
+ */
 export const DEPENDENCY_CACHE_INPUTS: Readonly<Record<string, unknown>> = {
-  key: "node-modules-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.nvmrc', '.yarnrc.yml', '.yarn/plugins/**', 'package.json', 'yarn.lock', 'stubs/*/package.json') }}",
-  path: "node_modules\n.yarn/install-state.gz\n",
+  key: "node-modules-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.nvmrc', '.yarnrc.yml', '.yarn/plugins/**', 'package.json', 'yarn.lock', 'stubs/*/package.json') }}",
+  path: "node_modules\n.yarn/install-state.gz\n~/.yarn/berry/cache\n",
 };
 
 /**

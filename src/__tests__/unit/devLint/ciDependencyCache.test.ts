@@ -25,6 +25,16 @@ const pinned = ({ job }: { job: string }): Record<string, unknown>[] =>
 
 const INPUTS_PROBLEM = `passes dependency cache inputs other than ${JSON.stringify(DEPENDENCY_CACHE_INPUTS)}, so a restored tree could be one this run would not have installed`;
 
+// Every fixture below spreads the constant, so they would approve a weakened one; this pins it by value.
+describe("DEPENDENCY_CACHE_INPUTS", () => {
+  it("is the v2 key over every install input, and carries Yarn's package archives beside the installed tree", () => {
+    expect(DEPENDENCY_CACHE_INPUTS).toEqual({
+      key: "node-modules-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.nvmrc', '.yarnrc.yml', '.yarn/plugins/**', 'package.json', 'yarn.lock', 'stubs/*/package.json') }}",
+      path: "node_modules\n.yarn/install-state.gz\n~/.yarn/berry/cache\n",
+    });
+  });
+});
+
 describe("cacheShapeProblems, for a reader", () => {
   it("accepts a restore straight before the install, with no save", () => {
     expect(cacheShapeProblems({ steps: [CHECKOUT, RESTORE, INSTALL, LINT], job: "lint" })).toEqual([]);
@@ -231,7 +241,7 @@ describe("the cache writer", () => {
 describe("dependencyCacheFindings", () => {
   // A job outside the offload workers, such as `integration`, once went unjudged.
   it("judges every job in the workflow, naming a non-worker that saves and a writer that does not", () => {
-    const rogue = { ...SAVE, with: { ...DEPENDENCY_CACHE_INPUTS, key: "node-modules-v1-rogue" } };
+    const rogue = { ...SAVE, with: { ...DEPENDENCY_CACHE_INPUTS, key: "node-modules-v2-rogue" } };
     const workflow = {
       jobs: {
         integration: { steps: [CHECKOUT, RESTORE, INSTALL, rogue, LINT] },
