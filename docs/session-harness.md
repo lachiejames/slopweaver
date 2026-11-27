@@ -108,7 +108,7 @@ DONE, never its words or a tool's input, output or title: [the facts picture](se
   state home the spawn recorded the row in (always passed, absolute, even when the spawn's came from its environment), so the ledger records it, and stops the session locally if that verb fails.
   The card catches its Stop link on `did-start-navigation` as well as `will-navigate`: Electron never raises
   `will-navigate` for a `slopweaver-session:` link, since nothing serves that scheme. Only the exact link the card
-  draws counts, never an escaped spelling of the same id.
+  draws counts, never an escaped spelling of the same id. The card accepts the first mouse (`sessionCardWindowOptions`): one click on an unfocused card's Stop stops it.
   `cmux close <handle> --harness app --via-card` presses that same Stop the way the owner would: the app clicks
   the control where the card pins it (`STOP_CONTROL_BOX`, `desktop/src/sessionCard.ts`) through the page's
   DevTools input domain, because `sendInputEvent` reaches only a focused window and a background app cannot focus

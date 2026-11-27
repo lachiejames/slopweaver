@@ -14,7 +14,13 @@ import { app, BrowserWindow, screen } from "electron";
 import { err, ok, type Result } from "neverthrow";
 
 import { type CardStop, cardStopFor, type ScheduleTimeout } from "./cardStop";
-import { SESSION_LINK_SCHEME, type SessionLink, stopLink, withinStopControl } from "./sessionCard";
+import {
+  SESSION_LINK_SCHEME,
+  type SessionLink,
+  sessionCardWindowOptions,
+  stopLink,
+  withinStopControl,
+} from "./sessionCard";
 import { clickAndWait } from "./sessionCardClick";
 import { type CardRedraw, cardRedrawFor, TAIL_REDRAW_MS } from "./sessionCardRedraw";
 import type { LeaseWindow } from "./visibleSessionLease";
@@ -156,21 +162,9 @@ async function loadInto({
 
 /** A new card window, hidden until its page is ready, stacked beside the cards already open. */
 function cardWindow({ title }: { title: string }): BrowserWindow {
-  const workArea = screen.getPrimaryDisplay().workArea;
-  const width = 420;
-  const offset = 24 * cards.size;
-  const created = new BrowserWindow({
-    backgroundColor: "#0f1115",
-    height: 360,
-    minHeight: 220,
-    minWidth: 320,
-    show: false,
-    title,
-    webPreferences: { contextIsolation: true, javascript: false, nodeIntegration: false, sandbox: true },
-    width,
-    x: workArea.x + workArea.width - width - 16 - offset,
-    y: workArea.y + 64 + offset,
-  });
+  const created = new BrowserWindow(
+    sessionCardWindowOptions({ stacked: cards.size, title, workArea: screen.getPrimaryDisplay().workArea }),
+  );
   created.on("page-title-updated", (event) => {
     event.preventDefault();
   });
