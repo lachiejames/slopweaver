@@ -292,7 +292,7 @@ or resume, so every verb that seats through it, `handover wake` included), the d
 (`src/sessionHarness/cmuxHost.ts`), whose body gets the harness and a `CmuxHostSurface`: its inventory
 (`listWorkspaces`, `resolveWorkspace`) goes through the harness, and an access refusal keeps its own class
 across it (`accessDenied` on `HARNESS_UNAVAILABLE`). A launch's spawn deps come from `productionSpawnDeps`
-(`src/sessionHarness/recordedSpawn.ts`), the one other place a connection is opened.
+(`src/sessionHarness/recordedSpawn.ts`), the one other place a connection is opened, never for `--harness app`.
 
 **Stage-2 debt**, the cmux-only raw operations a second implementation has to answer, and how an app-hosted chair
 is pinned and taken over with no cmux pin: [stage-2 debt](session-harness/stage-2-debt.md). The supervisor pin's app
