@@ -18,6 +18,16 @@ nothing claims a context never ran on evidence that could not have shown it runn
 re-read whole first ([landing.md](landing.md)), so `unproven` survives only a list cut short at 500, a head
 that moved mid-read, or a context node that did not decode (`contextsView` counts it as unread, never drops it).
 
+`inFlight` is the head's running and queued checks, and it changes WORDS only: a `missing` name read while
+something is in flight prints `NOT YET CREATED` beside those checks instead of `NEVER RAN`, because an
+aggregate required job (`ci.yml`'s `build`: `needs` every leg, `if: always()`) gets no check run until its
+needs finish, so it is absent for the whole of a healthy lap. `github checks` reads `1 REQUIRED CONTEXT NOT
+YET CREATED: build (7 checks still in flight: compile, lint, unit-1, unit-2, unit-3, +2 more)`, `review-state`
+writes `NOT YET CREATED, NOT LANDABLE`, and the refusal names NO cause and NO remedy. Nothing branches on it,
+so it is still a refusal, never `EXIT_OK`, `ci-green` is `fail` either way and every landing verb refuses the
+same head. `NEVER RAN` and its cause are kept for a read where nothing is in flight. The gap: the instant
+after the last leg ends and before GitHub queues `build` still reads `NEVER RAN`.
+
 ## The required SET is per base; the JUDGEMENT is per head
 
 One live protection-plus-rulesets union is read per base branch and shared, which is right and cheap — a base

@@ -7,6 +7,7 @@
  * when asking *why did this row read fail* is here.
  */
 
+import { inFlightChecksClause } from "../live/github/requiredContexts.js";
 import {
   blockedWithoutReviewDecision,
   mergeStatusClause,
@@ -120,10 +121,11 @@ function undraftedTest({ state }: { state: PrReviewState }): LandingTest {
 function ciTest({ state }: { state: PrReviewState }): LandingTest {
   const gate = state.requiredContexts;
   if (gate.kind === "read" && gate.missing.length > 0) {
+    const absence = requiredAbsence({ inFlight: gate.inFlight, missing: gate.missing });
     return {
       id: "ci-green",
       verdict: "fail",
-      why: `${String(gate.missing.length)} context(s) ${gate.branch} REQUIRES never ran: ${gate.missing.join(", ")}`,
+      why: `${String(gate.missing.length)} context(s) ${gate.branch} REQUIRES ${absence}`,
     };
   }
   const failure = landingCiFailure({ state });
@@ -173,6 +175,21 @@ function ciTest({ state }: { state: PrReviewState }): LandingTest {
     return { id: "ci-green", verdict: "pass", why: state.ciDetail };
   }
   return { id: "ci-green", verdict: "unknown", why: `CI reads ${state.ci} — ${state.ciDetail}` };
+}
+
+/**
+ * How `ciTest`'s `fail` arm words required contexts absent from the head: not yet created while other checks
+ * are still in flight, never ran once nothing is. Only the words change; the verdict stays `fail` either way.
+ *
+ * @param missing the required contexts absent from the head
+ * @param inFlight the running or queued checks the read saw
+ * @returns the absence phrase, naming every missing context
+ */
+function requiredAbsence({ missing, inFlight }: { missing: readonly string[]; inFlight: readonly string[] }): string {
+  if (inFlight.length > 0) {
+    return `not yet created: ${missing.join(", ")} (${inFlightChecksClause({ names: inFlight })})`;
+  }
+  return `never ran: ${missing.join(", ")}`;
 }
 
 /**

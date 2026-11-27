@@ -28,6 +28,7 @@ const NO_REVIEW_REQUIRED: ReviewGate = { branch: "main", kind: "read", rules: []
 /** Every context `main` requires is on the head — the ordinary, mergeable case. */
 const GATE_SATISFIED: RequiredContextGate = {
   branch: "main",
+  inFlight: [],
   kind: "read",
   mergeable: undefined,
   missing: [],
@@ -113,6 +114,7 @@ describe("adminMergePreflight under --dry-run", () => {
   /** `build` and `integration` required, neither on the head: what a head looks like before its lap posts. */
   const UNLAPPED: RequiredContextGate = {
     branch: "main",
+    inFlight: [],
     kind: "read",
     mergeable: undefined,
     missing: ["build", "integration"],
@@ -172,6 +174,7 @@ describe("adminMergePreflight", () => {
   it("refuses an otherwise-permitted merge when a required context never ran, naming it", () => {
     const gate: RequiredContextGate = {
       branch: "main",
+      inFlight: [],
       kind: "read",
       mergeable: undefined,
       missing: ["build", "integration"],
@@ -190,6 +193,34 @@ describe("adminMergePreflight", () => {
     expect(permit.refusals).toHaveLength(1);
     expect(permit.refusals[0]).toContain("main requires build, integration");
     expect(permit.refusals[0]).toContain("not on this head at all");
+  });
+
+  it("refuses the same merge while checks are still in flight — only the refusal's words change", () => {
+    const gate: RequiredContextGate = {
+      branch: "main",
+      inFlight: ["unit-1"],
+      kind: "read",
+      mergeable: undefined,
+      missing: ["build", "integration"],
+      required: ["build", "integration"],
+      unproven: [],
+    };
+    const preflight = ({ over }: { over: RequiredContextGate }) =>
+      adminMergePreflight({
+        execution: "merge",
+        gate: over,
+        isAdmin: true,
+        pr: pr(),
+        protection: BYPASSABLE,
+        repo: "o/n",
+        reviews: NO_REVIEW_REQUIRED,
+      });
+    const inFlight = preflight({ over: gate });
+    const finished = preflight({ over: { ...gate, inFlight: [] } });
+    expect(inFlight.refusals).toHaveLength(1);
+    expect(inFlight.notes).toEqual(finished.notes);
+    expect(inFlight.refusals[0]).toContain("main requires build, integration");
+    expect(inFlight.refusals[0]).toContain("the head is NOT landable on this read");
   });
 
   it("notes, and does not refuse, when the required set could not be read at all", () => {
@@ -304,7 +335,15 @@ describe("adminMergePreflight", () => {
   it("refuses a base whose ruleset requires a codeowner review, even though classic protection 404s", () => {
     const permit = adminMergePreflight({
       execution: "merge",
-      gate: { branch: "staging", kind: "read", mergeable: undefined, missing: [], required: [], unproven: [] },
+      gate: {
+        branch: "staging",
+        inFlight: [],
+        kind: "read",
+        mergeable: undefined,
+        missing: [],
+        required: [],
+        unproven: [],
+      },
       isAdmin: true,
       pr: pr({ baseRef: "staging" }),
       protection: UNPROTECTED,

@@ -40,6 +40,7 @@ const check = (over: Partial<GithubCheck> = {}): GithubCheck => ({
 
 const READ_GATE: RequiredContextGate = {
   branch: "staging",
+  inFlight: [],
   kind: "read",
   mergeable: undefined,
   missing: [],

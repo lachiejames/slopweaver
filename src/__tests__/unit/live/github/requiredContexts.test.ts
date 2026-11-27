@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import type { GithubCheck } from "../../../../live/github/checksDedupe.js";
 import {
   absentRequiredContexts,
+  inFlightChecksClause,
   type RequiredContextGate,
   requiredContextClause,
   requiredContextGate,
@@ -81,6 +82,7 @@ describe("requiredContextGate", () => {
       }),
     ).toEqual({
       branch: "main",
+      inFlight: [],
       kind: "read",
       mergeable: "CONFLICTING",
       missing: ["build", "integration"],
@@ -99,6 +101,7 @@ describe("requiredContextGate", () => {
     });
     expect(gate).toEqual({
       branch: "main",
+      inFlight: [],
       kind: "read",
       mergeable: undefined,
       missing: ["build", "integration"],
@@ -332,6 +335,7 @@ describe("a truncated read never reports a context as never having run", () => {
   it("puts an absent name in `unproven` and leaves `missing` empty when the page was truncated", () => {
     expect(gateOn({ truncated: true })).toEqual({
       branch: "staging",
+      inFlight: [],
       kind: "read",
       mergeable: "MERGEABLE",
       missing: [],
@@ -343,6 +347,7 @@ describe("a truncated read never reports a context as never having run", () => {
   it("puts the same name in `missing` and leaves `unproven` empty when the read saw the whole head", () => {
     expect(gateOn({ truncated: false })).toEqual({
       branch: "staging",
+      inFlight: [],
       kind: "read",
       mergeable: "MERGEABLE",
       missing: ["Required CI"],
@@ -368,6 +373,7 @@ describe("a truncated read never reports a context as never having run", () => {
     });
     expect(gate).toEqual({
       branch: "staging",
+      inFlight: [],
       kind: "read",
       mergeable: "MERGEABLE",
       missing: [],
@@ -404,5 +410,129 @@ describe("a truncated read never reports a context as never having run", () => {
     const refusal = requiredContextRefusal({ gate: gateOn({ truncated: false }) })!;
     expect(refusal).toContain("not on this head at all");
     expect(refusal).toContain("GitHub reports this pull request MERGEABLE");
+  });
+});
+
+/**
+ * The half that closes the mid-run alarm: a required aggregate job (`ci.yml`'s `build`) has no check run until
+ * the legs it needs finish, so it is absent for the whole of a healthy lap. Absent while something is still in
+ * flight reads NOT YET CREATED and names no cause; absent on a finished read keeps NEVER RAN and its cause.
+ */
+describe("a required context absent while checks are still in flight", () => {
+  /** One check in a given state. */
+  function check({ name, state }: { name: string; state: GithubCheck["state"] }): GithubCheck {
+    return { kind: "check-run", name, state, url: undefined };
+  }
+
+  /** `ci.yml`'s shape mid-lap: some legs green, some running, one queued, `build` not created. */
+  const MID_LAP: readonly GithubCheck[] = [
+    check({ name: "lint", state: "passed" }),
+    check({ name: "unit-2", state: "running" }),
+    check({ name: "typecheck", state: "failed" }),
+    check({ name: "unit-1", state: "queued" }),
+    { kind: "status", name: "unit-1", state: "running", url: undefined },
+  ];
+
+  /** The gate over a set of checks, `build` required, MERGEABLE, the whole head seen. */
+  function gateOver({ checks }: { checks: readonly GithubCheck[] }): RequiredContextGate {
+    return requiredContextGate({
+      branch: "main",
+      checks,
+      mergeable: "MERGEABLE",
+      required: ["build"],
+      truncated: false,
+    });
+  }
+
+  it("collects only running and queued names, sorted, a check run and a status of one name once", () => {
+    expect(gateOver({ checks: MID_LAP })).toMatchObject({ inFlight: ["unit-1", "unit-2"], kind: "read" });
+  });
+
+  it("keeps `missing` populated exactly as on a finished read — only the words may change", () => {
+    const midLap = gateOver({ checks: MID_LAP });
+    const finished = gateOver({ checks: [check({ name: "lint", state: "passed" })] });
+    expect(midLap).toEqual({ ...finished, inFlight: ["unit-1", "unit-2"] });
+    expect(finished).toEqual({
+      branch: "main",
+      inFlight: [],
+      kind: "read",
+      mergeable: "MERGEABLE",
+      missing: ["build"],
+      required: ["build"],
+      unproven: [],
+    });
+  });
+
+  it("says NOT YET CREATED in the clause, naming what is in flight, never NEVER RAN", () => {
+    expect(requiredContextClause({ gate: gateOver({ checks: MID_LAP }) })).toBe(
+      "1 REQUIRED CONTEXT NOT YET CREATED: build (2 checks still in flight: unit-1, unit-2)",
+    );
+  });
+
+  it("pluralises the contexts and folds past five in-flight names into a count", () => {
+    const legs = ["a", "b", "c", "d", "e", "f", "g"].map((name) => check({ name, state: "running" }));
+    const gate = requiredContextGate({
+      branch: "main",
+      checks: legs,
+      mergeable: "MERGEABLE",
+      required: ["build", "integration"],
+      truncated: false,
+    });
+    expect(requiredContextClause({ gate })).toBe(
+      "2 REQUIRED CONTEXTS NOT YET CREATED: build, integration (7 checks still in flight: a, b, c, d, e, +2 more)",
+    );
+  });
+
+  it("says one check, singular, with no fold", () => {
+    expect(inFlightChecksClause({ names: ["unit-1"] })).toBe("1 check still in flight: unit-1");
+  });
+
+  it("still refuses, naming the missing context and saying the head is not landable", () => {
+    const refusal = requiredContextRefusal({ gate: gateOver({ checks: MID_LAP }) })!;
+    expect(refusal).toBe(
+      "main requires build, and it is not on this head while other checks are still in flight (2 checks still in " +
+        "flight: unit-1, unit-2). This read holds NO verdict for it and names no cause: the head is NOT landable " +
+        "on this read, and only a read with nothing in flight can say whether it never ran.",
+    );
+  });
+
+  it("speaks of two missing contexts in the plural", () => {
+    const gate = requiredContextGate({
+      branch: "main",
+      checks: MID_LAP,
+      mergeable: "MERGEABLE",
+      required: REQUIRED,
+      truncated: false,
+    });
+    const refusal = requiredContextRefusal({ gate })!;
+    expect(refusal).toContain("main requires build, integration, and they are not on this head");
+    expect(refusal).toContain("holds NO verdict for them");
+    expect(refusal).toContain("whether they never ran.");
+  });
+
+  it("names no cause, no remedy and nothing that reads as a wait-then-land", () => {
+    const refusal = requiredContextRefusal({ gate: gateOver({ checks: MID_LAP }) })!;
+    for (const phrase of ["MERGEABLE", "CONFLICTING", "paths filter", "rebase", "re-trigger", "cancelled", "wait"]) {
+      expect(refusal.toLowerCase()).not.toContain(phrase.toLowerCase());
+    }
+  });
+
+  it("keeps NEVER RAN and its measured cause, byte for byte, once nothing is in flight", () => {
+    const finished = gateOver({ checks: [check({ name: "lint", state: "passed" })] });
+    expect(requiredContextClause({ gate: finished })).toBe("1 REQUIRED CONTEXT NEVER RAN: build");
+    expect(requiredContextRefusal({ gate: finished })).toContain("not on this head at all");
+    expect(requiredContextRefusal({ gate: finished })).toContain("GitHub reports this pull request MERGEABLE");
+  });
+
+  it("stays UNPROVEN on a truncated read, in flight or not", () => {
+    const gate = requiredContextGate({
+      branch: "main",
+      checks: MID_LAP,
+      mergeable: "MERGEABLE",
+      required: ["build"],
+      truncated: true,
+    });
+    expect(requiredContextClause({ gate })).toBe("1 REQUIRED CONTEXT UNPROVEN: build");
+    expect(requiredContextRefusal({ gate })).toContain("re-read with a larger `--limit`");
   });
 });

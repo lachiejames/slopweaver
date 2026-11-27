@@ -176,16 +176,16 @@ grep's exit 0 — a death read as a finish. A pipe's status is its LAST command'
 **What the verb DOES read, because the rollup cannot supply it: the base branch's required contexts.** Once
 per run — the set is a property of the branch, not the head — with both governance mechanisms unioned exactly
 as `github enqueue` reads them (classic protection over GraphQL's `Ref.branchProtectionRule`, a ruleset over
-REST's rules-for-a-branch). Every status line carries the verdict, `2/2 required present` or
-`2 REQUIRED CONTEXTS NEVER RAN: build, integration`, and anything short of satisfied exits
-`EXIT_EXPECTED_EMPTY` with a refusal, never `EXIT_OK`. A read that FAILS answers
-`required contexts UNREAD (<reason>)` and refuses nothing: it never defaults to satisfied, and never turns a
-permission problem into a merge refusal. Why it exists: `statusCheckRollup` summarises the runs PRESENT on a
-head, so a required context that never registered is not `FAILURE` in it — it is absent, and the rollup reads
-`SUCCESS` over whatever else ran. Mirror of the superseded-run case above: that one is a stale RED the rollup
-pins, this a false GREEN nothing else refuses. The refusal **names the cause** from `mergeable`, since the
-remedies are OPPOSITE: `CONFLICTING` creates no `pull_request` run at all and needs a rebase onto the base's
-CURRENT tip, `MERGEABLE` makes a rebase wrong, an unselected one establishes NOTHING.
+REST's rules-for-a-branch). Every status line carries the verdict, `2/2 required present` or `2 REQUIRED CONTEXTS
+NEVER RAN: build, integration` (`NOT YET CREATED` mid-lap, [required-contexts.md](required-contexts.md)), and
+anything short of satisfied exits `EXIT_EXPECTED_EMPTY` with a refusal, never `EXIT_OK`. A read that FAILS
+answers `required contexts UNREAD (<reason>)` and refuses nothing: it never defaults to satisfied, and never
+turns a permission problem into a merge refusal. Why it exists: `statusCheckRollup` summarises the runs PRESENT
+on a head, so a required context that never registered is not `FAILURE` in it — it is absent, and the rollup
+reads `SUCCESS` over whatever else ran. Mirror of the superseded-run case above: that one is a stale RED the
+rollup pins, this a false GREEN nothing else refuses. The refusal **names the cause** from `mergeable`, since
+the remedies are OPPOSITE: `CONFLICTING` creates no `pull_request` run at all and needs a rebase onto the
+base's CURRENT tip, `MERGEABLE` makes a rebase wrong, an unselected one establishes NOTHING.
 
 **Absence only counts when the read saw the WHOLE head**, since `contexts(first: $limit)` returns a page. A
 truncated read says `UNPROVEN` not `NEVER RAN`, names NO cause, and asks for a wider `--limit`; it is still not

@@ -78,6 +78,7 @@ const stateHead = () =>
     failingChecks: [],
     requiredContexts: {
       branch: "staging",
+      inFlight: [],
       kind: "read",
       mergeable: undefined,
       missing: [],

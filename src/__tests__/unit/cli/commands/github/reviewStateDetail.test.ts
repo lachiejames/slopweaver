@@ -68,6 +68,7 @@ const state = (over: Partial<PrReviewState> = {}): PrReviewState =>
     requiredApprovers: [],
     requiredContexts: {
       branch: "staging",
+      inFlight: [],
       kind: "read",
       mergeable: undefined,
       missing: [],
@@ -177,6 +178,7 @@ describe("requiredContextsLine", () => {
     const none = state({
       requiredContexts: {
         branch: "staging",
+        inFlight: [],
         kind: "read",
         mergeable: undefined,
         missing: [],
@@ -193,6 +195,7 @@ describe("requiredContextsLine", () => {
     const missing = state({
       requiredContexts: {
         branch: "staging",
+        inFlight: [],
         kind: "read",
         mergeable: undefined,
         missing: ["integration"],
@@ -202,6 +205,23 @@ describe("requiredContextsLine", () => {
     });
     expect(requiredContextsLine({ state: missing })).toBe(
       "staging requires build, integration · 1 REQUIRED NEVER RAN: integration",
+    );
+  });
+
+  it("names a required context absent while checks are in flight as not yet created", () => {
+    const midLap = state({
+      requiredContexts: {
+        branch: "staging",
+        inFlight: ["unit-1", "unit-2"],
+        kind: "read",
+        mergeable: undefined,
+        missing: ["integration"],
+        required: ["build", "integration"],
+        unproven: [],
+      },
+    });
+    expect(requiredContextsLine({ state: midLap })).toBe(
+      "staging requires build, integration · 1 REQUIRED NOT YET CREATED, NOT LANDABLE: integration (2 checks still in flight: unit-1, unit-2)",
     );
   });
 

@@ -7,8 +7,6 @@ import {
   reviewStateDocument,
   reviewStateRow,
 } from "../../../../../cli/commands/github/reviewStateTable.js";
-import { DISTANCE_NOT_REQUESTED } from "../../../../../live/github/baseDistance.js";
-import type { RequiredContextGate } from "../../../../../live/github/requiredContexts.js";
 import type { PrLiveState } from "../../../../../live/github/reviewState.js";
 import { parseCodeowners } from "../../../../../review/codeowners.js";
 import { findPrLinkSpans, firstLinkStart, mentionRunsIn } from "../../../../../review/prLink.js";
@@ -16,59 +14,7 @@ import { threadDetails } from "../../../../../review/prStateDetail.js";
 import { EMPTY_REVIEW_ROSTER } from "../../../../../review/reviewRoster.js";
 import type { SlackCoverage, SlackMention } from "../../../../../review/slackEvidenceTypes.js";
 import { soloPlace } from "../../../../../review/stack.js";
-
-const NOW = "2026-08-30T12:00:00.000Z";
-const CODEOWNERS = { path: ".github/CODEOWNERS", rules: parseCodeowners({ content: "* @org/eng\n/apps/etl @kel\n" }) };
-
-/** A live pull-request state, with the fields a test cares about overridden. */
-const pr = (over: Partial<PrLiveState> = {}): PrLiveState => ({
-  authorLogin: "author-login",
-  baseRefName: "staging",
-  changedPaths: ["apps/etl/main.ts"],
-  changedPathsTruncated: false,
-  codeownerRequests: [],
-  codeownerRequestsTruncated: false,
-  labels: [],
-  labelsTruncated: false,
-  queueEntry: undefined,
-  reviewsTruncated: false,
-  defaultBranch: "staging",
-  headRefName: "feature/one",
-  checks: {
-    baseRef: undefined,
-    checks: [{ kind: "check-run", name: "core", state: "passed", url: undefined }],
-    headSha: "abc",
-    mergeable: undefined,
-    residue: [],
-    rollupState: "SUCCESS",
-    supersededChecks: [],
-    truncated: false,
-  },
-  baseDistance: DISTANCE_NOT_REQUESTED,
-  checksRead: { kind: "read" },
-  headRepoSlug: "acme/widgets",
-  checksTruncated: false,
-  createdAtIso: "2026-08-28T00:00:00Z",
-  headOid: "abc",
-  isDraft: false,
-  mergeable: "MERGEABLE",
-  githubMergeStatus: { kind: "mergeable", status: "CLEAN" },
-  number: 1,
-  repoSlug: "o/r",
-  requestedReviewers: [],
-  reviewDecision: "",
-  reviews: [],
-  threadCount: 0,
-  threads: [],
-  threadsTruncated: false,
-  title: "a title",
-  updatedAtIso: "2026-08-28T01:00:00Z",
-  url: "https://github.com/o/r/pull/1",
-  ...over,
-});
-
-/** The place of a pull request that is alone on the default branch — every case below that is not about stacks. */
-const SOLO = soloPlace({ pr: pr() });
+import { CODEOWNERS, COVERAGE, NO_REQUIRED_CONTEXTS, NOW, pr, SOLO } from "./reviewStateReportFixtures.js";
 
 /**
  * A Slack mention, with the fields a test cares about overridden.
@@ -108,24 +54,6 @@ const mention = (over: Partial<SlackMention> = {}): SlackMention => {
     tagged,
     ...over,
   };
-};
-
-const COVERAGE: SlackCoverage = {
-  corpusThroughIso: "2026-08-29T00:00:00Z",
-  liveRan: true,
-  neighbourhoods: [],
-  shareThreads: {},
-  residue: [],
-};
-
-/** A base branch that was read and requires nothing — the neutral gate these row assertions do not exercise. */
-const NO_REQUIRED_CONTEXTS: RequiredContextGate = {
-  branch: "main",
-  kind: "read",
-  mergeable: undefined,
-  missing: [],
-  required: [],
-  unproven: [],
 };
 
 describe("assembleReviewState", () => {
@@ -739,98 +667,5 @@ describe("reviewStateDocument", () => {
     expect(document["coverage"]).toEqual(COVERAGE);
     expect(document["residue"]).toEqual(["r1"]);
     expect(document["tally"]).toBe("send-ask 1");
-  });
-});
-
-describe("assembleReviewState — question 8, the conflict", () => {
-  const SOLE_AUTHOR = { path: ".github/CODEOWNERS", rules: parseCodeowners({ content: "* @author-login\n" }) };
-
-  it("reads a repository whose CODEOWNERS names only the author as self-merging", () => {
-    const state = assembleReviewState({
-      codeowners: SOLE_AUTHOR,
-      conflictPaths: undefined,
-      coverage: COVERAGE,
-      mentions: [],
-      nowIso: NOW,
-      pr: pr(),
-      requiredContexts: NO_REQUIRED_CONTEXTS,
-      roster: EMPTY_REVIEW_ROSTER,
-      stack: SOLO,
-      threadBodiesRead: true,
-    });
-    expect(state.recommendation).toBe("self-merges");
-    expect(state.conflict).toStrictEqual({ local: { kind: "not-requested" }, mergeable: "MERGEABLE" });
-  });
-
-  it("says CONFLICTING ahead of self-merging, carrying the measured paths and the base branch", () => {
-    const state = assembleReviewState({
-      codeowners: SOLE_AUTHOR,
-      conflictPaths: { kind: "paths", paths: ["package.json"] },
-      coverage: COVERAGE,
-      mentions: [],
-      nowIso: NOW,
-      pr: pr({ mergeable: "CONFLICTING" }),
-      requiredContexts: NO_REQUIRED_CONTEXTS,
-      roster: EMPTY_REVIEW_ROSTER,
-      stack: SOLO,
-      threadBodiesRead: true,
-    });
-    expect(state.recommendation).toBe("conflicting");
-    expect(state.baseRefName).toBe("staging");
-    expect(state.conflict).toStrictEqual({
-      local: { kind: "measured", paths: ["package.json"], why: "" },
-      mergeable: "CONFLICTING",
-    });
-    expect(reviewStateRow({ state })).toContain("CONFLICTING");
-    expect(recommendationTally({ states: [state] })).toBe("conflicting 1");
-  });
-
-  it("says why the paths are missing when the local merge came out clean, rather than reporting none", () => {
-    const state = assembleReviewState({
-      codeowners: CODEOWNERS,
-      conflictPaths: { kind: "clean" },
-      coverage: COVERAGE,
-      mentions: [],
-      nowIso: NOW,
-      pr: pr({ mergeable: "CONFLICTING" }),
-      requiredContexts: NO_REQUIRED_CONTEXTS,
-      roster: EMPTY_REVIEW_ROSTER,
-      stack: SOLO,
-      threadBodiesRead: true,
-    });
-    expect(state.recommendation).toBe("conflicting");
-    expect(state.conflict).toStrictEqual({
-      local: {
-        kind: "measured",
-        paths: [],
-        why: "a local merge of the head into staging came out clean, so GitHub's conflict read may be stale or the base has moved",
-      },
-      mergeable: "CONFLICTING",
-    });
-  });
-
-  it("carries an unmeasured read's own reason through", () => {
-    const state = assembleReviewState({
-      codeowners: CODEOWNERS,
-      conflictPaths: {
-        kind: "unmeasured",
-        why: "no declared checkout holds o/r, so the conflicting paths were not measured",
-      },
-      coverage: COVERAGE,
-      mentions: [],
-      nowIso: NOW,
-      pr: pr({ mergeable: "CONFLICTING" }),
-      requiredContexts: NO_REQUIRED_CONTEXTS,
-      roster: EMPTY_REVIEW_ROSTER,
-      stack: SOLO,
-      threadBodiesRead: true,
-    });
-    expect(state.conflict).toStrictEqual({
-      local: {
-        kind: "unmeasured",
-        why: "no declared checkout holds o/r, so the conflicting paths were not measured",
-      },
-      mergeable: "CONFLICTING",
-    });
   });
 });

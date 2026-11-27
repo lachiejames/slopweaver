@@ -116,7 +116,7 @@ describe("runGithubChecks", () => {
     expect(JSON.parse(out[0]!)).toEqual({
       baseRef: "main",
       checks: [PASSED_CHECK],
-      gate: { branch: "main", kind: "read", missing: [], required: [], unproven: [] },
+      gate: { branch: "main", inFlight: [], kind: "read", missing: [], required: [], unproven: [] },
       headSha: "abc123",
       mergeable: undefined,
       residue: [],

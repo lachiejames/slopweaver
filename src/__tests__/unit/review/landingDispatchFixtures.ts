@@ -42,6 +42,7 @@ const NO_CODEOWNERS: PrReviewState["codeowners"] = {
 /** The base branch requires `build`, and it ran. */
 const REQUIRED_BUILD: PrReviewState["requiredContexts"] = {
   branch: "staging",
+  inFlight: [],
   kind: "read",
   mergeable: undefined,
   missing: [],

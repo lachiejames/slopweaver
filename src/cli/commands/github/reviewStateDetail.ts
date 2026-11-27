@@ -13,6 +13,7 @@
  * Pure — every line is composed from data `./reviewStateRun.ts` already read.
  */
 
+import { inFlightChecksClause } from "../../../live/github/requiredContexts.js";
 import type { FailingCheckDetail, ThreadDetail, ThreadDisposition } from "../../../review/prStateDetail.js";
 import type { ConflictState, PrReviewState } from "../../../review/reviewState.js";
 
@@ -236,8 +237,14 @@ export function requiredContextsLine({ state }: { state: PrReviewState }): strin
   if (gate.required.length === 0) {
     return `${gate.branch} requires no status-check contexts, so every red above is advisory`;
   }
-  const missing =
-    gate.missing.length === 0 ? "" : ` · ${String(gate.missing.length)} REQUIRED NEVER RAN: ${gate.missing.join(", ")}`;
+  let missing = "";
+  if (gate.missing.length > 0 && gate.inFlight.length > 0) {
+    missing =
+      ` · ${String(gate.missing.length)} REQUIRED NOT YET CREATED, NOT LANDABLE: ${gate.missing.join(", ")} ` +
+      `(${inFlightChecksClause({ names: gate.inFlight })})`;
+  } else if (gate.missing.length > 0) {
+    missing = ` · ${String(gate.missing.length)} REQUIRED NEVER RAN: ${gate.missing.join(", ")}`;
+  }
   const unproven =
     gate.unproven.length === 0
       ? ""

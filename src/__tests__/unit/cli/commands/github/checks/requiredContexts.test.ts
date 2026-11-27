@@ -35,6 +35,52 @@ describe("runGithubChecks", () => {
     expect(diagnostic[0]).toContain("refused: main requires build, integration");
   });
 
+  it("says NOT YET CREATED mid-lap, still exits non-OK, and refuses without naming a cause", async () => {
+    const out: string[] = [];
+    const diagnostic: string[] = [];
+    const unit = { kind: "check-run" as const, name: "unit", state: "running" as const, url: undefined };
+
+    const code = await runGithubChecks({
+      deps: depsFor({ diagnostic, fetches: [snapshot({ checks: [unit] })], out, required: ["build"] }),
+      rest: ["--number", "9"],
+    });
+
+    expect(code).toBe(EXIT_EXPECTED_EMPTY);
+    expect(out).toEqual([
+      "0/1 checks passed (rollup PENDING), 1 running, 1 REQUIRED CONTEXT NOT YET CREATED: build (1 check still in flight: unit)",
+    ]);
+    expect(diagnostic).toHaveLength(1);
+    expect(diagnostic[0]).toContain("refused: main requires build, and it is not on this head while other checks");
+    expect(diagnostic[0]).toContain("the head is NOT landable on this read");
+    expect(diagnostic[0]).not.toContain("this read did not measure mergeability");
+  });
+
+  it("turns NOT YET CREATED into NEVER RAN, with its cause, once the lap finishes without the context", async () => {
+    const out: string[] = [];
+    const diagnostic: string[] = [];
+    const running = { kind: "check-run" as const, name: "unit", state: "running" as const, url: undefined };
+    const passed = { ...running, state: "passed" as const };
+
+    const code = await runGithubChecks({
+      deps: depsFor({
+        diagnostic,
+        fetches: [snapshot({ checks: [running] }), snapshot({ checks: [passed] })],
+        out,
+        required: ["build"],
+      }),
+      rest: ["--number", "9", "--wait"],
+    });
+
+    expect(code).toBe(EXIT_EXPECTED_EMPTY);
+    expect(out).toEqual([
+      "0/1 checks passed (rollup PENDING), 1 running, 1 REQUIRED CONTEXT NOT YET CREATED: build (1 check still in flight: unit)",
+      "1/1 checks passed (rollup PENDING), 1 REQUIRED CONTEXT NEVER RAN: build",
+    ]);
+    expect(diagnostic).toHaveLength(1);
+    expect(diagnostic[0]).toContain("not on this head at all");
+    expect(diagnostic[0]).toContain("this read did not measure mergeability");
+  });
+
   it("exits OK, naming the required set beside the count, once every required context is on the head", async () => {
     const out: string[] = [];
     const diagnostic: string[] = [];

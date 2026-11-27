@@ -25,6 +25,7 @@ const red = (over: Partial<CiFields> = {}): CiFields => ({
   failingChecks: [],
   requiredContexts: {
     branch: "staging",
+    inFlight: [],
     kind: "read",
     mergeable: undefined,
     missing: [],
@@ -94,6 +95,23 @@ describe("landingCiFailure", () => {
       failingChecks: [ADVISORY],
       requiredContexts: {
         branch: "staging",
+        inFlight: [],
+        kind: "read",
+        mergeable: undefined,
+        missing: ["build"],
+        required: ["build"],
+        unproven: [],
+      },
+    });
+    expect(landingCiFailure({ state })).toStrictEqual({ kind: "red", required: true });
+  });
+
+  it("is required just the same while checks are still in flight — in-flight names never decide", () => {
+    const state = red({
+      failingChecks: [ADVISORY],
+      requiredContexts: {
+        branch: "staging",
+        inFlight: ["unit-1"],
         kind: "read",
         mergeable: undefined,
         missing: ["build"],
