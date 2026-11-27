@@ -59,7 +59,7 @@ first lap. `countRatchet.ts`'s header names the two that keep their own (`no-sil
 Every ratcheted baseline file is a row in `baselineRegistry.ts` (two are out BY NAME, in its
 `UNRATCHETED_BASELINES`, each for a stated reason), which asks what a change LOOSENED against MAIN's copy
 — the owner's rule is that whoever implements a pull request never decides to bump its ratchet. A rise is a separate, witnessed act (`baselineBump.ts`), declared as a bump record in the state
-home (or a manifest the change commits under `.baselines/bumps/`) and checked by the landing verbs; a file under `.baselines/` that no registry row or
+home and checked by the landing verbs, never a file committed under `.baselines/bumps/` (the gate refuses one); a file under `.baselines/` that no registry row or
 `UNRATCHETED_BASELINES` entry accounts for is refused at run time. After any rebaseline, revert every entry your branch did not move.
 
 ## One whole-repo type pass, and its budget is not yours

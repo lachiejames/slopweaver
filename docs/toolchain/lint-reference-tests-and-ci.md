@@ -15,8 +15,8 @@ Part of [Toolchain](../toolchain.md).
 - **baseline-against-main** (`src/devLint/baselineAgainstMain.ts`, registry `baselineRegistry.ts`, records
   `baselineBump.ts`) — every committed ratchet baseline is compared with its copy at the base commit, and a row
   new or larger there is REPORTED as a landing obligation: the declaring bump record lives in the state home,
-  which CI cannot see, or in a manifest the change commits, and the landing verbs check it and its Codex witness.
-  It refuses a rewrite of a manifest main holds and any unregistered file under `.baselines/`; the whole mechanism is in [rebaseline and lanes](rebaseline-and-lanes.md).
+  which CI cannot see, and nowhere else, and the landing verbs check it and its Codex witness.
+  It refuses any file a change adds under `.baselines/bumps/`, a rewrite of a manifest main holds there, and any unregistered file under `.baselines/`; the whole mechanism is in [rebaseline and lanes](rebaseline-and-lanes.md).
 - **test-enshittification** (`src/devLint/testEnshittification.ts`, counting core in `testAssertionCounts.ts`, chain walk in `testChainWalk.ts`)
   — enforced prevention of test degradation. A `*.test.ts` under `src/__tests__/`
   that this branch MODIFIED and that now asserts LESS than the same file asserted at the base commit: fewer

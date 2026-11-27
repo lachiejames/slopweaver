@@ -1,7 +1,7 @@
 /**
  * The bump manifests a pull request commits under `.baselines/bumps/`, read on a real repository: only one the
- * change ADDS counts, every added one must decode, and the landing read carries one to the witness exactly as it
- * does a record in the state home.
+ * change ADDS is read, and every added one must decode. Landing never reaches that read for an added file: the
+ * baseline comparison it runs first refuses any write under the bump directory.
  */
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -14,6 +14,7 @@ import { placeRecords } from "../../../codex/baselineBumpPlacement.js";
 import { readBaselineBumpWitness } from "../../../codex/baselineBumpWitnessRun.js";
 import { committedBumpManifests, landingBumpRecords } from "../../../codex/committedBumpManifests.js";
 import { type BumpManifest, type BumpRow, digestOf } from "../../../devLint/baselineBump.js";
+import { BaselineComparisonErrors } from "../../../devLint/baselineComparison.js";
 import { memorySupersessionPort } from "../../landingRegistersFixture.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../tempGitRepo.js";
 
@@ -37,6 +38,7 @@ let home = "";
 let base = "";
 let quiet = "";
 let declared = "";
+let raisedOnly = "";
 let misnamed = "";
 let malformedOnly = "";
 let renamedOnly = "";
@@ -74,6 +76,9 @@ beforeAll(() => {
   raise();
   put({ path: committedPath({ manifest }), text: `${JSON.stringify(manifest, null, 2)}\n` });
   declared = commit({ message: "the rise, with its manifest committed" });
+  git("checkout", "-q", "--detach", base);
+  raise();
+  raisedOnly = commit({ message: "the rise, declared nowhere in the tree" });
   git("checkout", "-q", "--detach", base);
   raise();
   put({ path: ".baselines/bumps/notes.json", text: `${JSON.stringify(manifest, null, 2)}\n` });
@@ -122,7 +127,7 @@ describe("committedBumpManifests", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
     expect(landingBumpRecords({ committed, stored: [] })).toEqual([{ manifest, path: committedPath({ manifest }) }]);
   });
 
-  it("refuses a landing that loosens nothing but adds a manifest that does not decode", async () => {
+  it("refuses a landing that loosens nothing but adds a manifest that does not decode, before reading it", async () => {
     const verdict = await readBaselineBumpWitness({
       cwd: root,
       head: { baseSha: base, branch: "feature", headSha: malformedOnly, repository: "acme/widget" },
@@ -132,15 +137,17 @@ describe("committedBumpManifests", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
 
     expect(verdict).toMatchObject({
       details: [
-        expect.stringContaining(
-          `could not read the pull request's bump manifests: .baselines/bumps/${"0".repeat(64)}.json: `,
-        ),
+        "the baselines could not be compared against the base: " +
+          BaselineComparisonErrors.bumpDirectoryWrite({
+            path: `.baselines/bumps/${"0".repeat(64)}.json`,
+            write: { kind: "added" },
+          }).message,
       ],
       kind: "refused",
     });
   });
 
-  it("carries a committed manifest to the witness, naming it, with nothing in the home", async () => {
+  it("refuses a committed manifest rather than carrying it to the witness, with nothing in the home", async () => {
     const verdict = await readBaselineBumpWitness({
       cwd: root,
       head: { baseSha: base, branch: "feature", headSha: declared, repository: "acme/widget" },
@@ -150,10 +157,9 @@ describe("committedBumpManifests", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
 
     expect(verdict).toMatchObject({
       details: [
-        `the store bump records do not cover what this pull request loosens against ${base.slice(0, 12)}:`,
-        `  ${SIZE} offenders:tools/gen.ts: null -> 319 (no applicable store bump record declaring it has a ` +
-          "qualifying Codex witness)",
-        expect.stringContaining(`${committedPath({ manifest })} has no Codex witness`),
+        "the baselines could not be compared against the base: " +
+          BaselineComparisonErrors.bumpDirectoryWrite({ path: committedPath({ manifest }), write: { kind: "added" } })
+            .message,
       ],
       kind: "refused",
     });
@@ -172,7 +178,7 @@ describe("measureLanding", { timeout: REAL_GIT_TIMEOUT_MS }, () => {
     const measured = measureLanding({
       baseSha: base,
       candidates: { ownRoot: root, roots: [root] },
-      head: headOf({ headSha: declared }),
+      head: headOf({ headSha: raisedOnly }),
     });
 
     expect(measured).toMatchObject({ kind: "measured", root });

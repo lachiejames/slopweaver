@@ -61,10 +61,11 @@ verdict on it), never in the tree, so a fork starts with the rules and none of t
   `src/devLint/baselineRegistry.ts` at `SLOPWEAVER_COVERAGE_BASE_SHA` and at `HEAD` and REPORTS each row that is
   new or larger as a landing obligation: CI cannot see the home, so it cannot verify a declaration and does not
   pretend to. It refuses any file under `.baselines/`, whatever its depth or extension, that the registry neither
-  judges nor excludes by name, so a new ratchet cannot arrive unjudged. Under `.baselines/bumps/` it passes a
-  manifest the change adds (a landing CLI that predates the home reads a declaration only there, and the current
-  landing verbs read it beside the home's records) and refuses a rewrite of one main holds, a record turned into
-  a tree included, while one deleted passes. A change to a file in `BASELINE_POLICY_FILES` (the registry,
+  judges nor excludes by name, so a new ratchet cannot arrive unjudged. `.baselines/bumps/` is history from
+  before records moved to the home and declares nothing: it refuses any file a change adds there, one of main's
+  renamed inside it, and a rewrite of one main holds (a record turned into a tree included), each as the one
+  `REWRITTEN_BUMP_MANIFEST` refusal whose message names which write it was, while one left byte-identical or
+  deleted passes. A change to a file in `BASELINE_POLICY_FILES` (the registry,
   the comparator, the store, the witness) that main already holds is itself a `policy` row, so the rules that
   judge a rise are witnessed like a rise. Run with no base it fails and prints the command that supplies one.
 - **`slopweaver dev baseline-bump --reason "<why>" [--cwd <dir>] [--home <dir>]`** writes the record (one
@@ -76,8 +77,7 @@ verdict on it), never in the tree, so a fork starts with the rules and none of t
   base is refused, the first record's bytes untouched, since its reason is what a witness already judged.
 - **`github enqueue` / `github merge --admin`** re-run the comparison THEMSELVES, against main and the merge
   landing would make (CI judges GitHub's merge commit, so a raw head is never the subject), read the home's
-  records and any manifest the change adds under `.baselines/bumps/` (one digest, so one witness covers both
-  copies), and refuse any loosened row no ELIGIBLE record with a qualifying witness covers. Coverage is per row, so an abandoned record
+  records and no other, and refuse any loosened row no ELIGIBLE record with a qualifying witness covers. Coverage is per row, so an abandoned record
   beside a witnessed one holds nothing; a record declaring a row the change does not loosen, or naming a base not
   in main's history, is inert; one naming an older main commit counts only when its rows hold against that
   commit; a `widening` row must name a file the change leaves byte-identical to main. A store that will not read,
