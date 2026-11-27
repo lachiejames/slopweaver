@@ -113,11 +113,6 @@ export const WORKFLOW_JOB_ACTIONS: readonly {
       })),
       {
         actions: ["opened", "synchronize", "reopened"],
-        job: "unit",
-        why: "merges every shard's report into the whole lane's coverage, then the measured coverage floor against the base sha — both functions of the tree",
-      },
-      {
-        actions: ["opened", "synchronize", "reopened"],
         job: "subprocess",
         why: "the subprocess lane over the checked-out MERGE tree and nothing else",
       },
@@ -134,7 +129,7 @@ export const WORKFLOW_JOB_ACTIONS: readonly {
       {
         actions: ["opened", "synchronize", "reopened"],
         job: "build",
-        why: "reads nothing but the workers' results, so it fires on exactly what they fire on — never more, or a skipped worker could stand beside a passing verdict",
+        why: "its verdict reads nothing but the workers' results, and the unit merge and measured coverage floor after it read the shards' reports and the base sha — so it fires on exactly what they fire on, never more, or a skipped worker could stand beside a passing verdict",
       },
       {
         actions: ["opened", "synchronize", "reopened"],

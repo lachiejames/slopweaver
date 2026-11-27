@@ -10,64 +10,47 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parse, stringify } from "yaml";
-import { DEPENDENCY_CACHE_INPUTS, SAVE_CONDITION } from "../../../devLint/ciDependencyCache.js";
+import { expectedVerdictExpression } from "../../../devLint/ciAggregatorSteps.js";
 import { OFFLOADED_COMMANDS, workerJobs } from "../../../devLint/ciOffloadCommands.js";
 import {
   aggregatorFindings,
   CI_WORKFLOW_PATH,
   coverageBaseFindings,
-  expectedVerdictExpression,
   offloadContractFindings,
 } from "../../../devLint/ciOffloadContract.js";
 import { RUNNER_FACTS_STEP, RUNNER_SELECTOR, runnerFactsFindings } from "../../../devLint/ciRunnerFacts.js";
 import { FETCH_BASE_RUN, FETCH_BASE_STEP } from "../../../devLint/ciWorkerRuns.js";
 import { jobOf, stepsOf } from "../../../devLint/ciWorkflowRead.js";
 import { repoRootOf } from "../../../lib/gitRepo.js";
+import { buildTail, install, VERDICT, verdictStep } from "./ciAggregatorFixtures.js";
 
 const BASE =
   "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || " +
   "github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.before }}";
 const FETCH = FETCH_BASE_RUN;
-const VERDICT =
-  "${{ needs.lint.result == 'success' && needs.typecheck.result == 'success' && needs.unit-1.result == 'success' && " +
-  "needs.unit-2.result == 'success' && needs.unit-3.result == 'success' && needs.unit-4.result == 'success' && " +
-  "needs.unit-5.result == 'success' && needs.unit-6.result == 'success' && needs.unit.result == 'success' && " +
-  "needs.subprocess.result == 'success' && needs.desktop-e2e.result == 'success' && " +
-  "needs.compile.result == 'success' && needs.desktop.result == 'success' && needs.site.result == 'success' }}";
 
 /** The unit lane's six shard jobs, written out rather than read from `UNIT_SHARD_COUNT`. */
 const SHARDS = ["unit-1", "unit-2", "unit-3", "unit-4", "unit-5", "unit-6"];
 
 /** Every worker, in `build.needs` order. */
-const WORKERS = ["lint", "typecheck", ...SHARDS, "unit", "subprocess", "desktop-e2e", "compile", "desktop", "site"];
+const WORKERS = ["lint", "typecheck", ...SHARDS, "subprocess", "desktop-e2e", "compile", "desktop", "site"];
 
 /** The same workers sorted, as a finding prints them. */
 const SORTED_WORKERS =
-  "compile, desktop, desktop-e2e, lint, site, subprocess, typecheck, unit, unit-1, unit-2, unit-3, unit-4, unit-5, unit-6";
+  "compile, desktop, desktop-e2e, lint, site, subprocess, typecheck, unit-1, unit-2, unit-3, unit-4, unit-5, unit-6";
 
 const VERDICT_STEP_FINDING =
-  'the `build` verdict step must be `run: test "$ALL_SUCCEEDED" = "true"` under `if: ${{ always() }}` and ' +
-  "`shell: bash`, with no `continue-on-error` — a `shell:` is a TEMPLATE, so one that never substitutes " +
-  "`{0}` runs no verdict at all";
+  'the `build` verdict must be its FIRST step, `run: test "$ALL_SUCCEEDED" = "true"` under `if: ${{ always() }}` ' +
+  "and `shell: bash`, with no `continue-on-error` — a step before it could hand it an environment, and a " +
+  "`shell:` is a TEMPLATE, so one that never substitutes `{0}` runs no verdict at all";
+
+const TAIL_FINDING =
+  "`jobs.build` runs steps after its verdict other than exactly its pinned merge tail (aggregatorTail), so a " +
+  "step there could pass the unit merge or the coverage floor without running it";
 
 const STEP_ENV_FINDING =
   "`jobs.lint` carries an `env` this gate cannot read literally, so `SLOPWEAVER_COVERAGE_BASE_SHA` could be " +
   "set where nothing here would see it";
-
-/** The aggregator's one step, in the shape the gate accepts. */
-const verdictStep = (): Record<string, unknown> => ({
-  env: { ALL_SUCCEEDED: VERDICT },
-  if: "${{ always() }}",
-  run: 'test "$ALL_SUCCEEDED" = "true"',
-  shell: "bash",
-});
-
-/** The cached root install: a restore straight before it, and for the one writer a save straight after. */
-const install = ({ writer }: { writer: boolean }): Record<string, unknown>[] => [
-  { id: "deps", uses: "actions/cache/restore@v4", with: DEPENDENCY_CACHE_INPUTS },
-  { run: "yarn install --immutable" },
-  ...(writer ? [{ if: SAVE_CONDITION, uses: "actions/cache/save@v4", with: DEPENDENCY_CACHE_INPUTS }] : []),
-];
 
 /** A worker's opening steps: the runner assertion, checkout, (for a coverage-base job) the base fetch, and the install. */
 const prelude = ({ fetch, writer = false }: { fetch: boolean; writer?: boolean }): Record<string, unknown>[] => [
@@ -122,7 +105,12 @@ const goodWorkflow = (): { jobs: Record<string, Record<string, unknown>>; on?: R
   on: { push: { branches: ["main"] } },
   jobs: onRunner({
     jobs: {
-      build: { if: "${{ always() }}", needs: [...WORKERS], steps: [verdictStep()] },
+      build: {
+        env: { SLOPWEAVER_COVERAGE_BASE_SHA: BASE },
+        if: "${{ always() }}",
+        needs: [...WORKERS],
+        steps: [verdictStep(), ...buildTail()],
+      },
       // The two jobs deliberately outside `build.needs`: a required context of its own, and a timing report.
       integration: { steps: [...prelude({ fetch: false }), { run: "yarn test:integration" }] },
       "ci-timing": {
@@ -137,19 +125,6 @@ const goodWorkflow = (): { jobs: Record<string, Record<string, unknown>>; on?: R
       site: { steps: nestedSteps({ directory: "site" }) },
       subprocess: { steps: [...prelude({ fetch: false }), { run: "yarn test:subprocess" }] },
       typecheck: { steps: [...prelude({ fetch: false, writer: true }), { run: "yarn typecheck" }] },
-      unit: {
-        env: { SLOPWEAVER_COVERAGE_BASE_SHA: BASE },
-        needs: [...SHARDS],
-        steps: [
-          ...prelude({ fetch: true }),
-          {
-            uses: "actions/download-artifact@v4",
-            with: { "merge-multiple": true, path: ".vitest-reports", pattern: "unit-blob-*" },
-          },
-          { run: "yarn test:unit:merge" },
-          { run: "yarn coverage:ratchet" },
-        ],
-      },
     },
   }),
 });
@@ -272,25 +247,41 @@ describe("offloadContractFindings", () => {
     ]);
   });
 
-  it("names every command of a worker that is gone, and the need that now points at nothing", () => {
+  it("names every command of a worker that is gone", () => {
     const workflow = goodWorkflow();
-    delete workflow.jobs["unit"];
+    delete workflow.jobs["subprocess"];
     expect(lines({ workflow })).toEqual([
-      "`yarn test:unit:merge` runs nowhere: `jobs.unit` or its steps list is missing — rebuilds the WHOLE lane's coverage from every shard's report, refusing an inexact set",
-      "`yarn coverage:ratchet` runs nowhere: `jobs.unit` or its steps list is missing — the MEASURED coverage half, which needs the merged report",
-      "`jobs.unit` does not open with the pinned runner-facts step (RUNNER_FACTS_STEP)",
+      "`yarn test:subprocess` runs nowhere: `jobs.subprocess` or its steps list is missing — no longer runs on the developer machine at all",
+      "`jobs.subprocess` does not open with the pinned runner-facts step (RUNNER_FACTS_STEP)",
     ]);
   });
 
   it("names a coverage floor that runs before the report it reads", () => {
     const workflow = goodWorkflow();
-    workflow.jobs["unit"]!["steps"] = [
-      ...prelude({ fetch: true }),
-      { run: "yarn coverage:ratchet" },
-      { run: "yarn test:unit:merge" },
-    ];
+    const tail = buildTail();
+    workflow.jobs["build"]!["steps"] = [verdictStep(), ...tail.slice(0, -2), tail.at(-1)!, tail.at(-2)!];
     expect(lines({ workflow })).toEqual([
-      "`jobs.unit` runs `yarn test:unit:merge` and `yarn coverage:ratchet` out of declared order",
+      "`jobs.build` runs `yarn test:unit:merge` and `yarn coverage:ratchet` out of declared order",
+      TAIL_FINDING,
+    ]);
+  });
+
+  // The tail's own cases are `ciAggregatorSteps.test.ts`'s; this one proves `aggregatorFindings` hands its
+  // steps there, so a softened tail reddens the whole contract and not just the module.
+  it("refuses a post-verdict step carrying an `if`, through the aggregator", () => {
+    const workflow = goodWorkflow();
+    const tail = buildTail();
+    tail[9] = { if: "${{ always() }}", run: "yarn coverage:ratchet" };
+    workflow.jobs["build"]!["steps"] = [verdictStep(), ...tail];
+    expect(aggregatorFindings({ workflow }).map((f) => f.line)).toEqual([TAIL_FINDING]);
+  });
+
+  it("names `build`'s runner facts moved off the step straight after its verdict", () => {
+    const workflow = goodWorkflow();
+    const tail = buildTail();
+    workflow.jobs["build"]!["steps"] = [verdictStep(), tail[1]!, tail[0]!, ...tail.slice(2)];
+    expect(runnerFactsFindings({ workflow }).map((f) => f.line)).toEqual([
+      "`jobs.build` does not run, as step 2, right after its verdict, the pinned runner-facts step (RUNNER_FACTS_STEP)",
     ]);
   });
 
@@ -475,6 +466,7 @@ describe("aggregatorFindings", () => {
     const workflow = goodWorkflow();
     workflow.jobs["build"]!["steps"] = [
       { ...verdictStep(), env: { ALL_SUCCEEDED: "${{ !contains(needs.*.result, 'failure') }}" } },
+      ...buildTail(),
     ];
     expect(aggregatorFindings({ workflow }).map((f) => f.line)).toEqual([
       `the \`build\` verdict's \`env\` is not exactly ALL_SUCCEEDED: \`${VERDICT}\` — a leg it omits cannot redden it`,
@@ -484,7 +476,10 @@ describe("aggregatorFindings", () => {
   // A second variable, even one ENV_KEYS allows elsewhere, is not the verdict's.
   it("names a verdict carrying any variable beside ALL_SUCCEEDED", () => {
     const workflow = goodWorkflow();
-    workflow.jobs["build"]!["steps"] = [{ ...verdictStep(), env: { ALL_SUCCEEDED: VERDICT, MIN_TOTAL_MIB: 1 } }];
+    workflow.jobs["build"]!["steps"] = [
+      { ...verdictStep(), env: { ALL_SUCCEEDED: VERDICT, MIN_TOTAL_MIB: 1 } },
+      ...buildTail(),
+    ];
     expect(aggregatorFindings({ workflow }).map((f) => f.line)).toEqual([
       `the \`build\` verdict's \`env\` is not exactly ALL_SUCCEEDED: \`${VERDICT}\` — a leg it omits cannot redden it`,
     ]);
@@ -492,7 +487,7 @@ describe("aggregatorFindings", () => {
 
   it("names a verdict run line that was loosened", () => {
     const workflow = goodWorkflow();
-    workflow.jobs["build"]!["steps"] = [{ ...verdictStep(), run: "true" }];
+    workflow.jobs["build"]!["steps"] = [{ ...verdictStep(), run: "true" }, ...buildTail()];
     expect(aggregatorFindings({ workflow }).map((f) => f.line)).toEqual([VERDICT_STEP_FINDING]);
   });
 
@@ -502,17 +497,8 @@ describe("aggregatorFindings", () => {
   // leg.
   it("names a verdict whose shell never runs the verdict script", () => {
     const workflow = goodWorkflow();
-    workflow.jobs["build"]!["steps"] = [{ ...verdictStep(), shell: "bash -c 'exit 0' {0}" }];
+    workflow.jobs["build"]!["steps"] = [{ ...verdictStep(), shell: "bash -c 'exit 0' {0}" }, ...buildTail()];
     expect(aggregatorFindings({ workflow }).map((f) => f.line)).toEqual([VERDICT_STEP_FINDING]);
-  });
-
-  it("names a second step, which could interfere with the verdict", () => {
-    const workflow = goodWorkflow();
-    const steps = workflow.jobs["build"]!["steps"] as unknown[];
-    workflow.jobs["build"]!["steps"] = [...steps, { run: "echo after" }];
-    expect(aggregatorFindings({ workflow }).map((f) => f.line)).toEqual([
-      "`jobs.build` must have exactly one step, the verdict — anything else can interfere with it",
-    ]);
   });
 
   it("names a renamed check, which the ruleset would never see arrive", () => {
@@ -607,16 +593,13 @@ describe("runnerFactsFindings", () => {
   });
 });
 
-// The ratchet job's base comparison left with it, and so did the case naming a ratchet job that lost its base
-// or its fetch.
-// deleted-with-code: ciRatchetBaselinesAgainstMain
 describe("coverageBaseFindings", () => {
   it("names a job that lost its base, which would otherwise skip the comparison without failing", () => {
     const workflow = goodWorkflow();
     delete workflow.jobs["lint"]!["env"];
     expect(coverageBaseFindings({ workflow }).map((f) => f.line)).toEqual([
       "`jobs.lint` does not name the one `SLOPWEAVER_COVERAGE_BASE_SHA` expression, so its comparison against the base is silently skipped",
-      "lint, unit name different `SLOPWEAVER_COVERAGE_BASE_SHA` bases",
+      "lint, build name different `SLOPWEAVER_COVERAGE_BASE_SHA` bases",
     ]);
   });
 
@@ -626,10 +609,10 @@ describe("coverageBaseFindings", () => {
     const workflow = goodWorkflow();
     const zeros = "0000000000000000000000000000000000000000";
     workflow.jobs["lint"]!["env"] = { SLOPWEAVER_COVERAGE_BASE_SHA: zeros };
-    workflow.jobs["unit"]!["env"] = { SLOPWEAVER_COVERAGE_BASE_SHA: zeros };
+    workflow.jobs["build"]!["env"] = { SLOPWEAVER_COVERAGE_BASE_SHA: zeros };
     expect(coverageBaseFindings({ workflow }).map((f) => f.line)).toEqual([
       "`jobs.lint` does not name the one `SLOPWEAVER_COVERAGE_BASE_SHA` expression, so its comparison against the base is silently skipped",
-      "`jobs.unit` does not name the one `SLOPWEAVER_COVERAGE_BASE_SHA` expression, so its comparison against the base is silently skipped",
+      "`jobs.build` does not name the one `SLOPWEAVER_COVERAGE_BASE_SHA` expression, so its comparison against the base is silently skipped",
     ]);
   });
 
@@ -675,7 +658,8 @@ describe("coverageBaseFindings", () => {
 
   it("names a fetch that runs before checkout, where there is no repository to fetch into", () => {
     const workflow = goodWorkflow();
-    workflow.jobs["unit"]!["steps"] = [
+    workflow.jobs["build"]!["steps"] = [
+      verdictStep(),
       { ...RUNNER_FACTS_STEP },
       { run: FETCH },
       { uses: "actions/checkout@v4" },
@@ -683,7 +667,7 @@ describe("coverageBaseFindings", () => {
       { run: "yarn coverage:ratchet" },
     ];
     expect(coverageBaseFindings({ workflow }).map((f) => f.line)).toEqual([
-      "`jobs.unit` does not fetch the base after checkout, so its comparison against the base is silently skipped",
+      "`jobs.build` does not fetch the base after checkout, so its comparison against the base is silently skipped",
     ]);
   });
 });

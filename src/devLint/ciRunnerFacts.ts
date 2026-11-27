@@ -1,12 +1,13 @@
 /**
- * The runner-facts step: the first step of every offload worker in `ci.yml`, pinned whole, and the half of
- * `ci-offload-contract` (`ciOffloadContract.ts`) that requires it byte for byte with nothing sourced before it.
+ * The runner-facts step: the first step of every offload worker in `ci.yml` (the second of `build`, after its
+ * verdict), pinned whole, and the half of `ci-offload-contract` (`ciOffloadContract.ts`) that requires it byte
+ * for byte with nothing sourced before it.
  */
 import { isDeepStrictEqual } from "node:util";
 import { parse } from "yaml";
 import { isRecord } from "../lib/parsers.js";
 import { envKeyFindings } from "./ciEnvKeys.js";
-import { workerJobs } from "./ciOffloadCommands.js";
+import { commandJobs, OFFLOAD_JOB } from "./ciOffloadCommands.js";
 import { jobOf, type OffloadFinding, stepsOf } from "./ciWorkflowRead.js";
 import { RUNNER_FLOOR_MIB } from "./gateCapacity.js";
 
@@ -152,22 +153,37 @@ export function staleSpecialRunnerFindings({
 }
 
 /**
- * Every worker's FIRST step is {@link RUNNER_FACTS_STEP}, no worker runs in a `container`, and no `env` in the
- * workflow sets a variable outside `ENV_KEYS` (`ciEnvKeys.ts`) — `BASH_ENV` among them, which bash would
- * source before the step's first line.
+ * Where {@link RUNNER_FACTS_STEP} must sit in one command-owning job: first in every worker, and SECOND in the
+ * aggregator, whose first step is its verdict — the one step nothing may run before, because a step ahead of it
+ * could hand it an environment. The verdict reads only the legs' results, so it needs no runner premise; the
+ * merge after it does.
+ *
+ * @param job the command-owning job id
+ * @returns the step index the runner-facts step must occupy
+ */
+function runnerFactsStepIndex({ job }: { job: string }): number {
+  return job === OFFLOAD_JOB ? 1 : 0;
+}
+
+/**
+ * Every command-owning job runs {@link RUNNER_FACTS_STEP} at {@link runnerFactsStepIndex}, before anything but
+ * the aggregator's verdict, no such job runs in a `container`, and no `env` in the workflow sets a variable
+ * outside `ENV_KEYS` (`ciEnvKeys.ts`) — `BASH_ENV` among them, which bash would source before the step's first
+ * line.
  *
  * @param workflow the parsed workflow document
- * @returns one finding per worker whose premise check is missing or has drifted, per container, per
- *   unpinned `env`
+ * @returns one finding per job whose premise check is missing or has drifted, per container, per unpinned `env`
  */
 export function runnerFactsFindings({ workflow }: { workflow: unknown }): readonly OffloadFinding[] {
-  const drifted = workerJobs().flatMap((job): OffloadFinding[] => {
+  const drifted = commandJobs().flatMap((job): OffloadFinding[] => {
     const entry = jobOf({ job, workflow });
-    const first = entry === undefined ? undefined : stepsOf({ job: entry })?.[0];
+    const index = runnerFactsStepIndex({ job });
+    const step = entry === undefined ? undefined : stepsOf({ job: entry })?.[index];
+    const where = index === 0 ? "open with" : `run, as step ${String(index + 1)}, right after its verdict,`;
     return [
-      ...(isDeepStrictEqual(first, RUNNER_FACTS_STEP)
+      ...(isDeepStrictEqual(step, RUNNER_FACTS_STEP)
         ? []
-        : [{ line: `\`jobs.${job}\` does not open with the pinned runner-facts step (RUNNER_FACTS_STEP)` }]),
+        : [{ line: `\`jobs.${job}\` does not ${where} the pinned runner-facts step (RUNNER_FACTS_STEP)` }]),
       // A container's image and `env` wrap every step, the runner-facts one included.
       ...(entry !== undefined && "container" in entry
         ? [{ line: `\`jobs.${job}\` runs in a \`container\`, whose image and \`env\` wrap its runner-facts step` }]

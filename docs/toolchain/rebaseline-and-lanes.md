@@ -285,7 +285,7 @@ bare `gh pr checks` loop dumps full output into the session's transcript on ever
 the ruling explicitly ruled out.
 
 `yarn validate` is the whole lap at a human's terminal; an agent session is refused it (above). It exceeds what CI
-runs across `lint`, `typecheck`, `unit` and `subprocess` in **two** respects, both of them off-repo state CI
+runs across `lint`, `typecheck`, the unit lane and `subprocess` in **two** respects, both of them off-repo state CI
 does not have: the private hygiene denylist, and the bronze corpus `corpus-hygiene` scans. Neither can be
 moved to CI, and the mechanics of why — plus what that leaves unchecked — are in `docs/security/hygiene-gate.md`
 § "Where the private denylist actually applies". Two things run in CI and NOT in `yarn validate`, so neither

@@ -43,7 +43,7 @@ Part of [Toolchain](../toolchain.md).
   verb-family deletion. **There is no baseline and no `--rebaseline`**: the comparison is a file against its OWN past, which no debt
   list can express, and what it compares against is `SLOPWEAVER_COVERAGE_BASE_SHA` — `coverage-ratchet`'s
   variable, shared through `gitAtCommit.ts`, exported and `--depth=1` fetched at job level by `lint` and
-  `unit`, and exported by `github lap`. Run without one it FAILS and prints the command that supplies it,
+  `build`, and exported by `github lap`. Run without one it FAILS and prints the command that supplies it,
   because a comparison against no base read nothing; only a brand-new ref's all-zeroes base passes unjudged,
   and only once HEAD confirms the ref is new — a root commit, or the runner's push event created it at HEAD
   (`resolveFloorBase`). Forty zeroes exported by hand on a branch with history FAILS. The diff is **two-dot**
@@ -128,10 +128,12 @@ Part of [Toolchain](../toolchain.md).
   site's own `yarn build`) run in parallel worker jobs, so command PRESENCE is not the property: a job nothing
   requires satisfies it. The gate checks each command runs in its declared worker as a step whose
   whole `run:` is that command with nothing that could mask its failure; that `build` needs exactly those
-  workers, runs under `always()` (without it a failed need SKIPS `build`, and skipped reads as passing) and
-  fails unless each result is spelled `== 'success'`; that every worker's runner facts, setup step, `run` and
-  `env` is pinned as [ci-install-cache.md](../ci-install-cache.md#what-ci-offload-contract-pins) says; and that
-  `lint` and `unit` both carry the coverage base. It also enumerates every job in the file
+  workers, runs under `always()` (without it a failed need SKIPS `build`, and skipped reads as passing), opens
+  with a step that fails unless each result is spelled `== 'success'`, and after it runs exactly its pinned
+  unit-merge tail, no step there carrying an `if`, `continue-on-error`, `shell`, `env` or `|| true`; that every
+  worker's runner facts, setup step, `run` and `env` is pinned as
+  [ci-install-cache.md](../ci-install-cache.md#what-ci-offload-contract-pins) says; and that `lint` and `build`
+  both carry the coverage base. It also enumerates every job in the file
   (`src/devLint/ciJobCoverage.ts`): each is `build`, listed in `build.needs`, or named in `UNAGGREGATED_JOBS` with a
   reason (`integration`, a required context of its own; `ci-timing`, a non-required report on the finished run), so a
   job added outside `build.needs` fails the gate rather than going red under a green `build`; an exclusion naming a

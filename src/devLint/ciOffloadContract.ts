@@ -27,8 +27,8 @@
  * ## Why the property is about SUCCESS PROPAGATION, not command presence
  *
  * The one serial `build` job is split into four parallel workers — `lint`,
- * `typecheck`, `unit`, `subprocess` — with `build` kept as the required context that only reports their
- * verdict; a fifth, `compile`, runs the `yarn build` that had been running nowhere at all, and the
+ * `typecheck`, `unit`, `subprocess` — with `build` kept as the required context that reports their
+ * verdict (the unit lane has since split into six shards whose reports `build` merges after it); a fifth, `compile`, runs the `yarn build` that had been running nowhere at all, and the
  * desktop shell a sixth, `desktop`, whose `yarn build` runs in its own Yarn project under `desktop/`. The
  * console's `site` job joined as the seventh after it had stood outside `build` while a red console merged.
  * "The `build` job runs `yarn lint`" stopped being a sentence that could be true, and its obvious
@@ -45,17 +45,22 @@
  *    and no `if`, `continue-on-error`, `strategy` or `defaults` on the job. Two commands in one job run in
  *    declared order, so `coverage:ratchet` reads the report `test:unit` just wrote.
  * 2. **The aggregator.** `build` directly needs EXACTLY the workers, runs under `always()` — without it a
- *    failed need SKIPS `build`, and a skipped conclusion counts as passing — and has one step that fails
+ *    failed need SKIPS `build`, and a skipped conclusion counts as passing — and its FIRST step fails
  *    unless each worker's result is spelled `== 'success'`. `!contains(needs.*.result, 'failure')` would
  *    admit a cancelled or skipped leg, which is why the expression is pinned rather than pattern-matched.
- * 3. **Runner facts.** Every worker's FIRST step is the same runner assertion, byte for byte. Each worker is
- *    its own machine, so the one that proved the premise is not the one running the next worker's lap.
+ *    After the verdict it runs exactly its pinned tail — setup, the shards' report download, the unit merge
+ *    and the measured floor — compared whole, so no step there carries an `if`, a `continue-on-error`, a
+ *    `shell` or a `|| true`. It merges there rather than in a job of its own because that job waited for a
+ *    fresh runner between the shards and `build`. Both step rules live in `./ciAggregatorSteps.ts`.
+ * 3. **Runner facts.** Every worker's FIRST step is the same runner assertion, byte for byte, and `build`'s
+ *    second, straight after its verdict. Each worker is its own machine, so the one that proved the premise
+ *    is not the one running the next worker's lap.
  * 4. **No inherited shell.** A `shell:` value is a TEMPLATE, so `bash -c 'exit 0' {0}` runs the shell and
  *    never the script GitHub wrote the `run:` block into. The workers ban `shell` on a command step, the
  *    verdict step pins it to `bash`, and a workflow-level `defaults` is refused outright. Both halves came
  *    from Codex review counterexamples against this gate's own property, one pass apart.
  * 5. **The coverage base.** Both jobs that read the floor against the base (`lint`'s `--summary-only`
- *    integrity half and `unit`'s measured half) declare the same base expression and fetch it after
+ *    integrity half and `build`'s measured half) declare the same base expression and fetch it after
  *    checkout. Losing it does not fail anything — the history half reports skipped — which is exactly why
  *    it has to be asserted.
  *
@@ -94,13 +99,13 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { isDeepStrictEqual } from "node:util";
 import { parse } from "yaml";
 import { repoRootOf } from "../lib/gitRepo.js";
 import { isRecord } from "../lib/parsers.js";
+import { ALWAYS, verdictStepFindings } from "./ciAggregatorSteps.js";
 import { saveTriggerFindings } from "./ciDependencyCache.js";
 import { jobCoverageFindings } from "./ciJobCoverage.js";
-import { OFFLOAD_JOB, OFFLOADED_COMMANDS, workerJobs } from "./ciOffloadCommands.js";
+import { commandJobs, OFFLOAD_JOB, OFFLOADED_COMMANDS, workerJobs } from "./ciOffloadCommands.js";
 import { runnerFactsFindings, staleSpecialRunnerFindings } from "./ciRunnerFacts.js";
 import { workerActionFindings } from "./ciWorkerActions.js";
 import { workerRunFindings } from "./ciWorkerRuns.js";
@@ -113,26 +118,8 @@ import { lintGateRefusal } from "./refusal/render.js";
 /** The workflow this gate reads, repo-relative. */
 export const CI_WORKFLOW_PATH = ".github/workflows/ci.yml";
 
-/** The jobs that compare against the base commit: `lint` and `unit`, for the coverage floor. */
-const COVERAGE_BASE_JOBS: readonly string[] = ["lint", "unit"];
-
-/** The one shape of aggregator step this gate accepts as proof that a non-success leg reddens `build`. */
-const VERDICT_RUN = 'test "$ALL_SUCCEEDED" = "true"';
-
-/** The condition that keeps `build` from being SKIPPED — and read as passing — when a leg fails. */
-const ALWAYS = "${{ always() }}";
-
-/**
- * The only shell the verdict step may name, pinned rather than merely banned.
- *
- * A `shell:` value is a TEMPLATE — GitHub writes the `run:` block to a script file and substitutes it for
- * `{0}` — so `bash -c 'exit 0' {0}` runs the shell and never the script, and `build` goes green over a failed
- * leg with its `run`, `if`, `env` and `needs` all untouched. Found by review of the split as the
- * counterexample to this gate's own property: the worker rule banned `shell` on a command step and the
- * aggregator rule forgot to. Pinned to `bash` because that is what `ci.yml` names, and an unpinned default
- * varies by runner OS.
- */
-const VERDICT_SHELL = "bash";
+/** The jobs that compare against the base commit: `lint` and `build`, for the coverage floor. */
+const COVERAGE_BASE_JOBS: readonly string[] = ["lint", OFFLOAD_JOB];
 
 /**
  * The one expression a coverage-base job may name, pinned rather than merely required to be non-empty.
@@ -163,25 +150,11 @@ const UNSAFE_STEP_KEYS: readonly string[] = ["if", "continue-on-error", "shell"]
 const AGGREGATOR_UNSAFE_JOB_KEYS: readonly string[] = ["continue-on-error", "strategy", "defaults"];
 
 /**
- * The `ALL_SUCCEEDED` expression the aggregator must carry — one `== 'success'` per worker, joined by `&&`.
- *
- * Derived from {@link workerJobs} rather than written out, so adding a worker changes the expected expression
- * by itself and a `ci.yml` that forgot to extend it fails here.
- *
- * @returns the full `${{ … }}` expression
- */
-export function expectedVerdictExpression(): string {
-  return `\${{ ${workerJobs()
-    .map((job) => `needs.${job}.result == 'success'`)
-    .join(" && ")} }}`;
-}
-
-/**
- * Judge one worker job: it exists, nothing on it can mask its failure, and each command it owns runs as its
- * own clean step, in declared order.
+ * Judge one command-owning job: it exists, nothing on it can mask its failure, and each command it owns runs as
+ * its own clean step, in declared order.
  *
  * @param workflow the parsed workflow document
- * @param job the worker job id
+ * @param job the command-owning job id, the aggregator among them
  * @returns one finding per broken part of that worker
  */
 function workerJobFindings({ workflow, job }: { workflow: unknown; job: string }): readonly OffloadFinding[] {
@@ -193,14 +166,19 @@ function workerJobFindings({ workflow, job }: { workflow: unknown; job: string }
       line: `\`${command.command}\` runs nowhere: \`jobs.${job}\` or its steps list is missing — ${command.why}`,
     }));
   }
-  const unsafeJob = presentKeys({ keys: UNSAFE_JOB_KEYS, map: entry }).map((key) => ({
-    line: `\`jobs.${job}\` sets \`${key}\`, which can stop its failure — or its running at all — reaching \`${OFFLOAD_JOB}\``,
-  }));
+  // The aggregator's job keys and name are `aggregatorFindings`' to judge: it is the one job that MUST carry an
+  // `if`, so the worker ban would refuse the very key that keeps a failed leg from skipping it.
+  const aggregator = job === OFFLOAD_JOB;
+  const unsafeJob = aggregator
+    ? []
+    : presentKeys({ keys: UNSAFE_JOB_KEYS, map: entry }).map((key) => ({
+        line: `\`jobs.${job}\` sets \`${key}\`, which can stop its failure — or its running at all — reaching \`${OFFLOAD_JOB}\``,
+      }));
   // A `name:` renames the CHECK RUN, not the job id `build.needs` points at, so this does not break the
   // verdict — it breaks the rollup a person reads, where `renamed-typecheck` is not a name anyone can map
   // back to a worker. The aggregator's own name is pinned for a harder reason (the ruleset requires it).
   const renamed =
-    "name" in entry && entry["name"] !== job
+    !aggregator && "name" in entry && entry["name"] !== job
       ? [{ line: `\`jobs.${job}\` renames its check to \`${String(entry["name"])}\`, which no reader can map back` }]
       : [];
   // Every worker's env is read the same way, not only the two that carry the coverage base: an env this gate
@@ -272,7 +250,7 @@ function commandStepFindings({
  * @returns one finding per worker with no checkout, or with one that names a ref or repository
  */
 function checkoutFindings({ workflow }: { workflow: unknown }): readonly OffloadFinding[] {
-  return workerJobs().flatMap((job): OffloadFinding[] => {
+  return commandJobs().flatMap((job): OffloadFinding[] => {
     const entry = jobOf({ job, workflow });
     const steps = entry === undefined ? undefined : stepsOf({ job: entry });
     if (steps === undefined) {
@@ -331,8 +309,8 @@ function workflowDefaultsFindings({ workflow }: { workflow: unknown }): readonly
 }
 
 /**
- * Judge the aggregator: exactly the workers as direct needs, always runs, and one verdict step that fails on
- * anything but every leg's `success`.
+ * Judge the aggregator: exactly the workers as direct needs, always runs, a FIRST verdict step that fails on
+ * anything but every leg's `success`, and after it exactly the pinned merge tail.
  *
  * @param workflow the parsed workflow document
  * @returns one finding per broken part of the aggregator
@@ -368,45 +346,6 @@ export function aggregatorFindings({ workflow }: { workflow: unknown }): readonl
     });
   }
   return [...findings, ...verdictStepFindings({ job: entry })];
-}
-
-/**
- * Judge the aggregator's steps: exactly one, always run, carrying the pinned verdict.
- *
- * @param job the aggregator's map
- * @returns one finding per broken part of the verdict step
- */
-function verdictStepFindings({ job }: { job: Record<string, unknown> }): readonly OffloadFinding[] {
-  const steps = stepsOf({ job });
-  const step = steps?.length === 1 ? steps[0] : undefined;
-  if (step === undefined) {
-    return [
-      { line: `\`jobs.${OFFLOAD_JOB}\` must have exactly one step, the verdict — anything else can interfere with it` },
-    ];
-  }
-  const findings: OffloadFinding[] = [];
-  const shell = step["shell"];
-  if (
-    runOf({ step }) !== VERDICT_RUN ||
-    step["if"] !== ALWAYS ||
-    "continue-on-error" in step ||
-    shell !== VERDICT_SHELL
-  ) {
-    findings.push({
-      line:
-        `the \`${OFFLOAD_JOB}\` verdict step must be \`run: ${VERDICT_RUN}\` under \`if: ${ALWAYS}\` and ` +
-        `\`shell: ${VERDICT_SHELL}\`, with no \`continue-on-error\` — a \`shell:\` is a TEMPLATE, so one ` +
-        "that never substitutes `{0}` runs no verdict at all",
-    });
-  }
-  // Its `env` is pinned whole: a leg the expression omits cannot redden it, and another variable could change
-  // what `test` does before it runs.
-  if (!isDeepStrictEqual(step["env"], { ALL_SUCCEEDED: expectedVerdictExpression() })) {
-    findings.push({
-      line: `the \`${OFFLOAD_JOB}\` verdict's \`env\` is not exactly ALL_SUCCEEDED: \`${expectedVerdictExpression()}\` — a leg it omits cannot redden it`,
-    });
-  }
-  return findings;
 }
 
 /**
@@ -498,9 +437,9 @@ export function offloadContractFindings({ text }: { text: string }): readonly Of
   return [
     ...jobCoverageFindings({ text }),
     ...workflowDefaultsFindings({ workflow }),
-    ...workerActionFindings({ workers: workerJobs(), workflow }),
+    ...workerActionFindings({ workers: commandJobs(), workflow }),
     ...checkoutFindings({ workflow }),
-    ...workerJobs().flatMap((job) => workerJobFindings({ job, workflow })),
+    ...commandJobs().flatMap((job) => workerJobFindings({ job, workflow })),
     ...aggregatorFindings({ workflow }),
     ...runnerFactsFindings({ workflow }),
     ...workerRunFindings({ workflow }),

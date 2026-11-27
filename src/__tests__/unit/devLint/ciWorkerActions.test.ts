@@ -41,7 +41,13 @@ const workflowWith = ({
   },
 });
 
-const WORKERS = ["lint", "unit-1", "unit"];
+const WORKERS = ["lint", "unit-1", UNIT_MERGE_JOB];
+
+describe("UNIT_MERGE_JOB", () => {
+  it("is the required aggregator itself, so the merge waits for no runner of its own", () => {
+    expect(UNIT_MERGE_JOB).toBe("build");
+  });
+});
 
 describe("allowedActions", () => {
   it("lets a shard upload its report, and nothing else beyond the two every worker needs", () => {
@@ -55,7 +61,7 @@ describe("allowedActions", () => {
   });
 
   it("lets the merge job download the reports", () => {
-    expect(allowedActions({ job: "unit" })).toEqual([
+    expect(allowedActions({ job: "build" })).toEqual([
       "actions/checkout",
       "actions/setup-node",
       "actions/cache/restore",
@@ -123,15 +129,15 @@ describe("workerActionFindings", () => {
       shard: [],
     });
     expect(workerActionFindings({ workers: WORKERS, workflow }).map((finding) => finding.line)).toEqual([
-      "`jobs.unit` does not need `unit-5`, so it could merge before that shard's report exists",
+      "`jobs.build` does not need `unit-5`, so it could merge before that shard's report exists",
     ]);
   });
 
-  it("refuses a need beyond the merge job's shards, which a skipped dependency would skip it through", () => {
-    const workflow = workflowWith({ merge: { needs: [...SHARDS, "integration"], uses: [] }, other: [], shard: [] });
-    expect(workerActionFindings({ workers: WORKERS, workflow }).map((finding) => finding.line)).toEqual([
-      "`jobs.unit` needs `integration`, beyond its shards, so a skipped dependency would skip the merge",
-    ]);
+  // The merge job is the aggregator, which needs every worker under `always()`; `aggregatorFindings` pins
+  // that list exactly, so this rule refuses nothing beyond a missing shard.
+  it("leaves the merge job's needs beyond its shards to the aggregator's exact pin", () => {
+    const workflow = workflowWith({ merge: { needs: [...SHARDS, "lint"], uses: [] }, other: [], shard: [] });
+    expect(workerActionFindings({ workers: WORKERS, workflow })).toEqual([]);
   });
 
   it("refuses any need on another worker, the cache writer's skip among them", () => {
@@ -157,7 +163,7 @@ describe("artifact inputs", () => {
   });
 
   it("pins the merge's download into the report directory", () => {
-    expect(artifactInputs({ job: "unit" })).toEqual({
+    expect(artifactInputs({ job: "build" })).toEqual({
       "merge-multiple": true,
       path: ".vitest-reports",
       pattern: "unit-blob-*",
@@ -184,7 +190,7 @@ describe("artifact inputs", () => {
   it("refuses a download whose path could overwrite the scripts the merge and floor run", () => {
     const workflow = {
       jobs: {
-        unit: {
+        build: {
           needs: SHARDS,
           steps: [
             ...CACHED_INSTALL,
@@ -196,8 +202,8 @@ describe("artifact inputs", () => {
         },
       },
     };
-    expect(workerActionFindings({ workers: ["unit"], workflow }).map((finding) => finding.line)).toEqual([
-      `\`jobs.unit\` passes its artifact action inputs other than {"merge-multiple":true,"path":".vitest-reports","pattern":"unit-blob-*"}, so an artifact could land outside the report directory`,
+    expect(workerActionFindings({ workers: ["build"], workflow }).map((finding) => finding.line)).toEqual([
+      `\`jobs.build\` passes its artifact action inputs other than {"merge-multiple":true,"path":".vitest-reports","pattern":"unit-blob-*"}, so an artifact could land outside the report directory`,
     ]);
   });
 });

@@ -55,14 +55,14 @@ on:
 # a check deleted from a job here is not a check that runs somewhere else any more — it is a check that has
 # stopped running at all.
 #
-# THE LAPS RUN IN PARALLEL, AND `build` IS ONLY THEIR VERDICT. CI took 12min as one job, and none of the laps
+# THE LAPS RUN IN PARALLEL, AND `build` IS THEIR VERDICT. CI took 12min as one job, and none of the laps
 # depends on another, and more tests keep arriving, so they are separate jobs. MEASURED before the split,
 # `build` on three pull requests ran 11m56s/11m53s/11m46s end to end, and it was ONE job running install 42s,
 # lint 4m34s, typecheck 46s, unit 3m18s and subprocess 2m21s in series. None reads another's output, so
 # `lint`, `typecheck`, `unit` and `subprocess` are now four jobs that start together and the lap's wall time
 # is the slowest of them rather than their sum.
 #
-# `build` was KEPT, as the job that turns those four results into one verdict, for two reasons. `build` and
+# `build` was KEPT, as the job that turns those results into one verdict, for two reasons. `build` and
 # `integration` are `main`'s required contexts and the merge queue's, so renaming the check would need a
 # ruleset change and strand every open pull request and queue entry waiting on a context that no longer
 # arrives. And a leg added later joins `build.needs` rather than the ruleset, so the shape scales without
@@ -102,8 +102,8 @@ jobs:
       # Three events, three places the base commit lives. On `merge_group` the checked-out ref is the queue's
       # own throwaway branch, so `github.event.before` names nothing on it — `merge_group.base_sha` is the tip
       # of `main` the entry is being tested against, which is the commit the floor must be compared to.
-      # It is set on BOTH `lint` and `unit`: `yarn lint` runs `coverage-ratchet --summary-only`, which still
-      # checks floor INTEGRITY against the base, and `yarn coverage:ratchet` in `unit` runs the measured half.
+      # It is set on BOTH `lint` and `build`: `yarn lint` runs `coverage-ratchet --summary-only`, which still
+      # checks floor INTEGRITY against the base, and `yarn coverage:ratchet` in `build` runs the measured half.
       SLOPWEAVER_COVERAGE_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.before }}
     steps:
       # The premise of the offload, asserted rather than described. Canon (docs/toolchain/rebaseline-and-lanes.md, AGENTS.md,
@@ -183,7 +183,7 @@ jobs:
       # --type-aware) + the bespoke gates that replace ESLint's job + knip + constraints + hygiene +
       # door-coverage. Fails on any lint/format/dead-code/pin regression.
       # Its `coverage-ratchet` entry enforces FLOOR INTEGRITY here (file present, parses, not lowered against
-      # the base); the measured half needs a report and runs in `unit`, after the shards' reports merge.
+      # the base); the measured half needs a report and runs in `build`, after the shards' reports merge.
       - name: Lint
         # NO NODE_OPTIONS HERE, AND THAT IS THE CHANGE. This step used to raise the WHOLE job's heap ceiling
         # to 8192 MiB for ONE gate. `named-object-params` builds a whole-repo TypeScript Program, and at the
@@ -209,9 +209,7 @@ jobs:
         #
         # This is the ONLY place `named-object-params` runs: the `pre-push` hook runs
         # `dev lint --lane local`, which drops it. A red here can no longer have been caught on anyone's
-        # laptop first, so it is the only warning there is. Note the unit job's comment below narrates a
-        # NODE_OPTIONS this file does NOT set — that bump was reverted when the real cause turned
-        # out to be one broken test fixture, so it is not a setting to match.
+        # laptop first, so it is the only warning there is.
         run: yarn lint
 
   typecheck:
@@ -497,46 +495,6 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # The merge: every shard's report into the whole lane's coverage, then the floor. `test:unit:merge`
-  # refuses an inexact report set BEFORE merging, because `vitest --merge-reports` checks only the Vitest
-  # version — a shard whose artifact never arrived would otherwise merge into a smaller lane that passes —
-  # and, after merging, refuses unless every test file the lane selects was merged exactly once, because a
-  # report duplicated under another shard's name merges with exit 0 too.
-  unit:
-    needs: [unit-1, unit-2, unit-3, unit-4, unit-5, unit-6]
-    runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
-    # The formula's 10-minute floor: this job merges reports and runs one gate, measured at 0:38 of merge.
-    timeout-minutes: 10
-    env:
-      # The same base as `lint` — see that job's comment. Here it feeds the MEASURED half of the floor.
-      SLOPWEAVER_COVERAGE_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.before }}
-    steps:
-      - name: Runner facts — the premise the offload rests on
-        shell: bash
-        env:
-          MIN_TOTAL_MIB: 12288
-        run: *runner-facts
-      - uses: actions/checkout@v7
-      - name: Fetch the coverage-floor base commit
-        shell: bash
-        run: *fetch-base
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: ".nvmrc"
-      - run: corepack enable
-      - *restore-deps
-      - run: yarn install --immutable
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: unit-blob-*
-          path: .vitest-reports
-          merge-multiple: true
-      - name: Merge the shards into the whole lane
-        run: yarn test:unit:merge
-      # In THIS job, after the merge, because it reads the report the merge just wrote into `coverage/`.
-      - name: Coverage floor
-        run: yarn coverage:ratchet
-
   subprocess:
     runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
     # PROVISIONAL: the serial `build` job's 20, kept until this job has 30 runs of its own.
@@ -672,7 +630,7 @@ jobs:
   # declares no `bin`/`main`/`exports`, and `#lib/*` resolves to `./src/lib/*` — so a clean emit says the
   # tree compiles, never that `dist/` is runnable. That proof belongs with the built-CLI work, not here.
   #
-  # Free in WALL clock, not in runner minutes: the lap's critical path is `unit` (p95 6:20, measured
+  # Free in WALL clock, not in runner minutes: the lap's critical path was the unit lane (p95 6:20, measured
   # with `slopweaver github ci-runs --branch any --event pull_request --runs 10`) and this compiles in
   # 60.04s plus its own setup. The ceiling stays PROVISIONAL at the other workers' 20 until it has 30 runs.
   compile:
@@ -708,44 +666,69 @@ jobs:
         # is ENOUGH, that gate proves a script still DECLARES one.
         run: yarn build
 
-  # The REQUIRED context, and nothing but the verdict of its workers (`OFFLOADED_COMMANDS` names them). No
-  # checkout, no install.
+  # The REQUIRED context: first the verdict of its workers (`OFFLOADED_COMMANDS` names them), then the unit
+  # lane's merge and the measured coverage floor, which need every shard's report.
   #
   # `if: always()` is load-bearing, and removing it is the one edit that would make this job dangerous. A
   # job whose `needs` failed is SKIPPED by default, and a skipped check run's conclusion counts as PASSING —
   # to GitHub's branch protection and to `PASSING_CONCLUSIONS` in src/live/github/checks.ts. Without it, a
-  # red `unit` would turn `build` green. With it, this job always runs and fails unless every leg's result is
-  # exactly `success`: `failure`, `cancelled` and `skipped` all redden it. The comparison is spelled per leg
-  # rather than as `!contains(needs.*.result, 'failure')`, which admits a cancelled or skipped leg.
+  # red shard would turn `build` green. With it, this job always runs and its FIRST step fails unless every
+  # leg's result is exactly `success`: `failure`, `cancelled` and `skipped` all redden it. The comparison is
+  # spelled per leg rather than as `!contains(needs.*.result, 'failure')`, which admits a cancelled or
+  # skipped leg. Every step after the verdict carries no `if`, so each takes the implicit `success()` and
+  # skips behind a red verdict: nothing after it can turn a red leg green.
+  #
+  # The merge runs HERE, after the verdict, rather than in a `unit` job of its own between the shards and
+  # this one, because that job queued for a fresh runner while every pull request waited on it: three
+  # runner waits in series on the required path instead of two. `test:unit:merge` refuses an inexact report
+  # set BEFORE merging, because `vitest --merge-reports` checks only the Vitest version — a shard whose
+  # artifact never arrived would otherwise merge into a smaller lane that passes — and, after merging,
+  # refuses unless every test file the lane selects was merged exactly once, because a report duplicated
+  # under another shard's name merges with exit 0 too. `ci-offload-contract` pins the verdict first and
+  # every step after it exactly (`aggregatorTail` in src/devLint/ciOffloadContract.ts).
   build:
     needs:
-      [
-        lint,
-        typecheck,
-        unit-1,
-        unit-2,
-        unit-3,
-        unit-4,
-        unit-5,
-        unit-6,
-        unit,
-        subprocess,
-        desktop-e2e,
-        compile,
-        desktop,
-        site,
-      ]
+      [lint, typecheck, unit-1, unit-2, unit-3, unit-4, unit-5, unit-6, subprocess, desktop-e2e, compile, desktop, site]
     if: ${{ always() }}
     runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
-    # The formula's 10-minute floor: this job runs one `test` and no gate.
+    # The formula's 10-minute floor: one `test`, then the merge measured at 0:38 and one gate.
     timeout-minutes: 10
+    env:
+      # The same base as `lint` — see that job's comment. Here it feeds the MEASURED half of the floor.
+      SLOPWEAVER_COVERAGE_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.before }}
     steps:
+      # FIRST, before any step that could hand it an environment.
       - name: Require every leg to succeed
         if: ${{ always() }}
         shell: bash
         env:
-          ALL_SUCCEEDED: ${{ needs.lint.result == 'success' && needs.typecheck.result == 'success' && needs.unit-1.result == 'success' && needs.unit-2.result == 'success' && needs.unit-3.result == 'success' && needs.unit-4.result == 'success' && needs.unit-5.result == 'success' && needs.unit-6.result == 'success' && needs.unit.result == 'success' && needs.subprocess.result == 'success' && needs.desktop-e2e.result == 'success' && needs.compile.result == 'success' && needs.desktop.result == 'success' && needs.site.result == 'success' }}
+          ALL_SUCCEEDED: ${{ needs.lint.result == 'success' && needs.typecheck.result == 'success' && needs.unit-1.result == 'success' && needs.unit-2.result == 'success' && needs.unit-3.result == 'success' && needs.unit-4.result == 'success' && needs.unit-5.result == 'success' && needs.unit-6.result == 'success' && needs.subprocess.result == 'success' && needs.desktop-e2e.result == 'success' && needs.compile.result == 'success' && needs.desktop.result == 'success' && needs.site.result == 'success' }}
         run: test "$ALL_SUCCEEDED" = "true"
+      - name: Runner facts — the premise the offload rests on
+        shell: bash
+        env:
+          MIN_TOTAL_MIB: 12288
+        run: *runner-facts
+      - uses: actions/checkout@v7
+      - name: Fetch the coverage-floor base commit
+        shell: bash
+        run: *fetch-base
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+      - run: corepack enable
+      - *restore-deps
+      - run: yarn install --immutable
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: unit-blob-*
+          path: .vitest-reports
+          merge-multiple: true
+      - name: Merge the shards into the whole lane
+        run: yarn test:unit:merge
+      # After the merge, because it reads the report the merge just wrote into `coverage/`.
+      - name: Coverage floor
+        run: yarn coverage:ratchet
 
   # The integration lane — the integration suites under Polly replay (offline, no tokens spent, no live
   # account); a suite whose provider cassette is not committed is quarantined in config/vitest/integration.ts.
@@ -792,7 +775,7 @@ jobs:
   # It needs every lane plus `build`, with `if: always()`, so every job it reports has finished and it still
   # runs when one of them is red: a lane that went red AND slow should say both.
   ci-timing:
-    needs: [lint, typecheck, site, unit, subprocess, integration, build]
+    needs: [lint, typecheck, site, subprocess, integration, build]
     if: ${{ always() }}
     runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
     # The formula's 10-minute floor: this job installs and makes one bounded API read (at most ten pages).

@@ -24,6 +24,7 @@ import { isDeepStrictEqual } from "node:util";
 
 import { UNIT_BLOB_DIRECTORY, unitShardJobs } from "../testLanes/unitShards.js";
 import { DEPENDENCY_CACHE_ACTIONS, dependencyCacheFindings } from "./ciDependencyCache.js";
+import { OFFLOAD_JOB } from "./ciOffloadCommands.js";
 import { actionOf, jobOf, type OffloadFinding, stepsOf } from "./ciWorkflowRead.js";
 
 /**
@@ -32,8 +33,11 @@ import { actionOf, jobOf, type OffloadFinding, stepsOf } from "./ciWorkflowRead.
  */
 const WORKER_ACTIONS: readonly string[] = ["actions/checkout", "actions/setup-node", ...DEPENDENCY_CACHE_ACTIONS];
 
-/** The job that merges the shards' reports, and so the one that downloads them. */
-export const UNIT_MERGE_JOB = "unit";
+/**
+ * The job that merges the shards' reports, and so the one that downloads them: the required aggregator itself,
+ * after its verdict, so the merge waits for no runner of its own.
+ */
+export const UNIT_MERGE_JOB = OFFLOAD_JOB;
 
 /**
  * The console's browser lane, the one other worker that uploads: its Playwright report and failure evidence (trace,
@@ -63,7 +67,7 @@ export function allowedActions({ job }: { job: string }): readonly string[] {
  * Judge every worker's `uses:` steps against {@link allowedActions}, and the merge job's needs.
  *
  * @param workflow the parsed workflow document
- * @param workers the worker job ids
+ * @param workers every command-owning job id, the aggregator among them since it runs the merge
  * @returns one finding per disallowed action, per worker whose dependency cache is out of shape, per shard the
  *   merge job does not need, and per worker whose `needs` is not exactly its pinned set
  */
@@ -120,12 +124,14 @@ function mergeNeedsFindings({ workflow }: { workflow: unknown }): readonly Offlo
 }
 
 /**
- * Every worker's `needs` is pinned whole: the merge job needs its shards and nothing else, and every other worker
- * needs nothing. A dependency that is skipped skips the worker with it, so `needs: integration` on `typecheck`
- * would skip the cache writer and its runner-facts refusal on every `push`.
+ * Every worker's `needs` is pinned: a worker needs nothing. A dependency that is skipped skips the worker with
+ * it, so `needs: integration` on `typecheck` would skip the cache writer and its runner-facts refusal on every
+ * `push`. The merge job is the aggregator, whose `needs` `aggregatorFindings` pins to exactly the workers — the
+ * shards among them, which {@link mergeNeedsFindings} asserts on its own account — and whose `always()` is what
+ * keeps a skipped or failed leg from skipping it.
  *
  * @param workflow the parsed workflow document
- * @param workers the worker job ids
+ * @param workers the command-owning job ids
  * @returns one finding per worker with a `needs` it may not carry
  */
 function workerNeedsFindings({
@@ -135,25 +141,16 @@ function workerNeedsFindings({
   workflow: unknown;
   workers: readonly string[];
 }): readonly OffloadFinding[] {
-  const shards = unitShardJobs();
   return workers.flatMap((job): OffloadFinding[] => {
     const entry = jobOf({ job, workflow });
-    if (entry === undefined || !("needs" in entry)) {
+    if (entry === undefined || !("needs" in entry) || job === UNIT_MERGE_JOB) {
       return [];
     }
-    if (job !== UNIT_MERGE_JOB) {
-      return [
-        {
-          line: `\`jobs.${job}\` sets \`needs\`, so a skipped dependency would skip it, its runner-facts refusal and any cache save with it`,
-        },
-      ];
-    }
-    const needs = Array.isArray(entry["needs"]) ? entry["needs"] : [entry["needs"]];
-    return needs
-      .filter((need) => typeof need !== "string" || !shards.includes(need))
-      .map((need) => ({
-        line: `\`jobs.${UNIT_MERGE_JOB}\` needs \`${typeof need === "string" ? need : JSON.stringify(need)}\`, beyond its shards, so a skipped dependency would skip the merge`,
-      }));
+    return [
+      {
+        line: `\`jobs.${job}\` sets \`needs\`, so a skipped dependency would skip it, its runner-facts refusal and any cache save with it`,
+      },
+    ];
   });
 }
 

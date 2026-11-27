@@ -54,12 +54,14 @@ const receiptOf = ({ outcomes }: { outcomes: readonly LapStepOutcome[] }): LapRe
   });
 
 describe("runSteps", () => {
-  const plan = ["unit-6", "unit.test-unit-merge", "unit.coverage-ratchet", "cli-build"].map((id) => stepNamed({ id }));
+  const plan = ["unit-6", "build.test-unit-merge", "build.coverage-ratchet", "cli-build"].map((id) =>
+    stepNamed({ id }),
+  );
 
-  it("cleans the tree as each new CI job starts, keeping the shards' blobs only while the unit job runs", async () => {
+  it("cleans the tree as each new CI job starts, keeping the shards' blobs only while build merges them", async () => {
     const events: string[] = [];
     const fake = attempts({
-      exits: { "cli-build": 0, "unit-6": 0, "unit.coverage-ratchet": 0, "unit.test-unit-merge": 0 },
+      exits: { "build.coverage-ratchet": 0, "build.test-unit-merge": 0, "cli-build": 0, "unit-6": 0 },
     });
     await runSteps({
       deps: {
@@ -85,8 +87,8 @@ describe("runSteps", () => {
       `clean[${blobs(1, 2, 3, 4, 5)}]`,
       "unit-6",
       `clean[${blobs(1, 2, 3, 4, 5, 6)}]`,
-      "unit.test-unit-merge",
-      "unit.coverage-ratchet",
+      "build.test-unit-merge",
+      "build.coverage-ratchet",
       "clean[]",
       "cli-build",
     ]);
