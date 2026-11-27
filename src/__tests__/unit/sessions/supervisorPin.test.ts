@@ -52,6 +52,20 @@ describe("parseSupervisorPin", () => {
     expect(parseSupervisorPin({ text: JSON.stringify(codex) })).toStrictEqual(codex);
   });
 
+  it("round-trips a Codex holder's recorded home, and refuses one on a Claude holder or a relative one", () => {
+    const codex = record({ codexHome: "/h/.codex", session: { host: "codex", id: "thread-1" } });
+    const onClaude = JSON.stringify(record({ codexHome: "/h/.codex" }));
+    const relative = JSON.stringify(record({ codexHome: ".codex", session: { host: "codex", id: "thread-1" } }));
+    const blank = JSON.stringify(record({ codexHome: " ", session: { host: "codex", id: "thread-1" } }));
+
+    expect(parseSupervisorPin({ text: JSON.stringify(codex) })).toStrictEqual(codex);
+    expect([onClaude, relative, blank].map((text) => parseSupervisorPin({ text }))).toStrictEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
   it("reads a legacy `claudeSessionId` record as the Claude session it always named", () => {
     expect(parseSupervisorPin({ text: legacyText({ claudeSessionId: "sess-super" }) })).toStrictEqual(record());
   });

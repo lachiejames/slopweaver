@@ -12,7 +12,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { AutonomyLedgerPort } from "../../../autonomy/port.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 import { stateHomePaths } from "../../../stateHome.js";
-import { buildIntakeMark, type IntakeMark } from "../../../supervisor/intake.js";
+import type { IntakeMark } from "../../../supervisor/intake.js";
+import { buildIntakeMark } from "../../../supervisor/intakeMarkLine.js";
 import { appendIntakeMark } from "../../../supervisor/intakeStore.js";
 import { supervisorTickLedgerPath } from "../../../supervisor/tickStore.js";
 import type { CardLandingRow } from "../../../talk/cardLanding.js";
@@ -172,7 +173,7 @@ describe("readSteeredCards", () => {
     appendLine({ path: stateHomePaths({ home }).talkRelaysJsonl, value: receipt() });
     appendLine({ path: landingsPath(), value: landed() });
     const built = buildIntakeMark({
-      byClaudeSessionId: "s",
+      bySession: { host: "claude-code", id: "s" },
       kind: "card",
       markedAtIso: "2026-10-04T00:38:00.000Z",
       pointer: ANCHOR,

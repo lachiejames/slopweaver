@@ -9,8 +9,18 @@ import { err, ok, type Result } from "#lib/result.js";
 import { isRecord } from "../lib/parsers.js";
 import { APP_SESSION_HANDLE_PREFIX } from "../sessionHarness/appProtocol.js";
 import { isBareSessionId } from "../sessions/liveSessionStore.js";
-import { type SupervisorPinRecord, type SupervisorPinTarget, supervisorPinTarget } from "../sessions/supervisorPin.js";
-import { recordedSupervisorSession, supervisorSessionKey, type VisibleSupervisorSession } from "./session.js";
+import {
+  recordedCodexHome,
+  type SupervisorPinRecord,
+  type SupervisorPinTarget,
+  supervisorPinTarget,
+} from "../sessions/supervisorPin.js";
+import {
+  isRecordableCodexHome,
+  recordedSupervisorSession,
+  supervisorSessionKey,
+  type VisibleSupervisorSession,
+} from "./session.js";
 
 /** How a link got into the journal — recorded live by the pin verb, or recovered from the transcripts. */
 export type SupervisorLinkSource = "pin" | "scan";
@@ -28,6 +38,11 @@ interface SupervisorLinkCommon {
   /** When this session took the pin — the floor its own turns are read from. */
   readonly pinnedAtIso: string;
   readonly source: SupervisorLinkSource;
+  /**
+   * The absolute `CODEX_HOME` a Codex chair ran under, so its rollout is read from that home and no other. Absent on a
+   * Claude chair, and on a Codex link written before the field existed, which a reader reports as unrecorded.
+   */
+  readonly codexHome?: string;
 }
 
 /* A link for a chair in a cmux workspace — every journal line written before the app could host one. */
@@ -51,10 +66,18 @@ export type SupervisorLink = CmuxSupervisorLink | AppSupervisorLink;
 export type SupervisorChainError =
   | { readonly code: "SESSION_ID_INVALID"; readonly message: string }
   | { readonly code: "PIN_INSTANT_INVALID"; readonly message: string }
-  | { readonly code: "TARGET_INVALID"; readonly message: string };
+  | { readonly code: "TARGET_INVALID"; readonly message: string }
+  | { readonly code: "CODEX_HOME_INVALID"; readonly message: string };
 
 /* The factory for SupervisorChainError, so every refusal carries the same words. */
 const SupervisorChainErrors = {
+  codexHomeInvalid: ({ host }: { host: VisibleSupervisorSession["host"] }): SupervisorChainError => ({
+    code: "CODEX_HOME_INVALID",
+    message:
+      host === "codex"
+        ? "a Codex chain link's home must be an absolute path — a relative one names a different home per reader"
+        : "a Claude Code chain link carries no Codex home — only a Codex chair has a rollout to read",
+  }),
   pinInstantInvalid: ({ pinnedAtIso }: { pinnedAtIso: string }): SupervisorChainError => ({
     code: "PIN_INSTANT_INVALID",
     message: `${pinnedAtIso} is not an instant — a link with no readable instant orders nothing`,
@@ -99,7 +122,12 @@ export function supervisorLinkLabel({ link }: { link: SupervisorLink }): string 
  * @returns the link the pin record stands for
  */
 export function linkFromPin({ pin }: { pin: SupervisorPinRecord }): SupervisorLink {
-  const common = { pinnedAtIso: pin.pinnedAtIso, session: pin.session, source: "pin" } as const;
+  const common = {
+    pinnedAtIso: pin.pinnedAtIso,
+    session: pin.session,
+    source: "pin",
+    ...(pin.codexHome === undefined ? {} : { codexHome: pin.codexHome }),
+  } as const;
   const target = supervisorPinTarget({ pin });
   if (target.kind === "app") {
     return { ...common, appSessionId: target.appSessionId };
@@ -160,7 +188,11 @@ export function parseSupervisorLinkLine({ line }: { line: string }): SupervisorL
   ) {
     return undefined;
   }
-  return { pinnedAtIso, session, source, ...location };
+  const home = recordedCodexHome({ parsed, session });
+  if (home === undefined) {
+    return undefined;
+  }
+  return { pinnedAtIso, session, source, ...location, ...home };
 }
 
 /**
@@ -184,6 +216,7 @@ export function parseSupervisorChainJournal({ text }: { text: string }): readonl
  * @param target where it is hosted: a cmux workspace or a desktop-app session
  * @param pinnedAtIso when it took the pin
  * @param source whether the pin verb recorded it or a rescan recovered it
+ * @param codexHome a Codex chair's absolute `CODEX_HOME`, when the process that pinned it named one
  * @returns the link, or which field refused it
  */
 export function buildSupervisorLink({
@@ -191,11 +224,13 @@ export function buildSupervisorLink({
   target,
   pinnedAtIso,
   source,
+  codexHome,
 }: {
   session: VisibleSupervisorSession;
   target: SupervisorPinTarget;
   pinnedAtIso: string;
   source: SupervisorLinkSource;
+  codexHome?: string;
 }): Result<SupervisorLink, SupervisorChainError> {
   const id = session.id.trim();
   if (id.length === 0) {
@@ -204,7 +239,15 @@ export function buildSupervisorLink({
   if (Number.isNaN(Date.parse(pinnedAtIso))) {
     return err(SupervisorChainErrors.pinInstantInvalid({ pinnedAtIso }));
   }
-  const common = { pinnedAtIso, session: { host: session.host, id }, source };
+  if (codexHome !== undefined && (session.host !== "codex" || !isRecordableCodexHome({ value: codexHome }))) {
+    return err(SupervisorChainErrors.codexHomeInvalid({ host: session.host }));
+  }
+  const common = {
+    pinnedAtIso,
+    session: { host: session.host, id },
+    source,
+    ...(codexHome === undefined ? {} : { codexHome }),
+  };
   if (target.kind === "app") {
     if (!isBareSessionId({ sessionId: target.appSessionId })) {
       return err(SupervisorChainErrors.targetInvalid({ appSessionId: target.appSessionId }));

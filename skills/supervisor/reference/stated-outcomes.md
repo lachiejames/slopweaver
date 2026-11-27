@@ -106,7 +106,9 @@ one receipt per printed turn against this session. Seven days is about **550 KB*
 `cmux takeover` runs the same read with a zero budget (so it counts without spending a receipt) and refuses
 while anything is unread.
 
-A chair turn is addressed by its transcript uuid. An archived `### RULINGS` row is addressed by its WORDS:
+A Claude chair turn is addressed by its transcript uuid, a Codex chair turn by its rollout pointer
+(`codex-rollout:<thread>#<rollout>@<offset>`, the byte its `user_message` line starts at); a Codex chair whose
+rollout will not read whole fails the read and the gate. An archived `### RULINGS` row is addressed by its WORDS:
 every `state-archive` carries the live block into a new file, so the window delivers each ruling once, and a
 ruling receipt carries the hash of what it printed, so a later copy in another file is already read. Words
 edited by one character, as printed, are a new ruling and are shown again. Two identical rows are one ruling even
@@ -114,7 +116,8 @@ if typed separately: the row is the whole record, its date and call or turn anch
 holds no word the chair was not shown. The handover ROW ruling journal is different, because its instant and
 anchor are fields outside the words. A ruling receipt with no hash, written before this, reads no ruling: an
 address alone cannot say which words were printed there, so a chair spanning that change is shown the
-window's rulings once more. `--session <id>` credits the receipts it writes to that id, not the ambient one. An archive
+window's rulings once more. `--session <id>` credits the receipts it writes to that Claude Code session, not the
+ambient one, and `--session codex:<thread-id>` to that Codex thread. An archive
 entry that will not read fails the read and the gate, since it could hold a ruling never shown. The read is one snapshot with no
 lock: an archive published while the gate reads is seen by the next read, not this one.
 

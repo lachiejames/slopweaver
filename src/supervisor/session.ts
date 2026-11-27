@@ -1,3 +1,5 @@
+import { isAbsolute } from "node:path";
+
 import { isBareSessionId } from "../sessions/liveSessionStore.js";
 
 /**
@@ -9,7 +11,11 @@ import { isBareSessionId } from "../sessions/liveSessionStore.js";
  */
 export const CLAUDE_CODE_SESSION_ID_ENV = "CLAUDE_CODE_SESSION_ID";
 export const CODEX_THREAD_ID_ENV = "CODEX_THREAD_ID";
-
+/**
+ * The Codex account home a Codex process runs under — where its thread's rollout is written. Recorded on a Codex
+ * chair's pin and chain link so the owner-turn reader opens THAT home's rollout, never a guessed `~/.codex`.
+ */
+export const CODEX_HOME_ENV = "CODEX_HOME";
 /**
  * A visible host that can own a Slopweaver turn.
  *
@@ -139,9 +145,13 @@ export function recordedSupervisorSession({
   return { host: "claude-code", id: claudeSessionId };
 }
 
-/** The result of inspecting the current process for a visible supervisor. */
+/**
+ * The result of inspecting the current process for a visible supervisor. A Codex session carries the absolute
+ * `CODEX_HOME` it runs under when the process names one; with none (or a relative one) it is absent, so a pin
+ * recorded from it reads as a chair whose home is unrecorded rather than one a reader would guess.
+ */
 export type SupervisorSessionDetection =
-  | { readonly kind: "active"; readonly session: VisibleSupervisorSession }
+  | { readonly kind: "active"; readonly session: VisibleSupervisorSession; readonly codexHome?: string }
   | { readonly kind: "missing" }
   | { readonly kind: "ambiguous"; readonly sessions: readonly [VisibleSupervisorSession, VisibleSupervisorSession] };
 
@@ -176,9 +186,39 @@ export function detectSupervisorSession({
     return { kind: "active", session: { host: "claude-code", id: claudeId } };
   }
   if (codexId !== undefined) {
-    return { kind: "active", session: { host: "codex", id: codexId } };
+    const codexHome = nonBlank({ value: env[CODEX_HOME_ENV] });
+    const recorded = codexHome !== undefined && isAbsolute(codexHome) ? { codexHome } : {};
+    return { kind: "active", session: { host: "codex", id: codexId }, ...recorded };
   }
   return { kind: "missing" };
+}
+
+/**
+ * Whether a recorded Codex home is one a reader may open: a non-blank absolute path. A relative one would resolve
+ * against whichever directory the reader happened to run in.
+ *
+ * @param value the recorded value
+ * @returns true for a non-blank absolute path string
+ */
+export function isRecordableCodexHome({ value }: { value: unknown }): boolean {
+  return typeof value === "string" && value.trim() === value && value.length > 0 && isAbsolute(value);
+}
+
+/**
+ * The session a `--session` flag names: a bare id is a Claude Code session, as every flag typed before a chair could
+ * be Codex meant, and `claude-code:<id>` or `codex:<id>` names the host outright — the same spelling
+ * {@link supervisorSessionLabel} prints.
+ *
+ * @param text the flag's value
+ * @returns the session, or `undefined` for an unknown host prefix or an id that is not a bare session id
+ */
+export function parseSupervisorSessionLabel({ text }: { text: string }): VisibleSupervisorSession | undefined {
+  const trimmed = text.trim();
+  const colon = trimmed.indexOf(":");
+  if (colon === -1) {
+    return isBareSessionId({ sessionId: trimmed }) ? { host: "claude-code", id: trimmed } : undefined;
+  }
+  return parseVisibleSession({ value: { host: trimmed.slice(0, colon), id: trimmed.slice(colon + 1) } });
 }
 
 /**

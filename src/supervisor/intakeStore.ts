@@ -16,7 +16,8 @@ import { isRecord } from "../lib/parsers.js";
 import { err, ok, type Result } from "../lib/result.js";
 import { stateHomePaths } from "../stateHome.js";
 import { type SupervisorCoreError, SupervisorCoreErrors } from "./errors.js";
-import { type IntakeMark, parseIntakeMarkJournal } from "./intake.js";
+import type { IntakeMark } from "./intake.js";
+import { parseIntakeMarkJournal } from "./intakeMarkLine.js";
 import { preferredMark, type SlugLookup, witnessShares } from "./intakeWitness.js";
 
 /** Owner-only permissions, matching `../sessions/sessionStore.ts`. */

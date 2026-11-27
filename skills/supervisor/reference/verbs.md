@@ -112,11 +112,17 @@ themselves, and reaches you whether or not cmux is running: see `docs/supervisor
   nothing polls other sessions with a cheap model and writes notes for you.
 - **No automatic session-identity discovery.** Mapping a ledger key to a live `ListAgents` identity is a
   judgement call each time.
-- **A Codex chair is IDENTIFIED, not yet READ.** The pin, every chain link and every owner-turn receipt name their
-  holder as a host AND an id (`CODEX_THREAD_ID` in Codex), so `cmux pin`/`takeover` seat a Codex chair and its
-  receipts never count for a Claude session sharing the id. Its rollout is not opened: `supervisor intake`,
-  `profile words` and the chair read print `a Codex chair's rollout is not read yet` rather than counting its turns
-  as none, `supervisor owner-turns` (so `cmux takeover`'s gate) refuses while one is in the window, `fleet resume`
+- **A Codex chair's OWNER TURNS are read; its peer traffic is not.** The pin, every chain link and every owner-turn
+  receipt name their holder as a host AND an id (`CODEX_THREAD_ID` in Codex), so `cmux pin`/`takeover` seat a Codex
+  chair and its receipts never count for a Claude session sharing the id. A cmux-pinned Codex chair records the
+  absolute `CODEX_HOME` it ran under, and `supervisor intake` and `supervisor owner-turns` read its `user_message`
+  events off its ONE rollout there, pointed at as `codex-rollout:<thread>#<rollout>@<offset>`
+  (`src/supervisor/codexChairRead.ts`). A rollout that will not read whole — no recorded home (a desktop-app-hosted
+  Codex chair records none), two homes, no rollout or two, a walk that passed a place, a line or item kind the
+  pinned wire does not know — is NAMED, and `owner-turns` (so `cmux takeover`'s gate) refuses on it rather than
+  counting short. Its peer messages stay unread, which `supervisor intake` discloses. `profile words` still prints
+  `a Codex chair's rollout is not read yet`. `supervisor owner-turns --session codex:<thread-id>` names a Codex
+  reader; `intake-mark` accepts a `codex-rollout:` pointer it checks against that rollout. `fleet resume`
   refuses `CHAIR_ON_CODEX`, `fleet health` reads its seat yellow (live when a Codex process holds its thread, else liveness UNMEASURED, never red), `cmux reseat` never resumes its
   thread id as a Claude session, the chair gate steps aside (`not-read`), `session standing` and `claude gauge` read the chair unresolved
   rather than judge a Claude tab beside it (with no pin, the chain's newest link names the host), and the `chair-off-fable` monitor reads it unmeasurable. A pin written before this reads as the Claude session it named.

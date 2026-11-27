@@ -30,6 +30,7 @@
  * Pure: marks and a slug lookup in, a verdict out.
  */
 
+import { parseCodexRolloutPointer } from "../codex/rolloutOwnerTurnPointer.js";
 import { NAMED_NUMBER } from "../handover/namedNumber.js";
 import { isSafeSlug } from "../handover/runStore.js";
 import { parseRelayAnchor } from "../talk/relayDraft.js";
@@ -115,6 +116,7 @@ function isOneReference({ reference, slugs }: { reference: string; slugs: SlugLo
   }
   return (
     parseTurnPointer({ text: reference }) !== undefined ||
+    parseCodexRolloutPointer({ text: reference }) !== undefined ||
     parseRelayAnchor({ text: reference }) !== undefined ||
     parseCallPointer({ text: reference }) !== undefined
   );

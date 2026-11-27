@@ -335,10 +335,6 @@
       "path": "src/__tests__/unit/supervisor/idleCapacityGate.test.ts"
     },
     {
-      "codeLines": 554,
-      "path": "src/__tests__/unit/supervisor/intake.test.ts"
-    },
-    {
       "codeLines": 690,
       "path": "src/__tests__/unit/supervisor/tickDigest.test.ts"
     },

@@ -11,48 +11,20 @@
  * live-session registry cannot confirm is still reported rather than swallowed — but it is one link, not the
  * scope.
  *
- * ## The floor, per link
- *
- * A supervisor owns the owner's turns from the moment it took the pin until its successor did, so each
- * link's transcript is read between those two instants. That is why a resumed session's earlier life does
- * not leak in, and why a session left open after handing over does not claim turns its successor answered.
- * An explicit `--since` raises every link's floor; a caller naming ONE session gets that transcript alone,
- * whole unless it also names a floor.
- *
- * Peer messages are read from the same floor but with NO ceiling: a message landing on a chair after its
- * successor took the pin is exactly what `./inbound.ts` exists to carry, so cutting it off at the span's end
- * would drop the finding. Both are gathered in ONE pass over each transcript.
- *
- * ## Which transcripts the peer read adds
- *
- * `ownerWindow` drops a chair whose successor pinned before the floor (bar a Codex chair that retook it), which
- * is right for owner turns and wrong for peer messages: a retired chair keeps receiving reports addressed to its name, and those are the finding.
- * So a chair the owner window dropped is still walked for peer traffic when its transcript was last written at
- * or after the floor — a file untouched since before the floor cannot hold a message after it, and the check
- * is one `stat`, so the sweep does not open every transcript the chain has ever had.
+ * Each link is read between the instant it took the pin and the instant its successor did, and a chair the owner
+ * window dropped is still walked for peer traffic: `./chainSpanWalk.ts` is that walk. A caller naming ONE session
+ * gets that transcript alone, whole unless it also names a floor.
  */
-import { statSync } from "node:fs";
 import { join } from "node:path";
 
 import type { HandoverDoc } from "../handover/doc.js";
-import { findTranscript } from "../transcripts/source.js";
-import {
-  type ChainCoverage,
-  type ChainSpan,
-  type ChairTenure,
-  CODEX_CHAIR_UNREAD,
-  chainReachesSince,
-  chairTenures,
-  ownerWindow,
-  type SupervisorLink,
-  unwalkedTenureGaps,
-} from "./chain.js";
+import { type ChainCoverage, type ChairTenure, chainReachesSince, chairTenures, type SupervisorLink } from "./chain.js";
+import { lateWrittenChairs, sortedTurnsOf, type WalkedSpan, walkOwnerWindow } from "./chainSpanWalk.js";
 import { readSupervisorChainEvents } from "./chainStore.js";
-import { chairReadGaps, readChairTranscript } from "./chairTranscript.js";
+import { readChairTranscript } from "./chairTranscript.js";
 import { type ChairTraffic, judgeInbound } from "./inbound.js";
 import {
   INTAKE_GRACE_MS,
-  type IntakeLeg,
   type IntakeMark,
   type IntakeReport,
   type OwnerTurn,
@@ -60,8 +32,7 @@ import {
   witnessTurns,
 } from "./intake.js";
 import { pinAsLink, resolveIntakeScope } from "./intakeScope.js";
-import { supervisorSessionKey, supervisorSessionLabel, type VisibleSupervisorSession } from "./session.js";
-import { linkKey } from "./supervisorLink.js";
+import { supervisorSessionKey } from "./session.js";
 import { readTypedIntake } from "./typedIntakeRead.js";
 
 /** The pointer-bearing fields of every board row. */
@@ -69,146 +40,19 @@ function rowAnchorsOf({ docs }: { docs: readonly HandoverDoc[] }): readonly RowA
   return docs.map((doc) => ({ anchor: doc.anchor, settlementWitness: doc.settlementWitness, slug: doc.slug }));
 }
 
-/** One link's turns and traffic, or the reason its transcript could not be walked. */
-interface WalkedSpan {
-  readonly leg: IntakeLeg;
-  readonly turns: readonly OwnerTurn[];
-  readonly chair: ChairTraffic;
-  /** Why the walk failed, or "" when it succeeded. */
-  readonly why: string;
-  /** What a walk that succeeded still could not show: lines that would not parse, turns no anchor names alone. */
-  readonly gaps: readonly string[];
-  /**
-   * The end of the chair's latest tenure, `undefined` while open. Read off the tenures, never the span: `orderChain`
-   * collapses A → B → A to A's earliest link, whose span ends at B's pin while A's later tenure runs on.
-   */
-  readonly untilIso: string | undefined;
-}
-
-/**
- * Walk one span of the chain between the instant it took the pin and the instant its successor did.
- *
- * @param projectsDir `~/.claude/projects`
- * @param span the link and the instant its successor took over
- * @param sinceIso the caller's floor, which raises the link's own
- * @returns the leg with its turns and traffic, or the leg with the reason it could not be read
- */
-function walkSpan({
-  projectsDir,
-  span,
-  sinceIso,
-  tenures,
-}: {
-  projectsDir: string;
-  span: ChainSpan;
-  sinceIso: string | undefined;
-  tenures: ReadonlyMap<string, readonly ChairTenure[]>;
-}): WalkedSpan {
-  const floor =
-    sinceIso !== undefined && Date.parse(sinceIso) > Date.parse(span.link.pinnedAtIso)
-      ? sinceIso
-      : span.link.pinnedAtIso;
-  const { session } = span.link;
-  const legId = supervisorSessionLabel({ session });
-  const leg = { fromIso: floor, sessionId: legId, turns: 0 };
-  const chair: ChairTraffic = {
-    chairSessionId: legId,
-    fromIso: floor,
-    inbound: [],
-    results: [],
-    sends: [],
-    tenures: tenures.get(linkKey({ link: span.link })) ?? [{ fromIso: span.link.pinnedAtIso, untilIso: span.untilIso }],
-  };
-  // The tenures always hold at least the span's own fallback tenure, so the last one is there.
-  const untilIso = chair.tenures.at(-1)!.untilIso;
-  if (session.host === "codex") {
-    return { chair, gaps: [], leg, turns: [], untilIso, why: CODEX_CHAIR_UNREAD };
-  }
-  const read = readChairTranscript({ projectsDir, sessionId: session.id, sinceIso: floor, untilIso: span.untilIso });
-  if (read.isErr()) {
-    return { chair, gaps: [], leg, turns: [], untilIso, why: read.error.join("; ") };
-  }
-  return {
-    chair: { ...chair, ...read.value.traffic },
-    gaps: [...chairReadGaps({ read: read.value }), ...unwalkedTenureGaps({ sinceIso, span, tenures: chair.tenures })],
-    leg: { ...leg, turns: read.value.turns.length },
-    turns: read.value.turns,
-    untilIso,
-    why: "",
-  };
-}
-
-/**
- * The chairs the owner window dropped that can still hold a peer message inside it: walked for their traffic
- * only, never counted as legs or coverage, because their owner turns all fall before the floor.
- *
- * @param allSpans every span the chain holds
- * @param spans the spans the owner window kept
- * @param projectsDir `~/.claude/projects`
- * @param sinceIso the floor
- * @param tenures every chair's pin intervals
- * @returns every walk, readable or not — the caller keeps the readable chairs and discloses the rest
- */
-function lateWrittenChairs({
-  allSpans,
-  spans,
-  projectsDir,
-  sinceIso,
-  tenures,
-}: {
-  allSpans: readonly ChainSpan[];
-  spans: readonly ChainSpan[];
-  projectsDir: string;
-  sinceIso: string | undefined;
-  tenures: ReadonlyMap<string, readonly ChairTenure[]>;
-}): readonly WalkedSpan[] {
-  return allSpans
-    .filter((span) => !spans.includes(span) && writtenSince({ projectsDir, session: span.link.session, sinceIso }))
-    .map((span) => walkSpan({ projectsDir, sinceIso, span, tenures }));
-}
-
-/**
- * The owner window of the chain, as `ownerWindow` builds it, with the spans it keeps walked.
- */
-function walkOwnerWindow({
-  home,
-  claudeHome,
-  chain,
-  sinceIso,
-}: {
-  home: string;
-  claudeHome: string;
-  chain: readonly SupervisorLink[];
-  sinceIso: string | undefined;
-}): {
-  readonly allSpans: readonly ChainSpan[];
-  readonly ordered: readonly SupervisorLink[];
-  readonly projectsDir: string;
-  readonly spans: readonly ChainSpan[];
-  readonly tenures: ReadonlyMap<string, readonly ChairTenure[]>;
-  readonly walked: readonly WalkedSpan[];
-} {
-  const { allSpans, ordered, spans, tenures } = ownerWindow({ chain, pinned: pinAsLink({ home }), sinceIso });
-  const projectsDir = join(claudeHome, "projects");
-  const walked = spans.map((span) => walkSpan({ projectsDir, sinceIso, span, tenures }));
-  return { allSpans, ordered, projectsDir, spans, tenures, walked };
-}
-
-/** Every readable chair's owner turns, ordered by `Date.parse` of each timestamp as the intake read always has. */
-function sortedTurnsOf({ readable }: { readable: readonly WalkedSpan[] }): readonly OwnerTurn[] {
-  return readable
-    .flatMap((item) => item.turns)
-    .toSorted((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
-}
-
 /** The owner turns a chain read reached, and what of the chain it could not. */
 export interface ChainTurns {
   readonly turns: readonly OwnerTurn[];
   /**
    * `chair <id>: <why>` for each Claude chair in the window whose transcript would not read, and for each readable one
-   * that still left a line or a turn out; `ownerWindowGaps` names a Codex chair.
+   * that still left a line or a turn out — what a reader discloses.
    */
   readonly unreadChairs: readonly string[];
+  /**
+   * `chair codex:<id>: <CODE>: <why>` for each Codex chair in the window whose rollout would not read whole — what the
+   * takeover gate refuses on, because no reader has a second look at a rollout the way a transcript gap is shown.
+   */
+  readonly refusedChairs: readonly string[];
 }
 
 /**
@@ -242,12 +86,45 @@ export function readSupervisorChainTurns({
 }): ChainTurns {
   const { walked } = walkOwnerWindow({ chain, claudeHome, home, sinceIso });
   return {
+    refusedChairs: walked
+      .filter((item) => item.session.host === "codex" && item.why !== "")
+      .map((item) => `chair ${item.leg.sessionId}: ${item.why}`),
     turns: sortedTurnsOf({ readable: walked.filter((item) => item.why === "") }),
     unreadChairs: walked
-      .filter((item) => item.why !== CODEX_CHAIR_UNREAD)
+      .filter((item) => item.session.host !== "codex")
       .flatMap((item) =>
         (item.why === "" ? item.gaps : [item.why]).map((why) => `chair ${item.leg.sessionId}: ${why}`),
       ),
+  };
+}
+
+/** What a chain read could and could not see, off the owner window's walks and the late-written chairs' walks. */
+function coverageOf({
+  ordered,
+  sinceIso,
+  walked,
+  lateWalks,
+}: {
+  ordered: readonly SupervisorLink[];
+  sinceIso: string | undefined;
+  walked: readonly WalkedSpan[];
+  lateWalks: readonly WalkedSpan[];
+}): ChainCoverage {
+  return {
+    earliestIso: ordered[0]?.pinnedAtIso,
+    linksKnown: ordered.length,
+    reachesSince: chainReachesSince({ links: ordered, sinceIso }),
+    // A retired chair walked only for peer traffic discloses its failure here too: a chair whose transcript
+    // will not read holds messages nobody can see, and a silent drop is the shape this check exists to refuse.
+    // A Codex chair whose owner turns read still discloses its unread peer traffic, so no message reads as answered.
+    unreadable: [...walked, ...lateWalks]
+      .filter((item) => item.why !== "" || item.peerGap !== "")
+      .map((item) => ({
+        claudeSessionId: item.leg.sessionId,
+        untilIso: item.untilIso,
+        why: item.why === "" ? item.peerGap : item.why,
+      })),
+    walked: walked.filter((item) => item.why === "").map((item) => item.leg.sessionId),
   };
 }
 
@@ -286,27 +163,11 @@ export function readSupervisorChainIntake({
   docs: readonly HandoverDoc[];
   marks: readonly IntakeMark[];
 }): IntakeReport {
-  const { allSpans, ordered, projectsDir, spans, tenures, walked } = walkOwnerWindow({
-    chain,
-    claudeHome,
-    home,
-    sinceIso,
-  });
-  const readable = walked.filter((item) => item.why === "");
-  const lateWalks = lateWrittenChairs({ allSpans, projectsDir, sinceIso, spans, tenures });
+  const window = walkOwnerWindow({ chain, claudeHome, home, sinceIso });
+  const readable = window.walked.filter((item) => item.why === "");
+  const lateWalks = lateWrittenChairs({ sinceIso, window });
   const lateWritten = lateWalks.filter((item) => item.why === "");
-  const coverage: ChainCoverage = {
-    earliestIso: ordered[0]?.pinnedAtIso,
-    linksKnown: ordered.length,
-    reachesSince: chainReachesSince({ links: ordered, sinceIso }),
-    // A retired chair walked only for peer traffic discloses its failure here too: a chair whose transcript
-    // will not read holds messages nobody can see, and a silent drop is the shape this check exists to refuse.
-    unreadable: [...walked, ...lateWalks]
-      .filter((item) => item.why !== "")
-      .map((item) => ({ claudeSessionId: item.leg.sessionId, untilIso: item.untilIso, why: item.why })),
-    walked: readable.map((item) => item.leg.sessionId),
-  };
-  const turns = sortedTurnsOf({ readable });
+  const coverage = coverageOf({ lateWalks, ordered: window.ordered, sinceIso, walked: window.walked });
   const rows = rowAnchorsOf({ docs });
   return {
     finding: witnessTurns({
@@ -316,7 +177,7 @@ export function readSupervisorChainIntake({
       nowIso,
       rows,
       sinceIso,
-      turns,
+      turns: sortedTurnsOf({ readable }),
     }),
     inbound: judgeInbound({
       chairs: [...lateWritten, ...readable].map((item) => item.chair),
@@ -328,44 +189,6 @@ export function readSupervisorChainIntake({
     // The owner's typed console turns: a second source the chair's transcripts never hold (`./typedIntake.ts`).
     typed: readTypedIntake({ home, marks, nowIso, rows, sinceIso }),
   };
-}
-
-/**
- * Whether a chair's transcript was last written at or after the floor — the one cheap question that decides
- * whether a chair the owner window dropped can still hold a peer message inside it.
- *
- * A transcript that cannot be found or stat'd is not walked: the owner-window read already reports an
- * unreadable link, and a retired chair with no file holds no message to carry. A retired Codex chair has no
- * Claude transcript to stat, so it is never walked here; one still inside the owner window is already disclosed
- * as unreadable by `walkSpan`.
- *
- * @param projectsDir `~/.claude/projects`
- * @param session the chair, by host and id
- * @param sinceIso the floor; with none, every chair is already in the owner window
- * @returns true when the file changed at or after the floor
- */
-function writtenSince({
-  projectsDir,
-  session,
-  sinceIso,
-}: {
-  projectsDir: string;
-  session: VisibleSupervisorSession;
-  sinceIso: string | undefined;
-}): boolean {
-  const floor = sinceIso === undefined ? Number.NaN : Date.parse(sinceIso);
-  if (session.host === "codex" || Number.isNaN(floor)) {
-    return false;
-  }
-  const path = findTranscript({ projectsDir, sessionId: session.id });
-  if (path.isErr()) {
-    return false;
-  }
-  try {
-    return statSync(path.value).mtimeMs >= floor;
-  } catch {
-    return false;
-  }
 }
 
 /**

@@ -32,6 +32,7 @@
 import { isRecord } from "../lib/parsers.js";
 import { APP_SESSION_HANDLE_PREFIX } from "../sessionHarness/appProtocol.js";
 import {
+  isRecordableCodexHome,
   parseVisibleSession,
   recordedSupervisorSession,
   type SupervisorSession,
@@ -46,6 +47,37 @@ interface SupervisorPinCommon {
   readonly session: VisibleSupervisorSession;
   /** When the pin was recorded. */
   readonly pinnedAtIso: string;
+  /**
+   * The absolute `CODEX_HOME` a Codex holder ran under, where its rollout is — present only on a Codex holder, and
+   * absent on one recorded before it was written or from a process naming none, which a reader reports as
+   * unrecorded rather than guessing.
+   */
+  readonly codexHome?: string;
+}
+
+/**
+ * A record's `codexHome`, judged against its holder: absent stays absent, a Codex holder's absolute home is kept, and
+ * any other value — a home on a Claude holder, a blank or relative one — refuses the whole record.
+ *
+ * @param parsed the decoded record
+ * @param session the holder it names
+ * @returns the field to spread in, or `undefined` when the record is refused
+ */
+export function recordedCodexHome({
+  parsed,
+  session,
+}: {
+  parsed: Readonly<Record<string, unknown>>;
+  session: VisibleSupervisorSession;
+}): { readonly codexHome?: string } | undefined {
+  const codexHome = parsed["codexHome"];
+  if (codexHome === undefined) {
+    return {};
+  }
+  if (session.host !== "codex" || typeof codexHome !== "string" || !isRecordableCodexHome({ value: codexHome })) {
+    return undefined;
+  }
+  return { codexHome };
 }
 
 /**
@@ -168,7 +200,11 @@ function parseAppArm({
   if (session === undefined || !isBareSessionId({ sessionId: appSessionId })) {
     return undefined;
   }
-  return { appSessionId, pinnedAtIso, session };
+  const home = recordedCodexHome({ parsed, session });
+  if (home === undefined) {
+    return undefined;
+  }
+  return { appSessionId, pinnedAtIso, session, ...home };
 }
 
 /**
@@ -212,7 +248,11 @@ export function parseSupervisorPin({ text }: { text: string }): SupervisorPinRec
   ) {
     return undefined;
   }
-  return { pinnedAtIso, session, workspaceId, workspaceRef };
+  const home = recordedCodexHome({ parsed, session });
+  if (home === undefined) {
+    return undefined;
+  }
+  return { pinnedAtIso, session, workspaceId, workspaceRef, ...home };
 }
 
 /**

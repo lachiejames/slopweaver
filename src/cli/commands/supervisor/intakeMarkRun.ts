@@ -10,23 +10,22 @@
  * the command that would carry it (`../../../supervisor/intakeRoute.ts`, the 20-stretch measurement).
  */
 import { join } from "node:path";
-
+import { parseCodexRolloutPointer } from "../../../codex/rolloutOwnerTurnPointer.js";
 import { ownerWordsSchemeOf } from "../../../handover/hisWords.js";
 import { rowBySlug } from "../../../handover/rowBySlug.js";
 import { hatchFor } from "../../../hatch/lookup.js";
 import { hatchRefusal } from "../../../hatch/render.js";
 import { logger } from "../../../lib/logger.js";
 import { err, ok, type Result } from "../../../lib/result.js";
+import { readSupervisorChainJournal } from "../../../supervisor/chainStore.js";
 import { claudeHomeDir } from "../../../supervisor/chairRead.js";
 import { readMarkableRecords } from "../../../supervisor/chairTranscript.js";
-import {
-  buildIntakeMark,
-  INTAKE_MARK_KINDS,
-  type IntakeMark,
-  type IntakeMarkKind,
-} from "../../../supervisor/intake.js";
-import { markTargetRefusal } from "../../../supervisor/intakeMarkTarget.js";
+import { readRecordedCodexChair } from "../../../supervisor/codexChairRead.js";
+import { INTAKE_MARK_KINDS, type IntakeMark, type IntakeMarkKind } from "../../../supervisor/intake.js";
+import { buildIntakeMark } from "../../../supervisor/intakeMarkLine.js";
+import { codexMarkTargetRefusal, markTargetRefusal } from "../../../supervisor/intakeMarkTarget.js";
 import { carryCommand, routedRows } from "../../../supervisor/intakeRoute.js";
+import { pinAsLink } from "../../../supervisor/intakeScope.js";
 import {
   appendIntakeMark,
   type BoardSlugLookup,
@@ -34,7 +33,11 @@ import {
   readIntakeMarks,
 } from "../../../supervisor/intakeStore.js";
 import { type SlugLookup, witnessReuse } from "../../../supervisor/intakeWitness.js";
-import { CLAUDE_CODE_SESSION_ID_ENV } from "../../../supervisor/session.js";
+import {
+  detectSupervisorSession,
+  parseVisibleSession,
+  type VisibleSupervisorSession,
+} from "../../../supervisor/session.js";
 import { parseTurnPointer } from "../../../transcripts/pointer.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
@@ -76,7 +79,9 @@ export function parseIntakeMarkOptions({ rest }: { rest: readonly string[] }): R
   const problems: string[] = [];
   const turn = values["turn"];
   if (turn === undefined) {
-    problems.push("--turn is required — a transcript:<sid>#<uuid>, talk:<id> or talk-call:<call>#<segment> pointer");
+    problems.push(
+      "--turn is required — a transcript:<sid>#<uuid>, codex-rollout:<thread>#<rollout>@<offset>, talk:<id> or talk-call:<call>#<segment> pointer",
+    );
   }
   const as = INTAKE_MARK_KINDS.find((kind) => kind === values["as"]);
   if (as === undefined) {
@@ -255,10 +260,22 @@ async function carryOnto({
 }
 
 /**
- * Why a `transcript:` mark would witness nothing, read off its own transcript; `undefined` for a mark that lands, and
- * for a `talk:` or `talk-call:` pointer, which names no transcript record.
+ * Why a `transcript:` or `codex-rollout:` mark would witness nothing, read off its own transcript or rollout;
+ * `undefined` for a mark that lands, and for a `talk:` or `talk-call:` pointer, which names no chair record. A Codex
+ * rollout is read under the home the chair's pin or chain link recorded, never a guessed one.
  */
-function transcriptTargetRefusal({ pointer }: { pointer: string }): string | undefined {
+function transcriptTargetRefusal({ pointer, home }: { pointer: string; home: string }): string | undefined {
+  const codex = parseCodexRolloutPointer({ text: pointer });
+  if (codex !== undefined) {
+    const links = [...readSupervisorChainJournal({ home }).links, ...pinAsLink({ home })];
+    const turns = readRecordedCodexChair({
+      links,
+      session: { host: "codex", id: codex.threadId },
+      sinceIso: undefined,
+      untilIso: undefined,
+    });
+    return codexMarkTargetRefusal({ pointer: codex, turns });
+  }
   const target = parseTurnPointer({ text: pointer });
   if (target === undefined) {
     return undefined;
@@ -268,6 +285,27 @@ function transcriptTargetRefusal({ pointer }: { pointer: string }): string | und
     sessionId: target.sessionId,
   });
   return markTargetRefusal({ pointer: target, records });
+}
+
+/**
+ * The visible session writing a mark, by host. None is written as none rather than refused: the mark is
+ * attributable, never authenticated, and a mark from outside any session is still a mark somebody chose to write. A
+ * process carrying both hosts' variables stamps the Claude Code one, as every mark did before a chair could be Codex.
+ *
+ * @param env the process environment
+ * @returns the writer, or `undefined` when the process runs in no visible session
+ */
+export function markWriter({ env }: { env: NodeJS.ProcessEnv }): VisibleSupervisorSession | undefined {
+  const detection = detectSupervisorSession({ env });
+  let writer: VisibleSupervisorSession | undefined;
+  if (detection.kind === "active") {
+    writer = detection.session;
+  }
+  if (detection.kind === "ambiguous") {
+    writer = detection.sessions.find((session) => session.host === "claude-code");
+  }
+  // Only an id the ledger reader accepts is stamped: one it would refuse would drop the whole mark on read.
+  return parseVisibleSession({ value: writer });
 }
 
 /**
@@ -287,16 +325,13 @@ async function runIntakeMark(argv: readonly string[]): Promise<number> {
     return refuse({ errors: parsed.error, usage: MARK_USAGE });
   }
   const options = parsed.value;
-  // An empty id is written as such rather than refused: the mark is attributable, never authenticated, and a
-  // mark from outside a Claude session is still a mark somebody chose to write.
-  const sessionEnv = process.env[CLAUDE_CODE_SESSION_ID_ENV];
   // No `--now` means the mark is made now; the flag exists so a test can pin the instant.
   let markedAtIso = new Date().toISOString();
   if (options.nowIso !== undefined) {
     markedAtIso = options.nowIso;
   }
   const built = buildIntakeMark({
-    byClaudeSessionId: sessionEnv === undefined ? "" : sessionEnv.trim(),
+    bySession: markWriter({ env: process.env }),
     kind: options.as,
     markedAtIso,
     pointer: options.turn,
@@ -305,11 +340,11 @@ async function runIntakeMark(argv: readonly string[]): Promise<number> {
   if ("refusal" in built) {
     return refuse({ errors: [built.refusal], usage: MARK_USAGE });
   }
-  const target = transcriptTargetRefusal({ pointer: built.mark.pointer });
+  const home = resolveHome({ named: options.home });
+  const target = transcriptTargetRefusal({ home, pointer: built.mark.pointer });
   if (target !== undefined) {
     return refuse({ errors: [target], usage: MARK_USAGE });
   }
-  const home = resolveHome({ named: options.home });
   const handoverDir = resolveHandoverDir({ dir: undefined, home });
   const slugs = boardSlugLookup({ handoverDir });
   if (witnessReuseRefused({ home, mark: built.mark, slugs })) {

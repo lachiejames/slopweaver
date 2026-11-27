@@ -1,14 +1,11 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { writeSupervisorPin } from "../../../sessions/supervisorPinStore.js";
-import { CODEX_CHAIR_UNREAD, type SupervisorLink } from "../../../supervisor/chain.js";
+import { supervisorPinPath, writeSupervisorPin } from "../../../sessions/supervisorPinStore.js";
 import { ownerWindowGaps } from "../../../supervisor/ownerWindowGaps.js";
 
-const CLAUDE = "a0000013-0000-4000-8000-000000000014";
-const SINCE = "2026-09-05T00:00:00.000Z";
 const scratch: string[] = [];
 
 afterEach(() => {
@@ -24,69 +21,63 @@ function home(): string {
   return dir;
 }
 
-/** One pin link on the given host. */
-function link({ host, id, at }: { host: "claude-code" | "codex"; id: string; at: string }): SupervisorLink {
-  return { pinnedAtIso: at, session: { host, id }, source: "pin", workspaceId: "ws", workspaceRef: "workspace:1" };
-}
+const REFUSAL = "chair codex:thread-1: CODEX_HOME_UNRECORDED: no Codex home is recorded for it";
 
 describe("ownerWindowGaps", () => {
-  it("names nothing when every chair in the window is Claude's and the archive read", () => {
-    const chain = [link({ at: "2026-09-04T22:00:00.000Z", host: "claude-code", id: CLAUDE })];
-
-    expect(ownerWindowGaps({ chain, home: home(), rulingProblems: [], sinceIso: SINCE })).toBeUndefined();
+  it("names nothing when the pin, the archive and every Codex chair read", () => {
+    expect(ownerWindowGaps({ chainProblems: [], codexRefusals: [], home: home(), rulingProblems: [] })).toBeUndefined();
   });
 
-  it("names a Codex chair inside the window, so a window it held never counts as no turns", () => {
-    const chain = [
-      link({ at: "2026-09-04T22:00:00.000Z", host: "claude-code", id: CLAUDE }),
-      link({ at: "2026-09-05T02:00:00.000Z", host: "codex", id: "thread-1" }),
-    ];
-
-    expect(ownerWindowGaps({ chain, home: home(), rulingProblems: [], sinceIso: SINCE })).toBe(
-      `chair codex:thread-1: ${CODEX_CHAIR_UNREAD}`,
-    );
-  });
-
-  it("names the live pin's Codex chair when the journal never caught it, after the archive's gap", () => {
+  it("names nothing for a readable Codex pin — a Codex chair is read now, not a blanket gap", () => {
     const dir = home();
     const record = { pinnedAtIso: "2026-09-05T03:00:00.000Z", workspaceId: "ws", workspaceRef: "workspace:1" };
     writeSupervisorPin({ home: dir, record: { ...record, session: { host: "codex", id: "thread-2" } } });
 
-    expect(ownerWindowGaps({ chain: [], home: dir, rulingProblems: ["a.md: torn"], sinceIso: SINCE })).toBe(
-      `ruling archive: a.md: torn; chair codex:thread-2: ${CODEX_CHAIR_UNREAD}`,
-    );
+    expect(ownerWindowGaps({ chainProblems: [], codexRefusals: [], home: dir, rulingProblems: [] })).toBeUndefined();
   });
 
-  it("names a Codex thread that retook the chair after another session, though its first tenure ended early", () => {
+  it("names each Codex chair whose rollout would not read, after the archive's gap", () => {
+    expect(
+      ownerWindowGaps({
+        chainProblems: [],
+        codexRefusals: [REFUSAL, "chair codex:t2: x"],
+        home: home(),
+        rulingProblems: ["a.md: torn"],
+      }),
+    ).toBe(`ruling archive: a.md: torn; ${REFUSAL}; chair codex:t2: x`);
+  });
+
+  it("names the ruling archive alone when it is the only gap", () => {
+    expect(
+      ownerWindowGaps({
+        chainProblems: [],
+        codexRefusals: [],
+        home: home(),
+        rulingProblems: ["a.md: torn", "b.md: x"],
+      }),
+    ).toBe("ruling archive: a.md: torn; b.md: x");
+  });
+
+  it("names a torn chain journal alone when every chair read", () => {
+    expect(
+      ownerWindowGaps({ chainProblems: ["line 2: torn"], codexRefusals: [], home: home(), rulingProblems: [] }),
+    ).toBe("the supervisor chain journal would not read cleanly: line 2: torn");
+  });
+
+  it("names a torn chain journal first without hiding the Codex chair that also refused", () => {
+    expect(
+      ownerWindowGaps({ chainProblems: ["line 2: torn"], codexRefusals: [REFUSAL], home: home(), rulingProblems: [] }),
+    ).toBe(`the supervisor chain journal would not read cleanly: line 2: torn; ${REFUSAL}`);
+  });
+
+  it("names a pin that is there and will not read first", () => {
     const dir = home();
-    const record = { pinnedAtIso: "2026-09-06T00:00:00.000Z", workspaceId: "ws", workspaceRef: "workspace:1" };
-    writeSupervisorPin({ home: dir, record: { ...record, session: { host: "codex", id: "thread-a" } } });
-    const chain = [
-      link({ at: "2026-09-01T00:00:00.000Z", host: "codex", id: "thread-a" }),
-      link({ at: "2026-09-02T00:00:00.000Z", host: "claude-code", id: CLAUDE }),
-    ];
+    const path = supervisorPinPath({ home: dir });
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, "{torn");
 
-    expect(ownerWindowGaps({ chain, home: dir, rulingProblems: [], sinceIso: SINCE })).toBe(
-      `chair codex:thread-a: ${CODEX_CHAIR_UNREAD}`,
+    expect(ownerWindowGaps({ chainProblems: [], codexRefusals: [REFUSAL], home: dir, rulingProblems: [] })).toMatch(
+      new RegExp(`^supervisor pin: .+; ${REFUSAL}$`),
     );
-  });
-
-  it("names the live pin's Codex chair even when its instant will not parse", () => {
-    const dir = home();
-    const record = { pinnedAtIso: "not-an-instant", workspaceId: "ws", workspaceRef: "workspace:1" };
-    writeSupervisorPin({ home: dir, record: { ...record, session: { host: "codex", id: "thread-1" } } });
-
-    expect(ownerWindowGaps({ chain: [], home: dir, rulingProblems: [], sinceIso: SINCE })).toBe(
-      `chair codex:thread-1: ${CODEX_CHAIR_UNREAD}`,
-    );
-  });
-
-  it("leaves out a Codex chair whose successor took the pin before the floor", () => {
-    const chain = [
-      link({ at: "2026-09-01T00:00:00.000Z", host: "codex", id: "thread-old" }),
-      link({ at: "2026-09-02T00:00:00.000Z", host: "claude-code", id: CLAUDE }),
-    ];
-
-    expect(ownerWindowGaps({ chain, home: home(), rulingProblems: [], sinceIso: SINCE })).toBeUndefined();
   });
 });
