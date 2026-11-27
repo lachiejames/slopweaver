@@ -51,18 +51,22 @@ function answeringLauncher({
   answers,
   launched,
   budgets,
+  childHomes,
   rebuild,
   world,
 }: {
   answers: ChildAnswers;
   launched: string[];
   budgets: number[];
+  childHomes: (string | undefined)[];
   rebuild: RebuildScript | undefined;
   world: BuildWorld;
 }): ScratchDeps["runChild"] {
-  return ({ argv, stdoutPath, stderrPath, bin, timeoutMs }) => {
+  return ({ argv, stdoutPath, stderrPath, bin, timeoutMs, env }) => {
     launched.push(`${bin} ${argv.join(" ")}`);
     budgets.push(timeoutMs);
+    // `undefined` is a child handed no environment at all — the ambient tick's quiet launcher default.
+    childHomes.push(env === undefined ? undefined : env["SLOPWEAVER_HOME"]);
     if (rebuild !== undefined && launched.length === rebuild.staleAtLaunch) {
       world.state = { evidence: "src/a.ts moved", kind: "stale", manifestText: "manifest-1" };
     }
@@ -109,6 +113,21 @@ function scriptedWait({
 }
 
 /**
+ * The capture's clock: the first read is the tick start, the last the capture instant, and every reading between
+ * reads the latter.
+ *
+ * @returns the clock seam
+ */
+function tickClock(): ScratchDeps["now"] {
+  const instants = ["2026-09-16T01:00:00.000Z", "2026-09-16T01:02:00.000Z"];
+  let clockReads = 0;
+  return () => {
+    clockReads += 1;
+    return instants[Math.min(clockReads, instants.length) - 1]!;
+  };
+}
+
+/**
  * Seams whose children answer from a table keyed by the argv's first two words, and whose output is kept.
  *
  * @param answers what each child writes to stdout, and its exit code — or `"timed-out"` for a child its budget
@@ -116,22 +135,27 @@ function scriptedWait({
  *   argv, the last repeating, so a reading taken twice can come back different the second time
  * @param autonomy the autonomy ledger the verbs read; an empty in-memory one unless a test seeds its own
  * @param rebuild a rebuild that crosses the capture, when the test stages one; the built tree is fresh otherwise
- * @returns the seams, the lines printed, the argvs launched, the budget each was given and every wait taken
+ * @param ambientHome the state home the process resolves from its environment; a `--home` naming any other confines
+ * @returns the seams, the lines printed, the argvs launched, the budget each was given, the `SLOPWEAVER_HOME` each
+ *   child was handed, and every wait taken
  */
 export function fakeDeps({
   answers = {},
   autonomy = memoryAutonomyLedgerPort(),
   rebuild,
+  ambientHome = "/ambient/home",
 }: {
   answers?: ChildAnswers;
   autonomy?: AutonomyLedgerPort;
   rebuild?: RebuildScript;
+  ambientHome?: string;
 } = {}): {
   deps: ScratchDeps;
   out: string[];
   diagnostics: string[];
   launched: string[];
   budgets: number[];
+  childHomes: (string | undefined)[];
   appended: AppendedReading[];
   waits: number[];
 } {
@@ -140,19 +164,15 @@ export function fakeDeps({
   const diagnostics: string[] = [];
   const launched: string[] = [];
   const budgets: number[] = [];
+  const childHomes: (string | undefined)[] = [];
   const appended: AppendedReading[] = [];
-  // The first call is the tick start, the last is the capture instant; every reading between reads the latter.
-  const instants = ["2026-09-16T01:00:00.000Z", "2026-09-16T01:02:00.000Z"];
-  let clockReads = 0;
   return {
     deps: {
+      ambientHome: () => ambientHome,
       autonomy,
       defaultBin: () => "/checkout/bin/slopweaver",
       defaultRepo: () => ok("o/r"),
-      now: () => {
-        clockReads += 1;
-        return instants[Math.min(clockReads, instants.length) - 1]!;
-      },
+      now: tickClock(),
       recordReading: ({ by, producer, document, home }) => {
         appended.push({ by, document, home, producer });
         return producer === "velocity"
@@ -160,7 +180,7 @@ export function fakeDeps({
           : ok(`${producer}-row-${String(appended.length)}`);
       },
       readBuild: () => world.state,
-      runChild: answeringLauncher({ answers, budgets, launched, rebuild, world }),
+      runChild: answeringLauncher({ answers, budgets, childHomes, launched, rebuild, world }),
       waitForBuild: scriptedWait({ launched, rebuild, world }),
       writeDiagnostic: (line) => {
         diagnostics.push(line);
@@ -171,6 +191,7 @@ export function fakeDeps({
     },
     appended,
     budgets,
+    childHomes,
     diagnostics,
     launched,
     out,

@@ -21,7 +21,7 @@ import { CLEAR_FLEET, CLEAR_STEER, FORM, NOT_READ, NOW, RECONCILE, REFRESHED_TEX
 import { readDepsFor } from "./harnessReads.js";
 import type { Fake, FakeOptions, FakeValues } from "./harnessTypes.js";
 import { arrayField, jsonObject } from "./parsedJson.js";
-import { dir } from "./workdir.js";
+import { dir, root } from "./workdir.js";
 
 export { dir, root, useWorkdir } from "./workdir.js";
 
@@ -59,6 +59,7 @@ export function chairOn({ alias }: { alias: string }): SupervisorTickDeps["caden
 interface FakeRecord {
   readonly launched: string[];
   readonly children: (readonly string[])[];
+  readonly childHomes: (string | undefined)[];
   readonly out: string[];
   readonly diagnostics: string[];
   readonly published: string[];
@@ -138,9 +139,10 @@ function fakeValues({
  */
 function runChildFor({ values, record }: { values: FakeValues; record: FakeRecord }): ScratchDeps["runChild"] {
   const { closeDone, duringRefresh, gauge, reconcile, refreshFails, refreshTimesOut, spawnFails, stopped } = values;
-  return ({ argv, stdoutPath, stderrPath, timeoutMs }) => {
+  return ({ argv, stdoutPath, stderrPath, timeoutMs, env }) => {
     record.launched.push(argv[0]!);
     record.children.push(argv);
+    record.childHomes.push(env === undefined ? undefined : env["SLOPWEAVER_HOME"]);
     if (argv.slice(0, 2).join(" ") === "cmux spawn" && spawnFails) {
       return Promise.resolve({ durationMs: 5, exitCode: 1, kind: "exited" });
     }
@@ -153,23 +155,47 @@ function runChildFor({ values, record }: { values: FakeValues; record: FakeRecor
         return Promise.resolve({ durationMs: timeoutMs, kind: "timed-out", signal: "SIGKILL", timeoutMs });
       }
     }
-    let printed = "";
-    if (argv[0] === "session-start") {
-      // A real session-start always prints its document; an empty or unreadable one is refused.
-      printed = REFRESHED_TEXT;
-    } else if (argv.slice(0, 2).join(" ") === "handover reconcile") {
-      printed = reconcile;
-    } else if (argv.join(" ") === "claude gauge --json") {
-      printed = gauge;
-    } else if (argv.join(" ") === "session close-done --json") {
-      printed = closeDone;
-    } else if (argv.slice(0, 4).join(" ") === "monitor check --only recipe-stopped") {
-      printed = stopped;
-    }
-    writeFileSync(stdoutPath, printed);
+    writeFileSync(stdoutPath, printedFor({ argv, closeDone, gauge, reconcile, stopped }));
     writeFileSync(stderrPath, "");
     return Promise.resolve({ durationMs: 5, exitCode: 0, kind: "exited" });
   };
+}
+
+/**
+ * What one `slopweaver` child prints on stdout in the fake.
+ *
+ * @returns the child's printed document, empty for a reading the fake gives nothing
+ */
+function printedFor({
+  argv,
+  closeDone,
+  gauge,
+  reconcile,
+  stopped,
+}: {
+  argv: readonly string[];
+  closeDone: string;
+  gauge: string;
+  reconcile: string;
+  stopped: string;
+}): string {
+  if (argv[0] === "session-start") {
+    // A real session-start always prints its document; an empty or unreadable one is refused.
+    return REFRESHED_TEXT;
+  }
+  if (argv.slice(0, 2).join(" ") === "handover reconcile") {
+    return reconcile;
+  }
+  if (argv.join(" ") === "claude gauge --json") {
+    return gauge;
+  }
+  if (argv.join(" ") === "session close-done --json") {
+    return closeDone;
+  }
+  if (argv.slice(0, 4).join(" ") === "monitor check --only recipe-stopped") {
+    return stopped;
+  }
+  return "";
 }
 
 /**
@@ -179,6 +205,7 @@ function runChildFor({ values, record }: { values: FakeValues; record: FakeRecor
  */
 function scratchDepsFor({ values, record }: { values: FakeValues; record: FakeRecord }): ScratchDeps {
   return {
+    ambientHome: () => join(root, "home"),
     autonomy: memoryAutonomyLedgerPort(),
     defaultBin: () => "/checkout/bin/slopweaver",
     defaultRepo: () => ok("o/r"),
@@ -259,6 +286,7 @@ function renderDepsFor({ values, record }: { values: FakeValues; record: FakeRec
 export function fake(options: FakeOptions = {}): Fake {
   const values = fakeValues(options);
   const record: FakeRecord = {
+    childHomes: [],
     children: [],
     diagnostics: [],
     launched: [],
@@ -275,6 +303,7 @@ export function fake(options: FakeOptions = {}): Fake {
       ...renderDepsFor({ record, values }),
       scratch: scratchDepsFor({ record, values }),
     },
+    childHomes: record.childHomes,
     children: record.children,
     diagnostics: record.diagnostics,
     launched: record.launched,

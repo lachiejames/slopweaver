@@ -44,6 +44,16 @@ describe("isWorkerLaunchConfig", () => {
     ];
     expect(configs.map((config) => isWorkerLaunchConfig(config))).toEqual([false, false, false]);
   });
+
+  it("reads a state home on either vendor, and refuses an empty or non-string one", () => {
+    const configs: readonly unknown[] = [
+      { ...CODEX, stateHome: "/scratch/home" },
+      { ...CLAUDE, stateHome: "/scratch/home" },
+      { ...CODEX, stateHome: "" },
+      { ...CLAUDE, stateHome: 7 },
+    ];
+    expect(configs.map((config) => isWorkerLaunchConfig(config))).toEqual([true, true, false, false]);
+  });
 });
 
 describe("isFromWorker usage reports", () => {

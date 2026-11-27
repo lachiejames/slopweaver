@@ -61,6 +61,10 @@ function identityMismatch({ recorded, asked }: { recorded: AppLaunchSpec; asked:
   if (recorded.ledgerHome !== asked.ledgerHome) {
     return "ledger home";
   }
+  // A transcript that ran against one state home never resumes against another: its verbs read and wrote that home.
+  if (recorded.stateHome !== asked.stateHome) {
+    return "state home";
+  }
   if (recorded.vendor === "codex" && asked.vendor === "codex" && recorded.codexHome !== asked.codexHome) {
     return "Codex home";
   }

@@ -36,9 +36,9 @@
 
 import { type RunEvent, type RunPhase, runStateOf } from "../handover/ledger.js";
 import type { HarnessLaunchOperation } from "../sessionHarness/errors.js";
-import { pickupLine } from "../transcripts/spawnPickupLine.js";
+import { pickupLine, type SpawnPickupLocation } from "../transcripts/spawnPickupLine.js";
 
-export { WAIT_RULE_INSTRUCTION } from "../transcripts/spawnPickupLine.js";
+export { type SpawnPickupLocation, WAIT_RULE_INSTRUCTION } from "../transcripts/spawnPickupLine.js";
 
 /** Which real, interactive CLI a spawned session boots. */
 export type CmuxDriver = "claude" | "codex";
@@ -50,18 +50,21 @@ export type CmuxDriver = "claude" | "codex";
  *   rather than left to infer that from a bare CLI command
  * @param slug the doc's slug, for the lifecycle verb
  * @param runPhase whether the handover currently has a resumable run, which decides `start` versus `resume`
+ * @param location the `--dir` and `--home` the spawn was explicitly given, which the lifecycle verb carries
  * @returns the exact line to send
  */
 export function resolvePickupCommand({
   docPath,
   slug,
   runPhase,
+  location,
 }: {
   docPath: string;
   slug: string;
   runPhase: RunPhase;
+  location: SpawnPickupLocation;
 }): string {
-  return handoverLifecycleCommand({ docPath, runPhase, slug });
+  return handoverLifecycleCommand({ docPath, location, runPhase, slug });
 }
 
 /**
@@ -71,18 +74,21 @@ export function resolvePickupCommand({
  * @param docPath the doc's absolute path, named explicitly in the lifecycle instruction
  * @param slug the doc's slug, for the lifecycle verb
  * @param runEvents the already-read journal events whose latest cycle decides start versus resume
+ * @param location the `--dir` and `--home` the spawn was explicitly given, which the lifecycle verb carries
  * @returns the exact line to send to the freshly booted session
  */
 export function resolveSpawnPickupCommand({
   docPath,
   slug,
   runEvents,
+  location,
 }: {
   docPath: string;
   slug: string;
   runEvents: readonly RunEvent[];
+  location: SpawnPickupLocation;
 }): string {
-  return resolvePickupCommand({ docPath, runPhase: runStateOf({ events: runEvents }).phase, slug });
+  return resolvePickupCommand({ docPath, location, runPhase: runStateOf({ events: runEvents }).phase, slug });
 }
 
 /**
@@ -92,14 +98,21 @@ export function resolveSpawnPickupCommand({
  */
 function handoverLifecycleCommand({
   docPath,
+  location,
   runPhase,
   slug,
 }: {
   docPath: string;
+  location: SpawnPickupLocation;
   runPhase: RunPhase;
   slug: string;
 }): string {
-  return pickupLine({ docPath, slug, verb: launchOperationForPhase({ runPhase }) === "open" ? "start" : "resume" });
+  return pickupLine({
+    docPath,
+    location,
+    slug,
+    verb: launchOperationForPhase({ runPhase }) === "open" ? "start" : "resume",
+  });
 }
 
 /**

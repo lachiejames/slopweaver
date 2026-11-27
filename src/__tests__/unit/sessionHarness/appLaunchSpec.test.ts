@@ -23,13 +23,15 @@ function specOf({
   gated = planFromLaunchSpec({ spec }),
   pluginDir,
   ledgerHome,
+  stateHome,
 }: {
   spec: HarnessLaunchSpec;
   gated?: ReturnType<typeof planFromLaunchSpec>;
   pluginDir?: string;
   ledgerHome?: string;
+  stateHome?: string;
 }): ReturnType<typeof appLaunchSpecOf> {
-  return appLaunchSpecOf({ gated, ledgerHome, operation: "open", pluginDir, spec });
+  return appLaunchSpecOf({ gated, ledgerHome, operation: "open", pluginDir, spec, stateHome });
 }
 
 describe("appLaunchSpecOf — Codex", () => {
@@ -52,6 +54,11 @@ describe("appLaunchSpecOf — Codex", () => {
     expect(unwrap(specOf({ ledgerHome: "/state/b", spec: CODEX_SPEC })).ledgerHome).toBe("/state/b");
   });
 
+  it("carries an explicit --home as the session's state home, and no key at all without one", () => {
+    expect(unwrap(specOf({ spec: CODEX_SPEC, stateHome: "/scratch/home" })).stateHome).toBe("/scratch/home");
+    expect(Object.keys(unwrap(specOf({ spec: CODEX_SPEC }))).includes("stateHome")).toBe(false);
+  });
+
   it("refuses a Codex seat with no routed CODEX_HOME", () => {
     const { codexHome: _dropped, ...unrouted } = CODEX_SPEC;
     expect(
@@ -62,6 +69,7 @@ describe("appLaunchSpecOf — Codex", () => {
           operation: "resume",
           pluginDir: undefined,
           spec: unrouted,
+          stateHome: undefined,
         }),
       ),
     ).toEqual({
@@ -106,6 +114,12 @@ describe("appLaunchSpecOf — Claude", () => {
       ledgerHome: "/state/b",
       pluginDir: "/work/repo",
     });
+  });
+
+  it("carries an explicit --home as a Claude seat's state home", () => {
+    expect(unwrap(specOf({ gated: STORE_ROUTED, spec: SPEC, stateHome: "/scratch/home" })).stateHome).toBe(
+      "/scratch/home",
+    );
   });
 
   it("refuses a seat no plan routed a store to, rather than run an unrouted login", () => {

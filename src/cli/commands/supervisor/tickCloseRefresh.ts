@@ -21,11 +21,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { sha256Hex } from "#lib/hash.js";
+import { quietLauncherEnv } from "#lib/launcherEnv.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { shellCommandLine } from "#lib/shellCommandLine.js";
 import { writeFileAtomicBytes } from "#lib/writeAtomic.js";
 
 import type { ScratchError } from "../../../supervisor/scratch/errors.js";
+import { confinedChildEnv, tickConfinement } from "../../../supervisor/scratch/tickConfinement.js";
 import { type TickWorkflowError, TickWorkflowErrors } from "../../../supervisor/tickWorkflowErrors.js";
 import { rebuildRunJson } from "./scratchRefresh.js";
 import { stagedListDecision } from "./tickCloseListPolicy.js";
@@ -181,9 +183,18 @@ async function replaceList({
     return copyHandedList({ read, source, staged });
   }
   const { bin = deps.scratch.defaultBin() } = args;
+  // A close confined to a scratch `--home` refreshes the list from that home, never the owner's own.
+  const confinement = tickConfinement({ ambientHome: deps.defaultHome(), home: args.home });
+  const env = confinedChildEnv({ base: quietLauncherEnv(), confinement });
   const privateDir = mkdtempSync(join(tmpdir(), "tick-refresh-"));
   try {
-    const rebuilt = await rebuildRunJson({ bin, deps: deps.scratch, dir: privateDir, qualifyAs: undefined });
+    const rebuilt = await rebuildRunJson({
+      bin,
+      deps: deps.scratch,
+      dir: privateDir,
+      qualifyAs: undefined,
+      ...(env === undefined ? {} : { env }),
+    });
     if (rebuilt.isErr()) {
       return ok(staleList({ args, deps, failure: rebuilt.error, read }));
     }
@@ -303,7 +314,17 @@ function overrunRoute({ args, dir }: { args: TickCloseArgs; dir: string }): read
   return [
     "supervisor tick close: the refresh overran its budget under load — build the list with no budget, as a " +
       "background job that resumes you (never a sleep-poll):",
-    `  ${shellCommandLine({ command: ["slopweaver", "session-start", "--json", "--no-record", "--out", handed] })}`,
+    `  ${shellCommandLine({
+      command: [
+        "slopweaver",
+        "session-start",
+        "--json",
+        "--no-record",
+        ...(args.home === undefined ? [] : ["--home", args.home]),
+        "--out",
+        handed,
+      ],
+    })}`,
     `  then: ${shellCommandLine({ command: close })}`,
   ];
 }

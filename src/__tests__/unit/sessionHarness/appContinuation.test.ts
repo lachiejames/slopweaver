@@ -52,7 +52,9 @@ describe("launchActForSpawn", () => {
     const journalOperation = launchOperationForRun({ runEvents: DISPATCH_ONLY });
     expect(journalOperation).toBe("open");
     expect(launchActForSpawn({ continuingSessionId: "0b5e", harness: "app", journalOperation })).toBe("resume");
-    expect(resolveSpawnPickupCommand({ docPath: "/docs/a-doc.md", runEvents: DISPATCH_ONLY, slug: "a-doc" })).toBe(
+    expect(
+      resolveSpawnPickupCommand({ docPath: "/docs/a-doc.md", location: {}, runEvents: DISPATCH_ONLY, slug: "a-doc" }),
+    ).toBe(
       "Read /docs/a-doc.md end to end, then run: slopweaver handover start a-doc, then execute the doc. It is complete; " +
         `do not re-plan or ask what it covers. ${WAIT_RULE_INSTRUCTION}`,
     );

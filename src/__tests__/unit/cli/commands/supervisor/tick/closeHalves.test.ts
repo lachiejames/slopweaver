@@ -246,10 +246,22 @@ describe("a close whose refresh overruns under load", () => {
         "after 420s (killed)); the seat has none",
       "supervisor tick close: the refresh overran its budget under load — build the list with no budget, as a " +
         "background job that resumes you (never a sleep-poll):",
-      `  slopweaver session-start --json --no-record --out ${handed}`,
+      `  slopweaver session-start --json --no-record --home '${join(root, "my home")}' --out ${handed}`,
       `  then: slopweaver supervisor tick close --dir ${dir} --tick 1 --home '${join(root, "my home")}' ` +
         `--your-list ${handed}`,
     ]);
+    // The timed-out refresh itself ran against that home too, never the ambient one.
+    expect(run.childHomes).toEqual([join(root, "my home")]);
+  });
+
+  it("refreshes an ambient close's list with no environment of its own", async () => {
+    await seatAndOpen();
+    rmSync(join(dir, "tick-1", "run.json"));
+    const run = fake();
+    const read = unwrap(readClose({ args: closeArgs(), deps: run.deps }));
+
+    unwrap(await refreshList({ args: closeArgs(), deps: run.deps, read }));
+    expect(run.childHomes).toEqual([undefined]);
   });
 
   it("names no route when the refresh child failed for any other reason", async () => {

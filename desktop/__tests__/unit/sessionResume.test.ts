@@ -97,6 +97,25 @@ describe("resumeTargetOf", () => {
     );
   });
 
+  it("refuses a resume that adds, drops or changes the state home the session's verbs ran under", () => {
+    const confined: AppLaunchSpec = { ...CODEX, stateHome: "/scratch/home" };
+    const cases: readonly { journal: RecoveryJournal; spec: AppLaunchSpec }[] = [
+      { journal: journalOf({ spec: CODEX }), spec: confined },
+      { journal: journalOf({ spec: confined }), spec: CODEX },
+      { journal: journalOf({ spec: confined }), spec: { ...confined, stateHome: "/scratch/other" } },
+    ];
+    expect(
+      cases.map(({ journal, spec }) => resumeTargetOf({ journal, sessionId: "s1", spec })._unsafeUnwrapErr()),
+    ).toEqual([
+      "session s1 was opened with a different state home, so it is not resumed",
+      "session s1 was opened with a different state home, so it is not resumed",
+      "session s1 was opened with a different state home, so it is not resumed",
+    ]);
+    expect(resumeTargetOf({ journal: journalOf({ spec: confined }), sessionId: "s1", spec: confined }).isOk()).toBe(
+      true,
+    );
+  });
+
   it("refuses a resume naming a different vendor, directory, ledger home, Codex home or credential route", () => {
     const tokenRoute = (tokenFilePath: string): AppLaunchSpec => ({
       ...CLAUDE,

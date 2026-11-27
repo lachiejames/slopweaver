@@ -116,7 +116,9 @@ describe("supervisor tick-capture", () => {
   });
 
   it("appends every completed JSON reading to the readings ledger as tick-<label>, by its verb words", async () => {
+    // `--home` names the ambient home itself, so the capture is the chair's ordinary, unconfined one.
     const fake = fakeDeps({
+      ambientHome: "/state/home",
       answers: {
         "claude gauge": { exit: 0, stdout: '{"gauge":1}' },
         "velocity --json": { exit: 0, stdout: '{"velocity":2}' },
@@ -146,6 +148,8 @@ describe("supervisor tick-capture", () => {
     expect(fake.out).toContain(
       `  ${String(fake.appended.length - 1)} readings appended to the readings ledger as tick-4`,
     );
+    expect(fake.childHomes.length).toBeGreaterThan(0);
+    expect(fake.childHomes.filter((home) => home !== undefined)).toEqual([]);
   });
 
   it("keeps a cadence skip in the tick's own file but never appends it to the readings ledger", async () => {

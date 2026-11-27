@@ -34,6 +34,33 @@ interface WorkerLaunchCommon {
    * when the session first came up. A resumed worker that reports any other id is refused.
    */
   readonly resumeVendorSessionId?: string;
+  /**
+   * The state home the session's own `slopweaver` verbs run under, when the spawn was explicitly given `--home`: the
+   * worker's environment carries it as `SLOPWEAVER_HOME`, set AFTER the vendor's scrub (`../sessionWorkerLaunch.ts`).
+   */
+  readonly stateHome?: string;
+}
+
+/**
+ * Set a confined launch's state home on an environment a scrub just built, in place so the scrub's null prototype
+ * stays. Every scrub calls it LAST — the worker's own (`../sessionWorkerLaunch.ts`), and each vendor process's second
+ * scrub of the worker's mutable `process.env` (`adapterEnvironment.ts`, `claudeEnvironmentPolicy.ts`) — so a home
+ * the worker's environment gained after launch never outranks the one the spawn named. An unconfined launch leaves
+ * the environment as the scrub left it.
+ *
+ * @param environment the scrubbed environment, written in place
+ * @param config the launch configuration, whose `stateHome` the spawn's `--home` set
+ */
+export function confineToStateHome({
+  environment,
+  config,
+}: {
+  environment: Record<string, string>;
+  config: { readonly stateHome?: string };
+}): void {
+  if (config.stateHome !== undefined) {
+    environment["SLOPWEAVER_HOME"] = config.stateHome;
+  }
 }
 
 /** A Codex worker: the packaged ACP adapter, driving the packaged Codex binary. */
@@ -180,7 +207,9 @@ export function isWorkerLaunchConfig(value: unknown): value is WorkerLaunchConfi
     !hasPaths({ keys: ["sessionId", "directory"], value }) ||
     !isOptionalString({ value: value["model"] }) ||
     !isOptionalString({ value: value["resumeVendorSessionId"] }) ||
-    value["resumeVendorSessionId"] === ""
+    value["resumeVendorSessionId"] === "" ||
+    !isOptionalString({ value: value["stateHome"] }) ||
+    value["stateHome"] === ""
   ) {
     return false;
   }

@@ -147,8 +147,15 @@ session on no row id or calling a row repoless that is not on `held`, a ready ro
 spawn), a previous `tick.json` judgement `tick close` would refuse, or a freshness row without the
 `source`, `behindMs`, `label` and `problems` shapes `automation freshness` writes (raised, never counted current).
 Every command acts on the board its line was read from. `handover reconcile`'s repoless and held lines carry the
-`--dir` and `--home` it was given. `tick open`'s carry no `--home`: its readings run against the ambient home
-whatever `--home` names, which is only the ledger they are recorded in.
+`--dir` and `--home` it was given. `tick open`'s carry no `--home`: an ambient tick's readings run against the
+ambient home. **A `--home` naming any OTHER home confines the tick to it** (`src/supervisor/scratch/tickConfinement.ts`):
+every child runs with `SLOPWEAVER_HOME` set there, each monitor is rehearsed without `--fire`, the readings that act
+on the world or read the owner's live state (events cursor, close-done, wake, landing, bump drive, gauge, Codex
+route and reset, Queue, hand recheck and wake, org health, turn sweep) are WITHHELD, and stopped-recipe seating
+is too; the header opens `CONFINED tick:` and names each withheld reading and why. The same holds for
+`tick-capture --home` and `tick close`'s list refresh. What it does not move: a kept reading that reads the cmux
+socket, Claude transcripts, a Codex home or the process table still reads the machine's own, and the build-freshness
+check may write the checkout's source-listing cache under its `.git`.
 
 The row is close's LAST write. It reads the `handover reconcile --json` document `tick open` captured and takes
 the owner's turns out of it itself. **The draft is assembled in process from what `tick open` captured, never by a

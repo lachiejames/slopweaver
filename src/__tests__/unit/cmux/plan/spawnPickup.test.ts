@@ -29,6 +29,44 @@ describe("planSpawn", () => {
     expect(plan.pickupCommand.includes("/slopweaver:")).toBe(false);
   });
 
+  it("carries an explicit --dir and --home onto the pickup's lifecycle verb, and records the location it used", () => {
+    const pickupLocation = { dir: "/scratch/docs", home: "/scratch/home" };
+    const plan = planSpawn({
+      baseBranch: undefined,
+      declaredBranch: undefined,
+      docPath: DOC_PATH,
+      pickupLocation,
+      repoRoot: REPO_ROOT,
+      runEvents: [],
+      slug: "a-doc",
+      spawnedAt: "2026-08-17T00:00:00.000Z",
+      template: "code",
+      worktrees: [],
+    });
+
+    expect(plan.pickupCommand).toBe(
+      `Read ${DOC_PATH} end to end, then run: slopweaver handover start a-doc --dir /scratch/docs --home ` +
+        `/scratch/home, then execute the doc. It is complete; do not re-plan or ask what it covers. ${WAIT_RULE_INSTRUCTION}`,
+    );
+    expect(plan.pickupLocation).toEqual(pickupLocation);
+  });
+
+  it("records no location on a spawn given neither flag", () => {
+    const plan = planSpawn({
+      baseBranch: undefined,
+      declaredBranch: undefined,
+      docPath: DOC_PATH,
+      repoRoot: REPO_ROOT,
+      runEvents: [],
+      slug: "a-doc",
+      spawnedAt: "2026-08-17T00:00:00.000Z",
+      template: "code",
+      worktrees: [],
+    });
+
+    expect(Object.keys(plan).includes("pickupLocation")).toBe(false);
+  });
+
   it("defaults the driver to claude when none is named", () => {
     const plan = planSpawn({
       baseBranch: undefined,

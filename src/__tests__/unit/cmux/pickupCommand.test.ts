@@ -52,7 +52,7 @@ describe("the incident shape — a findings heading that mentions pickups, follo
     ].join("\n");
     const slug = "live-loop-31aug-d";
 
-    const command = resolvePickupCommand({ docPath: DOC_PATH, runPhase: "closed", slug });
+    const command = resolvePickupCommand({ docPath: DOC_PATH, location: {}, runPhase: "closed", slug });
 
     expect(command).toBe(lifecycleInstruction({ slug, verb: "start" }));
     expect(command.includes(WITNESS_TABLE_ROW)).toBe(false);
@@ -62,36 +62,65 @@ describe("the incident shape — a findings heading that mentions pickups, follo
 
 describe("resolvePickupCommand", () => {
   it("starts a never-run handover with a self-executing instruction naming the doc path", () => {
-    expect(resolvePickupCommand({ docPath: DOC_PATH, runPhase: "closed", slug: "a-doc" })).toBe(
+    expect(resolvePickupCommand({ docPath: DOC_PATH, location: {}, runPhase: "closed", slug: "a-doc" })).toBe(
       lifecycleInstruction({ slug: "a-doc", verb: "start" }),
     );
   });
 
   it("resumes a handover whose run is open or waiting on the owner", () => {
-    expect(resolvePickupCommand({ docPath: DOC_PATH, runPhase: "open", slug: "a-doc" })).toBe(
+    expect(resolvePickupCommand({ docPath: DOC_PATH, location: {}, runPhase: "open", slug: "a-doc" })).toBe(
       lifecycleInstruction({ slug: "a-doc", verb: "resume" }),
     );
-    expect(resolvePickupCommand({ docPath: DOC_PATH, runPhase: "waiting-on-owner", slug: "a-doc" })).toBe(
+    expect(resolvePickupCommand({ docPath: DOC_PATH, location: {}, runPhase: "waiting-on-owner", slug: "a-doc" })).toBe(
       lifecycleInstruction({ slug: "a-doc", verb: "resume" }),
     );
   });
 
   it("names the slug it was given, never one read from anywhere else", () => {
-    expect(resolvePickupCommand({ docPath: DOC_PATH, runPhase: "open", slug: "another-doc" })).toBe(
+    expect(resolvePickupCommand({ docPath: DOC_PATH, location: {}, runPhase: "open", slug: "another-doc" })).toBe(
       lifecycleInstruction({ slug: "another-doc", verb: "resume" }),
     );
   });
 
   it("carries no slash command, so the same line serves a codex session that registers none", () => {
     expect(
-      resolvePickupCommand({ docPath: DOC_PATH, runPhase: "closed", slug: "a-doc" }).includes("/slopweaver:"),
+      resolvePickupCommand({ docPath: DOC_PATH, location: {}, runPhase: "closed", slug: "a-doc" }).includes(
+        "/slopweaver:",
+      ),
     ).toBe(false);
+  });
+});
+
+describe("a located spawn", () => {
+  it("carries the --dir and --home the spawn was given onto the lifecycle verb, in that order", () => {
+    expect(
+      resolveSpawnPickupCommand({
+        docPath: DOC_PATH,
+        location: { dir: "/scratch/docs", home: "/scratch/home" },
+        runEvents: [],
+        slug: "a-doc",
+      }),
+    ).toBe(
+      `Read ${DOC_PATH} end to end, then run: slopweaver handover start a-doc --dir /scratch/docs --home /scratch/home, ` +
+        `then execute the doc. It is complete; do not re-plan or ask what it covers. ${WAIT_RULE_INSTRUCTION}`,
+    );
+  });
+
+  it("quotes a location holding a space, so the seat's shell reads it as one word", () => {
+    expect(
+      resolvePickupCommand({
+        docPath: DOC_PATH,
+        location: { home: "/scratch/my home" },
+        runPhase: "open",
+        slug: "a-doc",
+      }),
+    ).toContain("then run: slopweaver handover resume a-doc --home '/scratch/my home', then execute the doc.");
   });
 });
 
 describe("no sidebar publishing", () => {
   it("never tells a spawned session to publish a cmux checklist or status lane", () => {
-    const command = resolvePickupCommand({ docPath: DOC_PATH, runPhase: "closed", slug: "a-doc" });
+    const command = resolvePickupCommand({ docPath: DOC_PATH, location: {}, runPhase: "closed", slug: "a-doc" });
 
     expect(command.includes("cmux todo")).toBe(false);
     expect(command.includes("cmux status")).toBe(false);
@@ -123,7 +152,7 @@ describe("the wait-rule sentence", () => {
   });
 
   it("rides the self-executing lifecycle instruction, last", () => {
-    const command = resolvePickupCommand({ docPath: DOC_PATH, runPhase: "closed", slug: "a-doc" });
+    const command = resolvePickupCommand({ docPath: DOC_PATH, location: {}, runPhase: "closed", slug: "a-doc" });
 
     expect(command.endsWith(WAIT_RULE_INSTRUCTION)).toBe(true);
   });
@@ -138,15 +167,16 @@ describe("resolveSpawnPickupCommand", () => {
   };
 
   it("folds waiting, closed, and restarted journal cycles into the right lifecycle instruction", () => {
-    expect(resolveSpawnPickupCommand({ docPath: DOC_PATH, runEvents: [], slug: "a-doc" })).toBe(
+    expect(resolveSpawnPickupCommand({ docPath: DOC_PATH, location: {}, runEvents: [], slug: "a-doc" })).toBe(
       lifecycleInstruction({ slug: "a-doc", verb: "start" }),
     );
-    expect(resolveSpawnPickupCommand({ docPath: DOC_PATH, runEvents: [started], slug: "a-doc" })).toBe(
+    expect(resolveSpawnPickupCommand({ docPath: DOC_PATH, location: {}, runEvents: [started], slug: "a-doc" })).toBe(
       lifecycleInstruction({ slug: "a-doc", verb: "resume" }),
     );
     expect(
       resolveSpawnPickupCommand({
         docPath: DOC_PATH,
+        location: {},
         runEvents: [started, { atIso: "2026-08-14T00:01:00.000Z", kind: "question", question: "Proceed?" }],
         slug: "a-doc",
       }),
@@ -154,6 +184,7 @@ describe("resolveSpawnPickupCommand", () => {
     expect(
       resolveSpawnPickupCommand({
         docPath: DOC_PATH,
+        location: {},
         runEvents: [started, { atIso: "2026-08-14T00:01:00.000Z", kind: "finished", residue: [] }],
         slug: "a-doc",
       }),
@@ -161,6 +192,7 @@ describe("resolveSpawnPickupCommand", () => {
     expect(
       resolveSpawnPickupCommand({
         docPath: DOC_PATH,
+        location: {},
         runEvents: [started, { atIso: "2026-08-14T00:01:00.000Z", kind: "abandoned", why: "superseded" }],
         slug: "a-doc",
       }),
@@ -168,6 +200,7 @@ describe("resolveSpawnPickupCommand", () => {
     expect(
       resolveSpawnPickupCommand({
         docPath: DOC_PATH,
+        location: {},
         runEvents: [
           started,
           { atIso: "2026-08-14T00:01:00.000Z", kind: "finished", residue: [] },

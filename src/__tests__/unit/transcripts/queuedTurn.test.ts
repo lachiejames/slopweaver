@@ -89,7 +89,7 @@ describe("readQueuedHumanTurn", () => {
   });
 
   it("refuses a spawn pickup line queued mid-turn, and keeps the owner's turn that says more beside one", () => {
-    const pickup = pickupLine({ docPath: "/home/handovers/a-doc.md", slug: "a-doc", verb: "resume" });
+    const pickup = pickupLine({ docPath: "/home/handovers/a-doc.md", location: {}, slug: "a-doc", verb: "resume" });
     const wrapped = `<pasted_content id="b2c9">\n${pickup}\n</pasted_content id="b2c9">`;
     expect(readQueuedHumanTurn({ line: line({ attachment: { prompt: wrapped } }), lineNumber: 1 })).toBeUndefined();
     expect(

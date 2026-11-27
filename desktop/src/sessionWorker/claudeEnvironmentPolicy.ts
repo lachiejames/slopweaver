@@ -17,7 +17,7 @@
  */
 import { APP_SESSION_ID_ENV } from "../sessionControlProtocol";
 import { keptEnvironment } from "./keptEnvironment";
-import { type ClaudeWorkerLaunchConfig, WORKER_CONFIG_ENV } from "./workerWire";
+import { type ClaudeWorkerLaunchConfig, confineToStateHome, WORKER_CONFIG_ENV } from "./workerWire";
 
 /** The namespaces neither environment inherits, frozen so an importer cannot remove one. */
 export const CLAUDE_DROPPED_PREFIXES: readonly string[] = Object.freeze(["ANTHROPIC_", "CLAUDE"]);
@@ -142,7 +142,9 @@ export function claudeNativeEnvironment({
     dropped: ["NODE_OPTIONS", WORKER_CONFIG_ENV, "ELECTRON_RUN_AS_NODE", APP_SESSION_ID_ENV],
     inherited: withoutClaudeNamespaces({ inherited }),
   });
-  return Object.assign(environment, routedEnvironment({ config }), sessionIdentityEnvironment({ config }));
+  Object.assign(environment, routedEnvironment({ config }), sessionIdentityEnvironment({ config }));
+  confineToStateHome({ config, environment });
+  return environment;
 }
 
 /**

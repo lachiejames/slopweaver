@@ -58,7 +58,6 @@ import { sweepContractPath } from "./run.js";
 import { productionScratchDeps } from "./scratchDeps.js";
 import { captureTick } from "./scratchRun.js";
 import { readSteerRiskLive, steerRiskHatchOpen } from "./steerRiskRead.js";
-import { tickOpenReadings } from "./tickBumpDrive.js";
 import { commitClose } from "./tickCloseCommit.js";
 import { noWorkClaimHatchOpen } from "./tickCloseNoWorkClaim.js";
 import { prepareClose } from "./tickClosePrepare.js";
@@ -74,6 +73,7 @@ import type { SupervisorTickDeps } from "./tickDeps.js";
 import { readPriorHolds, readRecipeFixCheckout, tickDigestShown } from "./tickDigestEdge.js";
 import { digestReadings, fileAgeMinutes, readSeat, runAgeMinutes, TICK_INPUT_FILE } from "./tickFiles.js";
 import { runFill } from "./tickFillRun.js";
+import { confinedOpen, openOutputLines, seatUnlessConfined } from "./tickOpenConfinement.js";
 import { sayJsonFallbacks } from "./tickOpenFallbacks.js";
 import { type StoppedSeatOutcome, seatStoppedRecipes } from "./tickOpenStoppedRecipes.js";
 import { openHatches, productionSupervisorTickRecordDeps } from "./tickRecordRun.js";
@@ -204,14 +204,16 @@ async function runOpen({ args, deps }: { args: TickOpenArgs; deps: SupervisorTic
     return refuse({ deps, lines: tickWorkflowErrorLines({ error: seat.error }) });
   }
   const { tick = nextTickNumber({ names: readdirSync(dir) }), bin = deps.scratch.defaultBin() } = args;
-  const driven = tickOpenReadings({ home: deps.defaultHome(), nowIso: deps.scratch.now(), seat: seat.value });
+  const open = confinedOpen({ deps, home: args.home, seat: seat.value });
+  const { confinement, env } = open;
   const captured = await captureTick({
     bin,
     deps: deps.scratch,
     home: args.home,
-    readings: driven.readings,
+    readings: open.plan.readings,
     scratch: dir,
     tick: String(tick),
+    ...(env === undefined ? {} : { env }),
   });
   if (captured.isErr()) {
     return refuse({ deps, lines: [captured.error.message] });
@@ -220,13 +222,10 @@ async function runOpen({ args, deps }: { args: TickOpenArgs; deps: SupervisorTic
   const nowIso = deps.scratch.now();
   const readings = digestReadings({ dir: capture.dir, readings: capture.readings });
   const landed = landedActs({ dir: capture.dir, readings });
-  const repaired = await seatFromReadings({
-    args,
-    bin,
-    captureDir: capture.dir,
-    deps,
-    readings,
-    tickId: tickIdOf({ handoff: seat.value.handoff, tick }),
+  const tickId = tickIdOf({ handoff: seat.value.handoff, tick });
+  const repaired = await seatUnlessConfined({
+    confinement,
+    seat: () => seatFromReadings({ args, bin, captureDir: capture.dir, deps, readings, tickId }),
   });
   const templatePath = join(capture.dir, TICK_INPUT_FILE);
   writeFileAtomic({
@@ -240,9 +239,9 @@ async function runOpen({ args, deps }: { args: TickOpenArgs; deps: SupervisorTic
       openPagesAgeMinutes: fileAgeMinutes({ nowIso, path: join(dir, "open-pages.json") }),
       priorHolds: readPriorHolds({ dir, tick }),
       readings,
-      // The ambient home, never `--home`: every reading above ran against it, and `--home` names only the ledger
-      // they are recorded in, so the checkout a printed set-repo names is resolved on the same board.
-      recipeFixCheckout: readRecipeFixCheckout({ home: deps.defaultHome() }),
+      // The home every reading above ran against — the ambient one, or the scratch one a confined open is held
+      // to — so the checkout a printed set-repo names is resolved on the same board.
+      recipeFixCheckout: readRecipeFixCheckout({ home: confinement.home }),
       runAgeMinutes: runAgeMinutes({ nowIso, path: join(dir, "run.json") }),
     },
   });
@@ -251,7 +250,7 @@ async function runOpen({ args, deps }: { args: TickOpenArgs; deps: SupervisorTic
     return refuse({ deps, lines: [shown.error.message] });
   }
   // The acts this open took itself are never compared: each is new by construction.
-  say({ deps, lines: [...shown.value, ...driven.lines, ...repaired.lines].map((line) => `  ${line}`) });
+  say({ deps, lines: openOutputLines({ open, rest: [...shown.value, ...open.drivenLines, ...repaired.lines] }) });
   deps.scratch.writeOut(`fill ${templatePath}, then: slopweaver supervisor tick close --dir ${dir}`);
   return EXIT_OK;
 }

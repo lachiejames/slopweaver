@@ -125,6 +125,24 @@ describe("workerLaunchOf", () => {
     expect(launch).toMatchObject({ config: { resumeVendorSessionId: "recorded-thread", vendor: "codex" } });
   });
 
+  // The exact-shape cases above are the witness that a launch naming no state home gives its worker none.
+  it("carries a launch's state home onto either vendor's worker", () => {
+    const of = ({ spec }: { spec: AppLaunchSpec }) =>
+      workerLaunchOf({
+        claudeTranscriptId: TRANSCRIPT,
+        instanceId: "instance-a",
+        paths: PATHS,
+        sessionId: "0b5e",
+        spec,
+      });
+    expect(of({ spec: { ...CODEX, stateHome: "/scratch/home" } })).toMatchObject({
+      config: { stateHome: "/scratch/home", vendor: "codex" },
+    });
+    expect(of({ spec: { ...CLAUDE, stateHome: "/scratch/home" } })).toMatchObject({
+      config: { stateHome: "/scratch/home", vendor: "claude" },
+    });
+  });
+
   it("carries a Claude launch's model, effort and plugin directory", () => {
     const launch = workerLaunchOf({
       claudeTranscriptId: TRANSCRIPT,

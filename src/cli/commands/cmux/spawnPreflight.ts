@@ -8,7 +8,11 @@
 
 import { readFileSync } from "node:fs";
 
-import { launchOperationForRun, resolveSpawnPickupCommand } from "../../../cmux/pickupCommand.js";
+import {
+  launchOperationForRun,
+  resolveSpawnPickupCommand,
+  type SpawnPickupLocation,
+} from "../../../cmux/pickupCommand.js";
 import { slopweaverHome } from "../../../config.js";
 import { settledAskRefusal } from "../../../handover/askRow.js";
 import { unrootedDocBriefRefusal } from "../../../handover/briefPathGate.js";
@@ -64,20 +68,25 @@ export function readSpawnRunEvents({
  * @param docPath the doc the pickup command names
  * @param home the state home the run journal lives under, or `undefined` for the ambient one
  * @param slug the doc's slug, whose journal decides start versus resume
+ * @param location the `--dir` and `--home` the spawn was explicitly given, carried onto the lifecycle verb exactly
+ *   as the preview plan carries them, so the line shown before launch is the line delivered
  * @returns the resolved pickup command and its act, or why the journal could not be read
  */
 export function currentSpawnPickupCommand({
   docPath,
   home,
   slug,
+  // A plan with no location is a spawn given neither `--dir` nor `--home`: its pickup line is the bare one.
+  location = {},
 }: {
   docPath: string;
   home: string | undefined;
   slug: string;
+  location: SpawnPickupLocation | undefined;
 }): Result<ResolvedInitialMessage, string> {
   return readSpawnRunEvents({ home, slug }).map((runEvents) => ({
     operation: launchOperationForRun({ runEvents }),
-    text: resolveSpawnPickupCommand({ docPath, runEvents, slug }),
+    text: resolveSpawnPickupCommand({ docPath, location, runEvents, slug }),
   }));
 }
 

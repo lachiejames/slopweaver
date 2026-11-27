@@ -10,7 +10,8 @@ import { describe, expect, it } from "vitest";
 import { runSupervisorTick } from "../../../../../../cli/commands/supervisor/tickRun.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../../../../../cli/exitCodes.js";
 import { RECONCILE } from "../tickFixtures.js";
-import { dir, fake, seatAndOpen, useWorkdir } from "./harness.js";
+import { dir, fake, root, seatAndOpen, useWorkdir } from "./harness.js";
+import { STOPPED, stoppedBoard } from "./stoppedFixtures.js";
 
 useWorkdir();
 
@@ -114,6 +115,69 @@ describe("supervisor tick open", () => {
 
     expect(await runSupervisorTick({ deps: run.deps, rest: ["open", "--dir", dir] })).toBe(EXIT_OK);
     expect(run.out.filter((line) => line.includes("FELL BACK TO TEXT"))).toEqual([]);
+  });
+
+  it("hands the ambient open's children no environment, and keeps every monitor's --fire", async () => {
+    await seatAndOpen();
+    const run = fake();
+
+    expect(await runSupervisorTick({ deps: run.deps, rest: ["open", "--dir", dir] })).toBe(EXIT_OK);
+    expect(run.childHomes.length).toBe(run.children.length);
+    expect(run.childHomes.filter((home) => home !== undefined)).toEqual([]);
+    expect(run.children.filter((argv) => argv.includes("--fire")).length).toBeGreaterThan(0);
+    expect(run.children.some((argv) => argv.join(" ") === "handover wake --json")).toBe(true);
+  });
+
+  it("holds an open whose --home is not the ambient one to it: no act, no fired monitor, no seat", async () => {
+    const scratchHome = join(root, "scratch-home");
+    const seatArgs = ["--workspace", "workspace:93", "--model", "fable", "--pinned-at", "2026-09-23T14:36:00Z"];
+    const seated = ["seat", "--dir", dir, ...seatArgs, "--loop-session-key", "k", "--landing-repos", "acme/widgets"];
+    expect(await runSupervisorTick({ deps: fake().deps, rest: seated })).toBe(EXIT_OK);
+    // A stopped set the ambient open would register a row for and spawn a seat on.
+    const run = fake({ reconcile: stoppedBoard(), stopped: STOPPED });
+
+    expect(await runSupervisorTick({ deps: run.deps, rest: ["open", "--dir", dir, "--home", scratchHome] })).toBe(
+      EXIT_OK,
+    );
+    const words = new Set(run.children.map((argv) => argv.slice(0, 2).join(" ")));
+    expect(run.children.length).toBeGreaterThan(0);
+    expect(run.childHomes.filter((home) => home !== scratchHome)).toEqual([]);
+    expect(run.children.filter((argv) => argv.includes("--fire"))).toEqual([]);
+    const withheld = [
+      "events tail",
+      "session close-done",
+      "handover wake",
+      "github landing",
+      "github bump-drive",
+      "turn dispatch",
+      "codex reset",
+      "claude gauge",
+      "codex route",
+      "queue refusals",
+      "queue stopping",
+      "org-health read",
+      "hand recheck",
+      "hand wake",
+      "handover register",
+      "cmux spawn",
+    ];
+    expect(withheld.filter((verb) => words.has(verb))).toEqual([]);
+    expect(run.children).toContainEqual([
+      "monitor",
+      "check",
+      "--only",
+      "recipe-stopped",
+      "--by-session",
+      "supervisor",
+      "--json",
+    ]);
+    expect(run.out).toContain(
+      `  CONFINED tick: every reading ran with SLOPWEAVER_HOME=${scratchHome}, not the ambient ${join(root, "home")}`,
+    );
+    expect(run.out).toContain("  withheld stopped-recipe seating: it registers a board row and runs a real cmux spawn");
+    expect(run.out).toContain(
+      "  withheld bump-drive-acme-widgets: it drives the repository's dependency-bump pull requests on GitHub toward merge",
+    );
   });
 
   it("refuses to open in a directory with no seat", async () => {

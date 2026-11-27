@@ -48,7 +48,8 @@ export interface TickBumpDriveSelection {
 /**
  * Decide which landing repositories this tick drives dependency bumps on, from one home's automation store.
  *
- * @param home the AMBIENT state home every tick reading runs against — never the ledger `--home`
+ * @param home the state home every tick reading runs against: the ambient one, or the scratch one a confined open is
+ *   held to (`../../../supervisor/scratch/tickConfinement.ts`)
  * @param landingRepos the seat's landing repositories
  * @param nowIso the tick's instant, which each row's cadence is judged against
  * @returns the repositories to drive and the lines saying why each was or was not
@@ -114,8 +115,8 @@ export function tickBumpDriveSelection({
  * Every reading `tick open` captures for one seat, its bump drives included, and the lines saying which
  * repositories it drives.
  *
- * @param home the AMBIENT state home, whose automation rows decide: every reading runs against it, and the open's
- *   `--home` names only the ledger they are recorded in
+ * @param home the state home whose automation rows decide, and every reading runs against: the ambient one, or the
+ *   scratch one a confined open is held to
  * @param nowIso the tick's instant
  * @param seat the seat's constants, which name the landing repositories and the loop key
  * @returns the readings, and the lines the digest prints for the drive choice

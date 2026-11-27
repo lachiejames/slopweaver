@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, rmSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+import { quietLauncherEnv } from "#lib/launcherEnv.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { safeJsonParse } from "#lib/safeJson.js";
 import { renameStagedFile, writeFileAtomicStream } from "#lib/writeAtomic.js";
@@ -16,6 +17,7 @@ import { readJsonlLines } from "../../../corpus/corpusStore.js";
 import { exitCodeOf } from "../../../supervisor/scratch/childOutcome.js";
 import { type ScratchError, ScratchErrors } from "../../../supervisor/scratch/errors.js";
 import { qualifyBareRefs } from "../../../supervisor/scratch/qualifyRefs.js";
+import { confinedChildEnv, tickConfinement } from "../../../supervisor/scratch/tickConfinement.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_OK } from "../../exitCodes.js";
 import { resolveHome, verbTail } from "../../optionParsers.js";
@@ -67,7 +69,18 @@ export async function runRefreshRun({ rest, deps }: { rest: readonly string[]; d
   if (chosen.isErr()) {
     return refuse({ deps, error: chosen.error, usage: SUPERVISOR_REFRESH_RUN_USAGE, verb: "refresh-run" });
   }
-  const rebuilt = await rebuildRunJson({ bin: chosenBin({ bin: args.bin, deps }), deps, dir, qualifyAs: chosen.value });
+  // A `--home` other than the ambient one builds the list from that home, never the owner's own.
+  const env = confinedChildEnv({
+    base: quietLauncherEnv(),
+    confinement: tickConfinement({ ambientHome: deps.ambientHome(), home: args.home }),
+  });
+  const rebuilt = await rebuildRunJson({
+    bin: chosenBin({ bin: args.bin, deps }),
+    deps,
+    dir,
+    qualifyAs: chosen.value,
+    ...(env === undefined ? {} : { env }),
+  });
   if (rebuilt.isErr()) {
     return refuse({ deps, error: rebuilt.error, usage: SUPERVISOR_REFRESH_RUN_USAGE, verb: "refresh-run" });
   }
@@ -153,6 +166,8 @@ function stagedDocumentIssues({ path }: { path: string }): readonly string[] {
  * @param qualifyAs the `owner/name` every bare reference is rewritten to, or undefined to write the run as
  *   `session-start` printed it — each row's own repository then resolves its references on the page
  * @param deps the injected seams
+ * @param env the child's whole environment, set only by a close confined to a scratch home
+ *   (`../../../supervisor/scratch/tickConfinement.ts`); absent, it keeps the quiet launcher environment
  * @returns how many references were qualified, or why nothing was written
  */
 export async function rebuildRunJson({
@@ -160,11 +175,13 @@ export async function rebuildRunJson({
   bin,
   qualifyAs,
   deps,
+  env,
 }: {
   dir: string;
   bin: string;
   qualifyAs: string | undefined;
   deps: ScratchDeps;
+  env?: NodeJS.ProcessEnv;
 }): Promise<Result<number, ScratchError>> {
   if (!existsSync(dir)) {
     return err(ScratchErrors.fileFailed({ cause: new Error("no such directory"), path: dir }));
@@ -174,7 +191,7 @@ export async function rebuildRunJson({
   // One staging name per invocation: two refreshes of one seat (a tick close beside a hand-run refresh) must never
   // promote each other's child output.
   const staged = join(dir, `run.json.session-start.${String(process.pid)}.${randomUUID()}`);
-  const promoted = await promoteChildOutput({ argv, bin, deps, dir, qualifyAs, staged });
+  const promoted = await promoteChildOutput({ argv, bin, deps, dir, env, qualifyAs, staged });
   for (const path of [staged, qualifiedStagePath({ staged })]) {
     try {
       rmSync(path, { force: true });
@@ -208,6 +225,7 @@ function qualifiedStagePath({ staged }: { staged: string }): string {
  * @param qualifyAs the `owner/name` every bare reference is rewritten to, or undefined to rename as printed
  * @param staged the file the child's stdout is written to
  * @param deps the injected seams
+ * @param env the child's whole environment, when the refresh is confined
  * @returns how many references were qualified, or why `run.json` was left as it was
  */
 async function promoteChildOutput({
@@ -215,6 +233,7 @@ async function promoteChildOutput({
   bin,
   deps,
   dir,
+  env,
   qualifyAs,
   staged,
 }: {
@@ -222,6 +241,7 @@ async function promoteChildOutput({
   bin: string;
   deps: ScratchDeps;
   dir: string;
+  env: NodeJS.ProcessEnv | undefined;
   qualifyAs: string | undefined;
   staged: string;
 }): Promise<Result<number, ScratchError>> {
@@ -233,6 +253,7 @@ async function promoteChildOutput({
       stderrPath: join(dir, "run.err"),
       stdoutPath: staged,
       timeoutMs: REFRESH_TIMEOUT_MS,
+      ...(env === undefined ? {} : { env }),
     });
     if (exitCodeOf({ outcome }) !== 0) {
       return err(ScratchErrors.childFailed({ argv, outcome }));

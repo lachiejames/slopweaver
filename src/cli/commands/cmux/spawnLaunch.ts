@@ -98,13 +98,17 @@ export async function launchSpawnThroughSeam({
             // Always named, and absolute: the card's close runs in the app's own environment and checkout, so an
             // omitted home there would be the APP's default, not the one this spawn's row was written under.
             ledgerHome: absoluteLedgerHome({ home }),
+            // Only an EXPLICIT --home confines the seat's verbs; none sends no key, which any older app accepts.
+            stateHome: home === undefined ? undefined : resolve(home),
             transport: socketAppTransport({ root: APP_SOCKET_ROOT }),
           })
         : cmuxSessionLauncherOver({ deps }),
     ledger: sessionLedgerDeps({ home }),
   });
   const launched = await launcher[operation]({
-    resolveInitialMessage: () => currentSpawnPickupCommand({ docPath: doc.path, home, slug: doc.slug }),
+    // The plan's location, never re-derived: the line delivered carries exactly the flags the preview showed.
+    resolveInitialMessage: () =>
+      currentSpawnPickupCommand({ docPath: doc.path, home, location: plan.pickupLocation, slug: doc.slug }),
     spec: launchSpecFromPlan({ ledgerKey: plan.slug, plan, slug: plan.slug }),
   });
   if (launched.isErr()) {
