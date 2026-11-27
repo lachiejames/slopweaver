@@ -74,7 +74,7 @@ export interface NonCanonicalError {
   readonly message: string;
 }
 
-/** Content after the rendered body carries markup only the renderer emits. */
+/** Content after the rendered body carries markup only the renderer emits, or could continue an open checks run. */
 export interface TrailingMarkupError {
   readonly code: "TRAILING_MARKUP";
   readonly message: string;
@@ -152,6 +152,8 @@ export const PrBodyErrors = {
     code: "TRAILING_MARKUP",
     message:
       "content follows the rendered description and itself carries markup only the renderer emits — a badge, a " +
-      "proof heading or the re-run fold. Preserving it verbatim would leave two of them standing. Refusing to guess",
+      "proof heading or the re-run fold, or a check paragraph's `<p>` or `</p>` after a layout-1 description ending on its " +
+      "checks, which may be a check displaced by something inserted before it. Preserving it verbatim would leave " +
+      "two of them standing. Refusing to guess",
   }),
 } as const;

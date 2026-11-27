@@ -7,6 +7,11 @@
  * `remainder`, provided it carries no markup any renderer emits. Split points are tried longest-first, so a body
  * with no remainder is read whole, and when none parses the longest candidate's refusal is the one reported.
  *
+ * Layout 1's checks are the one run with no heading and no close, so a body ending on them could go on for any
+ * number of checks. After such an ending the remainder may not carry the `<p>` or `</p>` every check is wrapped in:
+ * the same bytes read as a shorter body with a footer, or as a longer one with something inserted between its
+ * checks, and no parser can tell them apart. That is refused, never guessed.
+ *
  * Media a human pasted BETWEEN the rendered blocks on github.com — one user-attachments image or video per block,
  * nothing else (`./pastedMedia.ts`) — is lifted out, keyed to the block it followed and handed back as `pasted`; the
  * re-render puts it back, and the whole prefix, pastes included, is what is compared. A paste after the LAST rendered
@@ -52,7 +57,10 @@ export interface PrBodyParse {
   readonly layout: BodyLayout;
   /** Media a human pasted BETWEEN the rendered blocks, each keyed to the block it follows. Empty when none. */
   readonly pasted: readonly C3PastedMediaBlock[];
-  /** Third-party content after the rendered body, to be re-appended verbatim. Empty when there was none. */
+  /**
+   * Third-party content after the rendered body, to be re-appended verbatim. Empty when there was none. Never a
+   * `<p>` or `</p>` after a layout-1 body ending on its checks, which could be one of those checks displaced.
+   */
   readonly remainder: string;
 }
 
@@ -259,6 +267,30 @@ function keyedPastes({
   return ok(keyed);
 }
 
+/** The two tags every layout-1 check paragraph is wrapped in (`./render.ts`'s `checkBlocks`). */
+const CHECK_PARAGRAPH_TAGS: readonly string[] = ["<p>", "</p>"];
+
+/**
+ * Whether a remainder could be the rest of an open layout-1 checks run. The run is open when the rendered body ends
+ * on a check, or on the solution proof with no check at all; after that, a remainder carrying either of a check's
+ * tags anywhere (on its own line, after prose on one line, behind indentation or a comment) may be a check displaced
+ * by an edit before it. Both tags are read because an edit inside either one leaves the other whole: `<pX>` keeps
+ * the close, `</pX>` the open. An edit breaking both is the residue, since its bytes are a footer's.
+ */
+function remainderMayContinueChecks({
+  blocks,
+  layout,
+  remainder,
+}: {
+  blocks: readonly KeyedBlock<C3BlockKey>[];
+  layout: BodyLayout;
+  remainder: string;
+}): boolean {
+  const last = blocks.at(-1)?.key;
+  const endsOnOpenChecks = layout === 1 && (last === "checks" || last === "solution-proof");
+  return endsOnOpenChecks && carriesAny({ markers: CHECK_PARAGRAPH_TAGS, text: remainder });
+}
+
 /** Decode, re-render and compare one candidate split. */
 function parseAt({
   body,
@@ -282,15 +314,18 @@ function parseAt({
     const read = decoded.data;
     // The WHOLE prefix, pastes put back, is what is compared — never the stripped body — so a pasted block is
     // accepted only in the exact place the re-render puts it, and every canonical byte is still checked.
-    return renderKeyedBlocksIn({ body: read, layout })
-      .andThen((blocks) => keyedPastes({ blocks, lifted }))
-      .andThen((pasted) =>
-        renderBodyIn({ body: read, layout, pasted }).andThen((rendered) =>
-          rendered === prefix
-            ? ok({ body: read, layout, pasted, remainder })
-            : err<PrBodyParse, PrBodyError>(PrBodyErrors.nonCanonical()),
-        ),
-      );
+    return renderKeyedBlocksIn({ body: read, layout }).andThen((blocks) =>
+      keyedPastes({ blocks, lifted }).andThen((pasted) =>
+        renderBodyIn({ body: read, layout, pasted }).andThen((rendered) => {
+          if (rendered !== prefix) {
+            return err<PrBodyParse, PrBodyError>(PrBodyErrors.nonCanonical());
+          }
+          return remainderMayContinueChecks({ blocks, layout, remainder })
+            ? err<PrBodyParse, PrBodyError>(PrBodyErrors.trailingMarkup())
+            : ok({ body: read, layout, pasted, remainder });
+        }),
+      ),
+    );
   });
 }
 
