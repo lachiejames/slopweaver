@@ -308,8 +308,69 @@ export function spawnHatches({
 }
 
 /**
- * The real dependencies: a live socket client, a real worktree PROVISION, a real boot delay, and a live event
- * subscription for the witness chain.
+ * The spawn deps an app-hosted spawn reads: its worktree, its credential gate and its plugin dir. Nothing in it
+ * holds a handle, so there is nothing to close — the cmux connection and event witness belong to
+ * {@link productionSpawnDepsOver} alone.
+ */
+export type AppSpawnDeps = Pick<SpawnDeps, "ensureWorktree" | "gateCredentialStore" | "resolvePluginDir">;
+
+/** The state home a spawn's plan register and create lock live under: the one it named, else the ambient one. */
+function spawnRegisterHome({ home }: { home: string | undefined }): string {
+  if (home !== undefined) {
+    return home;
+  }
+  return slopweaverHome();
+}
+
+/**
+ * The handle-free half every spawn shares, whichever harness hosts it, built ONCE here so the app and cmux deps
+ * cannot drift apart on how a worktree is provisioned, which hatches are open or how the credential gate is wired.
+ */
+function sharedSpawnDeps({
+  registerHome,
+  install = true,
+  deps: depsMode = DEFAULT_DEPS_MODE,
+  build = false,
+  devBuild = true,
+  allowSpentPlan = false,
+  namedPin = false,
+}: ProductionSpawnOptions & { registerHome: string }): AppSpawnDeps {
+  const hatches = spawnHatches({
+    allowSpentPlan,
+    spentPlanEnv: process.env[ALLOW_SPENT_PLAN_ENV],
+    unreadablePlanEnv: process.env[ALLOW_UNREADABLE_PLAN_ENV],
+  });
+  return {
+    ensureWorktree: ({ plan }) => {
+      provisionForSpawn({ build, depsMode, devBuild, install, plan });
+    },
+    gateCredentialStore: credentialGateFor({
+      home: registerHome,
+      namedPin,
+      port: planRegisterPort(),
+      probesPort: claudePlanProbesPort(),
+      spentPlanHatch: hatches.spentPlan,
+      unreadableHatch: hatches.unreadablePlan,
+    }),
+    resolvePluginDir: ({ plan }) => pluginDirForSpawnTarget({ cwd: plan.cwd, repoRoot: plan.repoRoot }),
+  };
+}
+
+/**
+ * The real dependencies an app-hosted spawn runs on: the same worktree provision, credential gate and plugin dir
+ * a cmux spawn gets, and no cmux connection or event subscription, since the app launcher reads neither.
+ *
+ * @param options `cmux spawn`'s pass-through flags, each defaulted as the verb defaults it
+ * @returns the app spawn deps, which hold no handle to close
+ */
+export function productionAppSpawnDeps(options: ProductionSpawnOptions = {}): AppSpawnDeps {
+  return sharedSpawnDeps({ ...options, registerHome: spawnRegisterHome({ home: options.home }) });
+}
+
+/**
+ * The real dependencies of a cmux-hosted spawn: a live socket client, a real worktree PROVISION, a real boot delay,
+ * and a live event subscription for the witness chain. An app-hosted spawn takes {@link productionAppSpawnDeps},
+ * the same provision and credential gate with neither the socket nor the subscription.
  *
  * "Provision" rather than "create": a spawn's worktree goes through the same
  * `worktree/provision.ts` the `worktree create` verb does, so a freshly spawned session gets its own
@@ -323,7 +384,7 @@ export function spawnHatches({
  *
  * ## The spent-plan hatch is OR'd here, never defaulted
  *
- * {@link ALLOW_SPENT_PLAN_ENV} is read here, at invocation, and combined with `allowSpentPlan` by
+ * {@link ALLOW_SPENT_PLAN_ENV} is read at invocation, in the half an app spawn shares, and combined with `allowSpentPlan` by
  * {@link spawnHatches} through {@link spentPlanHatchOpen}, rather than being that parameter's default initialiser. It was the default
  * initialiser once, and a default is skipped whenever a caller passes the argument at all —
  * `cmux spawn` always passes one — so the variable the refusal NAMED released nothing on the one verb that
@@ -347,48 +408,22 @@ export function spawnHatches({
  */
 export function productionSpawnDepsOver({
   client,
-  install = true,
-  deps: depsMode = DEFAULT_DEPS_MODE,
-  build = false,
-  devBuild = true,
-  allowSpentPlan = false,
-  home,
-  namedPin = false,
+  ...options
 }: ProductionSpawnOptions & { client: CmuxClient }): SpawnDeps {
-  let registerHome = slopweaverHome();
-  if (home !== undefined) {
-    registerHome = home;
-  }
-  const hatches = spawnHatches({
-    allowSpentPlan,
-    spentPlanEnv: process.env[ALLOW_SPENT_PLAN_ENV],
-    unreadablePlanEnv: process.env[ALLOW_UNREADABLE_PLAN_ENV],
-  });
-  const spentPlanHatch = hatches.spentPlan;
-  const unreadableHatch = hatches.unreadablePlan;
+  const registerHome = spawnRegisterHome({ home: options.home });
+  const shared = sharedSpawnDeps({ ...options, registerHome });
   const witness = openSpawnEventWitness();
   const wait = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, BOOT_POLL_INTERVAL_MS));
   return {
+    ...shared,
     client,
     close: () => {
       witness.close();
       client.close();
     },
-    ensureWorktree: ({ plan }) => {
-      provisionForSpawn({ build, depsMode, devBuild, install, plan });
-    },
-    gateCredentialStore: credentialGateFor({
-      home: registerHome,
-      namedPin,
-      port: planRegisterPort(),
-      probesPort: claudePlanProbesPort(),
-      spentPlanHatch,
-      unreadableHatch,
-    }),
     gateCodexBrowserSurface: codexBrowserDoorFor({ codexPath: "codex", launch: "cmux spawn" }),
     holdWorkspaceCreate: holdWorkspaceCreateIn({ home: registerHome }),
     observedEvents: witness.observedEvents,
-    resolvePluginDir: ({ plan }) => pluginDirForSpawnTarget({ cwd: plan.cwd, repoRoot: plan.repoRoot }),
     sidebarCli: realCmuxCli(),
     wait,
     witnessClaudeBoot: ({ workspace, bootWitnessed, before }) =>

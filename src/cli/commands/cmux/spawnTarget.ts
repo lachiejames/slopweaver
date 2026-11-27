@@ -11,7 +11,6 @@ import { readFileSync } from "node:fs";
 import type { LaunchTemplate } from "../../../cmux/launchTemplate.js";
 import type { CmuxDriver } from "../../../cmux/pickupCommand.js";
 import type { CodexSeatRoute } from "../../../cmux/seatRoute.js";
-import type { SpawnDeps } from "../../../cmux/spawn.js";
 import { type CodexFleetCapPort, codexFleetCapPort } from "../../../codex/fleetCapPort.js";
 import { type CodexSignInPort, codexSignInPort } from "../../../codex/signInPort.js";
 import type { HandoverDoc } from "../../../handover/doc.js";
@@ -25,7 +24,7 @@ import {
 } from "../../../sessionHarness/appContinuation.js";
 import { APP_SOCKET_ROOT, type AppTransport, socketAppTransport } from "../../../sessionHarness/appSocketTransport.js";
 import type { HarnessName } from "../../../sessionHarness/harnessChoice.js";
-import { productionSpawnDeps } from "../../../sessionHarness/recordedSpawn.js";
+import { type HarnessSpawnDeps, productionHarnessSpawnDeps } from "../../../sessionHarness/recordedSpawn.js";
 import type { WaitOptions } from "../../../wait/flags.js";
 import { EXIT_ERROR } from "../../exitCodes.js";
 import type { ParsedFlags } from "../../parseFlags.js";
@@ -233,20 +232,26 @@ async function discoverAppContinuation({
  * gate keeps reading the ambient home exactly as it always has.
  *
  * Which ACCOUNT a seat boots on is decided in `cmux/spawn.ts`'s credential gate, never here: `--force`
- * travels as one half of the escape hatch, and `productionSpawnDeps` ORs in `SLOPWEAVER_ALLOW_SPENT_PLAN`, so
+ * travels as one half of the escape hatch, and `productionHarnessSpawnDeps` ORs in `SLOPWEAVER_ALLOW_SPENT_PLAN`, so
  * `false` here does not close the hatch the refusal names — `claude/spawnStore.ts`'s `spentPlanHatchOpen`.
  *
- * @param target the resolved spawn, for its worktree options, `--force`, `--home` and named store
- * @returns the deps, which the caller MUST close
+ * Built for the spawn's harness alone: an app-hosted spawn gets deps that open no cmux connection and no event
+ * stream, since the app launcher reads neither.
+ *
+ * @param target the resolved spawn, for its harness, worktree options, `--force`, `--home` and named store
+ * @returns the deps tagged with their harness; the caller MUST close the cmux arm's
  */
-export function spawnDepsFor({ target }: { target: SpawnTarget }): SpawnDeps {
+export function spawnDepsFor({ target }: { target: SpawnTarget }): HarnessSpawnDeps {
   const namedPin = target.namedStore !== undefined;
   const gateHome = namedPin ? target.home : undefined;
-  return productionSpawnDeps({
-    ...target.worktree,
-    allowSpentPlan: target.forceRouting,
-    namedPin,
-    ...(gateHome === undefined ? {} : { home: gateHome }),
+  return productionHarnessSpawnDeps({
+    harness: target.harness,
+    options: {
+      ...target.worktree,
+      allowSpentPlan: target.forceRouting,
+      namedPin,
+      ...(gateHome === undefined ? {} : { home: gateHome }),
+    },
   });
 }
 
@@ -317,7 +322,7 @@ async function resolveSpawnInputs({ argv, port }: { argv: readonly string[]; por
  */
 export async function resolveSpawnTarget({ argv }: { argv: readonly string[] }): Promise<SpawnTarget | number> {
   // One port for every register read this spawn makes before launch — the omitted-driver default included; the
-  // credential gate in `productionSpawnDeps` names its own, as the production deps factory it is.
+  // credential gate in `productionHarnessSpawnDeps` names its own, as the production deps factory it is.
   const ports = { fleetCap: codexFleetCapPort(), port: planRegisterPort(), signInPort: codexSignInPort() };
   const inputs = await resolveSpawnInputs({ argv, port: ports.port });
   if (typeof inputs === "number") {

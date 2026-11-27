@@ -38,9 +38,8 @@ async function spawnUnder({ home }: { home: string }): Promise<{
   const { client } = fakeClient({ screens: ["$ ", "Claude Code v2.1.231 booting…"] });
   const { deps: spawnDeps } = deps({ client });
   const outcome = await launchSpawnThroughSeam({
-    deps: spawnDeps,
     doc: { path: "/handovers/a-doc.md", slug: "a-doc" },
-    harness: "cmux",
+    harnessDeps: { deps: spawnDeps, harness: "cmux" },
     home,
     // A cmux spawn continues no app session: the plan carries none, and the journal alone picks the act.
     plan: { ...PLAN, continuingAppSessionId: undefined },

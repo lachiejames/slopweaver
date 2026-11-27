@@ -3,12 +3,13 @@
  * `cmux close` is `./close.ts`.
  */
 import { type CmuxError, CmuxErrors } from "../../../cmux/errors.js";
-import { type SpawnDeps, type SpawnFailure, spawnFailureKeepsWorkspaceOpen } from "../../../cmux/spawn.js";
+import { type SpawnFailure, spawnFailureKeepsWorkspaceOpen } from "../../../cmux/spawn.js";
 import type { CodexDestination } from "../../../codex/destinations.js";
 import { logger } from "../../../lib/logger.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { withCmuxSessionHost } from "../../../sessionHarness/cmuxHost.js";
 import type { SessionHarnessError } from "../../../sessionHarness/errors.js";
+import { closeHarnessSpawnDeps, type HarnessSpawnDeps } from "../../../sessionHarness/recordedSpawn.js";
 import type { SessionHarness } from "../../../sessionHarness/sessionHarness.js";
 import { foldSessions, parseSessionLog, type SessionItem } from "../../../sessions/session.js";
 import { readSessionLogText } from "../../../sessions/sessionStore.js";
@@ -23,6 +24,37 @@ import { launchSpawnThroughSeam } from "./spawnLaunch.js";
 import { spawnSuccessLines, spawnWorktreeLine } from "./spawnOutput.js";
 import { recordSeatLeftOpen, recordSpawn } from "./spawnRecord.js";
 import { resolveSpawnTarget, spawnDepsFor } from "./spawnTarget.js";
+
+/**
+ * Close the workspace a caught Codex exhaustion left standing, and say what happened. Only a cmux launch reports a
+ * quota kind today; an app failure carrying one is a broken contract, said as such, never a claimed close.
+ *
+ * @returns the line to print
+ */
+async function closeExhaustedWorkspace({
+  harnessDeps,
+  outcome,
+}: {
+  harnessDeps: HarnessSpawnDeps;
+  outcome: SpawnFailure;
+}): Promise<string> {
+  switch (harnessDeps.harness) {
+    case "app":
+      return `cmux spawn: ${outcome.reason} — recorded the exhaustion; an app launch reported a quota kind, which only a cmux launch should, so ${outcome.workspaceRef} was left as it is`;
+    case "cmux": {
+      const { client } = harnessDeps.deps;
+      const resolved = await client.resolveWorkspace({ ref: outcome.workspaceRef });
+      if (resolved.isOk()) {
+        await client.closeWorkspace({ workspaceId: resolved.value.workspaceId });
+      }
+      return `cmux spawn: ${outcome.reason} — closed ${outcome.workspaceRef} and recorded the exhaustion`;
+    }
+    default: {
+      const unhandled: never = harnessDeps;
+      throw new Error(`no exhaustion close for harness deps ${String(unhandled)}`);
+    }
+  }
+}
 
 /**
  * Report one failed spawn — closing and recording a caught Codex exhaustion first, when that was the cause.
@@ -40,6 +72,7 @@ import { resolveSpawnTarget, spawnDepsFor } from "./spawnTarget.js";
  *   account that actually hit it — undefined for a Claude spawn, which never reaches that branch
  * @param outcome the failed spawn outcome
  * @param home the state home the cache lives under
+ * @param harnessDeps the deps the spawn ran on, whose cmux arm alone can close an exhausted workspace
  * @param cwd the worktree the spawn was opening, kept whichever way this failed
  * @returns the process exit code
  */
@@ -47,22 +80,18 @@ async function reportSpawnFailure({
   destination,
   outcome,
   home,
-  deps,
+  harnessDeps,
   cwd,
 }: {
   destination: CodexDestination | undefined;
   outcome: SpawnFailure;
   home: string | undefined;
-  deps: SpawnDeps;
+  harnessDeps: HarnessSpawnDeps;
   cwd: string;
 }): Promise<number> {
   if (outcome.quotaKind !== undefined) {
     recordCaughtExhaustion({ destination, home, kind: outcome.quotaKind });
-    const resolved = await deps.client.resolveWorkspace({ ref: outcome.workspaceRef });
-    if (resolved.isOk()) {
-      await deps.client.closeWorkspace({ workspaceId: resolved.value.workspaceId });
-    }
-    logger.error({ msg: `cmux spawn: ${outcome.reason} — closed ${outcome.workspaceRef} and recorded the exhaustion` });
+    logger.error({ msg: await closeExhaustedWorkspace({ harnessDeps, outcome }) });
     return EXIT_ERROR;
   }
   const retried = `the worktree at ${cwd} is kept — retry this exact command, it reuses the worktree`;
@@ -143,7 +172,7 @@ async function spawnThroughAdmission({
   if (typeof target === "number") {
     return target;
   }
-  const { doc, plan, home, harness, runEvents } = target;
+  const { doc, plan, home, runEvents } = target;
   const baseRefusal = reportSpawnPreflight({
     doc,
     docText: target.docText,
@@ -163,19 +192,20 @@ async function spawnThroughAdmission({
   if (target.full) {
     logger.out({ line: spawnWorktreeLine({ plan }) });
   }
-  // Which tree this session follows, and which account it boots on, are decided per plan in `cmux/spawn.ts`.
-  const deps = spawnDepsFor({ target });
+  // Which tree this session follows, and which account it boots on, are decided per plan in `cmux/spawn.ts`. Built for
+  // the target's harness alone, so an app spawn opens no cmux connection.
+  const harnessDeps = spawnDepsFor({ target });
   try {
     // Through the session harness seam, whose recording launcher writes the session's ledger row.
-    const outcome = await launchSpawnThroughSeam({ deps, doc, harness, home, plan, runEvents });
+    const outcome = await launchSpawnThroughSeam({ doc, harnessDeps, home, plan, runEvents });
     if (outcome.isErr() && spawnFailureKeepsWorkspaceOpen({ failure: outcome.error })) {
       return recordSeatLeftOpen({ failure: outcome.error, home, plan });
     }
     if (outcome.isErr()) {
       return await reportSpawnFailure({
         cwd: plan.cwd,
-        deps,
         destination: target.codexSeat?.destination,
+        harnessDeps,
         home,
         outcome: outcome.error,
       });
@@ -186,7 +216,7 @@ async function spawnThroughAdmission({
     }
     return EXIT_OK;
   } finally {
-    deps.close();
+    closeHarnessSpawnDeps({ harnessDeps });
   }
 }
 
