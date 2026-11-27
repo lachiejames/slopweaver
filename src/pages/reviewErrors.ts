@@ -19,6 +19,16 @@ export interface InputUnreadableError {
   readonly path: string;
 }
 
+/**
+ * An input or the page holding a NUL byte. The review's `.gitattributes` forces a text diff, so the raw byte would
+ * land in the text a reviewer reads; an attributes file outranking it would show `Binary files … differ` instead.
+ */
+export interface FileNotTextError {
+  readonly code: "FILE_NOT_TEXT";
+  readonly message: string;
+  readonly file: string;
+}
+
 /** A cited id that names no Codex pass and no Claude fallback receipt. */
 export interface ReviewNotFoundError {
   readonly code: "REVIEW_NOT_FOUND";
@@ -77,6 +87,7 @@ export interface ReviewRecordWriteFailedError {
 export type PageReviewError =
   | PreparationFailedError
   | InputUnreadableError
+  | FileNotTextError
   | ReviewNotFoundError
   | ReviewUnreadableError
   | ReviewCitedTwiceError
@@ -88,6 +99,11 @@ export type PageReviewError =
 
 /** The one factory every page-review failure is built through. */
 export const PageReviewErrors = {
+  fileNotText: ({ file }: { file: string }): FileNotTextError => ({
+    code: "FILE_NOT_TEXT",
+    file,
+    message: `${file} holds a NUL byte, and the diff a reviewer reads is text, so it would arrive as a raw control byte or as a binary marker — pass it as text`,
+  }),
   inputUnreadable: ({ path, detail }: { path: string; detail: string }): InputUnreadableError => ({
     code: "INPUT_UNREADABLE",
     message: `could not read --inputs file ${path}: ${detail}`,

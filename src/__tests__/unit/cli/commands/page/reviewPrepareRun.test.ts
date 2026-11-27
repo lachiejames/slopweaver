@@ -83,7 +83,8 @@ describe("runPageReviewPrepare", () => {
       expect(code).toBe(EXIT_OK);
       expect(out[0]!.endsWith("/page-reviews/queue/prep-1/repo")).toBe(true);
       expect(existsSync(join(out[0]!, "page.html"))).toBe(true);
-      expect(out[1]).toContain("holds 1 input(s)");
+      expect(out[1]).toContain("holds the review's README; head");
+      expect(out[1]).toContain("adds 1 input(s) and page.html");
       expect(out.some((line) => line.includes("slopweaver codex review --pass r1"))).toBe(true);
       expect(out.some((line) => line.includes("slopweaver page publish queue"))).toBe(true);
     },

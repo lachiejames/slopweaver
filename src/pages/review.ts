@@ -9,8 +9,9 @@
  *
  * ## What binds a review to THIS page
  *
- * `slopweaver page review-prepare` builds a repository whose base commit holds the inputs (the owner's words, the run's
- * doc) and whose head commit adds the fragment as `page.html` (`./reviewRepo.ts`). A Codex review or a Claude
+ * `slopweaver page review-prepare` builds a repository whose base commit holds only the review's README and whose head
+ * commit adds the inputs (the owner's words, the run's doc) and the fragment as `page.html`, so the diff a reviewer
+ * reads carries both (`./reviewRepo.ts`). A Codex review or a Claude
  * fallback receipt records the repository root, the base and head commits and the digest of the diff it judged.
  * A citation counts only when all four are this slug's preparation and the diff digest reproduces from those two
  * commits — so a review of a different page, a different cut, or a working tree edited after preparing cannot be

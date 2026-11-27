@@ -2,10 +2,18 @@
  * The review repository a page's Codex pass reads — the effectful edge of `./review.ts`.
  *
  * `slopweaver page review-prepare` builds one per preparation under `$SLOPWEAVER_HOME/page-reviews/<slug>/<id>/`:
- * a git repository whose BASE commit holds the inputs the page answers to (the owner's words, the run's doc) and whose
- * HEAD commit adds the fragment as `page.html`. `codex review --repo <it> --base <base>` then judges the page as
- * a diff against what the owner asked, and the commits are what `page publish`
- * later reads back to prove a cited review was about this page.
+ * a git repository whose BASE commit holds only the review's frame (`README.md`, `.gitattributes`) and whose HEAD
+ * commit adds the inputs the page answers to (the owner's words, the run's doc) under `inputs/` AND the fragment as
+ * `page.html`. `codex review --repo <it> --base <base>` then judges the page against what the owner asked, and the
+ * commits are what `page publish` later reads back to prove a cited review was about this page.
+ *
+ * ## Why the inputs sit in the DIFF, not at the base
+ *
+ * A review's packet is the base..head diff and nothing else: Codex's `review-packet.md`
+ * (`../codex/artifactStore.ts`) and the visible-Claude fallback's (`../codex/fallbackPacket.ts`) both carry exactly
+ * that text. With the inputs committed at the base, the diff added `page.html` alone, so the default property —
+ * every claim is supported by `inputs/` — came back BROKEN by construction: a measured pass inspected its workspace,
+ * found only the packet, and reported no `inputs/` at all. In the diff, they reach every reviewer that reads it.
  *
  * ## Why OUTSIDE `pages/`
  *
@@ -58,23 +66,27 @@ const COMMIT_CONFIG: readonly string[] = [
 
 /**
  * Committed first, so `git add` neither converts line endings nor runs a configured clean filter on the page or an
- * input: the bytes committed are the bytes read, which is what the digest binding depends on.
+ * input: the bytes committed are the bytes read, which is what the digest binding depends on. `diff` is SET so every
+ * file diffs as text: a user's global attributes file (`core.attributesFile`) marking `*.md -diff` would otherwise
+ * turn an input into `Binary files … differ` with none of its contents, and a repository's own `.gitattributes`
+ * outranks that file.
  */
-const GITATTRIBUTES = "* -text -filter\n";
+const GITATTRIBUTES = "* -text -filter diff\n";
 
 /** The orientation file at the base commit, telling the reviewer what the repository is. */
 const README = [
   "# A page review",
   "",
-  "`inputs/` holds what the page answers to: the owner's own words, the run's doc, any measurement it cites.",
-  "The diff under review adds `page.html`, the page body exactly as publish will write it, every reference it resolves already linked.",
+  "The diff under review adds two things. `inputs/` holds what the page answers to: the owner's own words, the",
+  "run's doc, any measurement it cites. `page.html` is the page body exactly as publish will write it, every",
+  "reference it resolves already linked.",
   "Publishing wraps it in the document shell and appends a fold of its own, after the body, naming each review",
   "that checked it, what that review attacked, its verdict and what changed after it. That fold is not yours to",
   "find missing: judge the body against the inputs. Stay inside this folder.",
   "",
 ].join("\n");
 
-/** One input file to commit at the base, named for the reviewer. */
+/** One input file to commit at the head beside the page, named for the reviewer. */
 export interface PageReviewInput {
   /** The file's base name as the author passed it; numbered on commit so two of the same name cannot collide. */
   readonly name: string;
@@ -119,7 +131,10 @@ function inputFileName({ index, name }: { index: number; name: string }): string
   return `${String(index + 1).padStart(2, "0")}-${flattened}`;
 }
 
-/** Write the base tree, commit it, add the page, commit that, and answer the two commits and the diff's size. */
+/**
+ * Commit the review's frame as the base, then the inputs and the page together as the head, and answer the two commits
+ * and the diff's size. The inputs ride the head so the diff every reviewer reads carries them (the module header).
+ */
 function commitPreparation({
   repo,
   fragment,
@@ -129,23 +144,45 @@ function commitPreparation({
   fragment: string;
   inputs: readonly PageReviewInput[];
 }): { readonly baseSha: string; readonly headSha: string; readonly diffBytes: number } {
-  mkdirSync(join(repo, "inputs"), { recursive: true });
   writeFileSync(join(repo, ".gitattributes"), GITATTRIBUTES);
   writeFileSync(join(repo, "README.md"), README);
+  git({ args: ["init", "--quiet", "--initial-branch=main"], repo });
+  git({ args: ["add", "--all"], repo });
+  git({ args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "how to read this review"], repo });
+  const baseSha = git({ args: ["rev-parse", "HEAD"], repo }).trim();
+  mkdirSync(join(repo, "inputs"), { recursive: true });
   inputs.forEach((input, index) => {
     writeFileSync(join(repo, "inputs", inputFileName({ index, name: input.name })), input.contents);
   });
-  git({ args: ["init", "--quiet", "--initial-branch=main"], repo });
-  git({ args: ["add", "--all"], repo });
-  git({ args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "inputs the page answers to"], repo });
-  const baseSha = git({ args: ["rev-parse", "HEAD"], repo }).trim();
   writeFileSync(join(repo, PAGE_IN_REPO), fragment);
-  git({ args: ["add", "--", PAGE_IN_REPO], repo });
-  git({ args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "the page under review"], repo });
+  git({ args: ["add", "--all"], repo });
+  git({
+    args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "the inputs and the page under review"],
+    repo,
+  });
   const headSha = git({ args: ["rev-parse", "HEAD"], repo }).trim();
   // The tree is clean at the head, so this commit diff is byte-identical to the worktree diff a review captures.
   const diff = git({ args: gitCommitDiffCommand({ commit: headSha, mergeBase: baseSha }).args, repo });
   return { baseSha, diffBytes: Buffer.byteLength(diff, "utf8"), headSha };
+}
+
+/**
+ * The first file the review's diff could not carry as text, named as the author passed it, or `undefined` when none.
+ * A NUL byte would reach the diff raw under `GITATTRIBUTES`, or as `Binary files … differ` under an attributes file
+ * outranking it; any NUL is refused rather than only one in git's first 8000 bytes, so the rule never depends on where it sits.
+ */
+function firstNonTextFile({
+  fragment,
+  inputs,
+}: {
+  fragment: string;
+  inputs: readonly PageReviewInput[];
+}): string | undefined {
+  const binaryInput = inputs.find((input) => input.contents.includes("\0"));
+  if (binaryInput !== undefined) {
+    return binaryInput.name;
+  }
+  return fragment.includes("\0") ? "the page" : undefined;
 }
 
 /**
@@ -157,7 +194,7 @@ function commitPreparation({
  * @param home the state home
  * @param slug the page the review is for
  * @param fragment the authored fragment, committed byte for byte as `page.html`
- * @param inputs what the page answers to, committed at the base
+ * @param inputs what the page answers to, committed at the head beside the page so the review's diff carries them
  * @param preparationId a fresh id naming this preparation's directory
  * @param createdAtIso when it was prepared
  * @returns the preparation, the repository root a review is pointed at, and the size of the diff it will read
@@ -180,6 +217,10 @@ export function preparePageReview({
   { readonly preparation: PageReviewPreparation; readonly repoRoot: string; readonly diffBytes: number },
   PageReviewError
 > {
+  const binary = firstNonTextFile({ fragment, inputs });
+  if (binary !== undefined) {
+    return err(PageReviewErrors.fileNotText({ file: binary }));
+  }
   const directory = join(pageReviewSlugDirectory({ home, slug }), preparationId);
   if (existsSync(directory)) {
     return err(PageReviewErrors.preparationFailed({ detail: `${directory} already exists` }));

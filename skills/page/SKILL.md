@@ -20,8 +20,8 @@ slopweaver page review-prepare <slug> --page <fragment>.html --inputs <owner-wor
 slopweaver page publish <slug> --page <fragment>.html --review <artifact-or-receipt-id>[,…]
 ```
 
-`review-prepare` commits the inputs at a base and the page at a head, so the review judges the page as a diff
-against what the owner asked. `publish` proves each cited id read THIS page's exact bytes, and folds what it attacked,
+`review-prepare` commits a README at a base and the inputs with the page at a head, so the diff every reviewer
+reads carries what the owner asked beside the page that answers it. `publish` proves each cited id read THIS page's exact bytes, and folds what it attacked,
 what it found and what changed since into the page. A BROKEN verdict or a page edited after its review publishes
 only with `--review-changed "<what you did>"`, and the fold tells the owner the edits were not re-reviewed. The hatch,
 `SLOPWEAVER_ALLOW_UNREVIEWED_PAGE=1`, publishes a page whose fold says it was NOT reviewed. Properties to attack,

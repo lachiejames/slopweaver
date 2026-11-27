@@ -8,6 +8,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { gitCommitDiffCommand } from "../../../codex/diff.js";
+import { runGitChecked } from "../../../codex/gitRun.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 import {
   fragmentSha256,
@@ -44,20 +46,55 @@ describe("preparePageReview", () => {
   }
 
   it(
-    "commits the inputs at base and the exact fragment at head, and the commits reproduce its digest",
+    "commits only the README at base and the inputs with the exact fragment at head, so the review's diff carries both",
     () => {
       const { preparation, repoRoot, diffBytes } = unwrap(prepare());
+      const git = ({ args }: { args: readonly string[] }): string =>
+        runGitChecked({ args, cwd: repoRoot, label: "test git" });
+      const lines = ({ text }: { text: string }): string[] => text.split("\n").filter((line) => line !== "");
+      expect(lines({ text: git({ args: ["ls-tree", "--name-only", preparation.baseSha] }) })).toStrictEqual([
+        ".gitattributes",
+        "README.md",
+      ]);
+      expect(
+        lines({ text: git({ args: ["diff", "--name-only", preparation.baseSha, preparation.headSha, "--"] }) }),
+      ).toStrictEqual(["inputs/01-owner-words.md", "page.html"]);
+      const diff = git({
+        args: gitCommitDiffCommand({ commit: preparation.headSha, mergeBase: preparation.baseSha }).args,
+      });
+      expect(diff).toContain("+make every briefing reviewed");
+      expect(diffBytes).toBe(Buffer.byteLength(diff, "utf8"));
       expect(preparation.fragmentSha256).toBe(fragmentSha256({ fragment: FRAGMENT }));
       expect(readFileSync(join(repoRoot, "inputs", "01-owner-words.md"), "utf8")).toBe(
         "make every briefing reviewed\n",
       );
       expect(readFileSync(join(repoRoot, "page.html"), "utf8")).toBe(FRAGMENT);
-      expect(diffBytes).toBeGreaterThan(FRAGMENT.length);
       const facts = unwrap(
         preparedCommitFacts({ baseSha: preparation.baseSha, headSha: preparation.headSha, repoRoot }),
       );
       expect(facts.fragmentSha256).toBe(preparation.fragmentSha256);
       expect(facts.diffSha256).toMatch(/^[0-9a-f]{64}$/);
+    },
+    REAL_GIT_TIMEOUT_MS,
+  );
+
+  it(
+    "diffs an input as text even when a global attributes file marks it -diff",
+    () => {
+      const { preparation, repoRoot } = unwrap(prepare());
+      const globalAttributes = join(home, "global-attributes");
+      writeFileSync(globalAttributes, "*.md -diff\n");
+      const diff = runGitChecked({
+        args: [
+          "-c",
+          `core.attributesFile=${globalAttributes}`,
+          ...gitCommitDiffCommand({ commit: preparation.headSha, mergeBase: preparation.baseSha }).args,
+        ],
+        cwd: repoRoot,
+        label: "test git",
+      });
+      expect(diff).toContain("+make every briefing reviewed");
+      expect(diff).not.toContain("Binary files");
     },
     REAL_GIT_TIMEOUT_MS,
   );
@@ -100,6 +137,39 @@ describe("preparePageReview", () => {
     },
     REAL_GIT_TIMEOUT_MS,
   );
+
+  it("refuses an input holding a NUL byte, which git would diff as binary with none of its contents, and builds nothing", () => {
+    const result = preparePageReview({
+      createdAtIso: "2026-11-03T06:00:00.000Z",
+      fragment: FRAGMENT,
+      home,
+      inputs: [
+        { contents: "plain words\n", name: "doc.md" },
+        { contents: "claim\0evidence\n", name: "capture.md" },
+      ],
+      preparationId: "prep-nul",
+      slug: "queue",
+    });
+    const failure = unwrapErr(result);
+    expect(failure.code).toBe("FILE_NOT_TEXT");
+    expect(failure.message).toBe(
+      "capture.md holds a NUL byte, and the diff a reviewer reads is text, so it would arrive as a raw control byte or as a binary marker — pass it as text",
+    );
+    expect(existsSync(pageReviewSlugDirectory({ home, slug: "queue" }))).toBe(false);
+  });
+
+  it("refuses a page holding a NUL byte for the same reason", () => {
+    const result = preparePageReview({
+      createdAtIso: "2026-11-03T06:00:00.000Z",
+      fragment: "<p>a\0b</p>",
+      home,
+      inputs: [{ contents: "plain words\n", name: "doc.md" }],
+      preparationId: "prep-nul-page",
+      slug: "queue",
+    });
+    expect(unwrapErr(result).code).toBe("FILE_NOT_TEXT");
+    expect(unwrapErr(result).message).toContain("the page holds a NUL byte");
+  });
 
   it("names a commit the repository does not hold rather than inventing facts", () => {
     const result = preparedCommitFacts({ baseSha: "0".repeat(40), headSha: "1".repeat(40), repoRoot: home });

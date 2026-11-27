@@ -2,8 +2,9 @@
  * `slopweaver page review-prepare <slug> --page <html> --inputs <file,...>` — build the repository a page's review reads.
  *
  * Every briefing that reaches them gets at least one Codex review pass first. This verb is the
- * first half of that: it commits the inputs the page answers to (their words, the run's doc) at a base and the page at
- * a head (`../../../pages/reviewRepo.ts`), then prints the exact `codex review` to run against it, the visible-Claude
+ * first half of that: it commits the review's README at a base, then the inputs the page answers to (their words, the
+ * run's doc) and the page together at a head, so the diff a review reads carries both
+ * (`../../../pages/reviewRepo.ts`), then prints the exact `codex review` to run against it, the visible-Claude
  * fallback for when Codex is capped (rule 9), and the `page publish --review` that cites the result. It runs no model.
  */
 import { randomUUID } from "node:crypto";
@@ -113,7 +114,7 @@ function preparedLines({
 }): readonly string[] {
   return [
     repoRoot,
-    `  base ${preparation.baseSha} holds ${String(inputCount)} input(s); head ${preparation.headSha} adds page.html`,
+    `  base ${preparation.baseSha} holds the review's README; head ${preparation.headSha} adds ${String(inputCount)} input(s) and page.html`,
     "  review it (narrow --property to what this page most needs to get right; run more passes for more properties):",
     `    ${commands.review}`,
     "  Codex capped? A visible Claude session takes the pass instead (rule 9):",
