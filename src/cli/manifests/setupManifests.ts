@@ -138,7 +138,8 @@ export const SETUP_MANIFEST_MODULES: readonly NounManifestModule[] = [
   },
   {
     noun: "machine",
-    summary: "Read-only gauges of the machine Slopweaver runs on — top memory footprints, swap and load",
+    summary:
+      "Gauges of the machine Slopweaver runs on — top memory footprints, swap and load — and its owner-approved upkeep: reaping orphaned shells and freeing disk",
     verbs: machineManifest,
   },
   {

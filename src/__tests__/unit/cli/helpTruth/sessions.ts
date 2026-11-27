@@ -8,6 +8,10 @@ import {
   MACHINE_DISPATCHES_FLAG_NAMES,
   parseMachineDispatchesArgs,
 } from "../../../../cli/commands/machine/dispatches.js";
+import {
+  MACHINE_FREE_DISK_FLAG_NAMES,
+  parseMachineFreeDiskArgs,
+} from "../../../../cli/commands/machine/freeDiskCore.js";
 import { MACHINE_REAP_FLAG_NAMES, parseMachineReapArgs } from "../../../../cli/commands/machine/reap.js";
 import { MACHINE_SERIES_FLAG_NAMES, parseMachineSeriesArgs } from "../../../../cli/commands/machine/series.js";
 import { MACHINE_UNUSED_FLAG_NAMES, parseMachineUnusedArgs } from "../../../../cli/commands/machine/unused.js";
@@ -23,7 +27,12 @@ import {
   lockInOptions,
   parseLockInArgs,
 } from "../../../../cli/commands/sessionStart/lockInCore.js";
+import { ok } from "../../../../lib/result.js";
+
 import { type HelpTruthSlice } from "./mergeSlices.js";
+
+/** A ruling naming the one app the `--bundle` row passes, so the parse reaches the flag it proves. */
+const FREE_DISK_RULING = { kept: [], removable: ["Acme Scanner Edition.app"] };
 
 /**
  * A complete, coherent resolution, plus whatever the probe is actually about.
@@ -57,6 +66,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "machine unused": MACHINE_UNUSED_FLAG_NAMES,
   "machine watch": MACHINE_WATCH_FLAG_NAMES,
   "machine reap": MACHINE_REAP_FLAG_NAMES,
+  "machine free-disk": MACHINE_FREE_DISK_FLAG_NAMES,
   "session no-subagents": SESSION_NO_SUBAGENTS_FLAG_NAMES,
   "session reach-grant": SESSION_FLAG_NAMES["reach-grant"]!,
   "session close": SESSION_FLAG_NAMES["close"]!,
@@ -212,6 +222,11 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--dry-run": ["--dry-run"],
     "--json": ["--json"],
   },
+  "machine free-disk": {
+    "--apply": ["package-caches", "--apply"],
+    "--bundle": ["app", "--bundle", "Acme Scanner Edition"],
+    "--json": ["docker-data", "--json"],
+  },
   "machine series": {
     "--home": ["--home", "/tmp"],
     "--json": ["--json"],
@@ -248,6 +263,8 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
   "machine capacity": ({ fragment }) => parseMachineCapacityArgs({ rest: [...fragment] }),
   "machine dispatches": ({ fragment }) => parseMachineDispatchesArgs({ rest: [...fragment] }),
   "machine reap": ({ fragment }) => parseMachineReapArgs({ rest: [...fragment] }),
+  "machine free-disk": ({ fragment }) =>
+    parseMachineFreeDiskArgs({ readRuling: () => ok(FREE_DISK_RULING), rest: [...fragment] }),
   "machine series": ({ fragment }) => parseMachineSeriesArgs({ rest: [...fragment] }),
   "machine unused": ({ fragment }) => parseMachineUnusedArgs({ rest: [...fragment] }),
   "machine watch": ({ fragment }) => parseMachineWatchArgs({ rest: [...fragment] }),

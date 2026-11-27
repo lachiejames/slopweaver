@@ -62,8 +62,8 @@ describe("machineAnomaly", () => {
       hold: true,
       holdSubjects: ["disk"],
       verdict:
-        "machine capacity: HOLD on disk (disk 24.0 GB free (df, Finder shows at least this), hold below 44.8 GB — " +
-        "a 5.6 GB seat tree each for the 6-seat boots burst, the next and one spare)",
+        "machine capacity: HOLD on disk (disk 24.0 GB free (df, Finder shows at least this), hold below 40 GB — " +
+        "the owner's floor, room for a 5.6 GB seat tree each for the 6-seat boots burst and the next)",
     });
 
     expect(machineAnomaly({ report: held })).toStrictEqual({ kind: "clear" });

@@ -21,7 +21,7 @@ describe("pressureReclaimPolicy", () => {
 });
 
 describe("worktreePruneFloorGb", () => {
-  it("is the owner's 100 GB, above capacity's 44.8 GB disk hold, whatever the fleet's size", () => {
+  it("is the owner's 100 GB, above capacity's 40 GB disk hold, whatever the fleet's size", () => {
     expect(worktreePruneFloorGb()).toBe(100);
   });
 });

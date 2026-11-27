@@ -44,17 +44,19 @@ function loadHoldReason({
 }
 
 /*
- * The disk floor, derived from what a seat costs rather than chosen. A disk 85% full with Finder showing 150 GB is no
- * reason to hold; the question the hold answers is "would the next seats bring the disk dangerously close to
- * full?", and the hourly `worktree-prune` automation should keep it from ever being asked. So the floor reserves
- * only growth that has not happened yet. A live session's tree is ALREADY inside `df`'s used figure, so reserving
- * it again counts it twice: that floor grew with the fleet and held 53 sessions at 308 GB with 262.5 GB free.
+ * The disk floor: the owner's 40 GB, checked against what a seat costs. A disk 85% full
+ * with Finder showing 150 GB is no reason to hold; the question the hold answers is "would the next seats bring the
+ * disk dangerously close to full?", and the hourly `worktree-prune` automation should keep it from ever being asked.
+ * So the floor reserves only growth that has not happened yet. A live session's tree is ALREADY inside `df`'s used
+ * figure, so reserving it again counts it twice: that floor grew with the fleet and held 53 sessions at 308 GB with
+ * 262.5 GB free.
  *
  * What can still grow fast is the seats about to start. The `boots` hold (`./recentBoots.ts`) stops seating once
  * {@link DEFAULT_RECENT_BOOTS_HOLD} sessions have started inside its window, so a burst is at most that many
- * trees; the next seat and one spare complete the reserve. RESIDUE, stated: a live tree that has not installed
- * yet (~0.28 GB) can still grow to the full figure later, and nothing here models that — the observed fleet's
- * trees are mostly built, and noticing disk falling from any cause is the supervisor's judgement, not this floor.
+ * trees; 40 GB holds a tree each for that burst and the next seat (7 x 5.6 = 39.2 GB), with no spare tree — the
+ * headroom the owner chose to give up. RESIDUE, stated: a live tree that has not installed yet (~0.28 GB) can still
+ * grow to the full figure later, and nothing here models that — the observed fleet's trees are mostly built, and
+ * noticing disk falling from any cause is the supervisor's judgement, not this floor.
  *
  * MEASURED, `du -sk <worktree>`: three acme-admin seat trees at 4,521,988 / 5,327,640 / 5,471,152
  * KiB, a built slopweaver tree at 3,136,508 KiB and an unbuilt one at 282,028 KiB. The largest, 5.6 GB, is
@@ -65,11 +67,11 @@ function loadHoldReason({
 /** The disk one seat's worktree costs at its largest measured, in GB — the header above says where it was read. */
 export const SEAT_TREE_GB = 5.6;
 
-/** The seat this hold is asked about. */
-const NEXT_SEAT_TREES = 1;
+/** The seat this hold is asked about, beside the boots burst. */
+export const NEXT_SEAT_TREES = 1;
 
-/** Seat trees held back beyond the burst and the next — the "dangerously close" in the floor's question. */
-const SPARE_SEAT_TREES = 1;
+/** The owner's disk floor in `df`-available GB, as the owner ruled it. */
+export const OWNER_DISK_FLOOR_GB = 40;
 
 /** The `df`-available GB the volume holds below, and the derivation the hold clause says beside it. */
 export interface DiskFloor {
@@ -78,21 +80,20 @@ export interface DiskFloor {
 }
 
 /**
- * The disk floor: a {@link SEAT_TREE_GB} tree each for a {@link DEFAULT_RECENT_BOOTS_HOLD}-seat boots burst, the
- * next seat and one spare, to one decimal place — or the floor a caller pinned, which wins. It takes no session
- * count on purpose: a live session's tree is already in `df`'s used figure.
+ * The disk floor: the owner's {@link OWNER_DISK_FLOOR_GB}, room for a {@link SEAT_TREE_GB} tree each for a
+ * {@link DEFAULT_RECENT_BOOTS_HOLD}-seat boots burst and the next seat — or the floor a caller pinned, which wins.
+ * It takes no session count on purpose: a live session's tree is already in `df`'s used figure.
  *
- * @param pinnedGb a floor the caller set in place of the derived one, or `undefined` to derive it
+ * @param pinnedGb a floor the caller set in place of the owner's, or `undefined` for the owner's own
  * @returns the floor and its derivation
  */
 export function diskFloorFor({ pinnedGb = undefined }: { pinnedGb?: number | undefined } = {}): DiskFloor {
   if (pinnedGb !== undefined) {
     return { gb: pinnedGb, why: "the floor the caller set" };
   }
-  const trees = DEFAULT_RECENT_BOOTS_HOLD + NEXT_SEAT_TREES + SPARE_SEAT_TREES;
   return {
-    gb: Math.round(trees * SEAT_TREE_GB * 10) / 10,
-    why: `a ${String(SEAT_TREE_GB)} GB seat tree each for the ${String(DEFAULT_RECENT_BOOTS_HOLD)}-seat boots burst, the next and one spare`,
+    gb: OWNER_DISK_FLOOR_GB,
+    why: `the owner's floor, room for a ${String(SEAT_TREE_GB)} GB seat tree each for the ${String(DEFAULT_RECENT_BOOTS_HOLD)}-seat boots burst and the next`,
   };
 }
 

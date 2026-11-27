@@ -138,6 +138,7 @@ describe("identityStateHomePaths", () => {
     expect(Object.keys(area).toSorted()).toEqual([
       "capabilityProfileJson",
       "cassetteRedaction",
+      "freeDiskBundlesJson",
       "generalRulingsJson",
       "hygieneDenylist",
       "hygieneReplacementsTsv",

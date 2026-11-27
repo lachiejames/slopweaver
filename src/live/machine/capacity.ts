@@ -309,7 +309,7 @@ function gaugesOf({
  * @param parallelCallAlert the in-flight-tool-call alert threshold (defaults to
  *   {@link DEFAULT_PARALLEL_CALL_ALERT})
  * @param diskHoldFreeGb the volume's `df`-available floor in GB, below which seating holds on `disk` (defaults to
- *   `diskFloorFor` — a seat tree each for the boots burst, the next and one spare)
+ *   `diskFloorFor` — the owner's 40 GB, a seat tree each for the boots burst and the next)
  * @returns the ranked, classified report
  */
 // max-lines-exempt: a flat pass-through whose length is its named inputs, declared twice by the named-object-params rule; the logic is four calls to pure helpers and one assembly

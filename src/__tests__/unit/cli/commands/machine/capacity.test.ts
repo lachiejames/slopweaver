@@ -184,8 +184,9 @@ describe("runMachineCapacityWithDeps", () => {
     expect(planReads).toEqual([]);
   });
 
-  it("states the disk floor as the boots burst, the next and one spare — never a tree per live session", () => {
-    expect(MACHINE_CAPACITY_USAGE).toContain("5.6 GB seat tree each for the 6-seat boots burst, the next\n");
+  it("states the disk floor as the owner's 40 GB for the boots burst and the next — never a tree per live session", () => {
+    expect(MACHINE_CAPACITY_USAGE).toContain("the owner's 40 GB, room for a 5.6 GB seat tree each for the\n");
+    expect(MACHINE_CAPACITY_USAGE).toContain("  6-seat boots burst and the next, df-available");
     expect(MACHINE_CAPACITY_USAGE).not.toContain("every live session");
   });
 

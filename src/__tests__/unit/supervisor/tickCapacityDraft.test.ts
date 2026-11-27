@@ -26,7 +26,7 @@ describe("capacityObservation", () => {
         capture: {
           document: {
             diskFreeGb: 24,
-            diskHoldFreeGb: 44.8,
+            diskHoldFreeGb: 40,
             dispatch: { backoffSeconds: 0, covering: 0, open: 0, subject: "" },
             hold: true,
             holdSubjects: ["disk"],
@@ -35,8 +35,8 @@ describe("capacityObservation", () => {
             swapfileCount: 1,
             topForeign: { footprintGb: 1.5, label: "mds" },
             verdict:
-              "machine capacity: HOLD on disk (disk 24.0 GB free (df, Finder shows at least this), hold below 44.8 GB — " +
-              "a 5.6 GB seat tree each for the 6-seat boots burst, the next and one spare)",
+              "machine capacity: HOLD on disk (disk 24.0 GB free (df, Finder shows at least this), hold below 40 GB — " +
+              "the owner's floor, room for a 5.6 GB seat tree each for the 6-seat boots burst and the next)",
           },
           path: "capacity.json",
         },
@@ -45,7 +45,7 @@ describe("capacityObservation", () => {
     );
 
     expect(capacity).toMatchObject({
-      facts: { diskFreeGb: 24, diskHoldFreeGb: 44.8, hold: true, holdSubjects: ["disk"] },
+      facts: { diskFreeGb: 24, diskHoldFreeGb: 40, hold: true, holdSubjects: ["disk"] },
       status: "read",
     });
   });

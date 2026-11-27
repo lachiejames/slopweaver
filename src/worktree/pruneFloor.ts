@@ -16,7 +16,7 @@ import { WORKTREE_PRUNE_TRIGGER_FREE_GB } from "./pruneTrigger.js";
 /**
  * The free-disk floor, in GB, under which the prune is under pressure and the threshold trigger launches one.
  *
- * @returns the higher of the owner's fixed floor and capacity's derived disk hold
+ * @returns the higher of the prune's own trigger and capacity's fixed disk hold
  */
 export function worktreePruneFloorGb(): number {
   return Math.max(WORKTREE_PRUNE_TRIGGER_FREE_GB, diskFloorFor().gb);

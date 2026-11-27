@@ -1,11 +1,13 @@
 /**
- * Lazy manifest for the `machine` noun — read-only gauges of the machine Slopweaver is running on, as
- * opposed to `dev`'s repo-development verbs. `capacity` reads the machine — top memory footprints, swap and
- * load, classified fleet vs foreign, WHICH fleet session or dead seat is burning the CPU, and every plan and
+ * Lazy manifest for the `machine` noun — gauges of the machine Slopweaver is running on and its owner-approved
+ * upkeep, as opposed to `dev`'s repo-development verbs. `capacity` reads the machine — top memory footprints, swap
+ * and load, classified fleet vs foreign, WHICH fleet session or dead seat is burning the CPU, and every plan and
  * machine ceiling's unused share now; `unused` measures the same ceilings over past days off histories on
  * disk; `series` keeps the last hour of cheap one-second samples the Fleet page charts; `reap` kills the orphaned
- * fleet shells whose seat is gone. Loads only when dispatched.
+ * fleet shells whose seat is gone; `free-disk` frees disk on the owner's ruling, one closed target at a time.
+ * Loads only when dispatched.
  */
+import { MACHINE_FREE_DISK_USAGE_LINE } from "../commands/machine/freeDiskUsage.js";
 import { lazy, type VerbManifestEntry } from "../manifest.js";
 
 const capacityMeta = {
@@ -96,9 +98,24 @@ const seriesMeta = {
   usage: "usage: slopweaver machine series [--home <dir>] [--json]",
 } as const;
 
+const freeDiskMeta = {
+  createsWorkItem: false,
+  diagnostic: false,
+  doorRouted: false,
+  // A bare call names no target and is refused before any read; only a named target reads, and only --apply acts.
+  dryParseSafe: true,
+  effect: "local-state",
+  example: "slopweaver machine free-disk package-caches",
+  parseRejectIsIoFree: true,
+  summary:
+    "Free disk on the owner's ruling, one closed target at a time — the Poetry, pnpm, pip and pipenv caches (never npm, Yarn or Slopweaver's own), a TRIM of Docker's data file (nothing deleted), the pre-setup checkout copy once proven not a repository, or a ruled app to the Trash; prints the plan and changes nothing without --apply",
+  usage: MACHINE_FREE_DISK_USAGE_LINE,
+} as const;
+
 const loadCapacity = () => import("../commands/machine/capacity.js").then((m) => m.machineCapacityCommand);
 const loadWatch = () => import("../commands/machine/watch.js").then((m) => m.machineWatchCommand);
 const loadDispatches = () => import("../commands/machine/dispatches.js").then((m) => m.machineDispatchesCommand);
+const loadFreeDisk = () => import("../commands/machine/freeDisk.js").then((m) => m.machineFreeDiskCommand);
 const loadReap = () => import("../commands/machine/reap.js").then((m) => m.machineReapCommand);
 const loadSeries = () => import("../commands/machine/series.js").then((m) => m.machineSeriesCommand);
 const loadUnused = () => import("../commands/machine/unused.js").then((m) => m.machineUnusedCommand);
@@ -106,6 +123,7 @@ const loadUnused = () => import("../commands/machine/unused.js").then((m) => m.m
 export const machineManifest: Readonly<Record<string, VerbManifestEntry>> = {
   capacity: lazy({ load: loadCapacity, meta: capacityMeta }),
   dispatches: lazy({ load: loadDispatches, meta: dispatchesMeta }),
+  "free-disk": lazy({ load: loadFreeDisk, meta: freeDiskMeta }),
   reap: lazy({ load: loadReap, meta: reapMeta }),
   series: lazy({ load: loadSeries, meta: seriesMeta }),
   unused: lazy({ load: loadUnused, meta: unusedMeta }),

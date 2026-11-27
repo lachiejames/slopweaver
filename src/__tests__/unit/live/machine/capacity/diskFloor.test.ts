@@ -12,15 +12,15 @@ const diskWith = ({ availableKib }: { availableKib: number }): DiskReading => ({
 });
 
 /*
- * The floor these cases judge against: eight 5.6 GB seat trees — the 6-seat boots burst, the next and the spare —
- * which is 44.8 GB whatever the session count (`diskFloorFor`, `capacityHolds.ts`).
+ * The floor these cases judge against: the owner's 40 GB, room for seven 5.6 GB seat trees — the 6-seat boots burst
+ * and the next — whatever the session count (`diskFloorFor`, `capacityHolds.ts`).
  */
 
-/** 44.7 GB as `df -k` would count it: 43652343 KiB x 1024 B = 44,699,999,232 B. */
-const JUST_UNDER_FLOOR_KIB = 43_652_343;
+/** 39.9 GB as `df -k` would count it: 38964843 KiB x 1024 B = 39,899,999,232 B. */
+const JUST_UNDER_FLOOR_KIB = 38_964_843;
 
-/** Exactly 44.8 GB: 43750000 KiB x 1024 B = 44,800,000,000 B. */
-const AT_FLOOR_KIB = 43_750_000;
+/** Exactly 40 GB: 39062500 KiB x 1024 B = 40,000,000,000 B. */
+const AT_FLOOR_KIB = 39_062_500;
 
 /** A healthy machine on every graded subject, so a disk hold is the only thing that can fire. */
 const QUIET_READING = {
@@ -32,18 +32,18 @@ const QUIET_READING = {
 } as const;
 
 describe("the disk floor hold", () => {
-  it("HOLDs on disk at 44.7 GB df-available, naming both numbers, the derivation and the remedy", () => {
+  it("HOLDs on disk at 39.9 GB df-available, naming both numbers, the derivation and the remedy", () => {
     const report = buildMachineCapacityReport({
       ...QUIET_READING,
       disk: diskWith({ availableKib: JUST_UNDER_FLOOR_KIB }),
     });
-    expect(report.diskHoldFreeGb).toBe(44.8);
+    expect(report.diskHoldFreeGb).toBe(40);
     expect(report.hold).toBe(true);
     expect(report.holdSubjects).toEqual(["disk"]);
     expect(report.graded).toEqual(["memory", "cpu"]);
     expect(report.verdict).toBe(
-      "machine capacity: HOLD on disk (disk 44.7 GB free (df, Finder shows at least this), hold below 44.8 GB — " +
-        "a 5.6 GB seat tree each for the 6-seat boots burst, the next and one spare; " +
+      "machine capacity: HOLD on disk (disk 39.9 GB free (df, Finder shows at least this), hold below 40 GB — " +
+        "the owner's floor, room for a 5.6 GB seat tree each for the 6-seat boots burst and the next; " +
         "run slopweaver worktree prune --apply) — 1-min load 1 · idle unmeasured · no foreign process observed · swap 0.5/4 GB · " +
         "compressor 15% of segments limit · 3 swapfiles",
     );
