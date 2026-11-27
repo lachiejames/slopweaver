@@ -42,8 +42,8 @@ import { basename } from "node:path";
 import type { GithubPushEdges } from "../admit/githubPush.js";
 import { type LineListLoad } from "../hygiene/scan.js";
 import type { PruneVerdict } from "./pruneClassify.js";
-import { confirmOnRemote, HOOKS_OFF, withheldIfSecret } from "./salvagePush.js";
-import { trunkHistoryHead } from "./salvageTrunkHistory.js";
+import { HOOKS_OFF, withheldIfSecret } from "./salvagePush.js";
+import { pushCheckedHistory, trunkHistoryHead } from "./salvageTrunkHistory.js";
 
 /** One git invocation in a salvage, with what it is for so a failure can say which step declined. */
 interface SalvageStep {
@@ -433,28 +433,62 @@ function unhideTree({ deps, path }: { deps: GithubPushEdges; path: string }): re
  * `stillHidden` rides out alone, because a count taken over files git is still ignoring is a number that
  * reads exactly like a clean tree while being false, and the only safe thing to do with it is not to have it.
  *
+ * **HEAD is compared to the checked sha BEFORE the first write**, so a tree whose HEAD moved after the history check
+ * declines with its index bits exactly as found. The residue is the instant between that read and the
+ * `update-index`: a HEAD moved inside it is caught by the second comparison and by the push's own descent check,
+ * but the bits it cleared stay cleared, which changes no content.
+ *
  * @param deps the git edges
+ * @param expectedHead the HEAD the history check accepted
  * @param path the worktree to read
- * @returns the HEAD sha, both halves of the porcelain count and any path the read
- *   could not see, or `null`
- *   when git could not be asked at all
+ * @returns both halves of the porcelain count, or which of the three reasons left the tree unmeasured
  */
-function readTreeNow({ deps, path }: { deps: GithubPushEdges; path: string }): {
-  readonly headSha: string;
-  readonly staged: number;
-  readonly stillHidden: readonly string[];
-  readonly unstaged: number;
-} | null {
+function readTreeNow({
+  deps,
+  expectedHead,
+  path,
+}: {
+  deps: GithubPushEdges;
+  expectedHead: string;
+  path: string;
+}):
+  | { readonly kind: "hidden"; readonly stillHidden: readonly string[] }
+  | { readonly kind: "moved" }
+  | { readonly kind: "read"; readonly staged: number; readonly unstaged: number }
+  | { readonly kind: "unreadable" } {
+  const moved = (): boolean =>
+    deps.readGit({ args: [...HOOKS_OFF, "rev-parse", "HEAD"], cwd: path }).trim() !== expectedHead;
   try {
+    if (moved()) {
+      return { kind: "moved" };
+    }
     const stillHidden = unhideTree({ deps, path });
     if (stillHidden.length > 0) {
-      return { headSha: "", staged: 0, stillHidden, unstaged: 0 };
+      return { kind: "hidden", stillHidden };
     }
-    const headSha = deps.readGit({ args: [...HOOKS_OFF, "rev-parse", "HEAD"], cwd: path }).trim();
-    return { headSha, stillHidden, ...countTreeWork({ deps, path }) };
+    if (moved()) {
+      return { kind: "moved" };
+    }
+    return { kind: "read", ...countTreeWork({ deps, path }) };
   } catch {
-    return null;
+    return { kind: "unreadable" };
   }
+}
+
+/**
+ * The decline for a tree {@link readTreeNow} left unmeasured.
+ *
+ * @param now why it was left unmeasured
+ * @returns the decline line
+ */
+function unmeasuredDecline({ now }: { now: Exclude<ReturnType<typeof readTreeNow>, { kind: "read" }> }): string {
+  if (now.kind === "unreadable") {
+    return "its working tree could not be read at apply time, so nothing was captured";
+  }
+  if (now.kind === "moved") {
+    return "its HEAD moved after its history was checked against the trunk — nothing was pushed";
+  }
+  return `git would not stop ignoring ${String(now.stillHidden.length)} file(s) — ${now.stillHidden.join(", ")} — so an edit to one of them would not be reported, captured, or recoverable`;
 }
 
 /**
@@ -535,22 +569,14 @@ function salvageOnce({
   if (checked.isErr()) {
     return { branch: null, declined: checked.error.message };
   }
-  const now = readTreeNow({ deps, path: verdict.path });
-  if (now === null) {
-    return { branch: null, declined: "its working tree could not be read at apply time, so nothing was captured" };
-  }
-  if (now.stillHidden.length > 0) {
-    return {
-      branch: null,
-      declined: `git would not stop ignoring ${now.stillHidden.length} file(s) — ${now.stillHidden.join(", ")} — so an edit to one of them would not be reported, captured, or recoverable`,
-    };
+  const headSha = checked.value.head;
+  const now = readTreeNow({ deps, expectedHead: headSha, path: verdict.path });
+  if (now.kind !== "read") {
+    return { branch: null, declined: unmeasuredDecline({ now }) };
   }
   // An IGNORED file is not asked about here: one no build writes again already holds the tree at classify
   // time (owner), and `changedSinceScan` rechecks it, so what reaches a salvage is build output.
-  if (now.headSha !== checked.value) {
-    return { branch: null, declined: HEAD_MOVED_SINCE_CHECK };
-  }
-  const free = freeSalvageName({ deps, headSha: now.headSha, path: verdict.path, remote });
+  const free = freeSalvageName({ deps, headSha, path: verdict.path, remote });
   if (free === null) {
     return {
       branch: null,
@@ -559,7 +585,7 @@ function salvageOnce({
   }
   const plan = planSalvage({
     branch: free,
-    headSha: now.headSha,
+    headSha,
     path: verdict.path,
     staged: now.staged,
     unstaged: now.unstaged,
@@ -574,8 +600,5 @@ function salvageOnce({
       return { branch: null, declined: `could not ${step.what} — ${ran.error}` };
     }
   }
-  return confirmOnRemote({ checkedHead: checked.value, deps, home, path: verdict.path, remote, scan, target });
+  return pushCheckedHistory({ checked: checked.value, deps, home, path: verdict.path, remote, scan, target });
 }
-
-/** The decline when a tree's HEAD is no longer the sha whose history was checked against the trunk. */
-const HEAD_MOVED_SINCE_CHECK = "its HEAD moved after its history was checked against the trunk — nothing was pushed";

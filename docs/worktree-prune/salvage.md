@@ -9,12 +9,26 @@ capture), `src/worktree/salvagePush.ts` (the push) and `src/worktree/salvageScan
 (`src/worktree/pruneRemote.ts`), the one remote every "is this pushed" read in the scan and the recheck names, so
 the remote that judged a tree's work "on no remote" is the remote it is sent to. A checkout can carry a remote of
 a different history: this repository's own keeps its pre-cut history on `archive` beside the public `origin`, and
-`git merge-base origin/main archive/main` exits 1. FIRST, before it clears an index bit (a write) or probes a
-name, the capture reads HEAD and asks `merge-base <that sha> refs/remotes/origin/HEAD` with replace refs and the
-commit graph off; a tree with no merge base, or a trunk that could not be read, DECLINES with nothing written, and
-a HEAD that moves before the capture re-reads it declines too. The push re-reads HEAD once more and sends it only
-when it descends from the checked sha, so a tree reset by another process after the capture sends nothing.
-Salvaged, an archive branch would have put that whole history on the public repository as one `salvage/…` branch.
+`git merge-base origin/main archive/main` exits 1. Salvaged, an archive branch would have put that whole history on
+the public repository as one `salvage/…` branch.
+
+**What the salvage path guarantees on its own** (`src/worktree/salvageTrunkHistory.ts`), with no help from the
+push-root gate, which passes whenever no register exists:
+
+- **The trunk is `origin`'s HEAD now**, asked with `ls-remote <origin's fetch url> HEAD`, never the local
+  `refs/remotes/origin/HEAD` symref, which anything can re-point. A remote that cannot be asked, or a trunk commit
+  not fetched here, declines.
+- **The test is the root set, not a merge base.** Every parentless commit the HEAD reaches must be a root of that
+  trunk. A branch off the trunk that merged the archive in shares a merge base and still declines, on the
+  archive's root.
+- **It runs FIRST**, before an index bit is cleared (a write) or a name probed, so a refused tree is left as found.
+  HEAD is re-read right before the first `update-index` and again after it; a move either time declines.
+- **The pushed commit is checked again**: it must descend from the checked HEAD and pass the same root test against
+  the same trunk, so a reset or a merge by another process after the capture sends nothing.
+- **The push goes to the url the trunk was read from**, or nowhere.
+
+Replace refs and the commit graph are off for every ancestry read. A deprecated `info/grafts` file and a shallow
+boundary are not, as git has no per-command switch for either; each needs a write to this repository's own `.git`.
 
 **A dirty tree is TWO pieces of work and both are captured**, because git's index can hold content no file on
 disk has (`MM` in porcelain) and `git add -A` overwrites it. The index is committed on its own first, the

@@ -72,14 +72,24 @@ export interface GitWorld {
   /** What `remote get-url --push --all` reports; by default exactly the fetch url, {@link URL}. */
   readonly pushUrls?: string;
   /**
-   * `merge-base <head> refs/remotes/origin/HEAD` exits 1 when true, standing for a tree on ANOTHER history than the
-   * remote's trunk — the pre-cut history an `archive` remote carries — or a trunk ref that is not there.
+   * When true, `rev-list --max-parents=0` of the tree's commits lists a root the trunk's does not, standing for a
+   * tree carrying ANOTHER history — the pre-cut history an `archive` remote carries — however it was joined on.
    */
-  readonly unrelatedHistory?: boolean;
+  readonly foreignRoot?: boolean;
+  /** `ls-remote <url> HEAD` throws when true, standing for a remote whose live trunk cannot be asked. */
+  readonly trunkUnreadable?: boolean;
+  /** After this many `rev-parse HEAD` reads, HEAD answers {@link MOVED}, standing for another process moving it. */
+  readonly headMovesAfter?: number;
 }
 
-/** The merge base every related tree shares with the trunk. */
-const TRUNK_BASE = "77c1e0deaaaabbbbccccddddeeeeffff00003333";
+/** The commit the remote's url reports as its HEAD right now. */
+export const TRUNK = "77c1e0deaaaabbbbccccddddeeeeffff00003333";
+/** The one root commit the trunk reaches. */
+const TRUNK_ROOT = "00000000aaaabbbbccccddddeeeeffff00004444";
+/** A root no trunk commit reaches: another history's. */
+const FOREIGN = "f0f0f0f0aaaabbbbccccddddeeeeffff00005555";
+/** The HEAD another process moved the tree to. */
+const MOVED = "a0bed000aaaabbbbccccddddeeeeffff00006666";
 
 /**
  * Build the injected edges for one scripted world, recording every command that ran.
@@ -109,8 +119,11 @@ export function fakeDeps({ world }: { world: GitWorld }): {
     remoteReports,
     remoteUnreachable = false,
     pushUrls = `${URL}\n`,
-    unrelatedHistory = false,
+    foreignRoot = false,
+    trunkUnreadable = false,
+    headMovesAfter = Number.POSITIVE_INFINITY,
   } = world;
+  let headReads = 0;
   const armoured: string[] = [];
   const bare: string[] = [];
   const ran: string[] = [];
@@ -165,7 +178,8 @@ export function fakeDeps({ world }: { world: GitWorld }): {
     if (headUnreadable) {
       throw new Error("fatal: not a git repository");
     }
-    return headNow();
+    headReads += 1;
+    return headReads > headMovesAfter ? MOVED : headNow();
   };
   const answerLocalRef = ({ args }: { args: readonly string[] }): string => {
     const ref = String(args[3]).replace("refs/heads/", "");
@@ -202,19 +216,32 @@ export function fakeDeps({ world }: { world: GitWorld }): {
     }
     return args[2] === "--push" ? pushUrls : URL;
   };
-  // `merge-base` arrives after the ancestry hardening, so its verb is read past those global options.
-  const answerMergeBase = (): string => {
-    if (unrelatedHistory) {
-      throw new Error("Command failed: git merge-base (exit 1)");
+  // An ancestry read arrives after the hardening options (`--no-replace-objects -c core.commitGraph=false`), so its
+  // verb is read past them: `merge-base --is-ancestor` always holds here, and `rev-list` lists root commits.
+  const answerAncestry = ({ args }: { args: readonly string[] }): string => {
+    if (args[3] !== "rev-list") {
+      return "";
     }
-    return TRUNK_BASE;
+    return args[5] === TRUNK || !foreignRoot ? TRUNK_ROOT : `${TRUNK_ROOT}\n${FOREIGN}`;
+  };
+  const answerTrunk = (): string => {
+    if (trunkUnreadable) {
+      throw new Error("fatal: could not read from remote repository");
+    }
+    return `${TRUNK}\tHEAD`;
+  };
+  const answerLsRemote = ({ args }: { args: readonly string[] }): string => {
+    if (args[1] === "--heads") {
+      return answerRemoteHeads({ args });
+    }
+    return args[2] === "HEAD" ? answerTrunk() : answerReadBack({ args });
   };
   const answers: Readonly<Record<string, (input: { args: readonly string[] }) => string>> = {
-    "--no-replace-objects": answerMergeBase,
+    "--no-replace-objects": answerAncestry,
     config: () => "core.bare=false\n",
     diff: answerDiff,
     "ls-files": answerLsFiles,
-    "ls-remote": ({ args }) => (args[1] === "--heads" ? answerRemoteHeads({ args }) : answerReadBack({ args })),
+    "ls-remote": answerLsRemote,
     remote: answerRemote,
     "rev-parse": ({ args }) => (args[1] === "--verify" ? answerLocalRef({ args }) : answerHead()),
     status: answerStatus,

@@ -258,16 +258,17 @@ function resolveDestination({
 /**
  * Push the branch the steps just built, and believe it only once the remote reports the same commit.
  *
- * HEAD is read AGAIN here rather than carried in, because a commit step moved it: pushing the sha from
- * before that step would put the tree's PARENT on the remote and then delete the tree holding the child.
+ * The sha is the one `./salvageTrunkHistory`'s `pushableSha` read AFTER the commit steps, because a step moved
+ * HEAD: pushing the sha from before it would put the tree's PARENT on the remote and then delete the tree holding
+ * the child. The url resolved here must be the one the remote's live trunk was read from, or nothing is sent.
  *
  * **The secrets scan runs HERE, with today's scanner, and the tree's own `pre-push` hook does not run at
  * all.** That hook is the week-old tree's lefthook running the week-old tree's lint lane: measured
  * 2026 at eight minutes a tree and red on stale config, so every salvage was kept and the nightly budget went
  * on two of them — `./salvageScan` carries the measurement. Its purpose was the secrets scan, and pushing a
  * week-old tree unscanned would be worth less than the work being captured, so {@link salvageScanDecline}
- * reads every blob the destination's default branch does not already carry and declines on a secret. HEAD is read
- * once and the remote's url resolved once: the scan reads that sha at that url, and the push and its read-back
+ * reads every blob the destination's default branch does not already carry and declines on a secret. The sha is
+ * fixed and the remote's url resolved once: the scan reads that sha at that url, and the push and its read-back
  * send and ask that same sha at that same url, so neither a commit nor a re-pointed remote in between is ever
  * what gets sent. `pushAndVerify`'s own working-tree
  * check still runs; its `prePushGate` edge is withheld, and the push argv already carries {@link HOOKS_OFF},
@@ -282,34 +283,35 @@ function resolveDestination({
  * @returns the branch when the remote confirmed it, or why the tree must be kept
  */
 export function confirmOnRemote({
-  checkedHead,
+  checkedUrl,
   deps,
   home,
   path,
   remote,
   scan,
+  sha: localSha,
   target,
 }: {
-  /** The HEAD whose history was checked against the trunk; the pushed sha must descend from it. */
-  checkedHead: string;
+  /** The url the remote's live trunk was read from; the push goes there or nowhere. */
+  checkedUrl: string;
   deps: GithubPushEdges;
   /** The state home whose push-root register judges the salvage push: a salvage never bypasses the guard. */
   home: string;
   path: string;
   remote: string;
   scan: SalvageScan;
+  /** The commit to push, read after the capture's steps and already held to the checked history. */
+  sha: string;
   target: string;
 }): SalvageOutcome {
-  const read = pushShaFromChecked({ checkedHead, deps, path });
-  if ("declined" in read) {
-    return { branch: null, declined: read.declined };
-  }
-  const localSha = read.sha;
   const destination = resolveDestination({ deps, path, remote });
   if (destination.isErr()) {
     return { branch: null, declined: `${destination.error.message} — nothing was pushed` };
   }
   const url = destination.value;
+  if (url !== checkedUrl) {
+    return { branch: null, declined: `${remote}'s url changed after its live trunk was read — nothing was pushed` };
+  }
   // Scanned and pushed as ONE immutable sha to ONE literal url, so neither a moved HEAD nor a re-pointed
   // remote between the two is ever what gets sent.
   const scanned = scan({ path, sha: localSha, target, url });
@@ -336,54 +338,4 @@ export function confirmOnRemote({
     return { branch: target, declined: null };
   }
   return { branch: null, declined: `the remote did not confirm the work — ${pushed.reason}` };
-}
-
-/**
- * The sha a salvage pushes, read now, and held to DESCEND from the HEAD whose history was checked against the trunk.
- *
- * The capture's commit is a child of that HEAD, so a salvage that ran undisturbed always passes. One whose tree was
- * reset or re-pointed by another process after the check is pushing a commit nobody checked, and declines: a sibling
- * of the checked HEAD, or a commit of another history, is never what reaches the remote.
- *
- * @param checkedHead the HEAD `trunkHistoryHead` accepted
- * @param deps the git edges
- * @param path the worktree to read in
- * @returns the sha to push, or why nothing is pushed
- */
-function pushShaFromChecked({
-  checkedHead,
-  deps,
-  path,
-}: {
-  checkedHead: string;
-  deps: GithubPushEdges;
-  path: string;
-}): { declined: string } | { sha: string } {
-  let sha = "";
-  try {
-    sha = deps.readGit({ args: [...HOOKS_OFF, "rev-parse", "HEAD"], cwd: path }).trim();
-  } catch (error: unknown) {
-    const why = error instanceof Error ? error.message : "git could not be asked";
-    return { declined: `could not read the commit to push — ${why}` };
-  }
-  try {
-    deps.readGit({
-      args: [
-        ...HOOKS_OFF,
-        "--no-replace-objects",
-        "-c",
-        "core.commitGraph=false",
-        "merge-base",
-        "--is-ancestor",
-        checkedHead,
-        sha,
-      ],
-      cwd: path,
-    });
-  } catch {
-    return {
-      declined: "the commit to push does not descend from the HEAD checked against the trunk — nothing was pushed",
-    };
-  }
-  return { sha };
 }

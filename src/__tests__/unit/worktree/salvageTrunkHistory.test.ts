@@ -1,11 +1,13 @@
 /**
- * A salvage of a tree on ANOTHER history than the remote's trunk refuses before it writes anything — against real git.
+ * A salvage of a tree carrying ANOTHER history than the remote's live trunk refuses before it writes anything — against
+ * real git.
  *
  * The incident shape: a checkout keeps its pre-cut history on an `archive` remote beside the public `origin`, and the
  * two share no commit. A cold, dirty tree on an archive branch reaches `salvaged` past the week, and a salvage would
  * push that whole history to origin as one `salvage/…` branch. The fake world in `./salvageGitWorld.ts` scripts the
- * refusal; this file proves git's real `merge-base` exit drives it, with the production `readGit` and a `writeGit`
- * that only records, so no write can happen whatever the code does.
+ * refusal; this file proves git's real root listing and `ls-remote` drive it, with the production `readGit` and a
+ * `writeGit` that only records, so no write can happen whatever the code does. The two shapes a merge-base test
+ * passed are here too: a branch off the trunk that MERGED the archive in, and a local `origin/HEAD` re-pointed at it.
  */
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,8 +20,8 @@ import { readGit } from "../../../admit/gitTransport.js";
 import { ok, unwrap, unwrapErr } from "../../../lib/result.js";
 import type { PruneVerdict } from "../../../worktree/pruneClassify.js";
 import { runSalvage } from "../../../worktree/pruneSalvage.js";
-import { confirmOnRemote } from "../../../worktree/salvagePush.js";
-import { SalvageTrunkErrors, trunkHistoryHead } from "../../../worktree/salvageTrunkHistory.js";
+import { SalvageTrunkErrors } from "../../../worktree/salvageTrunkErrors.js";
+import { pushableSha, trunkHistoryHead } from "../../../worktree/salvageTrunkHistory.js";
 import { HOME_WITHOUT_PUSH_ROOTS } from "../../pushRootFixture.js";
 import { gitInTemp, REAL_GIT_SUITE } from "../../tempGitRepo.js";
 import { COMMIT } from "./pruneReclaim/harness.js";
@@ -40,34 +42,44 @@ const tempDir = ({ name }: { name: string }): string => {
   return made;
 };
 
-/** A one-commit repository on `main` whose single file carries `text`, so two of them share no history. */
-const rootHistory = ({ name, text }: { name: string; text: string }): string => {
+/** A one-commit repository on `main` holding `<name>.txt`, so two of them share no history and merge cleanly. */
+const rootHistory = ({ name }: { name: string }): string => {
   const repo = tempDir({ name });
   gitInTemp({ args: ["init", "-q", "-b", "main"], cwd: repo });
-  writeFileSync(join(repo, "f.txt"), text);
+  writeFileSync(join(repo, `${name}.txt`), `${name}\n`);
   gitInTemp({ args: ["add", "-A"], cwd: repo });
-  gitInTemp({ args: [...COMMIT, text], cwd: repo });
+  gitInTemp({ args: [...COMMIT, name], cwd: repo });
   return repo;
 };
+
+/** A merge of the archive's history into the tree, the shape a merge-base test passes. */
+const MERGE_ARCHIVE = [
+  "-c",
+  "user.email=a@b.c",
+  "-c",
+  "user.name=t",
+  "merge",
+  "-q",
+  "--allow-unrelated-histories",
+  "--no-edit",
+  "archive/main",
+] as const;
 
 /**
  * A clone of a public origin, with an archive remote of an unrelated history, and a dirty worktree checked out off
  * `start` — `origin/main` for this repository's own work, `archive/main` for the old history.
  */
-const seed = ({ start }: { start: "archive/main" | "origin/main" }): { tree: string } => {
+const seed = ({ start }: { start: "archive/main" | "origin/main" }): { origin: string; repo: string; tree: string } => {
   const origin = tempDir({ name: "origin" });
-  gitInTemp({
-    args: ["clone", "-q", "--bare", rootHistory({ name: "public", text: "public\n" }), origin],
-    cwd: origin,
-  });
+  gitInTemp({ args: ["clone", "-q", "--bare", rootHistory({ name: "public" }), origin], cwd: origin });
   const repo = tempDir({ name: "clone" });
   gitInTemp({ args: ["clone", "-q", origin, repo], cwd: repo });
-  gitInTemp({ args: ["remote", "add", "archive", rootHistory({ name: "archive", text: "old history\n" })], cwd: repo });
+  gitInTemp({ args: ["remote", "add", "archive", rootHistory({ name: "archive" })], cwd: repo });
   gitInTemp({ args: ["fetch", "-q", "archive"], cwd: repo });
   const tree = join(tempDir({ name: "trees" }), "old-work");
   gitInTemp({ args: ["worktree", "add", "-q", "-b", "work", tree, start], cwd: repo });
   writeFileSync(join(tree, "f.txt"), "uncommitted edit\n");
-  return { tree };
+  return { origin, repo, tree };
 };
 
 /** The production read edge, and a write edge that records each argv and changes nothing. */
@@ -96,41 +108,69 @@ const verdictAt = ({ path }: { path: string }): PruneVerdict => ({
   reason: "1 uncommitted change(s), untouched 10d",
 });
 
+/** Salvage `tree` through the recording edges, answering the outcome and every write git was asked for. */
+const salvage = ({ tree }: { tree: string }): { outcome: ReturnType<typeof runSalvage>; writes: string[] } => {
+  const { deps, writes } = edges();
+  const outcome = runSalvage({
+    deps,
+    denylist: ABSENT,
+    home: HOME_WITHOUT_PUSH_ROOTS,
+    remote: "origin",
+    scan: NO_SECRETS,
+    verdict: verdictAt({ path: tree }),
+  });
+  return { outcome, writes };
+};
+
+const FOREIGN_DECLINE = {
+  branch: null,
+  declined:
+    "its history reaches 1 root commit(s) origin's live trunk does not, so it carries another history — nothing was pushed",
+};
+
 describe("a salvage of another history", REAL_GIT_SUITE, () => {
-  it("refuses a tree whose HEAD shares no commit with origin's trunk, and asks git to write nothing", () => {
+  it("refuses a tree whose HEAD is on the archive's history, and asks git to write nothing", () => {
     const { tree } = seed({ start: "archive/main" });
-    const { deps, writes } = edges();
+    const { outcome, writes } = salvage({ tree });
+    expect(outcome).toEqual(FOREIGN_DECLINE);
+    expect(writes).toEqual([]);
+  });
 
-    const outcome = runSalvage({
-      deps,
-      denylist: ABSENT,
-      home: HOME_WITHOUT_PUSH_ROOTS,
-      remote: "origin",
-      scan: NO_SECRETS,
-      verdict: verdictAt({ path: tree }),
-    });
+  it("refuses a branch off origin's trunk that MERGED the archive in, though it shares a merge base with the trunk", () => {
+    const { repo, tree } = seed({ start: "origin/main" });
+    gitInTemp({ args: [...MERGE_ARCHIVE], cwd: tree });
+    // The control: this HEAD does share a merge base with origin's trunk, which is the test that used to pass it.
+    expect(gitInTemp({ args: ["merge-base", "HEAD", "origin/main"], cwd: tree })).toBe(
+      gitInTemp({ args: ["rev-parse", "origin/main"], cwd: repo }),
+    );
+    const { outcome, writes } = salvage({ tree });
+    expect(outcome).toEqual(FOREIGN_DECLINE);
+    expect(writes).toEqual([]);
+  });
 
-    expect(outcome).toEqual({
-      branch: null,
-      declined:
-        "its HEAD shares no history with origin's trunk (refs/remotes/origin/HEAD), or that trunk could not be read — nothing was pushed",
-    });
+  it("refuses an archive tree when the local origin/HEAD was re-pointed at the archive, reading the remote's own HEAD", () => {
+    const { repo, tree } = seed({ start: "archive/main" });
+    gitInTemp({ args: ["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/archive/main"], cwd: repo });
+    // The control: the local symref now names the archive, so a check reading it would see shared history.
+    expect(gitInTemp({ args: ["merge-base", "HEAD", "refs/remotes/origin/HEAD"], cwd: tree })).toBe(
+      gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree }),
+    );
+    const { outcome, writes } = salvage({ tree });
+    expect(outcome).toEqual(FOREIGN_DECLINE);
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses when origin cannot be asked for its HEAD, failing closed before any write", () => {
+    const { repo, tree } = seed({ start: "origin/main" });
+    gitInTemp({ args: ["remote", "set-url", "origin", join(repo, "no-such-remote")], cwd: repo });
+    const { outcome, writes } = salvage({ tree });
+    expect(outcome.declined).toContain("origin's live trunk could not be read (");
     expect(writes).toEqual([]);
   });
 
   it("passes the history check for a tree off origin's own trunk, so its first write mints the salvage branch", () => {
     const { tree } = seed({ start: "origin/main" });
-    const { deps, writes } = edges();
-
-    runSalvage({
-      deps,
-      denylist: ABSENT,
-      home: HOME_WITHOUT_PUSH_ROOTS,
-      remote: "origin",
-      scan: NO_SECRETS,
-      verdict: verdictAt({ path: tree }),
-    });
-
+    const { writes } = salvage({ tree });
     const head = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
     expect(writes[0]).toBe(
       `-c core.hooksPath=/dev/null -c core.fsmonitor=false branch salvage/old-work-${head.slice(0, 8)} ${head}`,
@@ -138,60 +178,47 @@ describe("a salvage of another history", REAL_GIT_SUITE, () => {
   });
 });
 
-describe("the salvage push", REAL_GIT_SUITE, () => {
-  it("declines a tree reset off the checked HEAD before the push, and sends nothing", () => {
+describe("pushableSha", REAL_GIT_SUITE, () => {
+  it("declines a tree reset off the checked HEAD before the push", () => {
     const { tree } = seed({ start: "origin/main" });
     gitInTemp({ args: ["add", "-A"], cwd: tree });
     gitInTemp({ args: [...COMMIT, "checked"], cwd: tree });
-    const checkedHead = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
+    const checked = unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }));
     // Another process resets the tree to the checked commit's parent, a commit the check never accepted as the push.
     gitInTemp({ args: ["reset", "-q", "--hard", "HEAD~1"], cwd: tree });
-    const { deps, writes } = edges();
+    const pushed = pushableSha({ checked, deps: edges().deps, path: tree, remote: "origin" });
+    expect(unwrapErr(pushed)).toEqual(SalvageTrunkErrors.notDescendant());
+  });
 
-    const outcome = confirmOnRemote({
-      checkedHead,
-      deps,
-      home: HOME_WITHOUT_PUSH_ROOTS,
-      path: tree,
-      remote: "origin",
-      scan: NO_SECRETS,
-      target: "salvage/old-work",
-    });
-
-    expect(outcome).toEqual({
-      branch: null,
-      declined: "the commit to push does not descend from the HEAD checked against the trunk — nothing was pushed",
-    });
-    expect(writes).toEqual([]);
+  it("declines a commit that descends from the checked HEAD but merged the archive in after the check", () => {
+    const { tree } = seed({ start: "origin/main" });
+    const checked = unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }));
+    gitInTemp({ args: [...MERGE_ARCHIVE], cwd: tree });
+    const pushed = pushableSha({ checked, deps: edges().deps, path: tree, remote: "origin" });
+    expect(unwrapErr(pushed).code).toBe("FOREIGN_ROOT");
   });
 });
 
 describe("trunkHistoryHead", REAL_GIT_SUITE, () => {
-  it("answers the HEAD sha for a commit on origin's own trunk", () => {
-    const { tree } = seed({ start: "origin/main" });
-    const headSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
-    expect(unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }))).toBe(headSha);
+  it("answers the HEAD, the remote's live trunk and the url it was read from, for a commit on that trunk", () => {
+    const { origin, tree } = seed({ start: "origin/main" });
+    const head = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
+    expect(unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }))).toEqual({
+      head,
+      trunk: head,
+      url: origin,
+    });
   });
 
-  it("declines the archive's commit, which shares no merge base with origin's trunk", () => {
-    const { tree } = seed({ start: "archive/main" });
-    const checked = trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" });
-    expect(unwrapErr(checked)).toEqual(SalvageTrunkErrors.unrelatedHistory({ remote: "origin" }));
-    expect(unwrapErr(checked).message).toBe(
-      "its HEAD shares no history with origin's trunk (refs/remotes/origin/HEAD), or that trunk could not be read — nothing was pushed",
-    );
-  });
-
-  it("declines when the remote's trunk ref is absent, rather than reading a missing trunk as shared history", () => {
-    // No remote of this name was ever fetched, so `refs/remotes/nowhere/HEAD` does not resolve. (A fetched remote is
-    // no stand-in: git's `followRemoteHEAD` writes that symref on fetch, measured on this suite's own `archive`.)
+  it("declines a remote that is not configured as a read failure, never as a verdict", () => {
     const { tree } = seed({ start: "origin/main" });
     const checked = trunkHistoryHead({ deps: edges().deps, path: tree, remote: "nowhere" });
-    expect(unwrapErr(checked)).toEqual(SalvageTrunkErrors.unrelatedHistory({ remote: "nowhere" }));
+    expect(unwrapErr(checked).code).toBe("TRUNK_UNREADABLE");
   });
 
-  it("declines a tree git cannot read at all, before any write", () => {
+  it("declines a tree git cannot read at all, naming `git rev-parse HEAD`", () => {
     const checked = trunkHistoryHead({ deps: edges().deps, path: tempDir({ name: "not-a-repo" }), remote: "origin" });
-    expect(unwrapErr(checked).code).toBe("TREE_UNREADABLE");
+    expect(unwrapErr(checked).code).toBe("HEAD_UNREADABLE");
+    expect(unwrapErr(checked).message).toContain("`git rev-parse HEAD` could not name its HEAD commit (");
   });
 });
