@@ -14,6 +14,13 @@
  * check, exactly as a chair's own hand-off seats one (`../../../supervisor/chairSuccessor.ts`'s
  * `successorSpawnLine`): Fable on a Claude plan, the fleet's Codex model on a Codex one. The spawn itself is
  * `../supervisor/chairSuccessorLaunch.ts`, shared with the control plane's chair hand-off.
+ *
+ * **The successor opens past the fleet's spawn backoff.** It is the one supervisor the fleet is missing, a down
+ * chair's successor or the first when none is pinned, and capacity must never block recovery
+ * (`../cmux/reseatPass.ts`). An unwaited spawn exits 4 under a capacity hold unless the spawn-backoff hatch is open,
+ * and a hold can stand for hours on foreign processes, so before this every plan fell through as `spawn-refused`
+ * while the vendor checks, which never take the backoff, passed. So this press hands `launchChairSuccessor`
+ * {@link recoveryChairSpawn} rather than the hand-off's gated `realSuccessorSpawn`.
  */
 
 import type { RecoveryChairReading, RecoveryPinLook } from "../../../fleet/recoveryChair.js";
@@ -40,12 +47,19 @@ import type { SupervisorPinTarget } from "../../../sessions/supervisorPin.js";
 import { readSupervisorPinDisposition } from "../../../sessions/supervisorPinStore.js";
 import { stateHomePaths } from "../../../stateHome.js";
 import { gonePredecessorLabel, gonePredecessorLedgerRow } from "../../../supervisor/gonePredecessor.js";
+import { runCmuxSpawnPastBackoff } from "../cmux/run.js";
 import { gonePredecessorRunGate } from "../cmux/takeoverGone.js";
 import { appPredecessorRunGate } from "../cmux/takeoverRow.js";
 import { applyReap, reapLivenessSeams } from "../handover/reapRun.js";
-import { launchChairSuccessor, realSuccessorSpawn } from "../supervisor/chairSuccessorLaunch.js";
+import { launchChairSuccessor } from "../supervisor/chairSuccessorLaunch.js";
 
 export { spawnedChairOf } from "../supervisor/chairSuccessorLaunch.js";
+
+/**
+ * The in-process `cmux spawn` a Recovery chair opens through: past the fleet's spawn backoff, never the gated one a
+ * capacity hold defers.
+ */
+export const recoveryChairSpawn: (argv: readonly string[]) => Promise<number> = runCmuxSpawnPastBackoff;
 
 /** What cmux's strict inventory says of the workspace a cmux record names. */
 async function cmuxPresenceOf({
@@ -224,7 +238,7 @@ async function openRecoveryChair({
   return launchChairSuccessor({
     alias: candidate.alias,
     home,
-    runSpawn: realSuccessorSpawn,
+    runSpawn: async ({ argv }) => recoveryChairSpawn(["node", "slopweaver", "cmux", "spawn", ...argv]),
     slug: written.value.slug,
     vendor: candidate.vendor,
   });

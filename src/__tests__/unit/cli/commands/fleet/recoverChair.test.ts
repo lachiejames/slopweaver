@@ -4,10 +4,18 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { spawnedChairOf } from "../../../../../cli/commands/fleet/recoverChair.js";
+import { runCmuxSpawn, runCmuxSpawnPastBackoff } from "../../../../../cli/commands/cmux/run.js";
+import { recoveryChairSpawn, spawnedChairOf } from "../../../../../cli/commands/fleet/recoverChair.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
 
 const SLUG = "fresh-supervisor-handoff-9041";
+
+describe("recoveryChairSpawn", () => {
+  it("opens the chair past the spawn backoff, so a capacity hold never defers a Recovery restart", () => {
+    expect(recoveryChairSpawn).toBe(runCmuxSpawnPastBackoff);
+    expect(recoveryChairSpawn).not.toBe(runCmuxSpawn);
+  });
+});
 
 describe("spawnedChairOf", () => {
   it("opens the chair the ledger names after a clean spawn", () => {
