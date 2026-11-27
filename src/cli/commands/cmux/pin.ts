@@ -5,12 +5,11 @@
  * The pin is what `workspace.action`'s own `pin`/`unpin` actions already write (`./run.ts`'s `renameWorkspace`
  * is the same call shape for `rename`). What this verb adds is the refusal cmux itself does not have —
  * `../../../cmux/pin.js`'s `pinCollisionRefusal`, measured to be genuinely necessary: pinning a
- * second workspace left cmux reporting BOTH `pinned: true`.
+ * second workspace left cmux reporting BOTH `pinned: true`. Every arm runs under the supervisor-pin lock
+ * (`../../../supervisor/pinLock.ts`), so that check and the pin it allows are one step.
  */
-import type { CmuxError } from "../../../cmux/errors.js";
-import { listedPinTarget, type PinRefusal, pinCollisionRefusal } from "../../../cmux/pin.js";
+import { slopweaverHome } from "../../../homeDir.js";
 import { logger } from "../../../lib/logger.js";
-import { err, type Result } from "../../../lib/result.js";
 import { type AppSessionClaim, appSessionClaim } from "../../../sessionHarness/appSessionOrigin.js";
 import { APP_SOCKET_ROOT, socketAppTransport } from "../../../sessionHarness/appSocketTransport.js";
 import {
@@ -18,21 +17,20 @@ import {
   listLiveCmuxWorkspaces,
   withCmuxSessionHost,
 } from "../../../sessionHarness/cmuxHost.js";
-import type { SessionHarnessError } from "../../../sessionHarness/errors.js";
 import { readSupervisorPinDisposition } from "../../../sessions/supervisorPinStore.js";
-import { type CmuxPinAppRecordedError, cmuxPinOverAppRecordRefusal } from "../../../supervisor/appPin.js";
+import { acquireSupervisorPinLock, type HoldSupervisorPinLock } from "../../../supervisor/pinLock.js";
 import { detectSupervisorSession } from "../../../supervisor/session.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
 import { parseCmuxVerb, stringFlag } from "./core.js";
 import { pinAppSession } from "./pinApp.js";
-import {
-  forgetUnpinnedSupervisor,
-  recordAppSupervisorPin,
-  recordSupervisorPin,
-  type StaleRecordOutcome,
-} from "./recordPin.js";
+import { pinCmuxWorkspace, unpinCmuxWorkspace } from "./pinWorkspace.js";
+import { forgetUnpinnedSupervisor, recordAppSupervisorPin, recordSupervisorPin } from "./recordPin.js";
 import { targetWorkspaceId } from "./run.js";
+
+/** The production supervisor-pin lock: the resolved home's, stamped now. */
+const holdPinLock: HoldSupervisorPinLock = () =>
+  acquireSupervisorPinLock({ home: slopweaverHome(), nowIso: new Date().toISOString() });
 
 /**
  * `cmux pin` — pin a workspace, refusing when a DIFFERENT one is already pinned rather than leaving two.
@@ -69,52 +67,29 @@ export async function runCmuxPin(argv: readonly string[]): Promise<number> {
  */
 async function runCmuxWorkspacePin({ workspaceRef }: { workspaceRef: string | undefined }): Promise<number> {
   const pinned = await withCmuxSessionHost({
-    // Every failure stays its own typed value until the one line below that prints it.
-    body: async ({
-      harness,
-      host,
-    }): Promise<
-      Result<
-        { readonly ref: string; readonly self: boolean },
-        CmuxError | PinRefusal | SessionHarnessError | CmuxPinAppRecordedError
-      >
-    > => {
-      const target = await targetWorkspaceId({ env: process.env, harness, workspaceRef });
-      if (target.isErr()) {
-        return err(target.error);
-      }
-      const workspaces = await listCmuxWorkspacesThrough({ harness });
-      if (workspaces.isErr()) {
-        return err(workspaces.error);
-      }
-      const named = listedPinTarget({ targetWorkspaceId: target.value, workspaces: workspaces.value });
-      if (named.isErr()) {
-        return err(named.error);
-      }
-      const refused = pinCollisionRefusal({ targetWorkspaceId: target.value, workspaces: workspaces.value });
-      if (refused !== undefined) {
-        return err(refused);
-      }
-      const own = await targetWorkspaceId({ env: process.env, harness, workspaceRef: undefined });
-      // Read last, with no await before the pin, so the window an app session's own `cmux pin` could write its
-      // record into is as short as this process can make it. Nothing locks the record, so it narrows the race and
-      // does not close it.
-      const appRecorded = cmuxPinOverAppRecordRefusal({ disposition: readSupervisorPinDisposition() });
-      if (appRecorded !== undefined) {
-        return err(appRecorded);
-      }
-      const ref = named.value.workspaceRef;
-      return (await host.pinWorkspace({ workspaceId: target.value })).map(() => ({
-        ref,
-        self: recordSupervisorPin({
-          detection: detectSupervisorSession({ env: process.env }),
-          nowIso: new Date().toISOString(),
-          ownWorkspaceId: own.isOk() ? own.value : undefined,
-          pinnedWorkspaceId: target.value,
-          workspaceRef: ref,
-        }),
-      }));
-    },
+    // Every failure stays its own typed value until the one line below that prints it. The inventory, the record
+    // check, the pin and the record write are one critical section under the supervisor-pin lock.
+    body: ({ harness, host }) =>
+      pinCmuxWorkspace({
+        deps: {
+          holdPinLock,
+          listWorkspaces: () => listCmuxWorkspacesThrough({ harness }),
+          nowIso: () => new Date().toISOString(),
+          pinWorkspace: (options) => host.pinWorkspace(options),
+          readDisposition: () => readSupervisorPinDisposition(),
+          recordPin: ({ nowIso, ownWorkspaceId, pinnedWorkspaceId, workspaceRef: ref }) =>
+            recordSupervisorPin({
+              detection: detectSupervisorSession({ env: process.env }),
+              nowIso,
+              ownWorkspaceId,
+              pinnedWorkspaceId,
+              workspaceRef: ref,
+            }),
+          targetWorkspaceId: ({ workspaceRef: named }) =>
+            targetWorkspaceId({ env: process.env, harness, workspaceRef: named }),
+        },
+        workspaceRef,
+      }),
   });
   if (pinned.isErr()) {
     logger.error({ msg: `cmux pin: ${pinned.error.message}` });
@@ -137,6 +112,7 @@ async function runAppPin({ claim }: { claim: AppSessionClaim }): Promise<number>
   const pinned = await pinAppSession({
     claim,
     deps: {
+      holdPinLock,
       nowIso: () => new Date().toISOString(),
       pinnedWorkspaceRefs: async () =>
         (await listLiveCmuxWorkspaces())
@@ -175,27 +151,23 @@ export async function runCmuxUnpin(argv: readonly string[]): Promise<number> {
     return parsed;
   }
   const unpinned = await withCmuxSessionHost({
-    body: async ({
-      harness,
-      host,
-    }): Promise<Result<{ readonly label: string; readonly stale: StaleRecordOutcome }, string>> => {
-      const target = await targetWorkspaceId({
-        env: process.env,
-        harness,
+    body: ({ harness, host }) =>
+      unpinCmuxWorkspace({
+        deps: {
+          forgetRecord: ({ unpinnedWorkspaceId }) => forgetUnpinnedSupervisor({ unpinnedWorkspaceId }),
+          holdPinLock,
+          label: async ({ workspaceId }) => {
+            const resolved = await harness.resolve({ handle: workspaceId });
+            return resolved.isOk() ? resolved.value.session.handle : workspaceId;
+          },
+          targetWorkspaceId: ({ workspaceRef }) => targetWorkspaceId({ env: process.env, harness, workspaceRef }),
+          unpinWorkspace: (options) => host.unpinWorkspace(options),
+        },
         workspaceRef: stringFlag({ name: "workspace", parsed }),
-      });
-      if (target.isErr()) {
-        return err(target.error.message);
-      }
-      const resolved = await harness.resolve({ handle: target.value });
-      const label = resolved.isOk() ? resolved.value.session.handle : target.value;
-      return (await host.unpinWorkspace({ workspaceId: target.value }))
-        .map(() => ({ label, stale: forgetUnpinnedSupervisor({ unpinnedWorkspaceId: target.value }) }))
-        .mapErr((cmuxError) => cmuxError.message);
-    },
+      }),
   });
   if (unpinned.isErr()) {
-    logger.error({ msg: `cmux unpin: ${unpinned.error}` });
+    logger.error({ msg: `cmux unpin: ${unpinned.error.message}` });
     return EXIT_ERROR;
   }
   logger.out({ line: `cmux unpin: unpinned ${unpinned.value.label}` });

@@ -1,6 +1,6 @@
 /**
- * `cmux pin` from inside an app-hosted session, over plain fakes: the app's answer, one cmux listing, the strict
- * record and a writer that records what it was asked to write. No socket, no cmux, no file.
+ * `cmux pin` from inside an app-hosted session, over plain fakes: the supervisor-pin lock, the app's answer, one cmux
+ * listing, the strict record and a writer that records what it was asked to write. No socket, no cmux, no file.
  */
 import { describe, expect, it } from "vitest";
 
@@ -10,6 +10,7 @@ import type { AppHarnessResponse } from "../../../../../sessionHarness/appProtoc
 import type { AppSessionClaim } from "../../../../../sessionHarness/appSessionOrigin.js";
 import type { AppTransport, AppTransportFailure } from "../../../../../sessionHarness/appSocketTransport.js";
 import type { SupervisorPinDisposition } from "../../../../../sessions/supervisorPinStore.js";
+import { fakePinLock, HELD_LOCK_MESSAGE } from "./pinLockFake.js";
 
 const APP_ID = "a0000107-0000-4000-8000-0000000000a1";
 const CLAUDE_ID = "a0000107-0000-4000-8000-0000000000c1";
@@ -30,54 +31,78 @@ const VOUCHED: AppHarnessResponse = {
   },
 };
 
-/** The fakes, with every record call kept so a case can say whether anything was written. */
+/** The fakes, with every record call kept so a case can say whether anything was written, and every effect journalled. */
 function fakes({
   answer = ok(VOUCHED),
   pinned = ok([]),
   disposition = { kind: "absent" },
   writes = true,
+  held = false,
 }: {
   answer?: Result<AppHarnessResponse, AppTransportFailure>;
   pinned?: Result<readonly string[], { readonly message: string }>;
   disposition?: SupervisorPinDisposition;
   writes?: boolean;
-}): { deps: AppPinDeps; recorded: unknown[] } {
+  held?: boolean;
+}): { deps: AppPinDeps; recorded: unknown[]; events: string[] } {
   const recorded: unknown[] = [];
-  const transport: AppTransport = async () => answer;
+  const events: string[] = [];
+  const transport: AppTransport = async () => {
+    events.push("origin");
+    return answer;
+  };
   return {
     deps: {
+      holdPinLock: fakePinLock({ events, held }),
       nowIso: () => NOW,
-      pinnedWorkspaceRefs: async () => pinned,
-      readDisposition: () => disposition,
+      pinnedWorkspaceRefs: async () => {
+        events.push("cmux");
+        return pinned;
+      },
+      readDisposition: () => {
+        events.push("record-read");
+        return disposition;
+      },
       record: (options) => {
+        events.push("record-write");
         recorded.push(options);
         return writes;
       },
       transport,
     },
+    events,
     recorded,
   };
 }
 
 describe("pinAppSession", () => {
-  it("records the vouched app session and says so", async () => {
-    const { deps, recorded } = fakes({});
+  it("records the vouched app session and says so, all under the supervisor-pin lock", async () => {
+    const { deps, events, recorded } = fakes({});
     expect(unwrap(await pinAppSession({ claim: CLAIM, deps }))).toEqual({
       label: `app:${APP_ID}`,
       plan: "record",
       wrote: true,
     });
     expect(recorded).toEqual([{ appSessionId: APP_ID, nowIso: NOW, session: CLAIM.session }]);
+    expect(events).toEqual(["lock", "origin", "cmux", "record-read", "record-write", "release"]);
   });
 
-  it("writes nothing when the app refuses the origin claim", async () => {
-    const { deps, recorded } = fakes({
+  it("refuses on a held lock before the app, cmux or the record is read", async () => {
+    const { deps, events, recorded } = fakes({ held: true });
+    expect(unwrapErr(await pinAppSession({ claim: CLAIM, deps })).message).toBe(HELD_LOCK_MESSAGE);
+    expect(recorded).toEqual([]);
+    expect(events).toEqual(["lock"]);
+  });
+
+  it("writes nothing when the app refuses the origin claim, and releases the lock", async () => {
+    const { deps, events, recorded } = fakes({
       answer: err({ code: "ORIGIN_REFUSED", kind: "refused", message: "that session runs another vendor id" }),
     });
     expect(unwrapErr(await pinAppSession({ claim: CLAIM, deps })).message).toBe(
       "the desktop app did not vouch for this session: that session runs another vendor id",
     );
     expect(recorded).toEqual([]);
+    expect(events).toEqual(["lock", "origin", "release"]);
   });
 
   it("writes nothing when cmux cannot be read and nothing is recorded, since an unrecorded cmux pin cannot be ruled out", async () => {
@@ -115,8 +140,8 @@ describe("pinAppSession", () => {
     expect(recorded).toEqual([]);
   });
 
-  it("writes nothing for a re-pin of the session already recorded", async () => {
-    const { deps, recorded } = fakes({
+  it("writes nothing for a re-pin of the session already recorded, and releases the lock", async () => {
+    const { deps, events, recorded } = fakes({
       disposition: {
         kind: "pin",
         record: { appSessionId: APP_ID, pinnedAtIso: "2026-11-09T01:30:00.000Z", session: CLAIM.session },
@@ -128,6 +153,7 @@ describe("pinAppSession", () => {
       wrote: false,
     });
     expect(recorded).toEqual([]);
+    expect(events).toEqual(["lock", "origin", "cmux", "record-read", "release"]);
   });
 
   it("reports a record that would not write", async () => {

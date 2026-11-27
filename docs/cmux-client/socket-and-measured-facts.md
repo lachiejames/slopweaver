@@ -128,4 +128,5 @@ workspaces may be pinned at once. The pin is how a supervised session tells the 
 session reading it. `slopweaver cmux pin` refuses in exactly that case (`src/cmux/pin.ts`'s
 `pinCollisionRefusal`) rather than leaving cmux to allow it; `slopweaver cmux unpin` has no such refusal and is
 idempotent, since a caller about to take over a pin cannot know which state it is in without a read it has no
-other reason to make.
+other reason to make. Two concurrent pins could each pass that check before either pinned, so both verbs run
+under one supervisor-pin lock (`src/supervisor/pinLock.ts`), and the second refuses at once naming the first.

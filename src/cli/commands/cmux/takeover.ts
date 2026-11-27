@@ -39,6 +39,7 @@ import { type AppSessionClaim, appSessionClaim } from "../../../sessionHarness/a
 import { APP_SOCKET_ROOT, type AppTransport, socketAppTransport } from "../../../sessionHarness/appSocketTransport.js";
 import { withCmuxSessionHost } from "../../../sessionHarness/cmuxHost.js";
 import type { SessionHarness } from "../../../sessionHarness/sessionHarness.js";
+import { acquireSupervisorPinLock } from "../../../supervisor/pinLock.js";
 import {
   detectSupervisorSession,
   supervisorSessionProblem,
@@ -52,6 +53,7 @@ import { OWNER_TURN_WINDOW_DAYS, unreadOwnerTurns } from "../supervisor/ownerTur
 import { parseCmuxVerb, stringFlag } from "./core.js";
 import { targetWorkspaceId } from "./run.js";
 import { appCallerSweepGate, predecessorGates, takeoverDryRunLine } from "./takeoverHosts.js";
+import { runLockedTakeover } from "./takeoverLock.js";
 import { performTakeover } from "./takeoverSteps.js";
 import { readTranscriptLeg } from "./takeoverTranscript.js";
 
@@ -272,15 +274,22 @@ export async function runCmuxTakeover(argv: readonly string[]): Promise<number> 
         }
         return EXIT_ERROR;
       }
-      const predecessor = await predecessorGates({ appHarness, caller, client, home });
-      if (typeof predecessor === "number") {
-        return predecessor;
-      }
       if (dryRun) {
+        // A dry run moves nothing, so it reads the seat unlocked and is never refused by a pin in flight.
+        const predecessor = await predecessorGates({ appHarness, caller, client, home });
+        if (typeof predecessor === "number") {
+          return predecessor;
+        }
         logger.out({ line: takeoverDryRunLine({ caller, predecessor }) });
         return EXIT_OK;
       }
-      return performTakeover({ appHarness, caller, client, home, predecessor, session: detection.session });
+      // From the first read of the seat to step 6, under the supervisor-pin lock (`./takeoverLock.ts`).
+      return runLockedTakeover({
+        act: ({ predecessor }) =>
+          performTakeover({ appHarness, caller, client, home, predecessor, session: detection.session }),
+        gates: () => predecessorGates({ appHarness, caller, client, home }),
+        holdPinLock: () => acquireSupervisorPinLock({ home: resolvedHome({ home }), nowIso: new Date().toISOString() }),
+      });
     },
   });
 }

@@ -112,8 +112,8 @@ or `not-restarted`, its reason, and every chair the press opened or tried to, in
   but never takes the pin: `cmux takeover` needs cmux's own pin, and a bare `cmux pin` refuses when cmux cannot be
   read (`src/cli/commands/cmux/pinApp.ts`), since a cmux pin can stand with no record. What this leaves unseen: a
   pin set by hand in cmux's own UI beside an app record, or one older than the record, while cmux cannot be read.
-  The cmux arm of `cmux pin` refuses while the record names an app session. Nothing locks the record, though. A
-  cmux pin racing any verb that rewrites it, an app session's own `cmux pin` or a `cmux takeover` between removing
-  the old record and writing the new one, can still land beside the new record.
+  The cmux arm of `cmux pin` refuses while the record names an app session, and every verb that moves the seat holds
+  one supervisor-pin lock from its read to its write (`src/supervisor/pinLock.ts`), so no `cmux pin` lands beside a
+  record a takeover or an app session's own pin is rewriting. A pin made from another home never asks for it.
 - **A pass proves one turn, on the plan that answered, at that moment.** A plan the ranker placed later is not
   proven.

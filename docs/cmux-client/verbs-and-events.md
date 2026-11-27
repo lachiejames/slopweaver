@@ -113,10 +113,13 @@ names, resolved through the app alone (`resolveAppPredecessorPastUnreadableCmux`
 desktop app restarted while cmux refuses the app's child its socket. With no record, a cmux record or a cmux
 caller, step 2 refuses, because cmux's own pin is the only authority there. A cmux that can be read still runs the
 cross-host collision check. The record can stand in for cmux because the cmux arm of `cmux pin` refuses while it
-names an app session (`cmuxPinOverAppRecordRefusal`, `src/supervisor/appPin.ts`). The residue: a pin set by
-hand in cmux's own UI beside an app record, or one older than the record, goes unseen while cmux cannot be read.
-So does a cmux pin that raced a verb rewriting the record, an app session's own `cmux pin` or a takeover between
-step 4's removal and its new record: the record is read just before the pin, and nothing locks it.
+names an app session (`cmuxPinOverAppRecordRefusal`, `src/supervisor/appPin.ts`), and no verb can race it
+there: both arms of `cmux pin`, `cmux unpin` and `cmux takeover` hold one supervisor-pin lock from their first read
+of the seat to their last write (`src/supervisor/pinLock.ts`), and a held lock refuses at once, naming its holder.
+Takeover takes it after gate (a)'s sweep drain, so a pin is never held off for those seconds, and `--dry-run`, which
+moves nothing, never takes it. The residue is a
+writer that never asks for the lock: a pin set by hand in cmux's own UI beside an app record, or one older than
+the record, goes unseen while cmux cannot be read, and so does a pin made from another home.
 
 **A predecessor its host no longer holds is taken over too** (`src/supervisor/gonePredecessor.ts`,
 `src/cli/commands/cmux/takeoverGone.ts`): a cmux record whose workspace cmux no longer lists, or an app record the
