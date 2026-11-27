@@ -1,13 +1,14 @@
 /**
- * The bump manifests a pull request itself commits under `.baselines/bumps/`, read as records beside the state
- * home's (`./bumpRecordStore.ts`). A landing CLI built before records moved to the home finds a declaration only
- * there, so a pull request landed by one carries its manifest in the tree; this read lets the current landing
- * verbs take the same file, so one declaration and one witness satisfy both.
+ * The bump manifests a candidate merge adds under `.baselines/bumps/`, read as records beside the state home's
+ * (`./bumpRecordStore.ts`).
  *
- * Only a file the candidate merge ADDS against the base counts. One main already holds is history, whatever its
- * rows, and one a change rewrites is CI's to refuse (`../devLint/baselineComparison.ts`), never a declaration.
- * Every added file must decode as a manifest filed under its own digest, or the whole read is an error — the
- * same fail-closed rule as the home's.
+ * The landing read (`./baselineBumpWitnessRun.ts`) calls this only after `./baselineBumpLanding.ts` has compared
+ * the candidate against its base, and that comparison refuses every file a change adds, renames or rewrites
+ * under the directory (`../devLint/baselineComparison.ts`). So on the landing path this lists nothing, and
+ * contributes no record: its one effect there is to refuse when git will not list the directory.
+ *
+ * Called directly, only a file the candidate ADDS against the base counts, and every one must decode as a
+ * manifest filed under its own digest, or the whole read is an error — the same fail-closed rule as the home's.
  */
 
 import { err, ok, type Result } from "#lib/result.js";
@@ -17,7 +18,8 @@ import { gitNulFields, gitShow } from "../devLint/gitAtCommit.js";
 import { type BumpRecord, type BumpRecordStoreError, BumpRecordStoreErrors } from "./bumpRecordStore.js";
 
 /**
- * Every manifest the candidate adds under `.baselines/bumps/` against the base, decoded and checked. IO edge.
+ * Every manifest the candidate adds under `.baselines/bumps/` against the base, decoded and checked — none on the
+ * landing path, whose comparison has already refused any such file. IO edge.
  *
  * @param root a checkout holding both commits
  * @param base the pull request's base commit
@@ -60,8 +62,9 @@ export function committedBumpManifests({
 }
 
 /**
- * The records a landing judges: the home's, then each manifest the change commits whose digest the home does
- * not already hold, so one declaration kept in both places is judged once. Pure.
+ * The home's records, then each committed one whose digest the home does not already hold, so one declaration
+ * kept in both places is judged once. The landing path passes no committed record, so there it returns the
+ * home's records alone. Pure.
  *
  * @param stored the records read from the state home
  * @param committed the manifests {@link committedBumpManifests} read from the change

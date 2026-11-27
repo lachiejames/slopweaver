@@ -1,9 +1,9 @@
 /**
  * Whether every ratchet bump a pull request declares has an independent witness — the AUTHORITY half of the
  * rule that the session implementing a pull request must not be the one deciding to bump its ratchet, for the
- * same reason Codex plans and reviews every pull request. CI holds the structure
- * (`src/devLint/baselineAgainstMain.ts`: every loosening is declared by a committed manifest); this holds the
- * authority, at the two landing verbs, from the pass records OUTSIDE the tree being judged.
+ * same reason Codex plans and reviews every pull request. CI only reports each loosening as a landing obligation
+ * (`src/devLint/baselineAgainstMain.ts`), since it cannot see the state home; the two landing verbs hold it to a
+ * home record, and this holds the authority, from the pass records OUTSIDE the tree being judged.
  *
  * ## What counts as a witness, and why each condition is there
  *
@@ -53,9 +53,10 @@
  * were. The landing comparison still re-measures every row's exact `from -> to`, so a changed measure is refused
  * there; a changed JUSTIFICATION with an unchanged measure is the residue.
  *
- * NOT bound to main's commit, on purpose: each row pins its own `from -> to` against main, so a main that moved
- * the baseline makes CI refuse the manifest and a re-declared one carries a new digest, so a new witness. A
- * main that moved anything else leaves the justification standing. Nor is it a hold GitHub enforces — like the
+ * NOT bound to main's commit, on purpose: each record pins its own base and `from -> to` rows, and
+ * `./baselineBumpPlacement.ts` keeps it eligible only while those rows hold against that base, so a main that
+ * moved the baseline needs a re-declared record, whose new digest needs a new witness. A main that moved
+ * anything else leaves the justification standing. Nor is it a hold GitHub enforces — like the
  * pairing floor, it binds through the one door (AGENTS.md rule 3), at the moment of the landing verb.
  *
  * Pure. `./baselineBumpWitnessRun.ts` reads the manifests and the records; this decides.
