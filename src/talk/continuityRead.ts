@@ -31,7 +31,7 @@ import {
   type TalkContinuity,
   unreadContinuity,
 } from "./continuity.js";
-import { callsForMint, callsSince, testCallsSince } from "./continuityCalls.js";
+import { callsSince, testCallsSince } from "./continuityCalls.js";
 import { typedTurnsOf } from "./continuityTyped.js";
 import { readTurn } from "./relayStore.js";
 import type { SupervisorWindow } from "./supervisorWindow.js";
@@ -151,18 +151,9 @@ function readRulings({ home, sinceIso }: { home: string; sinceIso: string }): {
  *
  * @param home the state home
  * @param sinceIso the window's floor
- * @param typedCalls whether conversations typed into the messenger are read (`callsForMint`)
  * @returns the calls and any unread note
  */
-function readCallsHalf({
-  home,
-  sinceIso,
-  typedCalls,
-}: {
-  home: string;
-  sinceIso: string;
-  typedCalls: "keep" | "drop";
-}): {
+function readCallsHalf({ home, sinceIso }: { home: string; sinceIso: string }): {
   calls: TalkContinuity["calls"];
   unread: readonly ContinuityUnread[];
 } {
@@ -177,17 +168,21 @@ function readCallsHalf({
       why: `${String(read.value.unreadable.length)} call file(s) could not be read, so a call may be missing`,
     });
   }
-  return { calls: callsSince({ calls: callsForMint({ calls: read.value.calls, typedCalls }), sinceIso }), unread };
+  return { calls: callsSince({ calls: read.value.calls, sinceIso }), unread };
 }
 
 /**
  * The desktop test instance's own calls inside the window, newest first — read only for an offer the test instance
- * placed (`talk offer --test-instance e2e`), and never part of the owner's continuity. A failed listing or any unreadable
- * call file sets `unread`, since the file not read may be the newer call; the reminder then stays off.
+ * placed (`talk offer --test-instance e2e`), and never part of the owner's continuity. Only a failed listing sets
+ * `unread`, and the reminder then stays off. A call file that could not be read is NOT counted: the test instance's
+ * mark sits inside the file (the open line's `origin`), so an unreadable file cannot be shown to be one of the calls
+ * this arm reads, and counting it would let a damaged call of the owner's switch a test call's reminder off. The
+ * residue, stated: a test call's own file that is wholly unreadable is passed over, so the reminder is judged on the
+ * newest test call that did read, and a walk expecting the lost call's words fails loudly on the wrong recap.
  *
  * @param home the state home
  * @param sinceIso the window's floor
- * @returns the test calls, and whether any call file went unread
+ * @returns the test calls, and whether the call directory itself went unread
  */
 export function readTestCalls({ home, sinceIso }: { home: string; sinceIso: string }): {
   calls: TalkContinuity["calls"];
@@ -197,10 +192,7 @@ export function readTestCalls({ home, sinceIso }: { home: string; sinceIso: stri
   if (read.isErr()) {
     return { calls: [], unread: true };
   }
-  return {
-    calls: testCallsSince({ calls: read.value.calls, sinceIso }),
-    unread: read.value.unreadable.length > 0,
-  };
+  return { calls: testCallsSince({ calls: read.value.calls, sinceIso }), unread: false };
 }
 
 /**
@@ -250,8 +242,10 @@ async function readKnowledge({
 }
 
 /**
- * Read where the last call left off. It never rejects: `talk offer` awaits it while a call connects, and a read
- * that threw would fail the mint, so a throw becomes a read with every half named unread.
+ * Read where the owner's last call left off. It never rejects: `talk offer` awaits it while a call connects, and a
+ * read that threw would fail the mint, so a throw becomes a read with every half named unread. It is the OWNER's
+ * read and has no test-instance mode: a desktop test instance's mint never calls it
+ * (`../cli/commands/talk/offerRun.ts`, `./mintContext.ts`).
  *
  * @param home the state home
  * @param handoverDir the board directory
@@ -259,8 +253,6 @@ async function readKnowledge({
  * @param lookbackMs how far back the window reaches
  * @param knowledge whether to open the store for the lessons half; `skip` names it unread instead
  * @param supervisor the current supervisor chat the owner's typed turns are read from, or why it could not be read
- * @param typedCalls `drop` for a desktop test instance's mint, which never reads a conversation typed into the
- *   messenger; `keep` for every other read
  * @returns the whole read, every half that failed named in `unread`
  */
 export async function readContinuity({
@@ -270,7 +262,6 @@ export async function readContinuity({
   lookbackMs,
   knowledge,
   supervisor,
-  typedCalls,
 }: {
   home: string;
   handoverDir: string;
@@ -278,11 +269,10 @@ export async function readContinuity({
   lookbackMs: number;
   knowledge: "read" | "skip";
   supervisor: SupervisorWindow | string;
-  typedCalls: "keep" | "drop";
 }): Promise<TalkContinuity> {
   const sinceIso = new Date(Date.parse(nowIso) - lookbackMs).toISOString();
   try {
-    return await readWhole({ handoverDir, home, knowledge, nowIso, sinceIso, supervisor, typedCalls });
+    return await readWhole({ handoverDir, home, knowledge, nowIso, sinceIso, supervisor });
   } catch (cause) {
     return unreadContinuity({ builtIso: nowIso, sinceIso, why: `the read threw: ${String(cause)}` });
   }
@@ -297,7 +287,6 @@ export async function readContinuity({
  * @param sinceIso the window's floor
  * @param knowledge whether to open the store for the lessons half
  * @param supervisor the current supervisor chat, or why it could not be read
- * @param typedCalls whether conversations typed into the messenger are read
  * @returns the read
  */
 async function readWhole({
@@ -307,7 +296,6 @@ async function readWhole({
   sinceIso,
   knowledge,
   supervisor,
-  typedCalls,
 }: {
   home: string;
   handoverDir: string;
@@ -315,11 +303,10 @@ async function readWhole({
   sinceIso: string;
   knowledge: "read" | "skip";
   supervisor: SupervisorWindow | string;
-  typedCalls: "keep" | "drop";
 }): Promise<TalkContinuity> {
   const steers = readSteers({ handoverDir, home, sinceIso });
   const rulings = readRulings({ home, sinceIso });
-  const calls = readCallsHalf({ home, sinceIso, typedCalls });
+  const calls = readCallsHalf({ home, sinceIso });
   let lessons: { knowledge: TalkContinuity["knowledge"]; unread: readonly ContinuityUnread[] } = {
     knowledge: [],
     unread: [{ section: "knowledge", why: "not read at mint — call knowledge or recent_steers for the lessons" }],

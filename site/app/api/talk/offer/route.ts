@@ -87,8 +87,8 @@ async function planLeg({
   // carries `--test-instance e2e`, so the verb judged it against the test instance's own calls alone.
   const { composition } = read;
   // This call goes without the pack; rebuilding it now means the reconnect, the rollover ahead of the 90-minute
-  // limit, or the next call carries one (`lib/packKeeper.ts`).
-  if (isBag(composition.pack) && typeof composition.pack["leftOut"] === "string") {
+  // limit, or the next call carries one (`lib/packKeeper.ts`). A test call goes without it by design, so it rebuilds nothing.
+  if (wanted === "voice" && isBag(composition.pack) && typeof composition.pack["leftOut"] === "string") {
     refreshPackNow();
   }
   // Again, now: a typed conversation may have opened while the verb composed.

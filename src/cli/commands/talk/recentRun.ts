@@ -56,7 +56,6 @@ export async function runTalkRecent(argv: readonly string[]): Promise<number> {
     lookbackMs: args.hours * HOUR_MS,
     nowIso,
     supervisor: supervisorForContinuity({ home }),
-    typedCalls: "keep",
   });
   const bounded = continuityForTool({ continuity, maxBytes: CONTINUITY_MAX_BYTES });
   if (args.json) {

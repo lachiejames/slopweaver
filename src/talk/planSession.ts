@@ -276,7 +276,7 @@ export function mcpServerNamesOf({ json }: { json: string }): Result<readonly st
  * start.
  *
  * @param context the owner's voice brief, where the last calls left off and the stored pack as one block, or `undefined` when
- *   none rides in
+ *   none rides in — always so on a desktop test instance's call (`./mintContext.ts`)
  * @param opener where the last call left off, or `undefined` when no steer is in the window
  * @param surface a typed conversation also hands the delegated model the opener and the typed-medium block
  * @returns the delegated model's instructions and the voice's
@@ -318,7 +318,7 @@ export function talkInstructions({
  *
  * @param voice the chatgpt.com voice to answer in
  * @param context the owner's voice brief, where the last calls left off and the stored pack as one block, or `undefined` when
- *   none rides in
+ *   none rides in — always so on a desktop test instance's call (`./mintContext.ts`)
  * @param opener where the last call left off, or `undefined` when no steer is in the window
  * @param executable the vendored Codex CLI the console launches
  * @param mcpServers the configured MCP server names to stub out

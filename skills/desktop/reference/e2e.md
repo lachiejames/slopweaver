@@ -114,7 +114,7 @@ pass the call over — once ANY open line of a call is marked, a later unmarked 
 owner's (`src/talk/callOpened.ts`, `callOrigin.ts`'s `originAfterOpen`), so nor does it wake the chair. A renderer crash's
 closing batch carries the marker too (`site/lib/overlayCrashRecovery.ts`). It appends to the owner's live home only through the owner's own console: the route wakes no chair, no
 card lands from it automatically, and `talk land` refuses a `call:` anchor into it (`TEST_INSTANCE_CALL`). On any other console the marker is judged as that
-console. A relay from the instance is refused (403) before anything runs, and `talk relay` takes no such flag.
+console. A relay from the instance is refused (403) before anything runs, and `talk relay` takes no such flag. A test call is MINTED with none of the owner's state either: `talk offer --test-instance e2e` reads no continuity, context pack, voice brief, typed turn or relay (`src/talk/mintContext.ts`), so a scenario's answer comes from its own prompt and fixtures, never the owner's board; the one read is the armed `call-reopen` scenario's own call history.
 Every prompt but `call-live`'s still says it is an automated end to end test; `call-live`'s mic says only "Hello.", the
 way the owner opens a call, because announcing a test would hide the greeting under test. The fleet may start calls and click the owner's desktop freely. The leg runs on
 the owner's console only: `--checkout` naming anything but a main checkout the owner's profile declares, with `--call`, is refused before launch (`CALL_CONSOLE_NOT_HIS`), because

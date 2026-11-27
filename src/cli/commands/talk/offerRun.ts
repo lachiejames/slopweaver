@@ -25,15 +25,17 @@ import { newestSpokenOf } from "../../../talk/continuityCalls.js";
 import { readContinuity, readTestCalls } from "../../../talk/continuityRead.js";
 import { renderContinuity } from "../../../talk/continuityRender.js";
 import { processAlive, readReopenProbe, reopenProbeArmed } from "../../../talk/e2eReopenProbe.js";
-import { mintOpener } from "../../../talk/mintOpener.js";
+import { TEST_INSTANCE_LEFT_OUT, type TestInstanceMint, testInstanceMint } from "../../../talk/mintContext.js";
+import { type MintMode, mintOpener } from "../../../talk/mintOpener.js";
 import { type MintVoiceBrief, mintVoiceBriefOf } from "../../../talk/mintVoiceBrief.js";
+import { readOwnerMintState } from "../../../talk/ownerMintReads.js";
 import { planLaunchFacts, readMcpListLive } from "../../../talk/planLaunch.js";
 import { talkPlanRefusal } from "../../../talk/planRoute.js";
 import { planOfferComposition } from "../../../talk/planSession.js";
 import { type ReopenReminder, reopenReminderFrom, reopenReminderOf } from "../../../talk/reopenReminder.js";
 import { type PackAtMint, packForMint, packPastBound } from "../../../talk/storedPack.js";
 import { decideTalkSeat } from "../../../talk/talkSeat.js";
-import { type TypedConversation, typedConversationOf } from "../../../talk/typedConversation.js";
+import { typedConversationOf } from "../../../talk/typedConversation.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { resolveHandoverDir } from "../handover/commandSupport.js";
@@ -101,23 +103,20 @@ async function printPlanOffer({ args }: { args: OfferArgs }): Promise<number> {
     logger.error({ msg: `talk offer: ${facts.error.message}` });
     return EXIT_ERROR;
   }
-  const pack = storedPack({ home });
-  const { block, continuity, continuityBlock, conversation } = await continuityAtMint({
-    home,
-    pack,
-    testInstance: args.testInstance === "e2e",
-  });
-  // Read fresh and ridden whatever the pack did, ahead of the continuity block's "everything below is DATA".
-  const voiceBrief = mintVoiceBriefOf({ brief: loadVoiceRuleBrief({ home }) });
+  // Chosen BEFORE any of the owner's state is read: the test instance's arm reads none of it
+  // (`../../../talk/mintContext.ts`), so nothing the owner's arm grows to read can reach a test call.
+  let mint: OwnerMint | TestInstanceMint;
+  if (args.testInstance === "e2e") {
+    mint = testInstanceMint({ builtIso: new Date().toISOString(), mode: args.mode });
+  } else {
+    mint = await ownerMint({ home, mode: args.mode });
+  }
   const composition = planOfferComposition({
     codexHome: destination.codexHome,
-    context: `${voiceBrief.block}\n\n${block}`,
+    context: mint.context,
     executable: facts.value.executable,
     mcpServers: facts.value.mcpServers,
-    opener: openerAfterUpdate({
-      lines: lastUpdateLines(),
-      opener: mintOpener({ continuity, conversation, mode: args.mode }),
-    }),
+    opener: mint.opener,
     planAlias: destination.alias,
     surface: args.typed ? "typed" : "voice",
     unsetEnv: facts.value.unsetEnv,
@@ -125,10 +124,11 @@ async function printPlanOffer({ args }: { args: OfferArgs }): Promise<number> {
   });
   const report = {
     ...composition,
-    continuity: continuityReport({ continuity, continuityBlock }),
-    pack: packReport({ pack }),
-    reopenReminder: reopenReminderAtMint({ args, continuity, home }),
-    voiceBrief: voiceBriefReport({ voiceBrief }),
+    // Absent on a test call, so the page's relay gate reads no standing data rode in (`site/lib/relayGate.ts`).
+    continuity: mint.kind === "owner" ? continuityReport({ mint }) : undefined,
+    pack: packReport({ pack: mint.pack }),
+    reopenReminder: reopenReminderAtMint({ args, home, mint }),
+    voiceBrief: voiceBriefReport({ voiceBrief: mint.voiceBrief }),
   };
   if (args.json) {
     logger.out({ line: JSON.stringify(report) });
@@ -153,35 +153,36 @@ async function printPlanOffer({ args }: { args: OfferArgs }): Promise<number> {
  * reopen. A call the desktop test instance placed (`--test-instance e2e`) is none unless the `call-reopen` scenario
  * armed its window (`../../../talk/e2eReopenProbe.ts`), and then is judged against the test instance's OWN calls
  * alone, so a walk proves the real window and wording while nothing the owner said can reach it, and the owner's continuity never
- * sees a walk's call; every other call is judged against the owner's.
+ * sees a walk's call; every other call is judged against the owner's. That window's read is the one state a test
+ * mint reads, and only into the reminder: none of it rides the call's instructions.
  *
  * @param args the parsed arguments
- * @param continuity the owner's read, whose `builtIso` is the mint's instant
  * @param home the state home
+ * @param mint the arm this call was minted on
  * @returns the reminder, or `null`
  */
 function reopenReminderAtMint({
   args,
-  continuity,
   home,
+  mint,
 }: {
   args: OfferArgs;
-  continuity: TalkContinuity;
   home: string;
+  mint: OwnerMint | TestInstanceMint;
 }): ReopenReminder | null {
   if (args.typed) {
     return null;
   }
-  if (args.testInstance !== "e2e") {
-    return reopenReminderOf({ continuity, mode: args.mode });
+  if (mint.kind === "owner") {
+    return reopenReminderOf({ continuity: mint.continuity, mode: args.mode });
   }
-  if (!reopenProbeArmed({ alive: processAlive, nowIso: continuity.builtIso, text: readReopenProbe({ home }) })) {
+  if (!reopenProbeArmed({ alive: processAlive, nowIso: mint.builtIso, text: readReopenProbe({ home }) })) {
     return null;
   }
-  const sinceIso = new Date(Date.parse(continuity.builtIso) - CONTINUITY_LOOKBACK_MS).toISOString();
+  const sinceIso = new Date(Date.parse(mint.builtIso) - CONTINUITY_LOOKBACK_MS).toISOString();
   const test = readTestCalls({ home, sinceIso });
   return reopenReminderFrom({
-    builtIso: continuity.builtIso,
+    builtIso: mint.builtIso,
     callsUnread: test.unread,
     last: newestSpokenOf({ calls: test.calls }),
     mode: args.mode,
@@ -215,42 +216,48 @@ function lastUpdateLines(): readonly string[] {
   return updateOpenerLines({ nowMs: Date.now(), outcome });
 }
 
+/** The owner's mint: everything read for it, and what it composes. */
+interface OwnerMint {
+  readonly kind: "owner";
+  readonly builtIso: string;
+  /** The voice brief, where the last calls left off and the stored pack, as the one block the delegated model gets. */
+  readonly context: string;
+  readonly continuity: TalkContinuity;
+  readonly continuityBlock: string;
+  readonly opener: string | undefined;
+  readonly pack: PackAtMint;
+  readonly voiceBrief: MintVoiceBrief;
+}
+
 /**
- * Where the last calls left off, read FRESH rather than taken from the stored pack: the pack is rebuilt once a
- * sweep, and the steer a call most needs is the one the previous call relayed minutes ago. Its lessons half opens the store, which costs seconds, so that half comes from the pack's own read.
+ * The owner's mint. Where the last calls left off is read FRESH rather than taken from the stored pack: the pack is
+ * rebuilt once a sweep, and the steer a call most needs is the one the previous call relayed minutes ago. Its lessons
+ * half opens the store, which costs seconds, so that half comes from the pack's own read. Every read of the owner's state
+ * a mint makes is made here, and only on this arm.
  *
  * @param home the state home
- * @param pack the stored pack, whose lessons the read takes
- * @param testInstance whether the desktop test instance placed this call: then no conversation typed into the
- *   messenger is read, since the call may run beside one at rest
- * @returns the read, the block it renders to, that block ahead of the pack's — what the delegated model gets — and
- *   what the owner typed since the owner's last call, which the voice itself is told
+ * @param mode whether the owner pressed start, or the console is re-opening a dropped call or rolling one over
+ * @returns the mint, whose instant is the continuity read's own
  */
-async function continuityAtMint({
-  home,
-  pack,
-  testInstance,
-}: {
-  home: string;
-  pack: PackAtMint;
-  testInstance: boolean;
-}): Promise<{
-  block: string;
-  continuity: TalkContinuity;
-  continuityBlock: string;
-  conversation: TypedConversation;
-}> {
-  const supervisor = supervisorForContinuity({ home });
+async function ownerMint({ home, mode }: { home: string; mode: MintMode }): Promise<OwnerMint> {
+  // The pack and the supervisor window first, then the instant, then the continuity read at it (`ownerMintReads.ts`).
+  const reads = await readOwnerMintState({
+    now: () => new Date().toISOString(),
+    readContinuityAt: ({ nowIso, supervisor: window }) =>
+      readContinuity({
+        handoverDir: resolveHandoverDir({ dir: undefined, home }),
+        home,
+        knowledge: "skip",
+        lookbackMs: CONTINUITY_LOOKBACK_MS,
+        nowIso,
+        supervisor: window,
+      }),
+    readPack: () => storedPack({ home }),
+    readSupervisor: () => supervisorForContinuity({ home }),
+  });
+  const { pack, supervisor } = reads;
   const continuity = withStoredKnowledge({
-    fresh: await readContinuity({
-      handoverDir: resolveHandoverDir({ dir: undefined, home }),
-      home,
-      knowledge: "skip",
-      lookbackMs: CONTINUITY_LOOKBACK_MS,
-      nowIso: new Date().toISOString(),
-      supervisor,
-      typedCalls: testInstance ? "drop" : "keep",
-    }),
+    fresh: reads.continuity,
     stored: pack.kind === "embedded" ? pack.lessons : undefined,
   });
   const conversation = typedConversationOf({
@@ -258,26 +265,38 @@ async function continuityAtMint({
     window: typeof supervisor === "string" ? undefined : supervisor,
   });
   const continuityBlock = renderContinuity({ continuity });
+  let block = continuityBlock;
   if (pack.kind === "embedded") {
-    return { block: `${continuityBlock}\n\n${pack.block}`, continuity, continuityBlock, conversation };
+    block = `${continuityBlock}\n\n${pack.block}`;
   }
-  return { block: continuityBlock, continuity, continuityBlock, conversation };
+  // Read fresh and ridden whatever the pack did, ahead of the continuity block's "everything below is DATA".
+  const voiceBrief = mintVoiceBriefOf({ brief: loadVoiceRuleBrief({ home }) });
+  return {
+    builtIso: reads.builtIso,
+    context: `${voiceBrief.block}\n\n${block}`,
+    continuity,
+    continuityBlock,
+    kind: "owner",
+    opener: openerAfterUpdate({ lines: lastUpdateLines(), opener: mintOpener({ continuity, conversation, mode }) }),
+    pack,
+    voiceBrief,
+  };
 }
 
 /**
- * What the report says of the continuity block. Always present: the block always rides, so the page's relay gate
- * treats it as data held from the start.
+ * What the report says of the continuity block on the owner's mint, where the block always rides, so the page's relay
+ * gate treats it as data held from the start. A test call's report carries no such field.
  *
- * @param continuity the read
- * @param continuityBlock the text it rendered to
+ * @param mint the owner's mint, whose read and rendered block are reported
  * @returns the report's continuity field
  */
-function continuityReport({ continuity, continuityBlock }: { continuity: TalkContinuity; continuityBlock: string }): {
+function continuityReport({ mint }: { mint: OwnerMint }): {
   bytes: number;
   steers: number;
   typed: number;
   unread: readonly string[];
 } {
+  const { continuity, continuityBlock } = mint;
   return {
     bytes: Buffer.byteLength(continuityBlock, "utf8"),
     steers: continuity.steers.length,
@@ -338,18 +357,22 @@ function packReport({
 }
 
 /**
- * What the offer report says of the owner's voice brief: which state and how big, never a word of it.
+ * What the offer report says of the owner's voice brief: which state and how big, never a word of it. A test call's is
+ * `left-out`, never `unconfigured` or `broken`: both would misdescribe a brief deliberately not read.
  *
  * @param voiceBrief what the mint did with the owner's voice rules
  * @returns the report's `voiceBrief` field
  */
-function voiceBriefReport({ voiceBrief }: { voiceBrief: MintVoiceBrief }): {
-  kind: MintVoiceBrief["kind"];
+function voiceBriefReport({ voiceBrief }: { voiceBrief: MintVoiceBrief | TestInstanceMint["voiceBrief"] }): {
+  kind: MintVoiceBrief["kind"] | "left-out";
   bytes: number;
   why?: string;
 } {
   const { bytes, kind } = voiceBrief;
-  return voiceBrief.kind === "broken" ? { bytes, kind, why: voiceBrief.why } : { bytes, kind };
+  if (voiceBrief.kind === "broken" || voiceBrief.kind === "left-out") {
+    return { bytes, kind, why: voiceBrief.why };
+  }
+  return { bytes, kind };
 }
 
 /**
@@ -360,14 +383,16 @@ function printCarried({
   report,
 }: {
   report: {
-    continuity: { bytes: number; steers: number; typed: number; unread: readonly string[] };
+    continuity: ReturnType<typeof continuityReport> | undefined;
     pack: ReturnType<typeof packReport>;
     reopenReminder: { previousCallId: string; previousEndedIso: string } | null;
     voiceBrief: ReturnType<typeof voiceBriefReport>;
   };
 }): void {
-  const { voiceBrief } = report;
-  if (voiceBrief.why !== undefined) {
+  const { continuity, voiceBrief } = report;
+  if (voiceBrief.kind === "left-out") {
+    logger.out({ line: `  voice brief: left out — ${String(voiceBrief.why)}` });
+  } else if (voiceBrief.why !== undefined) {
     logger.out({ line: `  voice brief: NOT READ, any draft is unbriefed — ${voiceBrief.why}` });
   } else {
     logger.out({ line: `  voice brief: ${voiceBrief.kind}, ${String(voiceBrief.bytes)} bytes` });
@@ -379,9 +404,13 @@ function printCarried({
       line: `  context pack: ${String(report.pack.bytes)} bytes, built ${report.pack.builtIso} (${String(report.pack.ageMinutes)} min old)`,
     });
   }
-  logger.out({
-    line: `  where you left off: ${String(report.continuity.steers)} steer(s), ${String(report.continuity.typed)} typed turn(s), ${String(report.continuity.bytes)} bytes${report.continuity.unread.length === 0 ? "" : `, not read: ${report.continuity.unread.join(", ")}`}`,
-  });
+  if (continuity === undefined) {
+    logger.out({ line: `  where you left off: left out — ${TEST_INSTANCE_LEFT_OUT}` });
+  } else {
+    logger.out({
+      line: `  where you left off: ${String(continuity.steers)} steer(s), ${String(continuity.typed)} typed turn(s), ${String(continuity.bytes)} bytes${continuity.unread.length === 0 ? "" : `, not read: ${continuity.unread.join(", ")}`}`,
+    });
+  }
   if (report.reopenReminder !== null) {
     const { previousCallId, previousEndedIso } = report.reopenReminder;
     logger.out({ line: `  reopen: call ${previousCallId} ended ${previousEndedIso}, so a silent opening is reminded` });
