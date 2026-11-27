@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { IdentifierScanner } from "../../../../hygiene/identifierScan.js";
-import { blobSecretHits, secretDecline } from "../../../../worktree/salvageFindings.js";
+import { blobSecretHits, identifierHitsOrDecline, secretDecline } from "../../../../worktree/salvageFindings.js";
 import { IDENTIFIERS, ORG, TOKEN } from "./harness.js";
 
 describe("blobSecretHits", () => {
@@ -113,6 +113,26 @@ describe("secretDecline over a path that is itself a secret", () => {
     });
     expect(line).toBe(
       "the work it would push carries 1 secret-class line(s) (github-oauth-token) in a path that could not be scanned for identifiers — nothing was pushed",
+    );
+  });
+});
+
+describe("identifierHitsOrDecline over a scanner that throws", () => {
+  it("declines without quoting the scanner's message, which no scanner has judged", () => {
+    const message = `rule for ${ORG} broke`;
+    const throwing: IdentifierScanner = {
+      scan: () => {
+        throw new Error(message);
+      },
+      spans: () => [],
+    };
+    const line = identifierHitsOrDecline({
+      identifiers: throwing,
+      texts: [{ commit: false, content: "clean\n", path: "a.ts" }],
+    });
+    expect(message).toContain(ORG);
+    expect(line).toBe(
+      "what it would push could not be scanned for identifiers — the identifier scanner threw, its message withheld; nothing was pushed",
     );
   });
 });

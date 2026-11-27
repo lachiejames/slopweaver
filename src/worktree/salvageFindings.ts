@@ -93,9 +93,16 @@ function commitMessage({ raw }: { raw: string }): string {
   return end < 0 ? "" : raw.slice(end + 2);
 }
 
+/** Why a salvage declines when the identifier scanner threw, quoting nothing it said. */
+const SCANNER_THREW =
+  "what it would push could not be scanned for identifiers — the identifier scanner threw, its message withheld; nothing was pushed";
+
 /**
  * Every refused identifier hit in some texts, by {@link blobIdentifierHits}, or the decline for a scanner that threw:
  * a scan that did not happen is a decline, never a pass, as for every other read the salvage could not make.
+ *
+ * The decline never quotes the thrown message. It is text no scanner has judged, and `./salvagePush`'s
+ * `withheldIfSecret`, which every decline crosses, masks a secret and not a forbidden identifier.
  *
  * @param texts each text and where it came from
  * @param identifiers the repository-content identifier scanner
@@ -110,9 +117,8 @@ export function identifierHitsOrDecline({
 }): readonly SalvageIdentifierHit[] | string {
   try {
     return blobIdentifierHits({ identifiers, texts });
-  } catch (error: unknown) {
-    const why = error instanceof Error ? error.message : "the scanner threw";
-    return `what it would push could not be scanned for identifiers — ${why}; nothing was pushed`;
+  } catch {
+    return SCANNER_THREW;
   }
 }
 

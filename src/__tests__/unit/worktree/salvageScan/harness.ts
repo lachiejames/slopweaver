@@ -52,6 +52,36 @@ export const SHA_A = "a".repeat(40);
 export const REF = "salvage/old-work-2ba73fd1";
 export const SHA_B = "b".repeat(40);
 
+/** The all-zero object name a `--raw` record prints for the side of a path that holds nothing. */
+export const NO_SHA = "0".repeat(40);
+
+/**
+ * One `git log -z --raw --no-abbrev` record: its meta field and its path, each NUL-terminated.
+ *
+ * @param path the changed path
+ * @param sha the new-side object, {@link NO_SHA} for a deletion
+ * @param status the change's status letter
+ * @param oldMode the old side's mode, none for an addition
+ * @param newMode the new side's mode, none for a deletion
+ * @returns the record's bytes as git prints them
+ */
+export function rawRecord({
+  path,
+  sha,
+  status = "A",
+  oldMode = "000000",
+  newMode = "100644",
+}: {
+  path: string;
+  sha: string;
+  status?: string;
+  oldMode?: string;
+  newMode?: string;
+}): string {
+  const old = oldMode === "000000" ? NO_SHA : SHA_B;
+  return `:${oldMode} ${newMode} ${old} ${sha} ${status}\u0000${path}\u0000`;
+}
+
 /**
  * A `cat-file --batch` answer for literal objects.
  *

@@ -139,9 +139,14 @@ fetched without writing a ref), lists every blob that sha reaches and that branc
 (`rev-list --objects --filter=object:type=blob --ignore-missing --stdin`), reads them
 with `cat-file --batch`, both under `--no-replace-objects` so a local `refs/replace/*` cannot hand the scan a clean
 stand-in, and runs this build's `scanContent` and private denylist over each, over every commit object in the range read raw (author, committer, signature, message), over every changed
-path (`git log -z --name-only --no-renames` over the same range — `-z` because without it git C-quotes a name
-holding a backslash or a quote, `core.quotePath=false` or not, and the scan would read `"a\\b"` where the push
-sends `a\b`) and over the salvage branch name, since each is published without being inside any blob. The push then
+path (`git log -z -r --raw --no-abbrev --root --no-renames --diff-merges=separate` over the same range — `-z` because
+without it git C-quotes a name holding a backslash or a quote, `core.quotePath=false` or not, and the scan would read
+`"a\\b"` where the push sends `a\b`) and over the salvage branch name, since each is published without being inside
+any blob. That raw walk also names the blob each path writes, because `rev-list` names an object once, at its first
+path, and the identifier scanner forgives by path (a `.github/CODEOWNERS` account row, the README's one owner
+reference): each blob's identifiers are judged at EVERY path a range commit writes it at, so a byte-identical copy of
+a forgiven file declines at its own path. A secret is scanned once per object, since that scanner reads no path. A
+walk the scan cannot parse declines, and so does a submodule entry, which nothing it reads covers. The push then
 sends that same sha to that same url (`<sha>^{commit}:refs/heads/<salvage branch>`, `--recurse-submodules=no`, `--no-follow-tags`), and
 the read-back asks that url, so neither a commit nor a re-pointed remote in between is ever what gets sent. A secret, an
 unreadable denylist, a listing or read git refused, or a blob git did not return each DECLINES; a secret
@@ -150,7 +155,8 @@ a reason still matching a credential or the private denylist is withheld entirel
 the same way wherever `IDENTIFIER_VERDICT` reads `refuse`, because the destination is the public repository: the
 same rules the repository gate holds every commit to, over the same blobs, paths, branch name and commit messages,
 naming the class and the path and never the text. A path that itself carries an identifier is withheld from every
-decline, a secret's included, and a scanner that throws declines rather than ending the run. A commit's author and
+decline, a secret's included, and a scanner that throws declines rather than ending the run, its message withheld
+since no scanner has judged it. A commit's author and
 committer headers are not read for it, since they name a person on every public commit. An identifier stored as
 UTF-16 is the scanner's residue, exactly as a secret is. A remote
 whose one push url is not its fetch url, whose url is another remote's name or no ssh or https host (a local path is re-pointable by a symlink mid-push), or under any `insteadOf` or `pushInsteadOf` rule (git applies each again to the url it was handed), or with an ssh

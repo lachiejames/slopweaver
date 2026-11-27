@@ -49,11 +49,16 @@
  *    not a blob either.
  *  - **Names, headers and messages, not only bodies.** A file NAMED like a token, a clean file renamed to one
  *    and the salvage branch name built from the tree's own name are all published and none is inside a blob,
- * so the scan also reads `git log -z --name-only --no-renames --diff-merges=separate` over
+ * so the scan also reads `git log -z -r --raw --no-abbrev --root --no-renames --diff-merges=separate` over
  *    the same range, and the branch name itself. `-z` is what makes those the bytes the push sends: without it
  *    git C-quotes a name holding a backslash or a quote, `core.quotePath=false` or not, so `a\b` was scanned
  *    as `"a\\b"`. A commit's author, committer, signature and message are in the
  *    commit OBJECT, so every commit in the range is read raw beside the blobs.
+ *  - **Every path a blob is published at, not the first.** `rev-list --objects` names an object once, at the first
+ *    path its walk meets, and the repository-content scanner forgives by path. So the raw walk above also maps each
+ *    new blob to every path a range commit writes it at (`./salvageMetadata`), and the identifier scan judges each
+ *    copy at its own path. A secret is scanned once per object, since that scanner reads no path. A walk that does
+ *    not parse declines rather than leave a copy unjudged, and a submodule entry declines on its own line.
  *  - **The repository gate's identifier verdict too.** The destination is the public repository, so a forbidden
  *    identifier that gate would refuse wherever `IDENTIFIER_VERDICT` reads `refuse` declines here as well: an
  *    uncommitted file naming an organisation is otherwise published by the push that preserves it.
@@ -84,6 +89,7 @@ import {
   secretDecline,
 } from "./salvageFindings.js";
 import { HOOKS_OFF } from "./salvageHooksOff.js";
+import { METADATA_LOG, parseSalvageMetadata } from "./salvageMetadata.js";
 
 /** One blob or commit the push would send, and what it is reachable as — the path is for the report only. */
 export interface SalvageBlob {
@@ -202,12 +208,18 @@ export interface SalvageScanEdges {
   /** Every blob and commit the pushed sha reaches that no destination tip does, as `rev-list` lists them. */
   readonly listBlobs: () => string;
   /**
-   * Every changed path over the same range, as `git log -z --name-only` prints them, NUL-separated and never
-   * quoted. A path is published by the push just as a blob is, and it is inside no blob and no commit object.
+   * Every changed path over the same range with the blob each writes, as `git log -z --raw --no-abbrev` prints
+   * them, NUL-separated and never quoted. A path is published by the push just as a blob is, and it is inside no
+   * blob and no commit object; the blob beside it is what lets a blob be judged at every path it is published at.
    */
   readonly listMetadata: () => string;
   /** `cat-file --batch` over the named objects; throws on failure. */
   readonly readBlobs: (args: { shas: readonly string[] }) => Buffer;
+}
+
+/** One object's text as read, still carrying its name, so its other published paths can be found. */
+interface ReadSalvageText extends SalvageText {
+  readonly sha: string;
 }
 
 /**
@@ -215,7 +227,7 @@ export interface SalvageScanEdges {
  *
  * @param edges the git reads
  * @param batch the blobs to read
- * @returns each blob's report path and text, or the decline reason
+ * @returns each blob's name, report path and text, or the decline reason
  */
 function readBatch({
   edges,
@@ -223,7 +235,7 @@ function readBatch({
 }: {
   edges: SalvageScanEdges;
   batch: readonly SalvageBlob[];
-}): readonly SalvageText[] | string {
+}): readonly ReadSalvageText[] | string {
   let output: Buffer;
   try {
     output = edges.readBlobs({ shas: batch.map((blob) => blob.sha) });
@@ -239,7 +251,34 @@ function readBatch({
     commit: blob.commit,
     content: contents.get(blob.sha)!.toString("utf8"),
     path: blob.path,
+    sha: blob.sha,
   }));
+}
+
+/**
+ * Each blob once per distinct path it is published at — the path `rev-list` named it under and every path a commit
+ * in the range writes it at — so a scanner that forgives by path judges every copy at its own. A commit stays one.
+ *
+ * Pure. The content is shared, never re-read.
+ *
+ * @param read the batch as read
+ * @param pathsByBlob every path each new blob is written at
+ * @returns the texts the identifier scan reads
+ */
+function textsAtEveryPath({
+  read,
+  pathsByBlob,
+}: {
+  read: readonly ReadSalvageText[];
+  pathsByBlob: ReadonlyMap<string, readonly string[]>;
+}): readonly SalvageText[] {
+  return read.flatMap((text) => {
+    const written = pathsByBlob.get(text.sha);
+    if (text.commit || written === undefined) {
+      return [text];
+    }
+    return [...new Set([text.path, ...written])].map((path) => ({ ...text, path }));
+  });
 }
 
 /**
@@ -278,27 +317,42 @@ export function salvageScanDecline({
     return `what it would push could not be listed for the secrets scan — ${why}; nothing was pushed`;
   }
   const words = denylist.kind === "loaded" ? denylist.lines : [];
-  let metadata: string;
+  let raw: string;
   try {
-    metadata = edges.listMetadata();
+    raw = edges.listMetadata();
   } catch (error: unknown) {
     const why = error instanceof Error ? error.message : "git could not be asked";
     return `the paths it would push could not be listed for the secrets scan — ${why}; nothing was pushed`;
   }
+  const metadata = parseSalvageMetadata({ output: raw });
+  if (typeof metadata === "string") {
+    return metadata;
+  }
   const names: readonly SalvageText[] = [
     { commit: false, content: refName, path: "the salvage branch name" },
-    { commit: false, content: metadata, path: "the changed paths" },
+    { commit: false, content: metadata.changedPaths, path: "the changed paths" },
   ];
-  return contentDecline({ blobs: newBlobsIn({ listing }), edges, identifiers, names, words });
+  return contentDecline({
+    blobs: newBlobsIn({ listing }),
+    edges,
+    identifiers,
+    names,
+    pathsByBlob: metadata.pathsByBlob,
+    words,
+  });
 }
 
 /**
  * Read every blob in batches and scan it, with the published names, for a secret first and a forbidden identifier next.
  *
+ * A secret is scanned once per object, since that scanner reads no path; an identifier once per path the object is
+ * published at, since the repository-content scanner forgives by path.
+ *
  * @param blobs the blobs the push would send
  * @param edges the git reads
  * @param identifiers the repository-content identifier scanner
  * @param names the texts published without being inside any blob: the branch name and the changed paths
+ * @param pathsByBlob every path each new blob is written at, from the raw metadata walk
  * @param words the private denylist's lines
  * @returns the decline reason, or `null` when nothing refused leaves
  */
@@ -307,12 +361,14 @@ function contentDecline({
   edges,
   identifiers,
   names,
+  pathsByBlob,
   words,
 }: {
   blobs: readonly SalvageBlob[];
   edges: SalvageScanEdges;
   identifiers: IdentifierScanner;
   names: readonly SalvageText[];
+  pathsByBlob: ReadonlyMap<string, readonly string[]>;
   words: readonly string[];
 }): string | null {
   const hits: Hit[] = blobSecretHits({ blobs: names, denylist: words }).slice();
@@ -326,7 +382,7 @@ function contentDecline({
     if (typeof read === "string") {
       return read;
     }
-    const more = identifierHitsOrDecline({ identifiers, texts: read });
+    const more = identifierHitsOrDecline({ identifiers, texts: textsAtEveryPath({ pathsByBlob, read }) });
     if (typeof more === "string") {
       return more;
     }
@@ -338,21 +394,6 @@ function contentDecline({
   }
   return named.length > 0 ? identifierDecline({ denylist: words, hits: named, identifiers }) : null;
 }
-
-/** Every changed path in the range, raw and NUL-separated: the `log` behind {@link SalvageScanEdges}' metadata. */
-const METADATA_LOG = [
-  "--no-replace-objects",
-  "-c",
-  "core.quotePath=false",
-  "log",
-  "--stdin",
-  "--format=",
-  "-z",
-  "--name-only",
-  "--no-renames",
-  "--diff-merges=separate",
-  "--no-ext-diff",
-] as const;
 
 /**
  * The real git reads, run in the salvaged worktree with every hook and monitor off.
