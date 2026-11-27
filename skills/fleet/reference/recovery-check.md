@@ -12,8 +12,11 @@ slopweaver fleet recover [--home <dir>]   # one JSON line; exit 0 both vendors a
 ## What one pass does
 
 - **It needs the desktop app, and nothing else.** Each vendor gets a throwaway session opened in the app through
-  the app session harness (`src/fleet/recoveryHost.ts`). The check opens no cmux connection, so it works when cmux is
-  what is down; the one cmux read is whether a chair cmux hosted is still listed, below.
+  the app session harness (`src/fleet/recoveryHost.ts`). The vendor checks open no cmux connection, so they work
+  when cmux is what is down. Two chair steps do touch cmux: the read of whether a chair cmux hosted is still listed,
+  and a restart's `cmux spawn --harness app`, whose spawn deps connect to cmux's control and event sockets whatever
+  the harness (`src/sessionHarness/recordedSpawn.ts`). The app card uses neither, and a refused connection fails
+  nothing.
 - **Every session is a visible card.** The owner can watch it and stop it (rule 2). The pass tries one session at a
   time, each plan at most once, and closes each card before the next opens (`src/fleet/recoveryPass.ts`).
 - **The turn is a challenge, not a hello.** The prompt carries two random halves. A session passes only when its
@@ -103,5 +106,9 @@ or `not-restarted`, its reason, and every chair the press opened or tried to, in
 - **A cmux chair reads unknown from the app** when cmux refuses the app's child its socket, so the press restarts
   nothing over it. An absent pin record is not checked against cmux; the successor's `cmux pin` refuses if cmux
   holds a pin. A successor starting in cmux, rather than the app, is not seen as starting.
+- **A restart cannot finish while cmux is down.** The successor takes the pin through cmux reads of its own:
+  `cmux takeover` lists cmux's workspaces before it resolves any predecessor, an app one included
+  (`src/cli/commands/cmux/takeoverHosts.ts`), and a bare `cmux pin` refuses when cmux cannot be read
+  (`src/cli/commands/cmux/pinApp.ts`). The card opens, but it never takes the pin.
 - **A pass proves one turn, on the plan that answered, at that moment.** A plan the ranker placed later is not
   proven.
