@@ -83,8 +83,8 @@ export interface StepTiming {
  * `needs`-blocked job reports the whole wait for its dependencies as `created_at` → `started_at`, which is
  * indistinguishable in the payload from a job that sat in a runner queue for the same span. A caller reading
  * `build`'s 9-minute "queue" as contention would conclude the runners are starved when the truth is that
- * `build` waits for every worker by design. `unit` is the same shape since the lane was sharded: it merges
- * the six shards' reports, so its queue is their whole lap.
+ * `build` waits for every worker by design. `unit` is kept for the runs that still carry it: before `build`
+ * took over the merge of the six shards' reports, that job did it, and its queue was their whole lap.
  *
  * @internal — read by this module and `./runHistory.ts`; a caller reads the summary flag, not this list.
  */

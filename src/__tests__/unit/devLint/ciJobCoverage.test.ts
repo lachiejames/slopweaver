@@ -24,7 +24,6 @@ const GOOD_JOBS = [
   "unit-4",
   "unit-5",
   "unit-6",
-  "unit",
   "subprocess",
   "desktop-e2e",
   "compile",
@@ -33,7 +32,7 @@ const GOOD_JOBS = [
   "ci-timing",
 ];
 
-/** What `build` lists today: the fourteen workers, written out rather than read from the worker register. */
+/** What `build` lists today: the thirteen workers, written out rather than read from the worker register. */
 const GOOD_NEEDS = GOOD_JOBS.filter((job) => !["build", "integration", "ci-timing"].includes(job));
 
 /**

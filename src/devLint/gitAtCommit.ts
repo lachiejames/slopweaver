@@ -10,7 +10,7 @@
  *
  * The NAME of the variable stays `SLOPWEAVER_COVERAGE_BASE_SHA`: renaming it would be a CI change that
  * buys nothing, and `.github/workflows/ci.yml` exports and `--depth=1` fetches it at job level for the
- * `lint` and `unit` jobs both.
+ * `lint` and `build` jobs both.
  */
 
 import { execFileSync, spawnSync } from "node:child_process";

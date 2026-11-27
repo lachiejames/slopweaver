@@ -16,8 +16,8 @@ A cache entry is unsigned and holds the tools every later step runs, so **only `
 only on a `push` to `main` that missed**, straight after the install. With no fallback key a miss restores
 nothing, so every entry is one cold install on a trusted ref; a pull request or merge group reads `main`'s
 entries and never writes its own, which could only be reused by itself and would spend the repository's
-quota. The install over a hit checks resolution, not the restored bytes. Every job restores first except the three named in
-`COLD_JOB_RUNS` (`build`, `site`, `desktop`), each of which may run only its pinned steps: which jobs use the root
+quota. The install over a hit checks resolution, not the restored bytes. Every job restores first except the two named in
+`COLD_JOB_RUNS` (`site`, `desktop`), each of which may run only its pinned steps: which jobs use the root
 project is named in a reviewed diff, never inferred from shell text. A restoring job runs no step in a
 `working-directory` or job `defaults`, and neither it nor either cache step carries `continue-on-error`; a cold job runs its pinned steps exactly, in order. Every step before an install is a whole `SETUP_STEPS` entry, so no `shell` or `setup-node` input can reach it. The workflow keeps `on.push` exactly `{ branches: [main] }` (`SAVE_TRIGGER`) and the writer always saves, so the cache cannot quietly stop
 being used. `ci-offload-contract` pins all of it (`src/devLint/ciDependencyCache.ts`).
@@ -28,10 +28,13 @@ slopweaver github ci-runs --branch any --event pull_request --runs 10 --steps
 
 ## What ci-offload-contract pins
 
-Every offload worker opens with exactly `RUNNER_FACTS_STEP` (`src/devLint/ciRunnerFacts.ts`), which exits
+Every offload worker opens with exactly `RUNNER_FACTS_STEP` (`src/devLint/ciRunnerFacts.ts`), and `build` runs it
+straight after its verdict, before the steps that merge the unit shards' reports; it exits
 non-zero off a GitHub-hosted runner or under the `RUNNER_FLOOR_MIB` memory floor, and runs in no `container`. Every job in every workflow file runs on exactly `RUNNER_SELECTOR`, so no workflow diff can pick a runner whose own environment runs first.
-A worker's `needs` is pinned whole, since a skipped dependency skips the worker with it: `unit` needs
-exactly its shards and every other worker needs nothing (`src/devLint/ciWorkerActions.ts`).
+A worker's `needs` is pinned whole, since a skipped dependency skips the worker with it: every worker needs
+nothing (`src/devLint/ciWorkerActions.ts`), and `build`, which merges the shards' reports, needs exactly the
+workers, the shards among them. After its verdict `build` runs exactly `aggregatorTail`
+(`src/devLint/ciOffloadContract.ts`), its restore straight before its install like any other reader.
 Every `env` in the workflow — its own, each job's and each step's — sets only a key in `ENV_KEYS`
 (`src/devLint/ciEnvKeys.ts`), so no `BASH_ENV` or `NODE_OPTIONS` can change a pinned command before it runs.
 Every setup step is a whole `SETUP_STEPS` entry, every input included and only an action's ref aside, and a

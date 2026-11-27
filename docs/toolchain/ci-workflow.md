@@ -1,4 +1,4 @@
-# The laps run in parallel, and `build` is only their verdict
+# The laps run in parallel, and `build` is their verdict
 
 Part of [Toolchain](../toolchain.md).
 
@@ -24,22 +24,32 @@ Three things this does NOT buy, stated because each is easy to assume:
   analyses. Read the real start delays off a landed run rather than assuming.
 - **CodeQL is unaffected, and is the critical path.** `Analyze (javascript-typescript)` is not a required
   check, so nothing waits on it to MERGE — but a session watching `github checks --wait` waits for it, and
-  every second cut out of `lint`, `unit` or `subprocess` below its line buys that session nothing. MEASURED
-  on one pull request's head: **7:26**, against `unit`'s 6:29, so it is the slowest check on
+  every second cut out of `lint`, the unit lane or `subprocess` below its line buys that session nothing.
+  MEASURED on one pull request's head: **7:26**, against the unit lane's 6:29, so it is the slowest check on
   the pull request. It is GitHub default
   setup, defined in no file here, so it is not reachable by a change to `ci.yml`. CodeQL default setup is
   defined outside this repository and may be organisation-controlled: GitHub answers HTTP 422 when policy
   prevents an administrator from disabling it
   ([code-scanning](../../skills/github/reference/code-scanning.md)).
 
-## The unit lane is six shard jobs and a merge
+## The unit lane is six shard jobs, merged in `build`
 
 MEASURED on the larger runner (16 vCPU), paired jobs on one tree: the whole lane in one
 job spent 6:54 in its test step, and its own summary put `import` at 1,308 of about 2,400 worker-seconds —
 110,680 module evaluations with no single hub over 2.4s, on a runner already saturated. So neither a lazy
 import nor more concurrency moves it, and the cut that scales with the tree is more runners. `unit-1`…`unit-6`
-each run `yarn test:unit --shard=i/6 --reporter=default --reporter=blob` and upload the report; `unit` needs
-all six, downloads them, runs `yarn test:unit:merge` (0:38) and then the coverage floor over the merged report.
+each run `yarn test:unit --shard=i/6 --reporter=default --reporter=blob` and upload the report; `build` needs
+all six, and after its verdict downloads them, runs `yarn test:unit:merge` (0:38) and then the coverage floor
+over the merged report.
+
+- **The merge rides `build` because a job of its own was a runner wait.** A job with `needs` is queued only
+  once its needs finish, and then waits for a fresh runner. A separate merge job between the shards and
+  `build` put three of those waits in series on the required path (shards → merge → `build`); folded into
+  `build`, it is two. The verdict is still the FIRST step, and every step after it carries no `if`, so each
+  skips behind a red verdict and none can turn a red leg green. `ci-offload-contract` pins that tail whole
+  (`aggregatorTail` in `src/devLint/ciOffloadContract.ts`): an `if`, a `continue-on-error`, a `shell`, an
+  `env`, a `|| true`, a step added or a step dropped each refuse. `ci-timing` keeps its own wave, after
+  `build`, because it reads the timings of every job in the run, `build`'s included.
 
 - **The lane runs non-isolated** (`isolate: false` in `config/vitest/unit.ts`): a worker is reused across
   files, so a file no longer pays a fresh fork, a fresh `node_modules` load and a fresh module graph. The setup
@@ -56,7 +66,7 @@ all six, downloads them, runs `yarn test:unit:merge` (0:38) and then the coverag
   then passes. After merging it refuses again unless every test file the lane selects was merged EXACTLY
   once: MEASURED, one shard's report copied under all six names merged with exit 0.
 - **Artifacts are the one widening of the worker action rule**, by job: upload in a shard, download in
-  `unit` (`src/devLint/ciWorkerActions.ts`). Neither can turn a failed command into a passing job.
+  `build` (`src/devLint/ciWorkerActions.ts`). Neither can turn a failed command into a passing job.
 
 ```bash
 slopweaver github ci-runs --branch ci-perf-experiments --event pull_request --workflow perf-experiment.yml --steps
@@ -64,8 +74,8 @@ slopweaver github ci-runs --branch ci-perf-experiments --event pull_request --wo
 
 ## Every job that installs the root project restores it from a cache first
 
-Only `typecheck` writes the `node_modules` cache, on a `push` to `main` that missed; every job but `build`, `site`
-and `desktop` restores it before `yarn install --immutable`. Measurements, the key and every pinned shape:
+Only `typecheck` writes the `node_modules` cache, on a `push` to `main` that missed; every job but `site` and
+`desktop` restores it before `yarn install --immutable`, `build` after its verdict. Measurements, the key and every pinned shape:
 [ci-install-cache.md](../ci-install-cache.md).
 
 ## A CI job runs only on an event that could change its outcome
@@ -104,10 +114,10 @@ both.
 
 **Two workflow files, because a trigger list is workflow-scoped and an outcome is job-scoped.**
 
-| file                                 | `pull_request.types`                              | jobs                                                    | why those actions                                                                                                                  |
-| ------------------------------------ | ------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`           | `opened`, `synchronize`, `reopened`               | every lap above, `build`, `integration` and `ci-timing` | every one reads only the checked-out MERGE tree (and `build` only its workers' results), and these are the actions that change it  |
-| `.github/workflows/pr-body-gate.yml` | those three plus `edited`, `labeled`, `unlabeled` | `dev-gate`                                              | its subject IS the pull-request body, title and labels, so a body-only fix or an added kind label must be able to clear a red gate |
+| file                                 | `pull_request.types`                              | jobs                                                    | why those actions                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/workflows/ci.yml`           | `opened`, `synchronize`, `reopened`               | every lap above, `build`, `integration` and `ci-timing` | every one reads only the checked-out MERGE tree (and `build` its workers' results and reports), and these are the actions that change it |
+| `.github/workflows/pr-body-gate.yml` | those three plus `edited`, `labeled`, `unlabeled` | `dev-gate`                                              | its subject IS the pull-request body, title and labels, so a body-only fix or an added kind label must be able to clear a red gate       |
 
 **`dev-gate` reads the labels LIVE, never from the event.** `github stack push` creates a pull request and only
 then adds its kind label, because GitHub's create call takes no labels, so the `opened` payload never carries it.

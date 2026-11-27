@@ -66,7 +66,7 @@ Two jobs run on `merge_group` and one deliberately does not:
 | `dev-gate`    | **no**           | its subject is the pull request BODY, and a `merge_group` event carries no pull request — it gates the PR instead, from its own `.github/workflows/pr-body-gate.yml` |
 
 **So the queue's required checks are `build` and `integration`, never `dev-gate`.** Requiring `dev-gate`
-would stall every entry on a check that structurally cannot run. The `unit` job's coverage floor reads
+would stall every entry on a check that structurally cannot run. The `build` job's coverage floor reads
 `github.event.merge_group.base_sha` on this event, because `github.event.before` names nothing on a queue ref.
 
 **That claim is MEASURED rather than reasoned, and it covers code scanning too.** `github

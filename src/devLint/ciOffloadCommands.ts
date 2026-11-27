@@ -4,7 +4,11 @@
  */
 import { UNIT_SHARD_COUNT, unitShardCommand, unitShardJob } from "../testLanes/unitShards.js";
 
-/** The REQUIRED job, whose success must imply every offloaded lap succeeded. */
+/**
+ * The REQUIRED job, whose success must imply every offloaded lap succeeded. It is also the job that merges the
+ * unit shards' reports and runs the measured coverage floor, after its verdict: a separate merge job waited for
+ * a fresh runner of its own between the shards and this one.
+ */
 export const OFFLOAD_JOB = "build";
 
 /**
@@ -42,10 +46,14 @@ export const OFFLOADED_COMMANDS: readonly {
   })),
   {
     command: "yarn test:unit:merge",
-    job: "unit",
+    job: OFFLOAD_JOB,
     why: "rebuilds the WHOLE lane's coverage from every shard's report, refusing an inexact set",
   },
-  { command: "yarn coverage:ratchet", job: "unit", why: "the MEASURED coverage half, which needs the merged report" },
+  {
+    command: "yarn coverage:ratchet",
+    job: OFFLOAD_JOB,
+    why: "the MEASURED coverage half, which needs the merged report",
+  },
   { command: "yarn test:subprocess", job: "subprocess", why: "no longer runs on the developer machine at all" },
   {
     command: "yarn test:e2e",
@@ -78,10 +86,21 @@ export const OFFLOADED_COMMANDS: readonly {
 ];
 
 /**
- * The worker jobs, in the order {@link OFFLOADED_COMMANDS} first names them.
+ * Every job that runs an {@link OFFLOADED_COMMANDS} entry, in the order the register first names it — the
+ * workers and `build` itself, which merges the unit shards' reports after its verdict.
+ *
+ * @returns each command-owning job name once
+ */
+export function commandJobs(): readonly string[] {
+  return [...new Set(OFFLOADED_COMMANDS.map((entry) => entry.job))];
+}
+
+/**
+ * The worker jobs whose results `build`'s verdict reads, in {@link commandJobs} order: every command-owning job
+ * but {@link OFFLOAD_JOB}, which cannot need itself.
  *
  * @returns each worker job name once
  */
 export function workerJobs(): readonly string[] {
-  return [...new Set(OFFLOADED_COMMANDS.map((entry) => entry.job))];
+  return commandJobs().filter((job) => job !== OFFLOAD_JOB);
 }

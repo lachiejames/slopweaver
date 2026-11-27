@@ -110,12 +110,12 @@ number of its own to pin. MEASURED, one run, `/usr/bin/time -l slopweaver dev bu
 4,947,853,312 bytes maximum resident, 15.7s. A seat on another branch read 14,902,345,728 bytes the same way
 the same day; the two are not reconciled, and either is above 4 GiB.
 
-Free in WALL clock, not in runner minutes. The lap's critical path is `unit` (p95 6:20, measured with
+Free in WALL clock, not in runner minutes. The lap's critical path was the unit lane (p95 6:20, measured with
 `slopweaver github ci-runs --branch any --event pull_request --runs 10`) and the compile is 60.04s
 plus its own setup, so it finishes well inside the slowest leg while costing one more runner.
 
 Every CI job carries a `timeout-minutes` ceiling: 20 for each of the five root workers, 10 for `site` and `desktop`, and 15 for `integration` in
-`.github/workflows/ci.yml`, 10 for the `build` aggregator (which runs one `test` and no gate) and 10 for
+`.github/workflows/ci.yml`, 10 for the `build` aggregator (one `test`, then the unit merge and the coverage floor) and 10 for
 `dev-gate` in `.github/workflows/pr-body-gate.yml`. Each is sized from the
 measured p95 of that job's last 30 green runs — see the file-level comment above `jobs:` in `ci.yml` for the
 formula and the doored command that reproduces it (measured over 49 runs: `integration` p95

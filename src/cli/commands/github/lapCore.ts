@@ -37,7 +37,7 @@
  * ({@link lapEnvironment}).
  */
 
-import { OFFLOADED_COMMANDS } from "../../../devLint/ciOffloadCommands.js";
+import { OFFLOAD_JOB, OFFLOADED_COMMANDS } from "../../../devLint/ciOffloadCommands.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { UNIT_BLOB_DIRECTORY, UNIT_SHARD_COUNT, unitShardBlob, unitShardJobs } from "../../../testLanes/unitShards.js";
 import type { FlagSpec } from "../../parseFlags.js";
@@ -248,15 +248,15 @@ const LAP_STORE_VARIABLES: readonly { readonly job: string; readonly variables: 
 
 /**
  * What CI hands from job to job, `ci.yml`'s `unit-blob-*` artifacts, and every job each one is spared through.
- * CI uploads each shard's blob and `unit` downloads all six; the lap has one tree, so a blob stands in for its
- * upload by staying on disk past the LATER shards until `unit` merges it, and is never spared for its own shard
+ * CI uploads each shard's blob and `build` downloads all six after its verdict; the lap has one tree, so a blob
+ * stands in for its upload by staying on disk past the LATER shards until `build` merges it, and is never spared for its own shard
  * or an earlier one, whose retry starts as CI's re-run of that job would, with no blob it had not been handed.
  * The plan runs the shards in index order (`OFFLOADED_COMMANDS`). Every other job starts on a fresh checkout.
  */
 const LAP_ARTIFACTS: readonly { readonly path: string; readonly jobs: readonly string[] }[] = Array.from(
   { length: UNIT_SHARD_COUNT },
   (_unused, at) => ({
-    jobs: [...unitShardJobs().slice(at + 1), "unit"],
+    jobs: [...unitShardJobs().slice(at + 1), OFFLOAD_JOB],
     path: `${UNIT_BLOB_DIRECTORY}/${unitShardBlob({ index: at + 1 })}`,
   }),
 );

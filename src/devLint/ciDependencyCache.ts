@@ -33,8 +33,9 @@
  *   install in name only.
  * - **A cache step cannot fail quietly.** Neither restore nor save carries `continue-on-error`, and a restoring
  *   job runs no step in a `working-directory`, so its install and build are the root project's.
- * - **Every job restores but three, named.** `build`, `site` and `desktop` install cold, each held to its pinned
- *   steps in {@link COLD_JOB_RUNS}; no reading of shell text can say which jobs need the root project.
+ * - **Every job restores but two, named.** `site` and `desktop` install cold, each held to its pinned steps in
+ *   {@link COLD_JOB_RUNS}; no reading of shell text can say which jobs need the root project. `build` restores
+ *   too, for the unit merge after its verdict, and its verdict is the one step it may run before setup.
  * - **The writer is an offload worker**, so its first step is the runner-facts assertion, which fails any
  *   runner that is not GitHub-hosted. A GitHub-hosted runner is a fresh machine per job, so no Yarn store a
  *   pull request's job linked into (`nmMode: hardlinks-global`) survives to be linked into the writer's install.
@@ -72,13 +73,11 @@ const INSTALL_UNSAFE_KEYS: readonly string[] = ["shell", "if", "continue-on-erro
  * other step carries none of {@link INSTALL_UNSAFE_KEYS} beyond its directory. Every
  * other job restores. Which jobs use the root project's packages is not read from shell text, which Codex beat
  * five ways (a comment, a continuation, a name built at run time, an expression, `cd ..`): a job is cold only
- * by being named here, in a reviewed diff. `site` and `desktop` install their own lockfiles; `build` installs
- * nothing.
+ * by being named here, in a reviewed diff. `site` and `desktop` install their own lockfiles.
  */
 export const COLD_JOB_RUNS: Readonly<
   Record<string, readonly { readonly directory?: string; readonly elsewhere?: string; readonly run: string }[]>
 > = {
-  build: [{ elsewhere: "the aggregator verdict in ciOffloadContract.ts", run: 'test "$ALL_SUCCEEDED" = "true"' }],
   desktop: [
     { elsewhere: "RUNNER_FACTS_STEP in ciRunnerFacts.ts", run: RUNNER_FACTS_STEP.run },
     { run: "corepack enable" },
@@ -233,7 +232,7 @@ export function cacheShapeProblems({
   }
   const [save] = saves;
   return [
-    ...restoreProblems({ restore, steps }),
+    ...restoreProblems({ job, restore, steps }),
     ...(save === undefined ? [] : saveProblems({ restore, save, steps })),
     ...(steps.some((step) => "working-directory" in step)
       ? ["runs a step in a `working-directory`, which could install or build outside the root project it restored"]
@@ -244,11 +243,20 @@ export function cacheShapeProblems({
 /**
  * What is wrong with the restore step and the install straight after it.
  *
+ * @param job the job's name, which decides whether a verdict may precede its setup
  * @param restore the restore step's index
  * @param steps the job's steps, in order
  * @returns one sentence per problem, each finishing the job's name
  */
-function restoreProblems({ restore, steps }: { restore: number; steps: readonly Record<string, unknown>[] }): string[] {
+function restoreProblems({
+  job,
+  restore,
+  steps,
+}: {
+  job: string;
+  restore: number;
+  steps: readonly Record<string, unknown>[];
+}): string[] {
   const install = steps[restore + 1];
   const problems: string[] = [];
   if (install === undefined || runOf({ step: install }) !== INSTALL) {
@@ -261,7 +269,7 @@ function restoreProblems({ restore, steps }: { restore: number; steps: readonly 
       );
     }
   }
-  problems.push(...preInstallProblems({ steps: steps.slice(0, restore) }));
+  problems.push(...preInstallProblems({ job, steps: steps.slice(0, restore) }));
   const restoreStep = steps[restore]!;
   if (!isDeepStrictEqual(restoreStep["with"], DEPENDENCY_CACHE_INPUTS)) {
     problems.push(cacheInputsProblem());
@@ -275,13 +283,16 @@ function restoreProblems({ restore, steps }: { restore: number; steps: readonly 
 /**
  * What is wrong with the steps a restoring job runs before its install: each must be a whole `SETUP_STEPS` entry
  * (`ciWorkerRuns.ts`). A step there could hand the install a `BASH_ENV` through `$GITHUB_ENV`,
- * from a custom `shell` on a pinned `run` or a `node` from another mirror.
+ * from a custom `shell` on a pinned `run` or a `node` from another mirror. The aggregator's first step is its
+ * verdict, which `ciOffloadContract.ts` pins whole, so that one step is judged there and skipped here.
  *
+ * @param job the job's name; the aggregator's first step is left to the verdict's own pin
  * @param steps the steps before the restore, in order
  * @returns one sentence per problem, each finishing the job's name
  */
-function preInstallProblems({ steps }: { steps: readonly Record<string, unknown>[] }): string[] {
-  return steps.some((step) => !isSetupStep({ step }))
+function preInstallProblems({ job, steps }: { job: string; steps: readonly Record<string, unknown>[] }): string[] {
+  const setup = job === OFFLOAD_JOB ? steps.slice(1) : steps;
+  return setup.some((step) => !isSetupStep({ step }))
     ? ["runs a step before its install that is not pinned setup, which could keep the install from running"]
     : [];
 }

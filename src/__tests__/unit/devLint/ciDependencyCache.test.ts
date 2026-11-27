@@ -42,7 +42,7 @@ describe("cacheShapeProblems, for a reader", () => {
 
   it("refuses a job outside COLD_JOB_RUNS that does not restore, whatever it runs", () => {
     const problem =
-      "must restore the dependency cache straight before its `yarn install --immutable`: only build, desktop, site install cold";
+      "must restore the dependency cache straight before its `yarn install --immutable`: only desktop, site install cold";
     expect(cacheShapeProblems({ job: "lint", steps: [CHECKOUT, INSTALL, LINT] })).toEqual([problem]);
     expect(cacheShapeProblems({ job: "integration", steps: [CHECKOUT, { run: "echo nothing" }] })).toEqual([problem]);
   });
@@ -50,8 +50,24 @@ describe("cacheShapeProblems, for a reader", () => {
   it("accepts each cold job running exactly its pinned steps", () => {
     const setup = [CHECKOUT, SETUP_NODE];
     expect(
-      ["build", "desktop", "site"].map((job) => cacheShapeProblems({ job, steps: [...setup, ...pinned({ job })] })),
-    ).toEqual([[], [], []]);
+      ["desktop", "site"].map((job) => cacheShapeProblems({ job, steps: [...setup, ...pinned({ job })] })),
+    ).toEqual([[], []]);
+  });
+
+  // `build` installs to merge the shards' reports, after a verdict that is its first step and no setup step.
+  it("reads `build`'s install past its verdict, and holds it to the same restore as any reader", () => {
+    const verdict = { run: 'test "$ALL_SUCCEEDED" = "true"' };
+    expect([
+      cacheShapeProblems({ job: "build", steps: [verdict, CHECKOUT, RESTORE, INSTALL] }),
+      cacheShapeProblems({ job: "build", steps: [verdict, CHECKOUT, INSTALL] }),
+      cacheShapeProblems({ job: "lint", steps: [verdict, CHECKOUT, RESTORE, INSTALL] }),
+    ]).toEqual([
+      [],
+      [
+        "must restore the dependency cache straight before its `yarn install --immutable`: only desktop, site install cold",
+      ],
+      ["runs a step before its install that is not pinned setup, which could keep the install from running"],
+    ]);
   });
 
   // A cold job is named, never inferred from how its shell is spelled.
