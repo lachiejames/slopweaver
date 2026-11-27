@@ -8,6 +8,7 @@
  * only, and a plan is one vendor's, so no two vendors' categories are ever added together.
  */
 import type { RegisteredPlan } from "../plans/types.js";
+import type { SessionPlanChoice } from "../sessions/planChoice.js";
 import type { AppSessionTokens, AppSessionUsage, AppUsageReport } from "./usageWire.js";
 
 /** A plan as the register names it, enough to resolve a session's store to its alias. */
@@ -32,10 +33,21 @@ export interface PlanUsageSummary {
   readonly total?: AppSessionTokens;
 }
 
+/** One session's recorded plan choice, off its session ledger row, keyed by the id the app names it by. */
+export interface RecordedPlanChoice {
+  readonly sessionId: string;
+  readonly planChoice: SessionPlanChoice;
+}
+
 /** The report, each session's plan named, and its plans summed. */
 export interface UsageView {
   readonly atIso: string;
-  readonly sessions: readonly { readonly usage: AppSessionUsage; readonly plan: UsagePlanName }[];
+  readonly sessions: readonly {
+    readonly usage: AppSessionUsage;
+    readonly plan: UsagePlanName;
+    /** The plan choice its ledger row recorded when the session started, when the row carries one. */
+    readonly planChoice?: SessionPlanChoice;
+  }[];
   readonly plans: readonly PlanUsageSummary[];
 }
 
@@ -128,18 +140,42 @@ function summaryWith({ summary, usage }: { summary: PlanUsageSummary; usage: App
 }
 
 /**
+ * Every ledger row's recorded plan choice, by the session id the row was opened under.
+ *
+ * @param items the folded session ledger
+ * @returns one entry per row carrying both a session id and a choice
+ */
+export function recordedPlanChoices({
+  items,
+}: {
+  items: readonly { readonly sessionId?: string | undefined; readonly planChoice?: SessionPlanChoice | undefined }[];
+}): readonly RecordedPlanChoice[] {
+  return items.flatMap((item) => {
+    const { planChoice, sessionId } = item;
+    if (planChoice === undefined || sessionId === undefined) {
+      return [];
+    }
+    return [{ planChoice, sessionId }];
+  });
+}
+
+/**
  * The report with each session's plan named and each plan summed, plans in the order a session first named them.
  *
  * @param report what the app answered
  * @param plans the register's plans; empty when the install has registered none
+ * @param recorded each ledger row's recorded plan choice by session id — the app's session id is the row's
+ *   `sessionId` — or absent when the ledger was not read
  * @returns the view the verb prints
  */
 export function usageViewOf({
   report,
   plans,
+  recorded,
 }: {
   report: AppUsageReport;
   plans: readonly UsagePlanEntry[];
+  recorded?: readonly RecordedPlanChoice[];
 }): UsageView {
   const summaries = new Map<string, PlanUsageSummary>();
   const sessions = report.sessions.map((usage) => {
@@ -157,7 +193,8 @@ export function usageViewOf({
       });
     }
     summaries.set(key, summaryWith({ summary: summaries.get(key)!, usage }));
-    return { plan, usage };
+    const choice = recorded?.find((row) => row.sessionId === usage.sessionId)?.planChoice;
+    return { plan, usage, ...(choice === undefined ? {} : { planChoice: choice }) };
   });
   return { atIso: report.atIso, plans: [...summaries.values()], sessions };
 }

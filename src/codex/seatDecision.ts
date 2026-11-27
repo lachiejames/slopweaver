@@ -23,6 +23,7 @@ import type { CodexFleetSnapshot, CodexPlanObservation } from "./fleetTypes.js";
 import { currentCodexQuotaDecision } from "./quotaNow.js";
 import { codexUsagePolicyExclusion, rankCodexPlans } from "./rank.js";
 import { type CodexSeatError, CodexSeatErrors } from "./seatDecisionErrors.js";
+import { resumedCodexChoice } from "./seatPlanChoice.js";
 import type { CodexSignInPort } from "./signInPort.js";
 
 /**
@@ -261,7 +262,8 @@ export async function decideContinuingCodexSeat({
       );
     }
     const why = `app session ${continuing.sessionId} resumes on the plan it was opened on`;
-    return ok({ kind: "resume", route: { destination: assessed.destination, why } });
+    const choice = resumedCodexChoice({ alias });
+    return ok({ kind: "resume", route: { choice, destination: assessed.destination, why } });
   }
   const routed = routedOverSnapshot({ allowRefusing, home, nowIso, requestedAlias, snapshot: snapshot.value });
   return routed.map((route): CodexContinuationDecision => ({ kind: "fresh", reason: assessed.reason, route }));

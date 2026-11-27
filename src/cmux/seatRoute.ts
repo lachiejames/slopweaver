@@ -35,6 +35,8 @@ import { codexBrowserOffFlags } from "../codex/browserSurface.js";
 import type { CodexDestination } from "../codex/destinations.js";
 import type { CodexPlanRanking, CodexRouteExclusion } from "../codex/fleetTypes.js";
 import { CODEX_MODEL } from "../codex/profiles.js";
+import { rankedCodexChoice } from "../codex/seatPlanChoice.js";
+import type { SessionPlanChoice } from "../sessions/planChoice.js";
 import { namedTiers } from "./modelPin.js";
 import { type CodexSeatRouteError, CodexSeatRouteErrors } from "./seatRouteErrors.js";
 
@@ -46,6 +48,11 @@ export interface CodexSeatRoute {
    * a reader unable to tell a ranked choice from an explicit `--plan` from a forced-past refusal.
    */
   readonly why: string;
+  /**
+   * The plan choice the session records on its ledger row (`../sessions/planChoice.ts`): aliases, typed exclusion
+   * kinds and rank positions only — never {@link why}, which can carry an exclusion's free-text reason.
+   */
+  readonly choice?: SessionPlanChoice;
 }
 
 /**
@@ -138,7 +145,11 @@ function requestedRoute({
 }): Result<CodexSeatRoute, CodexSeatRouteError> {
   const eligible = ranking.ranked.find((destination) => destination.alias === alias);
   if (eligible !== undefined) {
-    return ok({ destination: eligible, why: `--plan ${alias} named it explicitly` });
+    return ok({
+      choice: rankedCodexChoice({ alias, basis: "requested", forced: false, ranking }),
+      destination: eligible,
+      why: `--plan ${alias} named it explicitly`,
+    });
   }
   const exclusion = ranking.excluded.find((entry) => entry.destination.alias === alias);
   if (exclusion === undefined) {
@@ -150,7 +161,11 @@ function requestedRoute({
     );
   }
   if (allowRefusing && forceableExclusion({ exclusion })) {
-    return ok({ destination: exclusion.destination, why: forcedWhy({ exclusion }) });
+    return ok({
+      choice: rankedCodexChoice({ alias, basis: "requested", forced: true, ranking }),
+      destination: exclusion.destination,
+      why: forcedWhy({ exclusion }),
+    });
   }
   return err(CodexSeatRouteErrors.planUnavailable({ exclusion }));
 }
@@ -211,6 +226,7 @@ export function routeCodexSeat({
   const best = ranking.ranked[0];
   if (best !== undefined) {
     return ok({
+      choice: rankedCodexChoice({ alias: best.alias, basis: "routed", forced: false, ranking }),
       destination: best,
       why: `ranked first of ${String(ranking.ranked.length)} eligible destination(s), on ${ranking.basis}`,
     });
@@ -222,5 +238,9 @@ export function routeCodexSeat({
   if (forced === undefined) {
     return err(CodexSeatRouteErrors.everyDestinationUnavailable({ exclusions: ranking.excluded }));
   }
-  return ok({ destination: forced.destination, why: forcedWhy({ exclusion: forced }) });
+  return ok({
+    choice: rankedCodexChoice({ alias: forced.destination.alias, basis: "routed", forced: true, ranking }),
+    destination: forced.destination,
+    why: forcedWhy({ exclusion: forced }),
+  });
 }

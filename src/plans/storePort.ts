@@ -388,6 +388,61 @@ export async function readStoredPlanRegister({
 }
 
 /**
+ * The refusal a read-only port answers in place of a store write.
+ *
+ * @param doing what the write was for, finishing "the store could not …"
+ * @returns the typed refusal, naming the read-only port as the reason
+ */
+function readOnlyRefusal({ doing }: { doing: string }): RegisterStoreUnavailableError {
+  return PlanRegisterErrors.registerStoreUnavailable({
+    doing,
+    reason: "this pass reads the register read-only, and an unimported register or a write is never made by a read",
+  });
+}
+
+/**
+ * One connection's row operations with both writes refused: the read and the close pass through.
+ *
+ * @param rows the open connection's real row operations
+ * @returns the same connection, unable to insert or update
+ */
+function readOnlyRows({ rows }: { rows: PlanRegisterRows }): PlanRegisterRows {
+  return {
+    close: async () => rows.close(),
+    insert: async () => err(readOnlyRefusal({ doing: "import the plan register" })),
+    read: async () => rows.read(),
+    update: async () => err(readOnlyRefusal({ doing: "write the plan register" })),
+  };
+}
+
+/**
+ * A plan register port that reads what {@link storePlanRegisterPort} reads and WRITES NOTHING: the stored row, or the
+ * derived picture of an install with no register file. A register file the store has not imported yet is refused
+ * rather than imported — the next ordinary read imports it — and every write is refused before any seam runs, so
+ * neither the seats' passes nor the projections are touched. A caller promised to change nothing (the timer-driven
+ * `supervisor chair-watch`) reads through this; whether the CONNECTION may catch a `behind` store up is the
+ * `connect` seam's own (`./storeRows.ts`'s `readOnlyPlanRegisterSeams`).
+ *
+ * @param seams the effects — only `connect`, the row `read`, `readImportFile` and `diagnose` are ever called
+ * @returns the read-only port
+ */
+export function readOnlyStorePlanRegisterPort({ seams }: { seams: PlanRegisterStoreSeams }): PlanRegisterPort {
+  const readOnly: PlanRegisterStoreSeams = {
+    ...seams,
+    connect: async (request) => (await seams.connect(request)).map((rows) => readOnlyRows({ rows })),
+  };
+  return {
+    read: (request) =>
+      withRows({
+        body: (rows) => currentRegister({ request, rows, seams: readOnly }),
+        home: request.home,
+        seams: readOnly,
+      }),
+    write: async () => err(readOnlyRefusal({ doing: "write the plan register" })),
+  };
+}
+
+/**
  * A plan register port whose authority is the store row, over whichever seams it is handed.
  *
  * @param seams the effects — production's are `./storeRows.ts`'s `productionPlanRegisterSeams`

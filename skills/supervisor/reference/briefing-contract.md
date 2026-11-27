@@ -142,6 +142,13 @@ line ([plan-routing.md](plan-routing.md) § The chair's hand-off cadence). The s
 gauge`'s `chair:` line — never `claude auth status` or `userEmail`, which read the shared account record
 ([setup-tokens.md](setup-tokens.md)).
 
+**An app-hosted chair at its bar is seated by the control plane, not by you.** `slopweaver supervisor hand-off`
+acts only on a fresh `supervisor chair-watch` reading `hand-off`: it messages you once your turn ends, closes your
+run, writes the successor doc and opens the successor on the plan with the most room. Your one act is the note it
+asks for, recorded with the exact `supervisor hand-off note --episode <id> --file <path>` it names; never spawn a
+successor or finish your run. No note by its deadline, the doc tells the successor to rebuild from files
+(skills/pickup). Overrides: `hand-off hold|release --reason`, `--now --reason` (never a cmux chair), `--plan <alias>`.
+
 **A chair that went down writes no doc, so a Recovery press writes a mechanical one.** It carries the same
 invocation, `role: supervisor` and sweep arming, takes the pin (`cmux takeover`, or a bare `cmux pin` when none was
 pinned) before anything else, and points at the predecessor's doc rather than copying it

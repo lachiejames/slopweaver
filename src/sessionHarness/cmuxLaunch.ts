@@ -64,6 +64,7 @@ export function launchSpecFromPlan({
     ...(plan.codexHome === undefined ? {} : { codexHome: plan.codexHome }),
     ...(plan.effort === undefined ? {} : { effort: plan.effort }),
     ...(plan.role === undefined ? {} : { role: plan.role }),
+    ...(plan.planChoice === undefined ? {} : { planChoice: plan.planChoice }),
   };
 }
 
@@ -100,6 +101,7 @@ export function planFromLaunchSpec({ spec }: { spec: HarnessLaunchSpec }): Visib
     ...(spec.codexHome === undefined ? {} : { codexHome: spec.codexHome }),
     ...(spec.effort === undefined ? {} : { effort: spec.effort }),
     ...(spec.role === undefined ? {} : { role: spec.role }),
+    ...(spec.planChoice === undefined ? {} : { planChoice: spec.planChoice }),
   };
 }
 
@@ -118,6 +120,7 @@ export function openedFromSpawned({ spawned }: { spawned: SpawnedSession }): Har
     handle: spawned.workspaceRef,
     initialMessage: spawned.pickupCommand,
     sessionId: spawned.workspaceId,
+    ...(spawned.planChoice === undefined ? {} : { planChoice: spawned.planChoice }),
   };
 }
 
@@ -136,6 +139,7 @@ export function spawnedFromOpened({ opened }: { opened: HarnessOpenedSession }):
     surfaceRef: opened.endpointHandle,
     workspaceId: opened.sessionId,
     workspaceRef: opened.handle,
+    ...(opened.planChoice === undefined ? {} : { planChoice: opened.planChoice }),
   };
 }
 

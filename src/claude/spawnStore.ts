@@ -95,24 +95,28 @@
 import { slopweaverHome } from "../config.js";
 import { logger } from "../lib/logger.js";
 import type { PlanRegisterPort } from "../plans/port.js";
+import type { SessionPlanChoice } from "../sessions/planChoice.js";
 import type { ClaudeAmbientCredential } from "./ambientCredential.js";
-import { aliasForStoreDir, unpausedAccounts } from "./config.js";
-import { type ClaudeAccount, probedClaudeAccount } from "./contracts.js";
+import { unpausedAccounts } from "./config.js";
+import { type ClaudeAccount, type ClaudePlanGauge, probedClaudeAccount } from "./contracts.js";
+import {
+  ambientClaudeChoice,
+  routedClaudeChoice,
+  spentReleaseClaudeChoice,
+  unmeasuredClaudeChoice,
+} from "./planChoiceOf.js";
 import type { ClaudePlanProbesPort } from "./planProbes.js";
 import { type ProbeRepairDeps, repairSeams } from "./probeRepair.js";
 import { type ClaudeSpawnRoute, renderSpawnRoute, routeSpawnToPlan } from "./routeSpawn.js";
-import { readClaudeFleet, type readSpawnAccounts } from "./spawnAccounts.js";
+import { readClaudeFleet } from "./spawnAccounts.js";
 import { readSpawnGauges } from "./spawnGauges.js";
+import { gatePinnedStore, unreadableAliases } from "./spawnStorePinned.js";
 import {
   ALLOW_SPENT_PLAN_ENV,
   ALLOW_UNREADABLE_PLAN_ENV,
   everyPlanPaused,
   everyPlanSpent,
   noGaugeReadable,
-  pinnedGaugeVerdict,
-  pinnedPlanPaused,
-  pinnedSpendVerdict,
-  pinnedWithNoGauge,
   unusableConfiguration,
 } from "./spawnStoreRefusals.js";
 import { readClaudePlanSpends } from "./spendBudgets.js";
@@ -231,6 +235,13 @@ export interface SpawnStoreRouting {
    * `claude route` reported the first as the second.
    */
   readonly basis?: SpawnStoreBasis;
+  /**
+   * The plan choice the session records on its ledger row (`../sessions/planChoice.ts`), built here while every
+   * reading is in scope — routed, pinned, `--plan`-named, booted unmeasured or past a spent gauge by a hatch, or
+   * ambient when no store decides. Absent on a refusal the gate did not release, and on a pin naming a store no
+   * registered plan claims, which has no alias to record.
+   */
+  readonly choice?: SessionPlanChoice;
 }
 
 /** What one gate invocation needs to know about itself, resolved once by the production caller. */
@@ -319,7 +330,7 @@ function underApiKey({ source }: { source: string }): SpawnStoreRouting {
       `rather than a plan login. No store decides what it spends, no plan gauge describes its cost, and nothing ` +
       `was routed or refused on one. An API key bills a Console organisation per token.`,
   });
-  return { basis: "api-key" };
+  return { basis: "api-key", choice: ambientClaudeChoice({ source }) };
 }
 
 /**
@@ -354,7 +365,7 @@ export async function routeSpawnStore({
   }
   const { accounts, thresholds } = fleet.value;
   if (accounts === undefined) {
-    return { basis: "unconfigured" };
+    return { basis: "unconfigured", choice: ambientClaudeChoice({ source: undefined }) };
   }
   // A PAUSED plan never reaches the probe, and this is the whole of the fix. Every surface downstream —
   // `readSpawnGauges`, `routeSpawnToPlan`, the no-gauge and every-plan-spent arms — then cannot see it, so
@@ -374,15 +385,52 @@ export async function routeSpawnStore({
   // No weekly reading and no monthly plan open is the unreadable fleet, unless the fleet is monthly plans alone —
   // then the router's own refusal names which of the owner's policies barred each one.
   const anyMonthlyOpen = spends.some((spend) => spend.verdict.kind === "open");
+  const unreadable = unreadableAliases({ accounts: weekly, gauges });
   if (gauges.length === 0 && !anyMonthlyOpen && (weekly.length > 0 || spends.length === 0)) {
-    return noGaugeReadable({ accounts: live, hatchOpen: context.unreadableHatchOpen });
+    return noGaugeReadable({
+      accounts: live,
+      choiceFor: ({ alias }) => unmeasuredClaudeChoice({ alias, basis: "routed", others: [], unreadable }),
+      hatchOpen: context.unreadableHatchOpen,
+    });
   }
   const route = routeSpawnToPlan({ chair: chair === true, gauges, model, spends, thresholds });
   logger.out({ line: renderSpawnRoute({ route }) });
+  return concludeRoute({ gauges, live, route, unreadable });
+}
+
+/**
+ * What an unpinned spawn gets once the router has decided: the routed store with the choice it records, or the
+ * every-plan-spent refusal carrying the choice a spent-plan release would record.
+ *
+ * @param gauges every reading the sweep returned
+ * @param live the unpaused configured plans, in configured order
+ * @param route the router's decision
+ * @param unreadable the configured weekly plans the sweep returned no reading for
+ * @returns the gate's conclusion
+ */
+function concludeRoute({
+  gauges,
+  live,
+  route,
+  unreadable,
+}: {
+  gauges: readonly ClaudePlanGauge[];
+  live: readonly ClaudeAccount[];
+  route: ClaudeSpawnRoute;
+  unreadable: readonly string[];
+}): SpawnStoreRouting {
   if (route.kind === "no-plan") {
-    return everyPlanSpent({ accounts: live, route });
+    return everyPlanSpent({
+      accounts: live,
+      choiceFor: ({ alias }) => spentReleaseClaudeChoice({ alias, gauges, route, unreadable }),
+      route,
+    });
   }
-  return routedStore({ live, route });
+  const routed = routedStore({ live, route });
+  if (routed.refusal !== undefined) {
+    return routed;
+  }
+  return { ...routed, choice: routedClaudeChoice({ gauges, route, unreadable }) };
 }
 
 /**
@@ -415,174 +463,6 @@ function routedStore({
     };
   }
   return { basis: "routed", route, storeDir };
-}
-
-/**
- * Judge a store the caller already chose — a pinned seat — against its own live gauge, repairing it first.
- *
- * A pinned seat is never re-routed: a store named by `--plan`, or the publishing seat's (`./seatPinning.ts`), is
- * the operator's choice, which routing does not overrule. The supervisor chair is NOT one — it carries no store
- * and takes the routed branch. A pinned seat is still CHECKED and REPAIRED: a store whose token expired overnight
- * is refreshed before the boot rather than booted dead.
- *
- * **A pinned seat whose own gauge is unreadable refuses, even when other plans read fine.** Those other
- * readings say nothing about this store, and the pin is not negotiable — so the honest answer is the
- * unreadable-plan refusal, whose hatch then returns this exact store.
- *
- * @param context this invocation's home, seams and hatch state
- * @param model the model the spawn was asked for, as it was typed, or undefined when it pinned none
- * @param storeDir the store the caller pinned this session to
- * @returns the same store, plus the refusal when its own gauge bars this spawn or could not be read
- */
-async function gatePinnedStore({
-  context,
-  model,
-  storeDir,
-}: {
-  context: SpawnGateContext;
-  model: string | undefined;
-  storeDir: string;
-}): Promise<SpawnStoreRouting> {
-  const fleet = await readClaudeFleet({ home: registerHome({ home: context.home }), port: context.port });
-  const unregistered = namedPinUnregistered({ accounts: fleet.map((read) => read.accounts), context, storeDir });
-  if (unregistered !== undefined) {
-    return unregistered;
-  }
-  if (fleet.isErr()) {
-    return unusableConfiguration({ error: fleet.error, storeDir });
-  }
-  const { accounts, thresholds } = fleet.value;
-  if (accounts === undefined) {
-    return { basis: "unconfigured", storeDir };
-  }
-  // Store identity is the keychain service the path derives (`aliasForStoreDir`), so a pin spelled in another
-  // canonically equivalent form, or a different path colliding on that truncated hash, still finds its row — and
-  // its pause.
-  const pinnedAlias = aliasForStoreDir({ accounts, storeDir });
-  const pinned = accounts.find((account) => account.alias === pinnedAlias);
-  const seams = repairSeams({ deps: context.deps });
-  const unprobed = pinnedVerdictWithoutProbe({ home: context.home, pinned, seams, storeDir });
-  if (unprobed.kind === "decided") {
-    return unprobed.verdict;
-  }
-  const live = unprobed.account;
-  // The pinned plan is live (checked above), so this filter only keeps the OTHER paused plans, and every
-  // monthly-spend one, out of the probe the pinned arm runs.
-  const gauges = await readSpawnGauges({
-    accounts: unpausedAccounts({ accounts }).filter((account) => probedClaudeAccount({ account })),
-    deps: seams,
-    home: registerHome({ home: context.home }),
-    probesPort: context.probesPort,
-  });
-  const gauge = gauges.find((reading) => reading.alias === live.alias);
-  if (gauge === undefined) {
-    return pinnedWithNoGauge({
-      hatchOpen: context.unreadableHatchOpen,
-      seat: live.alias,
-      storeDir,
-      usageLimitPercent: live.usageLimitPercent,
-    });
-  }
-  return pinnedGaugeVerdict({ gauge, gauges, model, storeDir, thresholds });
-}
-
-/**
- * Everything the pinned arm can conclude about its store WITHOUT a probe: a store no plan claims boots as named,
- * unmeasured; a paused plan refuses; a monthly-spend plan is judged on its recorded spend. Only a live weekly
- * plan is left for the gauge.
- *
- * @param home the caller's `--home`, or undefined for the ambient one, where spend readings are recorded
- * @param pinned the registered plan the pin resolved to by keychain-service identity, or undefined for none
- * @param seams whose clock judges a spend reading's freshness — read ONLY on the monthly-spend arm, as main did
- * @param storeDir the store the caller pinned, as it named it
- * @returns the verdict when one was reached, else the live weekly plan to probe
- */
-function pinnedVerdictWithoutProbe({
-  home,
-  pinned,
-  seams,
-  storeDir,
-}: {
-  home: string | undefined;
-  pinned: ClaudeAccount | undefined;
-  seams: { readonly nowIso: () => string };
-  storeDir: string;
-}): { kind: "decided"; verdict: SpawnStoreRouting } | { kind: "probe"; account: ClaudeAccount } {
-  if (pinned === undefined) {
-    // A pin naming a store this install does not configure. It is still an EXPLICIT store and still better
-    // than the ambient slot, so it is used and reported rather than replaced — but nothing probed it, so the
-    // gate says so instead of implying a reading it does not have.
-    logger.error({
-      msg:
-        `claude routing: the pinned store is not one of the configured plans, so its budget was not read — ` +
-        `booting on it as named, unmeasured`,
-    });
-    return { kind: "decided", verdict: { basis: "pinned", storeDir } };
-  }
-  // A store pinned by `--plan` whose plan was paused after the flag resolved it: the pause is the
-  // operator's stop, so it refuses as `paused` BEFORE the probe or the spend read, rather than reaching the
-  // no-gauge arm whose unreadable-plan hatch would boot the paused store anyway. (The register's `pinned: true`
-  // row is a different pin, and `parseClaudeAccounts` already refuses pausing that one.)
-  if (pinned.paused !== undefined) {
-    return { kind: "decided", verdict: pinnedPlanPaused({ alias: pinned.alias, storeDir }) };
-  }
-  if (!probedClaudeAccount({ account: pinned })) {
-    const [spend] = readClaudePlanSpends({
-      accounts: [pinned],
-      home: registerHome({ home }),
-      nowIso: seams.nowIso(),
-    });
-    return { kind: "decided", verdict: pinnedSpendVerdict({ account: pinned, spend: spend!, storeDir }) };
-  }
-  return { account: pinned, kind: "probe" };
-}
-
-/**
- * The refusal for a store `--plan` named that the register no longer carries, or undefined to judge it as a pin.
- *
- * `--plan` resolved this store off the register before any worktree existed; if the register stopped carrying it
- * since, its gauge cannot be read, so it refuses rather than booting unmeasured as a standing pin does.
- *
- * A register that could not be REREAD is refused with no hatch at all, exactly as `--plan`'s own resolution refuses
- * one (`cli/commands/cmux/claudePlanFlag.ts`): the row's usage limit and allowance went unread with it, and the
- * unreadable-plan hatch releasing the store would boot past a limit, or onto a monthly-spend plan, nobody checked.
- *
- * @param accounts the register as the gate read it
- * @param context this invocation's hatch state, and whether the store was named
- * @param storeDir the store the caller pinned
- * @returns the refusal or unreadable-plan outcome, or undefined when the store was not named or is still registered
- */
-function namedPinUnregistered({
-  accounts,
-  context,
-  storeDir,
-}: {
-  accounts: Awaited<ReturnType<typeof readSpawnAccounts>>;
-  context: SpawnGateContext;
-  storeDir: string;
-}): SpawnStoreRouting | undefined {
-  if (context.namedPin !== true) {
-    return undefined;
-  }
-  if (accounts.isErr()) {
-    return {
-      refusal:
-        `claude routing: --plan named ${storeDir}, but the plans register could not be reread to check its usage ` +
-        `limit and allowance — ${accounts.error.message}. No hatch crosses an unread usage limit; repair the ` +
-        `register and spawn again.`,
-      refusalKind: "configuration",
-      storeDir,
-    };
-  }
-  if (accounts.value !== undefined && aliasForStoreDir({ accounts: accounts.value, storeDir }) !== undefined) {
-    return undefined;
-  }
-  return pinnedWithNoGauge({
-    hatchOpen: context.unreadableHatchOpen,
-    seat: `${storeDir} (named by --plan, and no longer in the register)`,
-    storeDir,
-    usageLimitPercent: undefined,
-  });
 }
 
 /**
@@ -637,7 +517,12 @@ export async function gateSpawnStore({
   const gated =
     pinnedStoreDir === undefined
       ? await routeSpawnStore({ chair: chair === true, context, model })
-      : await gatePinnedStore({ context, model, storeDir: pinnedStoreDir });
+      : await gatePinnedStore({
+          context,
+          home: registerHome({ home: context.home }),
+          model,
+          storeDir: pinnedStoreDir,
+        });
   if (gated.refusal === undefined) {
     return gated;
   }
@@ -647,7 +532,10 @@ export async function gateSpawnStore({
   // refusal is therefore NEVER released here, whatever `force` or `SLOPWEAVER_ALLOW_SPENT_PLAN` says: the owner's
   // own limit is a ceiling, and a pinned one carries a `storeDir` exactly as a spent one does.
   if (!force || gated.refusalKind !== "spent-plan" || gated.storeDir === undefined) {
-    return gated;
+    // A refusal that stands boots nothing, so it records no choice — the one a release WOULD have recorded is
+    // dropped here rather than left for a caller to mistake for a decision.
+    const { choice: _unreleased, ...refused } = gated;
+    return refused;
   }
   logger.error({ msg: `${gated.refusal} OVERRIDDEN by ${ALLOW_SPENT_PLAN_ENV} — booting anyway.` });
   const { refusal: _overridden, refusalKind: _kind, ...allowed } = gated;

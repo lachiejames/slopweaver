@@ -332,7 +332,24 @@ describe("gateSpawnStore never crosses the usage limit the owner sets, nor boots
       model: undefined,
       pinnedStoreDir: undefined,
     });
-    expect(gated).toStrictEqual({ basis: "unreadable-override", storeDir: "/stores/plan-two" });
+    // plan-one is passed over for its limit, and still read back as the plan the sweep could not read.
+    expect(gated).toStrictEqual({
+      basis: "unreadable-override",
+      choice: {
+        alias: "plan-two",
+        basis: "routed",
+        kind: "named",
+        alternative: "--plan <alias>",
+        readings: [
+          { alias: "plan-two", reading: "no gauge was readable", state: "chosen" },
+          { alias: "plan-one", reading: "no gauge was readable", state: "unreadable" },
+        ],
+        reason:
+          "first in configured order with no usage limit to stay under, booted unmeasured by the unreadable-plan hatch: no plan's gauge was readable",
+        vendor: "claude",
+      },
+      storeDir: "/stores/plan-two",
+    });
   });
 
   it("refuses a PINNED limited seat with no readable gauge as usage-limit, even with the unreadable hatch open", async () => {

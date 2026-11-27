@@ -1,6 +1,7 @@
 /**
- * The `supervisor` noun's manifest: twenty verbs, all local-state bar the pure readers `intake`, `owner-turn-show`
- * and `state-check`. Five verbs (`chain`, `intake`, `owner-turns`, `reoriented`, `tick-reseal`) take only optional
+ * The `supervisor` noun's manifest: twenty-two verbs, all local-state bar the pure readers `chair-watch`, `intake`,
+ * `owner-turn-show` and `state-check`. Seven verbs (`chain`, `chair-watch`, `hand-off`, `intake`, `owner-turns`,
+ * `reoriented`, `tick-reseal`) take only optional
  * flags, so a bare run reads and prints and is not a dry parse; `tick-record` and `sweep-prompt` run the chair gate before their flags
  * parse, so neither a bare run nor a parse reject is I/O-free. That the manifest imports nothing heavier is
  * `../manifestBarrelClosure.test.ts`'s job.
@@ -31,9 +32,11 @@ describe("supervisorStateDocManifest", () => {
 });
 
 describe("supervisorManifest", () => {
-  it("declares exactly the twenty supervisor verbs", () => {
+  it("declares exactly the twenty-two supervisor verbs", () => {
     expect(Object.keys(supervisorManifest).toSorted()).toEqual([
       "chain",
+      "chair-watch",
+      "hand-off",
       "intake",
       "intake-mark",
       "owner-turn-record",
@@ -59,6 +62,22 @@ describe("supervisorManifest", () => {
   it("classifies each verb by its effect, whether a bare run acts, and whether the chair gate runs before the parse", () => {
     expect(classificationsOf({ manifest: supervisorManifest })).toEqual({
       chain: {
+        createsWorkItem: false,
+        diagnostic: true,
+        doorRouted: false,
+        dryParseSafe: false,
+        effect: "local-state",
+        parseRejectIsIoFree: true,
+      },
+      "chair-watch": {
+        createsWorkItem: false,
+        diagnostic: true,
+        doorRouted: false,
+        dryParseSafe: false,
+        effect: "none",
+        parseRejectIsIoFree: true,
+      },
+      "hand-off": {
         createsWorkItem: false,
         diagnostic: true,
         doorRouted: false,

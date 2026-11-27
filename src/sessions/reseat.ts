@@ -404,7 +404,7 @@ export function reseatAllTargets({
  * `session re-seat` uses, so a workspace cmux renumbered on restart still finds its row by its worktree.
  *
  * A pinned model naming no Claude tier is skipped too: a Codex seat's row records the repository's Codex pin
- * (`../sessionHarness/recordingHarness.ts`'s `bootModelForLaunch`), and this relaunches `claude`, which cannot boot
+ * (`../sessionHarness/spawnedEvent.ts`'s `bootModelForLaunch`), and this relaunches `claude`, which cannot boot
  * it — the relaunch refuses for want of a model rather than handing Claude a Codex id.
  *
  * @param rows the folded ledger, any status

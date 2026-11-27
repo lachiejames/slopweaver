@@ -134,3 +134,35 @@ describe("appLaunchSpecOf — Claude", () => {
     );
   });
 });
+
+describe("appLaunchSpecOf never puts the recorded plan choice on the app's wire", () => {
+  // The installed app checks the launch spec with `hasOnlyKeys` (`desktop/src/launchSpecWire.ts`), so one new key
+  // would refuse every app spawn until a reinstall. The choice is the ledger's, never the app's.
+  const choice = {
+    alias: "plan-two",
+    basis: "routed",
+    kind: "named",
+    alternative: "--plan <alias>",
+    readings: [{ alias: "plan-two", reading: "all-models week 30%", state: "chosen" }],
+    reason: "ranked first of 1 eligible plan(s) for a all-models spawn",
+    vendor: "claude",
+  } as const;
+
+  it("leaves it off a Claude seat's spec, whether the spec or the gated plan carried it", () => {
+    const built = unwrap(
+      specOf({ gated: { ...STORE_ROUTED, planChoice: choice }, spec: { ...SPEC, planChoice: choice } }),
+    );
+    expect(built.vendor).toBe("claude");
+    expect(Object.keys(built).includes("planChoice")).toBe(false);
+  });
+
+  it("leaves it off a Codex seat's spec", () => {
+    const spec: HarnessLaunchSpec = { ...CODEX_SPEC, planChoice: { ...choice, vendor: "codex" } };
+    const gated = planFromLaunchSpec({ spec });
+    // The witness: the plan the launcher is handed does carry it.
+    expect(gated.planChoice).toStrictEqual({ ...choice, vendor: "codex" });
+    const built = unwrap(specOf({ gated, spec }));
+    expect(built.vendor).toBe("codex");
+    expect(Object.keys(built).includes("planChoice")).toBe(false);
+  });
+});

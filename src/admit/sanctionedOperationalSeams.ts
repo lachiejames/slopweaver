@@ -400,6 +400,14 @@ export const OPERATIONAL_SEAMS = {
   // so `chairRestore.ts` can stop at two attempts and hand off instead of re-sending forever, and it
   // reaches no provider on any path.
   "src/supervisor/chairRestoreStore.ts": "local-state",
+  // The owner's hold on automatic chair hand-off: one appended `hold`/`release` line per verb call to
+  // $SLOPWEAVER_HOME/supervisor/hand-offs/holds.jsonl, `0700`/`0600`, no symlink followed. Same class and reason as
+  // the ledgers above: it records the owner's own word on this machine, and reaches no provider on any path.
+  "src/supervisor/chairHandOffHold.ts": "local-state",
+  // The chair hand-off episode journal: one append-only `<episode>.jsonl` per outgoing chair beside the hold
+  // journal, `0700`/`0600`, a conditional append taking a runtime lock. It records the control plane's own steps
+  // so a resumed run never seats twice; the spawn and the app message it journals go through their own seams.
+  "src/supervisor/chairHandOffStore.ts": "local-state",
   // The chair hand-off cadence's version read: `claude --version` with a constant argv and a five-second bound,
   // plus a listing of the native installer's versions directory. It asks the LOCAL binary what it is and never
   // sends a prompt, starts a session or reaches a provider.

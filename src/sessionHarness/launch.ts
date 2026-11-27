@@ -19,6 +19,7 @@ import type { LaunchTemplate } from "../cmux/launchTemplate.js";
 import type { SessionRole } from "../cmux/role.js";
 import type { PickupDelivery } from "../cmux/spawn.js";
 import type { Witness } from "../cmux/witness.js";
+import type { SessionPlanChoice } from "../sessions/planChoice.js";
 import type { VisibleSessionHost } from "../supervisor/session.js";
 import type { HarnessLaunchOperation, SessionLaunchFailedError } from "./errors.js";
 
@@ -66,6 +67,11 @@ export interface HarnessLaunchSpec {
   readonly template: LaunchTemplate;
   /** What kind of session it is. */
   readonly role?: SessionRole | undefined;
+  /**
+   * Which plan it starts on and every reading that choice used, when one was decided before launch. Never sent to a
+   * host: `./appLaunchSpec.ts` builds the app's wire spec field by field, and this is the ledger's.
+   */
+  readonly planChoice?: SessionPlanChoice;
 }
 
 /** A session a launch opened, booted and sent its initial message to. */
@@ -89,6 +95,11 @@ export interface HarnessOpenedSession {
    * transcript, so the ledger records it `resumed` on that row rather than a new `spawned` one. Absent for a new one.
    */
   readonly resumed?: true;
+  /**
+   * The plan choice of the plan that actually booted — set by the launch's own credential gate — which the ledger
+   * writer prefers over the spec's, decided before that gate ran.
+   */
+  readonly planChoice?: SessionPlanChoice;
 }
 
 /**

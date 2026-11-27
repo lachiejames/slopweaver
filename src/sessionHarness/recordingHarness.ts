@@ -5,7 +5,7 @@
  * box"; `docs/session-harness.md`).
  *
  * The row lives in the existing session ledger (`$SLOPWEAVER_HOME/sessions/sessions.jsonl`, `../sessions/session.ts`):
- * a `spawned` event opens it, keyed for life by the harness's `sessionId` and labelled by the ledger key, with
+ * a `spawned` event (`./spawnedEvent.ts`) opens it, keyed for life by the harness's `sessionId` and labelled by the ledger key, with
  * `openedBy` naming the act; a `closed` event naming that `sessionId` ends it. Not the Postgres store: the store
  * refuses on an outage by design, and a ledger write must never stop a session opening or parking.
  *
@@ -19,11 +19,11 @@
  * - **A failed launch that left a session holding its initial message is recorded**, since that session is real
  *   and may be running the message; any other failed launch leaves no row.
  */
-import { CODEX_MODEL } from "../codex/profiles.js";
-import { type BootModel, bootModelForSpawn, type SessionEvent, type SessionOpenedBy } from "../sessions/session.js";
+import type { SessionEvent } from "../sessions/session.js";
 import type { HarnessLaunchAddress, HarnessLaunchOperation } from "./errors.js";
 import { type HarnessLaunchSpec, launchLeftSessionOpen, type SessionLauncher } from "./launch.js";
 import type { HarnessSession, SessionHarness } from "./sessionHarness.js";
+import { bootedChoiceOf, spawnedEventOf } from "./spawnedEvent.js";
 import { absorb, describeThrown, settleQuietly } from "./untrustedSettle.js";
 
 /** The ledger effects the decorator writes through — the real session log in production, a collector in a test. */
@@ -112,66 +112,6 @@ function warnBestEffort({ ledger, message }: { ledger: SessionLedgerDeps; messag
     // Nowhere left to say it: the sink that would carry this is the one that failed.
     absorb({ value: error });
   }
-}
-
-/**
- * The model a launch's session actually boots on, as the ledger records it.
- *
- * A Codex seat boots the repository's own pin whatever the spawn's `--model` said — both the cmux boot line
- * (`../cmux/seatRoute.ts`) and the app's launch spec (`./appLaunchSpec.ts`) pass `CODEX_MODEL` — so recording the
- * spec's Claude tier there wrote `pinned: sonnet` for a session running `gpt-*`. A Claude seat boots what the spec
- * pinned, or inherits the saved default when it pinned nothing.
- *
- * @param spec the launch spec, read for its host and its model
- * @returns the boot model to record
- */
-export function bootModelForLaunch({ spec }: { spec: HarnessLaunchSpec }): BootModel {
-  if (spec.host === "codex") {
-    return { kind: "pinned", model: CODEX_MODEL };
-  }
-  return bootModelForSpawn({ model: spec.model });
-}
-
-/**
- * The `spawned` event a launch writes — one new row, keyed by the session's id.
- *
- * @param spec the launch spec
- * @param address the session the launch opened (or left open)
- * @param operation which launch act opened it
- * @param implementation which harness hosts it
- * @param tsIso when it was recorded
- * @returns the event
- */
-export function spawnedEventOf({
-  spec,
-  address,
-  operation,
-  implementation,
-  tsIso,
-}: {
-  spec: HarnessLaunchSpec;
-  address: HarnessLaunchAddress;
-  operation: HarnessLaunchOperation;
-  implementation: string;
-  tsIso: string;
-}): SessionEvent {
-  const openedBy: SessionOpenedBy = operation;
-  return {
-    // The last moment anything can say honestly which tier the session booted onto (`../sessions/session.ts`).
-    bootModel: bootModelForLaunch({ spec }),
-    branch: spec.branch,
-    cwd: spec.directory,
-    harness: implementation,
-    kind: "spawned",
-    openedBy,
-    sessionKey: spec.ledgerKey,
-    surfaceRef: address.endpointHandle,
-    tsIso,
-    workspaceRef: address.handle,
-    ...(spec.slug === undefined ? {} : { slug: spec.slug }),
-    // `workspaceId` stays beside `sessionId`: every reader of the ledger today binds a row to its live seat by it.
-    ...(address.sessionId === undefined ? {} : { sessionId: address.sessionId, workspaceId: address.sessionId }),
-  };
 }
 
 /**
@@ -295,16 +235,7 @@ function recordLaunch({
     });
     return;
   }
-  let address: HarnessLaunchAddress | undefined;
-  let sessionStands = false;
-  if (launched.isOk()) {
-    const { endpointHandle, handle, sessionId } = launched.value;
-    address = { endpointHandle, handle, sessionId };
-    sessionStands = true;
-  } else if (launchLeftSessionOpen({ failure: launched.error })) {
-    address = launched.error.opened;
-    sessionStands = true;
-  }
+  const { address, sessionStands } = standingAddressOf({ launched });
   if (sessionStands && (address === undefined || !namesASession({ address }))) {
     // A session stands but the launcher named no address for it, and a row is keyed by one: say the ledger lost
     // it rather than skip it, or write a row naming nothing. cmux always names the workspace it opened.
@@ -316,12 +247,38 @@ function recordLaunch({
   } else if (address !== undefined) {
     const opened = address;
     recordOrWarn({
+      // The booted choice is read INSIDE the guard: a launcher's result that cannot yield one must never cost the row.
       event: () =>
-        spawnedEventOf({ address: opened, implementation, operation: openedBy, spec, tsIso: ledgerNowIso({ ledger }) }),
+        spawnedEventOf({
+          address: opened,
+          booted: bootedChoiceOf({ launched }),
+          implementation,
+          operation: openedBy,
+          spec,
+          tsIso: ledgerNowIso({ ledger }),
+        }),
       ledger,
       what: `the ${openedBy} for ${spec.ledgerKey}`,
     });
   }
+}
+
+/**
+ * Whether a launch left a session standing, and the address it named for it: the one it opened, or the one a failed
+ * launch left holding its message. A standing session may still carry no address, which the caller warns about.
+ */
+function standingAddressOf({ launched }: { launched: Awaited<ReturnType<SessionLauncher["open"]>> }): {
+  address: HarnessLaunchAddress | undefined;
+  sessionStands: boolean;
+} {
+  if (launched.isOk()) {
+    const { endpointHandle, handle, sessionId } = launched.value;
+    return { address: { endpointHandle, handle, sessionId }, sessionStands: true };
+  }
+  if (launchLeftSessionOpen({ failure: launched.error })) {
+    return { address: launched.error.opened, sessionStands: true };
+  }
+  return { address: undefined, sessionStands: false };
 }
 
 /**

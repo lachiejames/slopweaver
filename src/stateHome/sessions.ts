@@ -98,6 +98,16 @@ export interface SessionsStateHomePaths {
    */
   readonly supervisorScratch: string;
   /**
+   * `$home/supervisor/hand-offs` — one append-only journal and one note file per control-plane chair hand-off
+   * episode (`supervisor/chairHandOffStore.ts`), so a crashed hand-off resumes the same episode.
+   */
+  readonly supervisorHandOffs: string;
+  /**
+   * `$home/supervisor/hand-offs/holds.jsonl` — the owner's hold on automatic chair hand-off, append-only, the last
+   * line deciding (`supervisor/chairHandOffHold.ts`).
+   */
+  readonly supervisorHandOffHoldsJsonl: string;
+  /**
    * `$home/runs` — one append-only `<slug>.jsonl` journal per orchestration-doc run.
    *
    * A SIBLING of `handovers/` rather than a file inside each doc, for the reason the board itself is a scan
@@ -253,6 +263,8 @@ export function sessionsStateHomePaths({ home }: { home: string }): SessionsStat
     cmuxReviveJsonl: join(home, "fleet", "cmux-revive.jsonl"),
     handoverArchive: join(home, "handovers", "archive"),
     supervisorScratch: join(home, "supervisor-scratch"),
+    supervisorHandOffs: join(home, "supervisor", "hand-offs"),
+    supervisorHandOffHoldsJsonl: join(home, "supervisor", "hand-offs", "holds.jsonl"),
     handSteps: join(home, "hand-steps"),
     handStepsJsonl: join(home, "hand-steps", "steps.jsonl"),
     handPushedJsonl: join(home, "hand-steps", "pushed.jsonl"),

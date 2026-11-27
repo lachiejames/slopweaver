@@ -155,7 +155,13 @@ export type ChairAutoCompactionRead = (options: {
  */
 export type TickCadence =
   | { readonly kind: "not-judged"; readonly lines: readonly string[] }
-  | { readonly kind: "judged"; readonly close: ClosePromptCadence; readonly lines: readonly string[] };
+  | {
+      readonly kind: "judged";
+      readonly close: ClosePromptCadence;
+      readonly lines: readonly string[];
+      /** The verdict's own notes, unprefixed — what `supervisor chair-watch` reports beside its status. */
+      readonly notes: readonly string[];
+    };
 
 /**
  * Turn a verdict into what the lines and the close prompt render: a hand-off reads the register once, for the
@@ -180,7 +186,7 @@ async function judgedCadence({
   reads: Pick<TickCadenceReads, "readClaudeSide" | "readCodexSeat" | "readPlanRegister">;
 }): Promise<Extract<TickCadence, { kind: "judged" }>> {
   if (verdict.kind === "stay") {
-    return { close: { kind: "stay" }, kind: "judged", lines: chairCadenceLines({ verdict }) };
+    return { close: { kind: "stay" }, kind: "judged", lines: chairCadenceLines({ verdict }), notes: verdict.notes };
   }
   const register = await reads.readPlanRegister({ home });
   let picked = chairSuccessorTarget({ register, route: verdict.route });
@@ -194,6 +200,7 @@ async function judgedCadence({
     close: { kind: "hand-off", target, verdict },
     kind: "judged",
     lines: chairCadenceLines({ target, verdict }),
+    notes: verdict.notes,
   };
 }
 
@@ -203,17 +210,20 @@ async function judgedCadence({
  *
  * @param evidence the gate's Codex evidence: the thread and the instant its record took the chair
  * @param reads the Codex canon read
- * @param row the tick row, for its captured gauge and its instant
+ * @param gauge the gauge the cadence judges on, for the successor's route
+ * @param nowIso the instant the cadence is judged at
  * @returns the cadence verdict
  */
 function codexTickVerdict({
   evidence,
+  gauge,
+  nowIso,
   reads,
-  row,
 }: {
   evidence: Extract<ChairGateEvidence, { kind: "codex" }>;
+  gauge: ChairCadenceGauge;
+  nowIso: string;
   reads: Pick<TickCadenceReads, "readCodexChairCanon">;
-  row: SupervisorTickRow;
 }): ChairCadenceVerdict {
   const { canonFloor } = evidence;
   const canon: ChairCanonReading =
@@ -222,14 +232,77 @@ function codexTickVerdict({
       : { kind: "unmeasured", why: canonFloor.why };
   return judgeCodexChairCadence({
     canon,
-    nowIso: row.finalisedIso,
-    route: chairCadenceRouteOf({ gauge: cadenceGaugeOf({ gauge: row.sources.gauge }) }),
+    nowIso,
+    route: chairCadenceRouteOf({ gauge }),
     threadId: evidence.threadId,
   });
 }
 
 /**
- * Judge the chair's hand-off cadence for this tick — advisory, and never a refusal.
+ * Judge the chair's hand-off cadence on a gauge and an instant the caller supplies — the tick's captured gauge at its
+ * finalised instant, or the control plane's recorded-only gauge (`supervisor chair-watch`) at the moment of the pass.
+ * Advisory, and never a refusal.
+ *
+ * @param evidence what the chair gate read on its way past
+ * @param gauge the plans and the chair-successor route the cadence judges on, or why there are none
+ * @param nowIso the instant the cadence is judged at
+ * @param home the Slopweaver home whose plan register names the successor's host
+ * @param spawnHome the `--home` the caller named, carried onto the successor's spawn; absent for the ambient one
+ * @param reads the chair's boot plans, Claude Code versions, loaded canon, auto-compactions and the plan register
+ * @returns what the close prompt acts on and its lines, unprefixed; `not-judged` when the gate read no chair
+ */
+export async function judgeChairCadenceOn({
+  evidence,
+  gauge,
+  home,
+  nowIso,
+  reads,
+  spawnHome,
+}: {
+  evidence: ChairGateEvidence;
+  gauge: ChairCadenceGauge;
+  home: string;
+  nowIso: string;
+  reads: TickCadenceReads;
+  spawnHome: string | undefined;
+}): Promise<TickCadence> {
+  if (evidence.kind === "not-read") {
+    return { kind: "not-judged", lines: [`chair cadence: not judged, so it is UNMEASURED — ${evidence.why}`] };
+  }
+  if (evidence.kind === "codex") {
+    return judgedCadence({ home, reads, spawnHome, verdict: codexTickVerdict({ evidence, gauge, nowIso, reads }) });
+  }
+  if (evidence.chair.kind === "unresolved") {
+    return {
+      kind: "not-judged",
+      lines: [
+        `chair cadence: not judged — the chair did not resolve, so its plan and Claude Code are UNMEASURED: ${evidence.chair.why}`,
+      ],
+    };
+  }
+  const versions = reads.readClaudeCode({ chair: evidence.chair });
+  const canon = reads.readChairCanon({ chair: evidence.chair });
+  const plans = await reads.readChairPlans({ chair: evidence.chair });
+  const autoCompactions = reads.readChairAutoCompactions({ chair: evidence.chair });
+  const verdict = judgeChairCadence({
+    boots: versions.boots,
+    gauge,
+    newestInstalled: versions.newestInstalled,
+    nowIso,
+    sessions: chairCadenceSessions({
+      autoCompactions,
+      canon,
+      chair: evidence.chair,
+      plans,
+      versions: versions.perSession,
+    }),
+  });
+  return judgedCadence({ home, reads, spawnHome, verdict });
+}
+
+/**
+ * Judge the chair's hand-off cadence for this tick — advisory, and never a refusal: the tick's captured gauge, at
+ * the instant the tick finalised.
  *
  * @param evidence what the chair gate read on its way past
  * @param home the Slopweaver home whose plan register names the successor's host
@@ -251,38 +324,14 @@ export async function judgeTickCadence({
   reads: TickCadenceReads;
   row: SupervisorTickRow;
 }): Promise<TickCadence> {
-  if (evidence.kind === "not-read") {
-    return { kind: "not-judged", lines: [`chair cadence: not judged, so it is UNMEASURED — ${evidence.why}`] };
-  }
-  if (evidence.kind === "codex") {
-    return judgedCadence({ home, reads, spawnHome, verdict: codexTickVerdict({ evidence, reads, row }) });
-  }
-  if (evidence.chair.kind === "unresolved") {
-    return {
-      kind: "not-judged",
-      lines: [
-        `chair cadence: not judged — the chair did not resolve, so its plan and Claude Code are UNMEASURED: ${evidence.chair.why}`,
-      ],
-    };
-  }
-  const versions = reads.readClaudeCode({ chair: evidence.chair });
-  const canon = reads.readChairCanon({ chair: evidence.chair });
-  const plans = await reads.readChairPlans({ chair: evidence.chair });
-  const autoCompactions = reads.readChairAutoCompactions({ chair: evidence.chair });
-  const verdict = judgeChairCadence({
-    boots: versions.boots,
+  return judgeChairCadenceOn({
+    evidence,
     gauge: cadenceGaugeOf({ gauge: row.sources.gauge }),
-    newestInstalled: versions.newestInstalled,
+    home,
     nowIso: row.finalisedIso,
-    sessions: chairCadenceSessions({
-      autoCompactions,
-      canon,
-      chair: evidence.chair,
-      plans,
-      versions: versions.perSession,
-    }),
+    reads,
+    spawnHome,
   });
-  return judgedCadence({ home, reads, spawnHome, verdict });
 }
 
 /**

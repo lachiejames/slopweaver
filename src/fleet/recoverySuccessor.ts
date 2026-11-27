@@ -8,6 +8,11 @@
  * as its first instruction, the sweep, `cmux takeover` (a bare `cmux pin` where no chair was pinned) — and points at the newest predecessor doc rather than
  * copying any of it, so what the successor reads is whatever that doc, and everything it points to, says now.
  *
+ * **The control plane's chair hand-off writes the same doc** (`../cli/commands/supervisor/chairHandOffRun.ts`), with
+ * the reasons its watch named and the outgoing chair's note verbatim under its own heading — or, when no note arrived
+ * in time, the one paragraph telling the successor to rebuild the picture from files. Without that option the doc is
+ * Recovery's, byte for byte.
+ *
  * **The slug is the chain's next number, counted over everything the home holds.** A doc and a run journal each
  * occupy a number, so a number whose doc was deleted is still never reused. The store creates the file exclusively,
  * so a number another writer takes first is skipped rather than overwritten.
@@ -77,18 +82,93 @@ function predecessorParagraph({
 }
 
 /**
+ * The control plane's chair hand-off a successor doc is written for (`../supervisor/chairHandOff.ts`): the episode,
+ * the reasons the watch named, and the outgoing chair's note, or how long the control plane waited for one.
+ */
+export interface SuccessorHandOff {
+  readonly episodeId: string;
+  readonly reasons: readonly string[];
+  /** The outgoing chair's note, verbatim, or undefined when none arrived. */
+  readonly note: string | undefined;
+  readonly noteWaitSeconds: number;
+}
+
+/** The sentence after the seat command: what a refusal means, and what never to do about one. */
+const REFUSAL_SENTENCE =
+  "If it refuses, read its reason: run what it names when that is a read it wants first, and otherwise say why in " +
+  "this card and stop. Never move the pin around a refusal, and never close another session to clear one.";
+
+/**
  * How the successor takes the pin: `cmux takeover` from a pinned chair, a bare `cmux pin` where none was pinned,
  * since a takeover with no predecessor refuses.
  */
-function seatStep({ predecessor }: { predecessor: RecoveryPredecessor | undefined }): string {
-  const after =
-    "Do this before reading anything else: the press reads the pin moving to you as the chair restarted. If it " +
-    "refuses, read its reason: run what it names when that is a read it wants first, and otherwise say why in this " +
-    "card and stop. Never move the pin around a refusal, and never close another session to clear one.";
+function seatStep({
+  predecessor,
+  handOff,
+}: {
+  predecessor: RecoveryPredecessor | undefined;
+  handOff: SuccessorHandOff | undefined;
+}): string {
+  let after = `Do this before reading anything else: the press reads the pin moving to you as the chair restarted. ${REFUSAL_SENTENCE}`;
+  if (handOff !== undefined) {
+    after =
+      "Do this before reading anything else: the control plane already closed the outgoing chair's run, so " +
+      `takeover's predecessor gate reads it finished. ${REFUSAL_SENTENCE}`;
+  }
   if (predecessor === undefined) {
     return `Run \`slopweaver cmux pin\`, with no \`--workspace\`, so the pin records this app session. ${after}`;
   }
   return `Run \`slopweaver supervisor owner-turns\` until it reports nothing left, then \`slopweaver cmux takeover\`. ${after}`;
+}
+
+/** The lines a doc's opening carries: Recovery's, or the hand-off's with the reasons the watch named. */
+function openingLines({
+  handOff,
+  replaced,
+  writtenAtIso,
+}: {
+  handOff: SuccessorHandOff | undefined;
+  replaced: string;
+  writtenAtIso: string;
+}): { readonly summary: string; readonly title: string; readonly why: readonly string[] } {
+  if (handOff === undefined) {
+    return {
+      summary: `Fresh /slopweaver:supervisor seated by a Recovery press in the desktop app at ${writtenAtIso}, replacing ${replaced}, which was down.`,
+      title: "# Fresh supervisor, seated by Recovery",
+      why: [
+        "The owner pressed Recovery in the desktop app because the supervisor was down. Nobody wrote you a hand-off: this " +
+          "doc was written mechanically, and it is waiting for you to take the pin.",
+      ],
+    };
+  }
+  return {
+    summary: `Fresh /slopweaver:supervisor seated by the control plane's chair hand-off at ${writtenAtIso}, replacing ${replaced}, which reached its bar.`,
+    title: "# Fresh supervisor, seated by the control plane's chair hand-off",
+    why: [
+      `The control plane handed the chair off (\`${handOff.episodeId}\`) because its watch said so:`,
+      "",
+      ...handOff.reasons.map((reason) => `- ${reason}`),
+      "",
+      "No model decided this: the outgoing chair was asked only for a note. This doc was written mechanically, and it " +
+        "is waiting for you to take the pin.",
+    ],
+  };
+}
+
+/** The hand-off note section: the outgoing chair's note verbatim, or the rebuild-from-files instruction. */
+function noteLines({ handOff }: { handOff: SuccessorHandOff | undefined }): readonly string[] {
+  if (handOff === undefined) {
+    return [];
+  }
+  if (handOff.note === undefined) {
+    return [
+      "## No hand-off note",
+      "",
+      `No hand-off note arrived within ${String(handOff.noteWaitSeconds)}s; rebuild the picture from files as a fresh chair does (skills/pickup).`,
+      "",
+    ];
+  }
+  return ["## Hand-off note from the outgoing chair", "", handOff.note.trimEnd(), ""];
 }
 
 /**
@@ -98,7 +178,9 @@ function seatStep({ predecessor }: { predecessor: RecoveryPredecessor | undefine
  * @param repo the checkout the chair runs in
  * @param handoversDir the home's handover directory, where the predecessor's doc lives
  * @param predecessor the chair it replaces, when one was pinned
- * @param writtenAtIso when Recovery wrote it
+ * @param writtenAtIso when Recovery, or the control plane, wrote it
+ * @param handOff the control plane's chair hand-off this doc is for; absent for a Recovery press, whose doc it leaves
+ *   exactly as it was
  * @returns the doc, front matter first
  */
 export function recoverySuccessorDoc({
@@ -107,14 +189,17 @@ export function recoverySuccessorDoc({
   handoversDir,
   predecessor,
   writtenAtIso,
+  handOff,
 }: {
   slug: string;
   repo: string;
   handoversDir: string;
   predecessor: RecoveryPredecessor | undefined;
   writtenAtIso: string;
+  handOff?: SuccessorHandOff | undefined;
 }): string {
   const replaced = predecessor === undefined ? "no pinned chair" : `the chair on ${predecessor.label}`;
+  const opening = openingLines({ handOff, replaced, writtenAtIso });
   return [
     "---",
     `slug: ${slug}`,
@@ -126,22 +211,22 @@ export function recoverySuccessorDoc({
     "artifact: null",
     "doneWhen: []",
     'probeWaiver: "The outcome is the supervisor pin on this session, which `cmux takeover` itself checks; no repo-local command re-asserts a live pin."',
-    `summary: "Fresh /slopweaver:supervisor seated by a Recovery press in the desktop app at ${writtenAtIso}, replacing ${replaced}, which was down."`,
+    `summary: "${opening.summary}"`,
     "workspace: self",
     'workspaceBecause: "the supervisor chair runs in the main checkout"',
     "---",
     "",
-    `# Fresh supervisor, seated by Recovery`,
+    opening.title,
     "",
     "You INVOKE `/slopweaver:supervisor` through the `Skill` tool as your first act (reading it is not running it).",
     "",
-    "The owner pressed Recovery in the desktop app because the supervisor was down. Nobody wrote you a hand-off: this " +
-      "doc was written mechanically, and it is waiting for you to take the pin.",
+    ...opening.why,
     "",
     "1. Arm the sweep, as `skills/supervisor/reference/briefing-contract.md` § 7 says.",
-    `2. ${seatStep({ predecessor })}`,
+    `2. ${seatStep({ handOff, predecessor })}`,
     `3. ${predecessorParagraph({ handoversDir, predecessor })}`,
     "4. Once the picture is read, run `slopweaver supervisor reoriented` once, with no `--attempt`.",
     "",
+    ...noteLines({ handOff }),
   ].join("\n");
 }

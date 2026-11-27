@@ -12,6 +12,7 @@
 import { branchCandidates } from "../handover/evaluate.js";
 import type { RunEvent } from "../handover/ledger.js";
 import { latestParkedCheckpoint } from "../handover/parked.js";
+import type { SessionPlanChoice } from "../sessions/planChoice.js";
 import type { VisibleSessionHost } from "../supervisor/session.js";
 import { worktreePath } from "../worktree/location.js";
 import type { LaunchTemplate } from "./launchTemplate.js";
@@ -168,6 +169,13 @@ export interface VisibleSessionPlan {
    * rows and deliberately allowed to be wrong for a couple — a doc can say `role:` when it is.
    */
   readonly role?: SessionRole | undefined;
+
+  /**
+   * Which plan the session starts on and every reading that choice used (`../sessions/planChoice.ts`). A Codex
+   * seat's is set where its seat route is decided; a Claude seat's by the pre-spawn credential gate, on the plan it
+   * returns. Absent when nothing decided one — the spawn then records none.
+   */
+  readonly planChoice?: SessionPlanChoice;
 }
 
 /**

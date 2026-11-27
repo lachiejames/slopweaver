@@ -166,6 +166,9 @@ export const DEV_TOOLING_SEAMS = {
   // The throwaway `mkdtempSync` home `sweep board`'s end-to-end tests share: board rows written into it and
   // the whole home removed by its own `removeHomes()`. Test support, the class of `recipeHome.ts` above.
   "src/__tests__/unit/sweep/boardRunFixture.ts": "dev-tooling",
+  // The `supervisor hand-off` tests' throwaway world: `mkdtempSync` home, repo and chair dirs, the note file its
+  // fake chair writes, all removed by its own `removeWorlds()`. Test support, the class of `boardRunFixture.ts`.
+  "src/__tests__/unit/cli/commands/supervisor/chairHandOffFixtures.ts": "dev-tooling",
   // Makes a throwaway `mkdtempSync` home with a `claude-accounts` directory, writes the accounts file the
   // spawn-store tests read into it, and removes it after. Test support, the class of `recipeHome.ts` above.
   "src/__tests__/unit/claude/spawnStoreFixtures.ts": "dev-tooling",

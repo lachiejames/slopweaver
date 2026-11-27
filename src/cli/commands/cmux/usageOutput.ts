@@ -12,6 +12,7 @@ import type {
   AppTurnUsage,
   AppUsageRate,
 } from "../../../sessionHarness/usageWire.js";
+import { planChoiceLine, type SessionPlanChoice } from "../../../sessions/planChoice.js";
 
 function planLabel({ plan, planPath }: { plan: UsagePlanName; planPath: string }): string {
   if (plan.kind === "registered") {
@@ -80,13 +81,21 @@ function modelText({ usage }: { usage: AppSessionUsage }): string {
  * One session's lines, indented under its plan: model facts, then tokens, then the last turn, rate and occupancy.
  *
  * @param usage the session
+ * @param planChoice the plan choice its ledger row recorded when it started, printed right under its heading
  * @returns the lines, in print order
  */
-export function sessionLines({ usage }: { usage: AppSessionUsage }): readonly string[] {
-  const lines = [
-    `  ${usage.ledgerKey} · ${usage.title} · ${usage.vendor} · ${usage.state}`,
-    `    ${modelText({ usage })}`,
-  ];
+export function sessionLines({
+  planChoice,
+  usage,
+}: {
+  planChoice?: SessionPlanChoice | undefined;
+  usage: AppSessionUsage;
+}): readonly string[] {
+  const lines = [`  ${usage.ledgerKey} · ${usage.title} · ${usage.vendor} · ${usage.state}`];
+  if (planChoice !== undefined) {
+    lines.push(`    ${planChoiceLine({ choice: planChoice })}`);
+  }
+  lines.push(`    ${modelText({ usage })}`);
   const floor = floorText({ usage });
   const turns = `${String(usage.reportedTurns)} turn(s) counted`;
   if (usage.total === undefined) {
@@ -137,9 +146,9 @@ export function usageLines({ view }: { view: UsageView }): readonly string[] {
   const lines = [`usage read ${view.atIso}, this run of the app only; spend lands at each turn's end`];
   for (const summary of view.plans) {
     lines.push(planLine({ summary }));
-    for (const { usage } of view.sessions) {
+    for (const { planChoice, usage } of view.sessions) {
       if (usage.vendor === summary.vendor && usage.planPath === summary.planPath) {
-        lines.push(...sessionLines({ usage }));
+        lines.push(...sessionLines({ planChoice, usage }));
       }
     }
   }

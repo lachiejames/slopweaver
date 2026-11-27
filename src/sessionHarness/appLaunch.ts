@@ -21,6 +21,7 @@ import { err, ok, type Result } from "#lib/result.js";
 import type { VisibleSessionPlan } from "../cmux/plan.js";
 import type { SpawnDeps } from "../cmux/spawn.js";
 import type { Witness } from "../cmux/witness.js";
+import { carryingGateChoice, gateChoiceCapture } from "./appLaunchChoice.js";
 import { appLaunchSpecOf } from "./appLaunchSpec.js";
 import type { AppHarnessRequest, AppLaunchSpec, AppSessionSnapshot } from "./appProtocol.js";
 import type { AppTransport } from "./appSocketTransport.js";
@@ -31,6 +32,14 @@ import { stateHomeRefusalClause } from "./stateHomeRefusal.js";
 
 /** A prepare waits on a card, a worker, the adapter and the vendor's session: the app bounds that at 120s. */
 const PREPARE_TIMEOUT_MS = 180_000;
+
+/**
+ * How long after a launch began the app has certainly finished with it, whatever became of the client that asked:
+ * the prepare's own bound, then the app's 120 s window for a deliver or abort before it ends an unsettled launch
+ * itself (`desktop/src/sessionLaunch.ts` `UNSETTLED_LAUNCH_MS`). Past it, a session list that names no session under a
+ * launch's ledger key is proof that launch opened none.
+ */
+export const LAUNCH_SETTLED_AFTER_MS = PREPARE_TIMEOUT_MS + 120_000;
 
 /** A deliver or an abort is one instruction to a running worker, or one process group ended. */
 const SETTLE_TIMEOUT_MS = 60_000;
@@ -342,7 +351,8 @@ export function appSessionLauncherOver({
     resolveInitialMessage: InitialMessageResolver | undefined;
     operation: HarnessLaunchOperation;
   }): Promise<Result<HarnessOpenedSession, SessionLaunchFailedError>> => {
-    const appSpec = await decidedSpec({ deps, ledgerHome, operation, spec, stateHome, transport });
+    const capture = gateChoiceCapture({ deps });
+    const appSpec = await decidedSpec({ deps: capture.deps, ledgerHome, operation, spec, stateHome, transport });
     if (appSpec.isErr()) {
       return err(appSpec.error);
     }
@@ -357,13 +367,9 @@ export function appSessionLauncherOver({
     if (message.isErr()) {
       return err(message.error);
     }
-    const delivered = await deliverInitialMessage({
-      initialMessage: message.value,
-      launchToken,
-      operation,
-      session,
-      transport,
-    });
+    const delivered = (
+      await deliverInitialMessage({ initialMessage: message.value, launchToken, operation, session, transport })
+    ).map((opened) => carryingGateChoice({ choice: capture.choice(), opened }));
     if (resumes === undefined) {
       return delivered;
     }

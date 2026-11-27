@@ -97,14 +97,17 @@ export function planRegisterRowsOver({ client }: { client: StoreClient }): PlanR
  * Open the store a home selects, as the register's row operations.
  *
  * @param home the Slopweaver home whose store selection is read
+ * @param catchUp whether a `behind` store may be caught up first; `false` for a reader promised to change nothing
  * @returns the row operations, or `REGISTER_STORE_UNAVAILABLE` carrying the store's own refusal
  */
 async function connectPlanRegisterRows({
   home,
+  catchUp,
 }: {
   home: string;
+  catchUp: boolean;
 }): Promise<Result<PlanRegisterRows, RegisterStoreUnavailableError>> {
-  const client = await connectStore({ home });
+  const client = await connectStore({ catchUp, home });
   if (client.isErr()) {
     return err(
       PlanRegisterErrors.registerStoreUnavailable({
@@ -125,9 +128,23 @@ async function connectPlanRegisterRows({
 export function productionPlanRegisterSeams(): PlanRegisterStoreSeams {
   return {
     clearSeatPasses: clearSeatPassesBeforeCommit,
-    connect: connectPlanRegisterRows,
+    connect: async ({ home }) => connectPlanRegisterRows({ catchUp: true, home }),
     diagnose: storedRegisterDiagnostics,
     readImportFile: readPlanRegisterFile,
     writeProjections: writePlanRegisterProjections,
+  };
+}
+
+/**
+ * The production seams for a reader promised to change nothing: the same, but a `behind` store is refused rather than
+ * caught up (`../store/client.ts` `connectStore`'s dry-run mode). Pair them with `./storePort.ts`'s
+ * `readOnlyStorePlanRegisterPort`, which refuses the import and every write.
+ *
+ * @returns the seams `readOnlyPlanRegisterPort()` runs over
+ */
+export function readOnlyPlanRegisterSeams(): PlanRegisterStoreSeams {
+  return {
+    ...productionPlanRegisterSeams(),
+    connect: async ({ home }) => connectPlanRegisterRows({ catchUp: false, home }),
   };
 }

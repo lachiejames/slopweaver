@@ -14,13 +14,9 @@ import { cmuxSessionHarnessOver } from "../../../sessionHarness/cmuxHarness.js";
 import { sessionFromCmux } from "../../../sessionHarness/cmuxSession.js";
 import { SessionHarnessErrors } from "../../../sessionHarness/errors.js";
 import type { HarnessOpenedSession } from "../../../sessionHarness/launch.js";
-import {
-  bootModelForLaunch,
-  recordingSessionHarness,
-  recordingSessionLauncher,
-  spawnedEventOf,
-} from "../../../sessionHarness/recordingHarness.js";
+import { recordingSessionHarness, recordingSessionLauncher } from "../../../sessionHarness/recordingHarness.js";
 import type { HarnessSession } from "../../../sessionHarness/sessionHarness.js";
+import { bootModelForLaunch, spawnedEventOf } from "../../../sessionHarness/spawnedEvent.js";
 import { CONFIRMATION_REQUIRED, fakeCmux, INSTANT_WAITS, RUNNING_SCREEN, workspaceRow } from "./fakeCmux.js";
 import { collectingLedger, hostileLedger, NOW, OPENED, SPEC, scriptedLauncher } from "./recordingLedgerFixtures.js";
 

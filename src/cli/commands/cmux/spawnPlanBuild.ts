@@ -177,5 +177,11 @@ export async function buildSpawnPlan({
     template,
     worktrees: listWorktrees({ repoRoot: preflight.repo }),
   });
-  return ok({ ...plan, continuingAppSessionId: continuingSessionOf({ continuation }) });
+  // A Codex seat's routed choice rides the plan to its ledger row; a Claude seat's is set later, by its credential gate.
+  const seatChoice = codexSeat?.choice;
+  return ok({
+    ...plan,
+    continuingAppSessionId: continuingSessionOf({ continuation }),
+    ...(seatChoice === undefined ? {} : { planChoice: seatChoice }),
+  });
 }

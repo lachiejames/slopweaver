@@ -126,6 +126,7 @@
 import type { ClaudeAmbientCredential } from "../claude/ambientCredential.js";
 import type { CodexQuotaKind } from "../codex/quotaTypes.js";
 import { err, ok, type Result } from "../lib/result.js";
+import type { SessionPlanChoice } from "../sessions/planChoice.js";
 import { bootLine, type PluginDirResolver } from "./bootLine.js";
 import type { CmuxClient } from "./client.js";
 import { type ClaudeBootDecision, failedBootClause } from "./composerProbe.js";
@@ -252,7 +253,26 @@ type OpenedWorkspace = {
   readonly surfaceId: string;
   /** How boot was confirmed, so a caller can report which witness answered rather than only that one did. */
   readonly bootWitness: Witness;
+  /**
+   * The plan choice of the plan that actually BOOTED — the gated one, which carries the Claude gate's choice — so the
+   * ledger writer records what decided this seat rather than what the caller planned before the gate ran.
+   */
+  readonly planChoice?: SessionPlanChoice;
 };
+
+/**
+ * An opened workspace carrying the booted plan's recorded choice, when it has one.
+ *
+ * @param opened the workspace the boot opened
+ * @param plan the gated plan it booted
+ * @returns the workspace, with the plan's choice beside it
+ */
+function carryingChoice({ opened, plan }: { opened: OpenedWorkspace; plan: VisibleSessionPlan }): OpenedWorkspace {
+  if (plan.planChoice === undefined) {
+    return opened;
+  }
+  return { ...opened, planChoice: plan.planChoice };
+}
 
 /**
  * Why a spawn could not finish, with no workspace identity attached — what {@link deliverPickupCommand}
@@ -403,7 +423,7 @@ export async function bootCmuxWorkspace({
   }
   const first = await bootOnce({ deps, line, plan: booting });
   if (first.isOk()) {
-    return ok(first.value);
+    return ok(carryingChoice({ opened: first.value, plan: booting }));
   }
   const firstFailed = first.error.failedBoot;
   if (firstFailed === undefined) {
@@ -441,7 +461,7 @@ async function retryFailedBoot({
 }): Promise<BootOutcome> {
   const second = await bootOnce({ deps, line, plan });
   if (second.isOk()) {
-    return ok(second.value);
+    return ok(carryingChoice({ opened: second.value, plan }));
   }
   const secondFailed = second.error.failedBoot;
   if (secondFailed === undefined) {
