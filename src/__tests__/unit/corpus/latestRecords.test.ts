@@ -218,7 +218,7 @@ describe("latestRecords", () => {
 
   // `Date.parse` truncates to the millisecond, so these are ONE instant to the rank comparison. Deciding
   // between them on serialised length would let the longer, EARLIER row win — which is what comparing the
-  // raw strings before content prevents.
+  // sub-millisecond digits before content prevents.
   it("keeps sub-millisecond ordering the instant comparison cannot see", () => {
     const collapsed = latestRecords({
       records: [
@@ -228,6 +228,18 @@ describe("latestRecords", () => {
     });
 
     expect(collapsed[0]!.text).toBe("later");
+  });
+
+  // 00:00:00.0001Z against 00:00:00.0009Z, one millisecond to `Date.parse`: the `+10:00` string sorts above
+  // the `Z` one while it is the EARLIER moment.
+  it("keeps sub-millisecond ordering across two offsets, whichever order they are read in", () => {
+    const earlier = record({ text: "earlier", tsIso: "2026-01-01T10:00:00.0001+10:00" });
+    const later = record({ text: "later", tsIso: "2026-01-01T00:00:00.0009Z" });
+
+    expect([
+      latestRecords({ records: [earlier, later] })[0]!.text,
+      latestRecords({ records: [later, earlier] })[0]!.text,
+    ]).toEqual(["later", "later"]);
   });
 
   it("does not drop an unrelated record whose container and sourceId splice to the same key", () => {

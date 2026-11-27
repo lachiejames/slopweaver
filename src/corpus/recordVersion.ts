@@ -107,7 +107,8 @@ export function laterRecordVersion({
  * unparseable row beats a short dated one on length, that dated row beats a long dated one on nothing at
  * all, and the dated rows order by instant — a cycle, which `latestRecords` folds through a Map, so the
  * survivor becomes whichever row was read first. Ranking unparseable as `-Infinity` keeps the comparison a
- * lexicographic order on (instant, length, row), every part of which is total. Pure.
+ * lexicographic order on (millisecond, sub-millisecond fraction, raw string) — see {@link laterTimestamp} —
+ * every part of which is total. Pure.
  */
 function instantOf({ tsIso }: { tsIso: string }): number {
   const parsed = Date.parse(tsIso);
@@ -134,10 +135,67 @@ function laterTimestamp({ candidate, incumbent }: { candidate: string; incumbent
   if (candidateAt !== incumbentAt) {
     return candidateAt > incumbentAt;
   }
-  // Equal RANK, but the strings still differ — the same instant written two ways (`+10:00` vs `Z`), both
-  // unparseable, or two timestamps `Date.parse` truncated to the same millisecond. That last case is why
-  // the raw strings are compared BEFORE content: `…00.0009Z` and `…00.0001Z` are one instant to
-  // `Date.parse`, and deciding between them on serialised length would let a longer, EARLIER row win.
-  // Comparing the strings keeps sub-millisecond ordering that the instant comparison cannot see.
+  // Equal RANK, but the strings still differ — two timestamps `Date.parse` truncated to one millisecond, the
+  // same instant written two ways (`+10:00` vs `Z`), or both unparseable. The first is why the digits past the
+  // millisecond are compared next, as a FRACTION: `…00.0009Z` and `…00.0001Z` are one millisecond to
+  // `Date.parse`, and so are `…T10:00:00.0001+10:00` and `…T00:00:00.0009Z`, where the raw strings order the
+  // `+10:00` one later while it is the EARLIER moment, and `…00Z` against `…00.0005Z`, where `"Z" > "."`.
+  // An unparseable pair skips this: it denotes no instant, so a fraction read off its text would be fiction.
+  // The whole key is therefore (millisecond rank, sub-millisecond fraction, raw string), each part total.
+  if (candidateAt !== Number.NEGATIVE_INFINITY) {
+    const fraction = compareSubMillisecond({
+      candidate: subMillisecondDigits({ tsIso: candidate }),
+      incumbent: subMillisecondDigits({ tsIso: incumbent }),
+    });
+    if (fraction !== 0) {
+      return fraction > 0;
+    }
+  }
+  // One instant written two ways, or two unparseable strings: nothing in either says which is later, so the
+  // raw strings decide, which keeps the order total.
   return candidate > incumbent;
+}
+
+/**
+ * The fractional-second digits of a WHOLE-STRING ISO-8601 date-time: a four-digit or signed six-digit year, a
+ * `T`, `t` or space separator, and a `Z`, `z`, `±HHMM` or `±HH:MM` offset or none. Every UTC offset is a
+ * whole number of minutes, so these digits mean the same in any rendering of one instant.
+ *
+ * **Anchored on the whole string, and the residue is stated rather than chased.** `Date.parse` also accepts an
+ * implementation-defined legacy grammar on this runtime (Node 24): `<Month> <D>, <YYYY> H:M:S.ffff UTC`, one-digit
+ * parts, and parenthesised comments it skips, so `(<H:M:S.ffff>) <D> <Mon> <YYYY> <H:M:S.ffff> GMT` parses to
+ * the second time. A pattern hunting the first time-shaped run reads the comment's fraction and reverses two
+ * instants; one mimicking that grammar is never finished. So a legacy rendering carries no fraction here, and two
+ * of them inside one millisecond order by their text, as every equal-millisecond pair did before this read.
+ * Pinned in `recordVersion.test.ts`.
+ */
+const FRACTION_PATTERN = /^(?:\d{4}|[+-]\d{6})-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}\.(\d+)(?:[Zz]|[+-]\d{2}:?\d{2})?$/;
+
+/**
+ * The digits of a parsed `tsIso`'s fractional second PAST the millisecond — the part `Date.parse` truncates
+ * away. Empty for a timestamp with three or fewer fractional digits, none, or one outside the ISO-8601 grammar
+ * {@link FRACTION_PATTERN} reads. Pure.
+ */
+function subMillisecondDigits({ tsIso }: { tsIso: string }): string {
+  const match = FRACTION_PATTERN.exec(tsIso);
+  if (match === null) {
+    return "";
+  }
+  return match[1]!.slice(3);
+}
+
+/**
+ * Two sub-millisecond digit runs compared as the fractions they denote: the shorter is right-padded with zeros,
+ * so `"9"` (900µs) outranks `"01"` (10µs), and `""` equals `"000"`. Pure.
+ *
+ * @returns positive when `candidate` is the larger fraction, negative when smaller, zero when equal
+ */
+function compareSubMillisecond({ candidate, incumbent }: { candidate: string; incumbent: string }): number {
+  const width = Math.max(candidate.length, incumbent.length);
+  const candidatePadded = candidate.padEnd(width, "0");
+  const incumbentPadded = incumbent.padEnd(width, "0");
+  if (candidatePadded === incumbentPadded) {
+    return 0;
+  }
+  return candidatePadded > incumbentPadded ? 1 : -1;
 }
