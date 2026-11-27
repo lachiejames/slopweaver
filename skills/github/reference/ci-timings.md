@@ -100,6 +100,15 @@ jobs independently. Job wall time moved inside run-to-run noise — `unit` 5:49 
 5:06. Closed, like the first. **Read this section before proposing a dependency cache here**; that is what it is
 for, and two pull requests paid for the same sentence.
 
+**The cache that stands is a different shape, and it is held to a different job.** Both closed attempts cached
+the archives ALONE; the entry `ci.yml` restores now (pinned by `ci-offload-contract`,
+`src/devLint/ciDependencyCache.ts`) holds the installed `node_modules`, which removes the link phase, AND the
+archives (`~/.yarn/berry/cache`). The archives are there for the network, not the clock: an entry without them
+made every job on a hit print `YN0013: 953 packages were added to the project (+ 2.02 GiB)`, a registry download
+one `write ECONNRESET` failed (desktop-e2e, job 140394290086). Re-read a job's Fetch step with
+`slopweaver github run-log <run-id> --job lint --from "Fetch step"`; on a hit it prints no `YN0013`. Hardened mode
+on a public pull request still queries registry metadata, and downloads no archive.
+
 **Gate concurrency was worth the whole gap.** `dev lint` runs four gates at once, each on a worker
 thread blocked on its own `spawnSync`, with the memory-hungry gate alone. Measured on `pull_request`:
 

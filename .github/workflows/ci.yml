@@ -162,15 +162,22 @@ jobs:
       # MEASURED: 0:41 of install in each of fourteen jobs, against 0:10-0:13 restore + 0:10-0:12
       # install on a hit. One shape, pinned by `ci-offload-contract` (src/devLint/ciDependencyCache.ts);
       # every other job below reuses the restore by anchor.
+      # The entry carries Yarn's package archives (`~/.yarn/berry/cache`) beside the installed tree: Yarn
+      # fetches a package whenever its archive is absent, whatever `node_modules` holds. MEASURED on the v1
+      # entry, which held no archives: every job on a hit printed `YN0013: 953 packages were added to the
+      # project (+ 2.02 GiB)`, a registry download one network reset failed (desktop-e2e, job 140394290086,
+      # `write ECONNRESET`). Re-read it with `slopweaver github run-log <run-id> --job lint --from "Fetch step"`.
+      # Hardened mode on a public pull request still queries registry metadata; it downloads no archive.
       - &restore-deps
         name: Restore the installed dependencies
         id: deps
         uses: actions/cache/restore@v6
         with: &deps-cache
-          key: node-modules-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.nvmrc', '.yarnrc.yml', '.yarn/plugins/**', 'package.json', 'yarn.lock', 'stubs/*/package.json') }}
+          key: node-modules-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.nvmrc', '.yarnrc.yml', '.yarn/plugins/**', 'package.json', 'yarn.lock', 'stubs/*/package.json') }}
           path: |
             node_modules
             .yarn/install-state.gz
+            ~/.yarn/berry/cache
       - run: yarn install --immutable
       # One composite (`slopweaver dev lint`), the SAME `yarn lint` run locally: prettier + oxlint (incl.
       # --type-aware) + the bespoke gates that replace ESLint's job + knip + constraints + hygiene +
