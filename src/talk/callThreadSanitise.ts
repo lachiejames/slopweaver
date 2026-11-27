@@ -199,16 +199,20 @@ function survivingInCapture({
  *
  * @param entry the entry as the console handed it over
  * @param denylist the private denylist words, already loaded
+ * @param instance `e2e` when the desktop test instance's call wrote it, stamped in the envelope BEFORE the fit
+ *   measures the line, so a marked entry never passes the ceiling; `undefined` for the owner's, which carry no key
  * @param maxBytes the stored line's ceiling, {@link CALL_THREAD_ENTRY_MAX_BYTES} unless a test narrows it
  * @returns the stored entry; its `withheld` is set when the capture could not be kept safely or at all
  */
 export function sanitiseCallThreadEntry({
   entry,
   denylist,
+  instance,
   maxBytes = CALL_THREAD_ENTRY_MAX_BYTES,
 }: {
   entry: CallThreadWireEntry;
   denylist: readonly string[];
+  instance: "e2e" | undefined;
   maxBytes?: number;
 }): StoredCallThreadEntry {
   const count = { n: 0 };
@@ -219,6 +223,7 @@ export function sanitiseCallThreadEntry({
   const base = {
     binaryStandIns: count.n,
     callId: entry.callId,
+    ...(instance === undefined ? {} : { instance }),
     kind: entry.capture.kind,
     receivedAtIso: entry.receivedAtIso,
     redactions,

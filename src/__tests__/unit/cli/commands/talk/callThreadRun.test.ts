@@ -51,14 +51,15 @@ const wire = ({ n }: { n: number }): CallThreadWireEntry => ({
   writeId: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
 });
 
-/** Seed this test's home with entries 1..count, as writer pid 101. */
-function seed({ count }: { count: number }): void {
+/** Seed this test's home with entries 1..count, as writer pid 101, the owner's unless an instance is named. */
+function seed({ count, instance }: { count: number; instance?: "e2e" }): void {
   unwrap(
     appendCallThreadEntries({
       callId: CALL,
       denylist: [],
       entries: Array.from({ length: count }, (_, i) => wire({ n: i + 1 })),
       home,
+      instance,
       pid: 101,
       startOf: () => ({ running: true, start: "t101" }),
     }),
@@ -102,6 +103,33 @@ describe("parseCallThreadAppendArgs", () => {
   it("takes - as the batch on stdin", () => {
     expect(unwrap(parseCallThreadAppendArgs({ rest: ["--call", CALL, "--entries-file", "-"] })).entriesFile).toBe("-");
   });
+
+  const originFlags = ["--console-root", "/w/main", "--console-port", "3000", "--console-default-port", "3000"];
+  const parse = (...flags: string[]) =>
+    parseCallThreadAppendArgs({ rest: ["--call", CALL, "--entries-file", "-", ...flags] });
+
+  it("marks the console origin the desktop test instance's call wrote through, and leaves the owner's unmarked", () => {
+    expect(unwrap(parse(...originFlags, "--console-instance", "e2e")).consoleOrigin).toEqual({
+      checkoutRoot: "/w/main",
+      defaultPort: 3000,
+      instance: "e2e",
+      port: 3000,
+    });
+    expect(unwrap(parse(...originFlags)).consoleOrigin).toEqual({
+      checkoutRoot: "/w/main",
+      defaultPort: 3000,
+      port: 3000,
+    });
+  });
+
+  it("refuses an instance other than e2e, and one passed without the console origin it qualifies", () => {
+    expect(unwrapErr(parse(...originFlags, "--console-instance", "E2E")).message).toContain(
+      "--console-instance must be e2e, not E2E",
+    );
+    expect(unwrapErr(parse("--console-instance", "e2e")).message).toContain(
+      "--console-instance is passed only beside --console-root",
+    );
+  });
 });
 
 describe("runTalkCallThread", () => {
@@ -132,6 +160,29 @@ describe("callThreadPage and callThreadLines", () => {
     expect(lines[1]).toBe(
       "[1] 2026-11-02T05:00:00.000Z  notification  method=item/completed thread=thr-1 turn=t-1 item=agentMessage id=item-2",
     );
+  });
+
+  it("marks each of the desktop test instance's entries on its header, and carries the mark in the page", () => {
+    seed({ count: 1, instance: "e2e" });
+    unwrap(
+      appendCallThreadEntries({
+        callId: CALL,
+        denylist: [],
+        entries: [wire({ n: 2 })],
+        home,
+        instance: undefined,
+        pid: 101,
+        startOf: () => ({ running: true, start: "t101" }),
+      }),
+    );
+    const read = unwrap(readCallThreadEntries({ callId: CALL, home }));
+    const page = callThreadPage({ callId: CALL, entries: read.entries, from: 0, limit: 2, skipped: 0 });
+    expect(page.entries.map((shown) => shown.entry.instance)).toEqual(["e2e", undefined]);
+    const headers = callThreadLines({ page }).filter((line) => line.startsWith("["));
+    expect(headers).toEqual([
+      "[0] 2026-11-02T05:00:00.000Z  notification  instance=e2e method=item/completed thread=thr-1 turn=t-1 item=agentMessage id=item-1",
+      "[1] 2026-11-02T05:00:00.000Z  notification  method=item/completed thread=thr-1 turn=t-1 item=agentMessage id=item-2",
+    ]);
   });
 
   it("says the last page is the last, and a --from past the end says so", () => {

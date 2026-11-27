@@ -167,6 +167,8 @@ function judgedBatch({
  * @param callId the call, a v4 UUID
  * @param entries the batch, already read and checked by {@link readCallThreadBatch}
  * @param denylist the private denylist words every entry is masked against, already loaded
+ * @param instance `e2e` when the desktop test instance's call wrote the batch, stamped on every stored line; a
+ *   `writeId` already written under the other attribution is a collision, never a retry
  * @param lockWaitMs how long to wait for another writer of the same call, 10 s unless a test narrows it
  * @param pid the pid this writer's lock names, its own unless a test stands in another
  * @param startOf a pid's current start time, the real `ps` unless a test makes a holder dead or alive
@@ -178,6 +180,7 @@ export function appendCallThreadEntries({
   callId,
   entries,
   denylist,
+  instance,
   lockWaitMs = CALL_LOCK_WAIT_MS,
   pid = process.pid,
   startOf = (candidate) => processStartOf({ pid: candidate }),
@@ -187,6 +190,7 @@ export function appendCallThreadEntries({
   callId: string;
   entries: readonly CallThreadWireEntry[];
   denylist: readonly string[];
+  instance: "e2e" | undefined;
   lockWaitMs?: number;
   pid?: number;
   startOf?: StartOf;
@@ -210,7 +214,7 @@ export function appendCallThreadEntries({
     chmodSync(dir, 0o700);
     const release = holdCallLock({ path: primary, pid, startOf, waitMs: lockWaitMs });
     try {
-      return appendUnderLock({ callId, denylist, dir, entries, partMaxBytes });
+      return appendUnderLock({ callId, denylist, dir, entries, instance, partMaxBytes });
     } finally {
       release();
     }
@@ -250,15 +254,18 @@ function groupByFile({
  * retry and skipped, one written with a different line is refused.
  *
  * @param paths the journal files already on disk
+ * @param instance the attribution every line is stamped with, part of the line a retry must match
  * @returns the lines still to write, each ending in `\n`, or the id written on a different line
  */
 function unwrittenLines({
   denylist,
   entries,
+  instance,
   paths,
 }: {
   denylist: readonly string[];
   entries: readonly CallThreadWireEntry[];
+  instance: "e2e" | undefined;
   paths: readonly string[];
 }): Result<string[], CallThreadError> {
   const written = new Map<string, string>();
@@ -267,7 +274,7 @@ function unwrittenLines({
   }
   const lines: string[] = [];
   for (const entry of entries) {
-    const line = storedLine({ entry: sanitiseCallThreadEntry({ denylist, entry }) });
+    const line = storedLine({ entry: sanitiseCallThreadEntry({ denylist, entry, instance }) });
     const stored = written.get(entry.writeId);
     if (stored === undefined) {
       lines.push(`${line}\n`);
@@ -291,12 +298,14 @@ function appendUnderLock({
   denylist,
   dir,
   entries,
+  instance,
   partMaxBytes,
 }: {
   callId: string;
   denylist: readonly string[];
   dir: string;
   entries: readonly CallThreadWireEntry[];
+  instance: "e2e" | undefined;
   partMaxBytes: number | undefined;
 }): Result<
   { readonly appended: number; readonly repeated: number; readonly paths: readonly string[] },
@@ -307,7 +316,12 @@ function appendUnderLock({
     return err(listed.error);
   }
   const files = listed.value;
-  const unwritten = unwrittenLines({ denylist, entries, paths: files.map((file) => join(dir, file.name)) });
+  const unwritten = unwrittenLines({
+    denylist,
+    entries,
+    instance,
+    paths: files.map((file) => join(dir, file.name)),
+  });
   if (unwritten.isErr()) {
     return err(unwritten.error);
   }

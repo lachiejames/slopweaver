@@ -58,7 +58,7 @@ import { resolveHandoverDir } from "../handover/commandSupport.js";
 import { talkHomeOf } from "./args.js";
 import { parseTranscriptArgs, type TranscriptArgs } from "./callArgs.js";
 import { movesOwed } from "./cardMoveApply.js";
-import { transcriptConsoleGate } from "./consoleOrigin.js";
+import { consoleRecordGate } from "./consoleOrigin.js";
 import { maskedBatch } from "./transcriptBatch.js";
 import { type Landings, landCall } from "./transcriptLand.js";
 import { TALK_TRANSCRIPT_USAGE } from "./usage.js";
@@ -96,7 +96,12 @@ export async function runTalkTranscript(argv: readonly string[]): Promise<number
   const args = parsed.value;
   const home = talkHomeOf({ home: args.home });
   const handoverDir = resolveHandoverDir({ dir: args.dir, home });
-  const gate = transcriptConsoleGate({ consoleOrigin: args.consoleOrigin, handoverDir, home });
+  const gate = consoleRecordGate({
+    consoleOrigin: args.consoleOrigin,
+    handoverDir,
+    home,
+    verb: "talk transcript",
+  });
   if (gate.isErr()) {
     logger.error({ msg: gate.error });
     return EXIT_USAGE;

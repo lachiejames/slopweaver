@@ -188,7 +188,12 @@ the retry carries strictly less of the model's than the first attempt did (`site
   reads it a page at a time, and no search reaches it — not recall, not continuity, not `talk calls`
   (`src/__tests__/unit/talk/callThreadIsolation.test.ts`); only a read handed its path (`talk file`) opens one. A retry's `writeId` already written counts as repeated
   only when its stored line is the one it would write; the same id on a different capture refuses the batch and the
-  journal says so, rather than dropping it. **The residue, stated**: the queue is in the console's
+  journal says so, rather than dropping it. The desktop TEST instance's call or typed conversation is journalled
+  MARKED: the console passes `--console-instance e2e` beside its origin flags, and the verb stamps `instance: "e2e"`
+  on every entry before the size fit, so `talk call-thread` shows `instance=e2e` on each of its headers and never
+  as the owner's. The page cannot claim the mark — the wire entry refuses the field — and it records into the live
+  home only through the owner's own console, exactly as `talk transcript` does. One `writeId` arriving under both
+  attributions collides rather than counting as a retry. **The residue, stated**: the queue is in the console's
   memory, written one batch at a time; a signal drains it for up to 30 s, and a SIGKILL, a crash or a drain past
   that loses what was not yet written — the drain, or else the process `exit` hook, says how many per call on stderr,
   a SIGKILL nothing. `talk/threads` stays on this machine only (the backup keeps your words

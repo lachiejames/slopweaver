@@ -25,6 +25,11 @@ const entry = (capture: CallThreadWireEntry["capture"]): CallThreadWireEntry => 
   writeId: WRITE,
 });
 
+/** The owner's entry, sanitised: no instance stamped. */
+const sanitiseOwner = (
+  args: Omit<Parameters<typeof sanitiseCallThreadEntry>[0], "instance">,
+): ReturnType<typeof sanitiseCallThreadEntry> => sanitiseCallThreadEntry({ ...args, instance: undefined });
+
 const toolAnswer = ({ text }: { text: string }): CallThreadWireEntry["capture"] => ({
   arguments: "{}",
   contentItems: [{ text, type: "inputText" }],
@@ -47,6 +52,12 @@ describe("callThreadWireEntryOf", () => {
     });
     expect(callThreadWireEntryOf({ value: { ...wire, extra: 1 } })).toBe(undefined);
     expect(callThreadWireEntryOf({ value: { ...wire, callId: "../x" } })).toBe(undefined);
+  });
+
+  it("refuses an instance on the wire: only the append verb stamps one, from its own flag", () => {
+    const wire = entry({ kind: "notification", method: "item/completed", params: {} });
+    expect(callThreadWireEntryOf({ value: wire })!.writeId).toBe(WRITE);
+    expect(callThreadWireEntryOf({ value: { ...wire, instance: "e2e" } })).toBe(undefined);
   });
 
   it("refuses a delta, which the journal never keeps", () => {
@@ -84,7 +95,7 @@ describe("binaryStandIn", () => {
 
 describe("sanitiseCallThreadEntry", () => {
   it("keeps a clean capture exactly", () => {
-    const stored = sanitiseCallThreadEntry({
+    const stored = sanitiseOwner({
       denylist: [],
       entry: entry(toolAnswer({ text: "the pool hit 100 connections" })),
     });
@@ -97,7 +108,7 @@ describe("sanitiseCallThreadEntry", () => {
 
   it("masks a credential and a denylist word, counting each by label, and keeps an identifier", () => {
     const text = `token ${TOKEN} again ${TOKEN}, from AcmeSecretWord in C0SYN000001`;
-    const stored = sanitiseCallThreadEntry({ denylist: ["acmesecretword"], entry: entry(toolAnswer({ text })) });
+    const stored = sanitiseOwner({ denylist: ["acmesecretword"], entry: entry(toolAnswer({ text })) });
     const line = storedLine({ entry: stored });
     expect(line).not.toContain(TOKEN);
     expect(line.toLowerCase()).not.toContain("acmesecretword");
@@ -112,13 +123,13 @@ describe("sanitiseCallThreadEntry", () => {
   it("counts an inline image and keeps no byte of it", () => {
     const image = `data:image/jpeg;base64,${Buffer.from("frame").toString("base64")}`;
     const capture = { ...toolAnswer({ text: "x" }), contentItems: [{ imageUrl: image, type: "inputImage" }] };
-    const stored = sanitiseCallThreadEntry({ denylist: [], entry: entry(capture) });
+    const stored = sanitiseOwner({ denylist: [], entry: entry(capture) });
     expect(stored.binaryStandIns).toBe(1);
     expect(storedLine({ entry: stored })).not.toContain(Buffer.from("frame").toString("base64"));
   });
 
   it("cuts an oversized capture to fit, stating the bytes cut", () => {
-    const stored = sanitiseCallThreadEntry({
+    const stored = sanitiseOwner({
       denylist: [],
       entry: entry(toolAnswer({ text: "é".repeat(4000) })),
       maxBytes: 2000,
@@ -133,7 +144,7 @@ describe("sanitiseCallThreadEntry", () => {
 
   it("withholds a capture of so many keys that even empty leaves will not fit", () => {
     const params = Object.fromEntries(Array.from({ length: 400 }, (_, i) => [`key-${String(i)}`, "v"]));
-    const stored = sanitiseCallThreadEntry({
+    const stored = sanitiseOwner({
       denylist: [],
       entry: entry({ kind: "notification", method: "item/completed", params }),
       maxBytes: 1000,
@@ -144,7 +155,7 @@ describe("sanitiseCallThreadEntry", () => {
 
   it("withholds a capture whose secret sits in an object key, which masking never rewrites", () => {
     const params = { [TOKEN]: "value" };
-    const stored = sanitiseCallThreadEntry({
+    const stored = sanitiseOwner({
       denylist: [],
       entry: entry({ kind: "notification", method: "item/completed", params }),
     });
@@ -154,7 +165,7 @@ describe("sanitiseCallThreadEntry", () => {
 
   it("withholds a denylist word in an object key that the serialised line escapes past the scan", () => {
     const word = 'api"key';
-    const stored = sanitiseCallThreadEntry({
+    const stored = sanitiseOwner({
       denylist: [word],
       entry: entry({ kind: "notification", method: "item/completed", params: { [word]: "value" } }),
     });
@@ -165,12 +176,44 @@ describe("sanitiseCallThreadEntry", () => {
   it("withholds a secret that outlasts every masking pass even when the cut would have dropped it", () => {
     const tokens = Array.from({ length: 9 }, (_, i) => "ghp_" + "Q".repeat(29) + String(i));
     const text = `${tokens.slice(0, 8).join(" ")} ${"A".repeat(3000)} ${tokens[8]!}`;
-    const stored = sanitiseCallThreadEntry({ denylist: [], entry: entry(toolAnswer({ text })), maxBytes: 2000 });
+    const stored = sanitiseOwner({ denylist: [], entry: entry(toolAnswer({ text })), maxBytes: 2000 });
     expect([stored.withheld, stored.truncation]).toEqual([
       { labels: ["github-oauth-token"], reason: "secret-survived-masking" },
       null,
     ]);
     expect(storedLine({ entry: stored })).not.toContain("ghp_");
+  });
+
+  it("stamps the desktop test instance's entry, and writes no instance key on the owner's", () => {
+    const capture = toolAnswer({ text: "the pool hit 100 connections" });
+    const marked = sanitiseCallThreadEntry({ denylist: [], entry: entry(capture), instance: "e2e" });
+    const owner = sanitiseOwner({ denylist: [], entry: entry(capture) });
+    expect(marked.instance).toBe("e2e");
+    expect(storedLine({ entry: marked })).toContain('"instance":"e2e"');
+    expect(storedLine({ entry: owner })).not.toContain('"instance"');
+    expect(storedLine({ entry: owner })).toContain('"kind":"tool-answer"');
+  });
+
+  it("fits a marked entry with its mark counted, so the stamp never pushes a line past the ceiling", () => {
+    const stored = sanitiseCallThreadEntry({
+      denylist: [],
+      entry: entry(toolAnswer({ text: "é".repeat(4000) })),
+      instance: "e2e",
+      maxBytes: 2000,
+    });
+    const line = storedLine({ entry: stored });
+    expect(line).toContain('"instance":"e2e"');
+    expect(Buffer.byteLength(line, "utf8")).toBeLessThanOrEqual(2000);
+    expect(stored.truncation!.truncatedBytes).toBeGreaterThan(6000);
+  });
+
+  it("keeps the mark on a withheld entry", () => {
+    const stored = sanitiseCallThreadEntry({
+      denylist: [],
+      entry: entry({ kind: "notification", method: "item/completed", params: { [TOKEN]: "value" } }),
+      instance: "e2e",
+    });
+    expect([stored.instance, stored.withheld!.reason]).toEqual(["e2e", "secret-survived-masking"]);
   });
 });
 

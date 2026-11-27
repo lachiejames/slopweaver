@@ -204,7 +204,11 @@ function startPlanChild<C extends PlanCall>({
       nowMs: () => Date.now(),
     },
     id,
-    journal: callThreadJournalFor({ callId: id, origin: originArgvOfServer() }),
+    journal: callThreadJournalFor({
+      callId: id,
+      instance: instance === "e2e" ? "e2e" : undefined,
+      origin: originArgvOfServer(),
+    }),
     meetings: context.meetings,
     mintToken: () => randomUUID(),
     notices: context.notices,

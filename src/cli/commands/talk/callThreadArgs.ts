@@ -7,7 +7,12 @@ import { err, ok, type Result } from "../../../lib/result.js";
 import { isCallId } from "../../../talk/callId.js";
 import { CALL_THREAD_LIMIT_DEFAULT, CALL_THREAD_LIMIT_MAX } from "../../../talk/callThreadPage.js";
 import { type FlagSpec, parseFlags } from "../../parseFlags.js";
-import { CONSOLE_ORIGIN_FLAGS, type ConsoleOriginArgs, consoleOriginOf } from "./consoleOriginArgs.js";
+import {
+  CONSOLE_INSTANCE_FLAG,
+  CONSOLE_ORIGIN_FLAGS,
+  type ConsoleOriginArgs,
+  consoleOriginWithInstanceOf,
+} from "./consoleOriginArgs.js";
 import { flagNames, numberOf, stringOf } from "./flagValues.js";
 
 /** The flags `talk call-thread` accepts. */
@@ -16,7 +21,7 @@ const CALL_THREAD_FLAGS = { boolean: ["json"], string: ["call", "from", "limit",
 /** The flags `talk call-thread-append` accepts. */
 const CALL_THREAD_APPEND_FLAGS = {
   boolean: ["json"],
-  string: ["call", "entries-file", "home", ...CONSOLE_ORIGIN_FLAGS],
+  string: ["call", "entries-file", "home", ...CONSOLE_ORIGIN_FLAGS, CONSOLE_INSTANCE_FLAG],
 } satisfies FlagSpec;
 
 /** `--`-prefixed, for the help-truth ratchet. */
@@ -83,7 +88,10 @@ export interface CallThreadAppendArgs {
   readonly callId: string;
   /** The batch's path, or `-` for stdin — how the console sends it, so its raw entries never touch disk. */
   readonly entriesFile: string;
-  /** Where the console server that ran it is serving from; `undefined` for a hand run (`./consoleOrigin.ts`). */
+  /**
+   * Where the console server that ran it is serving from, marked `instance: "e2e"` when the desktop test instance's call
+   * wrote the batch (`--console-instance e2e`); `undefined` for a hand run (`./consoleOrigin.ts`).
+   */
   readonly consoleOrigin: ConsoleOriginArgs | undefined;
   readonly home: string | undefined;
   readonly json: boolean;
@@ -146,7 +154,7 @@ export function parseCallThreadAppendArgs({
   if (entriesFile === undefined) {
     problems.push("--entries-file <jsonl|-> is required: the batch of entries to append, or - to read it from stdin");
   }
-  const consoleOrigin = consoleOriginOf({ problems, values });
+  const consoleOrigin = consoleOriginWithInstanceOf({ problems, values });
   if (entriesFile === undefined || problems.length > 0) {
     return err(CallThreadArgsErrors.problems({ problems, verb: "call-thread-append" }));
   }
