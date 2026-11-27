@@ -215,6 +215,24 @@ describe("verifyFreshCut", REAL_GIT_SUITE, () => {
     expect([verification.status, verification.filesScanned, verification.findings]).toEqual(["clear", 3, []]);
   });
 
+  it("scans every path of a blob two files share, which its one batch asks git for twice", () => {
+    const { home, repo, root } = fixture();
+    writeFileSync(join(repo, "copy.txt"), "one\n");
+    gitInTemp({ args: ["add", "copy.txt"], cwd: repo });
+    gitInTemp({ args: ["commit", "-q", "-m", "copy"], cwd: repo });
+    const tip = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: repo });
+    writePrivateTerms({ home, rows: ["person\ti\tquillfeather\tsynthetic"] });
+    const record = produce({ name: "cut", repo, root, tip });
+
+    expect(gitInTemp({ args: ["rev-parse", `${tip}:a.txt`], cwd: repo })).toBe(
+      gitInTemp({ args: ["rev-parse", `${tip}:copy.txt`], cwd: repo }),
+    );
+    const { verification } = unwrap(
+      verifyFreshCut({ home, now: NOW, projectsDir: noTranscripts(), record, source: repo }),
+    );
+    expect([verification.status, verification.filesScanned, verification.findings]).toEqual(["clear", 4, []]);
+  });
+
   it("finds an owner-address term in a committed file, with no outbound exemption", () => {
     const { home, repo, root } = fixture();
     writeFileSync(join(repo, "AUTHORS"), `maintainer <${ADDRESS}>\n`);

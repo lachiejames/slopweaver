@@ -21,7 +21,7 @@
  *
  *  - **Today's scanner, not the tree's.** `scanContent` and `isSecretHit` are this build's, with this
  *    machine's private denylist, so a pattern added yesterday applies to a tree cut last week.
- *  - **Every blob the destination does not already carry, never a rendered diff.** `git log -p` was the
+ *  - **Every blob the destination's default branch does not already carry, never a rendered diff.** `git log -p` was the
  *    first design and a Codex pre-mortem broke it twice against real git: a merge
  *    commit whose conflict resolution wrote a key renders no patch at all, and a file marked `-diff` renders
  *    as `Binary files … differ`. `rev-list --objects` walks OBJECTS, so a merge resolution, a `-diff` file and
@@ -56,9 +56,12 @@
  *    commit OBJECT, so every commit in the range is read raw beside the blobs.
  *  - **Every path a blob is published at, not the first.** `rev-list --objects` names an object once, at the first
  *    path its walk meets, and the repository-content scanner forgives by path. So the raw walk above also maps each
- *    new blob to every path a range commit writes it at (`./salvageMetadata`), and the identifier scan judges each
- *    copy at its own path. A secret is scanned once per object, since that scanner reads no path. A walk that does
- *    not parse declines rather than leave a copy unjudged, and a submodule entry declines on its own line.
+ *    blob a range commit writes to every path it writes it at (`./salvageMetadata`), and the identifier scan judges
+ *    each copy at its own path. That includes a blob the destination's default branch already reaches, which the
+ *    listing leaves out: written at a new path, it is read for that judgement alone. A secret is scanned once per
+ *    LISTED object, since that scanner reads no path — a blob the default branch reaches is not secret-scanned,
+ *    because its bytes are already published there. A walk that does not parse declines rather than leave a copy
+ *    unjudged, and a submodule entry declines on its own line.
  *  - **The repository gate's identifier verdict too.** The destination is the public repository, so a forbidden
  *    identifier that gate would refuse wherever `IDENTIFIER_VERDICT` reads `refuse` declines here as well: an
  *    uncommitted file naming an organisation is otherwise published by the push that preserves it.
@@ -80,6 +83,7 @@ import { transportGitEnv } from "../admit/gitTransport.js";
 import type { IdentifierScanner } from "../hygiene/identifierScan.js";
 import type { Hit, LineListLoad } from "../hygiene/scan.js";
 import { GIT_MAX_BUFFER } from "./pruneGit.js";
+import { parseCatFileObjects } from "./salvageCatFile.js";
 import {
   blobSecretHits,
   identifierDecline,
@@ -91,7 +95,7 @@ import {
 import { HOOKS_OFF } from "./salvageHooksOff.js";
 import { METADATA_LOG, parseSalvageMetadata } from "./salvageMetadata.js";
 
-/** One blob or commit the push would send, and what it is reachable as — the path is for the report only. */
+/** One blob or commit the scan reads, and what it is reachable as — the path is for the report only. */
 export interface SalvageBlob {
   readonly sha: string;
   readonly path: string;
@@ -147,8 +151,9 @@ export function revListInput({ sha, tips }: { sha: string; tips: readonly string
  *
  * Pure. A blob prints as `<name> <path>`; a commit prints as a bare name and is KEPT, because its raw bytes
  * carry an author, a committer, a signature and a message, all published and none inside a blob.
- * A path carrying a newline splits across lines, and its tail matches nothing here — the blob
- * is still found by its own line, so only the attribution is shortened, never the scan.
+ * A path carrying a newline splits across lines. The blob is still found by its own line, so the attribution is
+ * shortened, never the scan; a tail that itself reads as an object line only adds an object to read, which git then
+ * answers or the scan declines.
  *
  * @param listing the command's stdout
  * @returns each object once, in listing order
@@ -168,39 +173,6 @@ export function newBlobsIn({ listing }: { listing: string }): readonly SalvageBl
     );
   }
   return blobs;
-}
-
-/**
- * Split a `cat-file --batch` answer into each object's raw bytes.
- *
- * Pure, and over BYTES: the header's size is a byte count, so reading the answer as a string first would
- * mis-slice the first multi-byte character. An object git answers `missing`, or an answer that does not
- * parse, is `null` — the caller cannot scan what it could not read.
- *
- * @param output the command's stdout, exactly as git wrote it
- * @returns each object's content by name, or `null` when any object was missing or the answer was malformed
- */
-export function parseCatFileBatch({ output }: { output: Buffer }): ReadonlyMap<string, Buffer> | null {
-  const contents = new Map<string, Buffer>();
-  let offset = 0;
-  while (offset < output.length) {
-    const newline = output.indexOf(0x0a, offset);
-    if (newline < 0) {
-      return null;
-    }
-    const header = /^(\S+) \S+ (\d+)$/.exec(output.subarray(offset, newline).toString("utf8"));
-    if (header === null) {
-      return null;
-    }
-    const start = newline + 1;
-    const end = start + Number(header[2]);
-    if (end >= output.length || output[end] !== 0x0a) {
-      return null;
-    }
-    contents.set(header[1]!, output.subarray(start, end));
-    offset = end + 1;
-  }
-  return contents;
 }
 
 /** The git reads the scan needs, injected so the decisions below are provable against a literal answer. */
@@ -223,7 +195,9 @@ interface ReadSalvageText extends SalvageText {
 }
 
 /**
- * Read one batch of blobs as text, or say why the scan cannot go on.
+ * Read one batch of blobs as text, or say why the scan cannot go on. An object answered as another kind than asked
+ * for — anything but a commit for a commit, anything but a blob for a blob — declines like a missing one, since its
+ * bytes are not the ones the push sends under that name.
  *
  * @param edges the git reads
  * @param batch the blobs to read
@@ -243,16 +217,44 @@ function readBatch({
     const why = error instanceof Error ? error.message : "git could not be asked";
     return `what it would push could not be read for the secrets scan — ${why}; nothing was pushed`;
   }
-  const contents = parseCatFileBatch({ output });
-  if (contents === null || batch.some((blob) => !contents.has(blob.sha))) {
+  const contents = parseCatFileObjects({ output });
+  const answered = (blob: SalvageBlob): boolean => contents?.get(blob.sha)?.type === (blob.commit ? "commit" : "blob");
+  if (contents === null || !batch.every(answered)) {
     return "git did not answer every object the push would send, so they went unscanned — nothing was pushed";
   }
   return batch.map((blob) => ({
     commit: blob.commit,
-    content: contents.get(blob.sha)!.toString("utf8"),
+    content: contents.get(blob.sha)!.content.toString("utf8"),
     path: blob.path,
     sha: blob.sha,
   }));
+}
+
+/**
+ * Every blob a range commit writes that the listing does not name — one the destination's DEFAULT branch already
+ * reaches, since that branch's tip (`ls-remote <url> HEAD`) is the one revision the listing negates. Its bytes are
+ * already published there, but a path it is written at may not be, and the identifier scanner forgives by path, so
+ * each is read and judged at every path the range writes it at.
+ *
+ * Pure. The difference decides what must be READ, never what may be trusted: a blob it names that git then cannot
+ * answer declines like any other. The report path is the first path written, which {@link textsAtEveryPath} joins
+ * with the rest, so every path judged comes from the raw walk.
+ *
+ * @param blobs the objects the listing named
+ * @param pathsByBlob every path each blob a range commit writes is written at
+ * @returns each unlisted written blob once, in walk order
+ */
+function unlistedWrittenBlobs({
+  blobs,
+  pathsByBlob,
+}: {
+  blobs: readonly SalvageBlob[];
+  pathsByBlob: ReadonlyMap<string, readonly string[]>;
+}): readonly SalvageBlob[] {
+  const listed = new Set(blobs.map((blob) => blob.sha));
+  return [...pathsByBlob]
+    .filter(([sha]) => !listed.has(sha))
+    .map(([sha, written]) => ({ commit: false, path: written[0]!, sha }));
 }
 
 /**
@@ -262,7 +264,7 @@ function readBatch({
  * Pure. The content is shared, never re-read.
  *
  * @param read the batch as read
- * @param pathsByBlob every path each new blob is written at
+ * @param pathsByBlob every path each blob a range commit writes is written at
  * @returns the texts the identifier scan reads
  */
 function textsAtEveryPath({
@@ -345,14 +347,18 @@ export function salvageScanDecline({
 /**
  * Read every blob in batches and scan it, with the published names, for a secret first and a forbidden identifier next.
  *
- * A secret is scanned once per object, since that scanner reads no path; an identifier once per path the object is
- * published at, since the repository-content scanner forgives by path.
+ * A secret is scanned once per LISTED object — every one the destination's default branch does not reach, whatever
+ * other destination ref carries it — since that scanner reads no path; an identifier
+ * once per path the object is published at, since the repository-content scanner forgives by path. A blob a range
+ * commit writes that the destination's default branch already reaches is read too, for its identifiers alone and
+ * never for a secret: its bytes are on that protected, forward-only branch already, and only a path it is newly
+ * written at is new.
  *
  * @param blobs the blobs the push would send
  * @param edges the git reads
  * @param identifiers the repository-content identifier scanner
  * @param names the texts published without being inside any blob: the branch name and the changed paths
- * @param pathsByBlob every path each new blob is written at, from the raw metadata walk
+ * @param pathsByBlob every path each blob a range commit writes is written at, from the raw metadata walk
  * @param words the private denylist's lines
  * @returns the decline reason, or `null` when nothing refused leaves
  */
@@ -389,10 +395,56 @@ function contentDecline({
     hits.push(...blobSecretHits({ blobs: read, denylist: words }));
     named.push(...more);
   }
+  const held = heldIdentifierHits({
+    edges,
+    held: unlistedWrittenBlobs({ blobs, pathsByBlob }),
+    identifiers,
+    pathsByBlob,
+  });
+  if (typeof held === "string") {
+    return held;
+  }
+  named.push(...held);
   if (hits.length > 0) {
     return secretDecline({ denylist: words, hits, identifiers });
   }
   return named.length > 0 ? identifierDecline({ denylist: words, hits: named, identifiers }) : null;
+}
+
+/**
+ * Read every written blob the listing left out in batches and judge its identifiers at each path the range writes it
+ * at — never its secrets, whose bytes the destination's default branch already publishes.
+ *
+ * @param edges the git reads
+ * @param held the blobs from {@link unlistedWrittenBlobs}
+ * @param identifiers the repository-content identifier scanner
+ * @param pathsByBlob every path each blob a range commit writes is written at
+ * @returns the refused identifier hits, or the decline reason when a read or the scanner failed
+ */
+function heldIdentifierHits({
+  edges,
+  held,
+  identifiers,
+  pathsByBlob,
+}: {
+  edges: SalvageScanEdges;
+  held: readonly SalvageBlob[];
+  identifiers: IdentifierScanner;
+  pathsByBlob: ReadonlyMap<string, readonly string[]>;
+}): readonly SalvageIdentifierHit[] | string {
+  const named: SalvageIdentifierHit[] = [];
+  for (let start = 0; start < held.length; start += BLOB_BATCH) {
+    const read = readBatch({ batch: held.slice(start, start + BLOB_BATCH), edges });
+    if (typeof read === "string") {
+      return read;
+    }
+    const more = identifierHitsOrDecline({ identifiers, texts: textsAtEveryPath({ pathsByBlob, read }) });
+    if (typeof more === "string") {
+      return more;
+    }
+    named.push(...more);
+  }
+  return named;
 }
 
 /**

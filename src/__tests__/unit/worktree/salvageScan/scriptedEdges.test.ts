@@ -210,3 +210,144 @@ describe("salvageScanDecline over the raw metadata walk", () => {
     );
   });
 });
+
+/**
+ * Scripted edges whose listing names nothing, as when every blob a range commit writes is one the destination's
+ * default branch already reaches, while git can still answer each of them.
+ *
+ * @param held each blob the destination holds and git answers, by name and content
+ * @param metadata what `git log` answers for the changed paths
+ * @returns the edges
+ */
+function destinationHeld({
+  held,
+  metadata,
+}: {
+  held: readonly { sha: string; content: string }[];
+  metadata: string;
+}): SalvageScanEdges {
+  return {
+    listBlobs: () => "",
+    listMetadata: () => metadata,
+    readBlobs: ({ shas }) => batchOf({ objects: held.filter((blob) => shas.includes(blob.sha)) }),
+  };
+}
+
+describe("salvageScanDecline over a blob the destination already holds", () => {
+  it("declines a forbidden word at the new path a range commit writes it at, though the listing omits it", () => {
+    const edges = destinationHeld({
+      held: [{ content: `notes for ${ORG}\n`, sha: SHA_B }],
+      metadata: rawRecord({ path: "docs/n.md", sha: SHA_B }),
+    });
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "the work it would push carries 1 forbidden-identifier hit(s) (forbidden-word-ci) in docs/n.md, and the destination is public — nothing was pushed",
+    );
+  });
+
+  it("declines when git cannot answer that blob, since a written path it could not read went unjudged", () => {
+    const edges = destinationHeld({ held: [], metadata: rawRecord({ path: "docs/n.md", sha: SHA_B }) });
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "git did not answer every object the push would send, so they went unscanned — nothing was pushed",
+    );
+  });
+
+  it("declines when git answers that blob's name with an object of another kind, whose bytes are not the blob's", () => {
+    const edges: SalvageScanEdges = {
+      listBlobs: () => "",
+      listMetadata: () => rawRecord({ path: "docs/n.md", sha: SHA_B }),
+      readBlobs: () => Buffer.from(`${SHA_B} tree 0\n\n`),
+    };
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "git did not answer every object the push would send, so they went unscanned — nothing was pushed",
+    );
+  });
+
+  it("declines when git answers that blob's name twice, so a clean second copy cannot hide a forbidden first", () => {
+    const edges: SalvageScanEdges = {
+      listBlobs: () => "",
+      listMetadata: () => rawRecord({ path: "docs/n.md", sha: SHA_B }),
+      readBlobs: () =>
+        batchOf({
+          objects: [
+            { content: `notes for ${ORG}\n`, sha: SHA_B },
+            { content: "ok", sha: SHA_B },
+          ],
+        }),
+    };
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "git did not answer every object the push would send, so they went unscanned — nothing was pushed",
+    );
+  });
+
+  it("declines a LISTED blob answered as another kind the same way", () => {
+    const edges: SalvageScanEdges = {
+      listBlobs: () => `${SHA_A} a.md`,
+      listMetadata: () => "",
+      readBlobs: () => Buffer.from(`${SHA_A} commit 0\n\n`),
+    };
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "git did not answer every object the push would send, so they went unscanned — nothing was pushed",
+    );
+  });
+
+  it("judges its identifiers only, never a secret, whose bytes the destination already publishes", () => {
+    const edges = destinationHeld({
+      held: [{ content: `token=${TOKEN}\n`, sha: SHA_B }],
+      metadata: rawRecord({ path: "docs/n.env", sha: SHA_B }),
+    });
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      null,
+    );
+    expect(
+      salvageScanDecline({
+        denylist: { kind: "absent" },
+        edges: scripted({ blobs: [{ content: `token=${TOKEN}\n`, path: "docs/n.env", sha: SHA_B }] }),
+        identifiers: IDENTIFIERS,
+        refName: REF,
+      }),
+    ).toBe(
+      "the work it would push carries 1 secret-class line(s) (github-oauth-token) in docs/n.env — nothing was pushed",
+    );
+  });
+
+  it("reads every batch of them, finding a forbidden word past the first two hundred", () => {
+    const held = Array.from({ length: 450 }, (_, index) => ({
+      content: index === 430 ? `notes for ${ORG}\n` : `const n = ${String(index)};`,
+      sha: index.toString(16).padStart(40, "0"),
+    }));
+    const edges = destinationHeld({
+      held,
+      metadata: held.map(({ sha }, index) => rawRecord({ path: `f${String(index)}.md`, sha })).join(""),
+    });
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "the work it would push carries 1 forbidden-identifier hit(s) (forbidden-word-ci) in f430.md, and the destination is public — nothing was pushed",
+    );
+  });
+
+  it("does not judge a LISTED blob twice, counting one hit per path written", () => {
+    const edges = scripted({
+      blobs: [{ content: `notes for ${ORG}\n`, path: "a.md", sha: SHA_A }],
+      metadata: rawRecord({ path: "a.md", sha: SHA_A }),
+    });
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "the work it would push carries 1 forbidden-identifier hit(s) (forbidden-word-ci) in a.md, and the destination is public — nothing was pushed",
+    );
+  });
+});
+
+describe("salvageScanDecline's secret precedence over a held blob", () => {
+  it("declines a listed secret first when a held blob carries a forbidden word", () => {
+    const blobs = [
+      { content: `token=${TOKEN}\n`, sha: SHA_A },
+      { content: `notes for ${ORG}\n`, sha: SHA_B },
+    ];
+    const edges: SalvageScanEdges = {
+      listBlobs: () => `${SHA_A} a.env`,
+      listMetadata: () => rawRecord({ path: "a.env", sha: SHA_A }) + rawRecord({ path: "docs/n.md", sha: SHA_B }),
+      readBlobs: ({ shas }) => batchOf({ objects: blobs.filter((blob) => shas.includes(blob.sha)) }),
+    };
+    expect(salvageScanDecline({ denylist: { kind: "absent" }, edges, identifiers: IDENTIFIERS, refName: REF })).toBe(
+      "the work it would push carries 1 secret-class line(s) (github-oauth-token) in a.env — nothing was pushed",
+    );
+  });
+});

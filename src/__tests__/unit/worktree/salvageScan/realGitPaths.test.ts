@@ -2,7 +2,8 @@
  * The salvage scan over real git, judging a blob at EVERY path the push publishes it under. `rev-list --objects`
  * names an object once, at the first path its walk meets, and the repository-content scanner forgives by path — the
  * owner's account on a `.github/CODEOWNERS` rule row, the one owner reference in the README. So a byte-identical copy
- * of a forgiven file at any other path is the case: it must decline there exactly as a fresh file would.
+ * of a forgiven file at any other path is the case: it must decline there exactly as a fresh file would — and so must
+ * a copy of a blob the destination's default branch already holds, which `rev-list` does not list at all.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -85,6 +86,34 @@ describe("salvageScanDecline over a blob published at two paths", REAL_GIT_SUITE
       expect(line).toBe(
         "the work it would push carries 1 forbidden-identifier hit(s) (forbidden-word-ci) in docs/owners.txt, and the destination is public — nothing was pushed",
       );
+    },
+    REAL_GIT_TIMEOUT_MS,
+  );
+
+  it(
+    "declines a copy at a new path of a blob the DESTINATION already holds, which rev-list does not list at all",
+    () => {
+      expect(commitAndScan({ files: [{ content: OWNER_ROW, path: CODE_OWNERS_PATH }] })).toBe(null);
+      git("push", "-q", "origin", "main");
+      const line = commitAndScan({ files: [{ content: OWNER_ROW, path: "docs/owners.txt" }] });
+      expect(git("rev-parse", `origin/main:${CODE_OWNERS_PATH}`)).toBe(git("rev-parse", "HEAD:docs/owners.txt"));
+      expect(line).toBe(
+        "the work it would push carries 1 forbidden-identifier hit(s) (forbidden-word-ci) in docs/owners.txt, and the destination is public — nothing was pushed",
+      );
+    },
+    REAL_GIT_TIMEOUT_MS,
+  );
+
+  it(
+    "still allows a blob the destination holds restored at the SAME forgiven path, so no forgiveness is lost",
+    () => {
+      expect(commitAndScan({ files: [{ content: OWNER_ROW, path: CODE_OWNERS_PATH }] })).toBe(null);
+      git("push", "-q", "origin", "main");
+      git("rm", "-q", CODE_OWNERS_PATH);
+      git("commit", "-q", "-m", "drop owners");
+      const line = commitAndScan({ files: [{ content: OWNER_ROW, path: CODE_OWNERS_PATH }] });
+      expect(git("log", "--format=", "--name-only", "-z", "origin/main..HEAD").split("\0")).toContain(CODE_OWNERS_PATH);
+      expect(line).toBe(null);
     },
     REAL_GIT_TIMEOUT_MS,
   );

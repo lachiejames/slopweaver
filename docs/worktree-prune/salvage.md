@@ -5,6 +5,7 @@ The class, the waiver it rests on and the fresh `salvage/<slug>-<sha8>` branch a
 [the classes](classes.md#the-classes); the code is `src/worktree/pruneSalvage.ts` (the
 capture), `src/worktree/salvageTrunkHistory.ts` (the history check), `src/worktree/salvageDestination.ts` (the one
 url), `src/worktree/salvagePush.ts` (the push), `src/worktree/salvageScan.ts` (the scan's git reads),
+`src/worktree/salvageMetadata.ts` (the raw path walk), `src/worktree/salvageCatFile.ts` (the object answer's parse),
 `src/worktree/salvageFindings.ts` (what the scan found, and the decline line naming it) and
 `src/worktree/salvageHooksOff.ts` (the hooks-off flags every one of them runs git with).
 
@@ -145,7 +146,10 @@ without it git C-quotes a name holding a backslash or a quote, `core.quotePath=f
 any blob. That raw walk also names the blob each path writes, because `rev-list` names an object once, at its first
 path, and the identifier scanner forgives by path (a `.github/CODEOWNERS` account row, the README's one owner
 reference): each blob's identifiers are judged at EVERY path a range commit writes it at, so a byte-identical copy of
-a forgiven file declines at its own path. A secret is scanned once per object, since that scanner reads no path. A
+a forgiven file declines at its own path. That holds for a blob the destination's default branch already reaches
+too: the listing leaves it out, so the scan reads it separately and judges its identifiers at each path the range
+writes it at. A secret is scanned once per LISTED object, since that scanner reads no path; a blob the default
+branch already reaches is not secret-scanned, because its bytes are already published there. A
 walk the scan cannot parse declines, and so does a submodule entry, which nothing it reads covers. The push then
 sends that same sha to that same url (`<sha>^{commit}:refs/heads/<salvage branch>`, `--recurse-submodules=no`, `--no-follow-tags`), and
 the read-back asks that url, so neither a commit nor a re-pointed remote in between is ever what gets sent. A secret, an
@@ -153,7 +157,7 @@ unreadable denylist, a listing or read git refused, or a blob git did not return
 names its class and path (a path that itself matches a secret pattern is withheld too), a failure to look names what could not be read, and neither quotes content — every `scheme://` url is withheld whole, and
 a reason still matching a credential or the private denylist is withheld entirely. A forbidden identifier declines
 the same way wherever `IDENTIFIER_VERDICT` reads `refuse`, because the destination is the public repository: the
-same rules the repository gate holds every commit to, over the same blobs, paths, branch name and commit messages,
+same rules the repository gate holds every commit to, over those blobs, paths, branch name and commit messages,
 naming the class and the path and never the text. A path that itself carries an identifier is withheld from every
 decline, a secret's included, and a scanner that throws declines rather than ending the run, its message withheld
 since no scanner has judged it. A commit's author and
