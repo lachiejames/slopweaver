@@ -13,16 +13,16 @@
  *
  * **The trunk is what the remote says its HEAD is NOW**, asked with `ls-remote -- <url> HEAD`, never the local
  * `refs/remotes/<remote>/HEAD`: that symref is a file anything can re-point at `archive/main`. The url asked is bound
- * ONCE, by `./salvageDestination`'s `resolveBoundUrl`, before the trunk is read, and the push refuses unless the
- * destination it resolves is that same url. A remote that cannot be asked, or a trunk commit not fetched here yet,
- * fails closed.
+ * ONCE, by `./salvageDestination`'s `resolveDestination` with the same host judge the push runs, before the trunk is
+ * read, and the push refuses unless the destination it resolves is that same url. A remote that cannot be asked, or a
+ * trunk commit not fetched here yet, fails closed.
  */
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { GithubPushEdges } from "../admit/githubPush.js";
 import { err, ok, type Result } from "../lib/result.js";
-import { resolveBoundUrl } from "./salvageDestination.js";
+import { type HostJudge, resolveDestination } from "./salvageDestination.js";
 import { HOOKS_OFF } from "./salvageHooksOff.js";
 import { type SalvageTrunkError, SalvageTrunkErrors } from "./salvageTrunkErrors.js";
 
@@ -49,16 +49,19 @@ export interface CheckedHistory {
  * exactly as found. The capture then re-reads HEAD before its first write and must find this same sha, or declines.
  *
  * @param deps the git edges
+ * @param host the host judge the url must pass, the one the push resolves with too
  * @param path the worktree to ask in
  * @param remote the remote whose live trunk the history must stay within
  * @returns what was checked, or the typed decline that keeps the tree
  */
 export function trunkHistoryHead({
   deps,
+  host,
   path,
   remote,
 }: {
   deps: GithubPushEdges;
+  host: HostJudge;
   path: string;
   remote: string;
 }): Result<CheckedHistory, SalvageTrunkError> {
@@ -71,7 +74,7 @@ export function trunkHistoryHead({
   if (head === "") {
     return err(SalvageTrunkErrors.headUnreadable({ cause: new Error("it answered nothing") }));
   }
-  const bound = resolveBoundUrl({ deps, path, remote });
+  const bound = resolveDestination({ deps, host, path, remote });
   if (bound.isErr()) {
     return err(SalvageTrunkErrors.destinationUnbound({ destination: bound.error }));
   }
@@ -114,16 +117,16 @@ function liveTrunk({
     return err(SalvageTrunkErrors.trunkUnreadable({ cause: error, remote }));
   }
   // Not `./salvageScan`'s `remoteTips`: that module reaches `./pruneSalvage`, which imports this one.
-  const tips = listing
-    .split("\n")
-    .map((line) => /^([0-9a-f]{40}|[0-9a-f]{64})\tHEAD$/.exec(line.trim()))
-    .filter((match): match is RegExpExecArray => match !== null)
-    .map((match) => match[1]!);
-  if (tips.length !== 1) {
+  const tips = listing.split("\n").flatMap((line) => {
+    const tip = /^([0-9a-f]{40}|[0-9a-f]{64})\tHEAD$/.exec(line.trim())?.[1];
+    return tip === undefined ? [] : [tip];
+  });
+  const [tip, ...others] = tips;
+  if (tip === undefined || others.length > 0) {
     const answered = new Error(`ls-remote named ${String(tips.length)} HEAD commit(s)`);
     return err(SalvageTrunkErrors.trunkUnreadable({ cause: answered, remote }));
   }
-  return ok(tips[0]!);
+  return ok(tip);
 }
 
 /**

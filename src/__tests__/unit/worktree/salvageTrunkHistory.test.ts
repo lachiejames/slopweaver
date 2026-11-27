@@ -20,6 +20,7 @@ import { readGit } from "../../../admit/gitTransport.js";
 import { ok, unwrap, unwrapErr } from "../../../lib/result.js";
 import type { PruneVerdict } from "../../../worktree/pruneClassify.js";
 import { runSalvage } from "../../../worktree/pruneSalvage.js";
+import { authenticatedHost, type HostJudge } from "../../../worktree/salvageDestination.js";
 import { SalvageTrunkErrors } from "../../../worktree/salvageTrunkErrors.js";
 import { pushableSha, trunkHistoryHead } from "../../../worktree/salvageTrunkHistory.js";
 import { HOME_WITHOUT_PUSH_ROOTS } from "../../pushRootFixture.js";
@@ -98,6 +99,12 @@ const edges = (): { deps: GithubPushEdges; writes: string[] } => {
   };
 };
 
+/**
+ * This file's explicit host judge: every origin here is a local path, which production's `authenticatedHost` refuses
+ * on BOTH sides, the history check's and the push's — the last case below proves that. Passed in, never defaulted.
+ */
+const LOCAL_PATH_HOST: HostJudge = () => true;
+
 const verdictAt = ({ path }: { path: string }): PruneVerdict => ({
   branch: "work",
   cls: "salvaged",
@@ -115,6 +122,7 @@ const salvage = ({ tree }: { tree: string }): { outcome: ReturnType<typeof runSa
     deps,
     denylist: ABSENT,
     home: HOME_WITHOUT_PUSH_ROOTS,
+    host: LOCAL_PATH_HOST,
     remote: "origin",
     scan: NO_SECRETS,
     verdict: verdictAt({ path: tree }),
@@ -183,7 +191,9 @@ describe("pushableSha", REAL_GIT_SUITE, () => {
     const { tree } = seed({ start: "origin/main" });
     gitInTemp({ args: ["add", "-A"], cwd: tree });
     gitInTemp({ args: [...COMMIT, "checked"], cwd: tree });
-    const checked = unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }));
+    const checked = unwrap(
+      trunkHistoryHead({ deps: edges().deps, host: LOCAL_PATH_HOST, path: tree, remote: "origin" }),
+    );
     // Another process resets the tree to the checked commit's parent, a commit the check never accepted as the push.
     gitInTemp({ args: ["reset", "-q", "--hard", "HEAD~1"], cwd: tree });
     const pushed = pushableSha({ checked, deps: edges().deps, path: tree, remote: "origin" });
@@ -192,7 +202,9 @@ describe("pushableSha", REAL_GIT_SUITE, () => {
 
   it("declines a commit that descends from the checked HEAD but merged the archive in after the check", () => {
     const { tree } = seed({ start: "origin/main" });
-    const checked = unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }));
+    const checked = unwrap(
+      trunkHistoryHead({ deps: edges().deps, host: LOCAL_PATH_HOST, path: tree, remote: "origin" }),
+    );
     gitInTemp({ args: [...MERGE_ARCHIVE], cwd: tree });
     const pushed = pushableSha({ checked, deps: edges().deps, path: tree, remote: "origin" });
     expect(unwrapErr(pushed).code).toBe("FOREIGN_ROOT");
@@ -200,7 +212,9 @@ describe("pushableSha", REAL_GIT_SUITE, () => {
 
   it("names a merge-base that FAILED (exit 128) as unreadable ancestry, never as a descent verdict", () => {
     const { tree } = seed({ start: "origin/main" });
-    const checked = unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }));
+    const checked = unwrap(
+      trunkHistoryHead({ deps: edges().deps, host: LOCAL_PATH_HOST, path: tree, remote: "origin" }),
+    );
     // A checked HEAD this repository holds no object for: git answers `fatal: Not a valid commit name`, exit 128.
     const absent = { ...checked, head: "0123456789abcdef0123456789abcdef01234567" };
     const pushed = pushableSha({ checked: absent, deps: edges().deps, path: tree, remote: "origin" });
@@ -213,7 +227,9 @@ describe("trunkHistoryHead", REAL_GIT_SUITE, () => {
   it("answers the HEAD, the remote's live trunk and the url it was read from, for a commit on that trunk", () => {
     const { origin, tree } = seed({ start: "origin/main" });
     const head = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
-    expect(unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }))).toEqual({
+    expect(
+      unwrap(trunkHistoryHead({ deps: edges().deps, host: LOCAL_PATH_HOST, path: tree, remote: "origin" })),
+    ).toEqual({
       head,
       trunk: head,
       url: origin,
@@ -222,7 +238,7 @@ describe("trunkHistoryHead", REAL_GIT_SUITE, () => {
 
   it("declines a remote that is not configured as an unbound destination, before any trunk is asked", () => {
     const { tree } = seed({ start: "origin/main" });
-    const checked = trunkHistoryHead({ deps: edges().deps, path: tree, remote: "nowhere" });
+    const checked = trunkHistoryHead({ deps: edges().deps, host: LOCAL_PATH_HOST, path: tree, remote: "nowhere" });
     expect(unwrapErr(checked).code).toBe("DESTINATION_UNBOUND");
   });
 
@@ -235,13 +251,29 @@ describe("trunkHistoryHead", REAL_GIT_SUITE, () => {
     writeFileSync(graftFile, `${archiveHead} ${publicRoot}\n`);
     // The control: with the graft read, the archive commit's only root IS the public one, so a root test alone passes.
     expect(gitInTemp({ args: ["rev-list", "--max-parents=0", "HEAD"], cwd: tree })).toBe(publicRoot);
-    const checked = trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" });
+    const checked = trunkHistoryHead({ deps: edges().deps, host: LOCAL_PATH_HOST, path: tree, remote: "origin" });
     expect(unwrapErr(checked)).toEqual(SalvageTrunkErrors.grafted({ graftFile }));
   });
 
   it("declines a tree git cannot read at all, naming `git rev-parse HEAD`", () => {
-    const checked = trunkHistoryHead({ deps: edges().deps, path: tempDir({ name: "not-a-repo" }), remote: "origin" });
+    const checked = trunkHistoryHead({
+      deps: edges().deps,
+      host: LOCAL_PATH_HOST,
+      path: tempDir({ name: "not-a-repo" }),
+      remote: "origin",
+    });
     expect(unwrapErr(checked).code).toBe("HEAD_UNREADABLE");
     expect(unwrapErr(checked).message).toContain("`git rev-parse HEAD` could not name its HEAD commit (");
+  });
+
+  it("declines a local-path origin under production's own host judge, before the trunk is asked", () => {
+    const { origin, tree } = seed({ start: "origin/main" });
+    // The control: the permissive judge reads this very origin's trunk, so the refusal below is the judge's alone.
+    expect(
+      unwrap(trunkHistoryHead({ deps: edges().deps, host: LOCAL_PATH_HOST, path: tree, remote: "origin" })).url,
+    ).toBe(origin);
+    const checked = trunkHistoryHead({ deps: edges().deps, host: authenticatedHost, path: tree, remote: "origin" });
+    expect(unwrapErr(checked).code).toBe("DESTINATION_UNBOUND");
+    expect(unwrapErr(checked).message).toContain("is not an ssh or https host");
   });
 });

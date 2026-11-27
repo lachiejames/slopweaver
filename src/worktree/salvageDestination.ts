@@ -1,7 +1,7 @@
 /**
  * The one repository a salvage's history check, scan, push and read-back may all reach, or why there is not exactly
- * one — split out of `./salvagePush` so the history check (`./salvageTrunkHistory`) reads the trunk from the same
- * bound url the push later sends to, without the two modules importing each other.
+ * one — split out of `./salvagePush` so the history check (`./salvageTrunkHistory`) reads the trunk from a url
+ * resolved through exactly the checks the push makes, without the two modules importing each other.
  */
 import type { GithubPushEdges } from "../admit/githubPush.js";
 import { err, ok, type Result } from "../lib/result.js";
@@ -54,7 +54,8 @@ interface DestinationFacts {
  * git verifies against is the residue: a CA the user or the system installed is trusted exactly as git
  * trusts it.
  *
- * It does not ask whether the url names a HOST: {@link oneDestination} adds that, for the push.
+ * It does not ask whether the url names a HOST: {@link judgedDestination} adds that, for the history check and the
+ * push alike.
  *
  * @returns the url, or the refusal
  */
@@ -112,84 +113,77 @@ function boundDestination({
  * @returns the url, or the refusal
  */
 export function oneDestination(facts: DestinationFacts): Result<string, SalvageDestinationError> {
+  return judgedDestination({ facts, host: authenticatedHost });
+}
+
+/** Whether a url names a host one repository can be bound to: the judge every production salvage runs with. */
+export type HostJudge = (input: { url: string }) => boolean;
+
+/**
+ * Whether a url names a host a key or certificate binds — ssh, https or git's scp-like form.
+ *
+ * Pure. The production {@link HostJudge}; a real-git test whose destination is a local path passes its own,
+ * explicitly, and nothing else ever does.
+ *
+ * @param url the url to judge
+ * @returns true for an authenticated host
+ */
+export function authenticatedHost({ url }: { url: string }): boolean {
+  return AUTHENTICATED_URL.test(url);
+}
+
+/**
+ * A {@link boundDestination} url that `host` also accepts.
+ *
+ * @param facts what git says about the remote
+ * @param host the host judge
+ * @returns the url, or the refusal
+ */
+function judgedDestination({
+  facts,
+  host,
+}: {
+  facts: DestinationFacts;
+  host: HostJudge;
+}): Result<string, SalvageDestinationError> {
   return boundDestination(facts).andThen((url) =>
-    AUTHENTICATED_URL.test(url)
-      ? ok(url)
-      : err(SalvageDestinationErrors.unauthenticatedDestination({ remote: facts.remote })),
+    host({ url }) ? ok(url) : err(SalvageDestinationErrors.unauthenticatedDestination({ remote: facts.remote })),
   );
 }
 
 /**
- * Read the facts a destination is judged on, once, and judge them.
+ * The url a salvage's history check, scan, push and read-back all name, or why there is none. The history check and
+ * the push each resolve it with the same judge, and the push refuses unless both answered the same url.
  *
  * @param deps the git edges
- * @param path the worktree
- * @param remote the remote's name
- * @param judge {@link boundDestination} or {@link oneDestination}
- * @returns the url, or why no one repository could be named
- */
-function readDestination({
-  deps,
-  path,
-  remote,
-  judge,
-}: {
-  deps: GithubPushEdges;
-  path: string;
-  remote: string;
-  judge: (facts: DestinationFacts) => Result<string, SalvageDestinationError>;
-}): Result<string, SalvageDestinationError> {
-  try {
-    // Read in this order: the fetch url first, the one every later read is compared against.
-    return judge({
-      fetchUrl: deps.readGit({ args: [...HOOKS_OFF, "remote", "get-url", remote], cwd: path }),
-      pushUrls: deps.readGit({ args: [...HOOKS_OFF, "remote", "get-url", "--push", "--all", remote], cwd: path }),
-      remote,
-      remotes: deps.readGit({ args: [...HOOKS_OFF, "remote"], cwd: path }),
-      config: deps.readGit({ args: [...HOOKS_OFF, "config", "--list"], cwd: path }),
-      environment: process.env,
-    });
-  } catch (error: unknown) {
-    return err(SalvageDestinationErrors.unreadable({ cause: error, remote }));
-  }
-}
-
-/**
- * The bound url the history check asks for the remote's live trunk: the url the push must later resolve to again.
- *
- * @param deps the git edges
- * @param path the worktree
- * @param remote the remote's name
- * @returns the url, or why no one repository could be named
- */
-export function resolveBoundUrl({
-  deps,
-  path,
-  remote,
-}: {
-  deps: GithubPushEdges;
-  path: string;
-  remote: string;
-}): Result<string, SalvageDestinationError> {
-  return readDestination({ deps, judge: boundDestination, path, remote });
-}
-
-/**
- * The url a salvage's scan, push and read-back all name, resolved at the push, or why there is none.
- *
- * @param deps the git edges
+ * @param host the host judge: {@link authenticatedHost} in production
  * @param path the worktree
  * @param remote the remote's name
  * @returns the url, or why no one repository could be named
  */
 export function resolveDestination({
   deps,
+  host,
   path,
   remote,
 }: {
   deps: GithubPushEdges;
+  host: HostJudge;
   path: string;
   remote: string;
 }): Result<string, SalvageDestinationError> {
-  return readDestination({ deps, judge: oneDestination, path, remote });
+  try {
+    // Read in this order: the fetch url first, the one every later read is compared against.
+    const facts: DestinationFacts = {
+      fetchUrl: deps.readGit({ args: [...HOOKS_OFF, "remote", "get-url", remote], cwd: path }),
+      pushUrls: deps.readGit({ args: [...HOOKS_OFF, "remote", "get-url", "--push", "--all", remote], cwd: path }),
+      remote,
+      remotes: deps.readGit({ args: [...HOOKS_OFF, "remote"], cwd: path }),
+      config: deps.readGit({ args: [...HOOKS_OFF, "config", "--list"], cwd: path }),
+      environment: process.env,
+    };
+    return judgedDestination({ facts, host });
+  } catch (error: unknown) {
+    return err(SalvageDestinationErrors.unreadable({ cause: error, remote }));
+  }
 }

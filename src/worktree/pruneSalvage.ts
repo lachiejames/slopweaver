@@ -43,6 +43,7 @@ import type { GithubPushEdges } from "../admit/githubPush.js";
 import { type LineListLoad } from "../hygiene/scan.js";
 import { err, ok, type Result } from "../lib/result.js";
 import type { PruneVerdict } from "./pruneClassify.js";
+import { authenticatedHost, type HostJudge } from "./salvageDestination.js";
 import { HOOKS_OFF } from "./salvageHooksOff.js";
 import { pushCheckedHistory, withheldIfSecret } from "./salvagePush.js";
 import { type SalvageTreeError, SalvageTreeErrors } from "./salvageTreeErrors.js";
@@ -490,12 +491,15 @@ function readTreeNow({
  *   and an unreadable one declines before anything is captured
  * @param scan the secrets scan over what the push would send — `./salvageScan`'s — answering why not, or `null`
  * @param home the state home whose push-root register the salvage push is judged against
+ * @param host the host judge the history check and the push both resolve the url with: {@link authenticatedHost},
+ *   the production judge, unless a real-git test whose destination is a local path passes its own explicitly
  * @returns the branch the work is on, or why the tree must be kept
  */
 export function runSalvage({
   deps,
   denylist,
   home,
+  host = authenticatedHost,
   scan,
   remote,
   verdict,
@@ -503,6 +507,7 @@ export function runSalvage({
   deps: GithubPushEdges;
   denylist: LineListLoad;
   home: string;
+  host?: HostJudge;
   scan: SalvageScan;
   remote: string;
   verdict: PruneVerdict;
@@ -517,7 +522,7 @@ export function runSalvage({
       }),
     };
   }
-  const outcome = salvageOnce({ deps, home, remote, scan, verdict });
+  const outcome = salvageOnce({ deps, home, host, remote, scan, verdict });
   if (outcome.declined === null) {
     return outcome;
   }
@@ -533,22 +538,25 @@ export function runSalvage({
  * @param remote the remote to push to
  * @param verdict the `salvaged` verdict being applied
  * @param home the state home whose push-root register the salvage push is judged against
+ * @param host the host judge both url resolutions run
  * @returns the branch the work is on, or why the tree must be kept
  */
 function salvageOnce({
   deps,
   home,
+  host,
   scan,
   remote,
   verdict,
 }: {
   deps: GithubPushEdges;
   home: string;
+  host: HostJudge;
   scan: SalvageScan;
   remote: string;
   verdict: PruneVerdict;
 }): SalvageOutcome {
-  const checked = trunkHistoryHead({ deps, path: verdict.path, remote });
+  const checked = trunkHistoryHead({ deps, host, path: verdict.path, remote });
   if (checked.isErr()) {
     return { branch: null, declined: checked.error.message };
   }
@@ -584,5 +592,5 @@ function salvageOnce({
       return { branch: null, declined: `could not ${step.what} — ${ran.error}` };
     }
   }
-  return pushCheckedHistory({ checked: checked.value, deps, home, path: verdict.path, remote, scan, target });
+  return pushCheckedHistory({ checked: checked.value, deps, home, host, path: verdict.path, remote, scan, target });
 }

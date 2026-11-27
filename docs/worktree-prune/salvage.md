@@ -4,7 +4,8 @@ How `worktree prune` captures a `salvaged` tree's work before the tree goes, and
 The class, the waiver it rests on and the fresh `salvage/<slug>-<sha8>` branch are in
 [the classes](classes.md#the-classes); the code is `src/worktree/pruneSalvage.ts` (the
 capture), `src/worktree/salvageTrunkHistory.ts` (the history check), `src/worktree/salvageDestination.ts` (the one
-url), `src/worktree/salvagePush.ts` (the push), `src/worktree/salvageScan.ts` (the scan) and
+url), `src/worktree/salvagePush.ts` (the push), `src/worktree/salvageScan.ts` (the scan's git reads),
+`src/worktree/salvageFindings.ts` (what the scan found, and the decline line naming it) and
 `src/worktree/salvageHooksOff.ts` (the hooks-off flags every one of them runs git with).
 
 **A salvage pushes to `origin` alone, and never a commit of another history.** `origin` is `PRUNE_REMOTE`
@@ -19,7 +20,7 @@ push-root gate, which passes whenever no register exists:
 
 - **The trunk is `origin`'s HEAD now**, asked with `ls-remote -- <url> HEAD`, never the local
   `refs/remotes/origin/HEAD` symref, which anything can re-point. The url is bound ONCE, through the same checks the
-  push makes, before the trunk is read, and the push refuses if the url it resolves is not that one. A remote that
+  push makes (the ssh-or-https host judge included, one injected judge for both sides), before the trunk is read, and the push refuses if the url it resolves is not that one. A remote that
   cannot be asked, an answer naming no HEAD or more than one, or a trunk commit not fetched here, declines.
 - **The test is the root set, not a merge base.** Every parentless commit the HEAD reaches must be a root of that
   trunk. A branch off the trunk that merged the archive in shares a merge base and still declines, on the
@@ -148,8 +149,10 @@ names its class and path (a path that itself matches a secret pattern is withhel
 a reason still matching a credential or the private denylist is withheld entirely. A forbidden identifier declines
 the same way wherever `IDENTIFIER_VERDICT` reads `refuse`, because the destination is the public repository: the
 same rules the repository gate holds every commit to, over the same blobs, paths, branch name and commit messages,
-naming the class and the path and never the text. A commit's author and committer headers are not read for it,
-since they name a person on every public commit. A remote
+naming the class and the path and never the text. A path that itself carries an identifier is withheld from every
+decline, a secret's included, and a scanner that throws declines rather than ending the run. A commit's author and
+committer headers are not read for it, since they name a person on every public commit. An identifier stored as
+UTF-16 is the scanner's residue, exactly as a secret is. A remote
 whose one push url is not its fetch url, whose url is another remote's name or no ssh or https host (a local path is re-pointable by a symlink mid-push), or under any `insteadOf` or `pushInsteadOf` rule (git applies each again to the url it was handed), or with an ssh
 command configured (`core.sshCommand`, `GIT_SSH_COMMAND` or `GIT_SSH`: a wrapper holding state can route the scan and
 the push to two repositories behind one url), or with TLS verification possibly off (`http.sslVerify`, plain or

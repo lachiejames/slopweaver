@@ -7,8 +7,9 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { blobSecretHits, secretDecline } from "../../../../worktree/salvageScan.js";
-import { TOKEN } from "./harness.js";
+import type { IdentifierScanner } from "../../../../hygiene/identifierScan.js";
+import { blobSecretHits, secretDecline } from "../../../../worktree/salvageFindings.js";
+import { IDENTIFIERS, ORG, TOKEN } from "./harness.js";
 
 describe("blobSecretHits", () => {
   it("finds a secret and attributes it to the blob's path", () => {
@@ -45,6 +46,7 @@ describe("secretDecline", () => {
     const line = secretDecline({
       denylist: [],
       hits: blobSecretHits({ blobs: [{ content, path: "src/config.ts" }], denylist: [] }),
+      identifiers: IDENTIFIERS,
     });
     expect(line).toBe(
       "the work it would push carries 1 secret-class line(s) (github-oauth-token) in src/config.ts — nothing was pushed",
@@ -60,6 +62,7 @@ describe("secretDecline over a path that is itself a secret", () => {
     const line = secretDecline({
       denylist: [],
       hits: blobSecretHits({ blobs: [{ content: `token=${TOKEN}\n`, path }], denylist: [] }),
+      identifiers: IDENTIFIERS,
     });
     expect(line).toBe(
       "the work it would push carries 1 secret-class line(s) (github-oauth-token) in a path that itself matches a secret pattern — nothing was pushed",
@@ -73,11 +76,43 @@ describe("secretDecline over a path that is itself a secret", () => {
     const line = secretDecline({
       denylist: ["zanzibar-internal"],
       hits: blobSecretHits({ blobs: [{ content: `token=${TOKEN}\n`, path }], denylist: [] }),
+      identifiers: IDENTIFIERS,
     });
     expect(line).toBe(
       "the work it would push carries 1 secret-class line(s) (github-oauth-token) in a path that itself matches a secret pattern — nothing was pushed",
     );
     expect(path).toContain("zanzibar-internal");
     expect(line).not.toContain("zanzibar-internal");
+  });
+
+  it("withholds a path carrying a FORBIDDEN IDENTIFIER, so a secret decline never prints the organisation's name", () => {
+    const path = `${ORG}/key.txt`;
+    const line = secretDecline({
+      denylist: [],
+      hits: blobSecretHits({ blobs: [{ content: `token=${TOKEN}\n`, path }], denylist: [] }),
+      identifiers: IDENTIFIERS,
+    });
+    expect(line).toBe(
+      "the work it would push carries 1 secret-class line(s) (github-oauth-token) in a path that itself carries a forbidden identifier — nothing was pushed",
+    );
+    expect(path).toContain(ORG);
+    expect(line).not.toContain(ORG);
+  });
+
+  it("withholds every path when the identifier scanner throws on one, rather than printing it unscanned", () => {
+    const throwing: IdentifierScanner = {
+      scan: () => {
+        throw new Error("rules unreadable");
+      },
+      spans: () => [],
+    };
+    const line = secretDecline({
+      denylist: [],
+      hits: blobSecretHits({ blobs: [{ content: `token=${TOKEN}\n`, path: `${ORG}/key.txt` }], denylist: [] }),
+      identifiers: throwing,
+    });
+    expect(line).toBe(
+      "the work it would push carries 1 secret-class line(s) (github-oauth-token) in a path that could not be scanned for identifiers — nothing was pushed",
+    );
   });
 });

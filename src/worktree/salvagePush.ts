@@ -7,7 +7,7 @@
 import { type GithubPushEdges, pushAndVerify } from "../admit/githubPush.js";
 import { isSecretHit, scanContent } from "../hygiene/scan.js";
 import type { SalvageOutcome, SalvageScan } from "./pruneSalvage.js";
-import { resolveDestination } from "./salvageDestination.js";
+import { type HostJudge, resolveDestination } from "./salvageDestination.js";
 import { HOOKS_OFF } from "./salvageHooksOff.js";
 import { type CheckedHistory, pushableSha } from "./salvageTrunkHistory.js";
 
@@ -95,6 +95,7 @@ export function salvagePushArgs({ url, target, sha }: { url: string; target: str
  * @param checked what the history check accepted
  * @param deps the git edges
  * @param home the state home whose push-root register judges the push
+ * @param host the host judge, the one the history check resolved its url with
  * @param path the worktree to push from
  * @param remote the remote to push to
  * @param scan the secrets scan over what the push would send
@@ -105,6 +106,7 @@ export function pushCheckedHistory({
   checked,
   deps,
   home,
+  host,
   path,
   remote,
   scan,
@@ -113,6 +115,7 @@ export function pushCheckedHistory({
   checked: CheckedHistory;
   deps: GithubPushEdges;
   home: string;
+  host: HostJudge;
   path: string;
   remote: string;
   scan: SalvageScan;
@@ -122,7 +125,7 @@ export function pushCheckedHistory({
   if (sha.isErr()) {
     return { branch: null, declined: sha.error.message };
   }
-  return confirmOnRemote({ checkedUrl: checked.url, deps, home, path, remote, scan, sha: sha.value, target });
+  return confirmOnRemote({ checkedUrl: checked.url, deps, home, host, path, remote, scan, sha: sha.value, target });
 }
 
 /**
@@ -158,6 +161,7 @@ function confirmOnRemote({
   checkedUrl,
   deps,
   home,
+  host,
   path,
   remote,
   scan,
@@ -169,6 +173,8 @@ function confirmOnRemote({
   deps: GithubPushEdges;
   /** The state home whose push-root register judges the salvage push: a salvage never bypasses the guard. */
   home: string;
+  /** The host judge the history check resolved its url with. */
+  host: HostJudge;
   path: string;
   remote: string;
   scan: SalvageScan;
@@ -176,7 +182,7 @@ function confirmOnRemote({
   sha: string;
   target: string;
 }): SalvageOutcome {
-  const destination = resolveDestination({ deps, path, remote });
+  const destination = resolveDestination({ deps, host, path, remote });
   if (destination.isErr()) {
     return { branch: null, declined: `${destination.error.message} — nothing was pushed` };
   }

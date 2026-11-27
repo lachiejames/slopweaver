@@ -3,11 +3,12 @@
  * rename that sends no new blob, a commit's author, and an intermediate or tip commit's message. Each is built in a
  * throwaway repository and scanned through the production edge, so what is proven is the argv that ships.
  */
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { IdentifierScanner } from "../../../../hygiene/identifierScan.js";
 import { gitSalvageEdges, salvageScanDecline } from "../../../../worktree/salvageScan.js";
 import { gitInTemp, REAL_GIT_SUITE, REAL_GIT_TIMEOUT_MS } from "../../../tempGitRepo.js";
 import { commit, git, IDENTIFIERS, ORG, origin, REF, root, scan, TOKEN, useSalvageRepos } from "./harness.js";
@@ -134,6 +135,60 @@ describe("salvageScanDecline over a forbidden identifier in real git", REAL_GIT_
       });
       expect(git("log", "-1", "--format=%an")).toBe(ORG);
       expect(scan()).toBe(null);
+    },
+    REAL_GIT_TIMEOUT_MS,
+  );
+
+  it(
+    "withholds a changed path that itself names the organisation, so the decline never prints it",
+    () => {
+      mkdirSync(join(root, ORG));
+      commit({ content: `notes for ${ORG}\n`, file: `${ORG}/notes.md`, message: "salvage: captured" });
+      // The witness: the input carries the name, in the path as well as the blob.
+      expect(git("ls-files")).toContain(`${ORG}/notes.md`);
+      const line = scan();
+      expect(line).toBe(
+        "the work it would push carries 2 forbidden-identifier hit(s) (forbidden-word-ci) in the changed paths, a path that itself carries a forbidden identifier, and the destination is public — nothing was pushed",
+      );
+      expect(line).not.toContain(ORG);
+    },
+    REAL_GIT_TIMEOUT_MS,
+  );
+
+  it(
+    "withholds a SECRET's path that names the organisation, the secret decline included",
+    () => {
+      mkdirSync(join(root, ORG));
+      commit({ content: `token=${TOKEN}\n`, file: `${ORG}/key.txt`, message: "salvage: captured" });
+      expect(git("ls-files")).toContain(`${ORG}/key.txt`);
+      const line = scan();
+      expect(line).toBe(
+        "the work it would push carries 1 secret-class line(s) (github-oauth-token) in a path that itself carries a forbidden identifier — nothing was pushed",
+      );
+      expect(line).not.toContain(ORG);
+    },
+    REAL_GIT_TIMEOUT_MS,
+  );
+
+  it(
+    "declines, rather than ending the run, when the identifier scanner throws",
+    () => {
+      commit({ content: "export const B = 2;\n", file: "b.ts", message: "salvage: captured" });
+      const throwing: IdentifierScanner = {
+        scan: () => {
+          throw new Error("rules unreadable");
+        },
+        spans: () => [],
+      };
+      const line = salvageScanDecline({
+        denylist: { kind: "absent" },
+        edges: gitSalvageEdges({ cwd: root, sha: git("rev-parse", "HEAD"), url: origin }),
+        identifiers: throwing,
+        refName: REF,
+      });
+      expect(line).toBe(
+        "what it would push could not be scanned for identifiers — rules unreadable; nothing was pushed",
+      );
     },
     REAL_GIT_TIMEOUT_MS,
   );

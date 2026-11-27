@@ -79,7 +79,7 @@ export let origin: string;
 export const git = (...args: readonly string[]): string =>
   gitInTemp({ args: ["-c", "user.email=a@b.c", "-c", "user.name=t", ...args], cwd: root });
 /**
- * Write a file and commit everything, answering the new commit.
+ * Write a file and commit everything, answering the new commit. A nested `file` needs its directory made first.
  *
  * @returns the new commit's sha
  */
