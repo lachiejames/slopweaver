@@ -68,8 +68,8 @@ matched by its `repoRoot` inside `ledgerForBranch`, which is what `codex status`
 both are questions about one checkout. The landing floor is not, and the path-reuse hole a Codex review
 raised against it (delete a checkout, put a DIFFERENT repository at the same path, and its predecessor's plan
 records still match) is closed rather than inherited: a checkout only speaks for a pull request when it holds
-that pull request's head commit, and a different repository at a reused path holds no such commit. No stored
-origin slug is needed, because git already knows the answer.
+that pull request's head commit, and a different repository at a reused path holds no such commit. A STANDING
+checkout needs no stored origin; a DELETED one's passes carry their own ([deleted worktrees](deleted-worktree-evidence.md)).
 
 **Two subjects on one page read as one record, so the report names the other.** MEASURED: from the landing seat's
 worktree, `codex status` printed six `NOT RUN` on a branch whose author's checkout held r1 and r2 BROKEN, while

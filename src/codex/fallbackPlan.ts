@@ -54,6 +54,7 @@ import {
 import { notAnObject, parseFallbackTree, parseVisibleClaudeSession } from "./fallbackReviewParse.js";
 import type { TreeFingerprint } from "./fingerprint.js";
 import { type LedgerEntry, treeFreshness } from "./ledger.js";
+import { originRepositoryField } from "./originBinding.js";
 import { parsePlanAnswer } from "./output.js";
 import { CODEX_UNREGISTERED_PLAN_MODE } from "./providerUnregistered.js";
 import type { CodexPassTree, PlanAnswer, PlanPassId } from "./types.js";
@@ -65,6 +66,8 @@ interface FallbackPlanRequestCore {
   readonly createdAtIso: string;
   /** The checkout the plan is about — the grain the ledger is keyed at. */
   readonly repoRoot: string;
+  /** That checkout's `origin` as `owner/name`, read at prepare time (`./originBinding.ts`); absent on older requests. */
+  readonly originRepository?: string;
   /** The tree the plan was prepared over. `record` refuses any other; the work then makes it STALE. */
   readonly tree: CodexPassTree;
   /** Which planning slot this stands in for. */
@@ -301,7 +304,17 @@ function parsePlanRequestScalars({
   ) {
     return err(CodexErrors.documentInvalid({ reasons: errors }));
   }
-  return ok({ createdAtIso, pass, promptBytes, promptSha256, repoRoot, requestId, taskSha256 });
+  return ok({
+    createdAtIso,
+    // Validated as `owner/name`; a malformed value reads as absent, never as a binding (`./originBinding.ts`).
+    ...originRepositoryField({ value: value["originRepository"] }),
+    pass,
+    promptBytes,
+    promptSha256,
+    repoRoot,
+    requestId,
+    taskSha256,
+  });
 }
 
 /**

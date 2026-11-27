@@ -15,6 +15,7 @@ import type { IngestError } from "../lib/ingestError.js";
 import { ok, type Result } from "../lib/result.js";
 import { safeFs } from "../lib/safeBoundary.js";
 import { RECORD_FILENAME } from "./artifactStore.js";
+import { originRepositoryField } from "./originBinding.js";
 import type { CodexArtifactRecord } from "./types.js";
 
 /** What a scan found, including what it could not read. */
@@ -141,10 +142,19 @@ function exists({ path }: { path: string }): boolean {
 function readRecord({ path }: { path: string }): CodexArtifactRecord | undefined {
   try {
     const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    return isRecordShaped(parsed) ? parsed : undefined;
+    return isRecordShaped(parsed) ? withValidatedOrigin({ record: parsed }) : undefined;
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The record with its `originRepository` kept only when it is a well-formed `owner/name` slug, so a malformed
+ * binding reads as ABSENT — unable to re-prove a deleted checkout — and never as a match (`./originBinding.ts`).
+ */
+function withValidatedOrigin({ record }: { record: CodexArtifactRecord }): CodexArtifactRecord {
+  const { originRepository, ...rest } = record;
+  return { ...rest, ...originRepositoryField({ value: originRepository }) };
 }
 
 /** The fields the ledger actually reads, present and of the right kind. */

@@ -17,6 +17,7 @@
 import type { HomeReclaimError } from "../home/reclaim/errors.js";
 import { reclaimFinishedPassScratch } from "../home/reclaim/passScratch.js";
 import { type ArtifactLocation, writeCodexArtifact } from "./artifactStore.js";
+import { liveOriginRepositoryField } from "./originBindingLive.js";
 import { toArtifactRecord } from "./passRecord.js";
 import type { CodexArtifactRecord } from "./types.js";
 
@@ -49,11 +50,12 @@ export function persistPass({
   orchestrationRoot,
   reclaimLedgerPath,
 }: {
-  fields: Parameters<typeof toArtifactRecord>[0];
+  fields: Omit<Parameters<typeof toArtifactRecord>[0], "originRepository">;
   orchestrationRoot: string;
   reclaimLedgerPath: string;
 }): CompletedPass {
-  const record = toArtifactRecord(fields);
+  // Read here, while the checkout exists: the one binding that re-proves this record once it is deleted.
+  const record = toArtifactRecord({ ...fields, ...liveOriginRepositoryField({ repoRoot: fields.repoRoot }) });
   const written = writeCodexArtifact({ orchestrationRoot, record });
   if (written.isErr()) {
     return {

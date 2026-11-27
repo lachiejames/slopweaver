@@ -254,6 +254,14 @@ describe("parsing and binding", () => {
     );
   });
 
+  it("round-trips a request's origin binding and drops a malformed one", () => {
+    const bound = planRequest({ originRepository: "acme/widget" });
+    expect([
+      unwrap(parseFallbackPlanRequest({ value: JSON.parse(JSON.stringify(bound)) })).originRepository,
+      unwrap(parseFallbackPlanRequest({ value: { ...bound, originRepository: "acme/.." } })).originRepository,
+    ]).toEqual(["acme/widget", undefined]);
+  });
+
   it("refuses a receipt whose answer would not have passed the plan validator", () => {
     const receipt = planReceiptFor();
     const result = parseFallbackPlanReceipt({

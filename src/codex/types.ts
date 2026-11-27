@@ -400,6 +400,12 @@ export interface CodexArtifactRecord {
   readonly createdAtIso: string;
   readonly repoRoot: string;
   /**
+   * The checkout's `origin` as `owner/name`, read while it existed (`./originBinding.ts`). What lets a landing read
+   * re-prove this record once `repoRoot` is deleted; absent on records written before it existed, which therefore
+   * stay NOT RUN after their worktree is gone.
+   */
+  readonly originRepository?: string;
+  /**
    * The model and policy REQUESTED. The SDK reports neither the selected model nor the applied sandbox,
    * so these are requests — naming them `model`/`sandboxMode` would dress a request up as an observation.
    */

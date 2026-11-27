@@ -25,6 +25,7 @@ import { type FallbackRegisterPort, fallbackRegisterPort } from "../../../codex/
 import { fallbackRequestText } from "../../../codex/fallbackRequestRead.js";
 import type { VisibleClaudeReviewer } from "../../../codex/fallbackReview.js";
 import { capturePassTree, resolveRepoRoot } from "../../../codex/gitDiff.js";
+import { liveOriginRepositoryField } from "../../../codex/originBindingLive.js";
 import { isPlanPass, parsePassId, passProfile } from "../../../codex/profiles.js";
 import { buildPlanPrompt } from "../../../codex/prompt.js";
 import type { FallbackFleetGround } from "../../../codex/providerUnregistered.js";
@@ -181,6 +182,8 @@ function planRequestFor({
   return {
     ...planGroundFor({ fleetGround }),
     createdAtIso: new Date().toISOString(),
+    // Read while the checkout exists: what re-proves this plan once its worktree is deleted.
+    ...liveOriginRepositoryField({ repoRoot: checkout.repoRoot }),
     pass,
     promptBytes: Buffer.byteLength(prompt, "utf8"),
     promptSha256: createHash("sha256").update(prompt, "utf8").digest("hex"),

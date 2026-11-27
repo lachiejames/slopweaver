@@ -30,6 +30,7 @@ import { fallbackRequestText } from "../../../codex/fallbackRequestRead.js";
 import { type ClaudeFallbackReviewRequest, fallbackGroundLine } from "../../../codex/fallbackReview.js";
 import { parseFallbackRequest } from "../../../codex/fallbackReviewParse.js";
 import { captureReviewDiffWithProvenance, type ReviewDiff } from "../../../codex/gitDiff.js";
+import { liveOriginRepositoryField } from "../../../codex/originBindingLive.js";
 import { supersessionPort } from "../../../codex/supersessionStore.js";
 import type { CodexPassTree } from "../../../codex/types.js";
 import { logger } from "../../../lib/logger.js";
@@ -307,7 +308,15 @@ async function prepare({
     schemaVersion: 1,
     tree,
   };
-  return persistRequest({ diffText: diff.text, home, json, port, request });
+  return persistRequest({ diffText: diff.text, home, json, port, request: withOrigin({ request }) });
+}
+
+/**
+ * The request with its checkout's `origin` bound, read while that checkout still exists: what re-proves this review
+ * once its worktree is deleted (`src/codex/orphanedEvidence.ts`). An unreadable origin binds nothing.
+ */
+function withOrigin({ request }: { request: ClaudeFallbackReviewRequest }): ClaudeFallbackReviewRequest {
+  return { ...request, ...liveOriginRepositoryField({ repoRoot: request.repoRoot }) };
 }
 
 /**
