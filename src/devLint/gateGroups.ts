@@ -13,6 +13,8 @@
  * `src/__tests__/unit/devLint/devLint/lintChecks.test.ts`, so a gate added here without a row there fails.
  */
 
+import { ESBUILD_GO_MEMORY_LIMIT_MIB, goMemoryLimit } from "#lib/esbuildBounds.js";
+
 import { type LintCheck } from "./devLint.js";
 
 /** Resolves a local JS bin under a working directory — the one thing both halves of the plan need. */
@@ -337,8 +339,15 @@ function astRatchets({ bin }: { bin: BinResolver }): readonly LintCheck[] {
     { args: ["src/devLint/typescriptImportSeam.entry.ts"], cmd: bin({ name: "tsx" }), name: "typescript-import-seam" },
     // Fails if a package the plugin's CLI reaches at run time is not in `dependencies`: the plugin install is
     // runtime-only (`scripts/plugin-install-deps.sh`), so a devDependency the CLI imports throws on the
-    // user's machine while every lane here, on a full tree, stays green.
-    { args: ["src/devLint/runtimeDependencies.entry.ts"], cmd: bin({ name: "tsx" }), name: "runtime-dependencies" },
+    // user's machine while every lane here, on a full tree, stays green. It bundles the whole CLI graph in memory
+    // through esbuild's JavaScript API, whose `esbuild --service` child is a Go binary that inherits this row's
+    // `env`: `GOMEMLIMIT` is its soft limit, the one number `src/lib/esbuildBounds.ts` owns. Its peak is unmeasured.
+    {
+      args: ["src/devLint/runtimeDependencies.entry.ts"],
+      cmd: bin({ name: "tsx" }),
+      env: { GOMEMLIMIT: goMemoryLimit({ mib: ESBUILD_GO_MEMORY_LIMIT_MIB }) },
+      name: "runtime-dependencies",
+    },
   ];
 }
 

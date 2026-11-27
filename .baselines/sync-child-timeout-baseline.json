@@ -21,9 +21,9 @@
       "reason": "The desktop app's install tooling."
     },
     {
-      "count": 2,
+      "count": 1,
       "path": "src/cli/commands/dev/build.ts",
-      "reason": "esbuild and its smoke run."
+      "reason": "the emitted CLI's smoke run."
     },
     {
       "count": 1,

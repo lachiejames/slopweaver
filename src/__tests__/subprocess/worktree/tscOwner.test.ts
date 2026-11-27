@@ -274,7 +274,7 @@ describe("tsc-owner.sh", () => {
     expect(lines.slice(park, park + 6)).toEqual([
       "exec 3>&2 2>/dev/null || exec 3>/dev/null 2>/dev/null",
       "set -m",
-      'GOMEMLIMIT="$((ceiling_mib * 70 / 100))MiB" "$@" 2>&3 3>&- &',
+      'GOMEMLIMIT="${go_limit_mib}MiB" "$@" 2>&3 3>&- &',
       "pid=$!",
       "exec 2>&3 3>&-",
       "set +m",

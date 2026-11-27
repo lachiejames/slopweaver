@@ -3,7 +3,10 @@
 # memory, cancellable, and reaped to the last member whatever the compiler itself does with a signal.
 #
 #   bash scripts/tsc-owner.sh --timeout-seconds <n> --grace-seconds <n> --rss-ceiling-mib <n> \
-#     [--lock-timeout-seconds <n>] -- <program> <arg>...
+#     [--lock-timeout-seconds <n>] [--go-memory-limit-mib <n>] -- <program> <arg>...
+#
+# The command need not be the TypeScript compiler: any native Go program whose memory no V8 flag bounds is the same
+# problem, and `slopweaver dev build` runs its one esbuild process under this owner too (src/cli/commands/dev/buildOwner.ts).
 #
 # Why it exists. TypeScript 7's compiler is a native binary, so a V8 `--max-old-space-size` bounds nothing it
 # spends, and it ignores SIGINT and SIGTERM and can exit 0 when interrupted (a known upstream TypeScript issue). A bound
@@ -80,8 +83,11 @@
 # never overwrite it. Termination is TERM to the whole group, up to --grace-seconds for it to empty, then KILL,
 # then a bounded wait until no member is left.
 #
-# The command runs with GOMEMLIMIT set to 70% of the ceiling, whatever the caller's environment says, computed in the
-# launch line itself so no variable a caller's BASH_ENV could pre-set stands between the ceiling and the limit.
+# The command runs with GOMEMLIMIT set to 70% of the ceiling, whatever the caller's environment says, assigned after
+# the options are read so no variable a caller's BASH_ENV could pre-set stands between the ceiling and the limit.
+# `--go-memory-limit-mib` may set it LOWER, never higher: a value above 70% of the ceiling is owner-error. A lower soft
+# limit is for a command whose ceiling sits far above what it usually needs, so the collector works well before the
+# kill: dev build's esbuild keeps a ceiling above its largest measured legitimate peak and a limit near its smallest.
 # The compiler is a Go program, and Go's collector by default lets the heap grow to twice what survived the last
 # collection, so much of what the ceiling sees is garbage not yet collected rather than memory the compile needs.
 # GOMEMLIMIT is the runtime's own soft target: it collects harder as the heap nears it, and exceeds it rather than
@@ -163,9 +169,10 @@ timeout_s=""
 grace_s=""
 ceiling_mib=""
 lock_wait_s=""
+go_limit_mib=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
-  --timeout-seconds | --grace-seconds | --rss-ceiling-mib | --lock-timeout-seconds)
+  --timeout-seconds | --grace-seconds | --rss-ceiling-mib | --lock-timeout-seconds | --go-memory-limit-mib)
     [ "$#" -ge 2 ] || owner_error "$1 needs a value"
     positive_integer "$2" || owner_error "$1 must be a positive whole number, not '$2'"
     # Past Bash's integer range a comparison errors rather than firing, which would leave the bound inert; nine
@@ -188,6 +195,10 @@ while [ "$#" -gt 0 ]; do
       [ -z "$lock_wait_s" ] || owner_error "--lock-timeout-seconds is given twice"
       lock_wait_s=$2
       ;;
+    --go-memory-limit-mib)
+      [ -z "$go_limit_mib" ] || owner_error "--go-memory-limit-mib is given twice"
+      go_limit_mib=$2
+      ;;
     esac
     shift 2
     ;;
@@ -207,8 +218,15 @@ done
 [ -n "$ceiling_mib" ] || owner_error "--rss-ceiling-mib is required"
 [ "$#" -gt 0 ] || owner_error "no command after --"
 ceiling_kib=$((ceiling_mib * 1024))
-# The one optional bound, its default stated in the header's "One compile at a time".
+# The optional bounds. The lease wait's default is stated in the header's "One compile at a time"; the soft limit's
+# is 70% of the ceiling, and a caller may only lower it (the header's GOMEMLIMIT paragraph).
 [ -n "$lock_wait_s" ] || lock_wait_s=1200
+default_go_mib=$((ceiling_mib * 70 / 100))
+if [ -z "$go_limit_mib" ]; then
+  go_limit_mib=$default_go_mib
+elif [ "$go_limit_mib" -gt "$default_go_mib" ]; then
+  owner_error "--go-memory-limit-mib is at most 70% of --rss-ceiling-mib ($default_go_mib), not $go_limit_mib: it may only lower the soft limit"
+fi
 
 # A cancellation only LATCHES here; the loop below acts on it between samples. Installed before the fork, so a
 # signal landing at any point after it still finds the job's group.
@@ -474,7 +492,7 @@ own_group=$(ps -o pgid= -p "$$" | tr -d ' ') || owner_error "ps could not read t
 # parks /dev/null and the command still runs, its stderr and these records discarded.
 exec 3>&2 2>/dev/null || exec 3>/dev/null 2>/dev/null
 set -m
-GOMEMLIMIT="$((ceiling_mib * 70 / 100))MiB" "$@" 2>&3 3>&- &
+GOMEMLIMIT="${go_limit_mib}MiB" "$@" 2>&3 3>&- &
 pid=$!
 exec 2>&3 3>&-
 set +m

@@ -105,10 +105,26 @@ Not covered: `named-object-params`' whole-repo Program (about 7.1 GB) runs under
 witness is `src/__tests__/subprocess/worktree/tscOwnerLease.test.ts`, and the script's header carries the residue.
 
 `slopweaver dev build` is over the same line, and no heap flag reaches it: it hands every `src` file to ONE
-esbuild process, a Go binary that `--max-old-space-size` does not bound, so `heap-ceiling-ratchet` has no
-number of its own to pin. MEASURED, one run, `/usr/bin/time -l slopweaver dev build`:
-4,947,853,312 bytes maximum resident, 15.7s. A seat on another branch read 14,902,345,728 bytes the same way
-the same day; the two are not reconciled, and either is above 4 GiB.
+esbuild process, a Go binary that `--max-old-space-size` does not bound. MEASURED with no limit, one run,
+`/usr/bin/time -l slopweaver dev build`: 4,947,853,312 bytes maximum resident, 15.7s. A seat on another branch
+read 14,902,345,728 bytes the same way the same day; the two are not reconciled. An unbounded esbuild later grew
+to about 28 GB and froze a machine running four seats; which process it was was never identified.
+
+So that esbuild runs under the same owner (`src/cli/commands/dev/buildOwner.ts`): the compile lease, waited on
+for at most 120 s (a lap's own build inherits it, witnessed in `tscOwnerLease.test.ts`), a 120 s emit bound, a
+HARD 16,384 MiB group ceiling set above the larger measurement and well under the 28 GB event, and a SOFT
+`GOMEMLIMIT` of 4,096 MiB (`src/lib/esbuildBounds.ts`) under the smaller one, so the collector does the real work
+and a build that needs more slows rather than dies. The soft limit has not been measured under yet; once it has, the
+hard ceiling can come down toward what it reads. A build refused on the lease, killed at the ceiling or failed any
+other way prints ONE stderr line naming which, runs no smoke and stamps nothing. Neither caller fails on it: worktree
+provisioning (`cmux spawn`, `worktree create`) keeps going and its report says the worktree runs from source
+(`src/worktree/devBuild.ts`), and the `post-merge` / `post-checkout` hook prints that stderr line as its failed
+clause (`src/checkouts/refMoveBuildRun.ts`). The seat then boots through `tsx`, as an unbuilt checkout always did,
+after up to 120 s spent waiting. A non-lap build started during a lap is refused that way, because the lap holds the
+lease for its whole run. The `runtime-dependencies` gate's
+in-memory bundle starts an `esbuild --service` child too; its gate row sets the same soft limit in its `env`, and it
+takes no lease. Both numbers are TypeScript constants, which `heap-ceiling-ratchet` cannot read: only their unit
+tests pin them.
 
 Free in WALL clock, not in runner minutes. The lap's critical path was the unit lane (p95 6:20, measured with
 `slopweaver github ci-runs --branch any --event pull_request --runs 10`) and the compile is 60.04s
