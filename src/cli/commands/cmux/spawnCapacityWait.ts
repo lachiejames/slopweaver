@@ -26,7 +26,9 @@
  * waives the whole gate. `machine watch`'s investigation seat opens THROUGH a hold by design — it is the seat
  * that investigates it, rate-limited by its own backoff (`../../../live/machine/backoff.ts`) — so it enters by
  * `runCmuxSpawnPastBackoff` in `./run.ts`, an in-process door no session can type. `session re-seat` enters
- * the same way, having taken its admission through {@link waitForSpawnCapacity} BEFORE it closed the seat.
+ * the same way, having taken its admission through {@link waitForSpawnCapacity} BEFORE it closed the seat, and so
+ * does a Recovery press's chair restart (`../fleet/recoverChair.ts`), which seats the one supervisor the fleet is
+ * missing.
  */
 import { hatchFor } from "../../../hatch/lookup.js";
 import { hatchRefusal } from "../../../hatch/render.js";

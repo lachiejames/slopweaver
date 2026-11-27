@@ -57,7 +57,9 @@ resume`'s, so a resume pass never holds a check off. A second check gets exit 4.
 - **Seated on the first plan that passes,** through `cmux spawn --harness app --plan <alias>`, from a mechanical doc
   (`src/fleet/recoverySuccessor.ts`): invoke `/slopweaver:supervisor`, arm the sweep, take the pin (`cmux takeover`,
   or a bare `cmux pin` when none was pinned), then read the predecessor's doc. Claude seats on Fable, Codex on its
-  pinned model.
+  pinned model. The spawn opens past the fleet's spawn backoff (`recoveryChairSpawn`), since it seats the one
+  supervisor the fleet is missing, a down chair's successor or the first when none is pinned: a capacity hold never
+  defers the restart.
 - **Restarted means the pin moved** to the new session while the app still runs it (`judgeRecoveryChair`,
   `src/fleet/recoveryChair.ts`); each look reads the pin before it lists the app, so a stale listing never pairs
   with a later pin. A refused spawn, or a chair that ended before it took the pin, has its board row closed and falls
@@ -115,5 +117,9 @@ or `not-restarted`, its reason, and every chair the press opened or tried to, in
   The cmux arm of `cmux pin` refuses while the record names an app session, and every verb that moves the seat holds
   one supervisor-pin lock from its read to its write (`src/supervisor/pinLock.ts`), so no `cmux pin` lands beside a
   record a takeover or an app session's own pin is rewriting. A pin made from another home never asks for it.
+- **A restart's launch is not bounded by the pass's deadline.** The five-minute gate decides only whether one
+  starts. Its open then runs the Claude credential gate (one repair per refused plan), the app's prepare and its
+  delivery, each on its own bound, so a late restart over a slow repair can run the verb into the app's
+  fourteen-minute kill.
 - **A pass proves one turn, on the plan that answered, at that moment.** A plan the ranker placed later is not
   proven.

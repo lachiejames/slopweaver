@@ -127,11 +127,14 @@ export async function runCmuxSpawn(argv: readonly string[]): Promise<number> {
 }
 
 /**
- * `cmux spawn` for `machine watch`'s investigation seat, which opens THROUGH a capacity hold by design: it is
- * the seat that investigates the hold, already rate-limited per signature by `../../../live/machine/backoff.ts`.
- * Refusing it under the fleet's spawn backoff would leave the hold's dispatch row unseated, and
- * `supervisor tick-record` refusing every tick for it — the wedge `backoff.ts`'s header warns against. In-process
- * only, so no session can reach it by typing a flag.
+ * `cmux spawn` for the three callers that open THROUGH a capacity hold by design. `machine watch`'s investigation
+ * seat is the seat that investigates the hold, already rate-limited per signature by
+ * `../../../live/machine/backoff.ts`; refusing it would leave the hold's dispatch row unseated, and
+ * `supervisor tick-record` refusing every tick for it — the wedge `backoff.ts`'s header warns against.
+ * `session re-seat` took its admission before it closed the seat it replaces. A Recovery press seats the one
+ * supervisor the fleet is missing, a down chair's successor or the first when none is pinned
+ * (`../fleet/recoverChair.ts`), and capacity must never block recovery. In-process only, so no session can reach it
+ * by typing a flag.
  *
  * @param argv the full process argv, exactly as {@link runCmuxSpawn} takes it
  * @returns the process exit code
