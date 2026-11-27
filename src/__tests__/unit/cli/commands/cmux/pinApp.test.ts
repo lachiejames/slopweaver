@@ -80,10 +80,29 @@ describe("pinAppSession", () => {
     expect(recorded).toEqual([]);
   });
 
-  it("writes nothing when cmux cannot be read, since a pinned cmux chair cannot be ruled out", async () => {
+  it("writes nothing when cmux cannot be read and nothing is recorded, since an unrecorded cmux pin cannot be ruled out", async () => {
     const { deps, recorded } = fakes({ pinned: err({ message: "cmux is not running" }) });
     expect(unwrapErr(await pinAppSession({ claim: CLAIM, deps })).message).toBe(
       "cmux could not be read, so a pinned cmux supervisor cannot be ruled out: cmux is not running",
+    );
+    expect(recorded).toEqual([]);
+  });
+
+  it("writes nothing when cmux cannot be read and the record names a cmux workspace, the refusal that stands", async () => {
+    const { deps, recorded } = fakes({
+      disposition: {
+        kind: "pin",
+        record: {
+          pinnedAtIso: "2026-11-09T01:30:00.000Z",
+          session: CLAIM.session,
+          workspaceId: "id-chair",
+          workspaceRef: "workspace:7",
+        },
+      },
+      pinned: err({ message: "cmux refused this process its socket" }),
+    });
+    expect(unwrapErr(await pinAppSession({ claim: CLAIM, deps })).message).toBe(
+      "cmux could not be read, so a pinned cmux supervisor cannot be ruled out: cmux refused this process its socket",
     );
     expect(recorded).toEqual([]);
   });

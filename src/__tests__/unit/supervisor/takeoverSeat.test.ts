@@ -15,6 +15,7 @@ import {
   appPredecessorLedgerRow,
   appSweepGateOutcome,
   appSweepLeg,
+  resolveAppPredecessorPastUnreadableCmux,
   resolveTakeoverPredecessor,
   TakeoverResolutionErrors,
 } from "../../../supervisor/takeoverSeat.js";
@@ -183,6 +184,74 @@ describe("resolveTakeoverPredecessor, the app arm", () => {
       }),
     );
     expect(refused.code).toBe("PIN_RECORD_UNREADABLE");
+  });
+});
+
+describe("resolveAppPredecessorPastUnreadableCmux", () => {
+  const WHY = "cmux refused this process its socket";
+  const CMUX_RECORD: SupervisorPinDisposition = {
+    kind: "pin",
+    record: { pinnedAtIso: AT, session: SESSION, workspaceId: "id-chair", workspaceRef: "workspace:7" },
+  };
+
+  it("resolves the app record for an app caller, the one pairing the record alone decides", () => {
+    const resolved = resolveAppPredecessorPastUnreadableCmux({
+      caller: { appSessionId: OTHER_APP_ID, kind: "app" },
+      cmuxWhy: WHY,
+      disposition: APP_RECORD,
+    });
+    expect(unwrap(resolved)).toEqual({ kind: "app", pin: { appSessionId: APP_ID, pinnedAtIso: AT, session: SESSION } });
+  });
+
+  it("refuses an app caller with no record, since an unrecorded cmux pin cannot be ruled out", () => {
+    const refused = unwrapErr(
+      resolveAppPredecessorPastUnreadableCmux({
+        caller: { appSessionId: OTHER_APP_ID, kind: "app" },
+        cmuxWhy: WHY,
+        disposition: ABSENT,
+      }),
+    );
+    expect(refused).toEqual(TakeoverResolutionErrors.cmuxUnreadable({ why: WHY }));
+  });
+
+  it("refuses an app caller over a cmux record, the refusal that stands while cmux cannot be read", () => {
+    const refused = unwrapErr(
+      resolveAppPredecessorPastUnreadableCmux({
+        caller: { appSessionId: OTHER_APP_ID, kind: "app" },
+        cmuxWhy: WHY,
+        disposition: CMUX_RECORD,
+      }),
+    );
+    expect(refused.code).toBe("CMUX_UNREADABLE");
+  });
+
+  it("refuses an app caller over an unreadable record", () => {
+    const refused = unwrapErr(
+      resolveAppPredecessorPastUnreadableCmux({
+        caller: { appSessionId: OTHER_APP_ID, kind: "app" },
+        cmuxWhy: WHY,
+        disposition: { kind: "unreadable", why: "it does not parse" },
+      }),
+    );
+    expect(refused.code).toBe("CMUX_UNREADABLE");
+  });
+
+  it("refuses a cmux caller over an app record, since it would pin cmux through a cmux that cannot be read", () => {
+    const refused = unwrapErr(
+      resolveAppPredecessorPastUnreadableCmux({ caller: CMUX_CALLER, cmuxWhy: WHY, disposition: APP_RECORD }),
+    );
+    expect(refused.code).toBe("CMUX_UNREADABLE");
+  });
+
+  it("refuses an app caller whose own session is the one recorded", () => {
+    const refused = unwrapErr(
+      resolveAppPredecessorPastUnreadableCmux({
+        caller: { appSessionId: APP_ID, kind: "app" },
+        cmuxWhy: WHY,
+        disposition: APP_RECORD,
+      }),
+    );
+    expect(refused.code).toBe("PREDECESSOR_IS_CALLER");
   });
 });
 

@@ -12,6 +12,16 @@
  * because the record never decided a cmux predecessor and the app pin itself refuses while cmux holds a pin
  * (`./appPin.ts`).
  *
+ * ## When cmux cannot be read
+ *
+ * The pin record is the authority for one pairing only: an app caller taking over from the app session the record
+ * names. That pairing resolves without cmux, so a chair the desktop app restarts can take over while cmux refuses
+ * the app's child its socket. Every other pairing still needs cmux's own pin and refuses. The cmux arm of `cmux pin`
+ * refuses over an app record (`./appPin.ts`). The residue: a pin set by hand in cmux's own UI beside an app record,
+ * or one older than the record, goes unseen while cmux cannot be read. So does a cmux pin that raced a verb
+ * rewriting the record (an app session's own `cmux pin`, or a takeover between removing the old record and writing
+ * the new one), since nothing locks the record between its read and the pin.
+ *
  * ## A chair whose host no longer holds it
  *
  * A record naming a cmux workspace cmux no longer lists at all is a GONE predecessor, resolved as such rather than as
@@ -55,6 +65,7 @@ export type TakeoverResolutionError =
   | { readonly code: "CROSS_HOST_COLLISION"; readonly message: string }
   | { readonly code: "PREDECESSOR_IS_CALLER"; readonly message: string }
   | { readonly code: "PIN_RECORD_UNREADABLE"; readonly message: string }
+  | { readonly code: "CMUX_UNREADABLE"; readonly message: string }
   | { readonly code: "APP_PREDECESSOR_NOT_LIVE"; readonly message: string }
   | { readonly code: "APP_PREDECESSOR_ROW_UNMATCHED"; readonly message: string }
   | { readonly code: "GONE_PREDECESSOR_ROW_UNMATCHED"; readonly message: string }
@@ -69,6 +80,12 @@ export const TakeoverResolutionErrors = {
   appRowUnmatched: ({ label, why }: { label: string; why: string }): TakeoverResolutionError => ({
     code: "APP_PREDECESSOR_ROW_UNMATCHED",
     message: `${label} answers to no single ledger row (${why}), so its run cannot be confirmed finished — confirm by hand before closing it`,
+  }),
+  cmuxUnreadable: ({ why }: { why: string }): TakeoverResolutionError => ({
+    code: "CMUX_UNREADABLE",
+    message:
+      `cmux could not be read (${why}), so a pinned cmux supervisor cannot be ruled out — only an app session ` +
+      "taking over from the app session the pin record names goes ahead without cmux; nothing moved",
   }),
   crossHost: ({ appLabel, workspaceRef }: { appLabel: string; workspaceRef: string }): TakeoverResolutionError => ({
     code: "CROSS_HOST_COLLISION",
@@ -175,6 +192,38 @@ function cmuxRecordChoice({
     return err(TakeoverResolutionErrors.none());
   }
   return ok({ kind: "gone-cmux", pin: recordedCmux });
+}
+
+/**
+ * The predecessor when cmux could not be read at all: the app record alone names it, for an app caller over an app
+ * record, and every other pairing refuses. With no record or a cmux one, cmux's own pin is the only authority there
+ * is, so an unread cmux leaves it unknown. A cmux caller cannot pin itself through an unread cmux either. A
+ * readable cmux never comes here, so its cross-host collision check still runs whenever it can.
+ *
+ * @param caller the session taking the seat
+ * @param disposition the supervisor pin record, read strictly
+ * @param cmuxWhy what cmux's failed listing said, carried into the refusal
+ * @returns the app predecessor the record names, or the refusal naming why cmux was needed
+ */
+export function resolveAppPredecessorPastUnreadableCmux({
+  caller,
+  disposition,
+  cmuxWhy,
+}: {
+  caller: TakeoverCaller;
+  disposition: SupervisorPinDisposition;
+  cmuxWhy: string;
+}): Result<{ readonly kind: "app"; readonly pin: AppSupervisorPinRecord }, TakeoverResolutionError> {
+  const recordedApp = disposition.kind === "pin" ? appHeldPin({ pin: disposition.record }) : undefined;
+  if (caller.kind !== "app" || recordedApp === undefined) {
+    return err(TakeoverResolutionErrors.cmuxUnreadable({ why: cmuxWhy }));
+  }
+  if (recordedApp.appSessionId === caller.appSessionId) {
+    return err(
+      TakeoverResolutionErrors.isCaller({ host: "app", label: appPinLabel({ appSessionId: caller.appSessionId }) }),
+    );
+  }
+  return ok({ kind: "app", pin: recordedApp });
 }
 
 /** What an app-hosted caller's own picture says about its sweep. */

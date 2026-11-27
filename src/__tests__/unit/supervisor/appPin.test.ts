@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 
 import { unwrap, unwrapErr } from "../../../lib/result.js";
-import { AppPinErrors, appPinLabel, appPinPlan } from "../../../supervisor/appPin.js";
+import { AppPinErrors, appPinLabel, appPinPlan, cmuxPinOverAppRecordRefusal } from "../../../supervisor/appPin.js";
 
 const APP_ID = "5f0c2a1e-7d3b-4c8e-9a6f-1b2c3d4e5f60";
 const OTHER_APP_ID = "5f0c2a1e-7d3b-4c8e-9a6f-1b2c3d4e5f61";
@@ -64,6 +64,28 @@ describe("appPinPlan", () => {
     expect(refused.message).toBe(
       "the supervisor pin does not parse as one record shape, and it could name either a cmux workspace or an app session, so it is not overwritten",
     );
+  });
+});
+
+describe("cmuxPinOverAppRecordRefusal", () => {
+  it("refuses pinning a cmux workspace while the record names an app session, naming it", () => {
+    const disposition = { kind: "pin", record: { appSessionId: APP_ID, pinnedAtIso: AT, session: SESSION } } as const;
+    expect(cmuxPinOverAppRecordRefusal({ disposition })).toEqual({
+      code: "APP_PIN_RECORDED",
+      message: `the supervisor pin record names app:${APP_ID}, an app session, so pinning a cmux workspace would seat a second supervisor — take over with \`slopweaver cmux takeover\` instead`,
+    });
+  });
+
+  it("proceeds over a cmux record, which cmux's own one-pin check already covers", () => {
+    const disposition = {
+      kind: "pin",
+      record: { pinnedAtIso: AT, session: SESSION, workspaceId: "id-chair", workspaceRef: "workspace:7" },
+    } as const;
+    expect(cmuxPinOverAppRecordRefusal({ disposition })).toBeUndefined();
+  });
+
+  it("proceeds with no record at all", () => {
+    expect(cmuxPinOverAppRecordRefusal({ disposition: { kind: "absent" } })).toBeUndefined();
   });
 });
 

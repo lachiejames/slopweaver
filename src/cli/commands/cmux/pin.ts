@@ -20,6 +20,7 @@ import {
 } from "../../../sessionHarness/cmuxHost.js";
 import type { SessionHarnessError } from "../../../sessionHarness/errors.js";
 import { readSupervisorPinDisposition } from "../../../sessions/supervisorPinStore.js";
+import { type CmuxPinAppRecordedError, cmuxPinOverAppRecordRefusal } from "../../../supervisor/appPin.js";
 import { detectSupervisorSession } from "../../../supervisor/session.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK } from "../../exitCodes.js";
@@ -60,7 +61,8 @@ export async function runCmuxPin(argv: readonly string[]): Promise<number> {
 }
 
 /**
- * The cmux arm of `cmux pin`: pin the named workspace, or this process's own, refusing a second pinned workspace.
+ * The cmux arm of `cmux pin`: pin the named workspace, or this process's own, refusing a second pinned workspace
+ * and refusing outright while the pin record names an app session, which cmux cannot see.
  *
  * @param workspaceRef the `--workspace` value, or `undefined` to pin this process's own workspace
  * @returns the process exit code
@@ -72,7 +74,10 @@ async function runCmuxWorkspacePin({ workspaceRef }: { workspaceRef: string | un
       harness,
       host,
     }): Promise<
-      Result<{ readonly ref: string; readonly self: boolean }, CmuxError | PinRefusal | SessionHarnessError>
+      Result<
+        { readonly ref: string; readonly self: boolean },
+        CmuxError | PinRefusal | SessionHarnessError | CmuxPinAppRecordedError
+      >
     > => {
       const target = await targetWorkspaceId({ env: process.env, harness, workspaceRef });
       if (target.isErr()) {
@@ -91,6 +96,13 @@ async function runCmuxWorkspacePin({ workspaceRef }: { workspaceRef: string | un
         return err(refused);
       }
       const own = await targetWorkspaceId({ env: process.env, harness, workspaceRef: undefined });
+      // Read last, with no await before the pin, so the window an app session's own `cmux pin` could write its
+      // record into is as short as this process can make it. Nothing locks the record, so it narrows the race and
+      // does not close it.
+      const appRecorded = cmuxPinOverAppRecordRefusal({ disposition: readSupervisorPinDisposition() });
+      if (appRecorded !== undefined) {
+        return err(appRecorded);
+      }
       const ref = named.value.workspaceRef;
       return (await host.pinWorkspace({ workspaceId: target.value })).map(() => ({
         ref,

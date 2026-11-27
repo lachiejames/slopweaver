@@ -106,9 +106,14 @@ or `not-restarted`, its reason, and every chair the press opened or tried to, in
 - **A cmux chair reads unknown from the app** when cmux refuses the app's child its socket, so the press restarts
   nothing over it. An absent pin record is not checked against cmux; the successor's `cmux pin` refuses if cmux
   holds a pin. A successor starting in cmux, rather than the app, is not seen as starting.
-- **A restart cannot finish while cmux is down.** The successor takes the pin through cmux reads of its own:
-  `cmux takeover` lists cmux's workspaces before it resolves any predecessor, an app one included
-  (`src/cli/commands/cmux/takeoverHosts.ts`), and a bare `cmux pin` refuses when cmux cannot be read
-  (`src/cli/commands/cmux/pinApp.ts`). The card opens, but it never takes the pin.
+- **A restart over an app chair finishes while cmux cannot be read; any other restart does not.** A successor
+  taking over from the app session the pin record names resolves it through the app alone
+  (`src/cli/commands/cmux/takeoverHosts.ts`). With no pin record, or one naming a cmux workspace, the card opens
+  but never takes the pin: `cmux takeover` needs cmux's own pin, and a bare `cmux pin` refuses when cmux cannot be
+  read (`src/cli/commands/cmux/pinApp.ts`), since a cmux pin can stand with no record. What this leaves unseen: a
+  pin set by hand in cmux's own UI beside an app record, or one older than the record, while cmux cannot be read.
+  The cmux arm of `cmux pin` refuses while the record names an app session. Nothing locks the record, though. A
+  cmux pin racing any verb that rewrites it, an app session's own `cmux pin` or a `cmux takeover` between removing
+  the old record and writing the new one, can still land beside the new record.
 - **A pass proves one turn, on the plan that answered, at that moment.** A plan the ranker placed later is not
   proven.

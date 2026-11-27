@@ -89,6 +89,36 @@ export function appPinPlan({
   return err(AppPinErrors.otherRecorded({ label: supervisorPinLabel({ pin: disposition.record }) }));
 }
 
+/** The record names an app session, so pinning a cmux workspace beside it would seat a second supervisor. */
+export interface CmuxPinAppRecordedError {
+  readonly code: "APP_PIN_RECORDED";
+  readonly message: string;
+}
+
+/**
+ * Whether the cmux arm of `cmux pin` must refuse because the pin record names an app session. cmux cannot see an
+ * app chair, so its own one-pin check passes beside one; this refusal is what keeps the record and cmux's pin from
+ * naming two supervisors. It is also what lets `cmux takeover` trust an app record when cmux cannot be read
+ * (`./takeoverSeat.ts`): no verb pins cmux beside one.
+ *
+ * @param disposition the pin record, read strictly
+ * @returns the refusal naming the recorded app session, or `undefined` to proceed
+ */
+export function cmuxPinOverAppRecordRefusal({
+  disposition,
+}: {
+  disposition: SupervisorPinDisposition;
+}): CmuxPinAppRecordedError | undefined {
+  const app = disposition.kind === "pin" ? appHeldPin({ pin: disposition.record }) : undefined;
+  if (app === undefined) {
+    return undefined;
+  }
+  return {
+    code: "APP_PIN_RECORDED",
+    message: `the supervisor pin record names ${appPinLabel({ appSessionId: app.appSessionId })}, an app session, so pinning a cmux workspace would seat a second supervisor — take over with \`slopweaver cmux takeover\` instead`,
+  };
+}
+
 /**
  * The label `cmux pin` prints for an app session it recorded.
  *
