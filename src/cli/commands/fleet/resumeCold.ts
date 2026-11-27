@@ -81,9 +81,9 @@ export function ownSeatTab({
 /** The line a paired tab that is not cold, and not for the supervisor, prints instead of passing silently. */
 const NOT_COLD_LINES: Readonly<Record<string, string>> = {
   "not-a-bare-shell":
-    "not resumed — something other than one shell at its prompt is running in it; once the tab shows a prompt, run `slopweaver fleet resume` again or `slopweaver cmux reseat <ws>` from another tab",
+    "not resumed — something other than one shell at its prompt is running in it; once the tab shows a prompt, run `slopweaver fleet resume` again or `slopweaver cmux reseat <ws>` from a different cmux workspace (another entry in the sidebar)",
   "split-surfaces":
-    "not resumed — the tab holds more than one surface, and a typed line would reach only the selected one; close the extra surface, then run `slopweaver fleet resume` again or `slopweaver cmux reseat <ws>` from another tab",
+    "not resumed — the workspace holds more than one tab (surface), and a typed line would reach only the selected one; close the extra tabs until one is left, then run `slopweaver fleet resume` again or `slopweaver cmux reseat <ws>` from a different cmux workspace (another entry in the sidebar)",
 };
 
 /**

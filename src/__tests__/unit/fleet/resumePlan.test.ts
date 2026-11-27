@@ -65,6 +65,15 @@ describe("fleetRefusalFromReseat", () => {
       workspaceRef: "workspace:2",
     });
   });
+
+  it("carries a split workspace through as its own code, never a failed read", () => {
+    const error = ReseatErrors.splitSurfaces({ surfaces: 2, workspaceRef: "workspace:2" });
+    expect(fleetRefusalFromReseat({ alias: undefined, error, workspaceRef: "workspace:2" })).toEqual({
+      code: "SPLIT_SURFACES",
+      message: error.message,
+      workspaceRef: "workspace:2",
+    });
+  });
 });
 
 describe("crashLoopAction", () => {

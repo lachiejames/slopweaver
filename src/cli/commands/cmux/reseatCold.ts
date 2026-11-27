@@ -393,7 +393,7 @@ export async function judgeWorkspaceCold({
     return err(read.error);
   }
   if (read.value.kind === "split") {
-    return ok({ kind: "not-cold", why: "split-surfaces" });
+    return ok({ kind: "not-cold", surfaces: read.value.surfaces, why: "split-surfaces" });
   }
   if (read.value.kind === "live") {
     return ok({ kind: "not-cold", why: "live-session" });

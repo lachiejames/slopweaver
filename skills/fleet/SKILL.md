@@ -77,8 +77,8 @@ row's priority through `cmux reseat`'s own pass, and only then a wait for the ch
 a fresh session in place of a lost one (`NO_LIVE_SESSION`); a LIVE seat with no transcript, or a `No conversation found` whose tab comes back to a bare prompt, boots fresh once
 as `SEAT_NOT_RESUMED`, never recovered (a tab that never does is `RELAUNCH_FAILED`), while a COLD one with no transcript is refused `NO_RESUMABLE_SESSION`. A seat it could not bring back stays red with its reason until `session close-done` journals its
 workspace gone (`src/fleet/goneSeats.ts`). A chair refused `NO_LIVE_SESSION` names why its tab was not read as a bare shell and the way
-back — `fleet resume` again, or `cmux reseat <its ref>` from another tab, once the tab shows a prompt — because `session re-seat` never
-seats the chair. A bare tab is read off cmux's `processes` AND its `unattributed_tty_process_pids` grafted from the process table: on cmux 0.65.2 the
+back — `fleet resume` again, or `cmux reseat <its ref>` from a different workspace (every tab of one shares its id), once the tab shows a prompt — because `session re-seat` never
+seats the chair; a chair workspace holding more than one tab is `SPLIT_SURFACES`, cleared by closing the extra tabs, never by a rerun. A bare tab is read off cmux's `processes` AND its `unattributed_tty_process_pids` grafted from the process table: on cmux 0.65.2 the
 tab's own `login` and shell sit only in the latter, and reading `processes` alone refused the whole fleet; a tab cmux reports NO pid for is tied by its surface `tty`. A console that will not start is
 a `CONSOLE_FAILED` refusal, so the attempt reads `failed`, and health reads a console it cannot measure as down.
 

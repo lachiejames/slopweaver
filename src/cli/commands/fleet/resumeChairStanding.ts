@@ -16,6 +16,7 @@ import type { FleetRefusal } from "../../../fleet/refusals.js";
 import { fleetRefusalFromReseat } from "../../../fleet/resumePlan.js";
 import type { TtyProcessRow } from "../../../live/standing/processes.js";
 import type { CmuxHostSurface } from "../../../sessionHarness/cmuxHost.js";
+import type { ColdSeatVerdict } from "../../../sessions/coldSeat.js";
 import { liveSessionsInTab, type TabReport } from "../../../sessions/liveInTab.js";
 import type { SessionRecord } from "../../../sessions/liveSessions.js";
 import type { ReseatWall } from "../../../sessions/reseat.js";
@@ -64,6 +65,24 @@ export function pinHostedHere({
 function noSessionRefusal({ workspaceRef, why }: { workspaceRef: string; why: string }): FleetRefusal {
   const error = ReseatErrors.noLiveSession({ notCold: { chair: true, why }, workspaceRef });
   return { code: error.code, message: error.message, workspaceRef };
+}
+
+/**
+ * The chair's refusal for a tab that is not cold. A second tab is closed by hand, never resumed past or retried, so it
+ * is `SPLIT_SURFACES` with its count rather than the no-session refusal every other reason gets.
+ */
+function notColdChairRefusal({
+  chair,
+  verdict,
+}: {
+  chair: CmuxWorkspaceSummary;
+  verdict: Extract<ColdSeatVerdict, { kind: "not-cold" }>;
+}): FleetRefusal {
+  if (verdict.why === "split-surfaces") {
+    const split = ReseatErrors.splitSurfaces({ surfaces: verdict.surfaces, workspaceRef: chair.workspaceRef });
+    return { code: split.code, message: split.message, workspaceRef: chair.workspaceRef };
+  }
+  return noSessionRefusal({ why: coldWhy({ verdict }), workspaceRef: chair.workspaceRef });
 }
 
 /**
@@ -153,7 +172,13 @@ async function coldChairStanding({
   }
   const judged = verdict.value;
   if (judged.kind !== "cold" && judged.kind !== "unresumable") {
-    return refuseChair({ why: coldWhy({ verdict: judged }) });
+    await refuseSeat({
+      refusal: notColdChairRefusal({ chair, verdict: judged }),
+      role: "supervisor",
+      sessionId,
+      state,
+    });
+    return false;
   }
   if (judged.kind === "cold" && judged.mismatch !== undefined) {
     state.lines.push(
@@ -229,11 +254,15 @@ async function readChairHosting({
     return err(ReseatErrors.cmuxReadFailed({ cause: top.error.message, what: `${chair.workspaceRef}'s process tree` }));
   }
   // One surface only: cmux's listing pools every surface's pids, so a pin on a hidden pane would otherwise stand the
-  // chair whose nudge lands in the selected one.
-  if (top.value.surfaces !== 1) {
+  // chair whose nudge lands in the selected one. More than one is a stable shape the owner clears by closing a tab,
+  // never a read to retry; none is a workspace gone or not listed, which is.
+  if (top.value.surfaces > 1) {
+    return err(ReseatErrors.splitSurfaces({ surfaces: top.value.surfaces, workspaceRef: chair.workspaceRef }));
+  }
+  if (top.value.surfaces === 0) {
     return err(
       ReseatErrors.cmuxReadFailed({
-        cause: `cmux's process listing holds ${String(top.value.surfaces)} surfaces for the tab, not one`,
+        cause: "cmux's process listing holds no surface for the tab, so it is gone or not listed",
         what: `${chair.workspaceRef}'s process tree`,
       }),
     );

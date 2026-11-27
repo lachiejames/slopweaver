@@ -63,6 +63,17 @@ export interface ReseatCmuxReadError {
   readonly code: "CMUX_READ_FAILED";
   readonly message: string;
 }
+/**
+ * cmux reads the workspace whole and finds more than one tab (surface) in it: a stable shape, never a failed read, so
+ * running the same command again cannot clear it. MEASURED after a cmux restart: the owner opened a second tab in the
+ * chair's workspace to run the recovery from, and was told to retry "once cmux and ps answer".
+ */
+export interface ReseatSplitSurfacesError {
+  readonly code: "SPLIT_SURFACES";
+  readonly message: string;
+  /** How many tabs cmux reported, carried so no reader parses it back out of `message`. */
+  readonly surfaces: number;
+}
 /** Which gate refused a boot: one of the routing gate's own kinds, or `token` for the plan's setup-token file. */
 export type ReseatStoreRefusalKind = SpawnRefusalKind | "token";
 
@@ -110,6 +121,12 @@ export interface ReseatLockFailedError {
   readonly message: string;
 }
 
+/**
+ * Where a command about a workspace must run instead of in it. Every tab of one workspace carries the same
+ * `CMUX_WORKSPACE_ID`, so "another tab" sent the owner to a tab that counted as the same workspace.
+ */
+const DIFFERENT_WORKSPACE = "a different cmux workspace (another entry in the sidebar)";
+
 /** Why one workspace was not reseated. */
 export type ReseatError =
   | ReseatOwnWorkspaceError
@@ -123,6 +140,7 @@ export type ReseatError =
   | ReseatModelRefusedError
   | ReseatBusyError
   | ReseatCmuxReadError
+  | ReseatSplitSurfacesError
   | ReseatStoreRefusedError
   | ReseatKillTimeoutError
   | ReseatRelaunchFailedError
@@ -133,7 +151,7 @@ export type ReseatError =
 
 /**
  * The `NO_LIVE_SESSION` message: the plain refusal before the cold arm ran, else why the tab was not a bare shell
- * and the way back — the chair's (`fleet resume` again, or `cmux reseat` from another tab) or a worker's.
+ * and the way back — the chair's (`fleet resume` again, or `cmux reseat` from a different workspace) or a worker's.
  *
  * @param workspaceRef the tab refused
  * @param notCold the cold arm's verdict, when it ran
@@ -150,7 +168,7 @@ function noLiveSessionMessage({
     return `no live Claude session runs in ${workspaceRef}, so there is nothing to resume — \`slopweaver session re-seat\` fresh-spawns a walled seat's ledger row`;
   }
   if (notCold.chair) {
-    return `no live Claude session runs in ${workspaceRef}, and its tab was not a bare shell to resume the pin into (${notCold.why}) — once the tab shows a shell prompt, run \`slopweaver fleet resume\` again or \`slopweaver cmux reseat ${workspaceRef}\` from another tab; \`session re-seat\` never seats the chair`;
+    return `no live Claude session runs in ${workspaceRef}, and its tab was not a bare shell to resume the pin into (${notCold.why}) — once the tab shows a shell prompt, run \`slopweaver fleet resume\` again or \`slopweaver cmux reseat ${workspaceRef}\` from ${DIFFERENT_WORKSPACE}; \`session re-seat\` never seats the chair`;
   }
   return `no live Claude session runs in ${workspaceRef}, and its tab was not a bare shell holding a saved session to resume (${notCold.why}) — once the tab shows a shell prompt, run \`slopweaver cmux reseat ${workspaceRef}\` again; a seat with no saved session is fresh-spawned from its ledger row with \`slopweaver session re-seat\``;
 }
@@ -181,6 +199,17 @@ export const ReseatErrors = {
   cmuxReadFailed: ({ what, cause }: { what: string; cause: string }): ReseatCmuxReadError => ({
     code: "CMUX_READ_FAILED",
     message: `cmux could not read ${what}: ${cause} — nothing was typed; run the same command again once cmux and ps answer, and read the tab's screen if it keeps failing`,
+  }),
+  splitSurfaces: ({
+    workspaceRef,
+    surfaces,
+  }: {
+    workspaceRef: string;
+    surfaces: number;
+  }): ReseatSplitSurfacesError => ({
+    code: "SPLIT_SURFACES",
+    message: `cmux reports ${String(surfaces)} tabs (surfaces) in ${workspaceRef}, and a typed line would reach only the selected one, so nothing was typed — close the extra tabs in ${workspaceRef} until one is left, then run \`slopweaver fleet resume\` from ${DIFFERENT_WORKSPACE}`,
+    surfaces,
   }),
   killTimeout: ({ pid, seconds }: { pid: number; seconds: number }): ReseatKillTimeoutError => ({
     code: "KILL_TIMEOUT",
@@ -238,7 +267,7 @@ export const ReseatErrors = {
   }),
   ownWorkspace: ({ workspaceRef }: { workspaceRef: string }): ReseatOwnWorkspaceError => ({
     code: "OWN_WORKSPACE",
-    message: `${workspaceRef} is the workspace this command runs in, and stopping its claude would stop this command — run it from another cmux tab`,
+    message: `${workspaceRef} is the workspace this command runs in, and stopping its claude would stop this command — run it from ${DIFFERENT_WORKSPACE}, not another tab in ${workspaceRef}`,
   }),
   relaunchFailed: ({
     workspaceRef,

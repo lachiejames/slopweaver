@@ -37,6 +37,7 @@ export type FleetRefusalCode =
   | "MODEL_REFUSED"
   | "BUSY"
   | "CMUX_READ_FAILED"
+  | "SPLIT_SURFACES"
   | "STORE_REFUSED"
   | "KILL_TIMEOUT"
   | "RELAUNCH_FAILED"
@@ -71,6 +72,7 @@ export const FLEET_REFUSAL_CODES: readonly FleetRefusalCode[] = [
   "MODEL_REFUSED",
   "BUSY",
   "CMUX_READ_FAILED",
+  "SPLIT_SURFACES",
   "STORE_REFUSED",
   "KILL_TIMEOUT",
   "RELAUNCH_FAILED",
@@ -201,6 +203,12 @@ export function mapFleetRefusal({
       return reasonOf({
         detail: `It is mid-turn${at}; stopping it now would lose that turn, so it is left alone.`,
         headline: "This session is still working.",
+        refusal,
+      });
+    case "SPLIT_SURFACES":
+      return reasonOf({
+        detail: `This seat's workspace has more than one tab open${at}, and a typed line would reach only one of them, so nothing was typed. Close the extra tabs until one is left, then run recovery again from a different workspace.`,
+        headline: "A seat's workspace has more than one tab open.",
         refusal,
       });
     case "CMUX_READ_FAILED":

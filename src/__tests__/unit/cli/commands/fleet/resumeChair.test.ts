@@ -1,7 +1,9 @@
 /**
  * The supervisor's half of a recovery pass, over a plain fake cmux client: which workspace is the chair, the
  * refusal when nothing runs in it — recorded, never a stop for the workers — the bounded wait for its reoriented
- * line, and the investigation line that reports its own failure to send.
+ * line, the investigation line that reports its own failure to send, and whether its tab hosts the pin — a
+ * workspace holding more than one tab refused as tabs to close. The pure hosting judge is
+ * `./resumeChairStanding.test.ts`.
  */
 import { rmSync } from "node:fs";
 
@@ -14,7 +16,7 @@ import {
   chairWorkspaceOf,
   resumeChair,
 } from "../../../../../cli/commands/fleet/resumeChair.js";
-import { chairHostsPin, pinHostedHere } from "../../../../../cli/commands/fleet/resumeChairStanding.js";
+import { chairHostsPin } from "../../../../../cli/commands/fleet/resumeChairStanding.js";
 import type { CmuxProcess } from "../../../../../cmux/client.js";
 import { CmuxErrors } from "../../../../../cmux/errors.js";
 import type { FleetPort } from "../../../../../fleet/port.js";
@@ -25,10 +27,16 @@ import type { ReseatWall } from "../../../../../sessions/reseat.js";
 import { ReseatErrors } from "../../../../../sessions/reseatErrors.js";
 import type { ClaudeCmuxSupervisorPin } from "../../../../../sessions/supervisorPin.js";
 import { memoryFleetPort } from "../../../../fleetStoreFixture.js";
-import { fakeClient, fakeDeps, makeHome, memoryReseatLock, passState, workspace } from "./fleetKit.js";
-
-/** A session id no live process on any machine carries. */
-const UNUSED_SESSION = "00000000-0000-4000-8000-00000000dead";
+import {
+  fakeClient,
+  fakeDeps,
+  chairLiveRecord as liveRecord,
+  makeHome,
+  memoryReseatLock,
+  passState,
+  UNUSED_SESSION,
+  workspace,
+} from "./fleetKit.js";
 
 const PIN: ClaudeCmuxSupervisorPin = {
   session: { host: "claude-code", id: UNUSED_SESSION },
@@ -139,6 +147,39 @@ describe("chairWorkspaceOf", () => {
   });
 });
 
+describe("awaitChairReorientation", () => {
+  it("waits for nothing and refuses nothing when the chair was already caught up", async () => {
+    const state = passState({ fleet, home });
+    await awaitChairReorientation({
+      chair: workspace({ id: "chair-id" }),
+      client: fakeClient({}),
+      reorientSeconds: 0,
+      standing: { caughtUp: true, loop: undefined, sessionId: UNUSED_SESSION },
+      state,
+    });
+    expect([state.deferred, state.refusals, state.lines]).toStrictEqual([false, [], []]);
+  });
+
+  it("ends the attempt NOT YET when the chair does not answer within its bound", async () => {
+    const state = passState({ fleet, home });
+    await awaitChairReorientation({
+      chair: workspace({ id: "chair-id" }),
+      client: fakeClient({}),
+      reorientSeconds: 0,
+      standing: { caughtUp: false, loop: undefined, sessionId: UNUSED_SESSION },
+      state,
+    });
+    expect(state.deferred).toBe(true);
+    expect(state.refusals).toStrictEqual([
+      {
+        code: "CHAIR_REORIENTATION_TIMEOUT",
+        message: "the supervisor did not run `supervisor reoriented --attempt att-1` within 0s",
+        workspaceRef: "workspace:chair-id",
+      },
+    ]);
+  });
+});
+
 describe("chairHostsPin", () => {
   /** Ask whether the chair hosts the pin, over one tab's tree and the live seats. */
   async function hosts({
@@ -176,18 +217,20 @@ describe("chairHostsPin", () => {
     });
   });
 
-  // cmux pools every surface's pids, so the pin on a hidden pane must not stand a chair
-  // whose nudge lands in the selected one.
-  it("refuses CMUX_READ_FAILED on a split tab, even with the pin's pid among its processes", async () => {
+  /** Ask whether the chair hosts the pin when cmux reports `surfaces` tabs in its workspace, the pin among its pids. */
+  async function hostsAcross({
+    surfaces,
+  }: {
+    surfaces: number;
+  }): Promise<{ hosted: boolean; refusals: readonly { code: string; message: string }[]; sent: readonly string[] }> {
     const sent: string[] = [];
     const tree = [{ children: [{ children: [], name: "claude", pid: 4242 }], name: "zsh", pid: 1 }];
     const base = fakeClient({ sent, trees: { "chair-id": tree } });
     const client: ReturnType<typeof fakeClient> = {
       ...base,
-      workspaceTop: () => Promise.resolve(ok({ surfaces: 2, trees: tree, ttys: [], unattributedTtyPids: [] })),
+      workspaceTop: () => Promise.resolve(ok({ surfaces, trees: tree, ttys: [], unattributedTtyPids: [] })),
     };
     const state = passState({ fleet, home });
-
     const hosted = await chairHostsPin({
       chair: workspace({ id: "chair-id" }),
       client,
@@ -195,10 +238,35 @@ describe("chairHostsPin", () => {
       sessionId: UNUSED_SESSION,
       state,
     });
+    const refusals = state.refusals.map((refusal) => ({ code: refusal.code, message: refusal.message }));
+    return { hosted, refusals, sent };
+  }
 
-    expect(hosted).toBe(false);
-    expect(state.refusals.map((refusal) => refusal.code)).toEqual(["CMUX_READ_FAILED"]);
-    expect(sent).toEqual([]);
+  // cmux pools every surface's pids, so the pin on a hidden pane must not stand a chair whose nudge lands in the
+  // selected one. The owner met this after a cmux restart by opening a second tab in the chair's workspace, and was
+  // told to retry "once cmux and ps answer": a rerun cannot clear it, closing the tab does.
+  it("refuses SPLIT_SURFACES, naming the count and the tab to close, even with the pin's pid among its processes", async () => {
+    expect(await hostsAcross({ surfaces: 2 })).toEqual({
+      hosted: false,
+      refusals: [
+        {
+          code: "SPLIT_SURFACES",
+          message:
+            "cmux reports 2 tabs (surfaces) in workspace:chair-id, and a typed line would reach only the selected one, so nothing was typed — close the extra tabs in workspace:chair-id until one is left, then run `slopweaver fleet resume` from a different cmux workspace (another entry in the sidebar)",
+        },
+      ],
+      sent: [],
+    });
+  });
+
+  // No surface is a workspace gone or not listed, which a rerun can clear — never the split shape.
+  it("refuses CMUX_READ_FAILED, never SPLIT_SURFACES, when cmux reports no tab in the chair's workspace", async () => {
+    const outcome = await hostsAcross({ surfaces: 0 });
+    expect([outcome.hosted, outcome.refusals.map((refusal) => refusal.code), outcome.sent]).toEqual([
+      false,
+      ["CMUX_READ_FAILED"],
+      [],
+    ]);
   });
 
   // A pin cmux reported itself needs no table, so a failed `ps` cannot refuse it.
@@ -265,99 +333,6 @@ describe("chairHostsPin", () => {
       hosted: false,
       sent: [],
     });
-  });
-});
-
-describe("pinHostedHere", () => {
-  /** Whether the pin, live at `pid`, is hosted by a tab cmux reported as `trees`, `ttyPids` and `ttys`, over `table`. */
-  const hostedAt = ({
-    pid,
-    trees,
-    ttyPids = [],
-    ttys = [],
-    table = "",
-  }: {
-    pid: number;
-    trees: readonly CmuxProcess[];
-    ttyPids?: readonly number[];
-    ttys?: readonly string[];
-    table?: string;
-  }): boolean =>
-    pinHostedHere({
-      liveRecords: [liveRecord({ pid })],
-      report: { surfaces: 1, trees, ttys, unattributedTtyPids: ttyPids },
-      rows: unwrap(parseProcessRowsWhole({ text: table })),
-      sessionId: UNUSED_SESSION,
-    });
-
-  it("is true only where the pinned session's own process runs, however deep in the tree", () => {
-    const shellRunningPin = [{ children: [{ children: [], name: "claude", pid: 4242 }], name: "zsh", pid: 10 }];
-    expect(hostedAt({ pid: 4242, trees: shellRunningPin })).toBe(true);
-  });
-
-  // MEASURED: cmux 0.65.2 attributed nothing to the working chair's tab and listed its
-  // `login` and shell as tty pids, so the attributed tree alone refused the chair `NO_LIVE_SESSION`.
-  it("is true when cmux attributes nothing and the table puts the pin under the tab's listed shell", () => {
-    const table = [
-      "  900     1 ??       Ss   /Applications/cmux.app/Contents/MacOS/cmux",
-      "  901   900 ttys004  Ss   login -pfl ada /bin/bash -c exec -la zsh /bin/zsh",
-      "  902   901 ttys004  S    -/bin/zsh",
-      " 4242   902 ttys004  S+   claude --resume x",
-    ].join("\n");
-    expect(hostedAt({ pid: 4242, table, trees: [], ttyPids: [901, 902] })).toBe(true);
-  });
-
-  // MEASURED: cmux reported neither a tree nor a tty pid for two running seats' tabs; the pty
-  // each surface names is the tie left.
-  it("is true when cmux reports no pid at all and the table puts the pin on the tab's own tty, false on another", () => {
-    const table = " 4242   902 ttys004  S+   claude --resume x";
-    expect([
-      hostedAt({ pid: 4242, table, trees: [], ttys: ["ttys004"] }),
-      hostedAt({ pid: 4242, table, trees: [], ttys: ["ttys005"] }),
-    ]).toEqual([true, false]);
-  });
-
-  it("is false for a bare shell, an empty tab, and a tab running a different session", () => {
-    const bareShell = [{ children: [], name: "zsh", pid: 10 }];
-    const otherSession = [{ children: [{ children: [], name: "claude", pid: 5151 }], name: "zsh", pid: 10 }];
-    expect([
-      hostedAt({ pid: 4242, trees: bareShell }),
-      hostedAt({ pid: 4242, trees: [] }),
-      hostedAt({ pid: 4242, trees: otherSession }),
-    ]).toEqual([false, false, false]);
-  });
-});
-
-describe("awaitChairReorientation", () => {
-  it("waits for nothing and refuses nothing when the chair was already caught up", async () => {
-    const state = passState({ fleet, home });
-    await awaitChairReorientation({
-      chair: workspace({ id: "chair-id" }),
-      client: fakeClient({}),
-      reorientSeconds: 0,
-      standing: { caughtUp: true, loop: undefined, sessionId: UNUSED_SESSION },
-      state,
-    });
-    expect([state.deferred, state.refusals, state.lines]).toStrictEqual([false, [], []]);
-  });
-
-  it("ends the attempt NOT YET when the chair does not answer within its bound", async () => {
-    const state = passState({ fleet, home });
-    await awaitChairReorientation({
-      chair: workspace({ id: "chair-id" }),
-      client: fakeClient({}),
-      reorientSeconds: 0,
-      standing: { caughtUp: false, loop: undefined, sessionId: UNUSED_SESSION },
-      state,
-    });
-    expect(state.deferred).toBe(true);
-    expect(state.refusals).toStrictEqual([
-      {
-        code: "CHAIR_REORIENTATION_TIMEOUT",
-        message: "the supervisor did not run `supervisor reoriented --attempt att-1` within 0s",
-        workspaceRef: "workspace:chair-id",
-      },
-    ]);
   });
 });
 
@@ -471,6 +446,28 @@ describe("resumeChair on a cold tab", () => {
     expect(state.refusals.map((refusal) => refusal.code)).toEqual(["NO_LIVE_SESSION"]);
   });
 
+  // The owner's second-tab shape on the COLD arm: a bare shell in the chair's workspace beside a second tab cmux pools it with.
+  it("types nothing and refuses SPLIT_SURFACES, naming the count, when the cold chair's workspace holds two tabs", async () => {
+    const sent: string[] = [];
+    const shell: readonly CmuxProcess[] = [{ children: [], name: "zsh", pid: 1 }];
+    const client: ReturnType<typeof fakeClient> = {
+      ...fakeClient({ sent, trees: { "chair-id": shell } }),
+      workspaceTop: () => Promise.resolve(ok({ surfaces: 2, trees: shell, ttys: [], unattributedTtyPids: [] })),
+    };
+
+    const { state } = await resumeOver({ client, workspaces: [workspace({ id: "chair-id" })] });
+
+    expect([sent, state.refusals.map((refusal) => [refusal.code, refusal.message])]).toEqual([
+      [],
+      [
+        [
+          "SPLIT_SURFACES",
+          "cmux reports 2 tabs (surfaces) in workspace:chair-id, and a typed line would reach only the selected one, so nothing was typed — close the extra tabs in workspace:chair-id until one is left, then run `slopweaver fleet resume` from a different cmux workspace (another entry in the sidebar)",
+        ],
+      ],
+    ]);
+  });
+
   it("refuses NO_RESUMABLE_SESSION when the pinned session's transcript is gone, typing nothing", async () => {
     const sent: string[] = [];
     const client = fakeClient({ sent, trees: { "chair-id": [{ children: [], name: "zsh", pid: 1 }] } });
@@ -553,20 +550,6 @@ describe("resumeChair on a walled tab", () => {
     expect(await relaunchWalledChair({ relaunchedHere: true })).toEqual({ codes: [], resumeLines: 1, standing: true });
   });
 });
-
-/** The pinned session's registry record, as the relaunch would write it. */
-function liveRecord({ pid }: { pid: number }): SessionRecord {
-  return {
-    cwd: "/w/chair-id",
-    entrypoint: "cli",
-    kind: "interactive",
-    name: "chair",
-    pid,
-    sessionId: UNUSED_SESSION,
-    startedAtMs: 0,
-    status: "idle",
-  };
-}
 
 describe("askChairToInvestigate", () => {
   it("says on the pass's lines that the investigation line did not send when cmux refused it", async () => {
