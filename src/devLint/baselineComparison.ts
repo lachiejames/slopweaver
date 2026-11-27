@@ -12,11 +12,15 @@
  *
  * ## No record is read here
  *
- * Bump records live in the state home, which neither CI nor a commit holds, and a pull request may also commit
- * its manifest under `COMMITTED_BUMP_DIR`, where the landing verbs read it. What this module still refuses is a
- * file under `.baselines/` that nothing judges, at either commit — bar that directory, where a change may add a
- * manifest, leave main's byte-identical or delete one, and is refused only for rewriting one main holds, whose
- * bytes changed or which became a tree.
+ * Bump records live in the state home, which neither CI nor a commit holds, and nowhere else. What this module
+ * still refuses is a file under `.baselines/` that nothing judges, at either commit — bar `COMMITTED_BUMP_DIR`,
+ * the history of manifests committed before records moved to the home, where a change may leave main's
+ * byte-identical or delete one, and is refused for any other write there: a file it ADDS (a rename inside the
+ * directory, and a file under a path main held as a record, included), since a committed file declares nothing
+ * and would read as though it did, and a REWRITE of one main holds, whose bytes changed or which became a tree.
+ * Every such write is the one `REWRITTEN_BUMP_MANIFEST` refusal, its message naming which of the three it was, so
+ * the gate (`./baselineAgainstMain.ts`) renders each as its four-line policy refusal. The landing verbs run this
+ * comparison before reading any record, so a file it refuses never reaches them.
  */
 
 import { err, ok, type Result } from "../lib/result.js";
@@ -38,8 +42,51 @@ export type BaselineComparisonError =
   | BaselineShapeError
   | { readonly code: "COMMIT_UNREACHABLE"; readonly message: string }
   | { readonly code: "UNREADABLE"; readonly message: string; readonly path: string }
+  | { readonly code: "UNDECODABLE_PATH"; readonly message: string; readonly path: string }
   | { readonly code: "UNREGISTERED_BASELINE"; readonly message: string; readonly path: string }
   | { readonly code: "REWRITTEN_BUMP_MANIFEST"; readonly message: string; readonly path: string };
+
+/**
+ * How a change wrote under `COMMITTED_BUMP_DIR`: a file main does not hold, main's record moved to a new name
+ * there, or main's record given other bytes or turned into a tree.
+ */
+export type BumpDirectoryWrite =
+  { readonly kind: "added" } | { readonly kind: "renamed"; readonly from: string } | { readonly kind: "rewritten" };
+
+/** Where a rise is declared instead of in the tree, which every bump-directory refusal ends on. */
+const DECLARE_IN_HOME = "declare the rows with `slopweaver dev baseline-bump`, which records them in the state home";
+
+/**
+ * The message a bump-directory refusal carries, naming the write it refuses. Pure.
+ *
+ * @param path the file under the bump directory at the change's commit
+ * @param write how the change wrote it
+ * @returns the message
+ */
+function bumpDirectoryMessage({ path, write }: { path: string; write: BumpDirectoryWrite }): string {
+  switch (write.kind) {
+    case "added":
+      return (
+        `${path}: added under .baselines/bumps/, where a file declares nothing, since no landing verb reads a ` +
+        `bump record from the tree — delete it, and ${DECLARE_IN_HOME}`
+      );
+    case "renamed":
+      return (
+        `${path}: renamed from ${write.from} under .baselines/bumps/, where a file at a new name declares ` +
+        `nothing, since no landing verb reads a bump record from the tree — move it back or delete it, and ` +
+        DECLARE_IN_HOME
+      );
+    case "rewritten":
+      return (
+        `${path}: a bump manifest main holds is never rewritten, since its witness judged these bytes — ` +
+        "restore it to main's bytes or delete it, and declare the rows again with `slopweaver dev baseline-bump`"
+      );
+    default: {
+      const unreachable: never = write;
+      return unreachable;
+    }
+  }
+}
 
 /** The factory for this module's own failures. */
 export const BaselineComparisonErrors = {
@@ -47,16 +94,29 @@ export const BaselineComparisonErrors = {
     code: "COMMIT_UNREACHABLE",
     message: `commit ${rev} is not in this checkout — fetch it (CI does, at depth 1)`,
   }),
-  rewrittenBumpManifest: ({ path }: { path: string }): BaselineComparisonError => ({
+  /**
+   * A write under the bump directory that the comparison refuses, whichever of the three it is. Its code keeps
+   * the name `REWRITTEN_BUMP_MANIFEST`, which the gate's renderer branches on; the message names the write.
+   *
+   * @param path the file under the bump directory at the change's commit
+   * @param write how the change wrote it, which the message names
+   * @returns the refusal
+   */
+  bumpDirectoryWrite: ({ path, write }: { path: string; write: BumpDirectoryWrite }): BaselineComparisonError => ({
     code: "REWRITTEN_BUMP_MANIFEST",
-    message:
-      `${path}: a bump manifest main holds is never rewritten, since its witness judged these bytes — ` +
-      "restore it to main's bytes or delete it, and declare the rows again with `slopweaver dev baseline-bump`",
+    message: bumpDirectoryMessage({ path, write }),
     path,
   }),
   unreadable: ({ path }: { path: string }): BaselineComparisonError => ({
     code: "UNREADABLE",
     message: `${path} exists and could not be read`,
+    path,
+  }),
+  undecodablePath: ({ rev, path }: { rev: string; path: string }): BaselineComparisonError => ({
+    code: "UNDECODABLE_PATH",
+    message:
+      `${rev}:${path} names a file under .baselines/ whose path does not decode as UTF-8 (read as U+FFFD), so ` +
+      "two different names could compare as one — rename it to a UTF-8 path",
     path,
   }),
   unregistered: ({ path }: { path: string }): BaselineComparisonError => ({
@@ -101,10 +161,13 @@ function textAt({
 /**
  * The first committed file under `.baselines/` that the comparison refuses, or none. Pure.
  *
- * A path under the bump directory is refused only when the change REWRITES one main holds — its blob at the head
- * is not the one main has at that path. One the change adds is a declaration the landing verbs read
- * (`src/codex/committedBumpManifests.ts`), and main's own untouched or deleted ones are history. Any other file
- * no registry row names is refused at either end.
+ * A path under the bump directory is refused whenever its blob at the head is not the one main has at that path.
+ * Either way it is reported as main's record RENAMED when it carries the blob of another of main's records whose
+ * old name no longer holds it (deleted, a move to a path under that old name, or two records swapped). Otherwise a
+ * path main holds is REWRITTEN, checked first. A file main does not hold is main's record REWRITTEN when it sits
+ * under a path main held as a record (that record became a directory), and ADDED otherwise. Bump records come
+ * only from the state home, so a file committed there declares nothing and would read as though it did. Main's own
+ * untouched or deleted ones are history. Any other file no registry row names is refused at either end.
  *
  * @param base every repo-relative file under `.baselines/` at main's commit, with its blob id
  * @param head the same at the change's commit
@@ -117,12 +180,34 @@ export function committedBaselineRefusal({
   base: ReadonlyMap<string, string>;
   head: ReadonlyMap<string, string>;
 }): BaselineComparisonError | undefined {
-  const written = [...head].find(([path, blob]) => {
+  const bumps = [...head].filter(([path]) => isCommittedBumpPath({ path }));
+  const mainBumps = [...base].filter(([held]) => isCommittedBumpPath({ path: held }));
+  const movedFrom = ({ path, blob }: { path: string; blob: string }): readonly [string, string] | undefined =>
+    mainBumps.find(([held, heldBlob]) => held !== path && heldBlob === blob && head.get(held) !== heldBlob);
+  const written = bumps.find(([path, blob]) => {
     const kept = base.get(path);
-    return isCommittedBumpPath({ path }) && kept !== undefined && kept !== blob;
+    return kept !== undefined && kept !== blob;
   });
   if (written !== undefined) {
-    return BaselineComparisonErrors.rewrittenBumpManifest({ path: written[0] });
+    const [path, blob] = written;
+    const swapped = movedFrom({ blob, path });
+    if (swapped !== undefined) {
+      return BaselineComparisonErrors.bumpDirectoryWrite({ path, write: { from: swapped[0], kind: "renamed" } });
+    }
+    return BaselineComparisonErrors.bumpDirectoryWrite({ path, write: { kind: "rewritten" } });
+  }
+  const added = bumps.find(([path]) => !base.has(path));
+  if (added !== undefined) {
+    const [path, blob] = added;
+    const moved = movedFrom({ blob, path });
+    if (moved !== undefined) {
+      return BaselineComparisonErrors.bumpDirectoryWrite({ path, write: { from: moved[0], kind: "renamed" } });
+    }
+    const becameDirectory = mainBumps.find(([held]) => path.startsWith(`${held}/`));
+    if (becameDirectory !== undefined) {
+      return BaselineComparisonErrors.bumpDirectoryWrite({ path: becameDirectory[0], write: { kind: "rewritten" } });
+    }
+    return BaselineComparisonErrors.bumpDirectoryWrite({ path, write: { kind: "added" } });
   }
   for (const listed of [base, head]) {
     const stray = strayBaselinesOf({ paths: [...listed.keys()].filter((path) => !isCommittedBumpPath({ path })) })[0];
@@ -133,10 +218,17 @@ export function committedBaselineRefusal({
   return undefined;
 }
 
+/** U+FFFD, which a UTF-8 decode puts where a byte sequence does not decode. */
+const REPLACEMENT_CHARACTER = String.fromCodePoint(0xfffd);
+
 /**
  * Every file under `.baselines/` at one commit, at any depth and of any extension, with its blob id.
  *
- * @returns path to blob, or why git would not list them
+ * Git's output is decoded as UTF-8, so a path whose bytes are not valid UTF-8 reads with U+FFFD in it, and two
+ * different such names would read as one key. Every path carrying U+FFFD is refused rather than compared — a
+ * genuine U+FFFD in a valid name included, which costs nothing a baseline needs.
+ *
+ * @returns path to blob, or why git would not list them, or the first path that does not decode
  */
 function baselineBlobsAt({
   root,
@@ -157,7 +249,11 @@ function baselineBlobsAt({
     if (tab < 0 || object === undefined) {
       return err(BaselineComparisonErrors.unreadable({ path: `${rev}:.baselines/` }));
     }
-    blobs.set(field.slice(tab + 1), object);
+    const path = field.slice(tab + 1);
+    if (path.includes(REPLACEMENT_CHARACTER)) {
+      return err(BaselineComparisonErrors.undecodablePath({ path, rev }));
+    }
+    blobs.set(path, object);
   }
   return ok(blobs);
 }
@@ -191,7 +287,7 @@ function unregisteredOf({
       );
       return replacedByTree === undefined
         ? ok(undefined)
-        : err(BaselineComparisonErrors.rewrittenBumpManifest({ path: replacedByTree }));
+        : err(BaselineComparisonErrors.bumpDirectoryWrite({ path: replacedByTree, write: { kind: "rewritten" } }));
     }),
   );
 }

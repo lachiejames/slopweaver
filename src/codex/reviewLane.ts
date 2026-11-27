@@ -110,7 +110,7 @@ export type ReviewLaneAdmission =
  *
  * @param pass the review profile the invocation runs
  * @param properties every property the invocation would fan out over
- * @param records the bump records a landing would judge — the home's, then the change's committed manifests
+ * @param records the bump records a landing would judge, all of them read from the state home
  * @returns general, witness with its digest, or refused with the reason
  */
 export function reviewLaneAdmission({
