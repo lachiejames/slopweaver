@@ -13,7 +13,7 @@ import { devManifest } from "../../../../cli/manifests/dev.js";
 import { classificationsOf } from "./_classification.js";
 
 describe("devManifest", () => {
-  it("declares exactly the fourteen repo-development verbs", () => {
+  it("declares exactly the fifteen repo-development verbs", () => {
     expect(Object.keys(devManifest).toSorted()).toEqual([
       "answer-quality",
       "baseline-bump",
@@ -29,6 +29,7 @@ describe("devManifest", () => {
       "manifest",
       "profile",
       "slice-shape",
+      "targeted-tests",
     ]);
   });
 
@@ -139,6 +140,14 @@ describe("devManifest", () => {
         parseRejectIsIoFree: false,
       },
       "slice-shape": {
+        createsWorkItem: false,
+        diagnostic: true,
+        doorRouted: false,
+        dryParseSafe: false,
+        effect: "none",
+        parseRejectIsIoFree: true,
+      },
+      "targeted-tests": {
         createsWorkItem: false,
         diagnostic: true,
         doorRouted: false,

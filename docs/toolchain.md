@@ -86,6 +86,10 @@ yarn validate:local         # lint:local alone — what the pre-push hook runs; 
 yarn validate               # lint + typecheck + the six unit shards in sequence, merged + test:subprocess + coverage:ratchet
 ```
 
+A seat's own unit check before a lap is `slopweaver dev targeted-tests`: one vitest run over the tests its diff
+reaches plus a fixed registry sweep, and `tsc --noEmit` for `site/` or `desktop/src/` when touched. It names what it
+leaves to the lap (`src/testLanes/targetedTests.ts`).
+
 - [The built CLI — `dist-cli/`, and why a stale one cannot be tested](./toolchain/built-cli-and-worktrees.md)
   - [Module resolution — `#lib/…` rather than a relative climb](./toolchain/built-cli-and-worktrees.md#module-resolution--lib-rather-than-a-relative-climb)
   - [Worktrees](./toolchain/built-cli-and-worktrees.md#worktrees)

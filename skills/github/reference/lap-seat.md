@@ -22,6 +22,12 @@ will not decode, or a designated journal that is missing, empty or holds a line 
 refuses every lap until `set` or `clear`. The hatch for a lap off the seat, or past a closed one, is
 `SLOPWEAVER_ALLOW_OFF_SEAT_LAP=1`; it never opens a designation that will not read.
 
+**Before asking for a lap, a seat runs `slopweaver dev targeted-tests` in its own checkout**, once and never
+beside a lap. It runs the unit tests the diff reaches (changed tests, direct importers, the mirrored unit
+directory, a fixed registry sweep) and each touched nested project's `tsc --noEmit`, in about a minute where a lap
+meets the same red twelve or more minutes in. It precedes the lap and never replaces it: the root typecheck, lint,
+coverage and the other lanes stay the lap's, and the verb prints that list on every run.
+
 `show` prints a second line whether or not a seat stands: the live lap holding the machine's lock (subject,
 pid, since) and its phase, `still in its preflight, before its lanes` or `running its lanes or landing`, else
 `no lap holds the machine`. A seat standing empty is not a free machine: a lap takes the lock before its

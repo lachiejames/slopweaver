@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type LintCheck, lintChecks } from "../../../devLint/devLint.js";
 import {
   ageLabel,
+  changedPathsOf,
   fetchHeadNamesOriginMain,
   isSeatCheck,
   oxlintChangedFiles,
@@ -25,6 +26,16 @@ const SEAT: SeatLintContext = {
   changedOxlintFiles: ["src/a.ts", "src/b.tsx"],
   fetch: { ageMs: 90_000, source: "origin/main reflog" },
 };
+
+describe("changedPathsOf", () => {
+  it("unions the three lists once each, in path order, a deleted path kept", () => {
+    expect(
+      changedPathsOf({
+        changes: { committed: ["src/z.ts", "src/gone.ts"], untracked: ["new.md"], working: ["src/z.ts", "a.ts"] },
+      }),
+    ).toEqual(["a.ts", "new.md", "src/gone.ts", "src/z.ts"]);
+  });
+});
 
 describe("ageLabel", () => {
   it("reads seconds under a minute, minutes under two hours, and hours past that", () => {

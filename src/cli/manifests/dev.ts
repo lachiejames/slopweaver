@@ -8,8 +8,10 @@
  * capture marker decides; `slice-shape` reads the corpus's own shape so a dev-loop slice is priced rather
  * than guessed; `answer-quality` grades an eval candidate against a frozen golden’s rubric offline, and its
  * `--selftest` half is what `dev gate` runs as its fourth check; `baseline-bump` declares a ratchet rise for its
- * witness. Each loads only when dispatched.
+ * witness; `targeted-tests` runs the unit tests a branch's diff reaches, once, before a local lap. Each loads only
+ * when dispatched.
  */
+import { DEV_TARGETED_TESTS_USAGE } from "../commands/dev/targetedTestsUsage.js";
 import { lazy, type VerbManifestEntry } from "../manifest.js";
 
 const buildMeta = {
@@ -209,6 +211,21 @@ const drizzleRebaseMeta = {
   usage: "usage: slopweaver dev drizzle-rebase [--dry-run] [--migrations <dir>]",
 } as const;
 
+const targetedTestsMeta = {
+  createsWorkItem: false,
+  diagnostic: true,
+  doorRouted: false,
+  // A bare run plans and runs the targeted tests, so it acts rather than printing usage.
+  dryParseSafe: false,
+  effect: "none",
+  example: "slopweaver dev targeted-tests --dry-run",
+  parseRejectIsIoFree: true,
+  requiresApproval: false,
+  summary:
+    "Before a local lap, run once the unit tests this branch's diff reaches — changed tests, direct importers, the mirrored unit directory and a fixed registry sweep — plus each touched nested project's tsc --noEmit, naming everything left to the lap",
+  usage: DEV_TARGETED_TESTS_USAGE,
+} as const;
+
 const loadAnswerQuality = () => import("../commands/dev/answerQuality.js").then((m) => m.devAnswerQualityCommand);
 const loadBuild = () => import("../commands/dev/build.js").then((m) => m.devBuildCommand);
 const loadGate = () => import("../commands/dev/run.js").then((m) => m.devGateCommand);
@@ -222,6 +239,7 @@ const loadDrizzleRebase = () => import("../commands/dev/drizzleRebase.js").then(
 const loadDedupIndex = () => import("../commands/dev/dedupIndex.js").then((m) => m.devDedupIndexCommand);
 const loadBaselineBump = () => import("../commands/dev/baselineBump.js").then((m) => m.devBaselineBumpCommand);
 const loadSliceShape = () => import("../commands/dev/sliceShape.js").then((m) => m.devSliceShapeCommand);
+const loadTargetedTests = () => import("../commands/dev/targetedTests.js").then((m) => m.devTargetedTestsCommand);
 const loadCaptureConflicts = () =>
   import("../commands/dev/captureConflicts.js").then((m) => m.devCaptureConflictsCommand);
 
@@ -240,4 +258,5 @@ export const devManifest: Readonly<Record<string, VerbManifestEntry>> = {
   manifest: lazy({ load: loadManifest, meta: manifestMeta }),
   profile: lazy({ load: loadProfile, meta: profileMeta }),
   "slice-shape": lazy({ load: loadSliceShape, meta: sliceShapeMeta }),
+  "targeted-tests": lazy({ load: loadTargetedTests, meta: targetedTestsMeta }),
 };

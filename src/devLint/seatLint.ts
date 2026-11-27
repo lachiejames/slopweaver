@@ -416,20 +416,44 @@ export function resolveSeatBase({
   return ok({ baseSha, originMain });
 }
 
+/** The base a seat resolved, how fresh it is, and the three lists of paths it changed against that base. */
+export interface SeatChanges {
+  readonly baseSha: string;
+  readonly fetch: SeatLintContext["fetch"];
+  /** Paths changed between the base and HEAD. */
+  readonly committed: readonly string[];
+  /** Tracked paths changed since HEAD, staged or not. */
+  readonly working: readonly string[];
+  /** New files git does not ignore. */
+  readonly untracked: readonly string[];
+}
+
 /**
- * The effectful edge: resolve the base, prove origin/main is fresh, and list the changed files.
+ * Every path a seat changed, from the three lists {@link prepareSeatChanges} reads — deduplicated, in path order,
+ * a deleted path included, since a caller deciding what a change touched needs it.
  *
- * @param cwd the checkout the lane runs in
- * @param nowMs the instant of this run, epoch milliseconds
- * @returns what the lane plans with, or the state it could not get past
+ * @param changes the committed, working-tree and untracked lists
+ * @returns the repo-relative paths
  */
-export function prepareSeatLint({
+export function changedPathsOf({ changes }: { changes: Omit<SeatChanges, "baseSha" | "fetch"> }): readonly string[] {
+  return [...new Set([...changes.committed, ...changes.working, ...changes.untracked])].toSorted();
+}
+
+/**
+ * The effectful edge both the seat lane and `dev targeted-tests` stand on: resolve the base, prove origin/main is
+ * fresh, and list what changed against that base.
+ *
+ * @param cwd the checkout
+ * @param nowMs the instant of this run, epoch milliseconds
+ * @returns the base and its changed paths, or the state it could not get past
+ */
+export function prepareSeatChanges({
   cwd,
   nowMs,
 }: {
   cwd: string;
   nowMs: number;
-}): Result<SeatLintContext, SeatPreparationError> {
+}): Result<SeatChanges, SeatPreparationError> {
   const base = resolveSeatBase({ cwd });
   if (base.isErr()) {
     return err(base.error);
@@ -456,11 +480,32 @@ export function prepareSeatLint({
     }
     lists[key] = fields;
   }
-  const { committed, working, untracked } = lists;
+  return ok({ baseSha, fetch: { ageMs: verdict.value.ageMs, source: fetched.source }, ...lists });
+}
+
+/**
+ * The effectful edge: resolve the base, prove origin/main is fresh, and list the changed files.
+ *
+ * @param cwd the checkout the lane runs in
+ * @param nowMs the instant of this run, epoch milliseconds
+ * @returns what the lane plans with, or the state it could not get past
+ */
+export function prepareSeatLint({
+  cwd,
+  nowMs,
+}: {
+  cwd: string;
+  nowMs: number;
+}): Result<SeatLintContext, SeatPreparationError> {
+  const changes = prepareSeatChanges({ cwd, nowMs });
+  if (changes.isErr()) {
+    return err(changes.error);
+  }
+  const { baseSha, committed, fetch, untracked, working } = changes.value;
   const existing = new Set([...committed, ...working, ...untracked].filter((path) => existsSync(join(cwd, path))));
   return ok({
     baseSha,
     changedOxlintFiles: oxlintChangedFiles({ committed, existing, untracked, working }),
-    fetch: { ageMs: verdict.value.ageMs, source: fetched.source },
+    fetch,
   });
 }
