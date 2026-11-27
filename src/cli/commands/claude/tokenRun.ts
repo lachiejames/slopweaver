@@ -1,7 +1,8 @@
 /**
  * `slopweaver claude token` — hand a plan the setup token the owner minted, and only once it has PROVEN itself.
  *
- * Every seat boots on a setup token, and the first minted token proves the
+ * A plan holding a setup token boots its seats on it (an Anthropic API key in the environment outranks it,
+ * `claude/spawnStore.ts`), and the first minted token proves the
  * rate-limit windows and plan identity survive. A token minted elsewhere arrives here — `claude mint` mints
  * one itself and proves it through the same `admitSetupToken` — so this verb begins where a mint ends: it takes the pasted value from a no-echo prompt or a pipe,
  * never argv; spends one probe request over it; and writes it into the plan's store directory ONLY when the

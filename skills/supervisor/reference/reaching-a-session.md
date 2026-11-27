@@ -128,7 +128,7 @@ tripwire has to catch. `docs/cmux-client/socket-and-measured-facts.md` § 2a car
 
 A tracked session can look alive and be going nowhere: logged out after a restore, parked mid-turn, or booted
 against the main checkout's plugin dir instead of its own worktree's. **`slopweaver cmux reseat <ws>`** stops its
-`claude` and relaunches the SAME session id in the SAME surface with `--resume`, on a routed plan's setup token —
+`claude` and relaunches the SAME session id in the SAME surface with `--resume`, on the routed plan's credential —
 unless that id has no transcript on disk, or its resume prints `No conversation found` and the tab returns to a bare
 prompt: then it boots fresh ONCE and reports `fresh-seated`, which means the conversation was NOT recovered and the seat stands with no pickup. A
 bare-shell seat whose saved id has no transcript is refused `NO_RESUMABLE_SESSION` rather than booted fresh. The
@@ -144,7 +144,7 @@ a terminal outside cmux is refused by cmux's own socket. `--dry-run` prints the 
   pinned `bootModel`. Otherwise it refuses and never boots the saved default. A restored chair's argv keeps only
   `--settings` and `--resume` (measured), so the fallbacks are the common path.
 - **Which credential**: the same gate `cmux spawn` runs (`gateSpawnStore`, then the plan's setup token against the
-  seat's own unbound store). A relaunch typed into a shell carries no prefix of its own, and a bare one boots on
+  seat's own unbound store when the plan holds one, else the plan store). A relaunch typed into a shell carries no prefix of its own, and a bare one boots on
   the machine-wide DEFAULT keychain slot, which nothing keeps alive. MEASURED: that item's token had
   expired four days earlier while all four stores were live. Reseat never signs that slot out either.
 - **What it refuses**: the caller's own workspace; a session mid-turn behind no wall (unless `--force`, since the

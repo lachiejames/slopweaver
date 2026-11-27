@@ -6,8 +6,8 @@ Part of [Security & trust](../security.md).
   is your existing Claude Code or Codex session, the optional `slopweaver codex` passes reuse the Codex OAuth
   login already in the `auth.json` of the plan home each pass is routed to (see
   [The Codex boundary](codex-boundary.md#the-codex-boundary-slopweaver-codex)), creating and storing nothing, and the
-  plan-budget probe of Data flow item 3 spends each Claude plan's own login — the one Claude credential stored
-  is a setup token you hand `claude token`, written at `0600` into that plan's store. The console voice runs
+  plan-budget probe of Data flow item 3 spends each Claude plan's own login — the one Claude credential Slopweaver
+  itself stores is an optional setup token you hand `claude token`, written at `0600` into that plan's store. The console voice runs
   on your ChatGPT plan through the Codex login of the plan home it is routed to, and nothing else (every call rides
   the ChatGPT plans, with no platform.openai usage), so no platform.openai key is stored and a plan
   that refuses a call is a refusal, never a spend. What crosses is

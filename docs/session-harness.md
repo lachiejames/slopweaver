@@ -142,7 +142,7 @@ DONE, never its words or a tool's input, output or title: [the facts picture](se
     and again at the adapter's. Each session opens in its `agent-full-access` preset: approval `never`, no sandbox.
   - **Claude**: one Agent SDK `query` (`claudeAgentWorker.ts`) over the native `claude` the app ships in
     `Resources/session-harness/claude/`, the worker starting that process itself so it can check the SDK's request
-    against the launch and attach a setup token on descriptor 3, never in an environment or argument
+    against the launch and attach the plan's setup token on descriptor 3 when it holds one, never in an environment or argument
     (`claudeProcessLaunch.ts`). Every setting source loads, so hooks, skills and rules run as in a cmux seat; the
     flag tier blanks `apiKeyHelper` and carries the seat template's rule exclusions, and no permission prompt is
     answered (`claudeSdkOptions.ts`). The plan's credential store is routed, the inherited `ANTHROPIC_` and `CLAUDE`
