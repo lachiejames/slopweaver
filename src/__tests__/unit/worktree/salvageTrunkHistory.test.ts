@@ -9,9 +9,9 @@
  * `writeGit` that only records, so no write can happen whatever the code does. The two shapes a merge-base test
  * passed are here too: a branch off the trunk that MERGED the archive in, and a local `origin/HEAD` re-pointed at it.
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -197,6 +197,16 @@ describe("pushableSha", REAL_GIT_SUITE, () => {
     const pushed = pushableSha({ checked, deps: edges().deps, path: tree, remote: "origin" });
     expect(unwrapErr(pushed).code).toBe("FOREIGN_ROOT");
   });
+
+  it("names a merge-base that FAILED (exit 128) as unreadable ancestry, never as a descent verdict", () => {
+    const { tree } = seed({ start: "origin/main" });
+    const checked = unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }));
+    // A checked HEAD this repository holds no object for: git answers `fatal: Not a valid commit name`, exit 128.
+    const absent = { ...checked, head: "0123456789abcdef0123456789abcdef01234567" };
+    const pushed = pushableSha({ checked: absent, deps: edges().deps, path: tree, remote: "origin" });
+    expect(unwrapErr(pushed).code).toBe("ANCESTRY_UNREADABLE");
+    expect(unwrapErr(pushed).message).toContain(`whether ${checked.head.slice(0, 8)} descends from the checked HEAD`);
+  });
 });
 
 describe("trunkHistoryHead", REAL_GIT_SUITE, () => {
@@ -210,10 +220,23 @@ describe("trunkHistoryHead", REAL_GIT_SUITE, () => {
     });
   });
 
-  it("declines a remote that is not configured as a read failure, never as a verdict", () => {
+  it("declines a remote that is not configured as an unbound destination, before any trunk is asked", () => {
     const { tree } = seed({ start: "origin/main" });
     const checked = trunkHistoryHead({ deps: edges().deps, path: tree, remote: "nowhere" });
-    expect(unwrapErr(checked).code).toBe("TRUNK_UNREADABLE");
+    expect(unwrapErr(checked).code).toBe("DESTINATION_UNBOUND");
+  });
+
+  it("declines a repository carrying a grafts file, which would otherwise pass an archive commit grafted onto the trunk", () => {
+    const { repo, tree } = seed({ start: "archive/main" });
+    const publicRoot = gitInTemp({ args: ["rev-parse", "origin/main"], cwd: repo });
+    const archiveHead = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
+    const graftFile = resolve(tree, gitInTemp({ args: ["rev-parse", "--git-path", "info/grafts"], cwd: tree }));
+    mkdirSync(dirname(graftFile), { recursive: true });
+    writeFileSync(graftFile, `${archiveHead} ${publicRoot}\n`);
+    // The control: with the graft read, the archive commit's only root IS the public one, so a root test alone passes.
+    expect(gitInTemp({ args: ["rev-list", "--max-parents=0", "HEAD"], cwd: tree })).toBe(publicRoot);
+    const checked = trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" });
+    expect(unwrapErr(checked)).toEqual(SalvageTrunkErrors.grafted({ graftFile }));
   });
 
   it("declines a tree git cannot read at all, naming `git rev-parse HEAD`", () => {

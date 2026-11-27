@@ -1,6 +1,6 @@
 /**
- * Why a salvage could not bind its scan, push and read-back to one repository — `./salvagePush`'s
- * `oneDestination` and the reads that feed it. Each variant's `message` completes "the salvage declined
+ * Why a salvage could not bind its history check, scan, push and read-back to one repository —
+ * `./salvageDestination`'s `boundDestination` and `oneDestination` and the reads that feed them. Each variant's `message` completes "the salvage declined
  * because …" and never says what happened next; the caller appends that.
  */
 

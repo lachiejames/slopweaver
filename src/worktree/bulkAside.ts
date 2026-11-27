@@ -10,7 +10,7 @@ import { basename, dirname, join } from "node:path";
 import { gitEnv } from "#lib/gitRepo.js";
 import { ownProcessStart } from "../admit/lockHolder.js";
 import { type RecycleIdentity, worktreeRecycleIdentity } from "./recycleIdentity.js";
-import { HOOKS_OFF } from "./salvagePush.js";
+import { HOOKS_OFF } from "./salvageHooksOff.js";
 import { dropBatch, publishBatch } from "./trashBatch.js";
 
 /** The directory name moved aside — the one ignored bulk every checkout here carries. */

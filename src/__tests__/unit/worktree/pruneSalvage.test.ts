@@ -16,14 +16,10 @@ import { describe, expect, it } from "vitest";
 
 import { ok, unwrap, unwrapErr } from "../../../lib/result.js";
 import { countNulEntries, planSalvage, salvageBranchName, unwatchedPaths } from "../../../worktree/pruneSalvage.js";
+import { oneDestination } from "../../../worktree/salvageDestination.js";
 import { SalvageDestinationErrors } from "../../../worktree/salvageErrors.js";
-import {
-  armoured,
-  HOOKS_OFF as HOOKS_OFF_LIST,
-  oneDestination,
-  salvagePushArgs,
-  withheldIfSecret,
-} from "../../../worktree/salvagePush.js";
+import { HOOKS_OFF as HOOKS_OFF_LIST } from "../../../worktree/salvageHooksOff.js";
+import { armoured, salvagePushArgs, withheldIfSecret } from "../../../worktree/salvagePush.js";
 
 const PATH = "/repo/.claude/worktrees/tagged-turn-answers";
 const FREE = "salvage/tagged-turn-answers-a1b2c3d4";

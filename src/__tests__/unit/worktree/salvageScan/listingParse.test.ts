@@ -11,9 +11,9 @@ describe("newBlobsIn", () => {
   it("keeps each object once, a commit's bare name included, since its headers are published too", () => {
     const listing = ["c".repeat(40), `${SHA_A} src/a.ts`, `${SHA_B} docs/b.md`, `${SHA_A} src/copy.ts`, ""].join("\n");
     expect(newBlobsIn({ listing })).toEqual([
-      { path: "a commit's headers or message", sha: "c".repeat(40) },
-      { path: "src/a.ts", sha: SHA_A },
-      { path: "docs/b.md", sha: SHA_B },
+      { commit: true, path: "a commit's headers or message", sha: "c".repeat(40) },
+      { commit: false, path: "src/a.ts", sha: SHA_A },
+      { commit: false, path: "docs/b.md", sha: SHA_B },
     ]);
   });
 

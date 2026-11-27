@@ -54,6 +54,9 @@
  *    git C-quotes a name holding a backslash or a quote, `core.quotePath=false` or not, so `a\b` was scanned
  *    as `"a\\b"`. A commit's author, committer, signature and message are in the
  *    commit OBJECT, so every commit in the range is read raw beside the blobs.
+ *  - **The repository gate's identifier verdict too.** The destination is the public repository, so a forbidden
+ *    identifier that gate would refuse wherever `IDENTIFIER_VERDICT` reads `refuse` declines here as well: an
+ *    uncommitted file naming an organisation is otherwise published by the push that preserves it.
  *
  * What it does NOT keep is the rest of `validate:local` — corpus hygiene, the handover register, the secrets
  * registry and the card voice. None of those reads a byte this push sends, so a salvage no longer waits on
@@ -68,13 +71,29 @@
 import { execFileSync } from "node:child_process";
 
 import { transportGitEnv } from "../admit/gitTransport.js";
-import { type Hit, isSecretHit, type LineListLoad, scanContent } from "../hygiene/scan.js";
+import type { IdentifierScanner } from "../hygiene/identifierScan.js";
+import { type Hit, isRefusedHit, isSecretHit, type LineListLoad, scanContent } from "../hygiene/scan.js";
 import { GIT_MAX_BUFFER } from "./pruneGit.js";
-import { HOOKS_OFF } from "./salvagePush.js";
+import { HOOKS_OFF } from "./salvageHooksOff.js";
 
 /** One blob or commit the push would send, and what it is reachable as — the path is for the report only. */
 export interface SalvageBlob {
   readonly sha: string;
+  readonly path: string;
+  /** A commit object, which `rev-list` prints with no path: its headers carry a person on every commit. */
+  readonly commit: boolean;
+}
+
+/** One text the scan reads: a blob's or a commit's bytes, a path list or the branch name, and where it came from. */
+interface SalvageText {
+  readonly path: string;
+  readonly content: string;
+  readonly commit: boolean;
+}
+
+/** One forbidden-identifier hit a salvage refuses: the class it fired under and where, never the text. */
+interface SalvageIdentifierHit {
+  readonly label: string;
   readonly path: string;
 }
 
@@ -141,8 +160,10 @@ export function newBlobsIn({ listing }: { listing: string }): readonly SalvageBl
       continue;
     }
     seen.add(match[1]!);
-    const [, sha, path = COMMIT_OBJECT] = match;
-    blobs.push({ path, sha: sha! });
+    const [, sha, path] = match;
+    blobs.push(
+      path === undefined ? { commit: true, path: COMMIT_OBJECT, sha: sha! } : { commit: false, path, sha: sha! },
+    );
   }
   return blobs;
 }
@@ -186,8 +207,8 @@ export function parseCatFileBatch({ output }: { output: Buffer }): ReadonlyMap<s
  * Pure. A BINARY blob is scanned too, its NUL bytes read as line breaks — stricter than the repository gate,
  * which skips a binary file, because a push publishes every byte and a token inside an image is still a token.
  * A false hit there costs a kept tree, never a leak. The bytes are read as UTF-8, as the gate
- * reads every file, so a secret stored compressed, encoded or as UTF-16 is the scanner's residue. An identifier hit is not returned: the
- * repository gate reports those and passes them, and so does this.
+ * reads every file, so a secret stored compressed, encoded or as UTF-16 is the scanner's residue. An identifier hit
+ * is {@link blobIdentifierHits}'s.
  *
  * @param blobs each blob's report path and text
  * @param denylist the private secret strings, loaded from the uncommitted home file
@@ -203,6 +224,61 @@ export function blobSecretHits({
   return blobs
     .flatMap((blob) => scanContent({ content: blob.content.replaceAll("\u0000", "\n"), denylist, path: blob.path }))
     .filter((hit) => isSecretHit({ label: hit.label }));
+}
+
+/**
+ * Every forbidden-identifier hit the repository gate would refuse, wherever `IDENTIFIER_VERDICT` reads `refuse`,
+ * in what a salvage would push. Its destination is the public repository, so an uncommitted file naming an
+ * organisation is exactly what that gate exists to stop.
+ *
+ * Pure. Scanned with the repository-content scanner the gate uses, binary blobs included as for secrets. A
+ * COMMIT's message is scanned and its headers are not: the author and committer lines name a person on every
+ * commit the public repository already carries, and the repository gate reads no commit either.
+ *
+ * @param texts each text and where it came from
+ * @param identifiers the repository-content identifier scanner, one per run
+ * @returns the refused hits, class and place only
+ */
+function blobIdentifierHits({
+  texts,
+  identifiers,
+}: {
+  texts: readonly SalvageText[];
+  identifiers: IdentifierScanner;
+}): readonly SalvageIdentifierHit[] {
+  return texts.flatMap((text) => {
+    const content = (text.commit ? commitMessage({ raw: text.content }) : text.content).replaceAll("\u0000", "\n");
+    const labels = [
+      ...scanContent({ content, denylist: [], path: text.path }).map((hit) => hit.label),
+      ...identifiers.scan({ content, path: text.path }).map((hit) => hit.kind),
+    ];
+    return labels
+      .filter((label) => !isSecretHit({ label }) && isRefusedHit({ label }))
+      .map((label) => ({ label, path: text.path }));
+  });
+}
+
+/**
+ * A raw commit object's message: everything after the blank line that ends its headers, or nothing when it has none.
+ *
+ * @param raw the commit object's bytes as text
+ * @returns the message
+ */
+function commitMessage({ raw }: { raw: string }): string {
+  const end = raw.indexOf("\n\n");
+  return end < 0 ? "" : raw.slice(end + 2);
+}
+
+/**
+ * One decline line for a set of forbidden-identifier hits: each class and each place, and never the matched text.
+ *
+ * @param hits the refused hits, at least one
+ * @returns the reason the salvage keeps the tree
+ */
+function identifierDecline({ hits }: { hits: readonly SalvageIdentifierHit[] }): string {
+  const labels = [...new Set(hits.map((hit) => hit.label))].join(", ");
+  const paths = [...new Set(hits.map((hit) => hit.path))].join(", ");
+  return `the work it would push carries ${String(hits.length)} forbidden-identifier hit(s) (${labels}) in ${paths}, and the destination is public — nothing was pushed`;
 }
 
 /**
@@ -249,7 +325,7 @@ function readBatch({
 }: {
   edges: SalvageScanEdges;
   batch: readonly SalvageBlob[];
-}): readonly { path: string; content: string }[] | string {
+}): readonly SalvageText[] | string {
   let output: Buffer;
   try {
     output = edges.readBlobs({ shas: batch.map((blob) => blob.sha) });
@@ -261,7 +337,11 @@ function readBatch({
   if (contents === null || batch.some((blob) => !contents.has(blob.sha))) {
     return "git did not answer every object the push would send, so they went unscanned — nothing was pushed";
   }
-  return batch.map((blob) => ({ content: contents.get(blob.sha)!.toString("utf8"), path: blob.path }));
+  return batch.map((blob) => ({
+    commit: blob.commit,
+    content: contents.get(blob.sha)!.toString("utf8"),
+    path: blob.path,
+  }));
 }
 
 /**
@@ -269,20 +349,24 @@ function readBatch({
  *
  * Every failure to LOOK declines — the rule the prune applies to every fact it could not read. A listing git
  * would not produce, a blob it would not return and a denylist that exists but cannot be read are each a scan
- * that did not happen, and pushing on one would be pushing unscanned.
+ * that did not happen, and pushing on one would be pushing unscanned. A secret declines first; a forbidden
+ * identifier the repository gate would refuse declines next, by {@link blobIdentifierHits}.
  *
  * @param edges the git reads, real or scripted
  * @param denylist the private denylist's load outcome, read once per run by the caller
+ * @param identifiers the repository-content identifier scanner, built once per run by the caller
  * @param refName the salvage branch the push creates, which is published too and is built from the tree's name
- * @returns the decline reason, or `null` when no secret leaves
+ * @returns the decline reason, or `null` when nothing refused leaves
  */
 export function salvageScanDecline({
   edges,
   denylist,
+  identifiers,
   refName,
 }: {
   edges: SalvageScanEdges;
   denylist: LineListLoad;
+  identifiers: IdentifierScanner;
   refName: string;
 }): string | null {
   if (denylist.kind === "unreadable") {
@@ -303,22 +387,50 @@ export function salvageScanDecline({
     const why = error instanceof Error ? error.message : "git could not be asked";
     return `the paths it would push could not be listed for the secrets scan — ${why}; nothing was pushed`;
   }
-  const blobs = newBlobsIn({ listing });
-  const hits: Hit[] = blobSecretHits({
-    blobs: [
-      { content: refName, path: "the salvage branch name" },
-      { content: metadata, path: "the changed paths" },
-    ],
-    denylist: words,
-  }).slice();
+  const names: readonly SalvageText[] = [
+    { commit: false, content: refName, path: "the salvage branch name" },
+    { commit: false, content: metadata, path: "the changed paths" },
+  ];
+  return contentDecline({ blobs: newBlobsIn({ listing }), edges, identifiers, names, words });
+}
+
+/**
+ * Read every blob in batches and scan it, with the published names, for a secret first and a forbidden identifier next.
+ *
+ * @param blobs the blobs the push would send
+ * @param edges the git reads
+ * @param identifiers the repository-content identifier scanner
+ * @param names the texts published without being inside any blob: the branch name and the changed paths
+ * @param words the private denylist's lines
+ * @returns the decline reason, or `null` when nothing refused leaves
+ */
+function contentDecline({
+  blobs,
+  edges,
+  identifiers,
+  names,
+  words,
+}: {
+  blobs: readonly SalvageBlob[];
+  edges: SalvageScanEdges;
+  identifiers: IdentifierScanner;
+  names: readonly SalvageText[];
+  words: readonly string[];
+}): string | null {
+  const hits: Hit[] = blobSecretHits({ blobs: names, denylist: words }).slice();
+  const named: SalvageIdentifierHit[] = blobIdentifierHits({ identifiers, texts: names }).slice();
   for (let start = 0; start < blobs.length; start += BLOB_BATCH) {
     const read = readBatch({ batch: blobs.slice(start, start + BLOB_BATCH), edges });
     if (typeof read === "string") {
       return read;
     }
     hits.push(...blobSecretHits({ blobs: read, denylist: words }));
+    named.push(...blobIdentifierHits({ identifiers, texts: read }));
   }
-  return hits.length > 0 ? secretDecline({ denylist: words, hits }) : null;
+  if (hits.length > 0) {
+    return secretDecline({ denylist: words, hits });
+  }
+  return named.length > 0 ? identifierDecline({ hits: named }) : null;
 }
 
 /** Every changed path in the range, raw and NUL-separated: the `log` behind {@link SalvageScanEdges}' metadata. */

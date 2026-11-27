@@ -3,6 +3,7 @@
  * trunk and the root commits each reaches. A git failure and a verdict are separate codes: a read that failed has not
  * shown the history is foreign, and a foreign root is not a failure to read.
  */
+import type { SalvageDestinationError } from "./salvageErrors.js";
 
 /** `git rev-parse HEAD` failed in the tree, or answered nothing. */
 interface HeadUnreadableError {
@@ -44,9 +45,33 @@ interface NotDescendantError {
   readonly message: string;
 }
 
+/** Whether the commit to push descends from the checked HEAD could not be read: an exit other than git's verdict 1. */
+interface AncestryUnreadableError {
+  readonly code: "ANCESTRY_UNREADABLE";
+  readonly message: string;
+  readonly sha: string;
+}
+
+/** The repository carries a grafts file, which rewires the parents every ancestry read reports. */
+interface GraftedError {
+  readonly code: "GRAFTED";
+  readonly message: string;
+  readonly graftFile: string;
+}
+
+/** The remote's url could not be bound to one repository, so no trunk was asked. */
+interface DestinationUnboundError {
+  readonly code: "DESTINATION_UNBOUND";
+  readonly message: string;
+  readonly destination: SalvageDestinationError;
+}
+
 /** Why a salvage declines on the history check, before the capture or before the push. */
 export type SalvageTrunkError =
+  | AncestryUnreadableError
+  | DestinationUnboundError
   | ForeignRootError
+  | GraftedError
   | HeadUnreadableError
   | HistoryUnreadableError
   | NotDescendantError
@@ -59,11 +84,26 @@ const why = ({ cause }: { cause: unknown }): string =>
 
 /** The one way each {@link SalvageTrunkError} is built, so its message is the decline a salvage prints. */
 export const SalvageTrunkErrors = {
+  ancestryUnreadable: ({ sha, cause }: { sha: string; cause: unknown }): AncestryUnreadableError => ({
+    code: "ANCESTRY_UNREADABLE",
+    message: `whether ${sha.slice(0, 8)} descends from the checked HEAD could not be read (${why({ cause })}) — nothing was pushed`,
+    sha,
+  }),
+  destinationUnbound: ({ destination }: { destination: SalvageDestinationError }): DestinationUnboundError => ({
+    code: "DESTINATION_UNBOUND",
+    destination,
+    message: `${destination.message} — nothing was pushed`,
+  }),
   foreignRoot: ({ remote, roots }: { remote: string; roots: readonly string[] }): ForeignRootError => ({
     code: "FOREIGN_ROOT",
     message: `its history reaches ${String(roots.length)} root commit(s) ${remote}'s live trunk does not, so it carries another history — nothing was pushed`,
     remote,
     roots,
+  }),
+  grafted: ({ graftFile }: { graftFile: string }): GraftedError => ({
+    code: "GRAFTED",
+    graftFile,
+    message: `the repository carries a grafts file at ${graftFile}, which rewires the parents git reports, so its history cannot be judged — nothing was pushed`,
   }),
   headUnreadable: ({ cause }: { cause: unknown }): HeadUnreadableError => ({
     code: "HEAD_UNREADABLE",
