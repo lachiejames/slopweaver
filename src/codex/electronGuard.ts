@@ -14,6 +14,7 @@
 import { hatchFor } from "../hatch/lookup.js";
 import { hatchRefusal } from "../hatch/render.js";
 import type { Result } from "../lib/result.js";
+import type { CodexThreadPosture } from "./client.js";
 import { type CodexElectronProbeError, probeCodexElectronRunAsNode } from "./electronProbe.js";
 import type { CodexCli } from "./vendoredCli.js";
 
@@ -67,6 +68,7 @@ export function codexElectronGuardDecision({
  * @param codexHome the home the pass runs on, or undefined for the ambient one
  * @param cwd the directory the thread runs in, whose trusted project config Codex layers over the home's
  * @param cli the Codex binary the pass itself runs, and its PATH directories
+ * @param posture which locked policy the thread carries, so the probe launches as the thread does
  * @param probe the reading seam; production runs `<cli> sandbox -- /usr/bin/printenv` with the pass's overrides
  * @param env the environment the hatch is read from
  * @returns the decision
@@ -75,19 +77,22 @@ export function applyCodexElectronGuard({
   codexHome,
   cwd,
   cli,
+  posture,
   probe = probeCodexElectronRunAsNode,
   env = process.env,
 }: {
   codexHome: string | undefined;
   cwd: string;
   cli: CodexCli;
+  posture: CodexThreadPosture;
   probe?: (args: {
     codexHome: string | undefined;
     cwd: string;
     cli: CodexCli;
+    posture: CodexThreadPosture;
   }) => Result<string, CodexElectronProbeError>;
   env?: NodeJS.ProcessEnv;
 }): CodexElectronGuardDecision {
   const hatchOpen = env[ALLOW_CODEX_ELECTRON_GUARD_ENV] === "1";
-  return codexElectronGuardDecision({ codexHome, hatchOpen, printed: probe({ cli, codexHome, cwd }) });
+  return codexElectronGuardDecision({ codexHome, hatchOpen, printed: probe({ cli, codexHome, cwd, posture }) });
 }

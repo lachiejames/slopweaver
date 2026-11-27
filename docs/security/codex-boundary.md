@@ -3,8 +3,8 @@
 Part of [Security & trust](../security.md).
 
 This is the widest boundary in the product, so read it carefully. **Codex can read your whole filesystem,
-reach the network, search the web, and write inside its own scratch directory.** The one thing it cannot do
-is write to your repository.
+reach the network, search the web, and write inside its own scratch directory.** What it cannot do is write
+to your repository, or to the OS temp folder its review snapshot is read from.
 
 - **What leaves the machine, and to whom.** To **OpenAI**: for a planning pass, your task description plus
   whatever Codex chooses to read from the repository while investigating; for a review pass, the complete
@@ -55,7 +55,16 @@ app-server` under its own `CODEX_HOME` and asks it two questions, `account/read`
   read-only delegate reads them from too. The
   working directory is a **per-pass scratch directory** under `$SLOPWEAVER_HOME/orchestration`, never your
   repository. Codex may write freely inside that scratch directory and nowhere else, because the repository
-  is neither the workspace nor an additional directory. Measured: from a scratch workspace a
+  is neither the workspace nor an additional directory — and because `workspace-write` ALSO opens `$TMPDIR`
+  and `/tmp` unless told not to. That default once let review passes write into the snapshot pool slot they
+  were reading, which lives under the OS temp folder, so every pass now carries
+  `sandbox_workspace_write.exclude_tmpdir_env_var=true` and `sandbox_workspace_write.exclude_slash_tmp=true`, and
+  its shell temp (`TMPDIR`, zsh's `TMPPREFIX`) moves into the scratch's own `.tmp`. A sandboxed `env` with the
+  thread's own launch must show both inside that `.tmp`, or the thread is refused (`codex-scratch-shell-guard`,
+  `SLOPWEAVER_ALLOW_CODEX_SCRATCH_SHELL_GUARD=1`, which degrades that pass's shell and never widens what it
+  writes). The kernel proof runs the vendored `codex sandbox` on darwin, no model call:
+  `yarn vitest run --config config/vitest/subprocess.ts src/__tests__/subprocess/codex/scratchConfinement.test.ts`.
+  Measured: from a scratch workspace a
   pass read the repository successfully and a write into the repository was refused, with the file absent
   from disk afterwards. It is a repeatable, opt-in, paid check —
   `CODEX_ACCEPTANCE=1 CODEX_ACCEPTANCE_PLAN=<alias> yarn vitest run --config config/vitest/subprocess.ts src/__tests__/subprocess/codex/acceptance.test.ts`

@@ -246,8 +246,11 @@ pass current.
   instructions embedded in its input.
 - **The sandbox bounds WRITES, not reads.** Codex reads anywhere it has filesystem permission. It writes only
   inside its per-pass scratch workspace; the repository is neither that workspace nor an additional writable
-  root, which is the whole of the guarantee. Measured: a write into the repo was refused and the
-  file was absent afterwards, while a read of the repo from the scratch workspace succeeded.
+  root, and the OS temp folder — which `workspace-write` opens by default, and where a review's snapshot pool
+  lives — is closed to every pass, its shell temp moved into the scratch (`src/codex/passWorkspace.ts`).
+  Measured: a write into the repo was refused and the file was absent afterwards, while a read of the repo
+  from the scratch workspace succeeded; a write under the temp folder or `/tmp` is refused on the real sandbox
+  (`src/__tests__/subprocess/codex/scratchConfinement.test.ts`).
 - **`approvalPolicy: "never"`, not the sandbox, is what blocks MCP tool dispatch** — measured under both
   `read-only` and `workspace-write`. A globally configured MCP server is still started.
 - **Your prompts, repo reads and diffs go to OpenAI.** See [security/codex-boundary.md](security/codex-boundary.md).

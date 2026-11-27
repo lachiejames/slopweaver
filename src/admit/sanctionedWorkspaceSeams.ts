@@ -283,6 +283,10 @@ export const WORKSPACE_SEAMS = {
   // one `/bin/ps` read of a holder's start time. The same class as `codex/snapshot.ts` directly above — a
   // local checkout on this machine, never a provider.
   "src/codex/snapshotLease.ts": "local-state",
+  // The locked Codex client's one write: a pass thread's own shell temp, made inside the scratch the pass was
+  // handed before that thread launches, so a caller-made scratch never names a TMPDIR that does not exist.
+  // Local state only; the model call it then makes is the client's door-internal transport, not this write.
+  "src/codex/client.ts": "local-state",
   "src/codex/snapshotPool.ts": "local-state",
   "src/codex/snapshotSync.ts": "local-state",
   // Removes the Slack draft pass's own empty workspace under the OS temp directory once the pass ends. Local

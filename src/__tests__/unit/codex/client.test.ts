@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { admittedCodexClient } from "../../../codex/admittedClient.js";
 import {
+  type CodexSdkFactory,
   type CodexSdkPort,
   type CodexSdkStreamEvent,
   type CodexSdkThread,
@@ -17,14 +18,21 @@ import { assertInstanceOf } from "../../assertInstanceOf.js";
  *
  * A plain class, deliberately — `vi.mock`/`vi.fn`/`vi.spyOn` are lint-banned in this repo.
  */
-class CapturingSdk implements CodexSdkPort {
+class CapturingSdk implements CodexSdkPort, CodexSdkFactory {
   readonly startCalls: Record<string, unknown>[] = [];
   readonly resumeCalls: { threadId: string; options: Record<string, unknown> }[] = [];
+  /** The working directory each per-thread port was built for, in order. */
+  readonly createdFor: string[] = [];
 
   private readonly turn: CodexSdkThread;
 
   constructor(turn: CodexSdkThread) {
     this.turn = turn;
+  }
+
+  create({ workingDirectory }: { workingDirectory: string }): CodexSdkPort {
+    this.createdFor.push(workingDirectory);
+    return this;
   }
 
   startThread(options: Record<string, unknown>): CodexSdkThread {
@@ -37,6 +45,11 @@ class CapturingSdk implements CodexSdkPort {
     this.resumeCalls.push({ options, threadId });
     return this.turn;
   }
+}
+
+/** A factory handing every thread the same plain port. */
+function everyThread({ port }: { port: CodexSdkPort }): CodexSdkFactory {
+  return { create: () => port };
 }
 
 /** Replay a fixed event sequence as the SDK's stream would. */
@@ -117,6 +130,14 @@ describe("the locked policy", () => {
     expect(sdk.resumeCalls).toHaveLength(1);
     expect(sdk.resumeCalls[0]!.threadId).toBe("t9");
     expect(sdk.resumeCalls[0]!.options).toEqual(LOCKED_OPTIONS);
+  });
+
+  it("builds one SDK port per thread, from that thread's own directory, on start and resume alike", () => {
+    const sdk = new CapturingSdk(fixedThread({ items: [], usage: FIVE_FIELD_USAGE }));
+    const client = makeLockedCodexClient({ sdk });
+    client.startThread({ workingDirectory: "/scratch/a" });
+    client.resumeThread({ threadId: "t9", workingDirectory: "/scratch/b" });
+    expect(sdk.createdFor).toEqual(["/scratch/a", "/scratch/b"]);
   });
 
   it("sets sandboxMode to workspace-write on both paths", () => {
@@ -234,7 +255,7 @@ describe("mapping the SDK's turn onto honest observations", () => {
       resumeThread: () => failingThread(),
       startThread: () => failingThread(),
     };
-    const thread = makeLockedCodexClient({ sdk }).startThread({ workingDirectory: "/a" });
+    const thread = makeLockedCodexClient({ sdk: everyThread({ port: sdk }) }).startThread({ workingDirectory: "/a" });
     const result = await thread.run({ input: "p", outputSchema: {}, signal: new AbortController().signal });
     expect(result.isErr()).toBe(true);
     expect(result._unsafeUnwrapErr().provider).toBe("codex");
@@ -246,7 +267,7 @@ describe("mapping the SDK's turn onto honest observations", () => {
       resumeThread: () => abortingThread(),
       startThread: () => abortingThread(),
     };
-    const thread = makeLockedCodexClient({ sdk }).startThread({ workingDirectory: "/a" });
+    const thread = makeLockedCodexClient({ sdk: everyThread({ port: sdk }) }).startThread({ workingDirectory: "/a" });
     const result = await thread.run({ input: "p", outputSchema: {}, signal: new AbortController().signal });
     expect(result.isErr()).toBe(true);
     const cause = result._unsafeUnwrapErr().cause;
@@ -265,7 +286,7 @@ describe("a synchronous thread-creation failure (found by reviewing this diff)",
         throw new Error("start refused");
       },
     };
-    const client = makeLockedCodexClient({ sdk });
+    const client = makeLockedCodexClient({ sdk: everyThread({ port: sdk }) });
     // The creation itself must NOT throw: an escaping exception bypasses the attempt record entirely.
     const thread = client.startThread({ workingDirectory: "/a" });
     expect(thread.currentId()).toBe(null);
@@ -282,7 +303,10 @@ describe("a synchronous thread-creation failure (found by reviewing this diff)",
       },
       startThread: () => fixedThread({ items: [], usage: FIVE_FIELD_USAGE }),
     };
-    const thread = makeLockedCodexClient({ sdk }).resumeThread({ threadId: "t1", workingDirectory: "/a" });
+    const thread = makeLockedCodexClient({ sdk: everyThread({ port: sdk }) }).resumeThread({
+      threadId: "t1",
+      workingDirectory: "/a",
+    });
     const result = await thread.run({ input: "p", outputSchema: {}, signal: new AbortController().signal });
     expect(result.isErr()).toBe(true);
     expect(result._unsafeUnwrapErr().operation).toBe("codex.resumeThread");
@@ -310,7 +334,7 @@ describe("admittedCodexClient", () => {
         asked.push(workingDirectory);
         return workingDirectory === "/refused" ? err("cua_repl would start") : ok(undefined);
       },
-      client: makeLockedCodexClient({ sdk }),
+      client: makeLockedCodexClient({ sdk: everyThread({ port: sdk }) }),
     });
 
     client.startThread({ workingDirectory: "/scratch" });

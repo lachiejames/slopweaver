@@ -25,7 +25,9 @@ import { hatchRefusal } from "../hatch/render.js";
 import { logger } from "../lib/logger.js";
 import { err, ok, type Result } from "../lib/result.js";
 import { probeCodexBrowserServers } from "./browserProbe.js";
+import type { CodexThreadPosture } from "./client.js";
 import { applyCodexElectronGuard } from "./electronGuard.js";
+import { applyCodexScratchShellGuard } from "./scratchShellGuard.js";
 import type { CodexCli } from "./vendoredCli.js";
 
 /** The override for this door, named once so the read and the notice cannot disagree. */
@@ -112,19 +114,23 @@ export function applyCodexBrowserDoor({
 
 /**
  * The thread gate a pass's client carries (`codex/client.ts`'s `admittedCodexClient`): the browser door, then the
- * Electron guard (`./electronGuard.ts`), each asked in the thread's own working directory, with an override
- * notice printed where a hatch let a finding through.
+ * Electron guard (`./electronGuard.ts`), then — for a `pass`-posture thread, the one whose shell temp moves into
+ * its scratch — the scratch-shell guard (`./scratchShellGuard.ts`), each asked in the thread's own working
+ * directory, with an override notice printed where a hatch let a finding through.
  *
  * @param codexHome the home the pass spends against, or undefined for the ambient one
  * @param cli the Codex binary the SDK spawns — the same one its client is pinned to
+ * @param posture which locked policy the client's threads carry, so each probe launches as those threads do
  * @returns the gate: `ok` to start the thread, `err` carrying the first four-line refusal
  */
 export function codexThreadAdmit({
   codexHome,
   cli,
+  posture,
 }: {
   codexHome: string | undefined;
   cli: CodexCli;
+  posture: CodexThreadPosture;
 }): (args: { workingDirectory: string }) => Result<void, string> {
   return ({ workingDirectory }) => {
     const door = applyCodexBrowserDoor({ cli, codexHome, cwd: workingDirectory, launch: "codex pass" });
@@ -134,12 +140,22 @@ export function codexThreadAdmit({
     if (door.notice !== undefined) {
       logger.error({ msg: door.notice });
     }
-    const guard = applyCodexElectronGuard({ cli, codexHome, cwd: workingDirectory });
+    const guard = applyCodexElectronGuard({ cli, codexHome, cwd: workingDirectory, posture });
     if (guard.kind === "refuse") {
       return err(guard.refusal);
     }
     if (guard.notice !== undefined) {
       logger.error({ msg: guard.notice });
+    }
+    if (posture === "sealed") {
+      return ok(undefined);
+    }
+    const shell = applyCodexScratchShellGuard({ cli, codexHome, cwd: workingDirectory });
+    if (shell.kind === "refuse") {
+      return err(shell.refusal);
+    }
+    if (shell.notice !== undefined) {
+      logger.error({ msg: shell.notice });
     }
     return ok(undefined);
   };

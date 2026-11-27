@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 
+import type { CodexThreadPosture } from "../../../codex/client.js";
 import {
   applyCodexElectronGuard,
   type CodexElectronGuardDecision,
@@ -108,23 +109,38 @@ describe("codexElectronGuardDecision", () => {
 
 describe("applyCodexElectronGuard", () => {
   it("probes the home, the directory and the binary it was given", () => {
-    const asked: { codexHome: string | undefined; cwd: string; cli: CodexCli }[] = [];
+    const asked: { codexHome: string | undefined; cwd: string; cli: CodexCli; posture: CodexThreadPosture }[] = [];
     const probe = (args: {
       codexHome: string | undefined;
       cwd: string;
       cli: CodexCli;
+      posture: CodexThreadPosture;
     }): Result<string, CodexElectronProbeError> => {
       asked.push(args);
       return ok("1");
     };
-    applyCodexElectronGuard({ cli: VENDORED, codexHome: HOME, cwd: "/scratch/pass-1", env: {}, probe });
+    applyCodexElectronGuard({
+      cli: VENDORED,
+      codexHome: HOME,
+      cwd: "/scratch/pass-1",
+      env: {},
+      posture: "sealed",
+      probe,
+    });
 
-    expect(asked).toEqual([{ cli: VENDORED, codexHome: HOME, cwd: "/scratch/pass-1" }]);
+    expect(asked).toEqual([{ cli: VENDORED, codexHome: HOME, cwd: "/scratch/pass-1", posture: "sealed" }]);
   });
 
   it("reads the hatch from the environment it is handed, and only the value 1 opens it", () => {
     const decide = (env: NodeJS.ProcessEnv): string =>
-      applyCodexElectronGuard({ cli: VENDORED, codexHome: HOME, cwd: "/repo", env, probe: () => ok("") }).kind;
+      applyCodexElectronGuard({
+        cli: VENDORED,
+        codexHome: HOME,
+        cwd: "/repo",
+        env,
+        posture: "pass",
+        probe: () => ok(""),
+      }).kind;
 
     expect(decide({ SLOPWEAVER_ALLOW_CODEX_ELECTRON_GUARD: "1" })).toBe("proceed");
     expect(decide({ SLOPWEAVER_ALLOW_CODEX_ELECTRON_GUARD: "true" })).toBe("refuse");

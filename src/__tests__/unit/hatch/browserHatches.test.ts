@@ -19,6 +19,7 @@ describe("BROWSER_HATCHES", () => {
       "codex-browser-door",
       "browser-launch",
       "codex-electron-guard",
+      "codex-scratch-shell-guard",
     ]);
   });
 
@@ -32,7 +33,7 @@ describe("BROWSER_HATCHES", () => {
   it("puts the browser rows after `memory-corpus`, exactly where they were typed", () => {
     const ids = ESCAPE_HATCHES.map((hatch) => hatch.id);
     expect(ids[ids.indexOf("datadog-site") - 1]).toBe("memory-corpus");
-    expect(ids[ids.indexOf("codex-electron-guard") + 1]).toBe("poll");
+    expect(ids[ids.indexOf("codex-scratch-shell-guard") + 1]).toBe("poll");
   });
 
   it("carries no row for the retired Claude-in-Chrome door, whose refusal has no override", () => {

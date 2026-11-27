@@ -236,7 +236,7 @@ export function productionCodexClientFor({ posture }: { posture: CodexThreadPost
     const { codexHome } = destination;
     return ok(
       productionCodexClient({
-        admitThread: codexThreadAdmit({ cli, codexHome }),
+        admitThread: codexThreadAdmit({ cli, codexHome, posture }),
         cli,
         codexHome,
         model,

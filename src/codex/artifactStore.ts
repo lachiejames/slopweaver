@@ -47,6 +47,7 @@ import type { Result } from "../lib/result.js";
 import { safeFs } from "../lib/safeBoundary.js";
 import { writeFileAtomic } from "../lib/writeAtomic.js";
 import { renderCodexArtifact } from "./artifact.js";
+import { passTempDirectory } from "./passWorkspace.js";
 import type { CodexArtifactRecord } from "./types.js";
 
 /** Directory mode: owner-only. An artifact holds a review of private source. */
@@ -67,8 +68,10 @@ export interface ArtifactLocation {
  *
  * This is the whole write boundary. The sandbox is `workspace-write`, so Codex may write freely inside its
  * working directory — and this is that directory. The repository is not it, and is not in
- * `additionalDirectories` either, which is the only reason the repo stays unwritable while Codex is otherwise
- * free to run commands and save its own intermediate work.
+ * `additionalDirectories` either, which is why the repo stays unwritable while Codex is otherwise
+ * free to run commands and save its own intermediate work. `workspace-write` would ALSO open `$TMPDIR` and
+ * `/tmp`, where the snapshot pool a review reads lives, so the pass's overrides close both and its shell temp
+ * moves to the `.tmp` minted here, inside this directory (`./passWorkspace.ts`).
  *
  * A SIBLING of the artifact directory rather than a child, deliberately: {@link writeCodexArtifact} creates
  * the artifact directory with `recursive: false` as a collision guard, and pre-creating it here would disarm
@@ -103,6 +106,7 @@ export function createPassScratch({
         throw new Error(`pass id ${artifactId} already has a record directory; a scratch is never minted beside one`);
       }
       mkdirSync(scratch, { mode: DIR_MODE, recursive: false });
+      mkdirSync(passTempDirectory({ workingDirectory: scratch }), { mode: DIR_MODE, recursive: false });
       return scratch;
     },
     operation: "codex.createPassScratch",

@@ -418,6 +418,14 @@ describe("createPassScratch", () => {
     expect(statSync(scratch._unsafeUnwrap()).mode & 0o777).toBe(0o700);
   });
 
+  it("mints the pass's owner-only shell temp inside it, the only temp its sandbox may write", () => {
+    const root = mkdtempSync(join(tmpdir(), "codex-scratch-"));
+    fixtureDirs.push(root);
+    const scratch = createPassScratch({ artifactId: "temp", orchestrationRoot: root })._unsafeUnwrap();
+    expect(readdirSync(scratch)).toEqual([".tmp"]);
+    expect(statSync(join(scratch, ".tmp")).mode & 0o777).toBe(0o700);
+  });
+
   it("refuses an id whose record directory already exists", () => {
     const root = mkdtempSync(join(tmpdir(), "codex-scratch-"));
     fixtureDirs.push(root);

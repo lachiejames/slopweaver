@@ -24,12 +24,14 @@
  *
  * A slot that gained git state of its own — a `config.worktree`, a skip-worktree index entry — is rebuilt too.
  * A slot whose git resolves to some other worktree is rebuilt as well. Permission bits git does not record —
- * a tracked file chmodded 0600 — survive reset, so a reader that changes them hands them to the next holder; a
- * Codex pass cannot, since it writes only its own scratch. What is NOT defended is someone
- * deliberately subverting a slot's git beyond those — rewriting its `.git`, its index or the repository's own
- * config to point the checks at a decoy: only the pool writes a slot (a Codex pass's writable directory is its
- * own scratch), and a determined writer to the temp directory could as easily edit a fresh snapshot mid-pass.
- * Each such case found so far is closed here.
+ * a tracked file chmodded 0600 — survive reset, so a reader that changes them hands them to the next holder. A
+ * Codex pass is kept from being that reader by its sandbox, not by anything here: `workspace-write` opens the
+ * temp folder this pool lives in by default, and two passes did write into the slot they were reading — one a
+ * directory inside the tree, one beside it — until every pass closed the temp folder and moved its shell temp
+ * into its scratch (`./passWorkspace.ts`). What is NOT defended is someone deliberately subverting a slot's git
+ * beyond those — rewriting its `.git`, its index or the repository's own config to point the checks at a decoy:
+ * a determined writer to the temp directory could as easily edit a fresh snapshot mid-pass. Each such case found
+ * so far is closed here.
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";

@@ -14,8 +14,8 @@ express. Read both before your first invocation.
 **Codex is the brain. You are the body.** Codex plans and reviews; you write every line of code that ships.
 It can read anything, run commands, reach the network and write inside its own per-pass scratch directory —
 but **not into the repository**, because the repository is neither its workspace nor an additional writable
-root. That one line is what keeps you both out of each other's way, and it is enforced by the type system and
-two lint gates rather than by good intentions.
+root, and **not into the temp folder** its snapshot is read from, which every pass closes. That is what keeps
+you both out of each other's way, enforced by the type system, two lint gates and a sandbox proof.
 
 ## Pairing is STANDING — the judgement is how much, never whether
 
@@ -183,7 +183,7 @@ Stated plainly so you do not over-trust it:
   restated after it, and the response must echo the exact property id — so an answer to a different
   question is rejected. No prompt can prove an answer was uninfluenced by text inside the diff.
 - **The sandbox bounds WRITES, not reads.** Codex can read files anywhere it has permission, well outside
-  its workspace, but writes only its per-pass scratch, never the repo. That scratch is **not output**: the
+  its workspace, but writes only its per-pass scratch, never the repo or temp. That scratch is **not output**: the
   pass removes it once the artifact is written (stdout `scratchReclaim`; a failure never moves the verdict).
 - **A globally configured MCP server is still started** by Codex. Tool dispatch is blocked, but the server
   process runs. See `docs/security/codex-boundary.md`.

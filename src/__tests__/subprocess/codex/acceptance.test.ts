@@ -39,7 +39,7 @@
  * Run it explicitly: `CODEX_ACCEPTANCE=1 CODEX_ACCEPTANCE_PLAN=<alias> yarn vitest run --config config/vitest/subprocess.ts src/__tests__/subprocess/codex/acceptance.test.ts`
  */
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -47,6 +47,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { codexThreadAdmit } from "../../../codex/browserDoor.js";
 import { type LockedCodexClient, productionCodexClient } from "../../../codex/client.js";
 import { resolveRepoRoot } from "../../../codex/gitDiff.js";
+import { passTempDirectory } from "../../../codex/passWorkspace.js";
 import { type CodexCli, vendoredCodexCli } from "../../../codex/vendoredCli.js";
 import { unwrap, unwrapErr } from "../../../lib/result.js";
 import { readStoredPlanRegister } from "../../../plans/storePort.js";
@@ -91,7 +92,7 @@ async function registeredClient(): Promise<LockedCodexClient> {
   );
   const cli = vendoredCodexCli() as CodexCli;
   const { codexHome } = destination;
-  return productionCodexClient({ admitThread: codexThreadAdmit({ cli, codexHome }), cli, codexHome });
+  return productionCodexClient({ admitThread: codexThreadAdmit({ cli, codexHome, posture: "pass" }), cli, codexHome });
 }
 
 describe.skipIf(!RUN_CODEX_ACCEPTANCE)("productionCodexClient — real acceptance run (paid, opt-in)", () => {
@@ -106,6 +107,7 @@ describe.skipIf(!RUN_CODEX_ACCEPTANCE)("productionCodexClient — real acceptanc
       const repoRoot = unwrap(resolveRepoRoot({ cwd: process.cwd() }));
       const scratchDir = mkdtempSync(join(tmpdir(), "codex-acceptance-"));
       scratchDirs.push(scratchDir);
+      mkdirSync(passTempDirectory({ workingDirectory: scratchDir }));
       const scratchFile = join(scratchDir, "scratch-write.txt");
       const startCanary = join(repoRoot, `codex-acceptance-canary-start-${randomUUID()}.txt`);
       const resumeCanary = join(repoRoot, `codex-acceptance-canary-resume-${randomUUID()}.txt`);
@@ -148,6 +150,7 @@ describe.skipIf(!RUN_CODEX_ACCEPTANCE)("productionCodexClient — real acceptanc
   it("maps a pre-aborted signal to a typed failure rather than an uncaught rejection", { retry: 0 }, async () => {
     const scratchDir = mkdtempSync(join(tmpdir(), "codex-acceptance-abort-"));
     scratchDirs.push(scratchDir);
+    mkdirSync(passTempDirectory({ workingDirectory: scratchDir }));
     const controller = new AbortController();
     controller.abort();
 
