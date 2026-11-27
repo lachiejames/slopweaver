@@ -60,6 +60,17 @@ const supersedeMeta = {
     "[--branch <name>] [--repo <dir>] [--home <dir>]",
 } as const;
 
+const extendMeta = {
+  ...sharedMeta,
+  example: 'slopweaver codex extend --run <slug> --lane general --diff <sha256> --reason "the fix moved the parser"',
+  summary:
+    "The pinned supervisor approves ONE exact diff to review past the two-pass cap for one run's branch and lane, " +
+    "with the reason on the record — refused for any seat",
+  usage:
+    "usage: slopweaver codex extend --run <slug> --lane general|baseline-bump-witness --diff <sha256> " +
+    "--reason <text> [--after <id>] [--repo <dir>] [--home <dir>] | --list [--branch <name>] [--home <dir>]",
+} as const;
+
 const quotaMeta = {
   ...sharedMeta,
   diagnostic: true,
@@ -236,6 +247,10 @@ export const codexManifest: Readonly<Record<string, VerbManifestEntry>> = {
   burn: lazy({
     load: () => import("../commands/codex/burnRun.js").then((m) => m.codexBurnCommand),
     meta: burnMeta,
+  }),
+  extend: lazy({
+    load: () => import("../commands/codex/extendRun.js").then((m) => m.codexExtendCommand),
+    meta: extendMeta,
   }),
   gauge: lazy({
     load: () => import("../commands/codex/gaugeRun.js").then((m) => m.codexGaugeCommand),

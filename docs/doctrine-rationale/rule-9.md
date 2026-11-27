@@ -169,13 +169,29 @@ seven review passes on one change), so a third pass is refused before it spends 
 what still stands after the second is that same finding, landed with the same reason-bearing acknowledgement. The
 PR description publishes no leftover, so the door ledger's reason is the one record, written by whoever chose to
 land it.
-`SLOPWEAVER_ALLOW_CODEX_REVIEW_PASS_CAP=1` opens that refusal for one run of `codex review` or `codex review-fallback
-prepare`: only on the owner's explicit steer for a third pass on one change, or for a ledger checked by hand as
-corrupt, misattributed or short of two passes.
-A baseline-bump witness is not a third pass: it counts in its own two-diff lane, admitted only as the exact
-witness command with no hatch, and it never serves the pairing floor
-([rebaseline and lanes](../toolchain/rebaseline-and-lanes.md)). Before the lane existed, a branch past its two
-passes could not take the witness its own landing required.
+
+**A pass past the cap is the pinned supervisor's call, not the owner's.** A seat refused at the cap sends it one line
+naming the run, the full sha256 the refusal printed, and why; it runs `codex extend --run <slug> --lane <lane> --diff
+<sha256> --reason "<why>"`, appending one row to `$SLOPWEAVER_HOME/codex-pass-extensions/extensions.jsonl` with
+the run, its journalled branch, the repository's shared `.git`, that diff and the granting session. The gate admits
+past the cap only a diff some row names, granted by the session holding the pin in the home it reads, and the
+admitted line names the row by id; the owner hears only of a big trade-off in the approach. Four choices are the design:
+
+- **Bound to one diff, so single-use by construction.** A later fix is a new diff, refused again; a retry of the
+  approved one is the same pass, and a rebase that moves its index lines moves its hash, costing only a refusal.
+  Review admission has no run identity, so the gate never filters on `run`: an old row admits only its own diff.
+- **A chain per run and lane.** The first carries no `--after`; each further one names the last with `--after` and its
+  own reason, counted across repositories. A damaged line that may be this run's own refuses the grant.
+- **Only the pin's exact holder grants** (`src/codex/passExtensionGrant.ts`), and the gate honours a row only while its
+  grantor holds the pin; a linked register directory is refused. No hatch: past the cap is a hold.
+  **Residue, stated:** a same-user process can set the session variable or append a row; partial on purpose
+  ([journalled grants](../../.claude/rules/journalled-grants.md)), and the diff binding caps an over-grant at one pass.
+- **The branch comes from the journal**, the checkout must have it out; **admission only**; **damage only refuses**.
+
+`SLOPWEAVER_ALLOW_CODEX_REVIEW_PASS_CAP=1` opens only a fold that cannot be read, checked by hand to hold fewer
+than two passes, never a diff known to be past the cap. A baseline-bump witness counts in its own two-diff
+lane, admitted only as the exact witness command, and never serves the pairing floor
+([rebaseline and lanes](../toolchain/rebaseline-and-lanes.md)).
 MEASURED while building this: an `--acknowledge <subject>` that required no reason left no acknowledgement of any
 kind in the ledger, so every waiver before the obligation is unattributable. The obligation applies to this subject
 alone.

@@ -22,6 +22,7 @@ import { CLAUDE_SPEND_FLAG_NAMES, parseClaudeSpendArgs } from "../../../../cli/c
 import { CLAUDE_TOKEN_FLAG_NAMES, parseClaudeTokenArgs } from "../../../../cli/commands/claude/tokenRun.js";
 import { CLAUDE_WATCH_FLAG_NAMES, parseClaudeWatchArgs } from "../../../../cli/commands/claude/watchArgs.js";
 import { CODEX_BURN_FLAG_NAMES, parseCodexBurnArgs } from "../../../../cli/commands/codex/burnRun.js";
+import { CODEX_EXTEND_FLAG_NAMES, parseCodexExtendArgs } from "../../../../cli/commands/codex/extendArgs.js";
 import {
   CODEX_PLAN_FALLBACK_FLAG_NAMES,
   parseCodexPlanFallbackArgs,
@@ -123,6 +124,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "claude token": CLAUDE_TOKEN_FLAG_NAMES,
   "claude watch": CLAUDE_WATCH_FLAG_NAMES,
   "codex burn": CODEX_BURN_FLAG_NAMES,
+  "codex extend": CODEX_EXTEND_FLAG_NAMES,
   "codex hooks": CODEX_HOOKS_FLAG_NAMES,
   "codex plan-fallback": CODEX_PLAN_FALLBACK_FLAG_NAMES,
   "codex quota": CODEX_QUOTA_FLAG_NAMES,
@@ -201,6 +203,17 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--home": ["--home", "/tmp"],
     "--json": ["--json"],
   },
+  "codex extend": {
+    "--after": ["--run", "a-run", "--lane", "general", "--diff", "a".repeat(64), "--reason", "two", "--after", "x"],
+    "--branch": ["--list", "--branch", "main"],
+    "--diff": ["--run", "a-run", "--lane", "general", "--diff", "a".repeat(64), "--reason", "one more"],
+    "--home": ["--list", "--home", "/tmp"],
+    "--lane": ["--run", "a-run", "--lane", "general", "--reason", "one more"],
+    "--list": ["--list"],
+    "--reason": ["--run", "a-run", "--lane", "general", "--reason", "one more"],
+    "--repo": ["--run", "a-run", "--lane", "general", "--reason", "one more", "--repo", "/tmp"],
+    "--run": ["--run", "a-run", "--lane", "general", "--reason", "one more"],
+  },
   "codex review-fallback": {
     "--after-refusal": ["--after-refusal", "codex-r3-refused"],
     "--answer-file": ["--answer-file", "/tmp/answer.json"],
@@ -274,6 +287,7 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
   "codex review-fallback": ({ fragment }) => parseCodexReviewFallbackArgs({ rest: [...fragment] }),
   "codex route": ({ fragment }) => parseCodexRouteArgs({ rest: [...fragment] }),
   "codex burn": ({ fragment }) => parseCodexBurnArgs({ rest: [...fragment] }),
+  "codex extend": ({ fragment }) => parseCodexExtendArgs({ rest: [...fragment] }),
   "codex status": ({ fragment }) => parseCodexStatusArgs({ rest: [...fragment] }),
   "codex plugin-sync": ({ fragment }) => parseCodexPluginSyncArgs({ rest: [...fragment] }),
   "codex supersede": ({ fragment }) => parseCodexSupersedeArgs({ rest: [...fragment] }),

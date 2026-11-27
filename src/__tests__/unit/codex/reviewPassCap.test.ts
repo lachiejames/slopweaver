@@ -122,36 +122,85 @@ describe("reviewCapDecision", () => {
   });
 
   it("allows the first pass on a branch with no review", () => {
-    expect(reviewCapDecision({ candidateDiffSha256: "a", entries: [PLAN], lane: "general" })).toEqual({
-      kind: "allowed",
-      pass: 1,
+    const decision = reviewCapDecision({
+      approvedPastCap: false,
+      candidateDiffSha256: "a",
+      entries: [PLAN],
+      lane: "general",
     });
+    expect(decision).toEqual({ kind: "allowed", pass: 1, pastCap: false });
   });
 
   it("allows the second pass over a new diff", () => {
-    expect(reviewCapDecision({ candidateDiffSha256: "b", entries: [row()], lane: "general" })).toEqual({
-      kind: "allowed",
-      pass: 2,
+    const decision = reviewCapDecision({
+      approvedPastCap: false,
+      candidateDiffSha256: "b",
+      entries: [row()],
+      lane: "general",
     });
+    expect(decision).toEqual({ kind: "allowed", pass: 2, pastCap: false });
   });
 
   it("allows another property over a diff already reviewed, which is part of that pass", () => {
     const entries = [row({ artifactId: "b", diffSha256: "b" }), row()];
-    expect(reviewCapDecision({ candidateDiffSha256: "a", entries, lane: "general" })).toEqual({
+    expect(reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "a", entries, lane: "general" })).toEqual({
       kind: "allowed",
       pass: 1,
+      pastCap: false,
     });
-    expect(reviewCapDecision({ candidateDiffSha256: "b", entries, lane: "general" })).toEqual({
+    expect(reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "b", entries, lane: "general" })).toEqual({
       kind: "allowed",
       pass: 2,
+      pastCap: false,
     });
   });
 
   it("refuses a third diff once two have been reviewed, naming both", () => {
     const entries = [row({ artifactId: "b", diffSha256: "b" }), row()];
-    expect(reviewCapDecision({ candidateDiffSha256: "c", entries, lane: "general" })).toEqual({
+    expect(reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "c", entries, lane: "general" })).toEqual({
       kind: "capped",
       reviewed: ["a", "b"],
+    });
+  });
+});
+
+describe("reviewCapDecision past the cap", () => {
+  const two = [row({ artifactId: "b", diffSha256: "b" }), row()];
+
+  it("admits a third diff the supervisor approved, as a pass past the cap", () => {
+    expect(
+      reviewCapDecision({ approvedPastCap: true, candidateDiffSha256: "c", entries: two, lane: "general" }),
+    ).toEqual({
+      kind: "allowed",
+      pass: 3,
+      pastCap: true,
+    });
+  });
+
+  it("refuses the next new diff once the approved one was reviewed, and keeps admitting the approved one", () => {
+    const three = [row({ artifactId: "c", diffSha256: "c" }), ...two];
+    expect(
+      reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "d", entries: three, lane: "general" }),
+    ).toEqual({
+      kind: "capped",
+      reviewed: ["a", "b", "c"],
+    });
+    expect(
+      reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "c", entries: three, lane: "general" }),
+    ).toEqual({
+      kind: "allowed",
+      pass: 3,
+      pastCap: true,
+    });
+  });
+
+  it("never marks a diff within the cap as past it, approved or not", () => {
+    expect(
+      reviewCapDecision({ approvedPastCap: true, candidateDiffSha256: "b", entries: [row()], lane: "general" }),
+    ).toEqual({
+      kind: "allowed",
+      pass: 2,
+      pastCap: false,
     });
   });
 });
@@ -163,15 +212,14 @@ describe("reviewCapDecision in the witness lane", () => {
 
   it("allows a first witness on a branch whose two general passes are spent", () => {
     const entries = [row({ artifactId: "b", diffSha256: "b" }), row()];
-    expect(reviewCapDecision({ candidateDiffSha256: "c", entries, lane: "baseline-bump-witness" })).toEqual({
-      kind: "allowed",
-      pass: 1,
-    });
+    expect(
+      reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "c", entries, lane: "baseline-bump-witness" }),
+    ).toEqual({ kind: "allowed", pass: 1, pastCap: false });
   });
 
   it("gives a general pass back nothing however many witness diffs stand", () => {
     const entries = [witness({ artifactId: "w2", diffSha256: "w2" }), witness(), row({ diffSha256: "b" }), row()];
-    expect(reviewCapDecision({ candidateDiffSha256: "c", entries, lane: "general" })).toEqual({
+    expect(reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "c", entries, lane: "general" })).toEqual({
       kind: "capped",
       reviewed: ["a", "b"],
     });
@@ -179,14 +227,19 @@ describe("reviewCapDecision in the witness lane", () => {
 
   it("keeps a witness diff already taken at its own ordinal, and refuses a third witness diff", () => {
     const entries = [witness({ artifactId: "w2", diffSha256: "w2" }), witness()];
-    expect(reviewCapDecision({ candidateDiffSha256: "w", entries, lane: "baseline-bump-witness" })).toEqual({
-      kind: "allowed",
-      pass: 1,
-    });
-    expect(reviewCapDecision({ candidateDiffSha256: "w3", entries, lane: "baseline-bump-witness" })).toEqual({
-      kind: "capped",
-      reviewed: ["w", "w2"],
-    });
+    expect(
+      reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "w", entries, lane: "baseline-bump-witness" }),
+    ).toEqual({ kind: "allowed", pass: 1, pastCap: false });
+    expect(
+      reviewCapDecision({ approvedPastCap: false, candidateDiffSha256: "w3", entries, lane: "baseline-bump-witness" }),
+    ).toEqual({ kind: "capped", reviewed: ["w", "w2"] });
+  });
+
+  it("admits a third witness diff the supervisor approved", () => {
+    const entries = [witness({ artifactId: "w2", diffSha256: "w2" }), witness()];
+    expect(
+      reviewCapDecision({ approvedPastCap: true, candidateDiffSha256: "w3", entries, lane: "baseline-bump-witness" }),
+    ).toEqual({ kind: "allowed", pass: 3, pastCap: true });
   });
 });
 

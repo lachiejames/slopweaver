@@ -234,6 +234,9 @@ export const WORKSPACE_SEAMS = {
   // Its `claude reset` twin under $SLOPWEAVER_HOME/claude-reset: the intent before the claim, the answer or close
   // after. Local state only; it reaches no provider.
   "src/claude/resetJournalStore.ts": "local-state",
+  // The review-pass extension register: one append-only JSONL under $SLOPWEAVER_HOME/codex-pass-extensions that
+  // the pinned supervisor's `codex extend` writes and the pass-cap gate reads. Local state only; it reaches no provider.
+  "src/codex/passExtensionStore.ts": "local-state",
   // The browser door's probe: ONE `spawnSync` of `codex mcp list --json` with the launch's own binary, home
   // and overrides. The listing starts no stdio server and no model. Its network is OAuth-discovery GETs for
   // each enabled REMOTE server — the server and the metadata it names, reads the

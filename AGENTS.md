@@ -112,8 +112,8 @@ sections: a checkable fact is verified and acted on, a process call adopted or r
 scope, access or audience routed to the owner. The owner's rulings arrive RELAYED: act. One MADE is a [journalled
 grant](.claude/rules/journalled-grants.md); one CONSTRAINING a verb [gates](skills/handover/reference/ruling-gates.md) it.
 
-**9 · Pair with Codex on non-trivial work.** The two work better together than either alone: Codex PLANS, you implement, Codex REVIEWS: ONE plan, at most TWO
-review passes (a pass is one reviewed diff). One ask: at most TWO PRs, bar an owner steer.
+**9 · Pair with Codex on non-trivial work.** Codex PLANS, you implement, Codex REVIEWS: ONE plan, at most TWO review passes
+(a pass is one reviewed diff; more need the pinned supervisor's `codex extend`). One ask: at most TWO PRs, bar an owner steer.
 Judgement picks which property each attacks — never WHETHER.
 Gate: `codex status --check` and both landing verbs want a STALE conclusive plan plus a current review; a BROKEN
 past pass two lands only on a `codex-loop-incomplete` acknowledgement's `--reason`. **Codex CAPPED or

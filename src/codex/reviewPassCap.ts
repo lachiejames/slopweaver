@@ -24,10 +24,18 @@
  * ## Two lanes, each with its own count
  *
  * Every rule above is per LANE (`./reviewLane.ts`). The general lane is every review there has always been, and
- * its two passes stay the owner's absolute number. The baseline-bump witness lane holds only the exact
+ * its two passes stay the owner's base number. The baseline-bump witness lane holds only the exact
  * adversarial review a ratchet bump's landing requires, admitted one property at a time; its rows spend no general
  * pass and never serve the pairing floor, and it has its own {@link WITNESS_REVIEW_PASS_CAP}. So a branch that
  * spent its two general passes can still take its witness, and the witness can never buy a third general review.
+ *
+ * ## Past the cap: a supervisor-approved extension
+ *
+ * A pass past the cap is the pinned supervisor's to approve, and reaches the owner only when the approach itself
+ * carries a big trade-off. The supervisor approves one exact diff (`./passExtension.ts`), and
+ * {@link reviewCapDecision} admits a diff past the cap only when the caller found such a row for THAT diff — so a
+ * later fix, a diff the supervisor never saw, is refused again. The landing floor's leftover rule
+ * (`./ledgerReviewHalf.ts`) still reads {@link REVIEW_PASS_CAP}: an extension permits a pass, it never obliges one.
  *
  * Pure: the caller folds the ledger, so every rule here is a plain-value test.
  */
@@ -35,7 +43,10 @@
 import type { LedgerEntry } from "./ledger.js";
 import { type ReviewLane, reviewLaneOfEntry } from "./reviewLane.js";
 
-/** At most this many general review passes on one branch. The owner's number, never a session's to raise. */
+/**
+ * At most this many general review passes on one branch, before any extension. The owner's number, never a
+ * session's to raise: only the pinned supervisor admits a pass past it, one exact diff at a time (`./passExtension.ts`).
+ */
 export const REVIEW_PASS_CAP = 2;
 
 /**
@@ -79,11 +90,14 @@ export function reviewedDiffs({
   return seen;
 }
 
-/** Whether a review over one more diff may run. */
+/** Whether a review over one more diff may run in a lane. */
 export type ReviewCapDecision =
-  /** The diff is already one of the lane's passes, or a slot is still open; `pass` is its 1-based number. */
-  | { readonly kind: "allowed"; readonly pass: number }
-  /** Both of the lane's passes are spent on other diffs: this would be a third. */
+  /**
+   * The diff is already one of the lane's passes, a slot under the cap is open, or the supervisor approved this
+   * exact diff past it; `pass` is its 1-based number and `pastCap` says which of the last it was.
+   */
+  | { readonly kind: "allowed"; readonly pass: number; readonly pastCap: boolean }
+  /** The cap is spent on other diffs and nothing approved this one: it would be one past it. */
   | { readonly kind: "capped"; readonly reviewed: readonly string[] };
 
 /**
@@ -92,24 +106,31 @@ export type ReviewCapDecision =
  * @param entries the ledger for the branch, newest first
  * @param candidateDiffSha256 the sha256 of the diff about to be reviewed
  * @param lane the lane admission put the review in
- * @returns allowed with the pass number it would be, or capped with the two diffs already reviewed in that lane
+ * @param approvedPastCap whether a supervisor-approved extension names this exact diff in this lane on this branch
+ *   of this repository (`./passExtension.ts`'s `approvalFor`)
+ * @returns allowed with the pass number it would be, or capped with the diffs already reviewed in that lane
  */
 export function reviewCapDecision({
   entries,
   candidateDiffSha256,
   lane,
+  approvedPastCap,
 }: {
   entries: readonly LedgerEntry[];
   candidateDiffSha256: string;
   lane: ReviewLane;
+  approvedPastCap: boolean;
 }): ReviewCapDecision {
   const reviewed = reviewedDiffs({ entries, lane });
   const known = reviewed.indexOf(candidateDiffSha256);
   if (known >= 0) {
-    return { kind: "allowed", pass: known + 1 };
+    return { kind: "allowed", pass: known + 1, pastCap: known >= LANE_PASS_CAP[lane] };
   }
   if (reviewed.length < LANE_PASS_CAP[lane]) {
-    return { kind: "allowed", pass: reviewed.length + 1 };
+    return { kind: "allowed", pass: reviewed.length + 1, pastCap: false };
+  }
+  if (approvedPastCap) {
+    return { kind: "allowed", pass: reviewed.length + 1, pastCap: true };
   }
   return { kind: "capped", reviewed };
 }

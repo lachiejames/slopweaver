@@ -18,6 +18,8 @@
  * `codex status` reports it as STALE rather than wrong. The window above stays real, and stays small.
  */
 
+import { realpathSync } from "node:fs";
+
 import type { IngestError } from "../lib/ingestError.js";
 import { isRecord } from "../lib/parsers.js";
 import { err, ok, type Result } from "../lib/result.js";
@@ -165,6 +167,28 @@ export function resolveRepoRoot({ cwd }: { cwd: string }): Result<string, Ingest
   return safeFs({
     execute: () => runGit({ args: gitRepoRootCommand().args, cwd, label: "git rev-parse" }).trim(),
     operation: "codex.resolveRepoRoot",
+  });
+}
+
+/**
+ * The canonical shared `.git` of the repository a directory is a checkout of — every linked worktree reports the
+ * same one, so it names the repository rather than the checkout. What a supervisor-approved pass extension
+ * (`./passExtension.ts`) is scoped by, so a row for one repository's `main` never extends another's.
+ *
+ * @param cwd any checkout of the repository
+ * @returns the absolute, symlink-resolved common git directory
+ */
+export function resolveGitCommonDir({ cwd }: { cwd: string }): Result<string, IngestError> {
+  return safeFs({
+    execute: () =>
+      realpathSync(
+        runGit({
+          args: ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+          cwd,
+          label: "git rev-parse --git-common-dir",
+        }).trim(),
+      ),
+    operation: "codex.resolveGitCommonDir",
   });
 }
 
