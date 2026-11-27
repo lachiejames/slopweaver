@@ -98,6 +98,25 @@ export class TypedPlanSession extends PlanCall {
   private unsureNotIts: ReadonlySet<string> = new Set();
   /** The owner put something on their running list since the last turn started: their next message carries the notice. */
   private listChanged = false;
+  /**
+   * When this conversation last had a send pressed, a turn of its thread announced or a piece of an answer written: what
+   * says whether the desktop test instance's call may run beside it (`./talkArbiter.ts` `typedAtRest`).
+   */
+  private lastActiveMs = this.madeMs;
+
+  /**
+   * When this conversation was last active.
+   *
+   * @returns the instant, on the server's clock
+   */
+  get activityMs(): number {
+    return this.lastActiveMs;
+  }
+
+  /** Mark this conversation active now. */
+  private touch(): void {
+    this.lastActiveMs = this.clock.nowMs();
+  }
 
   /**
    * A typed conversation is on the typed surface.
@@ -134,6 +153,7 @@ export class TypedPlanSession extends PlanCall {
         return prepared;
       }
       this.threadId = prepared;
+      this.touch();
       this.armAbsent();
       return { kind: "open", threadId: prepared };
     } catch (error) {
@@ -152,6 +172,8 @@ export class TypedPlanSession extends PlanCall {
    * @returns how it landed
    */
   async say({ messageId, text }: { messageId: string; text: string }): Promise<TypedSayOutcome> {
+    // A press is the owner here, whatever it is answered: a retry, a refusal or a blank one included.
+    this.touch();
     const earlier = this.said.get(messageId);
     if (earlier !== undefined) {
       return earlier;
@@ -258,6 +280,7 @@ export class TypedPlanSession extends PlanCall {
     const notice = turnNotice ? codexTurnOf({ params }) : undefined;
     // A notice of a turn already ended, late or repeated, says nothing about the send out now.
     if (notice !== undefined && notice.threadId === this.threadId && !this.completedTurns.has(notice.turnId)) {
+      this.touch();
       // The thread has said where an unsure send's turn is: a running one is now held by `runningTurns`, not the guess.
       if (!this.unsureNotIts.has(notice.turnId)) {
         this.unsureSinceMs = undefined;
@@ -290,6 +313,7 @@ export class TypedPlanSession extends PlanCall {
     if (piece === undefined || this.ended || piece.threadId !== this.threadId) {
       return;
     }
+    this.touch();
     const { itemId, turnId } = piece;
     if (this.finished.has(itemId)) {
       return;

@@ -76,11 +76,17 @@ surfaces one conversation, each reading the same records rather than a copy. The
   beside the secret paste a hand step keeps; a card wanting the owner's words points here, and the card the owner last touched is the open item it names. One
   conversation per console (`site/lib/talkArbiter.ts`, ruled on the server over every tab): a call started while the
   typed thread is idle ends it first, and waits while an answer is still being written, or for `TYPED_UNSURE_HOLD_MS`
-  after a send of unknown fate unless the thread says sooner; a newer typed conversation replaces an older one.
+  after a send of unknown fate unless the thread says sooner; a newer typed conversation replaces an older one. The
+  desktop test instance's call (`desktop e2e --call`) is the one exception to one-per-console: it may run beside a typed
+  conversation at rest (`typedAtRest`, nothing sent, started or written for `TYPED_AT_REST_MS`), ending nothing, and
+  every owner surface reads past it — a send never waits on it, and the owner's voice call ends it. Its typed open marks
+  `/api/talk/typed` with `instance: "e2e"` too, so it is composed with `--test-instance e2e`, held as a test call, and
+  refused beside any conversation of the owner's, at rest or not, rather than replacing one.
 - **Typing into a live call.** A Slack thread link pasted into the box mid-call has to be sendable. So with a call up the box's button
   reads **send to the call**, and it and Enter post the owner's words to `/api/talk/typed-in` (`site/components/voice/
-typedInClient.ts`), which finds the one live voice call itself — the window the owner types in may not hold it — and
-  refuses when there are two, or when the one up was made after the owner pressed send, since another window started it
+typedInClient.ts`), which finds the one live voice call of the sender's own instance itself — the window the owner types
+  in may not hold it, and the test instance marks its body `instance: "e2e"` so the owner's words never reach a test
+  call — and refuses when there are two, or when the one up was made after the owner pressed send, since another window started it
   once the call the owner was typing to had ended. `PlanCall.typeIn` (`site/lib/talkPlanCall.ts`) appends them VERBATIM as a `user` text
   item (`thread/realtime/appendText`), never wrapped inside a developer message, so the voice takes them as the owner's turn;
   a retry under the same page id is never written again and is told what the first write came to, and the call's floor holds every other line of its own until the hand-off ends — a tool's result is not one: it answers a call the voice made and is waiting on, so it is never held.

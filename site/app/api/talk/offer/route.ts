@@ -53,7 +53,8 @@ const BODY_MAX_BYTES = 96 * 1024;
  * @param voice the plan voice
  * @param mode why the page is opening this call — the owner's press, a dropped call coming back, or a rollover in a pause
  * @param signal the press's request signal, so a page gone mid-handshake stops the child
- * @param wanted the owner's voice call, or the desktop test instance's, which starts beside nothing
+ * @param wanted the owner's voice call, or the desktop test instance's, which starts beside nothing but typed
+ *   conversations at rest
  * @returns the leg's outcome
  */
 async function planLeg({
@@ -95,7 +96,9 @@ async function planLeg({
   if (busy !== undefined) {
     return { kind: "refused", reason: busy };
   }
-  const { callId, outcome } = await openPlanCall({ composition, mode, offerSdp: offer, signal });
+  // Held by its instance in the same tick as the check above, so a typed send arriving next already reads past it.
+  const instance = wanted === "e2e-voice" ? "e2e" : "owner";
+  const { callId, outcome } = await openPlanCall({ composition, instance, mode, offerSdp: offer, signal });
   if (outcome.kind !== "open") {
     return outcome;
   }
@@ -183,8 +186,9 @@ export async function POST(request: Request): Promise<NextResponse<TalkOfferResu
   }
   const wanted = instance === "e2e" ? "e2e-voice" : "voice";
   // One conversation at a time (`lib/talkArbiter.ts`): an idle typed one ends here, before `talk offer` composes,
-  // so what the owner typed is already written down as the call's continuity; one still answering refuses the call. The
-  // test instance's call ends nothing: any conversation held refuses it.
+  // so what the owner typed is already written down as the call's continuity; one still answering refuses the call, and
+  // a test call up is ended. The test instance's call ends nothing: a voice call, or a typed conversation not at rest,
+  // refuses it, and it runs beside one at rest without touching it.
   const busy = makeRoomFor({ wanted, why: "the owner started a voice call, which carries the conversation on" });
   if (busy !== undefined) {
     return NextResponse.json(refusal({ notMinted: busy }), { headers });

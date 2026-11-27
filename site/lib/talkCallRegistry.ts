@@ -13,8 +13,16 @@
  */
 import { constants } from "node:os";
 
-import { type ConversationWanted, conversationRuling, type LiveConversation } from "./talkArbiter";
+import { MeetingLedger } from "./meetingLedger";
+import {
+  type ConversationInstance,
+  type ConversationWanted,
+  conversationRuling,
+  type LiveConversation,
+  typedAtRest,
+} from "./talkArbiter";
 import { drainCallThreadJournals, unwrittenCallThreadLines } from "./talkCallThreadJournal";
+import { TalkNoticeLedger } from "./talkNoticeLedger";
 import type { PlanCall } from "./talkPlanCall";
 import { TypedPlanSession } from "./talkTypedSession";
 
@@ -39,8 +47,43 @@ const ENDING_SIGNALS = [
   "SIGPROF",
 ] as const;
 
-/** One held call, and the synchronous SIGKILL of its child. */
-interface HeldCall {
+/**
+ * What a held call was made with beyond the call itself: whose it is, and the ledgers its meeting and notice lines are
+ * claimed in — the server's own for the owner's, a pair of its own for a test call, so a test call never claims a line
+ * the owner's call is still owed ({@link heldContextFor}).
+ */
+export interface HeldPlanCallContext {
+  readonly instance: ConversationInstance;
+  readonly meetings: MeetingLedger;
+  readonly notices: TalkNoticeLedger;
+}
+
+/**
+ * What a call is held with: the owner's share the server's ledgers; a test call gets a fresh pair of its own, so a
+ * meeting or steer note it claims is still the owner's call's to say.
+ *
+ * @param instance whose the call is
+ * @param ownerMeetings the server's own meeting ledger
+ * @param ownerNotices the server's own notice ledger
+ * @returns the context to hold it with
+ */
+export function heldContextFor({
+  instance,
+  ownerMeetings,
+  ownerNotices,
+}: {
+  instance: ConversationInstance;
+  ownerMeetings: MeetingLedger;
+  ownerNotices: TalkNoticeLedger;
+}): HeldPlanCallContext {
+  if (instance === "e2e") {
+    return { instance, meetings: new MeetingLedger(), notices: new TalkNoticeLedger() };
+  }
+  return { instance, meetings: ownerMeetings, notices: ownerNotices };
+}
+
+/** One held call, what it was made with, and the synchronous SIGKILL of its child. */
+interface HeldCall extends HeldPlanCallContext {
   readonly call: PlanCall;
   readonly killNow: () => void;
 }
@@ -72,11 +115,20 @@ function state(): RegistryState {
  * Hold a call until it ends, and make sure the server's own exit ends it.
  *
  * @param call the call, whose `onEnded` must call {@link forgetPlanCall}
+ * @param context whose it is and the ledgers it was made with
  * @param killNow SIGKILLs its child at once, for a signal that may never reach an `exit` event
  */
-export function holdPlanCall({ call, killNow }: { call: PlanCall; killNow: () => void }): void {
+export function holdPlanCall({
+  call,
+  context,
+  killNow,
+}: {
+  call: PlanCall;
+  context: HeldPlanCallContext;
+  killNow: () => void;
+}): void {
   const registry = state();
-  registry.calls.set(call.id, { call, killNow });
+  registry.calls.set(call.id, { ...context, call, killNow });
   if (!registry.exitHooked) {
     registry.exitHooked = true;
     process.once("exit", () => {
@@ -218,41 +270,133 @@ export function livePlanCalls(): readonly PlanCall[] {
 }
 
 /**
- * Every conversation held now, by id and surface alone — what `/api/talk/held` answers the desktop e2e call leg's
- * preflight with, so it can see one of the owner's that holds no lease.
+ * What `/api/talk/held` answers of each conversation held: its id, its surface and whether it is a typed one at rest.
+ */
+export interface HeldConversationView {
+  readonly id: string;
+  readonly surface: "voice" | "typed";
+  readonly atRest: boolean;
+}
+
+/**
+ * Every conversation held now, the test instance's calls included — what `/api/talk/held` answers the desktop e2e call
+ * leg's preflight with, so it can see one of the owner's that holds no lease, and whether a typed one is at rest.
  *
+ * @param nowMs the server's clock now, read once for every row
  * @returns each held one, in the order they were held
  */
-export function heldConversations(): readonly { readonly id: string; readonly surface: "voice" | "typed" }[] {
-  return livePlanCalls().map((call) => ({ id: call.id, surface: call.surface }));
+export function heldConversations({ nowMs }: { nowMs: number }): readonly HeldConversationView[] {
+  return [...state().calls.values()].map((held) => ({
+    atRest: viewOf({ held, nowMs }).atRest,
+    id: held.call.id,
+    surface: held.call.surface,
+  }));
+}
+
+/**
+ * One held call as the arbiter reads it.
+ *
+ * @param held the held call
+ * @param nowMs the server's clock now
+ * @returns its surface, whether it is answering, whether it is a test call and whether it is a typed one at rest
+ */
+function viewOf({ held, nowMs }: { held: HeldCall; nowMs: number }): LiveConversation {
+  const { call, instance } = held;
+  if (!(call instanceof TypedPlanSession)) {
+    return { atRest: false, replying: false, surface: call.surface, test: instance === "e2e" };
+  }
+  return liveTypedConversationOf({
+    activityMs: call.activityMs,
+    nowMs,
+    replying: call.replying,
+    test: instance === "e2e",
+  });
+}
+
+/**
+ * A typed conversation as the arbiter reads it. Pure, so what makes one at rest is tested without a child.
+ *
+ * @param activityMs when it was last active
+ * @param nowMs the server's clock now
+ * @param replying whether its thread is answering, or a send is out
+ * @param test whether a test instance holds it — never so today, and then never at rest
+ * @returns the arbiter's row
+ */
+export function liveTypedConversationOf({
+  activityMs,
+  nowMs,
+  replying,
+  test,
+}: {
+  activityMs: number;
+  nowMs: number;
+  replying: boolean;
+  test: boolean;
+}): LiveConversation {
+  const atRest = !test && typedAtRest({ lastActiveMs: activityMs, nowMs, replying });
+  return { atRest, replying, surface: "typed", test };
 }
 
 /**
  * The live ones as the arbiter reads them: a call is never `replying` to it, since only a typed answer holds a call.
  *
- * @returns each live one's surface and whether it is answering now
+ * @param nowMs the server's clock now, read once for every row
+ * @returns each live one's surface, whether it is answering now, whether it is a test call and whether it is at rest
  */
-export function liveConversations(): readonly LiveConversation[] {
-  return livePlanCalls().map((call) => ({
-    replying: call instanceof TypedPlanSession && call.replying,
+export function liveConversations({ nowMs }: { nowMs: number }): readonly LiveConversation[] {
+  return [...state().calls.values()].map((held) => viewOf({ held, nowMs }));
+}
+
+/**
+ * Every live call with whether it is a test call — what the typed-in route picks the owner's voice call from
+ * (`./talkArbiter.ts` `liveVoiceCallOf`), so the owner's words never go into a test call.
+ *
+ * @returns each live call, its surface, when it was made and whether it is a test call, in the order they were held
+ */
+export function liveCallsByInstance(): readonly {
+  readonly call: PlanCall;
+  readonly surface: "voice" | "typed";
+  readonly madeMs: number;
+  readonly test: boolean;
+}[] {
+  return [...state().calls.values()].map(({ call, instance }) => ({
+    call,
+    madeMs: call.madeMs,
     surface: call.surface,
+    test: instance === "e2e",
   }));
 }
 
 /**
- * Make room for a conversation on `wanted` if the arbiter allows one now, ending the live ones it names.
+ * What a live call was made with: whose it is, and its own ledgers — what a route that claims a meeting or notice line
+ * for one call reads, so a test call's claim never lands in the owner's ledger.
+ *
+ * @returns the context, or `undefined` when none is live under that id
+ */
+export function planCallContextById({ id }: { id: string }): HeldPlanCallContext | undefined {
+  const held = state().calls.get(id);
+  if (held === undefined) {
+    return undefined;
+  }
+  return { instance: held.instance, meetings: held.meetings, notices: held.notices };
+}
+
+/**
+ * Make room for a conversation on `wanted` if the arbiter allows one now, ending the live ones it names. One snapshot
+ * of the registry and one instant: the ruling's indices are the calls ended.
  *
  * @param wanted the surface about to start
  * @param why what the ended ones are told
  * @returns `undefined` when the start may go ahead, else why not
  */
 export function makeRoomFor({ wanted, why }: { wanted: ConversationWanted; why: string }): string | undefined {
-  const live = livePlanCalls();
-  const ruling = conversationRuling({ live: liveConversations(), wanted });
+  const held = [...state().calls.values()];
+  const nowMs = Date.now();
+  const ruling = conversationRuling({ live: held.map((one) => viewOf({ held: one, nowMs })), wanted });
   if (ruling.kind === "refused") {
     return ruling.reason;
   }
-  for (const [index, call] of live.entries()) {
+  for (const [index, { call }] of held.entries()) {
     if (ruling.end.includes(index)) {
       call.stop({ reason: why });
     }

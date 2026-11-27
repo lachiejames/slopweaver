@@ -5,15 +5,17 @@
  *
  * No call id in the path: the window the owner types in may not be the one holding the call, so the server finds the one
  * live voice call itself (`liveVoiceCallOf`, `site/lib/talkArbiter.ts`) and refuses rather than guesses when there are
- * two, or when the one up was made after the owner pressed send. The body is `{ messageId, pressedMs, text }`; the id is the
+ * two, or when the one up was made after the owner pressed send. Only a call of the sender's own instance is a pick: the
+ * desktop test instance's page marks its body `instance: "e2e"` as its offer does, so the owner's words never reach a test
+ * call. The body is `{ messageId, pressedMs, text }`, plus that mark; the id is the
  * page's own, so a retry of a send whose answer was lost is answered `already` and never reaches the voice twice. What the voice makes of it reaches the holding page on the
  * call's own event stream, never in this answer.
  */
 import { NextResponse } from "next/server";
 
 import { TYPED_MESSAGE_ID_MAX_CHARS, TYPED_TEXT_MAX_CHARS } from "../../../../lib/planCallContract";
-import { liveVoiceCallOf } from "../../../../lib/talkArbiter";
-import { livePlanCalls } from "../../../../lib/talkCallRegistry";
+import { instanceOfBody, liveVoiceCallOf } from "../../../../lib/talkArbiter";
+import { liveCallsByInstance } from "../../../../lib/talkCallRegistry";
 import { readConsoleBody } from "../../../../lib/talkCallRequest";
 
 /** Never prerendered: it writes to a live call. */
@@ -40,7 +42,7 @@ export type TalkTypedInResult =
 /**
  * Hand the owner's message to the live call's voice.
  *
- * @param request the press, with a `{ messageId, pressedMs, text }` JSON body
+ * @param request the press, with a `{ messageId, pressedMs, text }` JSON body, `instance: "e2e"` on the test instance's
  * @returns whether the voice was handed it (or had been), or why not
  */
 export async function POST(request: Request): Promise<NextResponse<TalkTypedInResult>> {
@@ -64,7 +66,12 @@ export async function POST(request: Request): Promise<NextResponse<TalkTypedInRe
   if (typeof pressedMs !== "number" || !Number.isFinite(pressedMs)) {
     return refuse({ refused: "the body carries no pressedMs instant", status: 400 });
   }
-  const pick = liveVoiceCallOf({ live: livePlanCalls(), pressedMs });
+  const marked = instanceOfBody({ body: read.body });
+  if ("refused" in marked) {
+    return refuse({ refused: marked.refused, status: 400 });
+  }
+  // Only a call of the sender's own instance is a pick, so the owner's words never reach a test call.
+  const pick = liveVoiceCallOf({ instance: marked.instance, live: liveCallsByInstance(), pressedMs });
   if (pick.kind === "none") {
     return NextResponse.json<TalkTypedInResult>(
       { ambiguous: false, gone: true, ok: false, refused: pick.reason },
@@ -74,7 +81,7 @@ export async function POST(request: Request): Promise<NextResponse<TalkTypedInRe
   if (pick.kind === "several" || pick.kind === "newer") {
     return refuse({ refused: pick.reason, status: 409 });
   }
-  const typed = await pick.call.typeIn({ messageId, text });
+  const typed = await pick.call.call.typeIn({ messageId, text });
   if (typed.kind === "sent" || typed.kind === "already") {
     return NextResponse.json<TalkTypedInResult>({ already: typed.kind === "already", ok: true }, { headers });
   }

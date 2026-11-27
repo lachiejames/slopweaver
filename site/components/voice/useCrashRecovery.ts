@@ -17,6 +17,7 @@ import {
 } from "../../lib/overlayCrashRecovery";
 import type { DesktopVoiceSeam } from "./desktopVoiceSeam";
 import { stopCrashedPlanCall } from "./planCallClient";
+import { windowInstance } from "./useDesktopShell";
 import type { LiveMeta } from "./voiceContext";
 
 /**
@@ -82,7 +83,7 @@ export function useCrashRecovery({
   const asked = useRef(false);
   const take = desktop?.takeRecovery;
   // The test instance marks the closing batch too, so a crash never lands the walk's call as the owner's.
-  const instance = desktop?.instance;
+  const instance = windowInstance();
   // Read through a ref, so a provider re-rendering hands the one ask its latest callback without asking again.
   const latest = useRef(failed);
   useEffect(() => {

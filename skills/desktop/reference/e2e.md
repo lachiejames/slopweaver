@@ -105,7 +105,7 @@ that instance only: sandboxed, the audio service cannot open the file and the ca
 That transcript is MARKED, because the owner's console serves the call and the server's origin alone would read it as the owner's.
 The test instance's windows carry `--slopweaver-instance=e2e` (`desktop/src/desktopBridge.ts`), the preload exposes
 whatever value that argument has as `window.slopweaverDesktop.instance`, and the page reads ANY marker present as the
-test instance's (`site/lib/desktopShell.ts` `bridgeInstance`), so a malformed one is never dropped into the owner's words; it
+test instance's, its bridge kept or refused (`site/lib/desktopShell.ts` `instanceMarkOf`), so a malformed one is never dropped into the owner's words; it
 sends `instance: "e2e"` with every transcript batch, retries included. The route passes `talk transcript
 --console-instance e2e` beside the server-derived origin flags, never in place of them, and the verb stamps
 `origin.instance: "e2e"` on the open line (`src/talk/callOrigin.ts`). A marked origin is never the owner's: `talk unread` sets
@@ -145,10 +145,11 @@ ended. A candidate bundle reads the console it is pointed at, so the leg proves 
 **Safety, in code rather than prose.** The leg holds the `desktop-e2e-call` operation lock; before each scenario it
 reads the on-call hold, then every console's call leases AND the call registry (`GET /api/talk/held`) of the target and
 of every checkout the owner declares, whether or not git confirms it this instant. A live lease holds the run AT ONCE (`CALL_ALREADY_LIVE`, exit 4), never waited out:
-the previous scenario proved its own leases gone, so a live one is a call it did not place. A held conversation, voice
-or typed, is waited out, then refused (`CONVERSATION_HELD`): an idle typed conversation of the owner's holds no lease, and a
-test offer would end it. An unreachable registry is waited on, then refused; no recorded server holds nothing. Last it
-reads every call in the shared call store, whatever its file's modified time, so a call held in
+the previous scenario proved its own leases gone, so a live one is a call it did not place. A held voice call, or a typed
+conversation not yet at rest (ten quiet minutes, a chosen bound, `TYPED_AT_REST_MS`), is waited out, then refused
+(`CONVERSATION_HELD`). One at rest it runs beside, untouched and a stranger to it, saying so on a `PREFLIGHT` line, bar
+before a scenario that types into the messenger (`besideAtRestFor`, `src/desktop/heldConversations.ts`). An unreachable
+registry is waited on, then refused; no recorded server holds nothing. Last it reads every call in the shared call store, whatever its file's modified time, so a call held in
 ANOTHER console whose lease lapsed is seen too: any call this leg did not place, another leg's included, never ended and
 heard from in the last five minutes is waited out (`CALL_STILL_OPEN`, `src/desktop/unendedCalls.ts`), and the hold is
 read once more (`src/cli/commands/desktop/e2eCallLegPlan.ts`). The reads are snapshots, not a lock the owner's calls take,
@@ -159,7 +160,7 @@ microphone is also what catches a call of the owner's whose console stopped writ
 window reads as abandoned. Two residuals, stated: a call the owner opens AND ends inside one scenario, its transcript still
 queued, since nothing on disk records it yet; and a call whose console stopped beating, writing AND holding the
 microphone for five minutes, which nothing on this machine tells from a dropped one. The console refuses the test instance's offer
-beside any held conversation too (`e2e-voice`, `site/lib/talkArbiter.ts`); every Talk press waits for zero live leases.
+beside anything but a typed conversation at rest too, ending nothing (`e2e-voice`, `site/lib/talkArbiter.ts`); every Talk press waits for zero live leases.
 A crashed page may place a call with no press, so the whole hold is read before every renderer crash, allowing one live
 lease per test call the scenario has placed (a crashed call's lease outlives it by up to a minute): one more live
 lease, a torn one or a microphone in use holds the leg. Every typed send reads the same whole

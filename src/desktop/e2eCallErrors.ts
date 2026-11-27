@@ -79,16 +79,28 @@ export const E2eCallErrors = {
     const typed = held.length - voice;
     const named = [
       ...(voice > 0 ? [`${String(voice)} voice call(s)`] : []),
-      ...(typed > 0 ? [`${String(typed)} typed conversation(s)`] : []),
+      ...(typed > 0 ? [`${String(typed)} typed conversation(s) not yet at rest`] : []),
     ].join(" and ");
     return {
       code: "CONVERSATION_HELD",
       held,
       message:
-        `the console's call registry holds ${named}, with or without a live lease — a test call would end a typed ` +
-        "one or sit beside a call, so none is placed; re-run once it has ended",
+        `the console's call registry holds ${named}, with or without a live lease — a test call runs beside nothing ` +
+        "but a typed conversation at rest, so none is placed; re-run once it has ended or gone quiet",
     };
   },
+  conversationHeldForTypedOpen: ({
+    held,
+  }: {
+    held: readonly { readonly id: string; readonly surface: "voice" | "typed" }[];
+  }): E2eCallError => ({
+    code: "CONVERSATION_HELD",
+    held,
+    message:
+      `the console's call registry holds ${String(held.length)} conversation(s), with or without a live lease — this ` +
+      "scenario opens a typed conversation, which replaces every typed one held, at rest or not, so it runs beside " +
+      "none; re-run once each has ended",
+  }),
   conversationsUnreadable: ({ detail }: { detail: string }): E2eCallError => ({
     code: "CONVERSATIONS_UNREADABLE",
     message: `${detail} — whether the console holds a conversation cannot be told, so no test call is placed`,

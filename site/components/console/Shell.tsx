@@ -3,7 +3,6 @@
 import { type ReactElement, type ReactNode, useMemo } from "react";
 
 import { identityForShell } from "../../lib/desktopPageReading";
-import { bridgeInstance } from "../../lib/desktopShell";
 import { SIDEBAR_ENTRIES } from "../../lib/sidebarCounts";
 import { cn } from "../../lib/utils";
 import {
@@ -112,8 +111,6 @@ export function Shell({ children }: { children: ReactNode }): ReactElement {
     const seam: DesktopVoiceSeam = {
       callActiveElsewhere,
       ...(bridge.carriesPageReading === true ? { carriesPageReading: true } : {}),
-      // Anything this window records for the desktop test instance is the walk's, never the owner's.
-      ...(bridgeInstance({ bridge }) === "e2e" ? { instance: "e2e" } : {}),
       // The voice's window asks this window for the Queue it holds, so a Queue tool reads what the owner sees.
       ...(bridge.onVoiceQueueRequest === undefined ? {} : { serveVoiceQueue: bridge.onVoiceQueueRequest }),
       publishPage: (identity) => {

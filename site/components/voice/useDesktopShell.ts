@@ -14,6 +14,7 @@ import {
   type DesktopRole,
   desktopBridgeOf,
   desktopRoleOf,
+  instanceMarkOf,
   updateBridgeOf,
 } from "../../lib/desktopShell";
 import { type OverlayStatus, overlayReportOf } from "../../lib/desktopShellOverlay";
@@ -53,6 +54,19 @@ export function desktopBridge(): DesktopBridge | undefined {
     return undefined;
   }
   return desktopBridgeOf({ value: window.slopweaverDesktop });
+}
+
+/**
+ * Whose this window is: `e2e` on a window the desktop test instance's shell marked, read whether or not its bridge is
+ * kept (`instanceMarkOf`), so a test window's request is never posted as the owner's.
+ *
+ * @returns `e2e`, or `undefined` on the owner's own app, a browser, or the server
+ */
+export function windowInstance(): "e2e" | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+  return instanceMarkOf({ value: window.slopweaverDesktop });
 }
 
 /**

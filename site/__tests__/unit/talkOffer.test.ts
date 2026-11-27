@@ -4,7 +4,14 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { cutMarked, offerArgvOf, offerResultOf, REFUSAL_SHOWN_MAX_CHARS, type TalkMinted } from "../../lib/talkOffer";
+import {
+  cutMarked,
+  offerArgvOf,
+  offerResultOf,
+  REFUSAL_SHOWN_MAX_CHARS,
+  type TalkMinted,
+  typedOfferArgvOf,
+} from "../../lib/talkOffer";
 
 const MINTED: TalkMinted = {
   backendModel: "b",
@@ -41,6 +48,15 @@ describe("offerArgvOf", () => {
       "talk offer --voice sol --json --test-instance e2e",
       "talk offer --voice sol --json --reconnect --test-instance e2e",
     ]);
+  });
+});
+
+describe("typedOfferArgvOf", () => {
+  it("marks only the desktop test instance's typed open as a test instance's", () => {
+    expect([
+      typedOfferArgvOf({ instance: "owner" }).join(" "),
+      typedOfferArgvOf({ instance: "e2e" }).join(" "),
+    ]).toEqual(["talk offer --typed --json", "talk offer --typed --json --test-instance e2e"]);
   });
 });
 

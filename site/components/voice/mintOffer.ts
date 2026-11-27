@@ -20,7 +20,8 @@ import type { LiveMeta } from "./voiceContext";
  * @param signal aborts the trade when the connection gives up on it
  * @param voice the ChatGPT voice the call speaks in
  * @param mode why the page is opening this call, so the voice is told to carry on, or to wait silently after a rollover
- * @param instance `"e2e"` on the desktop test instance, whose call the console refuses beside any conversation it holds
+ * @param instance `"e2e"` on the desktop test instance, whose call the console refuses beside anything it holds but a
+ *   typed conversation at rest
  * @returns the SDP answer, what was minted, and whether the context pack rode in
  */
 export async function mintOffer({

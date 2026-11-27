@@ -104,6 +104,21 @@ export function offerArgvOf({
 }
 
 /**
+ * The `slopweaver talk offer --typed` argv a typed open runs. The desktop test instance's carries `--test-instance e2e`,
+ * so its composition reads no conversation typed into the messenger (`src/talk/continuityCalls.ts` `callsForMint`).
+ *
+ * @param instance the owner's page, or the desktop test instance's
+ * @returns the argv after `slopweaver`
+ */
+export function typedOfferArgvOf({ instance }: { instance: "owner" | "e2e" }): readonly string[] {
+  const argv = ["talk", "offer", "--typed", "--json"];
+  if (instance === "e2e") {
+    argv.push("--test-instance", "e2e");
+  }
+  return argv;
+}
+
+/**
  * The page's answer for one plan leg: the call, or why there is none, the refusal cut at
  * {@link REFUSAL_SHOWN_MAX_CHARS} and saying so.
  *

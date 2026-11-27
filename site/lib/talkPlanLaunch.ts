@@ -25,7 +25,8 @@ import type { CallOpenMode } from "./callRollover";
 import { originArgvOfServer } from "./consoleOrigin";
 import { processMeetingLedger } from "./meetingLedger";
 import type { PlanOpenOutcome } from "./planCallContract";
-import { forgetPlanCall, holdPlanCall } from "./talkCallRegistry";
+import type { ConversationInstance } from "./talkArbiter";
+import { forgetPlanCall, heldContextFor, holdPlanCall } from "./talkCallRegistry";
 import { callThreadJournalFor } from "./talkCallThreadAppend";
 import { processTalkNoticeLedger } from "./talkNoticeLedger";
 import { PlanCall } from "./talkPlanCall";
@@ -75,6 +76,7 @@ export function planChildEnvironment({
  *   rollover carries it on
  * @param offerSdp the page's WebRTC offer
  * @param signal the press's own request signal: the page going away mid-handshake stops the call there
+ * @param instance the owner's call, or the desktop test instance's
  * @returns the call's id with the handshake's outcome; any outcome but `open` has already killed the child
  */
 export async function openPlanCall({
@@ -82,15 +84,20 @@ export async function openPlanCall({
   mode,
   offerSdp,
   signal,
+  instance,
 }: {
   composition: PlanComposition;
   mode: CallOpenMode;
   offerSdp: string;
   signal: AbortSignal;
+  instance: ConversationInstance;
 }): Promise<{ readonly callId: string; readonly outcome: PlanOpenOutcome }> {
-  const call = startPlanChild({ composition, make: (deps) => new PlanCall(deps) });
-  // Seated as it is made, so a later call's triage card always outranks this one's late answers.
-  processTriagePresented().seat({ call, mode });
+  const call = startPlanChild({ composition, instance, make: (deps) => new PlanCall(deps) });
+  // Seated as it is made, so a later call's triage card always outranks this one's late answers. A test call is never
+  // seated: a fresh seat clears the card the owner's call presented, and every triage step passes an unseated call by.
+  if (instance === "owner") {
+    processTriagePresented().seat({ call, mode });
+  }
   const outcome = await whileMinting({ call, run: () => call.open({ composition, offerSdp }), signal });
   const event = { kind: "opened", outcome: outcome.kind } as const;
   console.info(planCallLogLine({ atIso: new Date().toISOString(), event, id: call.id }));
@@ -102,16 +109,19 @@ export async function openPlanCall({
  *
  * @param composition what `talk offer --typed` composed
  * @param signal the press's own request signal: the page going away mid-open stops the conversation there
+ * @param instance the owner's conversation, or the desktop test instance's, held as a test call
  * @returns the conversation's id with how opening it ended; any outcome but `open` has already killed the child
  */
 export async function openTypedSession({
   composition,
+  instance,
   signal,
 }: {
   composition: PlanComposition;
+  instance: ConversationInstance;
   signal: AbortSignal;
 }): Promise<{ readonly callId: string; readonly outcome: TypedOpenOutcome }> {
-  const session = startPlanChild({ composition, make: (deps) => new TypedPlanSession(deps) });
+  const session = startPlanChild({ composition, instance, make: (deps) => new TypedPlanSession(deps) });
   const outcome = await whileMinting({ call: session, run: () => session.openTyped({ composition }), signal });
   return { callId: session.id, outcome };
 }
@@ -151,16 +161,24 @@ async function whileMinting<T>({
  * Start the composition's child, wire it to the call `make` builds, and hold that call until it ends.
  *
  * @param composition what the verb composed
+ * @param instance whose it is, which picks the ledgers it claims its lines in
  * @param make builds the call over the child's port, this server's clock and a fresh id
  * @returns the held call
  */
 function startPlanChild<C extends PlanCall>({
   composition,
+  instance,
   make,
 }: {
   composition: PlanComposition;
+  instance: ConversationInstance;
   make: (deps: ConstructorParameters<typeof PlanCall>[0]) => C;
 }): C {
+  const context = heldContextFor({
+    instance,
+    ownerMeetings: processMeetingLedger(),
+    ownerNotices: processTalkNoticeLedger(),
+  });
   const cwd = mkdtempSync(join(tmpdir(), "slopweaver-talk-plan-"));
   const child = spawn(composition.executable, [...composition.argv], {
     cwd,
@@ -187,9 +205,9 @@ function startPlanChild<C extends PlanCall>({
     },
     id,
     journal: callThreadJournalFor({ callId: id, origin: originArgvOfServer() }),
-    meetings: processMeetingLedger(),
+    meetings: context.meetings,
     mintToken: () => randomUUID(),
-    notices: processTalkNoticeLedger(),
+    notices: context.notices,
     onEnded: ({ id: ended }) => {
       forgetPlanCall({ id: ended });
     },
@@ -221,7 +239,7 @@ function startPlanChild<C extends PlanCall>({
       child.kill("SIGKILL");
     }
   };
-  holdPlanCall({ call, killNow: killOnServerExit });
+  holdPlanCall({ call, context, killNow: killOnServerExit });
   process.once("exit", killOnServerExit);
   child.stdin.on("error", () => undefined);
   child.stdout.setEncoding("utf8");

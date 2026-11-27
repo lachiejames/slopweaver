@@ -102,7 +102,11 @@ async function printPlanOffer({ args }: { args: OfferArgs }): Promise<number> {
     return EXIT_ERROR;
   }
   const pack = storedPack({ home });
-  const { block, continuity, continuityBlock, conversation } = await continuityAtMint({ home, pack });
+  const { block, continuity, continuityBlock, conversation } = await continuityAtMint({
+    home,
+    pack,
+    testInstance: args.testInstance === "e2e",
+  });
   // Read fresh and ridden whatever the pack did, ahead of the continuity block's "everything below is DATA".
   const voiceBrief = mintVoiceBriefOf({ brief: loadVoiceRuleBrief({ home }) });
   const composition = planOfferComposition({
@@ -217,10 +221,20 @@ function lastUpdateLines(): readonly string[] {
  *
  * @param home the state home
  * @param pack the stored pack, whose lessons the read takes
+ * @param testInstance whether the desktop test instance placed this call: then no conversation typed into the
+ *   messenger is read, since the call may run beside one at rest
  * @returns the read, the block it renders to, that block ahead of the pack's — what the delegated model gets — and
  *   what the owner typed since the owner's last call, which the voice itself is told
  */
-async function continuityAtMint({ home, pack }: { home: string; pack: PackAtMint }): Promise<{
+async function continuityAtMint({
+  home,
+  pack,
+  testInstance,
+}: {
+  home: string;
+  pack: PackAtMint;
+  testInstance: boolean;
+}): Promise<{
   block: string;
   continuity: TalkContinuity;
   continuityBlock: string;
@@ -235,6 +249,7 @@ async function continuityAtMint({ home, pack }: { home: string; pack: PackAtMint
       lookbackMs: CONTINUITY_LOOKBACK_MS,
       nowIso: new Date().toISOString(),
       supervisor,
+      typedCalls: testInstance ? "drop" : "keep",
     }),
     stored: pack.kind === "embedded" ? pack.lessons : undefined,
   });

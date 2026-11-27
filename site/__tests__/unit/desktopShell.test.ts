@@ -5,9 +5,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  bridgeInstance,
   desktopBridgeOf,
   desktopRoleOf,
+  instanceMarkOf,
   NOTICE_SUMMARY_MAX,
   NOTICE_WIRE_DETAIL_MAX,
   pageIdentityOf,
@@ -99,13 +99,29 @@ describe("desktopBridgeOf and desktopRoleOf", () => {
     expect(desktopBridgeOf({ value: { ...WHOLE, carriesOpenCard: "yes", role: "main" } })).toBe(undefined);
   });
 
-  // Refusing the bridge over a malformed marker would leave the page posting as a plain browser, read as the owner's.
-  it("reads every test-instance marker present as the test instance's, and none on the owner's own app", () => {
-    const marked = ({ instance }: { instance: unknown }): "e2e" | undefined =>
-      bridgeInstance({ bridge: desktopBridgeOf({ value: { ...WHOLE, instance, role: "overlay" } })! });
+  // A malformed marker read as none would leave the page posting as a plain browser, ruled the owner's.
+  it("reads every test-instance marker present as the test instance's, and none on the owner's own app or a browser", () => {
     const values: readonly unknown[] = ["e2e", "E2E", "", true];
-    expect(values.map((instance) => marked({ instance }))).toEqual(["e2e", "e2e", "e2e", "e2e"]);
-    expect(bridgeInstance({ bridge: desktopBridgeOf({ value: { ...WHOLE, role: "overlay" } })! })).toBe(undefined);
+    expect(values.map((instance) => instanceMarkOf({ value: { ...WHOLE, instance, role: "overlay" } }))).toEqual([
+      "e2e",
+      "e2e",
+      "e2e",
+      "e2e",
+    ]);
+    expect(instanceMarkOf({ value: { ...WHOLE, role: "overlay" } })).toBe(undefined);
+    expect(instanceMarkOf({ value: undefined })).toBe(undefined);
+  });
+
+  // A test window whose bridge is refused draws as a browser; a mark read off the kept bridge would post unmarked.
+  it("keeps the test-instance mark on a shell object the console refuses as its bridge", () => {
+    const { onPageIdentity: _missing, ...partial } = WHOLE;
+    const refused: readonly unknown[] = [
+      { ...partial, instance: "e2e", role: "overlay" },
+      { ...WHOLE, carriesOpenCard: "yes", instance: "e2e", role: "main" },
+      { ...WHOLE, instance: "e2e", role: "browser" },
+    ];
+    expect(refused.map((value) => desktopBridgeOf({ value }))).toEqual([undefined, undefined, undefined]);
+    expect(refused.map((value) => instanceMarkOf({ value }))).toEqual(["e2e", "e2e", "e2e"]);
   });
 
   it("refuses an object whose status method is there but not a function", () => {

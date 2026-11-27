@@ -8,10 +8,13 @@
  * **One leg at a time, and never beside a live call.** The leg holds an operation lock for its whole run, so two seats
  * cannot place calls at once, and before each scenario it reads every console's call leases AND the target console's
  * call registry: a live lease — the owner's call, another checkout's, a mint still connecting — or a microphone another app
- * holds is refused at once (`../../../desktop/onCallHold.ts`), and a held conversation, voice or
- * typed, is waited out, then refused. Any lease unreadable fails closed at once; a registry
+ * holds is refused at once (`../../../desktop/onCallHold.ts`), and a held voice call, or a typed conversation not yet
+ * at rest, is waited out, then refused. A typed conversation at rest it runs beside, untouched — except before a scenario
+ * that types into the messenger, which waits on every held conversation, since a typed one it opens replaces them
+ * (`../../../desktop/heldConversations.ts` `besideAtRestFor`). Any lease unreadable fails closed at once; a registry
  * unreadable (a rebuild swapping the server) is waited on, then refused. The console refuses the test instance's
- * offer beside a held conversation too (`site/lib/talkArbiter.ts`), closing the gap between the read and the call. A
+ * offer beside anything but a typed conversation at rest too (`site/lib/talkArbiter.ts`), closing the gap between the
+ * read and the call. A
  * call the owner opens in ANOTHER console after the last read is not prevented — the reads are snapshots, never a lock their
  * consoles take — so the shared call store is read again after every scenario, and a call it did not place that was
  * open while the scenario ran stops the leg (`./e2eCallLegPlan.ts` `stopAfter`). A scenario whose calls cannot be
@@ -33,6 +36,7 @@ import { failed } from "../../../desktop/e2eOutcome.js";
 import type { E2eStepResult } from "../../../desktop/e2eReport.js";
 import type { E2eTranscriptFidelityTrial } from "../../../desktop/e2eTranscriptFidelityReport.js";
 import type { E2eWorkContext } from "../../../desktop/e2eWorkContext.js";
+import { besideAtRestFor } from "../../../desktop/heldConversations.js";
 import { heldOnCall, isOnCallHold, type OnCallHoldError } from "../../../desktop/onCallHold.js";
 import { disarmReopenProbe } from "../../../talk/e2eReopenProbe.js";
 import { cardNextDrive } from "./e2eCallCardNextScenario.js";
@@ -379,7 +383,7 @@ async function walkPlanned({
     }
     const fromMs = Date.now();
     const placed = results.flatMap((done) => (done.call === undefined ? [] : done.call.transcriptCallIds));
-    const refused = await preflight({ consoles: options.consoles, home: options.home, placed, waitMs });
+    const refused = await preflight({ besideAtRest: besideAtRestFor({ id: step.id }), leg: options, placed, waitMs });
     if (refused !== undefined) {
       release();
       return { fatal: refused.message, heldOnCall: heldOnCall({ code: refused.code }), fidelityTrials, results };

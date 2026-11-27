@@ -50,7 +50,7 @@ export interface DesktopBridge extends TriageBridge, GlowBridge, PlaceBridge {
   /**
    * The test-instance marker the shell started this window with — `e2e` for the desktop TEST instance's (`slopweaver
    * desktop e2e`). Absent on the owner's own app and under a shell from before the marker. Read it through
-   * {@link bridgeInstance}, which takes any value present as the test instance's.
+   * {@link instanceMarkOf}, which takes any value present as the test instance's, valid bridge or not.
    */
   readonly instance?: unknown;
   readonly requestOverlay: (input: { readonly command: OverlayCommand }) => void;
@@ -426,7 +426,7 @@ function isDesktopBridge(value: unknown): value is DesktopBridge {
     value["carriesOpenTitle"],
     value["supportsTypedScreenLook"],
   ];
-  // Any test-instance marker keeps the bridge: `bridgeInstance` reads every one present as the test instance's.
+  // The test-instance marker is not checked here: `instanceMarkOf` reads it whether or not the bridge is kept.
   return (
     METHODS.every((method) => typeof value[method] === "function") &&
     OPTIONAL_METHODS.every((method) => value[method] === undefined || typeof value[method] === "function") &&
@@ -435,15 +435,21 @@ function isDesktopBridge(value: unknown): value is DesktopBridge {
 }
 
 /**
- * The marker every call this window places carries: `e2e` whenever the shell passed one at all. A value it did not spell
- * exactly is still a window that is not the owner's app, so it is read as the test instance's rather than dropped into the
- * owner's own, where refusing the bridge would leave the page posting as a plain browser does.
+ * The marker every call and typed conversation this window opens carries: `e2e` whenever the shell's preload passed one at
+ * all. Read off the raw `window.slopweaverDesktop`, never off {@link desktopBridgeOf}: a test bundle older than the console
+ * page lacks a method the page now expects, so its bridge is refused and the page runs as a browser, and a mark read
+ * through the bridge would be lost with it, posting the test window's offer as the owner's own, which ends the owner's
+ * typed conversation. A value the shell did not spell exactly is still a window that is not the owner's app, so it is read
+ * as the test instance's too.
  *
- * @param bridge the shell's object
- * @returns `e2e` for a window the shell marked, `undefined` on the owner's own app
+ * @param value what `window.slopweaverDesktop` holds
+ * @returns `e2e` for a window the shell marked, `undefined` on the owner's own app or a browser
  */
-export function bridgeInstance({ bridge }: { bridge: DesktopBridge }): "e2e" | undefined {
-  return bridge.instance === undefined ? undefined : "e2e";
+export function instanceMarkOf({ value }: { value: unknown }): "e2e" | undefined {
+  if (!isRecord(value) || value["instance"] === undefined) {
+    return undefined;
+  }
+  return "e2e";
 }
 
 /**

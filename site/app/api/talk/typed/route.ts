@@ -10,6 +10,10 @@
  * The mint holds the console's rebuild swap like a call's does, and gives it back once the thread is open: a typed
  * conversation idles between messages for as long as the page is open, and a rebuild held that long is no rebuild.
  * One a rebuild ends is minted again on the owner's next send.
+ *
+ * The desktop test instance's page marks its body `instance: "e2e"`, as its offer does: its conversation is composed
+ * with `--test-instance e2e`, so it reads no conversation typed into the messenger, is held as a test call, and opens
+ * beside nothing of the owner's (`lib/talkArbiter.ts`), so a test typed open never replaces the owner's conversation.
  */
 import { NextResponse } from "next/server";
 
@@ -21,8 +25,14 @@ import { startPackKeeper } from "../../../../lib/packKeeper";
 import { PLAN_CALL_LIMITS } from "../../../../lib/planCallContract";
 import { mintCarriesStandingData } from "../../../../lib/relayGate";
 import { spawnVerb } from "../../../../lib/spawnVerb";
+import { type ConversationInstance, instanceOfBody, typedWantedOf } from "../../../../lib/talkArbiter";
 import { makeRoomFor } from "../../../../lib/talkCallRegistry";
-import { cutMarked, OFFER_COMPOSE_TIMEOUT_MS, REFUSAL_SHOWN_MAX_CHARS } from "../../../../lib/talkOffer";
+import {
+  cutMarked,
+  OFFER_COMPOSE_TIMEOUT_MS,
+  REFUSAL_SHOWN_MAX_CHARS,
+  typedOfferArgvOf,
+} from "../../../../lib/talkOffer";
 import { openTypedSession } from "../../../../lib/talkPlanLaunch";
 import { planCompositionOf } from "../../../../lib/talkPlanProtocol";
 
@@ -32,7 +42,7 @@ export const dynamic = "force-dynamic";
 /** No ISR window either. */
 export const revalidate = 0;
 
-/** The press carries an empty object; this refuses anything past a little room. */
+/** The press carries an empty object, or the test instance's mark; this refuses anything past a little room. */
 const BODY_MAX_BYTES = 256;
 
 /** The longest opening can take: the composition, then `initialize`, `account/read` and `thread/start`. */
@@ -57,13 +67,21 @@ export type TalkTypedResult =
  * Compose with the verb, start the app-server, open the thread.
  *
  * @param signal the press's request signal, so a page gone mid-open stops the child
+ * @param instance the owner's page, or the desktop test instance's
  * @returns what the page is answered
  */
-async function typedLeg({ signal }: { signal: AbortSignal }): Promise<TalkTypedResult> {
+async function typedLeg({
+  instance,
+  signal,
+}: {
+  instance: ConversationInstance;
+  signal: AbortSignal;
+}): Promise<TalkTypedResult> {
+  const argv = typedOfferArgvOf({ instance });
   const ran = await spawnVerb({
-    argv: ["talk", "offer", "--typed", "--json"],
+    argv: [...argv],
     timeoutMs: OFFER_COMPOSE_TIMEOUT_MS,
-    title: "slopweaver talk offer --typed --json",
+    title: `slopweaver ${argv.join(" ")}`,
   });
   if (!ran.ok) {
     return notOpened({ why: `the conversation was never put to the ChatGPT plan: ${ran.notMeasured}` });
@@ -73,12 +91,12 @@ async function typedLeg({ signal }: { signal: AbortSignal }): Promise<TalkTypedR
     return notOpened({ why: `the conversation was never put to the ChatGPT plan: ${read.refused}` });
   }
   const { composition } = read;
-  // Again, now: a call may have started while the verb composed.
-  const busy = makeRoomFor({ wanted: "typed", why: "a newer typed conversation replaced it" });
+  // Again, now: a call may have started while the verb composed. Held by its instance in the same tick as this check.
+  const busy = makeRoomFor({ wanted: typedWantedOf({ instance }), why: "a newer typed conversation replaced it" });
   if (busy !== undefined) {
     return notOpened({ why: busy });
   }
-  const { callId, outcome } = await openTypedSession({ composition, signal });
+  const { callId, outcome } = await openTypedSession({ composition, instance, signal });
   if (outcome.kind !== "open") {
     return notOpened({ why: `the conversation could not start: ${outcome.reason}` });
   }
@@ -99,7 +117,7 @@ async function typedLeg({ signal }: { signal: AbortSignal }): Promise<TalkTypedR
  * Always 200 with a `TalkTypedResult` once the press itself is accepted, as `/api/talk/offer` is: the plan saying no
  * and a broken page are different facts.
  *
- * @param request the press, with an empty JSON body
+ * @param request the press, with an empty JSON body, or `{ instance: "e2e" }` from the desktop test instance
  * @returns the held conversation, or the stated reason there is none
  */
 export async function POST(request: Request): Promise<NextResponse<TalkTypedResult>> {
@@ -115,10 +133,16 @@ export async function POST(request: Request): Promise<NextResponse<TalkTypedResu
       { headers, status: 413 },
     );
   }
-  if (!isBag(jsonOrUndefined({ raw }))) {
+  const body = jsonOrUndefined({ raw });
+  if (!isBag(body)) {
     return NextResponse.json(notOpened({ why: "the body is not a JSON object" }), { headers, status: 400 });
   }
-  const busy = makeRoomFor({ wanted: "typed", why: "a newer typed conversation replaced it" });
+  const marked = instanceOfBody({ body });
+  if ("refused" in marked) {
+    return NextResponse.json(notOpened({ why: marked.refused }), { headers, status: 400 });
+  }
+  const { instance } = marked;
+  const busy = makeRoomFor({ wanted: typedWantedOf({ instance }), why: "a newer typed conversation replaced it" });
   if (busy !== undefined) {
     return NextResponse.json(notOpened({ why: busy }), { headers });
   }
@@ -126,7 +150,7 @@ export async function POST(request: Request): Promise<NextResponse<TalkTypedResu
   const result = await heldWhileMinting({
     boundMs: TYPED_OPEN_BOUND_MS,
     dir: consoleHoldDir(),
-    mint: () => typedLeg({ signal: request.signal }),
+    mint: () => typedLeg({ instance, signal: request.signal }),
     nowMs: () => Date.now(),
     opened: () => false,
   });
