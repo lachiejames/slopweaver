@@ -12,8 +12,9 @@ import { concurrencyLine, secondsLabel } from "./gateRunner.js";
  *
  * The order is the contract: the `dev lint:` heading, one summary line per gate in plan order, the concurrency
  * witness, the `--only` scope line on a narrowed run, each failed gate's recap ({@link failedGateRecapLines}),
- * and the verdict line LAST. The recap sits directly above the verdict so a read of the log's tail carries each
- * failed gate's finding, not only its name.
+ * the narrowed re-check commands ({@link failedRecheckLines}) when a gate that ran failed, and the verdict line
+ * LAST. The recap and the re-check sit directly above the verdict so a read of the log's tail carries each
+ * failed gate's finding and the command that re-checks it, not only its name.
  *
  * @param concurrency the pool width this machine ran, which the witness ratio is read against
  * @param results every gate's outcome, in plan order
@@ -43,6 +44,7 @@ export function lapClose({
     lines.push(onlyScopeLine({ ran: results.map((result) => result.name), total: totalGates }));
   }
   lines.push(...failedGateRecapLines({ results }));
+  lines.push(...failedRecheckLines({ lane, results }));
   const withheld = results.filter((result) => result.withheld !== undefined).map((result) => result.name);
   lines.push(laneVerdictLine({ lane, laneScope, ok: exit !== EXIT_ERROR, uncovered, withheld }));
   return { exit, lines };
@@ -113,6 +115,45 @@ export function failedGateRecapLines({ results }: { results: readonly LintCheckR
     }
   }
   return lines;
+}
+
+/**
+ * The commands that re-check only the gates that RAN and failed, in plan order, on the lane that ran them — a
+ * heading, then one command per line — or nothing when none did. Pure.
+ *
+ * A whole re-run after fixing one gate re-pays every gate that already passed. MEASURED: one no-diff seat lane
+ * on a 10-CPU Mac cost 855 CPU-seconds (696 user, 159 system) in 173s of wall time, while a single gate costs
+ * its own printed seconds, a few for most. Reproduce with `time slopweaver dev lint --lane seat`. With
+ * several seats re-running the whole lane after each fix, the machine held on CPU and stopped every new seat;
+ * `--only` already narrowed a run, and a failing run never said so. A withheld gate is left out, because it
+ * ran nothing and its own summary line already names its re-run.
+ *
+ * On the `seat` lane a fetch comes first: the fix may take longer than the lane's fifteen-minute fetch bound
+ * (`SEAT_FETCH_MAX_AGE_MS`, `./seatLint.ts`), and a re-check refused as stale would spawn nothing. The fetch
+ * cannot change what the re-check judges against, since the merge-base of an unmoved HEAD and a newer
+ * origin/main is the same commit. It is its OWN line, never chained with `&&`: the raw-Bash gate passes a
+ * two-command chain only within `CHAIN_MAX_CHARS` (`../admit/rawBash.ts`), and a long failure list would push
+ * the pasted chain past it.
+ *
+ * @param lane the lane the failures ran on, so the narrowed run judges them the same way
+ * @param results every gate's outcome, in plan order
+ * @returns the heading and each command, without trailing newlines; empty when no gate that ran failed
+ * @internal — {@link lapClose} and its test.
+ */
+export function failedRecheckLines({
+  lane,
+  results,
+}: {
+  lane: LintLane;
+  results: readonly LintCheckResult[];
+}): readonly string[] {
+  const failed = results.filter((result) => !result.ok && result.withheld === undefined).map((r) => r.name);
+  if (failed.length === 0) {
+    return [];
+  }
+  const commands = lane === "seat" ? ["git fetch origin main"] : [];
+  commands.push(`slopweaver dev lint --lane ${lane} --only ${failed.join(",")}`);
+  return ["dev lint: once fixed, re-check only what failed, one command per line:", ...commands.map((c) => `  ${c}`)];
 }
 
 /**

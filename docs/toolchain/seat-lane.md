@@ -25,6 +25,14 @@ branch. `src/devLint/seatLint.ts` carries the rest; what it does, in order:
   `prettier`, `knip`, whole-tree oxlint and the typecheck. `internal-exports` runs knip's resolution too, yet is
   IN: its measured peak sits under the bespoke-gate slot, and the figure and its repro are on its row. Those
   are CI's, or the lap's where hosted Actions are off.
+- **A failing run prints the narrowed re-check, and a fixed gate is re-checked with it**: above the verdict,
+  one command per line, `git fetch origin main` and then `slopweaver dev lint --lane seat --only <gate>[,...]`
+  naming the gates that ran and failed, never a withheld one. The fetch comes first so a fix that outlasts the
+  fetch bound is not refused as stale, and the merge-base of an unmoved HEAD is the same commit after it. The
+  two are never chained: a long failure list would push the chain past the raw-Bash gate's two-command budget. The whole lane is the expensive half: MEASURED, one no-diff run on a 10-CPU Mac
+  cost 855 CPU-seconds in 173s of wall time (reproduce with `time slopweaver dev lint --lane seat`), while one
+  gate costs the seconds its summary line prints. Several seats re-running it whole after each fix held the
+  machine on CPU and stopped every new seat. A narrowed PASS is not the whole bar, and says so; CI runs that.
 
 It is a projection over `lintChecks`, never a second list, so a new gate joins it by default and a new
 `exclusive` gate is named as not covered without anyone editing the lane. A seat run's seconds are not recorded

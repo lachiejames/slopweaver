@@ -20,7 +20,7 @@ function run({ partial }: { partial: boolean }): LintRun {
 }
 
 describe("lapClose", () => {
-  it("repeats a failed gate's finding directly above the verdict, which is the last line", () => {
+  it("repeats a failed gate's finding, then its narrowed re-check, above the verdict, which is the last line", () => {
     const close = lapClose({
       concurrency: 4,
       results: [
@@ -40,6 +40,8 @@ describe("lapClose", () => {
       "dev lint: 3.0s of gate time in 2.0s of wall time — 1.50x, against 1.00x for a serial lap (ceiling 4x).",
       "dev lint: example FAILED — what it printed, repeated from its section:",
       `  ${FINDING}`,
+      "dev lint: once fixed, re-check only what failed, one command per line:",
+      "  slopweaver dev lint --lane full --only example",
       "dev lint: FAIL",
     ]);
   });
