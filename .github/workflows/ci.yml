@@ -546,10 +546,14 @@ jobs:
     # beside that one and throws when CI is set and the URL is not, so a lane that lost the service reads red.
     # `STORE_PROOF_ADMIN_URL` is the same admin connection under the shared helper's own name
     # (`subprocess/proofDatabase.ts`), which `subprocess/identity/identityRosterCli.test.ts` creates its databases through.
+    # THE HOST PORT SITS BELOW THE KERNEL'S EPHEMERAL RANGE. 55322 was inside Linux's default one, `32768 60999`
+    # (`cat /proc/sys/net/ipv4/ip_local_port_range`), so an outbound connection — the image pull just before it — can
+    # hold that port as its source: run 45940181620's subprocess job failed at "Initialize containers" with `failed to bind host
+    # port 0.0.0.0:55322/tcp: address already in use` before any test ran. The kernel never hands out 15432 that way.
     env:
-      DOOR_LEDGER_STORE_PROOF_URL: postgresql://postgres:postgres@127.0.0.1:55322/door_ledger_proof
-      PROFILE_STEERS_PROOF_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
-      STORE_PROOF_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+      DOOR_LEDGER_STORE_PROOF_URL: postgresql://postgres:postgres@127.0.0.1:15432/door_ledger_proof
+      PROFILE_STEERS_PROOF_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:15432/postgres
+      STORE_PROOF_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:15432/postgres
     services:
       store:
         image: postgres:17
@@ -557,7 +561,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: door_ledger_proof
         ports:
-          - 55322:5432
+          - 15432:5432
         options: >-
           --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 30
     steps:
@@ -603,15 +607,16 @@ jobs:
   desktop-e2e:
     runs-on: ${{ fromJSON(github.event.repository.owner.type == 'Organization' && '{"group":"default"}' || github.event.repository.owner.type == 'User' && '"ubuntu-latest"' || '') }}
     timeout-minutes: 15
+    # The host port is below the ephemeral range for the reason the `subprocess` job's comment gives.
     env:
-      DESKTOP_E2E_STORE_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+      DESKTOP_E2E_STORE_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:15432/postgres
     services:
       store:
         image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
         ports:
-          - 55322:5432
+          - 15432:5432
         options: >-
           --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 30
     steps:
