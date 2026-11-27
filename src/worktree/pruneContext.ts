@@ -25,11 +25,14 @@ import type { GitRunner } from "./pruneGit.js";
  * Directories whose whole content a build, an install or a test run writes again.
  *
  * `.vitest-reports` holds the unit lane's blob reporter output (`UNIT_BLOB_DIRECTORY`), which the lane clears and
- * rewrites on every run.
+ * rewrites on every run. `.hook-build` is the PreToolUse hook bundle's esbuild output (`HOOK_BUILD_DIR`,
+ * `src/admit/hookBundleBuild.ts`), rebuilt on demand from the tree's own source whenever it is missing or stale.
+ * Written here as a literal rather than imported, so this module stays free of the bundler's import graph.
  */
 const REPRODUCIBLE_DIRS: ReadonlySet<string> = new Set([
   ".cache",
   ".generated",
+  ".hook-build",
   ".next",
   ".nx",
   ".tanstack",

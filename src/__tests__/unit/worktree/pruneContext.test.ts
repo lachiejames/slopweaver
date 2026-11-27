@@ -28,6 +28,8 @@ describe("isReproducibleOutput", () => {
     "packages/app/node_modules/",
     "dist/",
     ".vitest-reports/",
+    ".hook-build/",
+    ".hook-build/pretooluse.mjs",
     "apps/web/.next/",
     "apps/web/.next-e2e/",
     "tsconfig.tsbuildinfo",
@@ -51,6 +53,7 @@ describe("isReproducibleOutput", () => {
     "notes.md",
     ".claude/settings.local.json",
     "dist",
+    ".hook-build",
     ".gql-target/x",
   ])("holds %s, which nothing writes again", (entry) => {
     expect(isReproducibleOutput({ entry })).toBe(false);
@@ -132,7 +135,7 @@ describe("the reads against a real repository", REAL_GIT_SUITE, () => {
     const repo = join(dir, "repo");
     mkdirSync(repo);
     gitInTemp({ args: ["init", "-q", "-b", "main"], cwd: repo });
-    writeFileSync(join(repo, ".gitignore"), "node_modules\n.slopweaver\n*.tsbuildinfo\n");
+    writeFileSync(join(repo, ".gitignore"), "node_modules\n.slopweaver\n*.tsbuildinfo\n.hook-build/\n");
     writeFileSync(join(repo, "a.ts"), "export const a = 1;\n");
     gitInTemp({ args: ["add", "-A"], cwd: repo });
     gitInTemp({ args: [...IDENTITY, "commit", "-qm", "base"], cwd: repo });
@@ -148,6 +151,12 @@ describe("the reads against a real repository", REAL_GIT_SUITE, () => {
     mkdirSync(join(tree, "node_modules", "x"), { recursive: true });
     writeFileSync(join(tree, "node_modules", "x", "index.js"), "");
     writeFileSync(join(tree, "tsconfig.tsbuildinfo"), "{}");
+    expect(readIgnoredWork({ git: realGit, path: tree })).toEqual([]);
+  });
+
+  it("reads the hook bundle's .hook-build output as holding nothing, the dir every worktree carries", () => {
+    mkdirSync(join(tree, ".hook-build"));
+    writeFileSync(join(tree, ".hook-build", "pretooluse.mjs"), "export {};\n");
     expect(readIgnoredWork({ git: realGit, path: tree })).toEqual([]);
   });
 
