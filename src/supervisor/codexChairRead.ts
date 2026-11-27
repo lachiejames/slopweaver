@@ -18,6 +18,7 @@
  */
 import { basename } from "node:path";
 
+import { compareIsoInstants } from "#lib/date.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { isRolloutBasename } from "../codex/rolloutOwnerTurnPointer.js";
 import { type CodexOwnerTurnParseError, rolloutOwnerTurnFold } from "../codex/rolloutOwnerTurns.js";
@@ -106,7 +107,57 @@ export function recordedChairCodexHome({
   return ok(only);
 }
 
-/** Whether a turn's instant is inside `[sinceIso, untilIso)`; an unreadable bound keeps it, as the Claude reader does. */
+/**
+ * How a turn's instant sits against one tenure bound, to every fractional digit either side writes: `bounds-nothing`
+ * when the bound is absent or will not parse (a damaged instant keeps its turns rather than silently dropping them),
+ * `unreadable` when only the turn will not parse, else the order.
+ */
+function againstBound({
+  timestamp,
+  bound,
+}: {
+  timestamp: string;
+  bound: string | undefined;
+}): "bounds-nothing" | "unreadable" | -1 | 0 | 1 {
+  if (bound === undefined || Number.isNaN(Date.parse(bound))) {
+    return "bounds-nothing";
+  }
+  const order = compareIsoInstants({ left: timestamp, right: bound });
+  if (order === undefined) {
+    return "unreadable";
+  }
+  return order;
+}
+
+/**
+ * Whether a turn's instant is at or after an inclusive floor. An absent or unreadable floor bounds nothing; an
+ * unreadable turn passes no readable floor.
+ *
+ * @param bound the floor — a tenure's start, or the caller's `--since`
+ * @returns true when the turn is not before the floor
+ */
+export function instantNotBefore({ timestamp, bound }: { timestamp: string; bound: string | undefined }): boolean {
+  const order = againstBound({ bound, timestamp });
+  return order === "bounds-nothing" || order === 0 || order === 1;
+}
+
+/**
+ * Whether a turn's instant is strictly before an exclusive ceiling — the instant a successor took the pin. An
+ * absent or unreadable ceiling bounds nothing; an unreadable turn passes no readable ceiling.
+ *
+ * @param bound the ceiling, `undefined` while the tenure is open
+ * @returns true when the turn is before the ceiling
+ */
+export function instantBefore({ timestamp, bound }: { timestamp: string; bound: string | undefined }): boolean {
+  const order = againstBound({ bound, timestamp });
+  return order === "bounds-nothing" || order === -1;
+}
+
+/**
+ * Whether a turn's instant is inside `[sinceIso, untilIso)`, compared to every fractional digit either side writes
+ * (`compareIsoInstants`); an unreadable bound keeps it, as the Claude reader does, and an unreadable turn passes no
+ * readable bound.
+ */
 function inTenure({
   timestamp,
   sinceIso,
@@ -116,12 +167,7 @@ function inTenure({
   sinceIso: string | undefined;
   untilIso: string | undefined;
 }): boolean {
-  const at = Date.parse(timestamp);
-  const floor = sinceIso === undefined ? Number.NaN : Date.parse(sinceIso);
-  const ceiling = untilIso === undefined ? Number.NaN : Date.parse(untilIso);
-  const afterFloor = Number.isNaN(floor) || at >= floor;
-  const beforeCeiling = Number.isNaN(ceiling) || at < ceiling;
-  return afterFloor && beforeCeiling;
+  return instantNotBefore({ bound: sinceIso, timestamp }) && instantBefore({ bound: untilIso, timestamp });
 }
 
 /**

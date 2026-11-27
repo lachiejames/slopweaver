@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clampIsoToClock,
+  compareIsoInstants,
   epochSecondsToIso,
   parseIsoMs,
   parseStrictIsoInstantMs,
@@ -68,6 +69,51 @@ describe("parseIsoMs", () => {
 
   it("returns undefined for an invalid timestamp", () => {
     expect(parseIsoMs({ tsIso: "nonsense" })).toBeUndefined();
+  });
+});
+
+describe("compareIsoInstants", () => {
+  it("orders two instants inside one millisecond, where Date.parse reads them equal", () => {
+    expect(Date.parse("2026-11-27T10:00:00.000200Z")).toBe(Date.parse("2026-11-27T10:00:00.000500Z"));
+    expect(compareIsoInstants({ left: "2026-11-27T10:00:00.000200Z", right: "2026-11-27T10:00:00.000500Z" })).toBe(-1);
+    expect(compareIsoInstants({ left: "2026-11-27T10:00:00.000500Z", right: "2026-11-27T10:00:00.000200Z" })).toBe(1);
+  });
+
+  it("orders by the milliseconds first, whatever the finer digits say", () => {
+    expect(compareIsoInstants({ left: "2026-11-27T10:00:00.001Z", right: "2026-11-27T10:00:00.000999Z" })).toBe(1);
+  });
+
+  it("keeps digits past the nanosecond, since a rollout instant may carry any number", () => {
+    expect(
+      compareIsoInstants({ left: "2026-11-27T10:00:00.0000000001Z", right: "2026-11-27T10:00:00.0000000002Z" }),
+    ).toBe(-1);
+  });
+
+  it("reads the same instant written in two offsets, or with and without a zero fraction, as equal", () => {
+    expect(compareIsoInstants({ left: "2026-11-27T10:00:00.000500Z", right: "2026-11-27T20:00:00.000500+10:00" })).toBe(
+      0,
+    );
+    expect(compareIsoInstants({ left: "2026-11-27T10:00:00Z", right: "2026-11-27T10:00:00.000000Z" })).toBe(0);
+    expect(compareIsoInstants({ left: "2026-11-27T10:00:00.0005Z", right: "2026-11-27T10:00:00.000500Z" })).toBe(0);
+  });
+
+  it("reads a string Date.parse accepts that is not an ISO-8601 date-time to the millisecond only", () => {
+    expect(compareIsoInstants({ left: "2020-01-01 10:20:3.1234Z", right: "2020-01-01 10:20:3.1235Z" })).toBe(0);
+    expect(
+      compareIsoInstants({ left: "1970-01-01T00:00:00.000Z", right: "Thu Jan 01 1970 00:00:00 GMT+0000 (x:12.3456)" }),
+    ).toBe(0);
+  });
+
+  it("orders inside one millisecond with a space separator, lowercase zone or compact offset", () => {
+    expect(compareIsoInstants({ left: "2026-11-27 10:00:00.000200z", right: "2026-11-27T10:00:00.000500Z" })).toBe(-1);
+    expect(compareIsoInstants({ left: "2026-11-27T20:00:00.000500+1000", right: "2026-11-27T10:00:00.000200Z" })).toBe(
+      1,
+    );
+  });
+
+  it("answers undefined when either side will not parse", () => {
+    expect(compareIsoInstants({ left: "not a time", right: "2026-11-27T10:00:00Z" })).toBeUndefined();
+    expect(compareIsoInstants({ left: "2026-11-27T10:00:00Z", right: "" })).toBeUndefined();
   });
 });
 

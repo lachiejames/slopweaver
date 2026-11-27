@@ -36,15 +36,16 @@ afterEach(() => {
   }
 });
 
-/** Write the chair's one rollout, two owner turns a minute apart. */
-const writeRollout = (): void => {
-  const dir = join(codexHome, "sessions", "2026", "11", "20");
-  mkdirSync(dir, { recursive: true });
-  const lines = [
-    env({ at: "2026-11-20T09:00:00.000Z", payload: { id: THREAD }, type: "session_meta" }),
+/** Write the chair's one rollout — by default two owner turns a minute apart. */
+const writeRollout = ({
+  turns = [
     said({ at: "2026-11-20T09:01:00.000Z", text: "first" }),
     said({ at: "2026-11-20T09:02:00.000Z", text: "second" }),
-  ];
+  ],
+}: { turns?: readonly string[] } = {}): void => {
+  const dir = join(codexHome, "sessions", "2026", "11", "20");
+  mkdirSync(dir, { recursive: true });
+  const lines = [env({ at: "2026-11-20T09:00:00.000Z", payload: { id: THREAD }, type: "session_meta" }), ...turns];
   writeFileSync(join(dir, `rollout-2026-11-20T09-00-00-${THREAD}.jsonl`), `${lines.join("\n")}\n`);
 };
 
@@ -94,6 +95,43 @@ describe("walkOwnerWindow on a Codex chair", () => {
 
     expect(sortedTurnsOf({ readable: window.walked }).map((turn) => turn.text)).toEqual(["second"]);
     expect(window.walked[0]!.leg.fromIso).toBe(floor);
+  });
+
+  it("keeps a turn inside its successor's pin millisecond, but before the pin, on the predecessor", () => {
+    writeRollout({ turns: [said({ at: "2026-11-20T10:00:00.000200Z", text: "just before the handover" })] });
+    const window = walkOwnerWindow({
+      chain: [
+        link({ recordedHome: codexHome, session: { host: "codex", id: THREAD } }),
+        link({ at: "2026-11-20T10:00:00.000500Z", session: { host: "claude-code", id: CLAUDE } }),
+      ],
+      claudeHome,
+      home,
+      sinceIso: undefined,
+    });
+    const codexChair = window.walked.find((span) => span.session.id === THREAD)!;
+
+    expect(codexChair.untilIso).toBe("2026-11-20T10:00:00.000500Z");
+    expect(codexChair.turns.map((turn) => turn.text)).toEqual(["just before the handover"]);
+  });
+
+  it("raises the floor to a --since inside the pin's own millisecond but after it, dropping a turn before it", () => {
+    const pinnedAt = "2026-11-20T10:00:00.000200Z";
+    const floor = "2026-11-20T10:00:00.000500Z";
+    writeRollout({
+      turns: [
+        said({ at: "2026-11-20T10:00:00.000300Z", text: "before the floor" }),
+        said({ at: "2026-11-20T10:00:00.000600Z", text: "after the floor" }),
+      ],
+    });
+    const window = walkOwnerWindow({
+      chain: [link({ at: pinnedAt, recordedHome: codexHome, session: { host: "codex", id: THREAD } })],
+      claudeHome,
+      home,
+      sinceIso: floor,
+    });
+
+    expect(window.walked[0]!.leg.fromIso).toBe(floor);
+    expect(window.walked[0]!.turns.map((turn) => turn.text)).toEqual(["after the floor"]);
   });
 
   it("refuses a chair whose home was never recorded, rather than reading it as no turns", () => {

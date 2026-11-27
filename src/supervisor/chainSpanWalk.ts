@@ -25,6 +25,7 @@
 import { statSync } from "node:fs";
 import { join } from "node:path";
 
+import { compareIsoInstants } from "#lib/date.js";
 import { findTranscript } from "../transcripts/source.js";
 import {
   type ChainSpan,
@@ -35,7 +36,7 @@ import {
   unwalkedTenureGaps,
 } from "./chain.js";
 import { chairReadGaps, readChairTranscript } from "./chairTranscript.js";
-import { readRecordedCodexChair } from "./codexChairRead.js";
+import { instantBefore, instantNotBefore, readRecordedCodexChair } from "./codexChairRead.js";
 import type { ChairTraffic } from "./inbound.js";
 import type { IntakeLeg, OwnerTurn } from "./intake.js";
 import { pinAsLink } from "./intakeScope.js";
@@ -81,8 +82,10 @@ export interface WalkedOwnerWindow {
 }
 
 /**
- * Whether an owner turn's instant falls inside one of the chair's tenures, at or after the floor. A bound that will
- * not parse bounds nothing, so a pin with a damaged instant keeps its turns rather than silently dropping them all.
+ * Whether an owner turn's instant falls inside one of the chair's tenures, at or after the floor, compared to every
+ * fractional digit either side writes: a rollout turn inside the same millisecond as a successor's pin is the
+ * predecessor's. A bound that will not parse bounds nothing, so a pin with a damaged instant keeps its turns rather
+ * than silently dropping them all.
  */
 function inAnyTenure({
   timestamp,
@@ -93,18 +96,12 @@ function inAnyTenure({
   floor: string;
   tenures: readonly ChairTenure[];
 }): boolean {
-  const at = Date.parse(timestamp);
-  const notBefore = ({ iso }: { iso: string }): boolean => {
-    const bound = Date.parse(iso);
-    return Number.isNaN(bound) || at >= bound;
-  };
-  const before = ({ iso }: { iso: string | undefined }): boolean => {
-    const bound = iso === undefined ? Number.NaN : Date.parse(iso);
-    return Number.isNaN(bound) || at < bound;
-  };
   return (
-    notBefore({ iso: floor }) &&
-    tenures.some((tenure) => notBefore({ iso: tenure.fromIso }) && before({ iso: tenure.untilIso }))
+    instantNotBefore({ bound: floor, timestamp }) &&
+    tenures.some(
+      (tenure) =>
+        instantNotBefore({ bound: tenure.fromIso, timestamp }) && instantBefore({ bound: tenure.untilIso, timestamp }),
+    )
   );
 }
 
@@ -162,8 +159,9 @@ function walkSpan({
   tenures: ReadonlyMap<string, readonly ChairTenure[]>;
   links: readonly SupervisorLink[];
 }): WalkedSpan {
+  // To every fractional digit, so a `--since` inside the pin's own millisecond but after it still raises the floor.
   const floor =
-    sinceIso !== undefined && Date.parse(sinceIso) > Date.parse(span.link.pinnedAtIso)
+    sinceIso !== undefined && compareIsoInstants({ left: sinceIso, right: span.link.pinnedAtIso }) === 1
       ? sinceIso
       : span.link.pinnedAtIso;
   const { session } = span.link;

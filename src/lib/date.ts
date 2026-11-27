@@ -78,6 +78,65 @@ export function parseIsoMs({ tsIso }: { tsIso: string }): number | undefined {
   return Number.isNaN(ms) ? undefined : ms;
 }
 
+/**
+ * A whole ISO-8601 date-time carrying a fraction of a second: the text before the fraction, its digits, and the
+ * zone after it. Anchored at both ends, so a dotted run anywhere else in a string `Date.parse` accepts — a
+ * parenthetical comment, a one-digit seconds field — is never read as a fraction.
+ */
+const ISO_SECONDS_FRACTION = /^(\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2})\.(\d+)((?:[Zz]|[+-]\d{2}:?\d{2})?)$/u;
+
+/**
+ * An instant as its whole milliseconds plus every fractional digit an ISO-8601 date-time writes past the third,
+ * trailing zeroes dropped so `.000500` and `.0005` are one instant. The milliseconds come from the string with its
+ * fraction cut to three digits, so they never rest on how `Date.parse` treats a longer one. Any other string
+ * `Date.parse` accepts is read to the millisecond, all it states reliably.
+ *
+ * @returns the two parts, or `undefined` when `Date.parse` does not accept the string
+ */
+function preciseInstant({ iso }: { iso: string }): { ms: number; beyond: string } | undefined {
+  if (Number.isNaN(Date.parse(iso))) {
+    return undefined;
+  }
+  const fraction = ISO_SECONDS_FRACTION.exec(iso);
+  if (fraction === null) {
+    return { beyond: "", ms: Date.parse(iso) };
+  }
+  // No group is optional (the zone's may match empty), so a match always carries all three.
+  const digits = fraction[2]!;
+  const ms = Date.parse(`${fraction[1]!}.${digits.slice(0, 3).padEnd(3, "0")}${fraction[3]!}`);
+  return { beyond: digits.slice(3).replace(/0+$/u, ""), ms };
+}
+
+/**
+ * Which of two instants is earlier, to every fractional digit an ISO-8601 date-time writes — never only to the
+ * millisecond, where `Date.parse` stops. A Codex rollout timestamp may carry finer digits than a pin's
+ * `toISOString()`, and a turn inside the same millisecond as a successor's pin belongs to the predecessor.
+ * Accepts every string `Date.parse` does, reading one that is not an ISO-8601 date-time to the millisecond; the same
+ * instant written in two offsets compares equal. Pure.
+ *
+ * @param left the instant on the left of the comparison
+ * @param right the instant on the right of the comparison
+ * @returns -1 when `left` is earlier, 1 when later, 0 for the same instant, `undefined` when either will not parse
+ */
+export function compareIsoInstants({ left, right }: { left: string; right: string }): -1 | 0 | 1 | undefined {
+  const a = preciseInstant({ iso: left });
+  const b = preciseInstant({ iso: right });
+  if (a === undefined || b === undefined) {
+    return undefined;
+  }
+  if (a.ms !== b.ms) {
+    return a.ms < b.ms ? -1 : 1;
+  }
+  // Equal-width digit strings order the way their numbers do.
+  const width = Math.max(a.beyond.length, b.beyond.length);
+  const leftDigits = a.beyond.padEnd(width, "0");
+  const rightDigits = b.beyond.padEnd(width, "0");
+  if (leftDigits === rightDigits) {
+    return 0;
+  }
+  return leftDigits < rightDigits ? -1 : 1;
+}
+
 /** `YYYY-MM-DDTHH:MM:SS`, at most three fraction digits, then `Z` or `±HH:MM` — nothing else names one instant. */
 const STRICT_ISO_INSTANT =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(?:(Z)|([+-])(\d{2}):(\d{2}))$/u;
