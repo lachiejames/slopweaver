@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { unwrap, unwrapErr } from "#lib/result.js";
 
+import { acquireOperationLock } from "../../../admit/operationLock.js";
 import { ClaudeSpendErrors } from "../../../claude/spendErrors.js";
 import type { ClaudeSpendReading } from "../../../claude/spendPolicy.js";
 import {
@@ -17,7 +18,7 @@ import {
   parseClaudeSpendReading,
   recordClaudeSpendReading,
 } from "../../../claude/spendStore.js";
-import { recordReading } from "../../../readings/store.js";
+import { readingsInWindow, recordReading } from "../../../readings/store.js";
 
 const NOW = "2026-11-04T10:00:00.000Z";
 
@@ -131,6 +132,46 @@ describe("latestClaudeSpendReading", () => {
     writeFileSync(join(home, "readings", "index.jsonl"), "not json\n");
     const latest = latestClaudeSpendReading({ alias: "plan-six", home, nowIso: NOW });
     expect(unwrapErr(latest).code).toBe("SPEND_READING_UNREADABLE");
+  });
+
+  it("refuses a corrupt index line by its number alone, never quoting a path the line holds", () => {
+    const quoted = join(home, "readings", "private.json");
+    mkdirSync(join(home, "readings"), { recursive: true });
+    writeFileSync(
+      join(home, "readings", "index.jsonl"),
+      `{${JSON.stringify(quoted)}: 1, ${JSON.stringify(quoted)}: 2}\n`,
+    );
+    // The witness that the input carries the path: the ledger's own failure quotes it.
+    const raw = unwrapErr(
+      readingsInWindow({ fromIso: "2026-11-04T09:00:00.000Z", home, producer: CLAUDE_SPEND_PRODUCER, toIso: NOW }),
+    );
+    expect(raw.message).toContain(quoted);
+
+    const latest = latestClaudeSpendReading({ alias: "plan-six", home, nowIso: NOW });
+
+    expect(unwrapErr(latest)).toStrictEqual({
+      code: "SPEND_READING_UNREADABLE",
+      message: "a recorded spend reading could not be read: readings index line 1 is not a reading row",
+    });
+  });
+
+  it("refuses to record while another writer holds the ledger's lock, naming no path of the lock it met", () => {
+    const lock = unwrap(acquireOperationLock({ home, key: "readings-ledger", nowIso: NOW }));
+    try {
+      const recorded = recordClaudeSpendReading({
+        home,
+        nowIso: NOW,
+        reading: readingOf({ alias: "plan-six", observedAtIso: NOW, usedMinor: 100 }),
+      });
+      expect(unwrapErr(recorded)).toStrictEqual({
+        code: "SPEND_READING_UNREADABLE",
+        message:
+          "a recorded spend reading could not be read: " +
+          "another session is writing the readings ledger right now — nothing was written; try again",
+      });
+    } finally {
+      lock.release();
+    }
   });
 
   it("refuses a now that is not an instant", () => {

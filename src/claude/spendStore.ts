@@ -15,6 +15,7 @@ import { parseIsoMs } from "#lib/date.js";
 import { err, ok, type Result } from "#lib/result.js";
 import { safeJsonStringify } from "#lib/safeJson.js";
 
+import { readingsErrorMessageWithoutStorePath } from "../readings/errors.js";
 import { readingsInWindow, recordReading } from "../readings/store.js";
 import type { ReadingReceipt } from "../readings/types.js";
 import { type ClaudeSpendError, ClaudeSpendErrors } from "./spendErrors.js";
@@ -99,7 +100,9 @@ export function recordClaudeSpendReading({
     producer: CLAUDE_SPEND_PRODUCER,
   });
   if (recorded.isErr()) {
-    return err(ClaudeSpendErrors.readingUnreadable({ detail: recorded.error.message }));
+    return err(
+      ClaudeSpendErrors.readingUnreadable({ detail: readingsErrorMessageWithoutStorePath({ error: recorded.error }) }),
+    );
   }
   return ok(recorded.value);
 }
@@ -133,7 +136,9 @@ export function latestClaudeSpendReading({
   // replay at a frozen instant still sees nothing from after it.
   const series = readingsInWindow({ fromIso, home, producer: CLAUDE_SPEND_PRODUCER, toIso: LAST_REPRESENTABLE_ISO });
   if (series.isErr()) {
-    return err(ClaudeSpendErrors.readingUnreadable({ detail: series.error.message }));
+    return err(
+      ClaudeSpendErrors.readingUnreadable({ detail: readingsErrorMessageWithoutStorePath({ error: series.error }) }),
+    );
   }
   // Ranked on the instant observed, then the instant recorded: the series is oldest-observed first, but two readings
   // observed at the same instant arrive newest-RECORDED first, so taking the last one seen would let an older, lower

@@ -41,7 +41,11 @@ export interface SpendRateLimitedError {
   readonly retryAfterSeconds?: number;
 }
 
-/** A recorded spend reading could not be read back, or does not hold the shape this build writes. */
+/**
+ * A recorded spend reading could not be read back, or does not hold the shape this build writes. Its message becomes a
+ * spend verdict's reason, which reports print and journal, so a readings failure enters it worded without its store or
+ * lock path (`readingsErrorMessageWithoutStorePath`, `../readings/errors.ts`).
+ */
 export interface SpendReadingUnreadableError {
   readonly code: "SPEND_READING_UNREADABLE";
   readonly message: string;

@@ -78,3 +78,39 @@ export const ReadingsErrors = {
     path,
   }),
 } as const;
+
+/** What an unreadable ledger reads as once its path is left out. */
+const STORE_UNREADABLE_WITHOUT_PATH = "could not read the readings ledger — refusing rather than reporting it empty";
+
+/** What a held ledger lock reads as once the lock's own reason, which can name its file, is left out. */
+const LEDGER_BUSY_WITHOUT_PATH =
+  "another session is writing the readings ledger right now — nothing was written; try again";
+
+/**
+ * A readings failure worded for a caller whose own message travels further than this ledger does, a spend verdict's
+ * reason for one: it names no store or lock path. `reading last` and `reading list` print the raw `message`, path
+ * included, because a human repairing the ledger needs it; a verdict folded into a report the control plane prints
+ * and journals must not carry it. A corrupt row is named by its line alone, because its `why` echoes what the line
+ * holds — a duplicated key is quoted verbatim, and a key can be any string, a path included. Every variant is named,
+ * so a new one cannot inherit an unsafe wording silently.
+ *
+ * @param error the readings failure
+ * @returns its message, with any variant that carries a filesystem path or the index's own text worded without it
+ */
+export function readingsErrorMessageWithoutStorePath({ error }: { error: ReadingsError }): string {
+  switch (error.code) {
+    case "STORE_UNREADABLE":
+      return STORE_UNREADABLE_WITHOUT_PATH;
+    case "LEDGER_BUSY":
+      return LEDGER_BUSY_WITHOUT_PATH;
+    case "CORRUPT_ROW":
+      return `readings index line ${String(error.lineNumber)} is not a reading row`;
+    case "INVALID_FIELD":
+    case "NO_READING":
+      return error.message;
+    default: {
+      const unhandled: never = error;
+      return unhandled;
+    }
+  }
+}
