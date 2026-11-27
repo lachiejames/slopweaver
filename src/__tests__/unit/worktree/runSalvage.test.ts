@@ -125,13 +125,30 @@ describe("runSalvage", () => {
     expect(ran.filter((line) => line.startsWith("read:ls-remote") || line.includes("rev-parse --verify"))).toEqual([]);
   });
 
-  it("asks the trunk about the EXACT sha it read, with replace refs and the commit graph off, before any name probe", () => {
+  it("KEEPS a tree of another history WITH a hidden index bit, refusing before clearing the bit is even tried", () => {
+    // Clearing an `--assume-unchanged` bit is a WRITE (`update-index`), so the ancestry refusal has to come first.
+    const { deps, ran } = fakeDeps({
+      world: { lsFiles: "h hidden.txt\0H visible.txt\0", staged: ["visible.txt"], unrelatedHistory: true },
+    });
+    const outcome = runSalvage({
+      deps,
+      denylist: ABSENT,
+      home: HOME_WITHOUT_PUSH_ROOTS,
+      remote: "origin",
+      scan: NO_SECRETS,
+      verdict,
+    });
+
+    expect(outcome.declined).toContain("its HEAD shares no history with origin's trunk");
+    expect(ran.filter((line) => line.startsWith("write:"))).toEqual([]);
+  });
+
+  it("asks the trunk about the EXACT sha it read, with replace refs and the commit graph off, before any other step", () => {
     const { deps, ran } = fakeDeps({ world: { staged: ["a"] } });
     runSalvage({ deps, denylist: ABSENT, home: HOME_WITHOUT_PUSH_ROOTS, remote: "origin", scan: NO_SECRETS, verdict });
 
     const ask = `read:--no-replace-objects -c core.commitGraph=false merge-base ${HEAD} refs/remotes/origin/HEAD`;
-    expect(ran).toContain(ask);
-    expect(ran.indexOf(ask) < ran.indexOf(`read:ls-remote --heads origin ${BASE_BRANCH}`)).toBe(true);
+    expect(ran.slice(0, 2)).toEqual(["read:rev-parse HEAD", ask]);
   });
 
   it("KEEPS the tree when git refuses a step, naming which step it was", () => {

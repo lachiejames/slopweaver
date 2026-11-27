@@ -15,10 +15,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import type { GithubPushEdges } from "../../../admit/githubPush.js";
 import { readGit } from "../../../admit/gitTransport.js";
-import { ok } from "../../../lib/result.js";
+import { ok, unwrap, unwrapErr } from "../../../lib/result.js";
 import type { PruneVerdict } from "../../../worktree/pruneClassify.js";
 import { runSalvage } from "../../../worktree/pruneSalvage.js";
-import { unrelatedHistoryDecline } from "../../../worktree/salvageTrunkHistory.js";
+import { SalvageTrunkErrors, trunkHistoryHead } from "../../../worktree/salvageTrunkHistory.js";
 import { HOME_WITHOUT_PUSH_ROOTS } from "../../pushRootFixture.js";
 import { gitInTemp, REAL_GIT_SUITE } from "../../tempGitRepo.js";
 import { COMMIT } from "./pruneReclaim/harness.js";
@@ -137,17 +137,18 @@ describe("a salvage of another history", REAL_GIT_SUITE, () => {
   });
 });
 
-describe("unrelatedHistoryDecline", REAL_GIT_SUITE, () => {
-  it("answers null for a commit on origin's own trunk", () => {
+describe("trunkHistoryHead", REAL_GIT_SUITE, () => {
+  it("answers the HEAD sha for a commit on origin's own trunk", () => {
     const { tree } = seed({ start: "origin/main" });
     const headSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
-    expect(unrelatedHistoryDecline({ deps: edges().deps, headSha, path: tree, remote: "origin" })).toBe(null);
+    expect(unwrap(trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" }))).toBe(headSha);
   });
 
   it("declines the archive's commit, which shares no merge base with origin's trunk", () => {
     const { tree } = seed({ start: "archive/main" });
-    const headSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
-    expect(unrelatedHistoryDecline({ deps: edges().deps, headSha, path: tree, remote: "origin" })).toBe(
+    const checked = trunkHistoryHead({ deps: edges().deps, path: tree, remote: "origin" });
+    expect(unwrapErr(checked)).toEqual(SalvageTrunkErrors.unrelatedHistory({ remote: "origin" }));
+    expect(unwrapErr(checked).message).toBe(
       "its HEAD shares no history with origin's trunk (refs/remotes/origin/HEAD), or that trunk could not be read — nothing was pushed",
     );
   });
@@ -156,9 +157,12 @@ describe("unrelatedHistoryDecline", REAL_GIT_SUITE, () => {
     // No remote of this name was ever fetched, so `refs/remotes/nowhere/HEAD` does not resolve. (A fetched remote is
     // no stand-in: git's `followRemoteHEAD` writes that symref on fetch, measured on this suite's own `archive`.)
     const { tree } = seed({ start: "origin/main" });
-    const headSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: tree });
-    expect(unrelatedHistoryDecline({ deps: edges().deps, headSha, path: tree, remote: "nowhere" })).toBe(
-      "its HEAD shares no history with nowhere's trunk (refs/remotes/nowhere/HEAD), or that trunk could not be read — nothing was pushed",
-    );
+    const checked = trunkHistoryHead({ deps: edges().deps, path: tree, remote: "nowhere" });
+    expect(unwrapErr(checked)).toEqual(SalvageTrunkErrors.unrelatedHistory({ remote: "nowhere" }));
+  });
+
+  it("declines a tree git cannot read at all, before any write", () => {
+    const checked = trunkHistoryHead({ deps: edges().deps, path: tempDir({ name: "not-a-repo" }), remote: "origin" });
+    expect(unwrapErr(checked).code).toBe("TREE_UNREADABLE");
   });
 });

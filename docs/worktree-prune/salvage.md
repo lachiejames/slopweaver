@@ -9,10 +9,11 @@ capture), `src/worktree/salvagePush.ts` (the push) and `src/worktree/salvageScan
 (`src/worktree/pruneRemote.ts`), the one remote every "is this pushed" read in the scan and the recheck names, so
 the remote that judged a tree's work "on no remote" is the remote it is sent to. A checkout can carry a remote of
 a different history: this repository's own keeps its pre-cut history on `archive` beside the public `origin`, and
-`git merge-base origin/main archive/main` exits 1. Before it probes a name or mints a branch, the capture asks
-`merge-base <the sha it read> refs/remotes/origin/HEAD` with replace refs and the commit graph off, and a tree
-with no merge base, or a trunk that could not be read, DECLINES with nothing written: salvaged, an archive branch
-would have put that whole history on the public repository as one `salvage/…` branch.
+`git merge-base origin/main archive/main` exits 1. FIRST, before it clears an index bit (a write) or probes a
+name, the capture reads HEAD and asks `merge-base <that sha> refs/remotes/origin/HEAD` with replace refs and the
+commit graph off; a tree with no merge base, or a trunk that could not be read, DECLINES with nothing written, and
+a HEAD that moves before the capture re-reads it declines too. Salvaged, an archive branch would have put that
+whole history on the public repository as one `salvage/…` branch.
 
 **A dirty tree is TWO pieces of work and both are captured**, because git's index can hold content no file on
 disk has (`MM` in porcelain) and `git add -A` overwrites it. The index is committed on its own first, the

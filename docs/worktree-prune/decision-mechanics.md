@@ -47,7 +47,8 @@ matching patch, so it classifies as `pushed`. That is the conservative direction
 remote, never every one: a remote of another history (this checkout's pre-cut `archive`) excused every old-history
 branch as pushed, and a tree read as unpushed past the week is salvaged to `origin`, so the read and the push
 name the same remote (`PRUNE_REMOTE`, `src/worktree/pruneRemote.ts`). The local-merge count, a detached HEAD's
-carrier, the live re-ask before a detached removal and the last unpushed count before any removal name it too.
+carrier, a fresh snapshot's parent witness, the live re-ask before a detached removal and the last unpushed count
+before any removal name it too.
 A branch tracked only under a second remote of the same URL reads as unpushed and is held. An absorbed
 branch reports zero by definition — its work is in the trunk, which is on `origin` — because GitHub deletes
 the remote branch after a merge, and asking the question literally would hold every landed worktree forever.
