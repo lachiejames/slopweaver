@@ -13,6 +13,7 @@ import type { PruneVerdict } from "../../../../worktree/pruneClassify.js";
 import { realGit } from "../../../../worktree/pruneGit.js";
 import { changedSinceScan, PINNED_DETACHED } from "../../../../worktree/pruneRecheck.js";
 import { remoteStillCarries } from "../../../../worktree/pruneRemote.js";
+import { detachedHead } from "../../../../worktree/pruneScan.js";
 import { gitInTemp, REAL_GIT_SUITE, REAL_GIT_TIMEOUT_MS } from "../../../tempGitRepo.js";
 import { buildSeedRepo, COMMIT, dir, useReclaimDir, verdictFor } from "./harness.js";
 
@@ -123,6 +124,26 @@ describe(
       const headSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: verdict.path });
 
       expect(remoteStillCarries({ git: realGit, headSha, repoRoot: repo })).toBe(false);
+    });
+
+    it("keeps it when only ANOTHER remote carries its HEAD, because origin is the one backup prune trusts", () => {
+      const { origin, repo, verdict } = seedDetached();
+      // The archive remote holds the feature branch; origin no longer does, so origin's copy is gone everywhere.
+      const archive = join(dir, "archive.git");
+      cpSync(origin, archive, { recursive: true });
+      gitInTemp({ args: ["remote", "add", "archive", archive], cwd: repo });
+      gitInTemp({ args: ["fetch", "-q", "archive"], cwd: repo });
+      gitInTemp({ args: ["branch", "-q", "-D", "feature"], cwd: origin });
+      gitInTemp({ args: ["fetch", "-q", "--prune", "origin"], cwd: repo });
+      const headSha = gitInTemp({ args: ["rev-parse", "HEAD"], cwd: verdict.path });
+
+      expect(gitInTemp({ args: ["branch", "--remotes", "--contains", headSha], cwd: repo }).trim()).toBe(
+        "archive/feature",
+      );
+      expect(remoteStillCarries({ git: realGit, headSha, repoRoot: repo })).toBe(false);
+      expect(detachedHead({ path: verdict.path, repoRoot: repo })).toEqual({ headOnRemoteRef: null, headSha });
+      expect(applyVerdict({ repoRoot: repo, verdict }).treeRemoved).toBe(false);
+      expect(existsSync(join(verdict.path, "work.txt"))).toBe(true);
     });
 
     it("keeps it when the remote cannot be reached at all", () => {

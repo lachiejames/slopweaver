@@ -10,7 +10,8 @@
  * some work is removed ONLY once a remote has confirmed that work, so every failure answers a `declined`
  * with a null branch, and the caller keeps the tree.
  *
- * The ignored-file declines left with the read they tested; one capture case replaces them.
+ * The ignored-file declines left with the read they tested; one capture case replaces them. The history check's
+ * cases are in `./runSalvageHistory.test.ts`.
  */
 import { describe, expect, it } from "vitest";
 
@@ -150,7 +151,7 @@ describe("runSalvage", () => {
     expect(outcome.declined).toContain("the remote did not confirm the work");
   });
 
-  it("KEEPS the tree when its working tree cannot be read at apply time", () => {
+  it("KEEPS the tree when `git rev-parse HEAD` fails, naming that read rather than the working tree", () => {
     const { deps, ran } = fakeDeps({ world: { headUnreadable: true } });
     const outcome = runSalvage({
       deps,
@@ -162,7 +163,9 @@ describe("runSalvage", () => {
     });
 
     expect(outcome.branch).toBe(null);
-    expect(outcome.declined).toBe("its working tree could not be read at apply time, so nothing was captured");
+    expect(outcome.declined).toBe(
+      "`git rev-parse HEAD` could not name its HEAD commit (fatal: not a git repository), so there is nothing to push — nothing was captured",
+    );
     expect(ran.filter((line) => line.startsWith("write:"))).toEqual([]);
   });
 

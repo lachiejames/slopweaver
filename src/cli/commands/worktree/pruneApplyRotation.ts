@@ -4,6 +4,9 @@
  * taken before each tree ({@link nextRemovalStep}) is a pure function of its injected brakes and is tested as one.
  */
 import { slopweaverHome } from "../../../config.js";
+import { FORBIDDEN_IDENTIFIER_RULES } from "../../../hygiene/forbiddenIdentifiers.js";
+import type { IdentifierScanner } from "../../../hygiene/identifierScan.js";
+import { repositoryContentIdentifierScanner } from "../../../hygiene/ownRepository.js";
 import { loadDenylistResult } from "../../../hygiene/scan.js";
 import { logger } from "../../../lib/logger.js";
 import { applyVerdict, type PruneOutcome, renderOutcome } from "../../../worktree/pruneApply.js";
@@ -16,6 +19,7 @@ import {
   type RepoVerdict,
 } from "../../../worktree/pruneOrder.js";
 import type { RemovalPacer } from "../../../worktree/prunePacing.js";
+import { PRUNE_REMOTE } from "../../../worktree/pruneRemote.js";
 import { runSalvage } from "../../../worktree/pruneSalvage.js";
 import { reclaimTrashDir } from "../../../worktree/reclaimTrash.js";
 import { recyclePoolDir } from "../../../worktree/recyclePool.js";
@@ -51,9 +55,6 @@ function activityFloorOf({ verdict }: { verdict: PruneVerdict }): number | null 
   }
   return verdict.activityFloorMs;
 }
-
-/** The remote a salvage pushes to — the same one `github push` defaults to. */
-const SALVAGE_REMOTE = "origin";
 
 /**
  * What the rotation does with the tree it is standing on: stop before it (the tree stays owed), keep it and move
@@ -183,6 +184,8 @@ export async function applyInRotation({
   const order = applyOrder({ memory, mergedOnly, plans });
   // Read once for the run: every salvage's secrets scan applies the same list (`worktree/salvageScan.ts`).
   const denylist = loadDenylistResult();
+  // Built once for the run too: its candidate caches are shared across every salvage it scans.
+  const identifiers = repositoryContentIdentifierScanner({ rules: FORBIDDEN_IDENTIFIER_RULES });
   let removed = 0;
   let failed = 0;
   let index = 0;
@@ -206,7 +209,7 @@ export async function applyInRotation({
     if (step.kind === "keep") {
       continue;
     }
-    const outcome = attemptRemoval({ denylist, item, lockHeld, remember });
+    const outcome = attemptRemoval({ denylist, identifiers, item, lockHeld, remember });
     removed += Number(outcome.treeRemoved);
     // Counted and carried on past: one tree that cannot be removed must not stop the sweep freeing the rest.
     failed += Number(outcome.failed);
@@ -230,6 +233,7 @@ export async function applyInRotation({
  *
  * @param item the tree to remove and the repository it belongs to
  * @param denylist the run's secrets denylist, read once for every salvage's scan
+ * @param identifiers the run's repository-content identifier scanner, built once for every salvage's scan
  * @param remember where each attempt is recorded
  * @param lockHeld whether this run still holds the apply lock, read again right before git removes the tree
  * @returns what happened to that tree
@@ -237,17 +241,19 @@ export async function applyInRotation({
 function attemptRemoval({
   item,
   denylist,
+  identifiers,
   remember,
   lockHeld,
 }: {
   item: RepoVerdict;
   denylist: ReturnType<typeof loadDenylistResult>;
+  identifiers: IdentifierScanner;
   remember: (input: { attempt: ApplyAttempt }) => void;
   lockHeld: () => boolean;
 }): PruneOutcome {
   const attempt = { atMs: Date.now(), path: item.verdict.path, removed: false, repoRoot: item.repoRoot };
   remember({ attempt });
-  const outcome = applyOne({ denylist, item, lockHeld });
+  const outcome = applyOne({ denylist, identifiers, item, lockHeld });
   remember({ attempt: { ...attempt, removed: outcome.treeRemoved } });
   logger.out({ line: renderOutcome({ outcome }) });
   return outcome;
@@ -258,16 +264,19 @@ function attemptRemoval({
  *
  * @param item the tree to remove and the repository it belongs to
  * @param denylist the run's secrets denylist, read once for every salvage's scan
+ * @param identifiers the run's repository-content identifier scanner, built once for every salvage's scan
  * @param lockHeld whether this run still holds the apply lock
  * @returns what happened to that tree
  */
 function applyOne({
   item,
   denylist,
+  identifiers,
   lockHeld,
 }: {
   item: RepoVerdict;
   denylist: ReturnType<typeof loadDenylistResult>;
+  identifiers: IdentifierScanner;
   lockHeld: () => boolean;
 }): PruneOutcome {
   const outcome = applyVerdict({
@@ -283,9 +292,15 @@ function applyOne({
         deps: productionGithubPushDeps(),
         denylist,
         home: slopweaverHome(),
-        remote: SALVAGE_REMOTE,
+        // The remote the scan judged "on no remote" against, so the tree it excused is pushed where it was measured.
+        remote: PRUNE_REMOTE,
         scan: ({ path, sha, target, url }) =>
-          salvageScanDecline({ denylist, edges: gitSalvageEdges({ cwd: path, sha, url }), refName: target }),
+          salvageScanDecline({
+            denylist,
+            edges: gitSalvageEdges({ cwd: path, sha, url }),
+            identifiers,
+            refName: target,
+          }),
         verdict,
       }),
     verdict: item.verdict,
@@ -297,7 +312,7 @@ function applyOne({
     recordSalvage({
       branch: outcome.salvagedTo,
       home: slopweaverHome(),
-      remote: SALVAGE_REMOTE,
+      remote: PRUNE_REMOTE,
       repoRoot: item.repoRoot,
       worktreePath: outcome.path,
     });

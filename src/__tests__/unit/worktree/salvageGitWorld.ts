@@ -71,7 +71,38 @@ export interface GitWorld {
   readonly bitsStick?: boolean;
   /** What `remote get-url --push --all` reports; by default exactly the fetch url, {@link URL}. */
   readonly pushUrls?: string;
+  /**
+   * When true, `rev-list --max-parents=0` of the tree's commits lists a root the trunk's does not, standing for a
+   * tree carrying ANOTHER history — the pre-cut history an `archive` remote carries — however it was joined on.
+   */
+  readonly foreignRoot?: boolean;
+  /** `ls-remote <url> HEAD` throws when true, standing for a remote whose live trunk cannot be asked. */
+  readonly trunkUnreadable?: boolean;
+  /** After this many `rev-parse HEAD` reads, HEAD answers {@link MOVED}, standing for another process moving it. */
+  readonly headMovesAfter?: number;
+  /** How many `HEAD` lines `ls-remote -- <url> HEAD` answers; one by default, the only count a trunk is read from. */
+  readonly trunkTips?: number;
+  /** `rev-list` of the trunk commit throws when true, standing for a live trunk not fetched here yet. */
+  readonly trunkAbsent?: boolean;
+  /** Which `rev-list --max-parents=0` answers nothing at all: the trunk's, or the tree's own. */
+  readonly noRoots?: "head" | "trunk";
+  /** `merge-base --is-ancestor` throws carrying this exit status; by default it holds. */
+  readonly mergeBaseStatus?: number;
+  /** After this many fetch-url reads, `origin` answers {@link OTHER_URL}, standing for a remote re-pointed mid-salvage. */
+  readonly urlChangesAfter?: number;
 }
+
+/** The url another process re-pointed `origin` at, as authenticated a host as {@link URL}. */
+const OTHER_URL = "git@github.com:owner/other.git";
+
+/** The commit the remote's url reports as its HEAD right now. */
+export const TRUNK = "77c1e0deaaaabbbbccccddddeeeeffff00003333";
+/** The one root commit the trunk reaches. */
+const TRUNK_ROOT = "00000000aaaabbbbccccddddeeeeffff00004444";
+/** A root no trunk commit reaches: another history's. */
+const FOREIGN = "f0f0f0f0aaaabbbbccccddddeeeeffff00005555";
+/** The HEAD another process moved the tree to. */
+const MOVED = "a0bed000aaaabbbbccccddddeeeeffff00006666";
 
 /**
  * Build the injected edges for one scripted world, recording every command that ran.
@@ -100,8 +131,18 @@ export function fakeDeps({ world }: { world: GitWorld }): {
     lsFiles = "",
     remoteReports,
     remoteUnreachable = false,
-    pushUrls = `${URL}\n`,
+    pushUrls,
+    foreignRoot = false,
+    trunkUnreadable = false,
+    headMovesAfter = Number.POSITIVE_INFINITY,
+    trunkTips = 1,
+    trunkAbsent = false,
+    noRoots,
+    mergeBaseStatus,
+    urlChangesAfter = Number.POSITIVE_INFINITY,
   } = world;
+  let headReads = 0;
+  let urlReads = 0;
   const armoured: string[] = [];
   const bare: string[] = [];
   const ran: string[] = [];
@@ -156,7 +197,8 @@ export function fakeDeps({ world }: { world: GitWorld }): {
     if (headUnreadable) {
       throw new Error("fatal: not a git repository");
     }
-    return headNow();
+    headReads += 1;
+    return headReads > headMovesAfter ? MOVED : headNow();
   };
   const answerLocalRef = ({ args }: { args: readonly string[] }): string => {
     const ref = String(args[3]).replace("refs/heads/", "");
@@ -187,19 +229,78 @@ export function fakeDeps({ world }: { world: GitWorld }): {
   // Reads carry the hooks-off prefix too — `git status` fires `post-index-change`, and a hook running
   // `git add` there destroys the staged content BEFORE the capture has measured it. Recorded and stripped
   // exactly as the writes are.
+  // The url `origin` answers now. A push url left unscripted follows it, so a re-pointed remote is re-pointed whole
+  // and reaches the binding checks rather than failing the push-url one first.
+  let currentUrl = URL;
   const answerRemote = ({ args }: { args: readonly string[] }): string => {
     if (args.length === 1) {
       return "origin\n";
     }
-    return args[2] === "--push" ? pushUrls : URL;
+    if (args[2] === "--push" && pushUrls !== undefined) {
+      return pushUrls;
+    }
+    if (args[2] === "--push") {
+      return `${currentUrl}\n`;
+    }
+    urlReads += 1;
+    if (urlReads > urlChangesAfter) {
+      currentUrl = OTHER_URL;
+    }
+    return currentUrl;
+  };
+  const exitWith = ({ status }: { status: number }): never => {
+    throw Object.assign(new Error(`git exited ${String(status)}`), { status });
+  };
+  const answerRoots = ({ of }: { of: string | undefined }): string => {
+    const isTrunk = of === TRUNK;
+    if (isTrunk && trunkAbsent) {
+      throw new Error(`fatal: bad object ${TRUNK}`);
+    }
+    if (noRoots === (isTrunk ? "trunk" : "head")) {
+      return "";
+    }
+    return isTrunk || !foreignRoot ? TRUNK_ROOT : `${TRUNK_ROOT}\n${FOREIGN}`;
+  };
+  // An ancestry read arrives after the hardening options (`--no-replace-objects -c core.commitGraph=false`), so its
+  // verb is read past them: `merge-base --is-ancestor` holds unless a status is scripted, and `rev-list` lists roots.
+  const answerAncestry = ({ args }: { args: readonly string[] }): string => {
+    if (args[3] === "rev-list") {
+      return answerRoots({ of: args[5] });
+    }
+    if (mergeBaseStatus !== undefined) {
+      return exitWith({ status: mergeBaseStatus });
+    }
+    return "";
+  };
+  const answerTrunk = (): string => {
+    if (trunkUnreadable) {
+      throw new Error("fatal: could not read from remote repository");
+    }
+    return Array.from({ length: trunkTips }, () => `${TRUNK}\tHEAD`).join("\n");
+  };
+  // Three shapes: `--heads <remote> <name>` probes a name, `-- <url> HEAD` reads the live trunk, and `<url> <ref>` is
+  // the push's read-back.
+  const answerLsRemote = ({ args }: { args: readonly string[] }): string => {
+    if (args[1] === "--heads") {
+      return answerRemoteHeads({ args });
+    }
+    return args[1] === "--" ? answerTrunk() : answerReadBack({ args });
+  };
+  // `rev-parse` in three shapes: a local branch probe, where git looks for grafts (nowhere that exists), and HEAD.
+  const answerRevParse = ({ args }: { args: readonly string[] }): string => {
+    if (args[1] === "--verify") {
+      return answerLocalRef({ args });
+    }
+    return args[1] === "--git-path" ? "/nonexistent-salvage-world/info/grafts" : answerHead();
   };
   const answers: Readonly<Record<string, (input: { args: readonly string[] }) => string>> = {
+    "--no-replace-objects": answerAncestry,
     config: () => "core.bare=false\n",
     diff: answerDiff,
     "ls-files": answerLsFiles,
-    "ls-remote": ({ args }) => (args[1] === "--heads" ? answerRemoteHeads({ args }) : answerReadBack({ args })),
+    "ls-remote": answerLsRemote,
     remote: answerRemote,
-    "rev-parse": ({ args }) => (args[1] === "--verify" ? answerLocalRef({ args }) : answerHead()),
+    "rev-parse": answerRevParse,
     status: answerStatus,
   };
   const readGit = ({ args }: { cwd: string; args: readonly string[] }): string => {

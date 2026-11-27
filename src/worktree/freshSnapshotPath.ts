@@ -26,6 +26,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, sep } from "node:path";
 
 import type { GitRunner } from "./pruneGit.js";
+import { PRUNE_REMOTE } from "./pruneRemote.js";
 import { privateHistoryWithinHead } from "./snapshotPrivateHistory.js";
 
 /** The `mkdtemp` prefix every one-off snapshot's staging directory is minted with. */
@@ -77,8 +78,11 @@ export function isFreshSnapshotTree({
   );
 }
 
-/** The ref namespaces every worktree of a repository shares, so a tree's removal never takes one with it. */
-const SHARED_REFS = ["refs/heads/", "refs/tags/", "refs/remotes/"] as const;
+/**
+ * The ref namespaces every worktree of a repository shares, so a tree's removal never takes one with it. Of the
+ * remote-tracking refs only {@link PRUNE_REMOTE}'s count, as for every other backed-up read the prune makes.
+ */
+const SHARED_REFS = ["refs/heads/", "refs/tags/", `refs/remotes/${PRUNE_REMOTE}/`] as const;
 
 /**
  * Whether everything a snapshot commit holds exists somewhere else, so removing its tree loses nothing.
@@ -89,7 +93,7 @@ const SHARED_REFS = ["refs/heads/", "refs/tags/", "refs/remotes/"] as const;
  * out of the snapshot class, back on the ordinary rules, where a detached tree on no remote is held and past the
  * week-old waiver salvaged — pushed before it goes. The parent's ref is re-read at removal; its tree cannot change.
  *
- * **Only a branch, tag or remote-tracking ref is a witness.** A per-worktree ref (`refs/bisect/`, `refs/worktree/`,
+ * **Only a branch, tag or `origin` remote-tracking ref is a witness.** A per-worktree ref (`refs/bisect/`, `refs/worktree/`,
  * `refs/rewritten/`) lives under the linked tree's own gitdir, so the removal it would authorise deletes it too and
  * leaves the parent unreachable. The three named namespaces are shared by every worktree.
  *

@@ -3,7 +3,39 @@
 How `worktree prune` captures a `salvaged` tree's work before the tree goes, and what its push may publish.
 The class, the waiver it rests on and the fresh `salvage/<slug>-<sha8>` branch are in
 [the classes](classes.md#the-classes); the code is `src/worktree/pruneSalvage.ts` (the
-capture), `src/worktree/salvagePush.ts` (the push) and `src/worktree/salvageScan.ts` (the scan).
+capture), `src/worktree/salvageTrunkHistory.ts` (the history check), `src/worktree/salvageDestination.ts` (the one
+url), `src/worktree/salvagePush.ts` (the push), `src/worktree/salvageScan.ts` (the scan's git reads),
+`src/worktree/salvageFindings.ts` (what the scan found, and the decline line naming it) and
+`src/worktree/salvageHooksOff.ts` (the hooks-off flags every one of them runs git with).
+
+**A salvage pushes to `origin` alone, and never a commit of another history.** `origin` is `PRUNE_REMOTE`
+(`src/worktree/pruneRemote.ts`), the one remote every "is this pushed" read in the scan and the recheck names, so
+the remote that judged a tree's work "on no remote" is the remote it is sent to. A checkout can carry a remote of
+a different history: this repository's own keeps its pre-cut history on `archive` beside the public `origin`, and
+`git merge-base origin/main archive/main` exits 1. Salvaged, an archive branch would have put that whole history on
+the public repository as one `salvage/…` branch.
+
+**What the salvage path guarantees on its own** (`src/worktree/salvageTrunkHistory.ts`), with no help from the
+push-root gate, which passes whenever no register exists:
+
+- **The trunk is `origin`'s HEAD now**, asked with `ls-remote -- <url> HEAD`, never the local
+  `refs/remotes/origin/HEAD` symref, which anything can re-point. The url is bound ONCE, through the same checks the
+  push makes (the ssh-or-https host judge included, one injected judge for both sides), before the trunk is read, and the push refuses if the url it resolves is not that one. A remote that
+  cannot be asked, an answer naming no HEAD or more than one, or a trunk commit not fetched here, declines.
+- **The test is the root set, not a merge base.** Every parentless commit the HEAD reaches must be a root of that
+  trunk. A branch off the trunk that merged the archive in shares a merge base and still declines, on the
+  archive's root.
+- **It runs FIRST**, before an index bit is cleared (a write) or a name probed, so a refused tree is left as found.
+  HEAD is re-read right before the first `update-index` and again after it; a move either time declines.
+- **The pushed commit is checked again**: it must descend from the checked HEAD and pass the same root test against
+  the same trunk, so a reset or a merge by another process after the capture sends nothing.
+- **The push goes to the url the trunk was read from**, or nowhere.
+
+Replace refs and the commit graph are off for every ancestry read. A deprecated `info/grafts` file has no
+per-command switch, so its presence DECLINES: it rewires the parents `rev-list` reports, and the root test could
+pass on a history the server would refuse. A shallow boundary only ever costs a decline, never a pass: it makes a
+cut commit read as a root, and a root that is not the trunk's declines. An ancestry read that fails for any reason
+other than git's own "not an ancestor" answer declines too, naming the failure rather than calling it a verdict.
 
 **A dirty tree is TWO pieces of work and both are captured**, because git's index can hold content no file on
 disk has (`MM` in porcelain) and `git add -A` overwrites it. The index is committed on its own first, the
@@ -114,7 +146,13 @@ sends that same sha to that same url (`<sha>^{commit}:refs/heads/<salvage branch
 the read-back asks that url, so neither a commit nor a re-pointed remote in between is ever what gets sent. A secret, an
 unreadable denylist, a listing or read git refused, or a blob git did not return each DECLINES; a secret
 names its class and path (a path that itself matches a secret pattern is withheld too), a failure to look names what could not be read, and neither quotes content — every `scheme://` url is withheld whole, and
-a reason still matching a credential or the private denylist is withheld entirely. A remote
+a reason still matching a credential or the private denylist is withheld entirely. A forbidden identifier declines
+the same way wherever `IDENTIFIER_VERDICT` reads `refuse`, because the destination is the public repository: the
+same rules the repository gate holds every commit to, over the same blobs, paths, branch name and commit messages,
+naming the class and the path and never the text. A path that itself carries an identifier is withheld from every
+decline, a secret's included, and a scanner that throws declines rather than ending the run. A commit's author and
+committer headers are not read for it, since they name a person on every public commit. An identifier stored as
+UTF-16 is the scanner's residue, exactly as a secret is. A remote
 whose one push url is not its fetch url, whose url is another remote's name or no ssh or https host (a local path is re-pointable by a symlink mid-push), or under any `insteadOf` or `pushInsteadOf` rule (git applies each again to the url it was handed), or with an ssh
 command configured (`core.sshCommand`, `GIT_SSH_COMMAND` or `GIT_SSH`: a wrapper holding state can route the scan and
 the push to two repositories behind one url), or with TLS verification possibly off (`http.sslVerify`, plain or

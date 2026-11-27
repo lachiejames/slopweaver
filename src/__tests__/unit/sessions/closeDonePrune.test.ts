@@ -82,7 +82,7 @@ describe("decideSeatPrune", () => {
       facts: facts({ mergedIntoTrunk: false, unbackedCommits: 3 }),
       nowMs: NOW_MS,
     });
-    expect(keepReason({ decision })).toBe("3 commit(s) on no remote");
+    expect(keepReason({ decision })).toBe("3 commit(s) origin does not carry");
   });
 
   it("KEEPS a tree holding an ignored file no build writes again, or a stash made from it", () => {
@@ -154,7 +154,7 @@ describe("decideSeatPrune", () => {
   it("HOLDS a detached HEAD no remote carries — the boundary the removable one sits against", () => {
     const decision = decideSeatPrune({ facts: facts({ branch: null, headOnRemoteRef: null }), nowMs: NOW_MS });
     expect(decision.kind).toBe("keep");
-    expect(keepReason({ decision })).toContain("a detached HEAD on no remote");
+    expect(keepReason({ decision })).toContain("a detached HEAD origin does not carry");
   });
 
   it("NEVER touches the repository's own main checkout", () => {

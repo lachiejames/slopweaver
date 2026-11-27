@@ -102,12 +102,22 @@ function stopTheWorld({ after }: { after: readonly CallEntry[] }): void {
   unwrap(appendCallEntries({ callId: CALL, entries, home }));
 }
 
+/**
+ * How long one `slack draft approve` child may run. A `spawnSync` blocks the worker's event loop, so Vitest's own
+ * `testTimeout` cannot fire while it waits: without this bound one stuck child held the whole subprocess lane until
+ * CI cancelled the job at its 20-minute limit, every other file already reported, and no line said which test it was.
+ * Measured locally at about 5s a child (`yarn vitest run --config config/vitest/subprocess.ts <this file>`).
+ */
+const APPROVE_TIMEOUT_MS = 50_000;
+
 /** The shipped binary's `slack draft approve` of the row, on the owner's yes. */
 function approve(): SpawnSyncReturns<string> {
   return spawnSync(BIN, ["slack", "draft", "approve", DRAFT_ID, "--anchor", `talk:${YES_TURN}`, "--home", home], {
     cwd: scratch,
     encoding: "utf8",
     env: { ...accountSandboxChildEnv(), HOME: scratch, PATH: process.env["PATH"]! },
+    killSignal: "SIGKILL",
+    timeout: APPROVE_TIMEOUT_MS,
   });
 }
 
@@ -146,7 +156,7 @@ describe("replay (synthetic): a yes on one triage card, taken back after the voi
     stopTheWorld({ after: [] });
 
     const approved = approve();
-    expect([approved.status, approved.stderr]).toEqual([EXIT_OK, expect.any(String)]);
+    expect([approved.status, approved.error, approved.stderr]).toEqual([EXIT_OK, undefined, expect.any(String)]);
     expect(approved.stdout).toContain(`approved ${DRAFT_ID} at talk:${YES_TURN}: "yes, send it"`);
     expect(rowEvents()).toEqual(["parked", "approved"]);
   });

@@ -14,11 +14,38 @@ import { join } from "node:path";
 
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 
+import {
+  type ForbiddenIdentifierRules,
+  type IdentifierScanner,
+  identifierDigest,
+} from "../../../../hygiene/identifierScan.js";
+import { repositoryContentIdentifierScanner } from "../../../../hygiene/ownRepository.js";
 import { gitSalvageEdges, salvageScanDecline } from "../../../../worktree/salvageScan.js";
 import { gitInTemp, REAL_GIT_TIMEOUT_MS } from "../../../tempGitRepo.js";
 
 /** A GitHub token shape, built at runtime so this file never carries one for the repository gate to find. */
 export const TOKEN = "ghp_" + "a".repeat(36);
+
+/** The synthetic organisation, the one forbidden word the scans below are given. */
+export const ORG = "acme";
+
+const SYNTHETIC_RULES: ForbiddenIdentifierRules = {
+  hashed: {
+    embeddedUpper: [],
+    exactIds: [],
+    exemptTicketReferences: [],
+    spanHeads: [],
+    substringCi: [],
+    substringCs: [],
+    teamKeys: [],
+    wordCi: [identifierDigest({ text: ORG })],
+    wordCs: [],
+  },
+  providerLocations: [],
+};
+
+/** The repository-content scanner the prune builds, over the synthetic rules. */
+export const IDENTIFIERS: IdentifierScanner = repositoryContentIdentifierScanner({ rules: SYNTHETIC_RULES });
 
 export const SHA_A = "a".repeat(40);
 /** The salvage branch the push would create, clean unless a case says otherwise. */
@@ -52,7 +79,7 @@ export let origin: string;
 export const git = (...args: readonly string[]): string =>
   gitInTemp({ args: ["-c", "user.email=a@b.c", "-c", "user.name=t", ...args], cwd: root });
 /**
- * Write a file and commit everything, answering the new commit.
+ * Write a file and commit everything, answering the new commit. A nested `file` needs its directory made first.
  *
  * @returns the new commit's sha
  */
@@ -71,6 +98,7 @@ export const scan = ({ sha = git("rev-parse", "HEAD") }: { sha?: string } = {}):
   salvageScanDecline({
     denylist: { kind: "absent" },
     edges: gitSalvageEdges({ cwd: root, sha, url: origin }),
+    identifiers: IDENTIFIERS,
     refName: REF,
   });
 

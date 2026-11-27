@@ -144,6 +144,13 @@ describe("lapWitnessFrom — an allowlist of refs somebody means to keep", () =>
     expect(lapWitnessFrom({ listing, treePath: TREE })).toBeNull();
   });
 
+  it("refuses a remote other than origin, whose history is not where this work is backed up", () => {
+    expect(lapWitnessFrom({ listing: "refs/remotes/archive/topic", treePath: TREE })).toBeNull();
+    expect(lapWitnessFrom({ listing: "refs/remotes/archive/topic\nrefs/tags/v1", treePath: TREE })).toBe(
+      "refs/tags/v1",
+    );
+  });
+
   it("admits another tree's salvage branch, a local branch, a remote and a tag", () => {
     expect(lapWitnessFrom({ listing: "refs/heads/salvage/sw-lap-X8fqZn-1", treePath: TREE })).toBe(
       "refs/heads/salvage/sw-lap-X8fqZn-1",
@@ -180,12 +187,23 @@ describe("readLapTreeFacts", () => {
   });
 
   it("reads an unmarked tree's HEAD and the ref admitting it", () => {
-    const { git } = fakeGit({ gitDir: gitDirFixture(), listing: "refs/tmp/x\nrefs/remotes/origin/main\n" });
+    const { asked, git } = fakeGit({ gitDir: gitDirFixture(), listing: "refs/tmp/x\nrefs/remotes/origin/main\n" });
     expect(readLapTreeFacts({ git, holderLive: notLive, path: TREE, roots: [ROOT] })).toEqual({
       head: HEAD,
       kind: "unmarked",
       witness: "refs/remotes/origin/main",
     });
+    expect(asked.find((args) => args[0] === "for-each-ref")).toEqual([
+      "for-each-ref",
+      "--contains",
+      HEAD,
+      "--format=%(refname)",
+      "refs/remotes/origin/",
+      "refs/tags/",
+      "refs/heads/",
+      "refs/slopweaver/pruned-lap/",
+      "refs/slopweaver/operator-lap/",
+    ]);
   });
 
   it("reads an unmarked tree whose witness listing failed as unreadable, never as unwitnessed", () => {

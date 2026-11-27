@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { gitEnv } from "../lib/gitRepo.js";
 import { commandDrivers, filterAttributed, filterDriversIn } from "./pruneFilterListing.js";
 import { unwatchedPaths } from "./pruneSalvage.js";
-import { HOOKS_OFF } from "./salvagePush.js";
+import { HOOKS_OFF } from "./salvageHooksOff.js";
 
 /** Long enough to list a fortnight of trunk commits' paths, short enough that a wedged git is caught. */
 const GIT_TIMEOUT_MS = 120_000;

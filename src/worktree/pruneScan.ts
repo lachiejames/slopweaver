@@ -17,8 +17,10 @@
  * the conservative direction — it keeps a branch that could have gone — and it is why the `pushed` class
  * exists at all rather than being folded into `hold`.
  *
- * **Is any work here backed up nowhere?** `git rev-list <branch> --not --remotes` lists commits reachable
- * from the branch and from no remote-tracking ref at all. On a branch whose pull request merged and whose
+ * **Is any work here backed up nowhere?** `git rev-list <branch> --not --remotes=origin` lists commits reachable
+ * from the branch and from no `origin` remote-tracking ref. ONE remote, never all of them: another remote can hold a
+ * different history, and a tree excused by it would be salvaged to `origin` — see `./pruneRemote.ts`'s
+ * {@link PRUNE_REMOTE}. On a branch whose pull request merged and whose
  * remote branch GitHub then deleted, that list is the branch's own commits — which would hold every landed
  * worktree forever. So an absorbed branch reports ZERO unbacked commits by definition: its work is in the
  * trunk, which is on a remote. The count is only asked of branches the patch-id check did not clear.
@@ -39,6 +41,10 @@ import { readIgnoredWork, readTreeStashes } from "./pruneContext.js";
 import { countLines, type GitRunner, readWorkingTree, realGit } from "./pruneGit.js";
 import { scanLapFacts } from "./pruneLapPin.js";
 import { verbatimAbsorbed } from "./prunePatchIds.js";
+import { PRUNE_REMOTE } from "./pruneRemote.js";
+
+/** The `rev-list` exclusion naming only {@link PRUNE_REMOTE}'s remote-tracking refs, never every remote's. */
+const NOT_ON_PRUNE_REMOTE = ["--not", `--remotes=${PRUNE_REMOTE}`] as const;
 
 /**
  * Epoch ms of a git revision's commit timestamp — a branch, a bare sha or `HEAD` — or `null` when it could not be read.
@@ -110,7 +116,8 @@ const UNMEASURED = {
 } as const;
 
 /**
- * The detached HEAD's commit, and the first remote-tracking ref that contains it.
+ * The detached HEAD's commit, and the first {@link PRUNE_REMOTE} remote-tracking ref that contains it — a branch on
+ * any other remote is no carrier.
  *
  * `git branch -r --contains <sha>` rather than `git rev-list <sha> --not --remotes`, deliberately. The
  * count answers "is this reachable from anything remote", which is almost the right question; the ref
@@ -137,7 +144,7 @@ export function detachedHead({
     return NO_DETACHED_HEAD;
   }
   const contains = git({
-    args: ["branch", "--remotes", "--contains", headSha, "--format=%(refname:short)"],
+    args: ["branch", "--remotes", "--contains", headSha, "--list", `${PRUNE_REMOTE}/*`, "--format=%(refname:short)"],
     cwd: repoRoot,
   });
   if (contains === null) {
@@ -240,11 +247,11 @@ export function branchAbsorbed({
     return true;
   }
   // Patch ids SKIP merge commits, so a branch whose only unique work is a local merge commit (a conflict resolution
-  // that adds a file) read as absorbed and its tree was removed. A merge commit no remote carries is work only this
-  // machine has; one a remote carries — main merged into a pushed branch — is not.
-  // Repro: `git rev-list --count --merges <branch> --not --remotes` on such a branch prints 1 while `git cherry` lists none.
+  // that adds a file) read as absorbed and its tree was removed. A merge commit `origin` does not carry is work only
+  // this machine has; one it carries — main merged into a pushed branch — is not.
+  // Repro: `git rev-list --count --merges <branch> --not --remotes=origin` on such a branch prints 1 while `git cherry` lists none.
   const localMerges = git({
-    args: ["rev-list", "--count", "--merges", branch, "--not", "--remotes"],
+    args: ["rev-list", "--count", "--merges", branch, ...NOT_ON_PRUNE_REMOTE],
     cwd: repoRoot,
   });
   if (localMerges === null) {
@@ -395,9 +402,6 @@ function detachedActivityMs({
   return Math.max(commit, dir);
 }
 
-/** The remote a branch's own remote branch is looked for on — the one `github push` pushes to. */
-const OWN_REMOTE = "origin";
-
 /**
  * Whether a branch sits on its own remote branch: `origin/<branch>` exists and the branch has nothing it
  * lacks. See {@link WorktreeFacts.branchOnOwnRemote} for why it must be the branch's OWN remote branch.
@@ -415,7 +419,7 @@ export function onOwnRemoteBranch({
   git: GitRunner;
   repoRoot: string;
 }): boolean | null {
-  const remoteRef = `refs/remotes/${OWN_REMOTE}/${branch}`;
+  const remoteRef = `refs/remotes/${PRUNE_REMOTE}/${branch}`;
   // `--quiet` exits non-zero with no output for an absent ref, which the runner returns as `null`: absent
   // and unreadable are the same answer here, and both keep the coldness rule armed.
   if (git({ args: ["rev-parse", "--verify", "--quiet", remoteRef], cwd: repoRoot }) === null) {
@@ -456,13 +460,13 @@ function branchFacts({
 }): Pick<WorktreeFacts, "branchOnOwnRemote" | "lastActivityMs" | "mergedIntoTrunk" | "unbackedCommits"> {
   // Fully qualified, so a tag of the branch's own name cannot answer for it: a bare name resolves tags first.
   const mergedIntoTrunk = branchAbsorbed({ branch: `refs/heads/${branch}`, git, repoRoot, trunk });
-  // An absorbed branch's commits ARE backed up — they are in the trunk, which is on a remote. Asking
-  // `--not --remotes` about one reports its pre-squash SHAs, which no remote carries, and would hold every
-  // landed worktree forever. See this module's header.
+  // An absorbed branch's commits ARE backed up — they are in the trunk, which is on `origin`. Asking
+  // `--not --remotes=origin` about one reports its pre-squash SHAs, which `origin` does not carry, and would hold
+  // every landed worktree forever. See this module's header.
   const unbackedCommits =
     mergedIntoTrunk === true
       ? 0
-      : countLines({ text: git({ args: ["rev-list", branch, "--not", "--remotes"], cwd: repoRoot }) });
+      : countLines({ text: git({ args: ["rev-list", branch, ...NOT_ON_PRUNE_REMOTE], cwd: repoRoot }) });
   // A gutted tree's directory mtime is THIS VERB's own failed write, not somebody working there, so it is
   // excluded — otherwise every interruption defers its own cleanup by a further `--older-than`, and a tree
   // interrupted twice is never finished at all. The last commit remains the honest signal either way, so a failed
@@ -511,7 +515,7 @@ export function listRepoWorktrees({
 }
 
 /** The symbolic ref naming the remote's default branch, which {@link trunkRefOf} reads. */
-export const ORIGIN_HEAD = "refs/remotes/origin/HEAD";
+export const ORIGIN_HEAD = `refs/remotes/${PRUNE_REMOTE}/HEAD`;
 
 /**
  * The trunk ref to judge a repository's branches against — its remote's own default branch.

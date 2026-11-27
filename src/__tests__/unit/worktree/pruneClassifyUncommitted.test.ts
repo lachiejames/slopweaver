@@ -64,7 +64,7 @@ describe("work committed nowhere holds the tree", () => {
   it("holds a commit on no remote", () => {
     const verdict = classify({ branchOnOwnRemote: false, unbackedCommits: 3 });
     expect(verdict.cls).toBe("hold");
-    expect(verdict.reason).toBe("3 commit(s) on no remote");
+    expect(verdict.reason).toBe("3 commit(s) origin does not carry");
   });
 
   it("holds a merged tree with ignored work or a stash too, since the trunk carries neither", () => {
@@ -110,7 +110,7 @@ describe("the week-old waiver reaches only what the salvage can carry", () => {
   it("salvages commits on no remote past the week, since the salvage pushes them and confirms them first", () => {
     const verdict = classify({ branchOnOwnRemote: false, lastActivityMs: WEEK_OLD, unbackedCommits: 3 });
     expect(verdict.cls).toBe("salvaged");
-    expect(verdict.reason).toContain("3 commit(s) on no remote");
+    expect(verdict.reason).toContain("3 commit(s) origin does not carry");
     expect(verdict.deleteBranch).toBe(false);
   });
 

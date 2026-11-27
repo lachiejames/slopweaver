@@ -243,7 +243,7 @@ describe("a removal against a real repository", REAL_GIT_SUITE, () => {
     const outcome = applyVerdict({ repoRoot: repo, verdict: pushed });
     expect(outcome.treeRemoved).toBe(false);
     expect(outcome.declined).toBe(
-      "it carries a commit on no remote, or its commits could not be counted, since the scan — kept",
+      "it carries a commit origin does not, or its commits could not be counted, since the scan — kept",
     );
     expect(existsSync(tree)).toBe(true);
 

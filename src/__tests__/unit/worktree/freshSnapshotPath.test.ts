@@ -87,6 +87,19 @@ describe("snapshotWitnessed — a snapshot is the last copy of nothing", () => {
     expect(witnessed({ tree: "t2" })).toBe(false);
   });
 
+  it("asks for a witness among origin's remote-tracking refs only, so an archive remote's copy witnesses nothing", () => {
+    const asked: string[] = [];
+    const inner = gitWithHead({ message: FRESH_SNAPSHOT_COMMIT_MESSAGE });
+    const git: GitRunner = ({ args, cwd }) => {
+      asked.push(args.join(" "));
+      return inner({ args, cwd });
+    };
+    expect(snapshotWitnessed({ git, path: "/t/tree", rev: "HEAD" })).toBe(true);
+    expect(asked.filter((argv) => argv.startsWith("for-each-ref"))).toEqual([
+      "for-each-ref --contains p1 --count=1 --format=%(refname) refs/heads/ refs/tags/ refs/remotes/origin/",
+    ]);
+  });
+
   it("is false when its parent, its tree or the ref list cannot be read", () => {
     expect([witnessed({ parent: null }), witnessed({ tree: null }), witnessed({ holder: null })]).toEqual([
       false,

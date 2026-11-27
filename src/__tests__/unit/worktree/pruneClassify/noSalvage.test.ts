@@ -40,7 +40,7 @@ describe("--no-salvage over the classifier", () => {
   it("HOLDS that same tree under its own reason when salvage is off, so nothing is pushed", () => {
     const verdict = classifyWith({ noSalvage: true, over: unpushed });
     expect(verdict.cls).toBe("hold");
-    expect(verdict.reason).toBe("5 commit(s) on no remote");
+    expect(verdict.reason).toBe("5 commit(s) origin does not carry");
     expect(verdict.deleteBranch).toBe(false);
   });
 

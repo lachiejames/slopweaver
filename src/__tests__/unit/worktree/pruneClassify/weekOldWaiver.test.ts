@@ -61,7 +61,7 @@ describe("the week-old waiver", () => {
       mergedIntoTrunk: null,
     });
     expect(verdict.cls).toBe("salvaged");
-    expect(verdict.reason).toContain("a detached HEAD on no remote");
+    expect(verdict.reason).toContain("a detached HEAD origin does not carry");
   });
 
   it("KEEPS holding a live session's worktree however old it is, because that hold is not waivable", () => {
@@ -111,7 +111,7 @@ describe("the week-old waiver", () => {
     });
     expect(verdict.cls).toBe("salvaged");
     expect(verdict.reason).toContain("2 uncommitted change(s)");
-    expect(verdict.reason).toContain("a detached HEAD on no remote");
+    expect(verdict.reason).toContain("a detached HEAD origin does not carry");
   });
 
   it("leaves an ordinary cold clean merged tree on its own class, waiving nothing", () => {

@@ -247,9 +247,9 @@ export const REFUSABLE_IDENTIFIER_LABELS: ReadonlySet<string> = new Set<string>(
  * Pure: whether a hit fails the REPOSITORY or PULL-REQUEST gate — a secret always, a forbidden identifier
  * once {@link IDENTIFIER_VERDICT} is `refuse`.
  *
- * Distinct from {@link isSecretHit} on purpose. The corpus, salvage and authored-file consumers ask only
- * whether a credential got in, because their subject IS the organisation's own data; the repository and its
- * pull-request text are what leaves it, so they alone ask this wider question.
+ * Distinct from {@link isSecretHit} on purpose. The corpus and authored-file consumers ask only whether a
+ * credential got in, because their subject IS the organisation's own data; the repository, its pull-request text
+ * and a worktree salvage pushed to it are what leaves it, so they ask this wider question.
  *
  * @param label the hit's label
  * @returns true when the hit fails the gate

@@ -41,8 +41,13 @@ import { basename } from "node:path";
 
 import type { GithubPushEdges } from "../admit/githubPush.js";
 import { type LineListLoad } from "../hygiene/scan.js";
+import { err, ok, type Result } from "../lib/result.js";
 import type { PruneVerdict } from "./pruneClassify.js";
-import { confirmOnRemote, HOOKS_OFF, withheldIfSecret } from "./salvagePush.js";
+import { authenticatedHost, type HostJudge } from "./salvageDestination.js";
+import { HOOKS_OFF } from "./salvageHooksOff.js";
+import { pushCheckedHistory, withheldIfSecret } from "./salvagePush.js";
+import { type SalvageTreeError, SalvageTreeErrors } from "./salvageTreeErrors.js";
+import { trunkHistoryHead } from "./salvageTrunkHistory.js";
 
 /** One git invocation in a salvage, with what it is for so a failure can say which step declined. */
 interface SalvageStep {
@@ -432,27 +437,41 @@ function unhideTree({ deps, path }: { deps: GithubPushEdges; path: string }): re
  * `stillHidden` rides out alone, because a count taken over files git is still ignoring is a number that
  * reads exactly like a clean tree while being false, and the only safe thing to do with it is not to have it.
  *
+ * **HEAD is compared to the checked sha BEFORE the first write**, so a tree whose HEAD moved after the history check
+ * declines with its index bits exactly as found. The residue is the instant between that read and the
+ * `update-index`: a HEAD moved inside it is caught by the second comparison and by the push's own descent check,
+ * but the bits it cleared stay cleared, which changes no content.
+ *
  * @param deps the git edges
+ * @param expectedHead the HEAD the history check accepted
  * @param path the worktree to read
- * @returns the HEAD sha, both halves of the porcelain count and any path the read
- *   could not see, or `null`
- *   when git could not be asked at all
+ * @returns both halves of the porcelain count, or which of the three reasons left the tree unmeasured
  */
-function readTreeNow({ deps, path }: { deps: GithubPushEdges; path: string }): {
-  readonly headSha: string;
-  readonly staged: number;
-  readonly stillHidden: readonly string[];
-  readonly unstaged: number;
-} | null {
+function readTreeNow({
+  deps,
+  expectedHead,
+  path,
+}: {
+  deps: GithubPushEdges;
+  expectedHead: string;
+  path: string;
+}): Result<{ readonly staged: number; readonly unstaged: number }, SalvageTreeError> {
+  const moved = (): boolean =>
+    deps.readGit({ args: [...HOOKS_OFF, "rev-parse", "HEAD"], cwd: path }).trim() !== expectedHead;
   try {
+    if (moved()) {
+      return err(SalvageTreeErrors.headMoved());
+    }
     const stillHidden = unhideTree({ deps, path });
     if (stillHidden.length > 0) {
-      return { headSha: "", staged: 0, stillHidden, unstaged: 0 };
+      return err(SalvageTreeErrors.stillHidden({ paths: stillHidden }));
     }
-    const headSha = deps.readGit({ args: [...HOOKS_OFF, "rev-parse", "HEAD"], cwd: path }).trim();
-    return { headSha, stillHidden, ...countTreeWork({ deps, path }) };
+    if (moved()) {
+      return err(SalvageTreeErrors.headMoved());
+    }
+    return ok(countTreeWork({ deps, path }));
   } catch {
-    return null;
+    return err(SalvageTreeErrors.treeUnreadable());
   }
 }
 
@@ -472,12 +491,15 @@ function readTreeNow({ deps, path }: { deps: GithubPushEdges; path: string }): {
  *   and an unreadable one declines before anything is captured
  * @param scan the secrets scan over what the push would send — `./salvageScan`'s — answering why not, or `null`
  * @param home the state home whose push-root register the salvage push is judged against
+ * @param host the host judge the history check and the push both resolve the url with: {@link authenticatedHost},
+ *   the production judge, unless a real-git test whose destination is a local path passes its own explicitly
  * @returns the branch the work is on, or why the tree must be kept
  */
 export function runSalvage({
   deps,
   denylist,
   home,
+  host = authenticatedHost,
   scan,
   remote,
   verdict,
@@ -485,6 +507,7 @@ export function runSalvage({
   deps: GithubPushEdges;
   denylist: LineListLoad;
   home: string;
+  host?: HostJudge;
   scan: SalvageScan;
   remote: string;
   verdict: PruneVerdict;
@@ -499,7 +522,7 @@ export function runSalvage({
       }),
     };
   }
-  const outcome = salvageOnce({ deps, home, remote, scan, verdict });
+  const outcome = salvageOnce({ deps, home, host, remote, scan, verdict });
   if (outcome.declined === null) {
     return outcome;
   }
@@ -515,37 +538,37 @@ export function runSalvage({
  * @param remote the remote to push to
  * @param verdict the `salvaged` verdict being applied
  * @param home the state home whose push-root register the salvage push is judged against
+ * @param host the host judge both url resolutions run
  * @returns the branch the work is on, or why the tree must be kept
  */
 function salvageOnce({
   deps,
   home,
+  host,
   scan,
   remote,
   verdict,
 }: {
   deps: GithubPushEdges;
   home: string;
+  host: HostJudge;
   scan: SalvageScan;
   remote: string;
   verdict: PruneVerdict;
 }): SalvageOutcome {
-  const now = readTreeNow({ deps, path: verdict.path });
-  if (now === null) {
-    return { branch: null, declined: "its working tree could not be read at apply time, so nothing was captured" };
+  const checked = trunkHistoryHead({ deps, host, path: verdict.path, remote });
+  if (checked.isErr()) {
+    return { branch: null, declined: checked.error.message };
   }
-  if (now.stillHidden.length > 0) {
-    return {
-      branch: null,
-      declined: `git would not stop ignoring ${now.stillHidden.length} file(s) — ${now.stillHidden.join(", ")} — so an edit to one of them would not be reported, captured, or recoverable`,
-    };
+  const headSha = checked.value.head;
+  const read = readTreeNow({ deps, expectedHead: headSha, path: verdict.path });
+  if (read.isErr()) {
+    return { branch: null, declined: read.error.message };
   }
+  const now = read.value;
   // An IGNORED file is not asked about here: one no build writes again already holds the tree at classify
   // time (owner), and `changedSinceScan` rechecks it, so what reaches a salvage is build output.
-  if (now.headSha === "") {
-    return { branch: null, declined: "its HEAD sha could not be read, so there is nothing to push" };
-  }
-  const free = freeSalvageName({ deps, headSha: now.headSha, path: verdict.path, remote });
+  const free = freeSalvageName({ deps, headSha, path: verdict.path, remote });
   if (free === null) {
     return {
       branch: null,
@@ -554,7 +577,7 @@ function salvageOnce({
   }
   const plan = planSalvage({
     branch: free,
-    headSha: now.headSha,
+    headSha,
     path: verdict.path,
     staged: now.staged,
     unstaged: now.unstaged,
@@ -569,5 +592,5 @@ function salvageOnce({
       return { branch: null, declined: `could not ${step.what} — ${ran.error}` };
     }
   }
-  return confirmOnRemote({ deps, home, path: verdict.path, remote, scan, target });
+  return pushCheckedHistory({ checked: checked.value, deps, home, host, path: verdict.path, remote, scan, target });
 }

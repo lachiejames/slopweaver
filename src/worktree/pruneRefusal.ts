@@ -9,7 +9,7 @@ import { execFileSync } from "node:child_process";
 import { gitEnv } from "../lib/gitRepo.js";
 import { STRICT_STAT } from "./pruneGit.js";
 import { lowPriorityArgv } from "./prunePacing.js";
-import { HOOKS_OFF } from "./salvagePush.js";
+import { HOOKS_OFF } from "./salvageHooksOff.js";
 
 /** Removing a checkout of tens of thousands of files, with room for a slow disk. */
 export const REMOVE_TIMEOUT_MS = 600_000;
