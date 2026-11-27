@@ -21,7 +21,11 @@ import { type AppSessionClaim, verifyAppSessionOrigin } from "../../../sessionHa
 import type { AppTransport } from "../../../sessionHarness/appSocketTransport.js";
 import type { CmuxHostSurface } from "../../../sessionHarness/cmuxHost.js";
 import type { HarnessTarget, SessionHarness } from "../../../sessionHarness/sessionHarness.js";
-import type { CmuxSupervisorPinRecord, SupervisorPinTarget } from "../../../sessions/supervisorPin.js";
+import type {
+  AppSupervisorPinRecord,
+  CmuxSupervisorPinRecord,
+  SupervisorPinTarget,
+} from "../../../sessions/supervisorPin.js";
 import { readSupervisorPinDisposition } from "../../../sessions/supervisorPinStore.js";
 import { appPinLabel } from "../../../supervisor/appPin.js";
 import { goneCmuxConfirmation, gonePredecessorLabel } from "../../../supervisor/gonePredecessor.js";
@@ -30,6 +34,7 @@ import {
   type AppSweepLeg,
   appSweepGateOutcome,
   appSweepLeg,
+  resolveAppPredecessorPastUnreadableCmux,
   resolveTakeoverPredecessor,
   type TakeoverCaller,
   TakeoverResolutionErrors,
@@ -114,7 +119,8 @@ export type GatedPredecessor =
 /**
  * Gates (b) and (c): resolve the predecessor from cmux's own pin or the app record
  * (`../../../supervisor/takeoverSeat.ts`), resolve an app one live by its exact id, then confirm its run finished.
- * The cmux inventory is read once and paired against the ledger whole, as before. A record whose host no longer
+ * The cmux inventory is read once and paired against the ledger whole, as before. When it cannot be read, only an
+ * app caller over the app session the record names goes on, through the app alone; every other pairing refuses. A record whose host no longer
  * holds the session — cmux no longer lists the workspace, or the app answers `SESSION_NOT_FOUND` — is a GONE
  * predecessor, gated by the same terminal-run test (`./takeoverGone.ts`). A cmux one is called gone only once the
  * STRICT inventory, which fails where the everyday one drops a row, also lists no workspace with its id.
@@ -133,19 +139,28 @@ export async function predecessorGates({
 }: {
   appHarness: Pick<SessionHarness, "resolve">;
   caller: TakeoverCaller;
-  client: CmuxHostSurface;
+  client: Pick<CmuxHostSurface, "listWorkspaces" | "listWorkspacesStrict">;
   home: string | undefined;
 }): Promise<GatedPredecessor | number> {
+  const disposition = readSupervisorPinDisposition(home === undefined ? {} : { home });
   const workspaces = await client.listWorkspaces();
   if (workspaces.isErr()) {
-    logger.error({ msg: `cmux takeover: ${workspaces.error.message}` });
-    return EXIT_ERROR;
+    const pastCmux = resolveAppPredecessorPastUnreadableCmux({
+      caller,
+      cmuxWhy: workspaces.error.message,
+      disposition,
+    });
+    if (pastCmux.isErr()) {
+      return refused({ line: pastCmux.error.message });
+    }
+    logger.out({
+      line:
+        `cmux takeover: cmux could not be read (${workspaces.error.message}); the pin record names an app ` +
+        "session, so it is resolved through the app alone",
+    });
+    return appPredecessorGate({ appHarness, home, pin: pastCmux.value.pin });
   }
-  const choice = resolveTakeoverPredecessor({
-    caller,
-    disposition: readSupervisorPinDisposition(home === undefined ? {} : { home }),
-    workspaces: workspaces.value,
-  });
+  const choice = resolveTakeoverPredecessor({ caller, disposition, workspaces: workspaces.value });
   if (choice.isErr()) {
     return refused({ line: choice.error.message });
   }
@@ -158,7 +173,23 @@ export async function predecessorGates({
   if (choice.value.kind === "gone-cmux") {
     return goneCmuxGate({ client, home, pin: choice.value.pin });
   }
-  const { appSessionId } = choice.value.pin;
+  return appPredecessorGate({ appHarness, home, pin: choice.value.pin });
+}
+
+/**
+ * Gates (b) and (c) for the app session the pin record names: resolved live by its exact id, gone when the app
+ * answers `SESSION_NOT_FOUND`, then its run read finished.
+ */
+async function appPredecessorGate({
+  appHarness,
+  home,
+  pin,
+}: {
+  appHarness: Pick<SessionHarness, "resolve">;
+  home: string | undefined;
+  pin: AppSupervisorPinRecord;
+}): Promise<GatedPredecessor | number> {
+  const { appSessionId } = pin;
   const label = appPinLabel({ appSessionId });
   const resolved = await appHarness.resolve({ handle: label });
   if (resolved.isErr() && resolved.error.code === "SESSION_NOT_FOUND") {
@@ -184,7 +215,7 @@ async function goneCmuxGate({
   home,
   pin,
 }: {
-  client: CmuxHostSurface;
+  client: Pick<CmuxHostSurface, "listWorkspacesStrict">;
   home: string | undefined;
   pin: CmuxSupervisorPinRecord;
 }): Promise<GatedPredecessor | number> {

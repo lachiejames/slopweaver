@@ -80,7 +80,8 @@ export const cmuxManifest: Readonly<Record<string, VerbManifestEntry>> = {
       // A bare run pins its own workspace, so it acts rather than printing usage.
       dryParseSafe: false,
       example: "slopweaver cmux pin --workspace workspace:15",
-      summary: "Pin a workspace — refuses when a DIFFERENT one is already pinned rather than leaving two",
+      summary:
+        "Pin a workspace — refuses when a DIFFERENT one is already pinned, or the pin record names an app session, rather than leaving two",
       usage: "usage: slopweaver cmux pin [--workspace <value>]",
     },
   }),
