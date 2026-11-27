@@ -62,7 +62,11 @@ export function unprovenWideningLines({
   changedPaths: ReadonlySet<string>;
 }): readonly string[] {
   return record.manifest.loosenings
-    .filter((row: BumpRow) => row.cause === "widening" && !provenUnchanged({ changedPaths, entry: row.entry }))
+    .filter(
+      (row: BumpRow) =>
+        row.cause === "widening" &&
+        !provenUnchanged({ changedPaths, entry: row.entry, identityTuple: row.identityTuple }),
+    )
     .map(
       (row) =>
         `  ${record.path}: declares ${row.file} ${row.entry} as widening, but the change touches the file it ` +

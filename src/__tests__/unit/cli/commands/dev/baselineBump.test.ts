@@ -67,6 +67,20 @@ describe("bumpManifestFor", () => {
   it("is undefined when nothing loosened", () => {
     expect(bumpManifestFor({ base: BASE, changedPaths: new Set(), loosened: [], reason: "r" })).toBeUndefined();
   });
+
+  it("derives a cause from the exact path of a row whose path holds #, and keeps its tuple", () => {
+    const hashed = {
+      entry: "sites:src/a#b.ts#jsonl-read-whole",
+      file: ".baselines/whole-file-json-baseline.json",
+      from: null,
+      identityTuple: ["sites", "src/a#b.ts", "jsonl-read-whole"],
+      to: 1,
+    };
+    const causeWhen = ({ changed }: { changed: string }) =>
+      bumpManifestFor({ base: BASE, changedPaths: new Set([changed]), loosened: [hashed], reason: "r" })!.loosenings;
+    expect(causeWhen({ changed: "src/a#b.ts" })).toStrictEqual([{ ...hashed, cause: "growth" }]);
+    expect(causeWhen({ changed: "src/other.ts" })).toStrictEqual([{ ...hashed, cause: "widening" }]);
+  });
 });
 
 describe("the verb over a real checkout", () => {
