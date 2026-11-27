@@ -158,6 +158,21 @@ export const WORKSPACE_SEAMS = {
   // nothing reaches an external provider. The signal is the POINT of the verb,
   // and what may be signalled is decided entirely in `live/machine/reap.ts`, which never touches a process.
   "src/cli/commands/machine/reap.ts": "local-state",
+  // `slopweaver machine free-disk`'s reads: `lstat`/`realpath`/`readdir` walks of the registry-derived paths,
+  // `git rev-parse` inside the pre-setup copy, one `ps -axo pid=,comm=` listing, and the fixed in-VM `docker run
+  // --pull never ... df -k /var/lib` and `fstrim [-n] -v /var/lib` argv on the local Docker VM. Local machine state
+  // only — no image is pulled and nothing reaches a provider.
+  "src/live/machine/freeDisk/read.ts": "local-state",
+  // `slopweaver machine free-disk`'s `df -k` of the state home and the read of the owner's ruled bundle list in
+  // that home. Nothing reaches a provider.
+  "src/cli/commands/machine/freeDisk.ts": "local-state",
+  // `machine free-disk`'s two acts, each bound to the inode its plan read: a `renameSync` of a registry-derived
+  // directory into a fresh sibling, then its `rmSync`, and one same-volume `renameSync` of a ruled app into
+  // `~/.Trash`, each renamed back when the moved object is not the planned one. Local machine state only.
+  "src/live/machine/freeDisk/boundAct.ts": "local-state",
+  // `machine free-disk before-setup-copy`'s `git rev-parse --show-toplevel` inside the copy, a read that fails
+  // closed. Local machine state only.
+  "src/live/machine/freeDisk/beforeSetupRead.ts": "local-state",
   // `checkout sync`'s two local effects: `git merge --ff-only` on a main checkout, and `yarn install
   // --immutable` in it. Both are local-environment operations on a checkout the operator declared in their
   // own profile — the same class as `cmux/client.ts` driving a local terminal multiplexer. Nothing here

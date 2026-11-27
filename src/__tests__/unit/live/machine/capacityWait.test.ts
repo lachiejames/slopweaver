@@ -40,11 +40,11 @@ const COMMS = [
   { comm: FSEVENTSD, pid: 4343 },
 ];
 
-/** 44.7 GB free, under the 44.8 GB floor of eight seat trees (the boots burst, the next and a spare). */
+/** 39.9 GB free, under the owner's 40 GB floor (room for the boots burst's trees and the next). */
 const LOW_DISK: DiskReading = {
   registeredTotal: undefined,
   repos: [],
-  volume: { availableKib: 43_652_343, totalKib: 971_298_980, usedPct: 85 },
+  volume: { availableKib: 38_964_843, totalKib: 971_298_980, usedPct: 85 },
 };
 
 /** Fake read seams over one machine state, every call recorded by name in the order it was made. */

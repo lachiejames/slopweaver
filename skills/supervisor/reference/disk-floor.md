@@ -1,14 +1,19 @@
 # The disk floor — `HOLD on disk`
 
-The volume holding `$SLOPWEAVER_HOME` holds on `disk` when its `df`-available space is below room for a
-**5.6 GB seat tree each for the 6-seat boots burst, the next seat and one spare** — 8 × 5.6 = 44.8 GB, whatever
-the fleet's size (`diskFloorFor`, `src/live/machine/capacityHolds.ts`):
+The volume holding `$SLOPWEAVER_HOME` holds on `disk` when its `df`-available space is below **the owner's
+40 GB**, room for a **5.6 GB seat tree each for the 6-seat boots burst and the next
+seat** — 7 × 5.6 = 39.2 GB, whatever the fleet's size (`diskFloorFor` and `OWNER_DISK_FLOOR_GB`,
+`src/live/machine/capacityHolds.ts`):
 
 ```text
-HOLD on disk (disk 44.7 GB free (df, Finder shows at least this), hold below 44.8 GB — a 5.6 GB seat tree each for the 6-seat boots burst, the next and one spare; run slopweaver worktree prune --apply)
+HOLD on disk (disk 39.9 GB free (df, Finder shows at least this), hold below 40 GB — the owner's floor, room for a 5.6 GB seat tree each for the 6-seat boots burst and the next; run slopweaver worktree prune --apply)
 ```
 
-## Why it is derived, and why it should never fire
+The owner chose the headroom it gives up: no spare tree beyond the burst and the next, so six seats booting at once can
+take the disk closer to full than eight trees' room would. A unit test reddens if a larger seat tree or boots
+hold ever makes 40 GB too small for the seven trees its clause claims.
+
+## Why it reserves only what has not grown yet, and why it should never fire
 
 A disk 85% full with 150 GB free in Finder is no reason to hold. The question the hold answers is "would the
 next seats bring the disk dangerously close to full? if so, do not spawn them until the cleanup has finished",
@@ -16,7 +21,7 @@ so the floor reserves only growth that has not happened yet. **A live session's 
 used space**, so it is never reserved again: the floor that did reserve one per live session held 53 sessions at
 308 GB with 262.5 GB free. What can still grow fast is the seats about to start, and the `boots` hold
 (`src/live/machine/recentBoots.ts`) stops seating after six inside its window, so a burst is six trees; the next
-seat and one spare complete eight. `SEAT_TREE_GB` is the largest tree measured (`du -sk`: acme-admin trees at
+seat makes seven. `SEAT_TREE_GB` is the largest tree measured (`du -sk`: acme-admin trees at
 4.5, 5.3 and 5.5 GB, a built slopweaver tree at 3.1 GB, an unbuilt one at 0.28 GB).
 
 **The residue, stated:** a live tree that has not installed yet can still grow by up to 5.6 GB later, and this
@@ -62,3 +67,7 @@ that saw the hold, is the manual form, and it WAITS for a running apply rather t
 request goes, is [the worktree-prune classes](../../../docs/worktree-prune/classes.md). It paces itself: one
 tree at a time, at background priority, holding on a hot fseventsd and stopping at its budget, so running it
 on a loaded tick is safe ([pacing](../../../docs/worktree-prune/decision-mechanics.md#paced-so-a-reclaim-never-takes-the-machine-down)).
+
+Space outside the worktrees comes back only through [`machine free-disk`](free-disk.md): the owner's one-off
+ruling on package caches, Docker's data file, the pre-setup copy and one unused app, each a
+closed target with a dry run first. It is never the routine remedy for this hold; `worktree prune` is.

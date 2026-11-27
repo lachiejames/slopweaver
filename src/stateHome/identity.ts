@@ -139,6 +139,12 @@ export interface IdentityStateHomePaths {
    */
   readonly protectedPathsJson: string;
   /**
+   * `$home/machine/free-disk-bundles.json` — the owner's ruling on which applications `machine free-disk app` may
+   * move to the Trash and which it keeps (`../live/machine/freeDisk/bundleRuling.ts`). Off-repo because which apps
+   * a person keeps is theirs. OPTIONAL — absent rules nothing removable.
+   */
+  readonly freeDiskBundlesJson: string;
+  /**
    * `$home/push-roots.json` — the repositories whose history was re-cut, each bound to the ONE parentless commit
    * every push to it must descend from (`../admit/pushRootRegistry.ts`). Off-repo because which repository was
    * re-cut, and at which root, is this install's own fact. OPTIONAL — absent guards nothing; present but
@@ -342,6 +348,7 @@ export function identityStateHomePaths({ home }: { home: string }): IdentityStat
     judgement: judgementHomePaths({ home }),
     profileJson: join(home, "profile.json"),
     protectedPathsJson: join(home, "protected-paths.json"),
+    freeDiskBundlesJson: join(home, "machine", "free-disk-bundles.json"),
     pushRootsJson: join(home, "push-roots.json"),
     rulingsJsonl: join(home, "rulings.jsonl"),
     profileContextJson: join(home, "profile", "context.json"),

@@ -4,19 +4,25 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { diskFloorFor, holdReasons, SEAT_TREE_GB } from "../../../../live/machine/capacityHolds.js";
+import {
+  diskFloorFor,
+  holdReasons,
+  NEXT_SEAT_TREES,
+  OWNER_DISK_FLOOR_GB,
+  SEAT_TREE_GB,
+} from "../../../../live/machine/capacityHolds.js";
 import { cpuLoadHolding, IDLE_HOLD_FLOOR_PCT, loadHoldFor } from "../../../../live/machine/cpuLoadHold.js";
 import type { DiskReading } from "../../../../live/machine/diskFootprint.js";
 import { DEFAULT_RECENT_BOOTS_HOLD } from "../../../../live/machine/recentBoots.js";
 
-/** The derived floor: a 5.6 GB tree each for the 6-seat boots burst, the next and one spare — 44.8 GB. */
+/** The owner's floor: 40 GB, room for a 5.6 GB tree each for the 6-seat boots burst and the next. */
 const DERIVED_FLOOR = diskFloorFor();
 
-/** 43652343 KiB x 1024 B = 44,699,999,232 B, which every surface prints as 44.7 GB — a hair under the 44.8 GB floor. */
-const JUST_UNDER_FLOOR_KIB = 43_652_343;
+/** 38964843 KiB x 1024 B = 39,899,999,232 B, which every surface prints as 39.9 GB — a hair under the 40 GB floor. */
+const JUST_UNDER_FLOOR_KIB = 38_964_843;
 
-/** Exactly 44.8 GB in 1 KiB blocks: 44.8e9 / 1024. */
-const AT_FLOOR_KIB = 43_750_000;
+/** Exactly 40 GB in 1 KiB blocks: 40e9 / 1024. */
+const AT_FLOOR_KIB = 39_062_500;
 
 /**
  * 256347656 KiB x 1024 B = 262,499,999,744 B, printed as 262.5 GB: the free space `machine capacity` read while
@@ -54,12 +60,16 @@ describe("diskFloorFor", () => {
     expect(DEFAULT_RECENT_BOOTS_HOLD).toBe(6);
   });
 
-  it("holds room for a tree each for the boots burst, the next and one spare — 8 trees, 44.8 GB", () => {
+  it("is the owner's 40 GB", () => {
+    expect(OWNER_DISK_FLOOR_GB).toBe(40);
     expect(DERIVED_FLOOR).toStrictEqual({
-      gb: 44.8,
-      why: "a 5.6 GB seat tree each for the 6-seat boots burst, the next and one spare",
+      gb: 40,
+      why: "the owner's floor, room for a 5.6 GB seat tree each for the 6-seat boots burst and the next",
     });
-    expect(DERIVED_FLOOR.gb).toBe(Math.round((DEFAULT_RECENT_BOOTS_HOLD + 1 + 1) * SEAT_TREE_GB * 10) / 10);
+  });
+
+  it("still holds a tree each for the boots burst and the next — 7 trees, 39.2 GB — or its why would be false", () => {
+    expect((DEFAULT_RECENT_BOOTS_HOLD + NEXT_SEAT_TREES) * SEAT_TREE_GB).toBeLessThanOrEqual(OWNER_DISK_FLOOR_GB);
   });
 
   it("takes a pinned floor over the derived one", () => {
@@ -75,8 +85,8 @@ describe("holdReasons — the disk floor", () => {
       {
         subject: "disk",
         text:
-          "disk 44.7 GB free (df, Finder shows at least this), hold below 44.8 GB — a 5.6 GB seat tree each for " +
-          "the 6-seat boots burst, the next and one spare; run slopweaver worktree prune --apply",
+          "disk 39.9 GB free (df, Finder shows at least this), hold below 40 GB — the owner's floor, room for a " +
+          "5.6 GB seat tree each for the 6-seat boots burst and the next; run slopweaver worktree prune --apply",
       },
     ]);
   });
@@ -99,7 +109,7 @@ describe("holdReasons — the disk floor", () => {
     );
   });
 
-  it("does not hold one KiB under the floor, which every surface prints as 44.8 GB free", () => {
+  it("does not hold one KiB under the floor, which every surface prints as 40.0 GB free", () => {
     expect(
       holdReasons({ ...QUIET, disk: diskWith({ availableKib: AT_FLOOR_KIB - 1 }), load: undefined }),
     ).toStrictEqual([]);

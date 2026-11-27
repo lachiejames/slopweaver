@@ -2,7 +2,7 @@
  * `slopweaver machine capacity`'s usage text, in its own leaf so the command module stays one a reader can
  * hold — `./capacity.ts` imports it back and prints it for `--help` and beside a flag error.
  */
-import { IDLE_HOLD_FLOOR_PCT, SEAT_TREE_GB } from "../../../live/machine/capacityHolds.js";
+import { IDLE_HOLD_FLOOR_PCT, OWNER_DISK_FLOOR_GB, SEAT_TREE_GB } from "../../../live/machine/capacityHolds.js";
 import { BOOT_WINDOW_SECONDS, DEFAULT_RECENT_BOOTS_HOLD } from "../../../live/machine/recentBoots.js";
 
 export const MACHINE_CAPACITY_USAGE =
@@ -19,8 +19,8 @@ export const MACHINE_CAPACITY_USAGE =
   `  ${String(IDLE_HOLD_FLOOR_PCT)}% idle (Activity Monitor's figure; unread idle leaves load to judge alone),\n` +
   `  or ${String(DEFAULT_RECENT_BOOTS_HOLD)} Claude sessions booted in the last ${String(BOOT_WINDOW_SECONDS)}s — load the 1-minute average cannot see yet (six boots in one\n` +
   "  pass reached load 45.9). A hold on boots alone pauses spawns and publishes no capacity-hold.\n" +
-  `  The state home's volume below room for a ${String(SEAT_TREE_GB)} GB seat tree each for the ${String(DEFAULT_RECENT_BOOTS_HOLD)}-seat boots burst, the next\n` +
-  "  and one spare, df-available (Finder shows at least that), HOLDs on disk — live seats' trees are already\n" +
+  `  The state home's volume below the owner's ${String(OWNER_DISK_FLOOR_GB)} GB, room for a ${String(SEAT_TREE_GB)} GB seat tree each for the\n` +
+  `  ${String(DEFAULT_RECENT_BOOTS_HOLD)}-seat boots burst and the next, df-available (Finder shows at least that), HOLDs on disk — live seats' trees are already\n` +
   "  in df's used space, so they are not reserved again:\n" +
   "  discretionary seating stops until `slopweaver worktree prune --apply` frees space; like boots it\n" +
   "  publishes no capacity-hold, and it never blocks --wait.\n" +
