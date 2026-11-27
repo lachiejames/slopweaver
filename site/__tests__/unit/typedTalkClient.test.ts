@@ -9,8 +9,18 @@ import {
   phaseAfterSend,
   sendTaken,
   typedHoldsCall,
+  typedOpenBody,
   typedSendOf,
 } from "../../components/voice/typedTalkClient";
+
+describe("typedOpenBody", () => {
+  it("is empty on the owner's page and carries the mark only on the desktop test instance's", () => {
+    expect([typedOpenBody({ instance: undefined }), typedOpenBody({ instance: "e2e" })]).toEqual([
+      "{}",
+      '{"instance":"e2e"}',
+    ]);
+  });
+});
 
 describe("typedSendOf", () => {
   it("takes the route's own 2xx with a turn as accepted", () => {

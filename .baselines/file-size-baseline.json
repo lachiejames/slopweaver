@@ -99,10 +99,6 @@
       "path": "site/__tests__/unit/talkToolRun.test.ts"
     },
     {
-      "codeLines": 532,
-      "path": "site/__tests__/unit/talkTypedSession.test.ts"
-    },
-    {
       "codeLines": 888,
       "path": "site/__tests__/unit/transcriptSink.test.ts"
     },

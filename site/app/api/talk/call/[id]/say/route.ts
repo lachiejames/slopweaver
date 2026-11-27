@@ -83,7 +83,7 @@ export async function POST(
       { headers, status: 400 },
     );
   }
-  const busy = typedSendRefusal({ live: liveConversations() });
+  const busy = typedSendRefusal({ live: liveConversations({ nowMs: Date.now() }) });
   if (busy !== undefined) {
     return NextResponse.json({ ambiguous: false, ok: false, refused: busy }, { headers, status: 409 });
   }

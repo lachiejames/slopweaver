@@ -1,5 +1,51 @@
 import { describe, expect, it } from "vitest";
-import { endCallsOnSignal } from "../../lib/talkCallRegistry";
+import { MeetingLedger } from "../../lib/meetingLedger";
+import { TYPED_AT_REST_MS } from "../../lib/talkArbiter";
+import { endCallsOnSignal, heldContextFor, liveTypedConversationOf } from "../../lib/talkCallRegistry";
+import { TalkNoticeLedger } from "../../lib/talkNoticeLedger";
+
+describe("liveTypedConversationOf", () => {
+  const QUIET = { activityMs: 0, nowMs: TYPED_AT_REST_MS, replying: false };
+
+  it("reads the owner's quiet typed conversation as at rest, and one active a millisecond inside the bound as not", () => {
+    expect([
+      liveTypedConversationOf({ ...QUIET, test: false }),
+      liveTypedConversationOf({ ...QUIET, activityMs: 1, test: false }).atRest,
+    ]).toEqual([{ atRest: true, replying: false, surface: "typed", test: false }, false]);
+  });
+
+  it("never reads a test instance's typed conversation, or one replying, as at rest", () => {
+    expect([
+      liveTypedConversationOf({ ...QUIET, test: true }).atRest,
+      liveTypedConversationOf({ ...QUIET, replying: true, test: false }).atRest,
+    ]).toEqual([false, false]);
+  });
+});
+
+describe("heldContextFor", () => {
+  const ownerMeetings = new MeetingLedger();
+  const ownerNotices = new TalkNoticeLedger();
+
+  it("hands the owner's call the process's own ledgers", () => {
+    const context = heldContextFor({ instance: "owner", ownerMeetings, ownerNotices });
+    expect([context.instance, context.meetings === ownerMeetings, context.notices === ownerNotices]).toEqual([
+      "owner",
+      true,
+      true,
+    ]);
+  });
+
+  it("hands a test call fresh ledgers of its own, so nothing it hears reaches the owner's", () => {
+    const first = heldContextFor({ instance: "e2e", ownerMeetings, ownerNotices });
+    const second = heldContextFor({ instance: "e2e", ownerMeetings, ownerNotices });
+    expect([
+      first.instance,
+      first.meetings === ownerMeetings,
+      first.notices === ownerNotices,
+      first.meetings === second.meetings,
+    ]).toEqual(["e2e", false, false, false]);
+  });
+});
 
 /**
  * Two held calls, a journal drain and an exit seam, recording what a signal did to each, in order.

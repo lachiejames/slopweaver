@@ -56,7 +56,7 @@ const instanceArgument = process.argv.find((argument) => argument.startsWith(INS
 /**
  * `e2e` when main started this renderer as the desktop TEST instance's: the page sends it with every call batch, so a
  * call the walk places is never read as the owner's words. Any other value is passed on as written, never dropped, and the
- * console reads every marker present as the test instance's (`site/lib/desktopShell.ts` `bridgeInstance`).
+ * console reads every marker present as the test instance's, its bridge kept or not (`site/lib/desktopShell.ts` `instanceMarkOf`).
  */
 const instance: string | undefined = instanceArgument?.slice(INSTANCE_ARGUMENT.length);
 

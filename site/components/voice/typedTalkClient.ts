@@ -5,6 +5,7 @@
  */
 import type { TalkTypedResult } from "../../app/api/talk/typed/route";
 import { isBag } from "../../lib/bag";
+import { windowInstance } from "./useDesktopShell";
 
 /** How long opening may take before the page gives up on the answer: the route's own bound, with room. */
 const OPEN_TIMEOUT_MS = 120_000;
@@ -13,15 +14,17 @@ const OPEN_TIMEOUT_MS = 120_000;
 const SAY_TIMEOUT_MS = 30_000;
 
 /**
- * Open a typed conversation on the owner's plan.
+ * Open a typed conversation on the owner's plan. The desktop test instance marks its body `instance: "e2e"`, as its
+ * offer does, so the console holds it as a test conversation that replaces nothing of the owner's.
  *
  * @returns the held conversation, or why there is none in the route's own words
  */
 export async function openTypedTalk(): Promise<TalkTypedResult> {
+  const instance = windowInstance();
   let response: Response;
   try {
     response = await fetch("/api/talk/typed", {
-      body: "{}",
+      body: typedOpenBody({ instance }),
       cache: "no-store",
       headers: { "content-type": "application/json" },
       method: "POST",
@@ -53,6 +56,19 @@ export async function openTypedTalk(): Promise<TalkTypedResult> {
     return { notOpened: body["notOpened"], ok: false };
   }
   return { notOpened: `the typed route answered HTTP ${String(response.status)} with no reading`, ok: false };
+}
+
+/**
+ * The typed open's JSON body: `instance` rides only on the desktop test instance's, so the owner's own is empty.
+ *
+ * @param instance `e2e` on the desktop test instance, `undefined` on the owner's own app or a browser
+ * @returns the body text
+ */
+export function typedOpenBody({ instance }: { instance: "e2e" | undefined }): string {
+  if (instance === undefined) {
+    return "{}";
+  }
+  return JSON.stringify({ instance });
 }
 
 /** The strings of a list the route sent, or none when it sent something else. */

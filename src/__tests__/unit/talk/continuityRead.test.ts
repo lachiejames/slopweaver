@@ -96,6 +96,7 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
+      typedCalls: "keep",
     });
     expect(read.steers.map((steer) => [steer.slug, steer.outcome.settlement])).toEqual([
       [
@@ -113,6 +114,7 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
+      typedCalls: "keep",
     });
     expect(read.rulings.map((ruling) => `${ruling.slug}:${ruling.ruling}`)).toEqual(["recent-row:conflicts are yours"]);
   });
@@ -125,6 +127,7 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
+      typedCalls: "keep",
     });
     expect(read.unread).toEqual([
       { section: "typed", why: NO_CHAT },
@@ -158,10 +161,40 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
+      typedCalls: "keep",
     });
     expect(read.calls.map((kept) => [kept.callId, kept.lines.map((line) => line.text)])).toEqual([
       [call, ["and merge the"]],
     ]);
+  });
+
+  it("reads a typed conversation for the owner's mint and never for a test call's", async () => {
+    const spoken = "a0000041-0000-4000-8000-000000000051";
+    const typed = "a0000041-0000-4000-8000-000000000052";
+    mkdirSync(join(home, "talk", "calls"), { recursive: true });
+    const callFile = ({ surface, words }: { surface: "voice" | "typed"; words: string }): string =>
+      [
+        { atIso: "2026-09-24T17:10:00.000Z", kind: "open", model: "m", sessionId: "sess", surface, voice: "marin" },
+        { atIso: "2026-09-24T17:11:00.000Z", final: true, id: "s-1", kind: "segment", text: words, who: "owner" },
+      ]
+        .map((line) => `${JSON.stringify(line)}\n`)
+        .join("");
+    writeFileSync(join(home, "talk", "calls", `${spoken}.jsonl`), callFile({ surface: "voice", words: "spoken line" }));
+    writeFileSync(join(home, "talk", "calls", `${typed}.jsonl`), callFile({ surface: "typed", words: "typed line" }));
+    const readFor = async ({ typedCalls }: { typedCalls: "keep" | "drop" }): Promise<readonly string[]> => {
+      const read = await readContinuity({
+        handoverDir,
+        home,
+        knowledge: "skip",
+        lookbackMs: WINDOW_MS,
+        nowIso: NOW,
+        supervisor: NO_CHAT,
+        typedCalls,
+      });
+      return read.calls.map((kept) => kept.callId).toSorted();
+    };
+    expect(await readFor({ typedCalls: "keep" })).toEqual([spoken, typed]);
+    expect(await readFor({ typedCalls: "drop" })).toEqual([spoken]);
   });
 
   it("reports a relay whose row is gone as present on no row", async () => {
@@ -173,6 +206,7 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: NO_CHAT,
+      typedCalls: "keep",
     });
     expect(read.steers.map((steer) => steer.outcome.rowPresent)).toEqual([false]);
   });
@@ -187,6 +221,7 @@ describe("readContinuity", () => {
       lookbackMs: WINDOW_MS,
       nowIso: NOW,
       supervisor: broken,
+      typedCalls: "keep",
     });
     expect(read.unread.map((entry) => entry.section)).toEqual(["steers", "typed", "calls", "rulings", "knowledge"]);
     expect(read.unread[0]!.why).toContain("the read threw: TypeError");

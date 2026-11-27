@@ -10,7 +10,7 @@ import { CALL_STEP_IDS, type E2eCallStep } from "../../../desktop/e2eCallPlan.js
 import { cardReadSteps, type E2eCardStepId, placeCardSteps } from "../../../desktop/e2eCardReadPlan.js";
 import type { E2eStepResult } from "../../../desktop/e2eReport.js";
 import type { E2eWorkContext } from "../../../desktop/e2eWorkContext.js";
-import { type HeldConversation, preflightDecision } from "../../../desktop/heldConversations.js";
+import { besideAtRestLine, type HeldConversation, preflightDecision } from "../../../desktop/heldConversations.js";
 import type { OnCallHoldError } from "../../../desktop/onCallHold.js";
 import { overlappedCallIds, UNENDED_CALLS_KEEP, unendedCallIds } from "../../../desktop/unendedCalls.js";
 import { readCalls } from "../../../talk/callStore.js";
@@ -36,40 +36,44 @@ export interface E2eCallLegPlanOptions {
 
 /**
  * Read the whole on-call hold first — a live lease or a microphone another app holds holds the run at once, never
- * waited out (`../../../desktop/onCallHold.ts`) — then wait for no conversation to be held in any of
- * the owner's consoles and no call left open in the shared store, refusing past the wait and at once on a lease that appears
- * during it (`../../../desktop/heldConversations.ts` decides each read), then read the hold again: a call the owner picked up
- * during the wait stops the leg before the press.
+ * waited out (`../../../desktop/onCallHold.ts`) — then wait for nothing but typed conversations at rest to be held in
+ * any of the owner's consoles and no call left open in the shared store, refusing past the wait and at once on a lease
+ * that appears during it (`../../../desktop/heldConversations.ts` decides each read), then read the hold again: a call the
+ * owner picked up during the wait stops the leg before the press. Clear beside a typed conversation at rest, it says so.
  *
- * @param home the state home whose consoles' leases are read
- * @param consoles every checkout whose console registry is asked: the target and each one the owner declares
+ * @param besideAtRest `refused` before a scenario that types into the messenger, which waits on every held conversation
+ *   (`besideAtRestFor`)
+ * @param leg the state home whose consoles' leases are read, every checkout whose console registry is asked (the target
+ *   and each one the owner declares), and where the leg's own lines go
  * @param waitMs how long a call it did not place is waited out (`foreignCallWaitMs`)
  * @param placed the ids of the calls this leg placed itself, which never hold it back
  * @returns `undefined` once the owner is not on a call and nothing is open, else why no call may be placed
  */
 export async function preflight({
-  home,
-  consoles,
+  besideAtRest,
+  leg,
   waitMs,
   placed,
 }: {
-  home: string;
-  consoles: readonly string[];
+  besideAtRest: "allowed" | "refused";
+  leg: Pick<E2eCallLegPlanOptions, "consoles" | "home" | "note">;
   waitMs: number;
   placed: readonly string[];
 }): Promise<E2eCallError | OnCallHoldError | undefined> {
+  const { consoles, home, note } = leg;
   const onCall = readOnCallHold({ home });
   if (onCall !== undefined) {
     return onCall;
   }
   let problem: E2eCallError | undefined;
+  let atRestBeside = 0;
   const clear = await until({
     capMs: waitMs,
     test: async () => {
       const conversations = await heldAcross({ consoles, home });
       // Read after the registry's await, never before it, so a lease taken during that request is seen.
       const leases = liveLeaseIds({ home, nowMs: Date.now() });
-      const decision = preflightDecision({ conversations, leases });
+      const decision = preflightDecision({ besideAtRest, conversations, leases });
       if (decision.kind !== "clear") {
         problem = decision.error;
         return decision.kind !== "wait";
@@ -81,6 +85,7 @@ export async function preflight({
         return false;
       }
       problem = undefined;
+      atRestBeside = decision.atRestTyped;
       return true;
     },
   });
@@ -91,7 +96,12 @@ export async function preflight({
     // The wait ran out without a read that said clear: never read as clear.
     return E2eCallErrors.callAlreadyLive({ live: 0 });
   }
-  return readOnCallHold({ home });
+  const held = readOnCallHold({ home });
+  const line = besideAtRestLine({ atRestTyped: atRestBeside });
+  if (held === undefined && line !== undefined) {
+    note({ line });
+  }
+  return held;
 }
 
 /**
@@ -278,7 +288,8 @@ export async function plannedSteps({
   if (options.inventorySurfaces.length === 0) {
     return ok(options.steps);
   }
-  const refused = await preflight({ consoles: options.consoles, home: options.home, placed: [], waitMs });
+  // The inventory is read off a test instance's pages; it places no call and types nothing, so it may sit beside one at rest.
+  const refused = await preflight({ besideAtRest: "allowed", leg: options, placed: [], waitMs });
   if (refused !== undefined) {
     return err(refused);
   }

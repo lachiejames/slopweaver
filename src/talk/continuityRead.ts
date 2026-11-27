@@ -31,7 +31,7 @@ import {
   type TalkContinuity,
   unreadContinuity,
 } from "./continuity.js";
-import { callsSince, testCallsSince } from "./continuityCalls.js";
+import { callsForMint, callsSince, testCallsSince } from "./continuityCalls.js";
 import { typedTurnsOf } from "./continuityTyped.js";
 import { readTurn } from "./relayStore.js";
 import type { SupervisorWindow } from "./supervisorWindow.js";
@@ -151,9 +151,18 @@ function readRulings({ home, sinceIso }: { home: string; sinceIso: string }): {
  *
  * @param home the state home
  * @param sinceIso the window's floor
+ * @param typedCalls whether conversations typed into the messenger are read (`callsForMint`)
  * @returns the calls and any unread note
  */
-function readCallsHalf({ home, sinceIso }: { home: string; sinceIso: string }): {
+function readCallsHalf({
+  home,
+  sinceIso,
+  typedCalls,
+}: {
+  home: string;
+  sinceIso: string;
+  typedCalls: "keep" | "drop";
+}): {
   calls: TalkContinuity["calls"];
   unread: readonly ContinuityUnread[];
 } {
@@ -168,7 +177,7 @@ function readCallsHalf({ home, sinceIso }: { home: string; sinceIso: string }): 
       why: `${String(read.value.unreadable.length)} call file(s) could not be read, so a call may be missing`,
     });
   }
-  return { calls: callsSince({ calls: read.value.calls, sinceIso }), unread };
+  return { calls: callsSince({ calls: callsForMint({ calls: read.value.calls, typedCalls }), sinceIso }), unread };
 }
 
 /**
@@ -250,6 +259,8 @@ async function readKnowledge({
  * @param lookbackMs how far back the window reaches
  * @param knowledge whether to open the store for the lessons half; `skip` names it unread instead
  * @param supervisor the current supervisor chat the owner's typed turns are read from, or why it could not be read
+ * @param typedCalls `drop` for a desktop test instance's mint, which never reads a conversation typed into the
+ *   messenger; `keep` for every other read
  * @returns the whole read, every half that failed named in `unread`
  */
 export async function readContinuity({
@@ -259,6 +270,7 @@ export async function readContinuity({
   lookbackMs,
   knowledge,
   supervisor,
+  typedCalls,
 }: {
   home: string;
   handoverDir: string;
@@ -266,10 +278,11 @@ export async function readContinuity({
   lookbackMs: number;
   knowledge: "read" | "skip";
   supervisor: SupervisorWindow | string;
+  typedCalls: "keep" | "drop";
 }): Promise<TalkContinuity> {
   const sinceIso = new Date(Date.parse(nowIso) - lookbackMs).toISOString();
   try {
-    return await readWhole({ handoverDir, home, knowledge, nowIso, sinceIso, supervisor });
+    return await readWhole({ handoverDir, home, knowledge, nowIso, sinceIso, supervisor, typedCalls });
   } catch (cause) {
     return unreadContinuity({ builtIso: nowIso, sinceIso, why: `the read threw: ${String(cause)}` });
   }
@@ -284,6 +297,7 @@ export async function readContinuity({
  * @param sinceIso the window's floor
  * @param knowledge whether to open the store for the lessons half
  * @param supervisor the current supervisor chat, or why it could not be read
+ * @param typedCalls whether conversations typed into the messenger are read
  * @returns the read
  */
 async function readWhole({
@@ -293,6 +307,7 @@ async function readWhole({
   sinceIso,
   knowledge,
   supervisor,
+  typedCalls,
 }: {
   home: string;
   handoverDir: string;
@@ -300,10 +315,11 @@ async function readWhole({
   sinceIso: string;
   knowledge: "read" | "skip";
   supervisor: SupervisorWindow | string;
+  typedCalls: "keep" | "drop";
 }): Promise<TalkContinuity> {
   const steers = readSteers({ handoverDir, home, sinceIso });
   const rulings = readRulings({ home, sinceIso });
-  const calls = readCallsHalf({ home, sinceIso });
+  const calls = readCallsHalf({ home, sinceIso, typedCalls });
   let lessons: { knowledge: TalkContinuity["knowledge"]; unread: readonly ContinuityUnread[] } = {
     knowledge: [],
     unread: [{ section: "knowledge", why: "not read at mint — call knowledge or recent_steers for the lessons" }],

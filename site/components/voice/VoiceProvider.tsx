@@ -196,6 +196,7 @@ import { useConnectingCue, useNetworkBack, useReconnectWait, watchCallLink, wind
 import { useCallTranscript } from "./useCallTranscript";
 import { useConversationWork } from "./useConversationWork";
 import { useCrashRecovery } from "./useCrashRecovery";
+import { windowInstance } from "./useDesktopShell";
 import { useEarlierConversation } from "./useEarlierConversation";
 import { useFrontWindowNotices } from "./useFrontWindowNotices";
 import { useHeldPage } from "./useHeldPage";
@@ -282,8 +283,9 @@ export function VoiceProvider({
     unread,
   } = conversation;
   // A turn the sink lost never reaches the file, so the history keeps its carried copy. The desktop
-  // test instance's batches are marked, so its call is stamped as the walk's and never read as the owner's words.
-  const instance = desktop?.instance;
+  // test instance's batches are marked off the window's own mark, kept bridge or not, so its call is stamped as the
+  // walk's and never read as the owner's words.
+  const instance = windowInstance();
   const transcript = useCallTranscript({ instance, kept: KEPT_LINES, onUnwritten: noteUnwritten, setTools });
   const [relays, setRelays] = useState<readonly RelayLine[]>([]);
   // Whether the owner's microphone track is disabled.
@@ -635,7 +637,7 @@ export function VoiceProvider({
           micAhead,
           mintTurnId: () => crypto.randomUUID(),
           nowIso: () => new Date().toISOString(),
-          post: (wire) => postRelay({ instance: seam.current?.instance, wire }),
+          post: (wire) => postRelay({ instance: windowInstance(), wire }),
           relayed: transcript.relayed,
           standing: () => standingData.current,
           turnWindow,
@@ -961,7 +963,7 @@ export function VoiceProvider({
       try {
         await conn.connect({
           exchangeSdp: async (offer, { signal }) => {
-            const answer = await mintOffer({ instance: seam.current?.instance, mode, offer, signal, voice: planVoice });
+            const answer = await mintOffer({ instance: windowInstance(), mode, offer, signal, voice: planVoice });
             const current = stillMine({ current: generation.current, mine });
             planCall.current = followMinted({
               current,

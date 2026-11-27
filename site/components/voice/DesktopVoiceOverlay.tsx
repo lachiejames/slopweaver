@@ -13,7 +13,7 @@
 import { type ReactElement, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { presentCardOnShell } from "../../lib/desktopCardPresent";
-import { bridgeInstance, type DesktopBridge, type DesktopPageIdentity, pageIdentityOf } from "../../lib/desktopShell";
+import { type DesktopBridge, type DesktopPageIdentity, pageIdentityOf } from "../../lib/desktopShell";
 import {
   type OverlayShellCommand,
   overlayAreaOf,
@@ -197,8 +197,6 @@ function OverlayVoice({ bridge }: { bridge: DesktopBridge }): ReactElement {
             },
             takeRecovery: takeOverlayRecovery,
           };
-    // The desktop test instance marks every call it runs as the walk's, never the owner's (`slopweaver desktop e2e --call`).
-    const marked: Pick<DesktopVoiceSeam, "instance"> = bridgeInstance({ bridge }) === "e2e" ? { instance: "e2e" } : {};
     // Rapid triage's countdown beside the menu bar item and its menu and note presses.
     const { onTriageCommand, reportTriageClock } = bridge;
     const triage: Pick<DesktopVoiceSeam, "triageClock"> =
@@ -226,7 +224,6 @@ function OverlayVoice({ bridge }: { bridge: DesktopBridge }): ReactElement {
       ...focus,
       ...front,
       ...survives,
-      ...marked,
       ...triage,
       reportFailure,
       startRoute,

@@ -5,7 +5,17 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { typedInSendOf } from "../../components/voice/typedInClient";
+import { typedInBody, typedInSendOf } from "../../components/voice/typedInClient";
+
+describe("typedInBody", () => {
+  it("marks only the desktop test instance's send, so the owner's carries no instance", () => {
+    const send = { messageId: "m-1", pressedMs: 5, text: "hi" };
+    expect([
+      JSON.parse(typedInBody({ ...send, instance: undefined })),
+      JSON.parse(typedInBody({ ...send, instance: "e2e" })),
+    ]).toEqual([send, { ...send, instance: "e2e" }]);
+  });
+});
 
 describe("typedInSendOf", () => {
   it("takes the route's own 2xx as in the call, a retry answered already included", () => {

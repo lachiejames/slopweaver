@@ -12,8 +12,9 @@ import { NextResponse } from "next/server";
 
 import { spawnVerb } from "../../../../../../lib/spawnVerb";
 import { type SteerRiskAnswer, type SteerRiskNotice, steerRiskAnswerOf } from "../../../../../../lib/steerRiskNotice";
+import { planCallContextById } from "../../../../../../lib/talkCallRegistry";
 import { readCallRequest } from "../../../../../../lib/talkCallRequest";
-import { processTalkNoticeLedger, steerRiskClaimId } from "../../../../../../lib/talkNoticeLedger";
+import { steerRiskClaimId } from "../../../../../../lib/talkNoticeLedger";
 import { talkToolFailureDetail } from "../../../../../../lib/talkToolFailure";
 
 /** Never prerendered: it writes to a live call. */
@@ -90,11 +91,16 @@ export async function POST(
     const refused = "a typed conversation has no voice to say a steered deliverable is at risk";
     return NextResponse.json({ ok: false, refused }, { headers, status: 422 });
   }
+  // The call's own ledger, read before the register's await: a test call claims in its own, never the owner's.
+  const held = planCallContextById({ id: read.call.id });
+  if (held === undefined) {
+    return NextResponse.json({ ok: false, refused: "the call has ended" }, { headers, status: 404 });
+  }
   const notes = await readSteerRisk();
   if ("refused" in notes) {
     return NextResponse.json({ ok: false, refused: notes.refused }, { headers, status: 502 });
   }
-  const ledger = processTalkNoticeLedger();
+  const ledger = held.notices;
   const notice = notes.notices.find((one) => !ledger.has({ claimId: steerRiskClaimId({ stepId: one.stepId }) }));
   if (notice === undefined && notes.unreadLines > 0) {
     // A line that would not read may be the very note the voice is owed, so this is a failed read, never "none open".

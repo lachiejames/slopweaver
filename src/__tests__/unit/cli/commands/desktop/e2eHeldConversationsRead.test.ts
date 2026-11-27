@@ -77,7 +77,7 @@ describe("readHeldConversations", () => {
       live: [41],
     });
     const held = unwrap(await readHeldConversations({ cacheRoot: CACHE, checkout: CHECKOUT, deps, home: HOME }));
-    expect([held, asked]).toEqual([[{ id: "t1", surface: "typed" }], [URL_4100]]);
+    expect([held, asked]).toEqual([[{ atRest: false, id: "t1", surface: "typed" }], [URL_4100]]);
   });
 
   it("reads the home's older record past a stopped server's in the cache root", async () => {
@@ -103,7 +103,7 @@ describe("readHeldConversations", () => {
       live: [500, 41],
     });
     const held = unwrap(await readHeldConversations({ cacheRoot: CACHE, checkout: CHECKOUT, deps, home: HOME }));
-    expect([held, asked]).toEqual([[{ id: "t1", surface: "typed" }], [URL_3000, URL_4100]]);
+    expect([held, asked]).toEqual([[{ atRest: false, id: "t1", surface: "typed" }], [URL_3000, URL_4100]]);
   });
 
   it("is unreadable when any live record's console cannot be asked, whatever another answered", async () => {

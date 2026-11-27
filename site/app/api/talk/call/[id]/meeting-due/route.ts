@@ -21,8 +21,8 @@ import {
   skippedMeetingsOf,
 } from "../../../../../../lib/meetingDue";
 import { meetingDueCandidates } from "../../../../../../lib/meetingDueCandidates";
-import { processMeetingLedger } from "../../../../../../lib/meetingLedger";
 import { spawnVerb } from "../../../../../../lib/spawnVerb";
+import { planCallContextById } from "../../../../../../lib/talkCallRegistry";
 import { readCallRequest } from "../../../../../../lib/talkCallRequest";
 import { talkToolFailureDetail } from "../../../../../../lib/talkToolFailure";
 
@@ -117,11 +117,16 @@ export async function POST(
     const refused = "a typed conversation has no voice to say a meeting";
     return NextResponse.json({ ok: false, refused }, { headers, status: 422 });
   }
+  // The call's own ledger, read before the calendar's await: a test call claims in its own, never the owner's.
+  const held = planCallContextById({ id: read.call.id });
+  if (held === undefined) {
+    return NextResponse.json({ ok: false, refused: "the call has ended" }, { headers, status: 404 });
+  }
   const calendar = await readMeetingsDue();
   // A claimed meeting is this server's own read, the latest one, and the call answers it `already`. A failed read still
   // offers the claims: their link is owed whether or not the calendar answers now. The ledger
   // takes the raw read: a skip is this page's word, and another page's claim is not this page's to drop.
-  const ledger = processMeetingLedger();
+  const ledger = held.meetings;
   let fresh: readonly MeetingNotice[] | undefined;
   if ("notices" in calendar) {
     ledger.refresh({ notices: calendar.notices });

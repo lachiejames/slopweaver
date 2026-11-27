@@ -57,11 +57,6 @@ export interface DesktopVoiceSeam {
   /** The voice's window: take what the shell held for a call its renderer died under; absent as above. */
   readonly takeRecovery?: () => Promise<unknown>;
   /**
-   * `e2e` when the desktop TEST instance runs the call (`DesktopBridge.instance`): every transcript batch and relay
-   * says so, so the walk's speech is never read as the owner's. Absent on the owner's own app and in a browser.
-   */
-  readonly instance?: "e2e";
-  /**
    * The voice's window: the triage pass's link to the menu bar and the floating notes (`./useTriageCommands.ts`). Absent
    * in a browser, in the console window and under a shell from before rapid triage.
    */

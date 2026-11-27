@@ -2,8 +2,11 @@
  * The page's half of typing into a live call: what the owner typed or pasted into the Messenger box while a voice call
  * is up, posted to `/api/talk/typed-in`, which hands it to that call's voice as the owner's turn. No call id: the window
  * the owner types in may not hold the call, so the server finds it. What the voice makes of it arrives on the call's own event stream.
+ * The desktop test instance marks its body `instance: "e2e"`, as its offer does, so the server hands it only to a test call
+ * and the owner's words only to the owner's.
  */
 import { isBag } from "../../lib/bag";
+import { windowInstance } from "./useDesktopShell";
 
 /** How long one send may take: the server's append step, with room. */
 const TYPED_IN_TIMEOUT_MS = 30_000;
@@ -34,10 +37,11 @@ export async function typeIntoLiveCall({
   pressedMs: number;
   text: string;
 }): Promise<TypedInSend> {
+  const instance = windowInstance();
   let response: Response;
   try {
     response = await fetch("/api/talk/typed-in", {
-      body: JSON.stringify({ messageId, pressedMs, text }),
+      body: typedInBody({ instance, messageId, pressedMs, text }),
       cache: "no-store",
       headers: { "content-type": "application/json" },
       method: "POST",
@@ -48,6 +52,32 @@ export async function typeIntoLiveCall({
   }
   const body: unknown = await response.json().catch(() => undefined);
   return typedInSendOf({ body, status: response.status });
+}
+
+/**
+ * The send's JSON body: `instance` rides only on the desktop test instance's, so the owner's own carries none.
+ *
+ * @param instance `e2e` on the desktop test instance, `undefined` on the owner's own app or a browser
+ * @param messageId the page's own id for this message
+ * @param pressedMs when send was pressed
+ * @param text what was typed or pasted
+ * @returns the body text
+ */
+export function typedInBody({
+  instance,
+  messageId,
+  pressedMs,
+  text,
+}: {
+  instance: "e2e" | undefined;
+  messageId: string;
+  pressedMs: number;
+  text: string;
+}): string {
+  if (instance === undefined) {
+    return JSON.stringify({ messageId, pressedMs, text });
+  }
+  return JSON.stringify({ instance, messageId, pressedMs, text });
 }
 
 /**
