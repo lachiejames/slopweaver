@@ -8,19 +8,34 @@
 import type { GitRunner } from "./pruneGit.js";
 
 /**
- * Whether a remote, asked over the wire NOW, still has a branch containing a commit.
+ * The ONE remote prune trusts as a backup and salvages to: every "is this pushed" read names it, and so does the
+ * salvage push, so the remote that excuses a tree is the remote its work would be sent to.
+ *
+ * **Every other remote is ignored, and that is the safety rather than a narrowing.** A checkout can carry a remote
+ * of a DIFFERENT history: this repository's own checkout keeps `archive`, the pre-cut history, beside `origin`, the
+ * public one, and the two share no commit (`git merge-base origin/main archive/main` exits 1). Counted as a backup,
+ * `archive` excused every old-history branch as pushed; and a tree excused as "on no remote" past the week is
+ * salvaged to THIS remote, so the two reads must name the same one. A branch carried only by a second remote of the
+ * same URL (`public`, here) reads as unpushed and is held, which is the conservative direction: URL equality is
+ * configuration that can change.
+ */
+export const PRUNE_REMOTE = "origin";
+
+/**
+ * Whether {@link PRUNE_REMOTE}, asked over the wire NOW, still has a branch containing a commit.
  *
  * A remote-tracking ref is this clone's memory of a remote, not the remote: GitHub deletes a branch on merge
  * and `refs/remotes/origin/<branch>` keeps saying it carries the commit until a `fetch --prune`. The r2
- * Codex review removed a detached tree whose HEAD only such a stale ref held, so this asks each remote,
+ * Codex review removed a detached tree whose HEAD only such a stale ref held, so this asks the remote,
  * with `ls-remote`, for the branches the local refs name, and counts one only when its tip is here and
  * descends from the commit. A tip this clone has not fetched cannot be checked and does not count, and a
  * remote git could not reach answers nothing — both keep the tree, which the next run asks about again.
+ * Only {@link PRUNE_REMOTE}'s refs are read: a branch on any other remote carries nothing here.
  *
  * @param git how to run git
  * @param headSha the commit that must still be carried
- * @param repoRoot the repository whose remotes to ask
- * @returns true only when a live remote branch contains `headSha`
+ * @param repoRoot the repository whose remote to ask
+ * @returns true only when a live {@link PRUNE_REMOTE} branch contains `headSha`
  */
 export function remoteStillCarries({
   git,
@@ -32,22 +47,23 @@ export function remoteStillCarries({
   repoRoot: string;
 }): boolean {
   const refs = git({
-    args: ["for-each-ref", "--contains", headSha, "--format=%(refname)", "refs/remotes/"],
+    args: ["for-each-ref", "--contains", headSha, "--format=%(refname)", `refs/remotes/${PRUNE_REMOTE}/`],
     cwd: repoRoot,
   });
-  const remotes = git({ args: ["remote"], cwd: repoRoot });
-  if (refs === null || remotes === null) {
+  if (refs === null) {
     return false;
   }
-  return [...branchesByRemote({ refs, remotes })].some(([remote, branches]) => {
-    const listing = git({ args: ["ls-remote", remote, ...branches], cwd: repoRoot });
-    return (
-      listing !== null &&
-      liveTips({ branches, listing }).some(
-        (tip) => git({ args: ["merge-base", "--is-ancestor", headSha, tip], cwd: repoRoot }) !== null,
-      )
-    );
-  });
+  const branches = branchesByRemote({ refs, remotes: PRUNE_REMOTE }).get(PRUNE_REMOTE);
+  if (branches === undefined) {
+    return false;
+  }
+  const listing = git({ args: ["ls-remote", PRUNE_REMOTE, ...branches], cwd: repoRoot });
+  return (
+    listing !== null &&
+    liveTips({ branches, listing }).some(
+      (tip) => git({ args: ["merge-base", "--is-ancestor", headSha, tip], cwd: repoRoot }) !== null,
+    )
+  );
 }
 
 /**

@@ -73,7 +73,7 @@ describe("classifyWorktree", () => {
   it("HOLDS a clean, cold branch carrying commits no remote has", () => {
     const verdict = classify({ mergedIntoTrunk: false, unbackedCommits: 3 });
     expect(verdict.cls).toBe("hold");
-    expect(verdict.reason).toBe("3 commit(s) on no remote");
+    expect(verdict.reason).toBe("3 commit(s) origin does not carry");
   });
 
   it("names the earlier hold when an unpushed branch is also dirty or live", () => {
@@ -123,11 +123,11 @@ describe("classifyWorktree", () => {
   it("holds a detached HEAD no remote carries, whether the ref is absent or git could not be asked", () => {
     const verdict = classify({ branch: null, mergedIntoTrunk: null, unbackedCommits: null });
     expect(verdict.cls).toBe("hold");
-    expect(verdict.reason).toBe("a detached HEAD on no remote, so nothing could recreate this tree");
+    expect(verdict.reason).toBe("a detached HEAD origin does not carry, so nothing could recreate this tree");
     // The sha resolving while the containing ref does not is the same hold: the witness is the REF.
     const noRef = classify({ branch: null, headSha: "abc1234", mergedIntoTrunk: null, unbackedCommits: null });
     expect(noRef.cls).toBe("hold");
-    expect(noRef.reason).toBe("a detached HEAD on no remote, so nothing could recreate this tree");
+    expect(noRef.reason).toBe("a detached HEAD origin does not carry, so nothing could recreate this tree");
   });
 
   it("clears a detached HEAD a remote still carries, printing the command that recreates it", () => {

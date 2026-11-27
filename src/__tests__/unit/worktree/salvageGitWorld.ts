@@ -71,7 +71,15 @@ export interface GitWorld {
   readonly bitsStick?: boolean;
   /** What `remote get-url --push --all` reports; by default exactly the fetch url, {@link URL}. */
   readonly pushUrls?: string;
+  /**
+   * `merge-base <head> refs/remotes/origin/HEAD` exits 1 when true, standing for a tree on ANOTHER history than the
+   * remote's trunk — the pre-cut history an `archive` remote carries — or a trunk ref that is not there.
+   */
+  readonly unrelatedHistory?: boolean;
 }
+
+/** The merge base every related tree shares with the trunk. */
+const TRUNK_BASE = "77c1e0deaaaabbbbccccddddeeeeffff00003333";
 
 /**
  * Build the injected edges for one scripted world, recording every command that ran.
@@ -101,6 +109,7 @@ export function fakeDeps({ world }: { world: GitWorld }): {
     remoteReports,
     remoteUnreachable = false,
     pushUrls = `${URL}\n`,
+    unrelatedHistory = false,
   } = world;
   const armoured: string[] = [];
   const bare: string[] = [];
@@ -193,7 +202,15 @@ export function fakeDeps({ world }: { world: GitWorld }): {
     }
     return args[2] === "--push" ? pushUrls : URL;
   };
+  // `merge-base` arrives after the ancestry hardening, so its verb is read past those global options.
+  const answerMergeBase = (): string => {
+    if (unrelatedHistory) {
+      throw new Error("Command failed: git merge-base (exit 1)");
+    }
+    return TRUNK_BASE;
+  };
   const answers: Readonly<Record<string, (input: { args: readonly string[] }) => string>> = {
+    "--no-replace-objects": answerMergeBase,
     config: () => "core.bare=false\n",
     diff: answerDiff,
     "ls-files": answerLsFiles,

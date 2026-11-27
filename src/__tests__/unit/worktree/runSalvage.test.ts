@@ -102,6 +102,38 @@ describe("runSalvage", () => {
     expect(ran.filter((line) => line.startsWith("write:"))).toEqual([]);
   });
 
+  it("KEEPS a tree of ANOTHER history and writes nothing, so an archive branch is never pushed to the public remote", () => {
+    // The old-history case: a checkout carrying the pre-cut history on an `archive` remote, whose commits share no
+    // merge base with `origin`'s trunk. Salvaged, that whole history would land on origin as one `salvage/…` branch.
+    const { deps, ran } = fakeDeps({ world: { staged: ["a"], unrelatedHistory: true } });
+    const outcome = runSalvage({
+      deps,
+      denylist: ABSENT,
+      home: HOME_WITHOUT_PUSH_ROOTS,
+      remote: "origin",
+      scan: NO_SECRETS,
+      verdict,
+    });
+
+    expect(outcome).toEqual({
+      branch: null,
+      declined:
+        "its HEAD shares no history with origin's trunk (refs/remotes/origin/HEAD), or that trunk could not be read — nothing was pushed",
+    });
+    expect(ran.filter((line) => line.startsWith("write:"))).toEqual([]);
+    // It refused before probing a single branch name, on the remote or locally.
+    expect(ran.filter((line) => line.startsWith("read:ls-remote") || line.includes("rev-parse --verify"))).toEqual([]);
+  });
+
+  it("asks the trunk about the EXACT sha it read, with replace refs and the commit graph off, before any name probe", () => {
+    const { deps, ran } = fakeDeps({ world: { staged: ["a"] } });
+    runSalvage({ deps, denylist: ABSENT, home: HOME_WITHOUT_PUSH_ROOTS, remote: "origin", scan: NO_SECRETS, verdict });
+
+    const ask = `read:--no-replace-objects -c core.commitGraph=false merge-base ${HEAD} refs/remotes/origin/HEAD`;
+    expect(ran).toContain(ask);
+    expect(ran.indexOf(ask) < ran.indexOf(`read:ls-remote --heads origin ${BASE_BRANCH}`)).toBe(true);
+  });
+
   it("KEEPS the tree when git refuses a step, naming which step it was", () => {
     const { deps, ran } = fakeDeps({ world: { staged: ["a"], failWrite: "commit" } });
     const outcome = runSalvage({

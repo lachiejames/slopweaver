@@ -43,6 +43,7 @@ import type { GithubPushEdges } from "../admit/githubPush.js";
 import { type LineListLoad } from "../hygiene/scan.js";
 import type { PruneVerdict } from "./pruneClassify.js";
 import { confirmOnRemote, HOOKS_OFF, withheldIfSecret } from "./salvagePush.js";
+import { unrelatedHistoryDecline } from "./salvageTrunkHistory.js";
 
 /** One git invocation in a salvage, with what it is for so a failure can say which step declined. */
 interface SalvageStep {
@@ -544,6 +545,10 @@ function salvageOnce({
   // time (owner), and `changedSinceScan` rechecks it, so what reaches a salvage is build output.
   if (now.headSha === "") {
     return { branch: null, declined: "its HEAD sha could not be read, so there is nothing to push" };
+  }
+  const unrelated = unrelatedHistoryDecline({ deps, headSha: now.headSha, path: verdict.path, remote });
+  if (unrelated !== null) {
+    return { branch: null, declined: unrelated };
   }
   const free = freeSalvageName({ deps, headSha: now.headSha, path: verdict.path, remote });
   if (free === null) {

@@ -407,7 +407,7 @@ const HOLD_RULES: readonly HoldRule[] = [
   {
     reason: ({ facts }) =>
       facts.branch === null && !facts.missing && !recreatableDetached({ facts })
-        ? "a detached HEAD on no remote, so nothing could recreate this tree"
+        ? "a detached HEAD origin does not carry, so nothing could recreate this tree"
         : undefined,
     waivable: true,
   },
@@ -429,7 +429,7 @@ const HOLD_RULES: readonly HoldRule[] = [
   {
     reason: ({ facts }) =>
       facts.branch !== null && !facts.missing && facts.unbackedCommits !== null && facts.unbackedCommits > 0
-        ? `${String(facts.unbackedCommits)} commit(s) on no remote`
+        ? `${String(facts.unbackedCommits)} commit(s) origin does not carry`
         : undefined,
     waivable: true,
   },

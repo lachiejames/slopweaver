@@ -424,7 +424,7 @@ describe("scanWorktree", () => {
         "--name-only refs/heads/topic..origin/main": "",
         "--merges": "0",
         "rev-list --count": "2",
-        "rev-list topic --not --remotes": "aaa\nbbb",
+        "rev-list topic --not --remotes=origin": "aaa\nbbb",
         "log -1": "1756000000",
       },
       branch: "topic",

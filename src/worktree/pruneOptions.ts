@@ -180,7 +180,7 @@ const CLASS_ORDER: readonly PruneClass[] = [
 
 /** The heading each class prints under. */
 const CLASS_HEADING: Readonly<Record<PruneClass, string>> = {
-  detached: "SAFE — a detached HEAD a remote still carries: tree removed, recreatable from its own sha",
+  detached: "SAFE — a detached HEAD origin still carries: tree removed, recreatable from its own sha",
   gone: "STALE RECORD — git worktree prune clears the registration (frees nothing)",
   interrupted:
     "INTERRUPTED REMOVAL — a gutted tree whose work is in the trunk or on its own remote branch: finished, " +
@@ -192,8 +192,8 @@ const CLASS_HEADING: Readonly<Record<PruneClass, string>> = {
   merged: "SAFE — merged, clean, unreferenced, cold: tree removed, and the branch deleted when the trunk holds its tip",
   pushed: "SAFE — clean, fully pushed, unreferenced, cold: tree removed and the branch KEPT",
   salvaged:
-    "SALVAGED — over a week untouched and carrying work no remote has: the work is PUSHED to a remote " +
-    "branch and recorded, and only then does the tree go",
+    "SALVAGED — over a week untouched and carrying work origin does not have: the work is PUSHED to an origin " +
+    "branch and recorded, and only then does the tree go — a HEAD sharing no history with origin's trunk is kept",
   snapshot:
     "SAFE — a one-off Codex snapshot left behind past the longest pass: a frozen copy of another tree, removed " +
     "with nothing pushed",

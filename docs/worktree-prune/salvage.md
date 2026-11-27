@@ -5,6 +5,15 @@ The class, the waiver it rests on and the fresh `salvage/<slug>-<sha8>` branch a
 [the classes](classes.md#the-classes); the code is `src/worktree/pruneSalvage.ts` (the
 capture), `src/worktree/salvagePush.ts` (the push) and `src/worktree/salvageScan.ts` (the scan).
 
+**A salvage pushes to `origin` alone, and never a commit of another history.** `origin` is `PRUNE_REMOTE`
+(`src/worktree/pruneRemote.ts`), the one remote every "is this pushed" read in the scan and the recheck names, so
+the remote that judged a tree's work "on no remote" is the remote it is sent to. A checkout can carry a remote of
+a different history: this repository's own keeps its pre-cut history on `archive` beside the public `origin`, and
+`git merge-base origin/main archive/main` exits 1. Before it probes a name or mints a branch, the capture asks
+`merge-base <the sha it read> refs/remotes/origin/HEAD` with replace refs and the commit graph off, and a tree
+with no merge base, or a trunk that could not be read, DECLINES with nothing written: salvaged, an archive branch
+would have put that whole history on the public repository as one `salvage/…` branch.
+
 **A dirty tree is TWO pieces of work and both are captured**, because git's index can hold content no file on
 disk has (`MM` in porcelain) and `git add -A` overwrites it. The index is committed on its own first, the
 working tree second: two commits, neither over the other. **And every git command a capture runs carries

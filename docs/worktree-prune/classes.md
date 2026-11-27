@@ -85,10 +85,10 @@ check is the second opinion (`src/worktree/pruneLapPin.ts`).
 | `merged`      | absorbed into the trunk, clean, unreferenced, and older than `--older-than`                                             | removes the tree, then deletes the branch only when the trunk carries its tip                                                                  |
 | `interrupted` | every status entry a deletion, its work in the trunk or on its own remote branch, unreferenced, cold                    | finishes it with `--force`; deletes the branch only when the trunk holds it — [`--force`](decision-mechanics.md#the-one-place---force-is-used) |
 | `pushed`      | clean and fully pushed, but NOT absorbed — the tree is recreatable, the branch is not disposable                        | removes the tree and KEEPS the branch; skipped by `--merged-only`                                                                              |
-| `detached`    | no branch, but a remote ref still contains the HEAD commit                                                              | removes the tree; `git worktree add --detach <sha>` recreates it                                                                               |
+| `detached`    | no branch, but an `origin` ref still contains the HEAD commit                                                           | removes the tree; `git worktree add --detach <sha>` recreates it                                                                               |
 | `snapshot`    | a one-off Codex snapshot under the OS temp directory, unreferenced and untouched for 25 hours                           | removes the tree; nothing is pushed, because it is a copy of another tree                                                                      |
 | `lap`         | a `github lap` tree whose marked minter has stopped, or an unmarked one a kept ref holds under `--include-unmarked-lap` | pins its HEAD under `refs/slopweaver/pruned-lap/`, then removes the tree without `--force`                                                     |
-| `salvaged`    | past `--nuke-after` and held only by work a push can carry — dirty, deletions, commits on no remote, or a detached HEAD | pushes the work to a remote branch, then removes the tree; never reached under `--no-salvage`                                                  |
+| `salvaged`    | past `--nuke-after` and held only by work a push can carry — dirty, deletions, commits on no remote, or a detached HEAD | pushes the work to an `origin` branch, then removes the tree; refuses a HEAD sharing no history with `origin/HEAD`; never under `--no-salvage` |
 | `gone`        | registered by git, absent from disk                                                                                     | `git worktree prune` clears the record; frees nothing                                                                                          |
 | `hold`        | anything a safety rule stops                                                                                            | never removed; a cold, unreferenced one drops its `node_modules`                                                                               |
 
@@ -106,9 +106,9 @@ most-alarming first. They live as one ordered list in `src/worktree/pruneClassif
 9. a hidden file whose bytes differ from its staged blob, or are missing;
 10. uncommitted changes that are not purely deletions, an untracked file included;
 11. an all-deletions tree whose work is in **neither** the trunk nor its own remote branch — a deletion to investigate;
-12. a detached HEAD **no remote ref contains**, so nothing could recreate the tree;
+12. a detached HEAD **no `origin` ref contains**, so nothing could recreate the tree;
 13. an unbacked-commit count that could not be read at all, for a tree that HAS a branch;
-14. commits on no remote, for a tree that HAS a branch;
+14. commits [`origin`](decision-mechanics.md#two-measurements-that-decide-everything) does not carry, for a tree that HAS a branch;
 15. no readable activity timestamp;
 16. touched more recently than `--older-than`, **unless the board reports its run closed, or the tree is clean
     on its own pushed branch**. An open pull request of the owner's whose head is the branch the tree has out re-arms

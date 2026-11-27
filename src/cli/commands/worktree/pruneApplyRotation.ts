@@ -16,6 +16,7 @@ import {
   type RepoVerdict,
 } from "../../../worktree/pruneOrder.js";
 import type { RemovalPacer } from "../../../worktree/prunePacing.js";
+import { PRUNE_REMOTE } from "../../../worktree/pruneRemote.js";
 import { runSalvage } from "../../../worktree/pruneSalvage.js";
 import { reclaimTrashDir } from "../../../worktree/reclaimTrash.js";
 import { recyclePoolDir } from "../../../worktree/recyclePool.js";
@@ -51,9 +52,6 @@ function activityFloorOf({ verdict }: { verdict: PruneVerdict }): number | null 
   }
   return verdict.activityFloorMs;
 }
-
-/** The remote a salvage pushes to — the same one `github push` defaults to. */
-const SALVAGE_REMOTE = "origin";
 
 /**
  * What the rotation does with the tree it is standing on: stop before it (the tree stays owed), keep it and move
@@ -283,7 +281,8 @@ function applyOne({
         deps: productionGithubPushDeps(),
         denylist,
         home: slopweaverHome(),
-        remote: SALVAGE_REMOTE,
+        // The remote the scan judged "on no remote" against, so the tree it excused is pushed where it was measured.
+        remote: PRUNE_REMOTE,
         scan: ({ path, sha, target, url }) =>
           salvageScanDecline({ denylist, edges: gitSalvageEdges({ cwd: path, sha, url }), refName: target }),
         verdict,
@@ -297,7 +296,7 @@ function applyOne({
     recordSalvage({
       branch: outcome.salvagedTo,
       home: slopweaverHome(),
-      remote: SALVAGE_REMOTE,
+      remote: PRUNE_REMOTE,
       repoRoot: item.repoRoot,
       worktreePath: outcome.path,
     });

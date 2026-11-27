@@ -18,7 +18,7 @@ import {
   workingTreeStatus,
 } from "./pruneGit.js";
 import { LAP_GITDIR_FILES } from "./pruneLapPin.js";
-import { remoteStillCarries } from "./pruneRemote.js";
+import { PRUNE_REMOTE, remoteStillCarries } from "./pruneRemote.js";
 import { activityNowMs, detachedHead } from "./pruneScan.js";
 import { symlinkEditsNow } from "./pruneSymlinks.js";
 import { privateHistoryWithinHead } from "./snapshotPrivateHistory.js";
@@ -267,7 +267,8 @@ function lastReads({
 }
 
 /**
- * Whether the branch a removal keeps now carries a commit no remote has, which holds the tree (the owner's rule).
+ * Whether the branch a removal keeps now carries a commit `origin` does not have, which holds the tree (the owner's
+ * rule). Only {@link PRUNE_REMOTE} counts: a remote of another history is no backup (`./pruneRemote.ts`).
  *
  * A branch the removal deletes is not asked: it is deleted only when the trunk carries its tip, and
  * the scan already counted an absorbed branch's pre-squash commits as backed. A detached tree answers to its pin.
@@ -282,9 +283,12 @@ function unpushedSinceScan({ verdict }: { verdict: PruneVerdict }): string | nul
   if (verdict.deleteBranch || !ON_ITS_BRANCH.has(verdict.cls) || branch === null) {
     return null;
   }
-  const unpushed = realGit({ args: ["rev-list", "--count", branch, "--not", "--remotes"], cwd: verdict.path });
+  const unpushed = realGit({
+    args: ["rev-list", "--count", branch, "--not", `--remotes=${PRUNE_REMOTE}`],
+    cwd: verdict.path,
+  });
   if (unpushed !== "0") {
-    return "it carries a commit on no remote, or its commits could not be counted, since the scan — kept";
+    return "it carries a commit origin does not, or its commits could not be counted, since the scan — kept";
   }
   return null;
 }
