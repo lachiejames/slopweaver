@@ -173,6 +173,48 @@ describe("classifyCallError", () => {
   });
 });
 
+describe("parseReplyFrame on cmux's rate limit", () => {
+  it("decodes the measured frame into RATE_LIMITED carrying cmux's own hint", () => {
+    const line =
+      '{"ok":false,"id":"sw-10","error":{"data":{"retry_after_ms":92},"code":"rate_limited","message":"Polling rate limited for this connection"}}';
+
+    expect(unwrapErr(parseReplyFrame({ line, method: "surface.read_text" }))).toEqual(
+      CmuxErrors.rateLimited({
+        message: "Polling rate limited for this connection",
+        method: "surface.read_text",
+        retryAfterMs: 92,
+      }),
+    );
+  });
+
+  it("keeps no hint it cannot trust: missing, negative, fractional or not a number", () => {
+    const dataShapes = [
+      "",
+      ',"data":{}',
+      ',"data":{"retry_after_ms":-1}',
+      ',"data":{"retry_after_ms":9.5}',
+      ',"data":{"retry_after_ms":"92"}',
+      ',"data":7',
+    ];
+
+    const hints = dataShapes.map((data) => {
+      const line = `{"ok":false,"id":"sw-1","error":{"code":"rate_limited","message":"m"${data}}}`;
+      const error = unwrapErr(parseReplyFrame({ line, method: "surface.read_text" }));
+      return error.code === "RATE_LIMITED" ? error.retryAfterMs : "not rate limited";
+    });
+
+    expect(hints).toEqual([undefined, undefined, undefined, undefined, undefined, undefined]);
+  });
+
+  it("leaves any other cmux code a plain call failure, hint or not", () => {
+    const line = '{"ok":false,"id":"sw-1","error":{"code":"not_found","message":"gone","data":{"retry_after_ms":92}}}';
+
+    expect(unwrapErr(parseReplyFrame({ line, method: "workspace.close" }))).toEqual(
+      CmuxErrors.callFailed({ cmuxCode: "not_found", message: "gone", method: "workspace.close" }),
+    );
+  });
+});
+
 describe("parseReplyFrame", () => {
   it("returns the result value of a successful reply", () => {
     expect(

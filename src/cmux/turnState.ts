@@ -150,6 +150,20 @@ export function claudeComposerAtBottom({ screen }: { screen: string }): boolean 
 const PROVABLE_HOSTS: readonly VisibleSessionHost[] = ["claude-code", "codex"];
 
 /**
+ * The host whose own composer layout is the bottom of the screen, for a caller never told which host the seat
+ * booted. The two layouts end on different last lines (Claude Code's mode footer, Codex's status footer), so at
+ * most one matches. A host named here drew the screen, so that host's markers are the only ones that mean anything
+ * on it: text higher up shaped like the other host's markers is transcript, such as a diff line that is just a line
+ * number, which Codex's terminal count would otherwise read as a background terminal.
+ *
+ * @param screen the seat's rendered screen text
+ * @returns the host whose composer and footer sit at the bottom, or `undefined` when neither does
+ */
+export function screenHostAtBottom({ screen }: { screen: string }): VisibleSessionHost | undefined {
+  return PROVABLE_HOSTS.find((host) => hostComposerAtBottom({ host, screen }));
+}
+
+/**
  * Whether a screen POSITIVELY shows some host at rest, for a caller that was never told which host the seat
  * booted — `cmux close`'s bounded force. Each host's proof is its own composer layout, so no host's screen can
  * borrow another's.

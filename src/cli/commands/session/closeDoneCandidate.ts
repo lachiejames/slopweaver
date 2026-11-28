@@ -4,9 +4,10 @@
  * {@link sweepItem}; a retired chair's close is recorded on the sweep's keep-alive record (`./closeDoneKeepAlive.ts`)
  * whichever path closes it.
  */
-import { type CloseDonePlanItem, judgeScreen } from "../../../sessions/closeDone.js";
+import type { CloseDonePlanItem } from "../../../sessions/closeDone.js";
 import type { CloseDoneOutcome } from "../../../sessions/closeDoneOutcome.js";
 import { closeForceDecision } from "../../../sessions/closeForce.js";
+import { judgeScreen } from "../../../sessions/screenVerdict.js";
 import { appendSessionEvent } from "../../../sessions/sessionStore.js";
 import { stateHomePaths } from "../../../stateHome.js";
 import type { CloseDoneDeps } from "./closeDone.js";

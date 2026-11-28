@@ -20,7 +20,7 @@ import { err, ok, type Result } from "#lib/result.js";
 import type { CmuxClient } from "../cmux/client.js";
 import { type CmuxError, isWorkspaceCloseConfirmationRequired } from "../cmux/errors.js";
 import { screenProvesAtRest } from "../cmux/turnState.js";
-import { judgeScreen, type ScreenVerdict } from "./closeDone.js";
+import { judgeScreen, type ScreenVerdict } from "./screenVerdict.js";
 
 /** Why a close may not take force: a screen verdict, or an idle-looking screen with no host's prompt to prove it. */
 export type CloseHeldVerdict = Exclude<ScreenVerdict, "idle"> | "unproven";

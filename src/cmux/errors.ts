@@ -44,6 +44,22 @@ export interface CmuxTerminalTextUnreadableError {
   readonly method: string;
 }
 
+/**
+ * cmux refused the call for this connection's polling rate, with how long to wait before asking again. MEASURED:
+ * `surface.read_text` sent back to back on one connection answered calls 1–9 inside 9ms, then
+ * `{"code":"rate_limited","message":"Polling rate limited for this connection","data":{"retry_after_ms":92}}`
+ * until the window turned; reads paced 250ms apart all answered. Re-check: `slopweaver session close-done
+ * --dry-run` on a fleet of more than nine seats prints `screen-unreadable … (rate_limited)` on the later rows
+ * without the retry in `./socket.ts`.
+ */
+export interface CmuxRateLimitedError {
+  readonly code: "RATE_LIMITED";
+  readonly message: string;
+  readonly method: string;
+  /** cmux's own `retry_after_ms`, or `undefined` when the frame carried none this client can trust. */
+  readonly retryAfterMs: number | undefined;
+}
+
 /** The call was sent but no reply frame arrived inside the bound. */
 export interface CmuxTimeoutError {
   readonly code: "TIMEOUT";
@@ -64,6 +80,7 @@ export type CmuxError =
   | CmuxSocketUnavailableError
   | CmuxCallFailedError
   | CmuxTerminalTextUnreadableError
+  | CmuxRateLimitedError
   | CmuxTimeoutError
   | CmuxMalformedReplyError;
 
@@ -149,6 +166,20 @@ export const CmuxErrors = {
     code: "MALFORMED_REPLY",
     message: `cmux ${method} replied with an unusable shape: ${detail}`,
     method,
+  }),
+  rateLimited: ({
+    method,
+    message,
+    retryAfterMs,
+  }: {
+    method: string;
+    message: string;
+    retryAfterMs: number | undefined;
+  }): CmuxRateLimitedError => ({
+    code: "RATE_LIMITED",
+    message: `cmux ${method} failed (rate_limited): ${message}${retryAfterMs === undefined ? "" : ` (retry after ${String(retryAfterMs)}ms)`}`,
+    method,
+    retryAfterMs,
   }),
   socketUnavailable: ({
     socketPath,
