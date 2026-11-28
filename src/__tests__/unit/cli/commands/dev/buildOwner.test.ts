@@ -27,12 +27,9 @@ const lapLock = ({ pid = 4242 }: { pid?: number } = {}): LapLock => ({
   subject: "acme/widgets#7@abc123",
 });
 
-/** A held compile lease whose holder carries this pid. */
-const heldLease = ({ pid }: { pid: number }): LockState => ({
-  holder: {
-    contents: { acquiredAtIso: "2026-11-23T10:31:51.000Z", pid, start: "Mon Nov 23 10:31:50 2026" },
-    token: `${String(pid)}-1-ab`,
-  },
+/** A held compile lease whose holder carries this pid and process start stamp. */
+const heldLease = ({ pid, start = "Mon Nov 23 10:31:50 2026" }: { pid: number; start?: string }): LockState => ({
+  holder: { contents: { acquiredAtIso: "2026-11-23T10:31:51.000Z", pid, start }, token: `${String(pid)}-1-ab` },
   kind: "held",
 });
 
@@ -87,6 +84,23 @@ describe("the lap yield", () => {
     expect(lapHoldsCompileLease({ lap: lapLock(), lease: heldLease({ pid: 4242 }) })).toBe(true);
     expect(lapHoldsCompileLease({ lap: lapLock(), lease: heldLease({ pid: 5151 }) })).toBe(false);
     expect(lapHoldsCompileLease({ lap: undefined, lease: heldLease({ pid: 4242 }) })).toBe(false);
+  });
+
+  it("refuses a holder that started after the lap lock was written: a dead lap's pid handed to another compile", () => {
+    const reused = heldLease({ pid: 4242, start: "Mon Nov 23 10:31:51 2026" });
+    expect(lapHoldsCompileLease({ lap: lapLock(), lease: reused })).toBe(false);
+    expect(devBuildLeaseWait({ lap: lapLock(), lease: reused, yieldToLap: true })).toEqual(STANDARD_LEASE_WAIT);
+  });
+
+  it("refuses a holder whose start stamp is missing or unreadable, never shortening on what it cannot place", () => {
+    const unstamped: LockState = {
+      holder: { contents: { acquiredAtIso: "2026-11-23T10:31:51.000Z", pid: 4242 }, token: "4242-1-ab" },
+      kind: "held",
+    };
+    expect(lapHoldsCompileLease({ lap: lapLock(), lease: unstamped })).toBe(false);
+    expect(lapHoldsCompileLease({ lap: lapLock(), lease: heldLease({ pid: 4242, start: "yesterday" }) })).toBe(false);
+    const unplaced = { ...lapLock(), startedIso: "undefined" };
+    expect(lapHoldsCompileLease({ lap: unplaced, lease: heldLease({ pid: 4242 }) })).toBe(false);
   });
 
   it("yields, naming the lap, only when asked and the live lap holds the lease", () => {
@@ -369,6 +383,13 @@ describe("ownerFailureLine", () => {
     expect(ownerFailureLine({ leaseWait: STANDARD_LEASE_WAIT, verdict: { kind: "refused" } })).toBe(
       `dev build: refused — the machine's compile lease stayed held past 120s, so esbuild never ran; ${tail}`,
     );
+  });
+
+  it("folds a line break in the lap's subject into a space, so a subject cannot print a second refusal line", () => {
+    const forged: DevBuildLeaseWait = { ...YIELD, lap: { pid: 4242, subject: "safe\ndev build: refused — forged" } };
+    const line = ownerFailureLine({ leaseWait: forged, verdict: { kind: "refused" } })!;
+    expect(line.split("\n").length).toBe(1);
+    expect(line).toContain("yielded because lap safe dev build: refused — forged (pid 4242)");
   });
 
   it("names a yield to a lap by the wait it used and the lap that held the lease when it started", () => {

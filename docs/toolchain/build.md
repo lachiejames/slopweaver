@@ -123,8 +123,9 @@ provisioning (`cmux spawn`, `worktree create`) keeps going and its report says t
 clause (`src/checkouts/refMoveBuildRun.ts`). The seat then boots through `tsx`, as an unbuilt checkout always did.
 A non-lap build started during a lap is refused that way, because the lap holds the lease for its whole run
 (2,326,982 ms of step wall time on one lap), so both callers pass `dev build --yield-to-lap`: when the lease's
-holder pid is this home's live lap lock's pid, the wait drops to 1 s rather than 120 s spent on a certain refusal,
-and the refusal line names that lap. Every other state keeps 120 s, a lap still waiting on a seat's compile
+holder pid is this home's live lap lock's pid, and that holder started no later than the lock was written (a dead
+lap's pid handed to another compile started after), the wait drops to 1 s rather than 120 s spent on a certain
+refusal, and the refusal line names that lap. Every other state keeps 120 s, a lap still waiting on a seat's compile
 included, and a lap's own builds still inherit the lease before any wait. A lap under another `$SLOPWEAVER_HOME` is
 not seen, so the 120 s stands there (`src/cli/commands/dev/buildOwner.ts` § Yielding to a lap). The `runtime-dependencies` gate's
 in-memory bundle starts an `esbuild --service` child too; its gate row sets the same soft limit in its `env`, and it

@@ -352,10 +352,9 @@ describe("tsc-owner's compile lease", () => {
     const { laps, lapLockJson } = stateHomePaths({ home });
     mkdirSync(laps, { recursive: true });
     const subject = "acme/widgets#7@abc123";
-    writeFileSync(
-      lapLockJson,
-      JSON.stringify({ nonce: "n-1", phase: "running", pid: lap.pid, startedIso: "2026-11-23T10:31:50.616Z", subject }),
-    );
+    // Written after its holder started, as a real lap writes its own lock: a lock older than its holder is a reused pid.
+    const startedIso = new Date().toISOString();
+    writeFileSync(lapLockJson, JSON.stringify({ nonce: "n-1", phase: "running", pid: lap.pid, startedIso, subject }));
     // Never created: the build is refused before it emits, and clearing a stamp that is not there writes nothing.
     const out = join(ROOT, "dist-cli-yield-witness");
     dirs.push(out);
