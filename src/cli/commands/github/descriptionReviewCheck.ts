@@ -30,12 +30,13 @@ import { shellCommandLine } from "#lib/shellCommandLine.js";
 
 import { type GithubUploadReceipt, readUploadReceipt } from "../../../outbound/github/attachReceipt.js";
 import { computeChangeDigest } from "../../../outbound/github/descriptionChangeDigest.js";
-import { descriptionCommentsText } from "../../../outbound/github/descriptionReview.js";
 import {
   type DescriptionReviewCommentsReader,
   readDescriptionComments,
 } from "../../../outbound/github/descriptionReviewComments.js";
+import { descriptionCommentsText } from "../../../outbound/github/descriptionReviewCommentText.js";
 import type { DescriptionReviewError } from "../../../outbound/github/descriptionReviewErrors.js";
+import { readDescriptionReviewEvidence } from "../../../outbound/github/descriptionReviewEvidence.js";
 import { requireCleanDescriptionReview } from "../../../outbound/github/descriptionReviewGate.js";
 import { installedRulesRoot } from "../../../outbound/github/descriptionReviewRules.js";
 import type {
@@ -258,7 +259,10 @@ export function reviewPrepareCommand({
   return shellCommandLine({ command });
 }
 
-/** The comments already on the pull request a write names: none for one being opened, else read whole. */
+/**
+ * The comments already on the pull request a write names: none for one being opened, else read whole with the
+ * threads this write resolves marked superseded.
+ */
 async function existingCommentsOf({
   readComments,
   write,
@@ -270,7 +274,14 @@ async function existingCommentsOf({
     return ok([]);
   }
   const { owner, repo } = write.form.target;
-  return readComments({ home: write.home, number: write.pullRequest.number, owner, repo });
+  return readDescriptionReviewEvidence({
+    home: write.home,
+    number: write.pullRequest.number,
+    outgoingComments: write.comments,
+    owner,
+    readComments,
+    repo,
+  });
 }
 
 /**

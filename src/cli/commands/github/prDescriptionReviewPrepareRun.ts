@@ -20,6 +20,7 @@ import {
   type DescriptionReviewError,
   DescriptionReviewErrors,
 } from "../../../outbound/github/descriptionReviewErrors.js";
+import { readDescriptionReviewEvidence } from "../../../outbound/github/descriptionReviewEvidence.js";
 import {
   type DescriptionManifestReading,
   descriptionManifestFor,
@@ -164,13 +165,18 @@ function withFindingEvidence({
   );
 }
 
-/** The comments already on the pull request: none for one not yet opened, else read whole from GitHub. */
+/**
+ * The comments already on the pull request: none for one not yet opened, else read whole from GitHub with the
+ * threads this write resolves marked superseded.
+ */
 async function existingCommentsFor({
   args,
+  comments,
   deps,
   home,
 }: {
   args: GithubPrReviewPrepareArgs;
+  comments: readonly DescriptionReviewComment[];
   deps: GithubPrDescriptionReviewDeps;
   home: string;
 }): Promise<Result<readonly ExistingPullRequestComment[], DescriptionReviewError>> {
@@ -178,7 +184,14 @@ async function existingCommentsFor({
     return ok([]);
   }
   const [owner, repo] = args.repository.split("/");
-  return deps.readComments({ home, number: args.pullRequest.number, owner: owner!, repo: repo! });
+  return readDescriptionReviewEvidence({
+    home,
+    number: args.pullRequest.number,
+    outgoingComments: comments,
+    owner: owner!,
+    readComments: deps.readComments,
+    repo: repo!,
+  });
 }
 
 /** What a prepared packet hands the shell to print. */
@@ -207,7 +220,7 @@ async function preparePacket({
     return err(inputs.error);
   }
   const { body, comments, evidence, images } = inputs.value;
-  const existingComments = await existingCommentsFor({ args, deps, home });
+  const existingComments = await existingCommentsFor({ args, comments, deps, home });
   if (existingComments.isErr()) {
     return err(existingComments.error);
   }

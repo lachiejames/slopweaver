@@ -33,14 +33,14 @@ import { stableStringify } from "#lib/stableStringify.js";
 import { gitCommitDiffCommand } from "../../codex/diff.js";
 import { runGitChecked } from "../../codex/gitRun.js";
 import type { SupervisorSession } from "../../supervisor/session.js";
+import { canonicalImages, manifestSha256Of, textSha256 } from "./descriptionReview.js";
 import {
-  canonicalImages,
   descriptionCommentsText,
-  existingCommentsText,
-  manifestSha256Of,
-  textSha256,
-} from "./descriptionReview.js";
+  existingCommentsDigestText,
+  existingCommentsEvidenceText,
+} from "./descriptionReviewCommentText.js";
 import { type DescriptionReviewError, DescriptionReviewErrors } from "./descriptionReviewErrors.js";
+import { historicalReviewThreadIds } from "./descriptionReviewHistory.js";
 import {
   PACKET_BODY_PATH,
   PACKET_COMMENTS_PATH,
@@ -146,7 +146,7 @@ function checkManifest({ contents }: { contents: PacketContents }): Result<true,
     manifest.bodySha256 === textSha256({ text: contents.body }) &&
     manifest.commentsSha256 === textSha256({ text: descriptionCommentsText({ comments: contents.comments }) }) &&
     manifest.existingCommentsSha256 ===
-      textSha256({ text: existingCommentsText({ comments: contents.existingComments }) }) &&
+      textSha256({ text: existingCommentsDigestText({ comments: contents.existingComments }) }) &&
     stableStringify({ value: images }) === stableStringify({ value: manifest.images });
   if (!agrees) {
     return err(
@@ -190,7 +190,7 @@ function headTextFiles({ contents }: { contents: PacketContents }): readonly Pac
       path: `evidence/${numberedName({ index, name: one.name })}`,
     })),
     {
-      contents: existingCommentsText({ comments: contents.existingComments }),
+      contents: existingCommentsEvidenceText({ comments: contents.existingComments }),
       path: PACKET_EXISTING_COMMENTS_PATH,
     },
     // An empty directory is not committed, so it carries a marker saying it was left empty on purpose.
@@ -308,11 +308,12 @@ export function prepareDescriptionPacket({
       baseSha,
       createdAtIso,
       headSha,
+      historicalReviewThreadIds: historicalReviewThreadIds({ comments: contents.existingComments }),
       manifest: contents.manifest,
       manifestSha256: manifestSha256Of({ manifest: contents.manifest }),
       preparationId,
       preparedBy,
-      schemaVersion: 3,
+      schemaVersion: 4,
     };
     writePreparationRecord({ directory, preparation });
     return ok({ diffBytes, preparation, repoRoot: realpathSync(repo) });

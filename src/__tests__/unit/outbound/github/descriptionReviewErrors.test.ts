@@ -59,4 +59,32 @@ describe("DescriptionReviewErrors", () => {
     );
     expect(broken.message).toContain("This lane takes one pass per distinct description");
   });
+
+  it("names the release verb for a held self-review round, with the head it was reserved for", () => {
+    const error = DescriptionReviewErrors.selfReviewReserved({
+      heldHeadSha: "abc123",
+      number: 7,
+      owner: "Acme",
+      repo: "Widgets",
+    });
+    expect(error.code).toBe("SELF_REVIEW_RESERVED");
+    expect(error.locus).toBe("acme/widgets#7");
+    expect(error.message).toBe(
+      "a self-review round for acme/widgets#7 is already reserved (held for head abc123), so this write's round " +
+        "would refuse before it resolves the previous one, and that round cannot be read as superseded. A " +
+        "reservation never expires: read the pull request's review threads on GitHub, then `slopweaver github " +
+        "self-review release --repo Acme/Widgets --pr 7 --head abc123` and prepare this write again.",
+    );
+  });
+
+  it("names the release verb with no head when the lock is held with no round recorded", () => {
+    const error = DescriptionReviewErrors.selfReviewReserved({
+      heldHeadSha: null,
+      number: 7,
+      owner: "acme",
+      repo: "widgets",
+    });
+    expect(error.message).toContain("(its lock is held with no round recorded)");
+    expect(error.message).toContain("`slopweaver github self-review release --repo acme/widgets --pr 7` and");
+  });
 });

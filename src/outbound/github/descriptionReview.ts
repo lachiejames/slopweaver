@@ -19,6 +19,7 @@ import { stableStringify } from "#lib/stableStringify.js";
 
 import type { PageReviewCandidate } from "../../pages/review.js";
 import { type SupervisorSession, sameSupervisorSession, supervisorSessionLabel } from "../../supervisor/session.js";
+import { descriptionCommentsText, existingCommentsDigestText } from "./descriptionReviewCommentText.js";
 import { type DescriptionReviewError, DescriptionReviewErrors } from "./descriptionReviewErrors.js";
 import {
   DESCRIPTION_REVIEW_PROPERTY,
@@ -27,8 +28,10 @@ import {
   type DescriptionReviewComment,
   type DescriptionReviewer,
   type DescriptionReviewManifest,
+  type DescriptionReviewPreparation,
   type DescriptionReviewReceipt,
   type ExistingPullRequestComment,
+  type HistoryBoundReceipt,
   type StoredDescriptionReviewPreparation,
 } from "./descriptionReviewTypes.js";
 
@@ -74,69 +77,6 @@ export function canonicalImages({ images }: { images: readonly DescriptionImage[
   return images.toSorted((left, right) => (key(left) < key(right) ? -1 : Number(key(left) > key(right))));
 }
 
-/** A total order over strings, so a sort never depends on the locale. */
-function compareText({ left, right }: { left: string; right: string }): number {
-  if (left === right) {
-    return 0;
-  }
-  return left < right ? -1 : 1;
-}
-
-/**
- * The comments a write posts, in canonical order (path, line, body), so the same set in another order is the same
- * manifest.
- *
- * @returns a sorted copy
- */
-export function canonicalDescriptionComments({
-  comments,
-}: {
-  comments: readonly DescriptionReviewComment[];
-}): readonly DescriptionReviewComment[] {
-  return comments
-    .map(({ path, line, body }) => ({ body, line, path }))
-    .toSorted(
-      (left, right) =>
-        compareText({ left: left.path, right: right.path }) ||
-        left.line - right.line ||
-        compareText({ left: left.body, right: right.body }),
-    );
-}
-
-/**
- * The exact bytes `description/comments.json` carries, and the text its digest is taken over.
- *
- * @returns the canonical comments, stably serialised, with one trailing newline
- */
-export function descriptionCommentsText({ comments }: { comments: readonly DescriptionReviewComment[] }): string {
-  return `${stableStringify({ value: canonicalDescriptionComments({ comments }) })}\n`;
-}
-
-/**
- * The comments already on a pull request, in canonical order (kind, then GitHub id).
- *
- * @returns a sorted copy
- */
-function canonicalExistingComments({
-  comments,
-}: {
-  comments: readonly ExistingPullRequestComment[];
-}): readonly ExistingPullRequestComment[] {
-  return comments.toSorted(
-    (left, right) =>
-      compareText({ left: left.kind, right: right.kind }) || compareText({ left: left.id, right: right.id }),
-  );
-}
-
-/**
- * The exact bytes `evidence/pull-request-comments.json` carries, and the text its digest is taken over.
- *
- * @returns the canonical existing comments, stably serialised, with one trailing newline
- */
-export function existingCommentsText({ comments }: { comments: readonly ExistingPullRequestComment[] }): string {
-  return `${stableStringify({ value: canonicalExistingComments({ comments }) })}\n`;
-}
-
 /**
  * The manifest one review is bound to.
  *
@@ -177,7 +117,7 @@ export function buildDescriptionManifest({
     bodySha256: textSha256({ text: body }),
     changeDigest,
     commentsSha256: textSha256({ text: descriptionCommentsText({ comments }) }),
-    existingCommentsSha256: textSha256({ text: existingCommentsText({ comments: existingComments }) }),
+    existingCommentsSha256: textSha256({ text: existingCommentsDigestText({ comments: existingComments }) }),
     images: canonicalImages({ images }),
     repository,
     rulesSha256,
@@ -228,13 +168,19 @@ export function manifestDifferences({
   return differences;
 }
 
+/** A review proven to have judged a packet prepared under the current schema. */
+export interface BoundDescriptionReview {
+  readonly candidate: PageReviewCandidate;
+  readonly preparation: DescriptionReviewPreparation;
+}
+
 /**
  * Prove a candidate review judged this packet, or say which binding failed.
  *
  * @param candidate the review as its record states it
  * @param preparation the packet its repository root resolved to
  * @param facts what the shell read from that packet repository at the candidate's commits
- * @returns the candidate, or the binding that failed
+ * @returns the candidate with the current-schema preparation it bound to, or the binding that failed
  */
 export function bindDescriptionReview({
   candidate,
@@ -244,15 +190,21 @@ export function bindDescriptionReview({
   candidate: PageReviewCandidate;
   preparation: StoredDescriptionReviewPreparation;
   facts: PacketCommitFacts;
-}): Result<PageReviewCandidate, DescriptionReviewError> {
-  const wrong = ({ why }: { why: string }): Result<PageReviewCandidate, DescriptionReviewError> =>
+}): Result<BoundDescriptionReview, DescriptionReviewError> {
+  const wrong = ({ why }: { why: string }): Result<BoundDescriptionReview, DescriptionReviewError> =>
     err(DescriptionReviewErrors.wrongPacket({ reviewId: candidate.id, why }));
   // A schema-2 packet holds its evidence at the base, so the property `review-prepare` prints now, which tells the
-  // reviewer every text file is in the diff, is false of it; its receipts still carry, but a new review binds only
-  // to a packet prepared now.
-  if (preparation.schemaVersion !== 3) {
+  // reviewer every text file is in the diff, is false of it; a schema-3 packet shows no thread's history, so the
+  // property's history clause is false of it. Their receipts still carry, but a new review binds only to a packet
+  // prepared now.
+  if (preparation.schemaVersion === 2) {
     return wrong({
       why: `its packet ${preparation.preparationId} keeps its evidence at the base commit, outside the diff; run \`github pr review-prepare\` again`,
+    });
+  }
+  if (preparation.schemaVersion === 3) {
+    return wrong({
+      why: `its packet ${preparation.preparationId} shows no review thread's history, so a resolved comment reads as live; run \`github pr review-prepare\` again`,
     });
   }
   if (
@@ -277,7 +229,7 @@ export function bindDescriptionReview({
   if (facts.commentsSha256 !== preparation.manifest.commentsSha256) {
     return wrong({ why: "the comments at its head commit are not the ones that were prepared" });
   }
-  return ok(candidate);
+  return ok({ candidate, preparation });
 }
 
 /**
@@ -344,12 +296,13 @@ export function descriptionReceiptOf({
   recordedAtIso,
 }: {
   candidate: PageReviewCandidate;
-  preparation: StoredDescriptionReviewPreparation;
+  preparation: DescriptionReviewPreparation;
   recordedBy: SupervisorSession | null;
   receiptId: string;
   recordedAtIso: string;
-}): DescriptionReviewReceipt {
+}): HistoryBoundReceipt {
   return {
+    historicalReviewThreadIds: preparation.historicalReviewThreadIds,
     manifest: preparation.manifest,
     manifestSha256: preparation.manifestSha256,
     preparationId: preparation.preparationId,
@@ -359,7 +312,7 @@ export function descriptionReceiptOf({
     recordedBy,
     reviewId: candidate.id,
     reviewer: candidate.reviewer,
-    schemaVersion: 2,
+    schemaVersion: 3,
     summary: candidate.summary,
     verdict: candidate.verdict,
   };

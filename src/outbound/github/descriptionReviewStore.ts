@@ -120,11 +120,36 @@ function isManifest(value: unknown): value is DescriptionReviewManifest {
   );
 }
 
-/** Whether a parsed value is a preparation this domain wrote: schema 3 now, or schema 2 before the layout moved. */
+/** Whether a value is a list of distinct, non-empty strings: the thread ids a packet showed as history. */
+function isDistinctIdList(value: unknown): value is readonly string[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item: unknown) => typeof item === "string" && item.length > 0) &&
+    new Set(value).size === value.length
+  );
+}
+
+/**
+ * Whether a record's history field matches its schema: a list of distinct ids at the schema that carries it, and
+ * absent at an earlier one, which never showed history.
+ */
+function historyFieldFits({ record, carriedFrom }: { record: Record<string, unknown>; carriedFrom: number }): boolean {
+  const version = record["schemaVersion"];
+  if (typeof version === "number" && version >= carriedFrom) {
+    return isDistinctIdList(record["historicalReviewThreadIds"]);
+  }
+  return !("historicalReviewThreadIds" in record);
+}
+
+/**
+ * Whether a parsed value is a preparation this domain wrote: schema 4 now, schema 3 before the packet carried thread
+ * history, or schema 2 before the layout moved.
+ */
 function isPreparation(value: unknown): value is StoredDescriptionReviewPreparation {
   return (
     isRecord(value) &&
-    (value["schemaVersion"] === 3 || value["schemaVersion"] === 2) &&
+    (value["schemaVersion"] === 4 || value["schemaVersion"] === 3 || value["schemaVersion"] === 2) &&
+    historyFieldFits({ carriedFrom: 4, record: value }) &&
     ["preparationId", "createdAtIso", "manifestSha256", "baseSha", "headSha"].every(
       (key) => typeof value[key] === "string",
     ) &&
@@ -134,15 +159,18 @@ function isPreparation(value: unknown): value is StoredDescriptionReviewPreparat
 }
 
 /**
- * Whether a parsed value is the receipt shape this domain writes now. A receipt from before comments were bound
- * (schema 1) is not: it never certified the comments, so it is skipped when listed and refused when read.
+ * Whether a parsed value is a receipt shape this domain writes or wrote: schema 3 now, naming the threads its
+ * reviewer was told are history, or schema 2 from before, whose reviewer saw every comment as live. A receipt from
+ * before comments were bound (schema 1) is not: it never certified the comments, so it is skipped when listed and
+ * refused when read.
  *
- * @returns true only for a schema-2 receipt
+ * @returns true for a schema-3 or schema-2 receipt
  */
 export function isDescriptionReviewReceipt(value: unknown): value is DescriptionReviewReceipt {
   return (
     isRecord(value) &&
-    value["schemaVersion"] === 2 &&
+    (value["schemaVersion"] === 3 || value["schemaVersion"] === 2) &&
+    historyFieldFits({ carriedFrom: 3, record: value }) &&
     ["receiptId", "preparationId", "manifestSha256", "reviewId", "summary", "recordedAtIso"].every(
       (key) => typeof value[key] === "string",
     ) &&

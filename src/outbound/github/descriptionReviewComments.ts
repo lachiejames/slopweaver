@@ -26,13 +26,21 @@ import type {
 /** The node count requested per connection; a connection reporting more refuses. */
 export const DESCRIPTION_COMMENTS_READ_LIMIT = 100;
 
+/** What one read of a pull request's comments answers: its node id, which a self-review ledger binds, and its comments. */
+export interface DescriptionReviewCommentsReading {
+  /** The pull request's GraphQL node id. */
+  readonly pullRequestId: string;
+  /** Every conversation and inline review comment; `supersededByThisWrite` is false on each, being intent. */
+  readonly comments: readonly ExistingPullRequestComment[];
+}
+
 /** Reads the comments already on one pull request. Production reads GitHub; a test passes a plain function. */
 export type DescriptionReviewCommentsReader = (args: {
   home: string;
   owner: string;
   repo: string;
   number: number;
-}) => Promise<Result<readonly ExistingPullRequestComment[], DescriptionReviewError>>;
+}) => Promise<Result<DescriptionReviewCommentsReading, DescriptionReviewError>>;
 
 /** A connection's nodes, refusing one that reports another page. */
 function wholeConnection({
@@ -92,13 +100,17 @@ function commonFields({ node }: { node: unknown }): Result<Omit<ExistingIssueCom
   return ok({ authorLogin: author.value, body, createdAtIso: createdAt, id, updatedAtIso: updatedAt, url });
 }
 
-/** One inline review comment, anchored by its thread's path and its own original line. */
+/** One inline review comment, anchored by its thread's path and its own original line, with its thread's history. */
 function reviewCommentOf({
   node,
   path,
+  threadId,
+  threadResolved,
 }: {
   node: unknown;
   path: string;
+  threadId: string;
+  threadResolved: boolean;
 }): Result<ExistingReviewComment, DescriptionReviewError> {
   const common = commonFields({ node });
   if (common.isErr()) {
@@ -112,7 +124,15 @@ function reviewCommentOf({
       }),
     );
   }
-  return ok({ ...common.value, kind: "review-comment", originalLine, path });
+  return ok({
+    ...common.value,
+    kind: "review-comment",
+    originalLine,
+    path,
+    supersededByThisWrite: false,
+    threadId,
+    threadResolved,
+  });
 }
 
 /** Every conversation comment on the pull request, read whole. */
@@ -146,13 +166,22 @@ function threadCommentsOf({
     return err(DescriptionReviewErrors.commentsReadFailed({ detail: "a review thread carries no path" }));
   }
   const path = thread["path"];
+  const threadId = thread["id"];
+  const threadResolved = thread["isResolved"];
+  if (typeof threadId !== "string" || threadId.length === 0 || typeof threadResolved !== "boolean") {
+    return err(
+      DescriptionReviewErrors.commentsReadFailed({
+        detail: `a review thread in ${path} carries no id or no boolean isResolved`,
+      }),
+    );
+  }
   const comments = wholeConnection({ label: `the comments on a thread in ${path}`, value: thread["comments"] });
   if (comments.isErr()) {
     return err(comments.error);
   }
   const out: ExistingPullRequestComment[] = [];
   for (const node of comments.value) {
-    const comment = reviewCommentOf({ node, path });
+    const comment = reviewCommentOf({ node, path, threadId, threadResolved });
     if (comment.isErr()) {
       return err(comment.error);
     }
@@ -165,15 +194,20 @@ function threadCommentsOf({
  * Every comment already on a pull request, from the node the typed live reader selected.
  *
  * @param data the pull-request node `readGithubObject` answered (its document's `data`)
- * @returns every conversation and inline review comment, or why they could not be read whole
+ * @returns the pull request's node id and every conversation and inline review comment, or why they could not be
+ *   read whole
  */
 export function existingDescriptionCommentsOf({
   data,
 }: {
   data: unknown;
-}): Result<readonly ExistingPullRequestComment[], DescriptionReviewError> {
+}): Result<DescriptionReviewCommentsReading, DescriptionReviewError> {
   if (!isRecord(data)) {
     return err(DescriptionReviewErrors.commentsReadFailed({ detail: "the pull request read back is not an object" }));
+  }
+  const pullRequestId = data["id"];
+  if (typeof pullRequestId !== "string" || pullRequestId.length === 0) {
+    return err(DescriptionReviewErrors.commentsReadFailed({ detail: "the pull request read back carries no node id" }));
   }
   const conversation = conversationCommentsOf({ data });
   if (conversation.isErr()) {
@@ -191,13 +225,13 @@ export function existingDescriptionCommentsOf({
     }
     out.push(...comments.value);
   }
-  return ok(out);
+  return ok({ comments: out, pullRequestId });
 }
 
 /**
  * The production reader: the pull request read through the typed live reader, under the home's GitHub token.
  *
- * @returns every comment already on the pull request, or why they could not be read whole
+ * @returns the pull request's node id and every comment already on it, or why they could not be read whole
  */
 export const readDescriptionComments: DescriptionReviewCommentsReader = async ({ home, owner, repo, number }) => {
   const read = await readGithubObject({

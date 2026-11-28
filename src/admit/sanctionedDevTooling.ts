@@ -153,6 +153,10 @@ export const DEV_TOOLING_SEAMS = {
   // The serving-checkout tests' fixture: one throwaway `mkdtempSync` git checkout per case, its one source file and
   // the `dist-cli` build manifest stamped from it, removed by the caller's `afterEach`. The class of `attachRunFixture.ts`.
   "src/__tests__/builtCheckoutFixture.ts": "dev-tooling",
+  // The description-review run tests' world: one throwaway `mkdtempSync` root per case holding a fixture git checkout,
+  // a rules tree, a home, the body and comments files, all removed by the `cleanUp` the caller's `afterEach` runs.
+  // Test support, the class of `builtCheckoutFixture.ts` — it moved here when `prDescriptionReviewRun.test.ts` split.
+  "src/__tests__/subprocess/cli/commands/github/prDescriptionReviewWorld.ts": "dev-tooling",
   // The `profile words` verb-body tests' shared harness: `useWordsHomes()` mints one throwaway `mkdtempSync` state
   // home and one Claude home per case in a `beforeEach`, writes only a fixture chain link, pin record, empty chair
   // transcript and staged console turns beneath them, and removes both in the `afterEach` it registers. Test

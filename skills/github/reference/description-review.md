@@ -47,6 +47,9 @@ review comment is read whole (`src/outbound/github/descriptionReviewComments.ts`
 them again immediately before its mutation. A comment that arrives or is edited in between moves the digest and the
 write is refused, naming "the pull request's existing comments changed".
 
+**A thread's history is evidence, never bound**: a resolved thread, or one this write's round resolves, is shown as
+history, kept out of the digest, and recorded on the receipt ([thread history](description-review-history.md)).
+
 **`stack push` reads the branch's open pull request once, before either of its reviews**, and both describe what it
 found (`src/cli/commands/github/stackPushPullRequest.ts`). None open reviews as `--new` and creates, as before. One
 open onto the form's base is UPDATED, never created again: both checks review it as `--number <n>`, over the exact
@@ -86,9 +89,10 @@ given only the diff once never saw the evidence; the page review lost a pass the
 `* -text -filter diff`, so a global attributes file cannot turn a text file binary; every file is staged with
 `--force`, so a global excludes file cannot drop one, and the repository is initialised with no template, so an
 init template cannot install a `.git/info/attributes` that outranks the packet's own; and a text file holding a NUL byte refuses as
-`FILE_NOT_TEXT` before anything is written. A new review binds only to a packet prepared this way (schema 3): a
-schema-2 packet, whose evidence sits at its base, refuses `review-record` naming `review-prepare`, while its
-recorded receipts still carry. The nested patch costs its own size plus a byte a line
+`FILE_NOT_TEXT` before anything is written. A new review binds only to a packet prepared this way (schema 4): a
+schema-2 packet, whose evidence sits at its base, and a schema-3 one, which showed no thread's history, refuse
+`review-record` naming `review-prepare`, while their recorded receipts still carry; a schema-2 receipt names no
+thread as history. The nested patch costs its own size plus a byte a line
 in the review diff; prepare's printed `--max-diff-bytes` is that diff's exact size plus 4096, and a too-large
 refusal names the value that holds the diff whole.
 
@@ -144,7 +148,7 @@ the branch also touches moves it. Real-git witnesses:
 
 A write with no receipt for its exact manifest may ride the NEWEST receipt over the same description: every input
 but `changeDigest` byte-identical. It does only when that receipt is CLEAN and the change set it reviewed, read back
-from its packet's `change/delta.txt` (at the head commit of a schema-3 packet, the base of a schema-2 one, never
+from its packet's `change/delta.txt` (at the head commit of a schema-3 or schema-4 packet, the base of a schema-2 one, never
 probing the other) and re-hashed to its `changeDigest`, differs from the
 current one in nothing but content, and only in files that:
 

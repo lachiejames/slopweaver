@@ -74,6 +74,9 @@ says so in one line.
 **A round answers to the description review.** Its rendered comments are bound beside the title and body, so
 `stack push` and `pr update` refuse a round no CLEAN review covers and print the `review-prepare` command over it.
 A `pr update` posting only `--self-review` is checked over the live description: [description review](description-review.md).
+No verb edits a posted comment, so a wrong one is corrected by the next round: its review reads the previous round's
+threads as `supersededByThisWrite`, history rather than a refutation of the corrected comment, and any resolved
+thread as history too ([thread history](description-review-history.md)).
 
 **Omission WARNS, never refuses.** `stack push` without `--self-review` prints `⚠ opened #N with no self-review
 walkthrough` and the exact `pr update` that posts one (`⚠ would open …` under `--dry-run`), and `github landing

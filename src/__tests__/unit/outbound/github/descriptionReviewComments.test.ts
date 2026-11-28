@@ -38,8 +38,11 @@ const INLINE = {
 function pullRequest(over: Record<string, unknown> = {}): unknown {
   return {
     comments: connection({ nodes: [CONVERSATION] }),
+    id: "PR_1",
     reviewThreads: connection({
-      nodes: [{ comments: connection({ nodes: [INLINE] }), id: "T_1", line: 14, path: "src/consent.ts" }],
+      nodes: [
+        { comments: connection({ nodes: [INLINE] }), id: "T_1", isResolved: false, line: 14, path: "src/consent.ts" },
+      ],
     }),
     ...over,
   };
@@ -47,7 +50,9 @@ function pullRequest(over: Record<string, unknown> = {}): unknown {
 
 describe("existingDescriptionCommentsOf", () => {
   it("reads every conversation and inline comment, anchoring an inline one by its thread's path and original line", () => {
-    expect(unwrap(existingDescriptionCommentsOf({ data: pullRequest() }))).toStrictEqual([
+    const reading = unwrap(existingDescriptionCommentsOf({ data: pullRequest() }));
+    expect(reading.pullRequestId).toBe("PR_1");
+    expect(reading.comments).toStrictEqual([
       {
         authorLogin: "quillfeather",
         body: "Does this hold for a work account too?",
@@ -65,6 +70,9 @@ describe("existingDescriptionCommentsOf", () => {
         kind: "review-comment",
         originalLine: 12,
         path: "src/consent.ts",
+        supersededByThisWrite: false,
+        threadId: "T_1",
+        threadResolved: false,
         updatedAtIso: "2026-11-17T01:00:00Z",
         url: "https://github.com/acme/widgets/pull/7#discussion_r1",
       },
@@ -73,15 +81,17 @@ describe("existingDescriptionCommentsOf", () => {
 
   it("reads a pull request with no comments as none", () => {
     const empty = pullRequest({ comments: connection({ nodes: [] }), reviewThreads: connection({ nodes: [] }) });
-    expect(unwrap(existingDescriptionCommentsOf({ data: empty }))).toStrictEqual([]);
+    expect(unwrap(existingDescriptionCommentsOf({ data: empty })).comments).toStrictEqual([]);
   });
 
   it("keeps a file-level inline comment, whose original line is null", () => {
     const fileLevel = { ...INLINE, originalLine: null };
     const data = pullRequest({
-      reviewThreads: connection({ nodes: [{ comments: connection({ nodes: [fileLevel] }), path: "README.md" }] }),
+      reviewThreads: connection({
+        nodes: [{ comments: connection({ nodes: [fileLevel] }), id: "T_2", isResolved: true, path: "README.md" }],
+      }),
     });
-    const inline = unwrap(existingDescriptionCommentsOf({ data }))[1]!;
+    const inline = unwrap(existingDescriptionCommentsOf({ data })).comments[1]!;
     expect(inline.kind).toBe("review-comment");
     expect(inline).toStrictEqual({
       authorLogin: null,
@@ -91,6 +101,9 @@ describe("existingDescriptionCommentsOf", () => {
       kind: "review-comment",
       originalLine: null,
       path: "README.md",
+      supersededByThisWrite: false,
+      threadId: "T_2",
+      threadResolved: true,
       updatedAtIso: "2026-11-17T01:00:00Z",
       url: "https://github.com/acme/widgets/pull/7#discussion_r1",
     });
@@ -108,7 +121,14 @@ describe("existingDescriptionCommentsOf", () => {
   it("refuses a truncated thread", () => {
     const data = pullRequest({
       reviewThreads: connection({
-        nodes: [{ comments: connection({ hasNextPage: true, nodes: [INLINE] }), path: "src/consent.ts" }],
+        nodes: [
+          {
+            comments: connection({ hasNextPage: true, nodes: [INLINE] }),
+            id: "T_1",
+            isResolved: false,
+            path: "src/consent.ts",
+          },
+        ],
       }),
     });
     expect(unwrapErr(existingDescriptionCommentsOf({ data })).message).toContain(
@@ -139,7 +159,14 @@ describe("existingDescriptionCommentsOf", () => {
   it("refuses an inline comment whose original line is not an integer", () => {
     const data = pullRequest({
       reviewThreads: connection({
-        nodes: [{ comments: connection({ nodes: [{ ...INLINE, originalLine: "12" }] }), path: "src/consent.ts" }],
+        nodes: [
+          {
+            comments: connection({ nodes: [{ ...INLINE, originalLine: "12" }] }),
+            id: "T_1",
+            isResolved: false,
+            path: "src/consent.ts",
+          },
+        ],
       }),
     });
     expect(unwrapErr(existingDescriptionCommentsOf({ data })).message).toContain(
@@ -150,6 +177,33 @@ describe("existingDescriptionCommentsOf", () => {
   it("refuses a thread with no path", () => {
     const data = pullRequest({ reviewThreads: connection({ nodes: [{ comments: connection({ nodes: [] }) }] }) });
     expect(unwrapErr(existingDescriptionCommentsOf({ data })).message).toContain("a review thread carries no path");
+  });
+
+  it("refuses a thread whose resolution it cannot read, rather than guessing it is open", () => {
+    const data = pullRequest({
+      reviewThreads: connection({
+        nodes: [{ comments: connection({ nodes: [INLINE] }), id: "T_1", path: "src/consent.ts" }],
+      }),
+    });
+    expect(unwrapErr(existingDescriptionCommentsOf({ data })).message).toContain(
+      "a review thread in src/consent.ts carries no id or no boolean isResolved",
+    );
+  });
+
+  it("refuses a thread with no id, which no ledger could name", () => {
+    const data = pullRequest({
+      reviewThreads: connection({
+        nodes: [{ comments: connection({ nodes: [INLINE] }), isResolved: false, path: "src/consent.ts" }],
+      }),
+    });
+    expect(unwrapErr(existingDescriptionCommentsOf({ data })).code).toBe("COMMENTS_READ_FAILED");
+  });
+
+  it("refuses a pull request read back with no node id", () => {
+    const { id: _id, ...anonymous } = pullRequest() as Record<string, unknown>;
+    expect(unwrapErr(existingDescriptionCommentsOf({ data: anonymous })).message).toContain(
+      "the pull request read back carries no node id",
+    );
   });
 
   it("refuses a node that selected no comment connection", () => {

@@ -170,14 +170,15 @@ async function recordReview({
   const receipt = packetCommitFacts({ baseSha, headSha, repoRoot })
     .andThen((facts) => bindDescriptionReview({ candidate: candidate.value, facts, preparation: packet }))
     .andThen((bound) =>
-      decideReviewerFreshness({ preparedBy: packet.preparedBy, recordedBy, reviewer: bound.reviewer }).map(() =>
-        descriptionReceiptOf({
-          candidate: bound,
-          preparation: packet,
-          receiptId: deps.newId(),
-          recordedAtIso: deps.nowIso(),
-          recordedBy,
-        }),
+      decideReviewerFreshness({ preparedBy: packet.preparedBy, recordedBy, reviewer: bound.candidate.reviewer }).map(
+        () =>
+          descriptionReceiptOf({
+            candidate: bound.candidate,
+            preparation: bound.preparation,
+            receiptId: deps.newId(),
+            recordedAtIso: deps.nowIso(),
+            recordedBy,
+          }),
       ),
     );
   if (receipt.isErr()) {
