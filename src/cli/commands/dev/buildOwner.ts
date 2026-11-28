@@ -49,10 +49,11 @@
  * starts, so the short wait never turns one into a waiter. Residue, stated: the lap lock is per
  * `$SLOPWEAVER_HOME` and the lease per OS user, so a lap under another home is not seen and the 120 s stands; and
  * the read is a snapshot, not atomic with the owner's own acquisition, so the refusal line says the lap held the lease
- * when the build STARTED.
+ * when the build STARTED; and the owner's `is_ancestor` walks at most 64 parent links, so a lap descendant deeper than
+ * that is refused as a waiter, after 1 s here where it was refused after 120 s before.
  */
 import { join } from "node:path";
-
+import { parseStrictIsoInstantMs } from "#lib/date.js";
 import { ESBUILD_GO_MEMORY_LIMIT_MIB } from "#lib/esbuildBounds.js";
 import { lstartMs } from "#lib/lstart.js";
 import type { LockState } from "../../../admit/operationLockState.js";
@@ -109,8 +110,9 @@ export function lapHoldsCompileLease({ lease, lap }: { lease: LockState; lap: La
     return false;
   }
   const holderStartedMs = lstartMs({ text: start });
-  const lockWrittenMs = Date.parse(lap.startedIso);
-  return holderStartedMs !== undefined && !Number.isNaN(lockWrittenMs) && holderStartedMs <= lockWrittenMs;
+  // Strict, never `Date.parse`: that rolls an impossible instant (day 31 of February) into a real, later one.
+  const lockWrittenMs = parseStrictIsoInstantMs({ text: lap.startedIso });
+  return holderStartedMs !== undefined && lockWrittenMs !== undefined && holderStartedMs <= lockWrittenMs;
 }
 
 /**
