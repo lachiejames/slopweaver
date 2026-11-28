@@ -14,6 +14,7 @@ import { countWords, MAX_WORDS } from "../../prformat/checkCore.js";
 import { strictForm } from "../strictForm.js";
 
 import type { GithubCommentArtifact } from "./commentTypes.js";
+import { adjacentTextRunIssues } from "./contentRunRules.js";
 import { proofLeafBlockSchema } from "./legacy/schema.js";
 import { renderContent } from "./render.js";
 import { contentSchema } from "./schema.js";
@@ -31,8 +32,25 @@ const summarySchema = contentSchema.superRefine((content, ctx) => {
   }
 });
 
-/** The comment body: one line above the fold, optional detail collapsed beneath it. */
+/**
+ * The comment body: one line above the fold, optional detail collapsed beneath it. Neither the summary nor a detail
+ * paragraph may carry two text runs side by side, the one spelling rule a pull request form's cells keep
+ * (`./contentRunRules.ts`).
+ */
 export const githubCommentArtifactSchema = strictForm({
   detail: z.array(proofLeafBlockSchema).min(1).optional(),
   summary: summarySchema,
+}).superRefine((artifact, ctx) => {
+  const paragraphs =
+    artifact.detail === undefined
+      ? []
+      : artifact.detail.flatMap((block, index) =>
+          block.kind === "para" ? [{ content: block.content, path: ["detail", index, "content"] }] : [],
+        );
+  const cells = [{ content: artifact.summary, path: ["summary"] }, ...paragraphs];
+  for (const { content, path } of cells) {
+    for (const issue of adjacentTextRunIssues({ content, path })) {
+      ctx.addIssue({ code: "custom", message: issue.message, path: [...issue.path] });
+    }
+  }
 }) satisfies z.ZodType<GithubCommentArtifact>;

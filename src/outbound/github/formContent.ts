@@ -8,8 +8,12 @@
  * Above the fold is everything except the re-run fold. The plain sentences only a badge hover carries (the top risk's
  * worst case and check, what was seen or why not) are read as cells too, because a reader sees them on hover; they
  * are never REWRITTEN by {@link mapContentFields}, since a hover is plain text and cannot carry a link.
+ *
+ * A rule over a cell's own runs rather than its prose reads {@link contentCellsOf} instead: every content cell, check
+ * groups included, no hover, and it takes an edit as well as a body, so an edit's appends are addressed by their own
+ * paths.
  */
-import type { Content, PrBody, ProofSlot, RerunItem } from "./types.js";
+import type { CheckGroup, Content, PrBody, PrFormEdit, ProofSlot, RerunItem, UncheckedItem } from "./types.js";
 
 /** A form path, as a schema issue spells it. */
 export type ContentPath = readonly (string | number)[];
@@ -21,11 +25,14 @@ export interface ContentField {
   readonly fold: "above" | "below";
 }
 
-/** What a mapping is handed for each cell. */
-interface MapInput {
+/** One content cell and where it sits: what a mapping is handed, and what {@link contentCellsOf} lists. */
+export interface ContentCell {
   readonly path: ContentPath;
   readonly content: Content;
 }
+
+/** What a mapping is handed for each cell. */
+type MapInput = ContentCell;
 
 /** The rewrite applied to every cell. */
 type CellMap = (input: MapInput) => Content;
@@ -86,6 +93,87 @@ export function contentFieldsOf({ body }: { body: PrBody }): readonly ContentFie
     ]),
     ...body.rerun.flatMap((item, index) => rerunFields({ index, item })),
   ];
+}
+
+/**
+ * The sections that hold content cells, each optional: a whole body supplies every one, and an edit only those it
+ * sets or appends to.
+ */
+type CellSections = Pick<
+  PrFormEdit,
+  | "explainer"
+  | "problemProof"
+  | "solutionProof"
+  | "checks"
+  | "checkGroups"
+  | "notChecked"
+  | "rerun"
+  | "appendChecks"
+  | "appendNotChecked"
+>;
+
+/** A not-checked list's cells, under the section name it was supplied as. */
+function uncheckedCells({
+  items,
+  field,
+}: {
+  items: readonly UncheckedItem[] | undefined;
+  field: string;
+}): readonly ContentCell[] {
+  if (items === undefined) {
+    return [];
+  }
+  return items.flatMap((item, index) => [
+    { content: item.check, path: [field, index, "check"] },
+    { content: item.why, path: [field, index, "why"] },
+  ]);
+}
+
+/** A list of cells' own cells, under the section name it was supplied as. */
+function listCells({ items, field }: { items: readonly Content[] | undefined; field: string }): readonly ContentCell[] {
+  if (items === undefined) {
+    return [];
+  }
+  return items.map((content, index) => ({ content, path: [field, index] }));
+}
+
+/** Every check group's label and checks. */
+function groupCells({ groups }: { groups: readonly CheckGroup[] | undefined }): readonly ContentCell[] {
+  if (groups === undefined) {
+    return [];
+  }
+  return groups.flatMap((group, index) => [
+    { content: group.label, path: ["checkGroups", index, "label"] },
+    ...group.items.map((content, at) => ({ content, path: ["checkGroups", index, "items", at] })),
+  ]);
+}
+
+/**
+ * Every content cell a body or an edit supplies, check groups and appends included, with no badge hover: the cells a
+ * rule over a cell's own runs reads, at the path an edit or a form names them by.
+ *
+ * @param sections a whole body, or an edit, whose absent sections contribute nothing
+ * @returns each cell with its form path
+ */
+export function contentCellsOf({ sections }: { sections: CellSections }): readonly ContentCell[] {
+  const slots = (["problemProof", "solutionProof"] as const).flatMap((field): ContentCell[] => {
+    const slot = sections[field];
+    return slot === undefined ? [] : [slotField({ field, slot })];
+  });
+  const explainer: readonly ContentCell[] =
+    sections.explainer === undefined ? [] : [{ content: sections.explainer, path: ["explainer"] }];
+  const rerun =
+    sections.rerun === undefined ? [] : sections.rerun.flatMap((item, index) => rerunFields({ index, item }));
+  return [
+    ...explainer,
+    ...slots,
+    ...listCells({ field: "checks", items: sections.checks }),
+    ...groupCells({ groups: sections.checkGroups }),
+    ...uncheckedCells({ field: "notChecked", items: sections.notChecked }),
+    ...rerun,
+    ...listCells({ field: "appendChecks", items: sections.appendChecks }),
+    ...uncheckedCells({ field: "appendNotChecked", items: sections.appendNotChecked }),
+  ].map(({ content, path }) => ({ content, path }));
 }
 
 /** A slot with its one cell mapped. */

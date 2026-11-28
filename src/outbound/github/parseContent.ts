@@ -115,9 +115,9 @@ function markupRunAt({ rest }: { rest: string }): { run: Inline; length: number 
 /**
  * Recover a cell's inline runs.
  *
- * Adjacent plain text is canonicalised into ONE run, which is where typed round-trip identity is lost and
- * render equivalence is not — no edit in `PrFormEdit` addresses an individual run, so either preimage behaves
- * identically under a whole-field edit.
+ * One uninterrupted stretch of plain text reads as ONE run. A write may not carry two text runs side by side
+ * (`ADJACENT_TEXT_RUNS`, `./contentRunRules.ts`), so a cell has one spelling and this reads back the runs it was
+ * written with.
  *
  * @returns the parsed runs, or `undefined` when the cell is empty or unreadable
  */

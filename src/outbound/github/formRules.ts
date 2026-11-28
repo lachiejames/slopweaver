@@ -8,9 +8,11 @@
  */
 import { splitSentences } from "../../briefing/sentences.js";
 import { countWords } from "../../prformat/checkCore.js";
+import { adjacentTextRunIssues } from "./contentRunRules.js";
 import { utcMidnightOf } from "./days.js";
 import { plainTextOf, problemBadgeOf, proofBadgeOf, riskBadgeOf } from "./derive.js";
 import { descriptionWordIssues, withholdingCredentialMessages } from "./descriptionWords.js";
+import { contentCellsOf } from "./formContent.js";
 import { hostingIssues } from "./formHosting.js";
 import { quoteIssues } from "./quoteRules.js";
 import { renderContent } from "./render.js";
@@ -38,7 +40,8 @@ export type FormRuleCode =
   | "CODE_UNFORMATTED"
   | "BOLD_NOT_A_FIGURE"
   | "COMMIT_UNLINKED"
-  | "AUDIENCE_UNNAMED";
+  | "AUDIENCE_UNNAMED"
+  | "ADJACENT_TEXT_RUNS";
 
 /** One rule a body breaks, and where in the form it breaks it. */
 export interface FormRuleIssue {
@@ -176,6 +179,16 @@ function bodyCapIssues({ body }: { body: PrBody }): readonly FormRuleIssue[] {
         : [],
     ),
   ];
+}
+
+/**
+ * Two text runs side by side in any content cell: a second spelling of one run, which neither reader can give back
+ * (`./contentRunRules.ts`). Judged in every layout, because it is the form's identity and not a prose convention.
+ */
+function adjacentRunIssues({ body }: { body: PrBody }): readonly FormRuleIssue[] {
+  return contentCellsOf({ sections: body }).flatMap(({ content, path }) =>
+    adjacentTextRunIssues({ content, path }).map((issue): FormRuleIssue => ({ ...issue, code: "ADJACENT_TEXT_RUNS" })),
+  );
 }
 
 /** `nothing-on-screen` beside a screenshot contradicts itself. */
@@ -346,6 +359,7 @@ export function c3FormErrors({
   const words = layout === 2 ? descriptionWordIssues({ body, title }) : [];
   return withholdingCredentialMessages({
     issues: [
+      ...adjacentRunIssues({ body }),
       ...words,
       ...badgeIssues({ body, layout }),
       ...seenDayIssues({ body, today }),

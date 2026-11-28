@@ -16,7 +16,9 @@
  */
 import { z } from "zod";
 import { strictForm } from "../strictForm.js";
+import { adjacentTextRunIssues } from "./contentRunRules.js";
 import { utcMidnightOf } from "./days.js";
+import { contentCellsOf } from "./formContent.js";
 import { HTTPS, imageSchema } from "./schemaImage.js";
 import { LINE_BREAK, lineText, nonBlank } from "./schemaText.js";
 import type {
@@ -294,6 +296,12 @@ export const prFormEditSchema = strictForm({
   title: routingShape.title.optional(),
   visualProof: bodyShape.visualProof.optional(),
 }).superRefine((edit, ctx) => {
+  // Refused here, where each cell still has its edit path, rather than only on the merged form.
+  for (const { content, path } of contentCellsOf({ sections: edit })) {
+    for (const issue of adjacentTextRunIssues({ content, path })) {
+      ctx.addIssue({ code: "custom", message: `ADJACENT_TEXT_RUNS: ${issue.message}`, path: [...issue.path] });
+    }
+  }
   for (const { append, field } of APPENDS) {
     if (edit[append] !== undefined && edit[field] !== undefined) {
       ctx.addIssue({

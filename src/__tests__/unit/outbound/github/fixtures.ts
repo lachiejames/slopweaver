@@ -168,6 +168,42 @@ export const TESTS_ONLY_BODY: PrBody = {
   visualProof: "nothing-on-screen",
 };
 
+/**
+ * Every kind of content cell filled, each multi-run cell alternating text with another kind and none carrying two text
+ * runs side by side, under one risk item, since only the top one is published: the witness that both readers give a
+ * form back run for run.
+ */
+export const EVERY_CELL_BODY: PrBody = {
+  ...FEATURE_BODY,
+  checkGroups: [
+    {
+      items: [
+        [
+          { kind: "text", text: "A sign-in saved " },
+          { kind: "strong", text: "7 days" },
+          { kind: "text", text: " ago still reads." },
+        ],
+      ],
+      label: [
+        { kind: "text", text: "Still " },
+        { kind: "em", text: "unchanged" },
+      ],
+    },
+  ],
+  notChecked: [
+    {
+      check: [
+        { kind: "text", text: "The warning in " },
+        { kind: "code", text: "ABC-1" },
+      ],
+      why: [
+        { kind: "link", text: "The tracker", url: "https://example.com/ABC-1" },
+        { kind: "text", text: " has no real sign-in yet." },
+      ],
+    },
+  ],
+};
+
 /** A CI job's failing lines, verbatim, one carrying a backtick run longer than the shortest fence. */
 export const QUOTED_LOG =
   "  ALL_SUCCEEDED: false\n##[error]Process completed with exit code 1.\nthe step printed ```` and stopped";

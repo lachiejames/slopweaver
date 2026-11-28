@@ -16,9 +16,7 @@ describe("convertToC3", () => {
     const { form } = convertToC3({ body: FULL_BODY, shell: SHELL });
     expect([form.title, form.target, form.draft]).toStrictEqual([SHELL.title, TARGET, false]);
     expect(form.explainer).toStrictEqual([
-      { kind: "text", text: "A reviewer meets the table before the risk." },
-      { kind: "text", text: " " },
-      { kind: "text", text: "Render the body in reading order." },
+      { kind: "text", text: "A reviewer meets the table before the risk. Render the body in reading order." },
     ]);
     expect(form.risk.items).toStrictEqual([
       {
@@ -32,6 +30,40 @@ describe("convertToC3", () => {
         worstKind: "only-tests-docs-or-dev-tooling",
       },
     ]);
+  });
+
+  it.each([
+    [
+      "Problem ends on a code run",
+      [{ kind: "code", text: "acme" }],
+      [{ kind: "text", text: "Render it." }],
+      [
+        { kind: "code", text: "acme" },
+        { kind: "text", text: " Render it." },
+      ],
+    ],
+    [
+      "Change opens on a link",
+      [{ kind: "text", text: "It broke." }],
+      [{ kind: "link", text: "ABC-1", url: "https://example.com/ABC-1" }],
+      [
+        { kind: "text", text: "It broke. " },
+        { kind: "link", text: "ABC-1", url: "https://example.com/ABC-1" },
+      ],
+    ],
+    [
+      "neither side is text",
+      [{ kind: "strong", text: "Broke" }],
+      [{ kind: "em", text: "fixed" }],
+      [
+        { kind: "strong", text: "Broke" },
+        { kind: "text", text: " " },
+        { kind: "em", text: "fixed" },
+      ],
+    ],
+  ] as const)("joins Problem and Change with no two text runs side by side when %s", (_, problem, change, joined) => {
+    const { form } = convertToC3({ body: { ...FULL_BODY, change, problem }, shell: SHELL });
+    expect(form.explainer).toStrictEqual(joined);
   });
 
   it.each([

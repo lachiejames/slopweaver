@@ -182,9 +182,9 @@ accepts renders a body CI accepts. Each refusal carries a code and the form path
   two sentences, why there is no screenshot and then where the proof is (`PROOF_REASON_SENTENCES`): the checks or
   a linked record, never a test, whose common shapes are refused (`PROOF_IS_TEST_SENTENCE`) and the rest judged by
   the description review.
-- **Every cell is a one-line HTML block**: no run carries a newline, and a backtick lives only in a `code` run.
-  Every authored cell outside Re-run also goes through the **above-the-fold gate**, which REFUSES
-  rather than trims — see [the reference](pull-requests.md). No first person in prose.
+- **Every cell is a one-line HTML block**: no newline, a backtick only in a `code` run, and no two text runs side by
+  side, which read back as one (`ADJACENT_TEXT_RUNS`: merge them). Every cell outside Re-run also goes through the
+  **above-the-fold gate**, which REFUSES rather than trims ([the reference](pull-requests.md)). No first person.
 - **Media is evidence, so it is never folded**: an image lives only in a proof slot. It is a
   `user-attachments/assets` upload (`IMAGE_NOT_USER_ATTACHMENT`), and an evidence link to a release download,
   a comment or a committed media file is `EVIDENCE_RELEASE_DOWNLOAD`, `EVIDENCE_COMMENT_LINK` or
