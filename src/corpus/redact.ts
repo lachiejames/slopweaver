@@ -9,6 +9,7 @@
  * scrubbing it first stops the email/number passes from carving it up).
  */
 
+import { emailAddressPattern } from "#lib/emailAddressPattern.js";
 import { stripControlBytes } from "./sanitise.js";
 
 export type RedactionCategory = "token" | "email" | "number";
@@ -210,7 +211,10 @@ const PASSES: readonly Pass[] = [
   { category: "token", re: /sk-(?:proj|svcacct|admin)-[A-Za-z0-9_-]{20,}/g, replacement: "[token]" },
   { category: "token", re: /sk-[A-Za-z0-9]{20,}/g, replacement: "[token]" },
   { category: "token", re: /Bearer\s+[A-Za-z0-9._-]{12,}/g, replacement: "[token]" },
-  { category: "email", re: /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, replacement: "[email]" },
+  // The detector the outbound PII pass shares, so a quoted local part (`"first last"@…`) is an address here
+  // too: a bare `[\w.+-]+@` spelling never starts a match on a closing quote, so it would reach bronze whole.
+  // Its cap and residues are `src/lib/emailAddressPattern.ts`'s header.
+  { category: "email", re: emailAddressPattern(), replacement: "[email]" },
   { category: "number", exempt: NUMBER_EXEMPT_SPANS, re: /\d{9,}/g, replacement: "[number]" },
 ];
 
@@ -246,8 +250,8 @@ export function redactSecrets({ text }: { text: string }): { text: string; redac
 
 /**
  * The author-only address pass, run after the shared email pass. That pass's pattern is tuned for prose, so it
- * misses valid address forms a provider can still hand back: a quoted local part (`"boss"@example.test`), an
- * address-literal domain (`boss@[192.0.2.1]`), a single-label domain. An author is a name, never prose, so here
+ * misses valid address forms a provider can still hand back: an address-literal domain (`boss@[192.0.2.1]`), a
+ * single-label domain; a quoted local part it does catch. An author is a name, never prose, so here
  * any whitespace-free run with something on both sides of an `@`, or a quoted string before one, is an
  * address. A name such as `Team @ Acme` has whitespace around its `@` and survives, and a native-id author
  * never reaches this pass.

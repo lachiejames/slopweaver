@@ -191,6 +191,21 @@ describe("writeCorpusRecords", () => {
     expect(back.raw).toEqual({ author: { email: "[email]" }, notes: ["ping [email]", "clean"], number: 7 });
   });
 
+  it("writes an address whose local part is quoted as [email] in text and nested raw, never whole", () => {
+    const raw = { thread: { notes: ['cc "jane doe"@example.com'] } };
+    writeCorpusRecords({
+      home,
+      protection: NO_ENTRIES,
+      records: [rec({ raw, text: 'ping "jane.doe"@example.com' })],
+      window,
+    });
+    const back = unwrap(
+      readCorpusDir({ dir: bronzeSourceDir({ home, source: "github" }), home, protection: NO_ENTRIES }),
+    ).records[0]!;
+    expect(back.text).toBe("ping [email]");
+    expect(back.raw).toEqual({ thread: { notes: ["cc [email]"] } });
+  });
+
   it("scrubs an address out of author on the way to disk", () => {
     writeCorpusRecords({ home, protection: NO_ENTRIES, records: [rec({ author: "Pat <boss@example.test>" })], window });
     const back = unwrap(

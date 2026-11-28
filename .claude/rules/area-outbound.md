@@ -188,7 +188,7 @@ over one free-text field each: `session list`'s note and `cmux usage`'s title, p
 id included: it is routinely the ANSWER, and the owner's own IP-to-uid correlation ends in one. A person's NAME is
 not redacted either — a post to the installation's own Slack is its own surface, not the repository. Secrets are a
 different class with different owners (`src/hygiene/scan.ts` at the gate, `src/corpus/redact.ts` on the way
-into the corpus); this pass is not a second copy of either.
+into the corpus); this pass is not a second copy of either, sharing only `src/lib/emailAddressPattern.ts`.
 
 The false positives are what a pass on every outbound message lives or dies by, so they are tested by name:
 an ISO timestamp, a bare clock time, a Slack `ts`, a URL with a port and a Datadog query all survive
