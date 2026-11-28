@@ -121,13 +121,60 @@ export function readNotSeenHover({ text }: { text: string }): ProblemSeen | unde
 /** How a hover names an actor. */
 const ACTOR_WORDS: Readonly<Record<ProofActor, string>> = { agent: "an agent", owner: "the owner" };
 
-/** What the proof hover is built from: who ran each screenshot, and the plain reason for each reason slot. */
+/**
+ * Which shown side is quoted output rather than a screenshot, and whether nothing on screen changes. Absent, every
+ * shown side is a screenshot and the hover keeps the wording every body published before quotes carries.
+ */
+export interface QuotedHover {
+  readonly problem: boolean;
+  readonly solution: boolean;
+  /** `visualProof: nothing-on-screen`, which no badge alt says once a side is shown, so the hover says it. */
+  readonly nothingOnScreen: boolean;
+}
+
+/** The one shown side's quote facts: present only when that side is quoted output. */
+export interface QuotedSideHover {
+  readonly nothingOnScreen: boolean;
+}
+
+/** What the proof hover is built from: who ran each shown side, and the plain reason for each reason slot. */
 export type ProofHoverInput =
-  | { readonly kind: "both"; readonly problemBy: ProofActor; readonly solutionBy: ProofActor }
-  | { readonly kind: "solution-only"; readonly solutionBy: ProofActor; readonly problemReason: string }
-  | { readonly kind: "problem-only"; readonly problemBy: ProofActor; readonly solutionReason: string }
+  | {
+      readonly kind: "both";
+      readonly problemBy: ProofActor;
+      readonly solutionBy: ProofActor;
+      readonly quoted?: QuotedHover | undefined;
+    }
+  | {
+      readonly kind: "solution-only";
+      readonly solutionBy: ProofActor;
+      readonly problemReason: string;
+      readonly quoted?: QuotedSideHover | undefined;
+    }
+  | {
+      readonly kind: "problem-only";
+      readonly problemBy: ProofActor;
+      readonly solutionReason: string;
+      readonly quoted?: QuotedSideHover | undefined;
+    }
   | { readonly kind: "tests-only"; readonly solutionReason: string }
   | { readonly kind: "not-run"; readonly solutionReason: string };
+
+/** The sentence a quote's hover adds for `nothing-on-screen`, read back by {@link readsNothingOnScreen}. */
+const NOTHING_ON_SCREEN = " Nothing on screen changes.";
+
+/** How a hover names one shown side's medium, capitalised when it opens the hover. */
+function mediumWords({ quoted, opening }: { quoted: boolean; opening: boolean }): string {
+  if (quoted) {
+    return opening ? "Quoted output" : "quoted output";
+  }
+  return opening ? "A screenshot" : "a screenshot";
+}
+
+/** The marker sentence, when nothing on screen changes. */
+function nothingOnScreenOf({ nothingOnScreen }: { nothingOnScreen: boolean }): string {
+  return nothingOnScreen ? NOTHING_ON_SCREEN : "";
+}
 
 /** A reason as a hover ends it: its own closing punctuation, or a full stop added. */
 function reasonSentence({ text }: { text: string }): string {
@@ -149,6 +196,13 @@ function reasonSentence({ text }: { text: string }): string {
 export function proofHover({ input, layout }: { input: ProofHoverInput; layout: BodyLayout }): string {
   switch (input.kind) {
     case "both":
+      if (input.quoted !== undefined) {
+        return (
+          `${mediumWords({ opening: true, quoted: input.quoted.problem })} of the problem before this change, run by ` +
+          `${ACTOR_WORDS[input.problemBy]}, and ${mediumWords({ opening: false, quoted: input.quoted.solution })} of ` +
+          `the solution after it, run by ${ACTOR_WORDS[input.solutionBy]}.${nothingOnScreenOf(input.quoted)}`
+        );
+      }
       if (input.problemBy === input.solutionBy) {
         return (
           "Screenshots of the problem before this change and the solution after it, from real runs by " +
@@ -160,11 +214,23 @@ export function proofHover({ input, layout }: { input: ProofHoverInput; layout: 
         `after it, run by ${ACTOR_WORDS[input.solutionBy]}.`
       );
     case "solution-only":
+      if (input.quoted !== undefined) {
+        return (
+          `Quoted output of the solution from a real run by ${ACTOR_WORDS[input.solutionBy]}.` +
+          `${nothingOnScreenOf(input.quoted)} The problem wasn't captured: ${reasonSentence({ text: input.problemReason })}`
+        );
+      }
       return (
         `A screenshot of the solution from a real run by ${ACTOR_WORDS[input.solutionBy]}. The problem wasn't ` +
         `captured: ${reasonSentence({ text: input.problemReason })}`
       );
     case "problem-only":
+      if (input.quoted !== undefined) {
+        return (
+          `Quoted output of the problem from a real run by ${ACTOR_WORDS[input.problemBy]}.` +
+          `${nothingOnScreenOf(input.quoted)} The solution isn't shown yet: ${reasonSentence({ text: input.solutionReason })}`
+        );
+      }
       return (
         `A screenshot of the problem from a real run by ${ACTOR_WORDS[input.problemBy]}. The solution isn't shown ` +
         `yet: ${reasonSentence({ text: input.solutionReason })}`
@@ -194,17 +260,62 @@ const BOTH_MIXED = new RegExp(
 const SOLUTION_ONLY = new RegExp(`^A screenshot of the solution from a real run by ${ACTOR}\\. `, "u");
 const PROBLEM_ONLY = new RegExp(`^A screenshot of the problem from a real run by ${ACTOR}\\. `, "u");
 
+/** The marker, as a pattern. */
+const MARKER = "( Nothing on screen changes\\.)?";
+
+/** The inverses of the three hovers a quote takes, each capturing the marker sentence last. */
+const BOTH_QUOTED = new RegExp(
+  `^(?:A screenshot|Quoted output) of the problem before this change, run by ${ACTOR}, and ` +
+    `(?:a screenshot|quoted output) of the solution after it, run by ${ACTOR}\\.${MARKER}$`,
+  "u",
+);
+const SOLUTION_QUOTED = new RegExp(
+  `^Quoted output of the solution from a real run by ${ACTOR}\\.${MARKER} The problem wasn't captured: `,
+  "u",
+);
+const PROBLEM_QUOTED = new RegExp(
+  `^Quoted output of the problem from a real run by ${ACTOR}\\.${MARKER} The solution isn't shown yet: `,
+  "u",
+);
+
+/** The first of `patterns`, in order, that matches `text`: a hover is read by whichever template wrote it. */
+function firstMatch({ patterns, text }: { patterns: readonly RegExp[]; text: string }): RegExpExecArray | null {
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match !== null) {
+      return match;
+    }
+  }
+  return null;
+}
+
+/**
+ * Whether a proof hover says nothing on screen changes: a quote's hover carrying the marker sentence, which is how
+ * `visualProof: nothing-on-screen` survives a read once a side is shown and the badge no longer says `tests only`.
+ *
+ * @param text the decoded hover
+ * @returns true only for a quote's hover carrying the marker
+ */
+export function readsNothingOnScreen({ text }: { text: string }): boolean {
+  const both = BOTH_QUOTED.exec(text);
+  if (both !== null) {
+    return both[3] !== undefined;
+  }
+  const side = firstMatch({ patterns: [SOLUTION_QUOTED, PROBLEM_QUOTED], text });
+  return side?.[2] !== undefined;
+}
+
 /** An actor's words, read back. */
 function actorOf({ words }: { words: string | undefined }): ProofActor | undefined {
   return (["agent", "owner"] as const).find((actor) => ACTOR_WORDS[actor] === words);
 }
 
 /**
- * Recover who ran each screenshot from a proof hover. Only the actors are read: the rest is derived from the slots,
- * and the parse's byte comparison checks it.
+ * Recover who ran each screenshot or quote from a proof hover. Only the actors are read: the rest is derived from the
+ * slots, and the parse's byte comparison checks it.
  *
  * @param text the decoded hover
- * @returns who ran the problem's and the solution's screenshot, each absent when the hover names none for it
+ * @returns who ran the problem's and the solution's shown proof, each absent when the hover names none for it
  */
 export function readProofActors({ text }: { text: string }): {
   problemBy: ProofActor | undefined;
@@ -215,14 +326,14 @@ export function readProofActors({ text }: { text: string }): {
     const by = actorOf({ words: same[1] });
     return { problemBy: by, solutionBy: by };
   }
-  const mixed = BOTH_MIXED.exec(text);
+  const mixed = firstMatch({ patterns: [BOTH_MIXED, BOTH_QUOTED], text });
   if (mixed !== null) {
     return { problemBy: actorOf({ words: mixed[1] }), solutionBy: actorOf({ words: mixed[2] }) };
   }
-  const solution = SOLUTION_ONLY.exec(text);
+  const solution = firstMatch({ patterns: [SOLUTION_ONLY, SOLUTION_QUOTED], text });
   if (solution !== null) {
     return { problemBy: undefined, solutionBy: actorOf({ words: solution[1] }) };
   }
-  const problem = PROBLEM_ONLY.exec(text);
+  const problem = firstMatch({ patterns: [PROBLEM_ONLY, PROBLEM_QUOTED], text });
   return { problemBy: actorOf({ words: problem?.[1] }), solutionBy: undefined };
 }

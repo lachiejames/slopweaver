@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 
 import { landedProofOf } from "../../../../fleet/landed.js";
-import { FEATURE_BODY, FIX_BODY, formOf } from "../../outbound/github/fixtures.js";
+import { FEATURE_BODY, FIX_BODY, formOf, QUOTE_BODY } from "../../outbound/github/fixtures.js";
 
 describe("landedProofOf", () => {
   it("carries the explainer, both screenshots and every check, with no grade", () => {
@@ -48,6 +48,25 @@ describe("landedProofOf", () => {
       kind: "recorded",
       problem:
         "The provider expires sign-ins after 7 days for an app in testing mode. This saves the expiry and warns 48 hours before.",
+    });
+  });
+
+  it("reads a quote slot as what it proves and its source, never the quoted output itself", () => {
+    const proof = landedProofOf({ form: { form: formOf({ body: QUOTE_BODY }), kind: "decoded" } });
+    expect(proof).toEqual({
+      after: {
+        evidence: "On this branch, the same check prints every job green. widgets checks --all",
+        where: "output the owner quoted",
+      },
+      before: {
+        evidence: "On main, the build job fails because one required job did not succeed. the build job's log",
+        where: "output the agent quoted",
+      },
+      claims: [
+        { claim: "The moved check's own tests were not touched, and still pass.", detail: "", verdict: "proven" },
+      ],
+      kind: "recorded",
+      problem: "The local store was left open to the network. This makes start refuse in that case.",
     });
   });
 

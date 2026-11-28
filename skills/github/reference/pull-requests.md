@@ -151,8 +151,8 @@ one; a hand-filled body fails `pr-format`, which accepts only one that parses an
    200 characters: [pr-badges](pr-badges.md).
 2. **The explainer**, at most 70 words: what broke, for whom, and what this changes, in plain sentences.
 3. **Proof of the problem** and **Proof of the solution**: each a real screenshot under the one line (≤25 words) it
-   proves, with who ran it, or a public reason there is none, capped in
-   [composing a body](composing-a-body.md#the-cells-the-badges-read), its heading then reading `: not shown`.
+   proves, with who ran it, or its text output quoted ([pr-forms](pr-forms.md)), or a public reason there is none,
+   capped in [composing a body](composing-a-body.md#the-cells-the-badges-read), its heading then reading `: not shown`.
 4. **Checks**, a list of one sentence per check with no screenshot (≤25 words), a labelled group nested under its
    label after the base checks, then **Not checked, and why**.
 5. **Re-run**, the one fold: only what re-runs it (commands, test lists, short notes).

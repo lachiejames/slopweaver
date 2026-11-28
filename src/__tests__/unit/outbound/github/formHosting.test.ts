@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { hostingIssues, isUserAttachmentUrl } from "../../../../outbound/github/formHosting.js";
 import type { PrBody } from "../../../../outbound/github/types.js";
-import { FEATURE_BODY, FIX_BODY, shot, TESTS_BODY, TESTS_ONLY_BODY, t } from "./fixtures.js";
+import { FEATURE_BODY, FIX_BODY, QUOTE_BODY, shot, TESTS_BODY, TESTS_ONLY_BODY, t } from "./fixtures.js";
 
 /** The fix body with its solution screenshot hosted at `url`. */
 function withSolutionImage({ url }: { url: string }): PrBody {
@@ -68,6 +68,27 @@ describe("hostingIssues", () => {
     expect(hostingIssues({ body }).map((issue) => [issue.code, issue.path])).toStrictEqual([
       ["EVIDENCE_COMMENT_LINK", ["problemProof", "reason", 0]],
       ["EVIDENCE_COMMENT_LINK", ["solutionProof", "proves", 1]],
+    ]);
+  });
+
+  it("accepts a quote sourced from a job log, and reads a quote's proof line and source at their own paths", () => {
+    const comment = "https://github.com/o/r/pull/1#issuecomment-1";
+    const quote = QUOTE_BODY.problemProof;
+    if (quote.kind !== "quote") {
+      throw new Error("QUOTE_BODY's problem proof is a quote");
+    }
+    const body: PrBody = {
+      ...QUOTE_BODY,
+      problemProof: {
+        ...quote,
+        proves: [{ kind: "link", text: "a comment", url: comment }],
+        source: { kind: "link", text: "a comment", url: comment },
+      },
+    };
+    expect(hostingIssues({ body: QUOTE_BODY })).toStrictEqual([]);
+    expect(hostingIssues({ body }).map((issue) => [issue.code, issue.path])).toStrictEqual([
+      ["EVIDENCE_COMMENT_LINK", ["problemProof", "proves", 0]],
+      ["EVIDENCE_COMMENT_LINK", ["problemProof", "source", 0]],
     ]);
   });
 

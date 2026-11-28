@@ -36,6 +36,7 @@ import { lfLineEndings } from "./lineEndings.js";
 import { checksOf } from "./parseChecks.js";
 import { IMG, imageRunOf, parseContent } from "./parseContent.js";
 import { allOf, between, type Cursor, listRows, stop, take, takeLiteral } from "./parseCursor.js";
+import { isQuoteSourceLine, quoteSlotAt } from "./parseQuote.js";
 import { rerunItemsOf, splitFold } from "./parseRerunFold.js";
 import { type KeyedBlock, liftPasted } from "./pastedMedia.js";
 import {
@@ -64,9 +65,9 @@ export interface PrBodyParse {
   readonly remainder: string;
 }
 
-/** A proof slot's block, its screenshot's actor taken from the proof hover. */
-function slotOf({ block, runBy }: { block: string | undefined; runBy: ProofActor | undefined }): ProofSlot | undefined {
-  const lines = block?.split("\n");
+/** A proof slot at the cursor, its screenshot's or quote's actor taken from the proof hover. */
+function slotAt({ cursor, runBy }: { cursor: Cursor; runBy: ProofActor | undefined }): ProofSlot | undefined {
+  const lines = take({ cursor })?.split("\n");
   if (lines?.length === 1) {
     const reason = between({ block: lines[0], close: "</p>", open: "<p>" });
     return reason === undefined ? undefined : { kind: "reason", reason };
@@ -75,6 +76,9 @@ function slotOf({ block, runBy }: { block: string | undefined; runBy: ProofActor
     return undefined;
   }
   const proves = between({ block: lines[0], close: "</p>", open: "<p>" });
+  if (isQuoteSourceLine({ line: lines[1]! })) {
+    return quoteSlotAt({ cursor, proves, runBy, sourceLine: lines[1]! });
+  }
   const picture = lines[1]!.startsWith("<p>") && lines[1]!.endsWith("</p>") ? lines[1]!.slice(3, -4) : "";
   const image = IMG.exec(picture);
   if (proves === undefined || image === null || image[0] !== picture) {
@@ -154,14 +158,14 @@ function mainSections({
   if (!takeProofHeading({ cursor, heading: headings.problemHeading, layout })) {
     return stop({ at: "the Proof of the problem heading" });
   }
-  const problemProof = slotOf({ block: take({ cursor }), runBy: facts.problemBy });
+  const problemProof = slotAt({ cursor, runBy: facts.problemBy });
   if (problemProof === undefined) {
     return stop({ at: "the proof of the problem" });
   }
   if (!takeProofHeading({ cursor, heading: headings.solutionHeading, layout })) {
     return stop({ at: "the Proof of the solution heading" });
   }
-  const solutionProof = slotOf({ block: take({ cursor }), runBy: facts.solutionBy });
+  const solutionProof = slotAt({ cursor, runBy: facts.solutionBy });
   if (solutionProof === undefined) {
     return stop({ at: "the proof of the solution" });
   }
@@ -180,7 +184,10 @@ function mainSections({
   return ok(read.checkGroups.length > 0 ? { ...sections, checkGroups: read.checkGroups } : sections);
 }
 
-/** The visual-proof applicability the bytes imply: a screenshot, or an amber `not run yet`, means a screen change. */
+/**
+ * The visual-proof applicability the bytes imply: a screenshot means a screen change, and otherwise the proof badge
+ * says which (`tests only`, or a quote's hover saying nothing on screen changes).
+ */
 function visualProofOf({
   facts,
   body,
@@ -189,7 +196,7 @@ function visualProofOf({
   body: Pick<PrBody, "problemProof" | "solutionProof">;
 }): PrBody["visualProof"] {
   const anyScreenshot = body.problemProof.kind === "screenshot" || body.solutionProof.kind === "screenshot";
-  return !anyScreenshot && facts.testsOnly ? "nothing-on-screen" : "screen-change";
+  return !anyScreenshot && facts.nothingOnScreen ? "nothing-on-screen" : "screen-change";
 }
 
 /** Each pasted block lifted out of a candidate prefix, with how many canonical blank-line segments preceded it. */

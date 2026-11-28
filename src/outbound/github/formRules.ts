@@ -12,6 +12,7 @@ import { utcMidnightOf } from "./days.js";
 import { plainTextOf, problemBadgeOf, proofBadgeOf, riskBadgeOf } from "./derive.js";
 import { descriptionWordIssues, withholdingCredentialMessages } from "./descriptionWords.js";
 import { hostingIssues } from "./formHosting.js";
+import { quoteIssues } from "./quoteRules.js";
 import { renderContent } from "./render.js";
 import type { BodyLayout, Content, IsoDay, PrBody } from "./types.js";
 
@@ -24,6 +25,8 @@ export type FormRuleCode =
   | "VISUAL_PROOF"
   | "UNCHECKED_SPLIT"
   | "PROOF_REASON_SENTENCES"
+  | "QUOTE_LINES"
+  | "QUOTE_PII"
   | "IMAGE_NOT_USER_ATTACHMENT"
   | "EVIDENCE_RELEASE_DOWNLOAD"
   | "EVIDENCE_COMMENT_LINK"
@@ -142,9 +145,9 @@ function groupCapIssues({ body }: { body: PrBody }): readonly FormRuleIssue[] {
 function bodyCapIssues({ body }: { body: PrBody }): readonly FormRuleIssue[] {
   const slots = (["problemProof", "solutionProof"] as const).flatMap((field) => {
     const slot = body[field];
-    return slot.kind === "screenshot"
-      ? contentCap({ content: slot.proves, max: WORD_CAPS.proves, path: [field, "proves"], what: "A proof line" })
-      : contentCap({ content: slot.reason, max: WORD_CAPS.proves, path: [field, "reason"], what: "A proof reason" });
+    return slot.kind === "reason"
+      ? contentCap({ content: slot.reason, max: WORD_CAPS.proves, path: [field, "reason"], what: "A proof reason" })
+      : contentCap({ content: slot.proves, max: WORD_CAPS.proves, path: [field, "proves"], what: "A proof line" });
   });
   return [
     ...contentCap({ content: body.explainer, max: WORD_CAPS.explainer, path: ["explainer"], what: "The explainer" }),
@@ -289,10 +292,10 @@ function badgeIssues({ body, layout }: { body: PrBody; layout: BodyLayout }): re
 
 /**
  * The slot whose reason the proof hover quotes, so an over-long hover names the field to shorten: the problem's reason
- * when only the solution is a screenshot, else the solution's.
+ * when only the solution is shown, else the solution's.
  */
 function proofHoverSourceOf({ body }: { body: PrBody }): "problemProof" | "solutionProof" {
-  const problemQuoted = body.problemProof.kind === "reason" && body.solutionProof.kind === "screenshot";
+  const problemQuoted = body.problemProof.kind === "reason" && body.solutionProof.kind !== "reason";
   return problemQuoted ? "problemProof" : "solutionProof";
 }
 
@@ -351,6 +354,7 @@ export function c3FormErrors({
       ...visualProofIssues({ body }),
       ...uncheckedSplitIssues({ body }),
       ...proofReasonSentenceIssues({ body }),
+      ...quoteIssues({ body }),
       ...hostingIssues({ body }),
     ],
   });

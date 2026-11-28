@@ -35,12 +35,15 @@ function hoverCell({ path, text }: { path: ContentPath; text: string }): Content
   return { content: [{ kind: "text", text }], fold: "above", path };
 }
 
-/** A proof slot's one cell. */
+/**
+ * A proof slot's one authored cell. A quote's output and its source are not authored prose, so neither is a cell:
+ * the output is somebody else's bytes, and the source is one link or code run the prose rules skip anyway.
+ */
 function slotField({ slot, field }: { slot: ProofSlot; field: string }): ContentField {
-  if (slot.kind === "screenshot") {
-    return { content: slot.proves, fold: "above", path: [field, "proves"] };
+  if (slot.kind === "reason") {
+    return { content: slot.reason, fold: "above", path: [field, "reason"] };
   }
-  return { content: slot.reason, fold: "above", path: [field, "reason"] };
+  return { content: slot.proves, fold: "above", path: [field, "proves"] };
 }
 
 /** A re-run item's cells, below the fold; a command is not authored prose. */
@@ -87,10 +90,10 @@ export function contentFieldsOf({ body }: { body: PrBody }): readonly ContentFie
 
 /** A slot with its one cell mapped. */
 function mapSlot({ slot, field, map }: { slot: ProofSlot; field: string; map: CellMap }): ProofSlot {
-  if (slot.kind === "screenshot") {
-    return { ...slot, proves: map({ content: slot.proves, path: [field, "proves"] }) };
+  if (slot.kind === "reason") {
+    return { ...slot, reason: map({ content: slot.reason, path: [field, "reason"] }) };
   }
-  return { ...slot, reason: map({ content: slot.reason, path: [field, "reason"] }) };
+  return { ...slot, proves: map({ content: slot.proves, path: [field, "proves"] }) };
 }
 
 /** A re-run item with its cells mapped. */

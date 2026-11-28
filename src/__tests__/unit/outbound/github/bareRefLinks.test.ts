@@ -181,6 +181,23 @@ describe("attestedNumbersOfPrForm", () => {
     ]);
   });
 
+  it("attests the number a quote's source link names", () => {
+    const form: PrForm = {
+      ...formWith({ explainer: t({ text: "plain" }) }),
+      problemProof: { kind: "reason", reason: t({ text: "none" }) },
+      solutionProof: {
+        kind: "quote",
+        lang: "",
+        proves: t({ text: "it passes" }),
+        runBy: "agent",
+        source: { kind: "link", text: "the run", url: "https://github.com/acme/widget/pull/41" },
+        text: "ok",
+      },
+      visualProof: "nothing-on-screen",
+    };
+    expect(attestedNumbersOfPrForm({ form })).toEqual([{ number: 41, owner: "acme", repo: "widget" }]);
+  });
+
   it("attests nothing from a form whose only github URL names a commit", () => {
     const form: PrForm = {
       ...formWith({

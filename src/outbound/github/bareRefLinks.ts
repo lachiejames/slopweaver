@@ -184,11 +184,14 @@ export function bareRefIssuesOfCommentArtifact({
   ];
 }
 
-/** Every image source a form carries — the URLs that sit outside its content cells. */
+/** Every image source and quote source link a form carries — the URLs that sit outside its content cells. */
 function imageUrlsOf({ form }: { form: PrBody }): readonly string[] {
-  return [form.problemProof, form.solutionProof].flatMap((slot) =>
-    slot.kind === "screenshot" ? [slot.image.url] : [],
-  );
+  return [form.problemProof, form.solutionProof].flatMap((slot) => {
+    if (slot.kind === "screenshot") {
+      return [slot.image.url];
+    }
+    return slot.kind === "quote" && slot.source.kind === "link" ? [slot.source.url] : [];
+  });
 }
 
 /**

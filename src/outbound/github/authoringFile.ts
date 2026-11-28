@@ -29,15 +29,14 @@ import {
   cell,
   declined,
   parseCheckBullets,
-  parseProofSlot,
   parseRerunBlocks,
   parseUncheckedLines,
   renderCheckBullets,
-  renderProofSlotLines,
   renderRerunBlocks,
   renderUncheckedLines,
 } from "./authoringGrammar.js";
 import { renderContent } from "./authoringInline.js";
+import { parseProofSlot, renderProofSlotLines } from "./authoringProofSlot.js";
 import { splitSections } from "./authoringSkeleton.js";
 import { withholdingCredentialLines } from "./descriptionWords.js";
 import { WORST_KINDS } from "./schema.js";

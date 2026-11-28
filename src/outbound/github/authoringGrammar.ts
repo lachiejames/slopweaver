@@ -1,23 +1,18 @@
 /**
- * The authoring file's per-section grammars, in both directions: a proof slot, the `- ` bullet lists, the "Not
- * checked, and why" lines and the re-run blocks, plus the cell helpers every section parser shares.
+ * The authoring file's per-section grammars, in both directions: the `- ` bullet lists, the "Not checked, and why"
+ * lines and the re-run blocks, plus the cell helpers every section parser shares, `./authoringProofSlot.ts`'s
+ * included.
  *
  * A line joining two fields is split on a separator a field cannot carry: a "Not checked" line's ` — ` is escaped
  * wherever its text carries one and found only outside every inline construct (`./authoringInline.ts`'s
  * `topLevelIndexOf`).
  */
 import { isRecord } from "../../lib/parsers.js";
-import { imageAt, parseInlineContent, renderContent, renderImage, topLevelIndexOf } from "./authoringInline.js";
-import type { CheckGroup, Content, ProofSlot, RerunItem, UncheckedItem } from "./types.js";
+import { parseInlineContent, renderContent, topLevelIndexOf } from "./authoringInline.js";
+import type { CheckGroup, Content, RerunItem, UncheckedItem } from "./types.js";
 
 /** The separator between what was not checked and why. */
 const UNCHECKED_SEPARATOR = " — ";
-
-/** A reason slot's one line opens with this. */
-const REASON_PREFIX = "reason: ";
-
-/** A screenshot slot's last line names who ran it. */
-const RUN_BY = /^run by: (owner|agent)$/;
 
 /** A fenced code block's opening line. */
 const CODE_OPEN = /^(`{3,})([A-Za-z0-9_+-]*)\n/;
@@ -50,64 +45,8 @@ export function cell({ source, where }: { source: string; where: string }): Cont
  * @param source the section's raw text
  * @returns every line carrying more than whitespace, in order
  */
-function linesOf({ source }: { source: string }): readonly string[] {
+export function linesOf({ source }: { source: string }): readonly string[] {
   return source.split("\n").filter((line) => line.trim().length > 0);
-}
-
-/**
- * A proof slot as its section's lines: `reason: <why>`, or the line it proves, the picture and who ran it.
- *
- * @returns the section's lines
- */
-export function renderProofSlotLines({ slot }: { slot: ProofSlot }): string {
-  if (slot.kind === "reason") {
-    return `${REASON_PREFIX}${renderContent({ content: slot.reason })}`;
-  }
-  return [renderContent({ content: slot.proves }), renderImage({ image: slot.image }), `run by: ${slot.runBy}`].join(
-    "\n",
-  );
-}
-
-/**
- * A proof slot's section, as the form's field.
- *
- * @param source the section's raw text
- * @param section the section header a decline names
- * @returns the zod candidate for the slot, or a decline naming the two shapes
- */
-export function parseProofSlot({
-  source,
-  section,
-}: {
-  source: string;
-  section: string;
-}): Record<string, unknown> | { readonly error: string } {
-  const lines = linesOf({ source });
-  const shape = {
-    error:
-      `## ${section}: the section is one line "reason: <why there is no screenshot>", or three: the line the ` +
-      'screenshot proves, "![alt](url)" (optionally "{width=N}") alone on its line, and "run by: owner" or "run by: agent"',
-  };
-  if (lines.length === 1 && lines[0]!.startsWith(REASON_PREFIX)) {
-    const reason = cell({ source: lines[0]!.slice(REASON_PREFIX.length), where: `## ${section}` });
-    return declined(reason) ? reason : { kind: "reason", reason };
-  }
-  if (lines.length !== 3) {
-    return shape;
-  }
-  const proves = cell({ source: lines[0]!, where: `## ${section}` });
-  const image = imageAt({ rest: lines[1]! });
-  const runBy = RUN_BY.exec(lines[2]!);
-  if (declined(proves)) {
-    return proves;
-  }
-  if (image !== undefined && "error" in image) {
-    return { error: `## ${section} image: ${image.error}` };
-  }
-  if (image === undefined || image.length !== lines[1]!.length || runBy === null) {
-    return shape;
-  }
-  return { image: image.run, kind: "screenshot", proves, runBy: runBy[1] };
 }
 
 /**
@@ -313,8 +252,12 @@ export function parseUncheckedLines({ source }: { source: string }): readonly un
   return items;
 }
 
-/** A fenced code block, its fence longer than any backtick run inside. */
-function renderCodeBlock({ lang, text }: { lang: string; text: string }): string {
+/**
+ * A fenced code block, its fence longer than any backtick run inside: a re-run command's, or a quote's output.
+ *
+ * @returns the block, its opening fence carrying the language word
+ */
+export function renderCodeBlock({ lang, text }: { lang: string; text: string }): string {
   const longestRun = [...text.matchAll(/`+/g)].reduce((max, m) => Math.max(max, m[0].length), 0);
   const fence = "`".repeat(Math.max(3, longestRun + 1));
   return `${fence}${lang}\n${text}\n${fence}`;

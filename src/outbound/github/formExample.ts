@@ -8,7 +8,8 @@
  * It carries every part of the shape, so printing it answers the question a caller actually has: two ranked risks
  * (the top one checked, the next not), a problem seen on a day with who ran it unrecorded, a proof of the problem
  * that is a one-line reason, a proof of the solution that is a screenshot hosted as a GitHub user attachment and run
- * by an agent, one check with no screenshot, one thing not checked and why, and a re-run fold with a command. Every
+ * by an agent, one check with no screenshot, one thing not checked and why, and a re-run fold with a command. The
+ * third slot shape, quoted output, is shown in `skills/github/reference/pr-forms.md` rather than here. Every
  * inline-run `kind` (`text`/`strong`/`em`/`code`/`link`) appears. Its prose follows the attribution rule — no first
  * person, the owner named as "the owner", a one-off act naming who did it — because this is the object a caller
  * copies, and an example that models a refused shape teaches every caller to write it.

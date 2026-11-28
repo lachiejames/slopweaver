@@ -11,7 +11,7 @@ import { type PrBodyError, PrBodyErrors } from "./errors.js";
 import { escapeAttr, imageTag } from "./htmlText.js";
 import { decodeAttr } from "./parseContent.js";
 import { type Cursor, stop, take } from "./parseCursor.js";
-import { readNotSeenHover, readProofActors, readRiskHover, readSeenHover } from "./tooltips.js";
+import { readNotSeenHover, readProofActors, readRiskHover, readSeenHover, readsNothingOnScreen } from "./tooltips.js";
 import type { BodyLayout, Level, PrBody, ProblemSeen, ProofActor, RiskItem } from "./types.js";
 
 /**
@@ -80,8 +80,11 @@ export interface BadgeFacts {
   readonly problemSeen: ProblemSeen;
   readonly problemBy: ProofActor | undefined;
   readonly solutionBy: ProofActor | undefined;
-  /** Whether the proof badge reads `tests only`, which is what `nothing-on-screen` renders as. */
-  readonly testsOnly: boolean;
+  /**
+   * Whether the proof badge says nothing on screen changes: it reads `tests only`, or a quote's hover carries the
+   * sentence saying so. Either is what `nothing-on-screen` renders as.
+   */
+  readonly nothingOnScreen: boolean;
 }
 
 /** The level a risk badge's alt names. */
@@ -121,10 +124,10 @@ export function readBadgeRow({ cursor }: { cursor: Cursor }): Result<BadgeFacts,
   }
   const actors = readProofActors({ text: proofHover! });
   return ok({
+    nothingOnScreen: proofAlt === "proof: tests only" || readsNothingOnScreen({ text: proofHover! }),
     problemBy: actors.problemBy,
     problemSeen,
     solutionBy: actors.solutionBy,
-    testsOnly: proofAlt === "proof: tests only",
     topRisk: { ...risk, worstKind: canonicalKindOf({ level }) },
   });
 }

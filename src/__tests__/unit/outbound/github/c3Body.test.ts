@@ -8,7 +8,16 @@ import { parsePrBody } from "../../../../outbound/github/parse.js";
 import { renderBody, renderBodyIn } from "../../../../outbound/github/render.js";
 import { prBodySchema } from "../../../../outbound/github/schema.js";
 import type { PrBody } from "../../../../outbound/github/types.js";
-import { FEATURE_BODY, FIX_BODY, P2_CHECKED, TESTS_BODY, TESTS_ONLY_BODY, t } from "./fixtures.js";
+import {
+  FEATURE_BODY,
+  FIX_BODY,
+  P2_CHECKED,
+  QUOTE_BODY,
+  QUOTED_LOG,
+  TESTS_BODY,
+  TESTS_ONLY_BODY,
+  t,
+} from "./fixtures.js";
 
 /** The feature body's badge row and explainer, the same in both layouts. */
 const FEATURE_HEAD = [
@@ -167,6 +176,13 @@ describe("parsePrBody", () => {
     expect([parsed.body, parsed.layout]).toEqual([body, 1]);
   });
 
+  it("refuses a code source carrying a backtick, which the authoring file could not read back", () => {
+    const solutionProof = { ...QUOTE_BODY.solutionProof, source: { kind: "code", text: "printf `x`" } };
+    expect(prBodySchema.safeParse({ ...QUOTE_BODY, solutionProof }).error!.issues[0]!.message).toBe(
+      "a code source carries no backtick; quote that command's job log as a link source instead",
+    );
+  });
+
   it("refuses an empty check-group list, which would render as none and come back without the key", () => {
     expect(prBodySchema.safeParse({ ...FEATURE_BODY, checkGroups: [] }).error!.issues[0]!.message).toBe(
       "checkGroups holds at least one group when present; leave it out for none",
@@ -242,6 +258,50 @@ describe("parsePrBody", () => {
 
   it("reads a body with nothing pasted into it as no pasted media", () => {
     expect(unwrap(parsePrBody({ body: `${FEATURE_BYTES}\n` })).pasted).toStrictEqual([]);
+  });
+
+  it.each([
+    ["both quoted, nothing on screen", QUOTE_BODY],
+    ["both quoted, a screen change", { ...QUOTE_BODY, visualProof: "screen-change" }],
+    ["a quoted problem beside a reason", { ...QUOTE_BODY, solutionProof: FEATURE_BODY.problemProof }],
+    ["a reason beside a quoted solution", { ...QUOTE_BODY, problemProof: FEATURE_BODY.problemProof }],
+    [
+      "a quoted problem beside a screenshot",
+      { ...QUOTE_BODY, solutionProof: FIX_BODY.solutionProof, visualProof: "screen-change" },
+    ],
+  ] satisfies readonly [string, PrBody][])("inverts a quote body, %s, exactly", (_name, body) => {
+    const parsed = unwrap(parsePrBody({ body: unwrap(renderBody({ body })) }));
+    expect([parsed.body, parsed.layout, parsed.remainder]).toEqual([body, 2, ""]);
+  });
+
+  it("writes a quote's proves and source above its fold, the output fenced inside it, and no not-shown mark", () => {
+    const bytes = unwrap(renderBody({ body: QUOTE_BODY }));
+    expect(bytes).toContain(
+      '## <a name="proof-of-the-problem"></a>Proof of the problem\n\n' +
+        "<p>On main, the build job fails because one required job did not succeed.</p>\n" +
+        '<p>Source: <a href="https://github.com/acme/widgets/actions/runs/1/job/2">the build job\'s log</a></p>\n\n' +
+        "<details>\n<summary>Quoted output</summary>\n\n" +
+        `\`\`\`\`\`text\n${QUOTED_LOG}\n\`\`\`\`\`\n\n</details>\n\n` +
+        '## <a name="proof-of-the-solution"></a>Proof of the solution\n\n',
+    );
+    expect(bytes).toContain("<p>Source: <code>widgets checks --all</code></p>");
+  });
+
+  it("never states nothing-on-screen beside a screenshot, which reads back as a screen change", () => {
+    const beside = { ...QUOTE_BODY, solutionProof: FIX_BODY.solutionProof };
+    expect([
+      unwrap(renderBody({ body: { ...beside, visualProof: "nothing-on-screen" } })),
+      unwrap(parsePrBody({ body: unwrap(renderBody({ body: beside })) })).body.visualProof,
+    ]).toEqual([unwrap(renderBody({ body: { ...beside, visualProof: "screen-change" } })), "screen-change"]);
+  });
+
+  it("refuses a quote in layout 1, which has nowhere to put one", () => {
+    expect(unwrapErr(renderBodyIn({ body: QUOTE_BODY, layout: 1 })).code).toBe("NON_CANONICAL");
+  });
+
+  it("refuses a quote whose fence is longer than the one the renderer picks", () => {
+    const bytes = unwrap(renderBody({ body: QUOTE_BODY })).replace(/`{5}/g, "``````");
+    expect(unwrapErr(parsePrBody({ body: bytes })).code).toBe("STRUCTURE");
   });
 
   it("round-trips a command whose text carries a fence", () => {

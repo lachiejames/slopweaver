@@ -70,10 +70,19 @@ function contentLinkIssues({
   });
 }
 
-/** One proof slot's hosting issues: its picture off user-attachments, a link in its line to a refused host. */
+/**
+ * One proof slot's hosting issues: its picture off user-attachments, a link in its line or a quote's source to a
+ * refused host.
+ */
 function slotIssues({ slot, field }: { slot: ProofSlot; field: string }): readonly FormRuleIssue[] {
   if (slot.kind === "reason") {
     return contentLinkIssues({ content: slot.reason, path: [field, "reason"] });
+  }
+  if (slot.kind === "quote") {
+    return [
+      ...contentLinkIssues({ content: slot.proves, path: [field, "proves"] }),
+      ...contentLinkIssues({ content: [slot.source], path: [field, "source"] }),
+    ];
   }
   const image: readonly FormRuleIssue[] = USER_ATTACHMENT.test(slot.image.url)
     ? []

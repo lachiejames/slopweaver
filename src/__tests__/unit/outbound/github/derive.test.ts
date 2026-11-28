@@ -18,6 +18,7 @@ import {
   P1_CHECKED,
   P2_CHECKED,
   P3_CHECKED,
+  QUOTE_BODY,
   TESTS_BODY,
   TESTS_ONLY_BODY,
   t,
@@ -316,6 +317,32 @@ describe("proofBadgeOf and proofStateOf", () => {
     } as const;
     expect(proofBadgeOf({ body, layout: 2 })._unsafeUnwrap().tooltip).toBe(
       "Not run for real yet: Waiting on a staging deploy.",
+    );
+  });
+
+  it("reads two quotes as green `problem and solution`, whatever the screen claim", () => {
+    const shown = { ...QUOTE_BODY, visualProof: "screen-change" } as const;
+    expect([proofStateOf({ body: QUOTE_BODY }), proofStateOf({ body: shown })]).toEqual([
+      "problem and solution",
+      "problem and solution",
+    ]);
+    expect(proofBadgeOf({ body: QUOTE_BODY, layout: 2 })._unsafeUnwrap().color).toBe("2ea44f");
+  });
+
+  it("hovers a quote beside a reason with its medium and the nothing-on-screen marker before the reason", () => {
+    const body = { ...QUOTE_BODY, solutionProof: TESTS_ONLY_BODY.solutionProof };
+    const verdict = proofBadgeOf({ body, layout: 2 })._unsafeUnwrap();
+    expect([proofStateOf({ body }), verdict.tooltip]).toEqual([
+      "problem only",
+      "Quoted output of the problem from a real run by an agent. Nothing on screen changes. The solution isn't " +
+        "shown yet: The store reads the same before and after, so there is nothing to show.",
+    ]);
+  });
+
+  it("leaves a screenshot-only hover byte-identical when no slot is a quote", () => {
+    const body = { ...QUOTE_BODY, problemProof: TESTS_BODY.problemProof, solutionProof: FIX_BODY.solutionProof };
+    expect(proofBadgeOf({ body, layout: 2 })._unsafeUnwrap().tooltip).toBe(
+      "Screenshots of the problem before this change, run by the owner, and the solution after it, run by an agent.",
     );
   });
 
