@@ -3,7 +3,11 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { type ChairMeteredSession, judgeChairMetered } from "../../../supervisor/chairMetered.js";
+import {
+  type ChairMeteredSession,
+  judgeChairMetered,
+  meteredChairRemedyLines,
+} from "../../../supervisor/chairMetered.js";
 
 /** The metered chair at the end of the incident. */
 const METERED: ChairMeteredSession = {
@@ -115,5 +119,16 @@ describe("judgeChairMetered", () => {
     expect(
       judgeChairMetered({ reading: { kind: "unmeasured", why: "Datadog credentials are not usable" } }),
     ).toStrictEqual({ kind: "clean", notes: ["metered check: UNMEASURED — Datadog credentials are not usable"] });
+  });
+});
+
+describe("meteredChairRemedyLines", () => {
+  it("seats a successor on the routed plan's token or store, never on this chair's login", () => {
+    expect(meteredChairRemedyLines()).toStrictEqual([
+      "  remedy: write the handoff and seat a successor with `slopweaver cmux spawn <handoff slug> --model fable` —",
+      "  a routed or pinned seat boots on its plan's setup token when it holds one, else its plan store,",
+      "  never on this chair's login, unless an Anthropic API key in its environment outranks both:",
+      "  `slopweaver claude route --model fable` names anything in the environment that shadows the plan stores.",
+    ]);
   });
 });

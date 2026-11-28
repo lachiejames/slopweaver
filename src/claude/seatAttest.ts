@@ -146,7 +146,9 @@ export function seatRemedyLines({ verdict }: { verdict: RefusingSeatVerdict }): 
   // `oauthAccount` in `~/.claude.json` and every session's telemetry lost its identity.
   return [
     "remedy: from any cmux tab (a plain shell too), `slopweaver cmux reseat <workspace>` relaunches THIS session",
-    "with --resume on a plan's setup token; `slopweaver cmux spawn <slug> --model <model>` boots a fresh seat.",
+    "with --resume on its routed plan (that plan's setup token when it holds one, else its store, unless an",
+    "Anthropic API key in the environment outranks both);",
+    "`slopweaver cmux spawn <slug> --model <model>` boots a fresh seat.",
     `Only a stray \`/login\` in the default store is signed out, with \`${DEFAULT_LOGOUT_COMMAND}\` — never after a restore.`,
   ];
 }

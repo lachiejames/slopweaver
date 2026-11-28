@@ -142,7 +142,8 @@ export function judgeChairMetered({ reading }: { reading: ChairMeteredReading })
 export function meteredChairRemedyLines(): readonly string[] {
   return [
     "  remedy: write the handoff and seat a successor with `slopweaver cmux spawn <handoff slug> --model fable` —",
-    "  a routed or pinned seat boots on a plan's setup token over a file descriptor, never on this chair's login.",
+    "  a routed or pinned seat boots on its plan's setup token when it holds one, else its plan store,",
+    "  never on this chair's login, unless an Anthropic API key in its environment outranks both:",
     "  `slopweaver claude route --model fable` names anything in the environment that shadows the plan stores.",
   ];
 }

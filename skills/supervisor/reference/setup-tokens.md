@@ -1,10 +1,15 @@
-# Every seat boots on a setup token, so a sign-in cannot replace a plan
+# A plan on a setup token boots its seats on it, so a sign-in cannot replace that plan
 
 Bundled reference for [plan-routing.md](plan-routing.md), which settles WHICH plan a spawn spends. This page
 settles how the seat AUTHENTICATES on that plan.
 
-Every seat boots on a per-plan `claude setup-token`, giving up what an inference-only token cannot do (Claude in Chrome, Remote
-Control, claude.ai-hosted MCP connectors, plugin-marketplace sync, Claude Design, claude.ai projects).
+A seat boots on its plan's STORE unless that plan holds a per-plan `claude setup-token`; `slopweaver claude token
+--status` says which plans do. The token path is available to every plan (§ Handing a plan its token, § Minting
+one). A seat on a token gives up what an inference-only token cannot do (Claude in Chrome, Remote Control,
+claude.ai-hosted MCP connectors, plugin-marketplace sync, Claude Design, claude.ai projects); a seat on its store
+keeps them, and a `/login` inside it writes into that plan's store, the class the token path closes. An Anthropic
+API key in a seat's environment outranks both, and the seat then bills a Console organisation
+([api-key-lane](../../../docs/api-key-lane.md)); `slopweaver claude route --model <model>` names one.
 
 ## The mechanism
 
@@ -12,9 +17,10 @@ Routing chooses a PLAN from live gauges. When that plan's store directory holds 
 pre-spawn gate boots the seat on it instead of on the store:
 `CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR=3 CLAUDE_SECURESTORAGE_CONFIG_DIR=<unbound> 3<<token file> claude …`.
 The token reaches Claude Code on a descriptor, so it is in no argv, `ps` or scrollback — only its path is. A
-plan with no token file boots on its store.
+plan with no token file boots on its store, `CLAUDE_SECURESTORAGE_CONFIG_DIR=<plan store>`; a token file that
+exists and will not read refuses the spawn, never falling back to the store.
 
-## The invariant: no seat's store is a store routing reads
+## The invariant on the token path: no token seat's store is a store routing reads
 
 A token seat's store is `claude-accounts/unbound/<seat>`, named by no plan. That matters twice, both read from
 the 2.1.272 binary: a `/login` inside the seat writes there and mutates nothing routing depends on; and on a
@@ -24,17 +30,18 @@ store is nothing. A token itself carries no refresh token, so it is never writte
 
 ## Which plan a seat is on: its descriptor, never `userEmail`
 
-An EMPTY unbound store is the design, and a `claude auth status` run inside a seat answers `loggedIn: false` —
-the descriptor is not inherited by a tool's shell. Claude Code's own `userEmail` context comes from
-`~/.claude.json`'s `oauthAccount`, which every seat on the machine shares, so it names the last hand `/login` and
-never the plan a seat spends. MEASURED: a chair read that address as plan-three and filed a
+For a token seat an EMPTY unbound store is the design, and a `claude auth status` run inside it answers
+`loggedIn: false` — the descriptor is not inherited by a tool's shell. A store seat answers from its plan store.
+Either way, Claude Code's own `userEmail` context comes from `~/.claude.json`'s `oauthAccount`, which every seat
+on the machine shares, so it names whichever account was last written there and never the plan a seat spends. MEASURED: a chair read that address as plan-three and filed a
 fall-through while its descriptor 3 was open on plan-five's token and plan-five's Fable week was the one climbing.
 Ask `slopweaver claude gauge` (its `*` and `chair:` line), or `lsof -a -p <pid> -d 3 -Fn` for one process.
 
 The telemetry's `organization.id` comes from that same block. Once the default store is signed out (the seat
 gate's own remedy) the block is gone and NO request names an organisation, so the chair's metered check prints
 UNMEASURED device-wide rather than refusing ([meteredSpend.ts](../../../src/claude/meteredSpend.ts)). That is
-the designed state for a token-only fleet. Never `/login` by hand to bring the field back.
+the designed state once no hand `/login` remains, whichever path each plan boots on. Never `/login` by hand to
+bring the field back.
 
 ## Handing a plan its token
 

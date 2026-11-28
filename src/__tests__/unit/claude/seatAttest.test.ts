@@ -128,6 +128,14 @@ describe("seatRemedyLines", () => {
     expect(lines.join("\n")).toContain(`${DEFAULT_LOGOUT_COMMAND}\` — never after a restore`);
   });
 
+  it("relaunches on the routed plan's credential, its setup token or its store, never a token alone", () => {
+    const lines = seatRemedyLines({ verdict: { kind: "off-plan", why: "default login" } });
+    expect(lines.slice(1, 3)).toStrictEqual([
+      "with --resume on its routed plan (that plan's setup token when it holds one, else its store, unless an",
+      "Anthropic API key in the environment outranks both);",
+    ]);
+  });
+
   it("hands a metered seat the credential to unset, never the logout", () => {
     const lines = seatRemedyLines({ verdict: { kind: "metered", why: "key set" } });
     expect(lines.join("\n")).toContain("apiKeyHelper");

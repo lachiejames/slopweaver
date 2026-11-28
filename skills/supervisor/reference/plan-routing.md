@@ -182,16 +182,16 @@ it by name still reads it, and `claude resume <alias>` puts it back. Why it is a
 what the pause is refused for, and where a plan's store lives:
 [plan-rows-and-stores](plan-rows-and-stores.md).
 
-## Every seat boots on a setup token, so a sign-in cannot replace a plan
+## A plan on a setup token boots its seats on it, so a sign-in cannot replace that plan
 
-Every seat boots on a per-plan `claude setup-token`, giving up what an inference-only token cannot do (Claude in Chrome, Remote
-Control, claude.ai-hosted MCP connectors, plugin-marketplace sync, Claude Design, claude.ai projects).
-
-When the routed plan's store directory holds a `setup-token`, the seat boots on that token over a file
-descriptor against an UNBOUND store of its own, so a `/login` inside any seat mutates nothing routing reads. A
-plan hands over its token with `slopweaver claude token --plan <alias>`, which writes it only once it proves the
-windows and the enrolled account, and a seat mints one with `slopweaver claude mint --plan <alias>`, which
-pre-fills the plan's enrolled address so the owner only enters the code. Mechanism, invariant and residue: [setup-tokens.md](setup-tokens.md).
+A seat boots on its routed plan's STORE, where a `/login` inside it writes, unless the plan's store directory holds
+a per-plan `claude setup-token` (`slopweaver claude token --status` says which do). Then it boots on that token over
+a file descriptor against an UNBOUND store of its own, so a `/login` there mutates nothing routing reads, giving up
+what an inference-only token cannot do (Claude in Chrome, Remote Control, claude.ai-hosted MCP connectors,
+plugin-marketplace sync, Claude Design, claude.ai projects); an API key in its environment outranks both
+([api-key-lane](../../../docs/api-key-lane.md)). `claude token --plan <alias>` hands a plan its token, written only
+once it proves the windows and the enrolled account; `claude mint --plan <alias>` mints one, pre-filling the
+enrolled address so the owner only enters the code. Mechanism, unreadable-token refusal, residue: [setup-tokens.md](setup-tokens.md).
 
 ## When a plan reads "no login"
 

@@ -1,11 +1,12 @@
 /**
- * Every seat boots on its plan's SETUP TOKEN, handed over a file descriptor, against a store nothing routes on —
- * the re-architecture that makes "a sign-in replaced a slot" impossible rather than detected.
+ * A seat whose plan holds a SETUP TOKEN boots on it, handed over a file descriptor, against a store nothing routes
+ * on; a plan with none boots its seats on its store. An Anthropic API key in the environment outranks both
+ * (`./spawnStore.ts`). The token path is what makes "a sign-in replaced a slot" impossible rather than detected.
  *
  * ## The class, and why a token kills it at the mechanism
  *
- * Until this module a seat booted with `CLAUDE_SECURESTORAGE_CONFIG_DIR=<plan store>`, so the credential the
- * fleet spent WAS the store, and any `/login` inside any seat wrote straight into it. A refresh rotates the
+ * A store seat boots with `CLAUDE_SECURESTORAGE_CONFIG_DIR=<plan store>`, so the credential it spends IS the
+ * store, and any `/login` inside it writes straight into it. A refresh rotates the
  * refresh token too (measured, `keychain.ts`), so a store is also a revocation surface. Both are
  * properties of a stored, refreshing credential.
  *

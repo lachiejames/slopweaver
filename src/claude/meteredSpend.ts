@@ -29,8 +29,8 @@
  *
  * Claude Code stamps `organization.id` from `~/.claude.json`'s SHARED `oauthAccount` (`../supervisor/chairCadence.ts`),
  * so the field says whether THAT block exists, not what a seat presented. Once nothing on the machine holds a hand
- * `/login` — the setup-token-only shape `./seatAttest.ts` enforces, and its own remedy, `claude auth logout` on the
- * default store, removes the block — every request lacks it. Measured: the last identified event preceded
+ * `/login` — `./seatAttest.ts`'s remedy for a stray one, `claude auth logout` on the default store, removes the
+ * block — every request lacks it. Measured: the last identified event preceded
  * a restart onto 2.1.287, and every request after it lacked the field, plan seats included. Reproduce:
  * `slopweaver datadog logs 'service:claude-code @event.name:api_request @organization.id:*' --from 1h` (zero) against the
  * same query with `-@organization.id:*`, and `jq .oauthAccount ~/.claude.json` (null).
