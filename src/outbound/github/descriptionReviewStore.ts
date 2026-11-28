@@ -30,6 +30,7 @@ import {
   type DescriptionReviewManifest,
   type DescriptionReviewPreparation,
   type DescriptionReviewReceipt,
+  type StoredDescriptionReviewPreparation,
 } from "./descriptionReviewTypes.js";
 
 /** The file inside a preparation directory recording what was committed. */
@@ -45,8 +46,17 @@ export const PACKET_BODY_PATH = "description/body.md";
 /** The comments the write posts, inside the packet repository at its head commit. */
 export const PACKET_COMMENTS_PATH = "description/comments.json";
 
-/** The comments already on the pull request, inside the packet repository at its base commit. */
+/**
+ * The comments already on the pull request, inside the packet repository: at its head commit under schema 3, at its
+ * base under schema 2.
+ */
 export const PACKET_EXISTING_COMMENTS_PATH = "evidence/pull-request-comments.json";
+
+/**
+ * The reviewed tree delta, inside the packet repository: at its head commit under schema 3, at its base under schema
+ * 2 (`./descriptionReviewCarry.ts` reads it from the commit the schema names).
+ */
+export const PACKET_DELTA_PATH = "change/delta.txt";
 
 /**
  * The directory every packet repository is prepared under.
@@ -110,11 +120,11 @@ function isManifest(value: unknown): value is DescriptionReviewManifest {
   );
 }
 
-/** Whether a parsed value is the preparation shape this domain writes. */
-function isPreparation(value: unknown): value is DescriptionReviewPreparation {
+/** Whether a parsed value is a preparation this domain wrote: schema 3 now, or schema 2 before the layout moved. */
+function isPreparation(value: unknown): value is StoredDescriptionReviewPreparation {
   return (
     isRecord(value) &&
-    value["schemaVersion"] === 2 &&
+    (value["schemaVersion"] === 3 || value["schemaVersion"] === 2) &&
     ["preparationId", "createdAtIso", "manifestSha256", "baseSha", "headSha"].every(
       (key) => typeof value[key] === "string",
     ) &&
@@ -177,7 +187,7 @@ export function readPreparationAtRoot({
 }: {
   home: string;
   repoRoot: string;
-}): Result<DescriptionReviewPreparation | undefined, DescriptionReviewError> {
+}): Result<StoredDescriptionReviewPreparation | undefined, DescriptionReviewError> {
   const preparations = preparationsDirectory({ home });
   if (!existsSync(preparations) || !existsSync(repoRoot) || basename(repoRoot) !== PACKET_REPO_DIRNAME) {
     return ok(undefined);

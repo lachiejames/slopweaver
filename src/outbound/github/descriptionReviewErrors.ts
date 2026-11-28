@@ -63,6 +63,13 @@ export interface DescriptionReviewPreparationFailedError {
   readonly message: string;
 }
 
+/** A text file the packet would commit holds a NUL byte, so the review's diff could not carry it as text. */
+export interface DescriptionReviewFileNotTextError {
+  readonly code: "FILE_NOT_TEXT";
+  readonly message: string;
+  readonly path: string;
+}
+
 /** A packet already has its one review: this lane takes one pass per distinct packet. */
 export interface DescriptionReviewAlreadyReviewedError {
   readonly code: "ALREADY_REVIEWED";
@@ -131,6 +138,7 @@ export type DescriptionReviewError =
   | DescriptionReviewChangeDigestError
   | DescriptionReviewCommentsReadFailedError
   | DescriptionReviewPreparationFailedError
+  | DescriptionReviewFileNotTextError
   | DescriptionReviewAlreadyReviewedError
   | DescriptionReviewUnusableError
   | DescriptionReviewWrongPacketError
@@ -181,6 +189,11 @@ export const DescriptionReviewErrors = {
   commentsReadFailed: ({ detail }: { detail: string }): DescriptionReviewCommentsReadFailedError => ({
     code: "COMMENTS_READ_FAILED",
     message: `the pull request's existing comments could not be read whole, so no review can say the description answers to them: ${detail}`,
+  }),
+  fileNotText: ({ path }: { path: string }): DescriptionReviewFileNotTextError => ({
+    code: "FILE_NOT_TEXT",
+    message: `${path} holds a NUL byte, so the review's diff cannot carry it as text; nothing was prepared`,
+    path,
   }),
   imageMismatch: ({
     path,

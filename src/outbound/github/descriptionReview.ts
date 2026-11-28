@@ -2,9 +2,9 @@
  * A PULL-REQUEST DESCRIPTION IS REVIEWED BEFORE IT REACHES GITHUB — the pure half: what one review is bound to,
  * whether a cited review judged this packet, whether its reviewer was fresh, and whether a write may go out on it.
  *
- * Modelled on the page review (`../../pages/review.ts`): a packet repository whose base commit holds the evidence
- * and whose head commit adds the thing under review, and a review bound to those two commits by the diff digest
- * it recorded. Two things differ, both deliberately. A page may publish over a changed or BROKEN review once the
+ * Modelled on the page review (`../../pages/review.ts`): a packet repository whose base commit holds only what a
+ * diff cannot carry (the images) and whose head commit adds every text file, the evidence and the thing under
+ * review alike, and a review bound to those two commits by the diff digest it recorded. Two things differ, both deliberately. A page may publish over a changed or BROKEN review once the
  * author says what changed; a description may not, because the verb is the only check standing between those
  * bytes and a public surface. And a page review binds to a fragment alone; a description review also binds the
  * images, the written rules and the change set, so editing any of them asks for a new review while a pure rebase
@@ -27,9 +27,9 @@ import {
   type DescriptionReviewComment,
   type DescriptionReviewer,
   type DescriptionReviewManifest,
-  type DescriptionReviewPreparation,
   type DescriptionReviewReceipt,
   type ExistingPullRequestComment,
+  type StoredDescriptionReviewPreparation,
 } from "./descriptionReviewTypes.js";
 
 /** What the shell read back from a packet repository at a candidate's commits. */
@@ -242,11 +242,19 @@ export function bindDescriptionReview({
   facts,
 }: {
   candidate: PageReviewCandidate;
-  preparation: DescriptionReviewPreparation;
+  preparation: StoredDescriptionReviewPreparation;
   facts: PacketCommitFacts;
 }): Result<PageReviewCandidate, DescriptionReviewError> {
   const wrong = ({ why }: { why: string }): Result<PageReviewCandidate, DescriptionReviewError> =>
     err(DescriptionReviewErrors.wrongPacket({ reviewId: candidate.id, why }));
+  // A schema-2 packet holds its evidence at the base, so the property `review-prepare` prints now, which tells the
+  // reviewer every text file is in the diff, is false of it; its receipts still carry, but a new review binds only
+  // to a packet prepared now.
+  if (preparation.schemaVersion !== 3) {
+    return wrong({
+      why: `its packet ${preparation.preparationId} keeps its evidence at the base commit, outside the diff; run \`github pr review-prepare\` again`,
+    });
+  }
   if (
     candidate.property.id !== DESCRIPTION_REVIEW_PROPERTY_ID ||
     candidate.property.statement !== DESCRIPTION_REVIEW_PROPERTY
@@ -336,7 +344,7 @@ export function descriptionReceiptOf({
   recordedAtIso,
 }: {
   candidate: PageReviewCandidate;
-  preparation: DescriptionReviewPreparation;
+  preparation: StoredDescriptionReviewPreparation;
   recordedBy: SupervisorSession | null;
   receiptId: string;
   recordedAtIso: string;

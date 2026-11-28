@@ -9,6 +9,7 @@ import {
   descriptionReviewCommands,
   parseGithubPrReviewPrepareArgs,
   parseGithubPrReviewRecordArgs,
+  preparedPacketLines,
   visibleSessionOf,
 } from "../../../../../cli/commands/github/prDescriptionReviewCore.js";
 import {
@@ -16,7 +17,10 @@ import {
   parseDescriptionImages,
 } from "../../../../../cli/commands/github/prDescriptionReviewFiles.js";
 import { unwrap, unwrapErr } from "../../../../../lib/result.js";
-import { DESCRIPTION_REVIEW_PROPERTY_ID } from "../../../../../outbound/github/descriptionReviewTypes.js";
+import {
+  DESCRIPTION_REVIEW_PROPERTY_ID,
+  type DescriptionReviewPreparation,
+} from "../../../../../outbound/github/descriptionReviewTypes.js";
 
 const IDENTITY = ["--repo", "acme/widgets", "--base", "main", "--title", "fix: a title", "--body-file", "/tmp/b.md"];
 const REQUIRED = [...IDENTITY, "--comments", "/tmp/c.json", "--new"];
@@ -216,31 +220,34 @@ describe("visibleSessionOf", () => {
 });
 
 describe("descriptionReviewCommands", () => {
-  const commands = descriptionReviewCommands({
-    home: "/tmp/home",
-    maxDiffBytes: 5000,
-    preparation: {
-      baseSha: "1".repeat(40),
-      createdAtIso: "2026-11-17T01:00:00.000Z",
-      headSha: "2".repeat(40),
-      manifest: {
-        baseBranch: "main",
-        bodySha256: "b".repeat(64),
-        changeDigest: "c".repeat(64),
-        commentsSha256: "d".repeat(64),
-        existingCommentsSha256: "e".repeat(64),
-        images: [],
-        repository: "acme/widgets",
-        rulesSha256: "r".repeat(64),
-        schemaVersion: 2,
-        titleSha256: "t".repeat(64),
-      },
-      manifestSha256: "m".repeat(64),
-      preparationId: "prep-1",
-      preparedBy: null,
+  const preparation: DescriptionReviewPreparation = {
+    baseSha: "1".repeat(40),
+    createdAtIso: "2026-11-17T01:00:00.000Z",
+    headSha: "2".repeat(40),
+    manifest: {
+      baseBranch: "main",
+      bodySha256: "b".repeat(64),
+      changeDigest: "c".repeat(64),
+      commentsSha256: "d".repeat(64),
+      existingCommentsSha256: "e".repeat(64),
+      images: [],
+      repository: "acme/widgets",
+      rulesSha256: "r".repeat(64),
       schemaVersion: 2,
+      titleSha256: "t".repeat(64),
     },
-    repoRoot: "/tmp/home/pr-description-reviews/preparations/prep-1/repo",
+    manifestSha256: "m".repeat(64),
+    preparationId: "prep-1",
+    preparedBy: null,
+    schemaVersion: 3,
+  };
+  const repoRoot = "/tmp/home/pr-description-reviews/preparations/prep-1/repo";
+  const commands = descriptionReviewCommands({ home: "/tmp/home", maxDiffBytes: 5000, preparation, repoRoot });
+
+  it("tells the preparer the base holds only .gitattributes and the images and the head every text file", () => {
+    expect(preparedPacketLines({ commands, preparation, repoRoot })[2]).toBe(
+      `  base ${"1".repeat(40)} holds only .gitattributes and the images; head ${"2".repeat(40)} adds every text file, the rules, the change set, the evidence and the description`,
+    );
   });
 
   it("points Codex at the packet with the five-question property and its base commit", () => {

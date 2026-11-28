@@ -1,13 +1,22 @@
 /**
  * The packet repository a fresh reviewer reads before a pull-request description reaches GitHub.
  *
- * Its BASE commit holds everything the description answers to: the written rules (`rules/`), the change set as a
- * patch and as the exact tree delta its digest hashes (`change/`), every image at its declared digest (`images/`)
- * and any records the author cites for an act credited to the owner (`evidence/`). Its HEAD commit adds the
- * description itself (`description/title.txt`, `description/body.md`, `description/images.json` pairing each
- * image with the line it proves). So `codex review --repo <packet> --base <base>` judges exactly the description,
- * as a text diff against its evidence, and the images sit at the base because a review diff carrying binary
- * bytes is refused (`../../codex/diff.ts`).
+ * Its BASE commit holds only `.gitattributes` and every image at its declared digest (`images/`). Its HEAD commit adds
+ * every text file the review judges: the orientation (`README.md`), the written rules (`rules/`), the change set as a
+ * patch and as the exact tree delta its digest hashes (`change/`), the records the author cites and the comments
+ * already on the pull request (`evidence/`), and the description itself (`description/title.txt`,
+ * `description/body.md`, `description/comments.json`, `description/images.json` pairing each image with the line it
+ * proves). So `codex review --repo <packet> --base <base>` judges the description and its evidence in one text diff.
+ *
+ * ## Why the evidence sits in the DIFF, and the images do not
+ *
+ * A review's packet is the base..head diff and nothing else: Codex's `review-packet.md` (`../../codex/artifactStore.ts`)
+ * and the visible-Claude fallback's (`../../codex/fallbackPacket.ts`) both carry exactly that text. Evidence committed
+ * at the base reached a reviewer only if it went and browsed the repository; the page review came back BROKEN on
+ * exactly that, with its inputs at the base (`../../pages/reviewRepo.ts`). The images stay at the base because a
+ * review diff carrying binary bytes is refused (`../../codex/diff.ts`), and the property tells the reviewer to open
+ * them from the repository. A preparation written before this layout is schema 2, and is still read
+ * (`./descriptionReviewCarry.ts`).
  *
  * Each packet is its own immutable directory under `preparations/`, created exclusively and removed whole on any
  * failure, so a half-built packet never sits where `review-record` could resolve it. Every git call goes through
@@ -15,7 +24,7 @@
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { errorMessage } from "#lib/errorMessage.js";
 import { err, ok, type Result } from "#lib/result.js";
@@ -35,6 +44,7 @@ import { type DescriptionReviewError, DescriptionReviewErrors } from "./descript
 import {
   PACKET_BODY_PATH,
   PACKET_COMMENTS_PATH,
+  PACKET_DELTA_PATH,
   PACKET_EXISTING_COMMENTS_PATH,
   PACKET_REPO_DIRNAME,
   PACKET_TITLE_PATH,
@@ -63,8 +73,13 @@ const COMMIT_CONFIG: readonly string[] = [
   "core.hooksPath=/dev/null",
 ];
 
-/** Committed first, so `git add` neither converts line endings nor runs a clean filter on any packet byte. */
-const GITATTRIBUTES = "* -text -filter\n";
+/**
+ * Committed first, so `git add` neither converts line endings nor runs a clean filter on any packet byte. `diff` is
+ * SET so every text file diffs as text: a user's global attributes file marking `*.md -diff` would otherwise turn a
+ * rule into `Binary files … differ`, and a repository's own `.gitattributes` outranks that file. The images are never
+ * in the diff, so setting it costs them nothing.
+ */
+const GITATTRIBUTES = "* -text -filter diff\n";
 
 /** One image as the packet commits it: its entry and its exact bytes. */
 export interface PacketImage {
@@ -143,51 +158,86 @@ function checkManifest({ contents }: { contents: PacketContents }): Result<true,
   return ok(true);
 }
 
-/** Write the base tree: orientation, rules, change set, images and evidence. */
-function writeBase({ repo, contents }: { repo: string; contents: PacketContents }): void {
-  for (const directory of ["rules", "change", "images", "evidence"]) {
-    mkdirSync(join(repo, directory), { recursive: true });
-  }
-  writeFileSync(join(repo, ".gitattributes"), GITATTRIBUTES);
+/** One text file the head commits, by its packet path. */
+interface PacketTextFile {
+  readonly path: string;
+  readonly contents: string;
+}
+
+/**
+ * Every text file the head commits, in one list: the writer and the NUL check both read it, so the check can never
+ * judge a set the writer did not commit.
+ */
+function headTextFiles({ contents }: { contents: PacketContents }): readonly PacketTextFile[] {
   const readme = descriptionReviewPacketReadme({
     attachUploadPermitted: contents.attachUploadPermitted,
     rulesOrigin: contents.rulesOrigin,
   });
-  writeFileSync(join(repo, "README.md"), readme);
-  contents.rules.forEach((rule, index) => {
-    writeFileSync(join(repo, "rules", numberedName({ index, name: rule.path })), rule.contents);
-  });
-  writeFileSync(join(repo, "change", "diff.patch"), contents.change.patch);
-  writeFileSync(
-    join(repo, "change", "delta.txt"),
-    [`changeDigest ${contents.manifest.changeDigest}`, ...contents.change.deltaLines, ""].join("\n"),
-  );
+  const images = contents.images.map((image) => ({ ...image.image, file: imageFile({ image }) }));
+  return [
+    { contents: readme, path: "README.md" },
+    ...contents.rules.map((rule, index) => ({
+      contents: rule.contents,
+      path: `rules/${numberedName({ index, name: rule.path })}`,
+    })),
+    { contents: contents.change.patch, path: "change/diff.patch" },
+    {
+      contents: [`changeDigest ${contents.manifest.changeDigest}`, ...contents.change.deltaLines, ""].join("\n"),
+      path: PACKET_DELTA_PATH,
+    },
+    ...contents.evidence.map((one, index) => ({
+      contents: one.contents,
+      path: `evidence/${numberedName({ index, name: one.name })}`,
+    })),
+    {
+      contents: existingCommentsText({ comments: contents.existingComments }),
+      path: PACKET_EXISTING_COMMENTS_PATH,
+    },
+    // An empty directory is not committed, so it carries a marker saying it was left empty on purpose.
+    { contents: "evidence/ is empty when the author cited no record\n", path: "evidence/.kept" },
+    { contents: contents.title, path: PACKET_TITLE_PATH },
+    { contents: contents.body, path: PACKET_BODY_PATH },
+    { contents: descriptionCommentsText({ comments: contents.comments }), path: PACKET_COMMENTS_PATH },
+    { contents: `${stableStringify({ value: images })}\n`, path: "description/images.json" },
+  ];
+}
+
+/**
+ * The first head file the review's diff could not carry as text, or `undefined` when none. A NUL would reach the
+ * diff raw under `GITATTRIBUTES`, so any NUL is refused, wherever it sits.
+ */
+function firstNonTextPath({ files }: { files: readonly PacketTextFile[] }): string | undefined {
+  return files.find((file) => file.contents.includes("\0"))?.path;
+}
+
+/** Write the base tree: the attributes and the images, the one thing a review diff cannot carry. */
+function writeBase({ repo, contents }: { repo: string; contents: PacketContents }): void {
+  mkdirSync(join(repo, "images"), { recursive: true });
+  writeFileSync(join(repo, ".gitattributes"), GITATTRIBUTES);
   for (const image of contents.images) {
     writeFileSync(join(repo, imageFile({ image })), image.bytes);
   }
-  contents.evidence.forEach((one, index) => {
-    writeFileSync(join(repo, "evidence", numberedName({ index, name: one.name })), one.contents);
-  });
-  writeFileSync(
-    join(repo, PACKET_EXISTING_COMMENTS_PATH),
-    existingCommentsText({ comments: contents.existingComments }),
-  );
-  // An empty directory is not committed, so each one carries a marker saying it was left empty on purpose.
-  writeFileSync(join(repo, "evidence", ".kept"), "evidence/ is empty when the author cited no record\n");
 }
 
-/** Write the head tree: the description under review. */
-function writeHead({ repo, contents }: { repo: string; contents: PacketContents }): void {
-  mkdirSync(join(repo, "description"), { recursive: true });
-  writeFileSync(join(repo, PACKET_TITLE_PATH), contents.title);
-  writeFileSync(join(repo, PACKET_BODY_PATH), contents.body);
-  writeFileSync(join(repo, PACKET_COMMENTS_PATH), descriptionCommentsText({ comments: contents.comments }));
-  const images = contents.images.map((image) => ({ ...image.image, file: imageFile({ image }) }));
-  writeFileSync(join(repo, "description", "images.json"), `${stableStringify({ value: images })}\n`);
+/** Write the head tree: every text file the review judges. */
+function writeHead({ repo, files }: { repo: string; files: readonly PacketTextFile[] }): void {
+  for (const file of files) {
+    const path = join(repo, file.path);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, file.contents);
+  }
 }
 
 /** Commit the base, then the head, and answer both commits and the review diff's size. */
-function commitPacket({ repo, contents }: { repo: string; contents: PacketContents }): {
+function commitPacket({
+  repo,
+  contents,
+  files,
+}: {
+  repo: string;
+  contents: PacketContents;
+  files: readonly PacketTextFile[];
+}): {
   readonly baseSha: string;
   readonly headSha: string;
   readonly diffBytes: number;
@@ -195,13 +245,17 @@ function commitPacket({ repo, contents }: { repo: string; contents: PacketConten
   const git = ({ args }: { args: readonly string[] }): string =>
     runGitChecked({ args, cwd: repo, label: `git ${args.find((arg) => !arg.startsWith("-"))!}` });
   writeBase({ contents, repo });
-  git({ args: ["init", "--quiet", "--initial-branch=main"] });
-  git({ args: ["add", "--all"] });
-  git({ args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "evidence the description answers to"] });
+  // `--template=`: a user's init template could install `.git/info/attributes`, which outranks `GITATTRIBUTES`.
+  git({ args: ["init", "--quiet", "--template=", "--initial-branch=main"] });
+  // `--force`: a user's global excludes file must never drop a packet file from the commit a review is bound to.
+  git({ args: ["add", "--force", "--all"] });
+  git({ args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "the images the description shows"] });
   const baseSha = git({ args: ["rev-parse", "HEAD"] }).trim();
-  writeHead({ contents, repo });
-  git({ args: ["add", "--", "description"] });
-  git({ args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "the description under review"] });
+  writeHead({ files, repo });
+  git({ args: ["add", "--force", "--all"] });
+  git({
+    args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "the description and what it answers to"],
+  });
   const headSha = git({ args: ["rev-parse", "HEAD"] }).trim();
   const diff = git({ args: gitCommitDiffCommand({ commit: headSha, mergeBase: baseSha }).args });
   return { baseSha, diffBytes: Buffer.byteLength(diff, "utf8"), headSha };
@@ -237,6 +291,11 @@ export function prepareDescriptionPacket({
   if (checked.isErr()) {
     return err(checked.error);
   }
+  const files = headTextFiles({ contents });
+  const binary = firstNonTextPath({ files });
+  if (binary !== undefined) {
+    return err(DescriptionReviewErrors.fileNotText({ path: binary }));
+  }
   const directory = join(preparationsDirectory({ home }), preparationId);
   if (existsSync(directory)) {
     return err(DescriptionReviewErrors.preparationFailed({ detail: `${directory} already exists` }));
@@ -244,7 +303,7 @@ export function prepareDescriptionPacket({
   const repo = join(directory, PACKET_REPO_DIRNAME);
   try {
     mkdirSync(repo, { recursive: true });
-    const { baseSha, diffBytes, headSha } = commitPacket({ contents, repo });
+    const { baseSha, diffBytes, headSha } = commitPacket({ contents, files, repo });
     const preparation: DescriptionReviewPreparation = {
       baseSha,
       createdAtIso,
@@ -253,7 +312,7 @@ export function prepareDescriptionPacket({
       manifestSha256: manifestSha256Of({ manifest: contents.manifest }),
       preparationId,
       preparedBy,
-      schemaVersion: 2,
+      schemaVersion: 3,
     };
     writePreparationRecord({ directory, preparation });
     return ok({ diffBytes, preparation, repoRoot: realpathSync(repo) });

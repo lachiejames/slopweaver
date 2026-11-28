@@ -42,6 +42,13 @@ interface AlreadyRecordedError {
   readonly message: string;
 }
 
+/** A string the write sends holds a NUL byte, so the review's diff could not carry it as text. */
+interface FileNotTextError {
+  readonly code: "FILE_NOT_TEXT";
+  readonly message: string;
+  readonly path: string;
+}
+
 /** A verb's arguments, before anything was read. */
 interface ReviewUsageError {
   readonly code: "USAGE";
@@ -57,6 +64,7 @@ export type PrivateTermReviewError =
   | WrongPacketError
   | NotFreshError
   | AlreadyRecordedError
+  | FileNotTextError
   | ReviewUsageError;
 
 /** The factory every refusal of the domain is built through. */
@@ -64,6 +72,11 @@ export const PrivateTermReviewErrors = {
   alreadyRecorded: ({ reviewId, receiptId }: { reviewId: string; receiptId: string }): AlreadyRecordedError => ({
     code: "ALREADY_RECORDED",
     message: `review ${reviewId} is already receipt ${receiptId}; one review is one receipt`,
+  }),
+  fileNotText: ({ path }: { path: string }): FileNotTextError => ({
+    code: "FILE_NOT_TEXT",
+    message: `${path} holds a NUL byte, so the review's diff cannot carry it as text; nothing was prepared`,
+    path,
   }),
   holdUnusable: ({ holdId, why }: { holdId: string; why: string }): HoldUnusableError => ({
     code: "HOLD_UNUSABLE",

@@ -98,20 +98,35 @@ export interface DescriptionReviewManifest {
 /** Who took a description review: Codex, or a separate visible Claude session when Codex could not. */
 export type DescriptionReviewer = "codex" | "claude-fallback";
 
-/** What `github pr review-prepare` wrote: the packet repository's two commits and the manifest they carry. */
-export interface DescriptionReviewPreparation {
-  readonly schemaVersion: 2;
+/** What every preparation record carries, whichever packet layout it was committed under. */
+interface DescriptionReviewPreparationFields {
   readonly preparationId: string;
   readonly createdAtIso: string;
   readonly manifest: DescriptionReviewManifest;
   readonly manifestSha256: string;
-  /** The packet commit holding the evidence: rules, change set, images, records. */
+  /** The packet's first commit: its frame and images, and under schema 2 every other piece of evidence too. */
   readonly baseSha: string;
-  /** The packet commit adding the description under review. */
+  /** The packet commit adding what the review reads: under schema 3 every text file, under schema 2 the description. */
   readonly headSha: string;
   /** The visible session that prepared the packet, or null when none could be named. */
   readonly preparedBy: SupervisorSession | null;
 }
+
+/**
+ * What `github pr review-prepare` writes now: a packet whose BASE holds only the frame and the images, and whose HEAD
+ * adds every text file the review judges, so the diff a reviewer reads carries them (`./descriptionReviewPacket.ts`).
+ */
+export interface DescriptionReviewPreparation extends DescriptionReviewPreparationFields {
+  readonly schemaVersion: 3;
+}
+
+/** A schema-2 preparation, whose BASE commit holds the rules, change set and evidence. Read, never written. */
+interface BaseEvidencePreparation extends DescriptionReviewPreparationFields {
+  readonly schemaVersion: 2;
+}
+
+/** Any preparation a store can hold: the layout its schema names decides where each packet file sits. */
+export type StoredDescriptionReviewPreparation = DescriptionReviewPreparation | BaseEvidencePreparation;
 
 /** The record of one description review. Only a CLEAN one opens a write. */
 export interface DescriptionReviewReceipt {
@@ -175,17 +190,24 @@ export const DESCRIPTION_REVIEW_PROPERTY =
   "no act is credited to the owner without a record in evidence/, and no I, me, my, we, our or us appears in prose; " +
   "nothing in the text or an image identifies a person, an account, this machine or a secret; nothing a reader " +
   "could disagree with sits below the fold; and no ruling in rules/ is broken. A derived badge phrase is read by " +
-  "the meaning rules/pr-badges.md gives it. For this property: " +
+  "the meaning rules/pr-badges.md gives it. Every text file named here is in the diff under review; the images/ " +
+  "files alone sit at the base commit, because a diff cannot carry image bytes, so open each one images.json names " +
+  "in the repository the review names. For this property: " +
   DESCRIPTION_REVIEW_EVERY_VIOLATION;
 
-/** The orientation file at a packet's base commit: what the packet is, the five questions, and what BROKEN owes. */
+/**
+ * The orientation file a packet's HEAD commit adds: what the packet is, the five questions, and what BROKEN owes. It
+ * rides the head with every other text file, so the diff a reviewer reads carries it.
+ */
 export const DESCRIPTION_REVIEW_PACKET_README = [
   "# A pull-request description review",
   "",
-  "The diff under review adds `description/`: the exact title and body a write verb will send to GitHub,",
-  "`comments.json`, the inline comments the same write posts on the pull request (`[]` when it posts none), and",
-  "`images.json`, which pairs every image the body shows with the one line saying what it proves. The image",
-  "bytes are in `images/`, named by their sha256. Everything the description answers to is at the base:",
+  "The diff under review adds every text file in this packet, this one included. `description/` is the exact title",
+  "and body a write verb will send to GitHub, `comments.json`, the inline comments the same write posts on the pull",
+  "request (`[]` when it posts none), and `images.json`, which pairs every image the body shows with the one line",
+  "saying what it proves. The image bytes alone are not in the diff, because a diff cannot carry them: they sit at",
+  "the base commit in `images/`, named by their sha256, so open each one from this repository. What the",
+  "description answers to is in the diff beside it:",
   "",
   "- `change/diff.patch` and `change/delta.txt`: the change set the pull request makes, as a patch and as the",
   "  exact tree delta its digest hashes. Binary files appear in the delta by blob id.",
@@ -245,7 +267,7 @@ export const ATTACH_UPLOAD_CLOSED_SECTION: readonly string[] = [
  * The packet README for one install: {@link DESCRIPTION_REVIEW_PACKET_README}, then {@link rulesProvenanceSection},
  * then {@link ATTACH_UPLOAD_CLOSED_SECTION} when attach upload is not permitted. The closed section names no ruling,
  * row or anchor: the reviewer needs the fact, not the install's register. Neither section is in `rulesSha256`, and
- * neither needs a place there: both sit in the packet's base commit, which a review is bound to.
+ * neither needs a place there: both sit in the packet's head commit, inside the diff a review is bound to.
  *
  * @param attachUploadPermitted whether `github attach upload` is permitted on the install preparing the packet
  * @param rulesOrigin the tree `rules/` was read from, which the README names

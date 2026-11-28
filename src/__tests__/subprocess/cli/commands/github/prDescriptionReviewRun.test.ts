@@ -37,9 +37,9 @@ import {
   DESCRIPTION_REVIEW_PROPERTY_ID,
   DESCRIPTION_RULE_FILES,
   type DescriptionReviewComment,
-  type DescriptionReviewPreparation,
   descriptionReviewPacketReadme,
   type ExistingPullRequestComment,
+  type StoredDescriptionReviewPreparation,
 } from "../../../../../outbound/github/descriptionReviewTypes.js";
 import { PERMITTED_ATTACH_UPLOAD } from "../../../../attachRunFixture.js";
 import { FIXTURE_REVIEW_SCOPE, fixtureCodexRecord, fixtureFallbackReceipt } from "../../../../pageReviewFixture.js";
@@ -205,7 +205,7 @@ describe("github pr review-prepare and review-record", () => {
   /** Prepare the packet as the writing session, and read back what it wrote. */
   async function prepare({ number }: { number?: number } = {}): Promise<{
     exit: number;
-    preparation: DescriptionReviewPreparation;
+    preparation: StoredDescriptionReviewPreparation;
     repoRoot: string;
   }> {
     const rest = number === undefined ? prepareArgs() : prepareArgs({ number });
@@ -221,7 +221,7 @@ describe("github pr review-prepare and review-record", () => {
   }
 
   /** The commits and diff digest a reviewer of this packet would record. */
-  function scopeOf({ preparation, repoRoot }: { preparation: DescriptionReviewPreparation; repoRoot: string }): {
+  function scopeOf({ preparation, repoRoot }: { preparation: StoredDescriptionReviewPreparation; repoRoot: string }): {
     baseSha: string;
     diffSha256: string;
     headSha: string;
@@ -239,7 +239,7 @@ describe("github pr review-prepare and review-record", () => {
     verdict,
   }: {
     artifactId: string;
-    preparation: DescriptionReviewPreparation;
+    preparation: StoredDescriptionReviewPreparation;
     repoRoot: string;
     verdict: "CLEAN" | "BROKEN";
   }): void {
@@ -262,7 +262,7 @@ describe("github pr review-prepare and review-record", () => {
     receiptId,
     repoRoot,
   }: {
-    preparation: DescriptionReviewPreparation;
+    preparation: StoredDescriptionReviewPreparation;
     receiptId: string;
     repoRoot: string;
   }): void {
@@ -442,7 +442,7 @@ describe("github pr review-prepare and review-record", () => {
     expect(receipt.recordedBy).toStrictEqual({ host: "claude-code", id: "reviewer" });
   });
 
-  it("commits the outgoing comments at the head and the pull request's own comments at the base", async () => {
+  it("commits the outgoing comments and the pull request's own comments at the head, inside the diff", async () => {
     writeFileSync(commentsFile, JSON.stringify([WALKTHROUGH]));
     onThePr = [ON_THE_PR];
     const prepared = await prepare({ number: 7 });
@@ -451,7 +451,7 @@ describe("github pr review-prepare and review-record", () => {
     const show = ({ ref }: { ref: string }): unknown =>
       JSON.parse(gitInTemp({ args: ["show", ref], cwd: prepared.repoRoot }));
     expect(show({ ref: `${prepared.preparation.headSha}:${PACKET_COMMENTS_PATH}` })).toStrictEqual([WALKTHROUGH]);
-    expect(show({ ref: `${prepared.preparation.baseSha}:${PACKET_EXISTING_COMMENTS_PATH}` })).toStrictEqual([
+    expect(show({ ref: `${prepared.preparation.headSha}:${PACKET_EXISTING_COMMENTS_PATH}` })).toStrictEqual([
       ON_THE_PR,
     ]);
   });
@@ -461,8 +461,11 @@ describe("github pr review-prepare and review-record", () => {
     attachUpload = { because: "unruled", kind: "refused" };
     writeFileSync(bodyFile, `${BODY}\n`);
     const refused = await prepare();
-    const readme = ({ prepared }: { prepared: { preparation: DescriptionReviewPreparation; repoRoot: string } }) =>
-      gitInTemp({ args: ["show", `${prepared.preparation.baseSha}:README.md`], cwd: prepared.repoRoot });
+    const readme = ({
+      prepared,
+    }: {
+      prepared: { preparation: StoredDescriptionReviewPreparation; repoRoot: string };
+    }) => gitInTemp({ args: ["show", `${prepared.preparation.headSha}:README.md`], cwd: prepared.repoRoot });
     // gitInTemp trims its stdout, so each expected README is trimmed the same way.
     // Another repository's rules come from the installed tree, and its README says so.
     expect([readme({ prepared: permitted }), readme({ prepared: refused })]).toEqual([

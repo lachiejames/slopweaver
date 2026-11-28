@@ -334,7 +334,7 @@ export function preparedPacketLines({
   return [
     repoRoot,
     `  packet ${preparation.manifestSha256} (preparation ${preparation.preparationId})`,
-    `  base ${preparation.baseSha} holds the rules, the change set and the images; head ${preparation.headSha} adds the description`,
+    `  base ${preparation.baseSha} holds only .gitattributes and the images; head ${preparation.headSha} adds every text file, the rules, the change set, the evidence and the description`,
     "  a FRESH reviewer takes the pass, never the session that wrote the description. Codex:",
     `    ${commands.review}`,
     "  Codex capped or unregistered? A separate visible Claude session prepares, reviews and records instead:",

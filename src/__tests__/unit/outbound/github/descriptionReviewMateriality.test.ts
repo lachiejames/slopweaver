@@ -11,7 +11,11 @@ import {
   treeDeltaLines,
 } from "../../../../outbound/github/descriptionChangeDigest.js";
 import { buildDescriptionManifest, manifestSha256Of } from "../../../../outbound/github/descriptionReview.js";
-import { carriedCleanReview, parseStoredTreeDelta } from "../../../../outbound/github/descriptionReviewCarry.js";
+import {
+  carriedCleanReview,
+  packetDeltaCommit,
+  parseStoredTreeDelta,
+} from "../../../../outbound/github/descriptionReviewCarry.js";
 import {
   CARRIED_REVIEW_BLIND_SPOT,
   carriedReviewNotice,
@@ -282,6 +286,37 @@ describe("carriedCleanReview before any read", () => {
       kind: "none",
       reasons: ["the newest review of this same description, r-2, is BROKEN"],
     });
+  });
+});
+
+describe("packetDeltaCommit", () => {
+  const manifest = buildDescriptionManifest({
+    baseBranch: "main",
+    body: "Counts once.\n",
+    changeDigest: "5".repeat(64),
+    comments: [],
+    existingComments: [],
+    images: [],
+    repository: "acme/widgets",
+    rulesSha256: "2".repeat(64),
+    title: "fix: count once",
+  });
+  const fields = {
+    baseSha: "b".repeat(40),
+    createdAtIso: "2026-11-28T00:00:00.000Z",
+    headSha: "h".repeat(40),
+    manifest,
+    manifestSha256: manifestSha256Of({ manifest }),
+    preparationId: "prep-1",
+    preparedBy: null,
+  };
+
+  it("reads a schema-3 packet's delta at its head, where every text file rides the diff", () => {
+    expect(packetDeltaCommit({ preparation: { ...fields, schemaVersion: 3 } })).toBe("h".repeat(40));
+  });
+
+  it("reads a schema-2 packet's delta at its base, where it was committed before the layout moved", () => {
+    expect(packetDeltaCommit({ preparation: { ...fields, schemaVersion: 2 } })).toBe("b".repeat(40));
   });
 });
 

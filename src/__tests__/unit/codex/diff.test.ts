@@ -208,6 +208,11 @@ describe("refusalMessage", () => {
     expect(message).toContain("Refusing rather than truncating");
   });
 
+  it("names the flag and the value that would hold an oversized diff whole", () => {
+    const message = refusalMessage({ refusal: { bytes: 900, kind: "too-large", maxBytes: 100 } });
+    expect(message).toContain("--max-diff-bytes 900 holds this diff whole");
+  });
+
   it("names the offending paths for a binary refusal", () => {
     expect(refusalMessage({ refusal: { kind: "binary", paths: ["a.png", "b.bin"] } })).toContain("a.png, b.bin");
   });

@@ -23,7 +23,7 @@ import {
 } from "../../../codex/snapshotPoolReclaim.js";
 import type { DescriptionReviewError } from "../../../outbound/github/descriptionReviewErrors.js";
 import { readPreparationAtRoot } from "../../../outbound/github/descriptionReviewStore.js";
-import type { DescriptionReviewPreparation } from "../../../outbound/github/descriptionReviewTypes.js";
+import type { StoredDescriptionReviewPreparation } from "../../../outbound/github/descriptionReviewTypes.js";
 import { stateHomePaths } from "../../../stateHome.js";
 import type { PassInvocation } from "./passRoute.js";
 
@@ -76,7 +76,7 @@ export interface PoolReclaimInputs {
   readonly readPreparation?: (args: {
     home: string;
     repoRoot: string;
-  }) => Result<DescriptionReviewPreparation | undefined, DescriptionReviewError>;
+  }) => Result<StoredDescriptionReviewPreparation | undefined, DescriptionReviewError>;
   /** The repository's current HEAD commit; production asks git. */
   readonly headOf?: (args: { repoRoot: string }) => string;
   /** The removal; production passes `reclaimSnapshotPool`. */

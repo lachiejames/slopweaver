@@ -5,6 +5,15 @@
  * match numbered in its context (`write/contexts.md`) and every string it sends, whole (`write/contents/NN.txt`).
  * So `codex review --repo <packet> --base <base>` judges exactly the write, as a text diff against its meanings.
  *
+ * ## Why the meanings stay at the BASE, outside the diff a reviewer reads
+ *
+ * A review's packet is the base..head diff and nothing else: Codex's `review-packet.md` in pass scratch
+ * (`../../codex/artifactStore.ts`) and the visible-Claude fallback's temp packet (`../../codex/fallbackPacket.ts`)
+ * both carry exactly that text. The page review moved its inputs into the head for that reason
+ * (`../../pages/reviewRepo.ts`). Here the same move would copy each term's meaning and the destination into both of
+ * those files, where neither goes today. So they stay at the base, which the reviewer still reads from the frozen
+ * repository the prompt names, and the property opens by requiring that read (`./types.ts`).
+ *
  * Each packet is its own directory under `preparations/`, owner-only, refused when its fresh id is already there,
  * every file in it created exclusively, and removed whole on any failure, so a half-built one never sits where `review-record` could resolve it. Every git call goes through
  * `../../codex/gitRun.ts`, the runner whose configuration the review's own diff digest was taken under.
@@ -37,8 +46,12 @@ const COMMIT_CONFIG: readonly string[] = [
   "core.hooksPath=/dev/null",
 ];
 
-/** Committed first, so `git add` neither converts line endings nor runs a clean filter on any packet byte. */
-const GITATTRIBUTES = "* -text -filter\n";
+/**
+ * Committed first, so `git add` neither converts line endings nor runs a clean filter on any packet byte. `diff` is
+ * SET so the head's files diff as text: a user's global attributes file marking `*.md -diff` would otherwise turn
+ * the contexts into `Binary files … differ`, and a repository's own `.gitattributes` outranks that file.
+ */
+const GITATTRIBUTES = "* -text -filter diff\n";
 
 /**
  * The contexts file, at the head commit: the one file the binding re-reads.
@@ -81,6 +94,26 @@ function writeBase({ repo, hold }: { repo: string; hold: PrivateTermHold }): voi
   packetFile({ contents: destinationText({ draft: hold }), path: join(repo, "write", "destination.txt") });
 }
 
+/**
+ * The first packet file, base or head, that is not text, by its packet path, or `undefined` when none. A head file's
+ * NUL would reach the diff raw under `GITATTRIBUTES`, and a base file is one the reviewer is told to open as text, so
+ * any NUL is refused, wherever it sits. Names a path only, never the text.
+ */
+function firstNonTextPath({ hold }: { hold: PrivateTermHold }): string | undefined {
+  const term = hold.terms.find((one) => termMarkdown({ term: one }).includes("\0"));
+  if (term !== undefined) {
+    return `terms/${term.termId}.md`;
+  }
+  if (destinationText({ draft: hold }).includes("\0")) {
+    return "write/destination.txt";
+  }
+  if (contextsMarkdown({ draft: hold }).includes("\0")) {
+    return PACKET_CONTEXTS_PATH;
+  }
+  const index = hold.contents.findIndex((content) => `${content.locus}\n\n${content.text}`.includes("\0"));
+  return index === -1 ? undefined : contentFile({ index });
+}
+
 /** Write the head tree: the write under review. */
 function writeHead({ repo, hold }: { repo: string; hold: PrivateTermHold }): void {
   ensureDirectory({ directory: join(repo, "write", "contents"), mode: 0o700 });
@@ -104,12 +137,14 @@ function commitPacket({ repo, hold }: { repo: string; hold: PrivateTermHold }): 
   const git = ({ args }: { args: readonly string[] }): string =>
     runGitChecked({ args, cwd: repo, label: `git ${args.find((arg) => !arg.startsWith("-"))!}` });
   writeBase({ hold, repo });
-  git({ args: ["init", "--quiet", "--initial-branch=main"] });
-  git({ args: ["add", "--all"] });
+  // `--template=`: a user's init template could install `.git/info/attributes`, which outranks `GITATTRIBUTES`.
+  git({ args: ["init", "--quiet", "--template=", "--initial-branch=main"] });
+  // `--force`: a user's global excludes file must never drop a packet file from the commit a review is bound to.
+  git({ args: ["add", "--force", "--all"] });
   git({ args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "what the write is judged against"] });
   const baseSha = git({ args: ["rev-parse", "HEAD"] }).trim();
   writeHead({ hold, repo });
-  git({ args: ["add", "--", "write"] });
+  git({ args: ["add", "--force", "--", "write"] });
   git({ args: [...COMMIT_CONFIG, "commit", "--quiet", "--no-verify", "-m", "the held write"] });
   const headSha = git({ args: ["rev-parse", "HEAD"] }).trim();
   const diff = git({ args: gitCommitDiffCommand({ commit: headSha, mergeBase: baseSha }).args });
@@ -142,6 +177,10 @@ export function preparePrivateTermPacket({
   { readonly preparation: PrivateTermReviewPreparation; readonly repoRoot: string; readonly diffBytes: number },
   PrivateTermReviewError
 > {
+  const binary = firstNonTextPath({ hold });
+  if (binary !== undefined) {
+    return err(PrivateTermReviewErrors.fileNotText({ path: binary }));
+  }
   const preparations = preparationsDirectory({ home });
   const directory = join(preparations, preparationId);
   if (existsSync(directory)) {
