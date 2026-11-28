@@ -61,6 +61,18 @@ export function rebuildOutcomeOf({ run, why }: { run: RebuildRun; why: string })
 }
 
 /**
+ * The argv after `tsx` the hook's rebuild runs. `--yield-to-lap`: a lap holds the compile lease for its whole run, so
+ * a rebuild started outside one while it runs would wait 120 s for a refusal certain from the start, stalling the
+ * pull it rides; with the flag it gives up after one second when the lease's holder is a live lap
+ * (`src/cli/commands/dev/buildOwner.ts` § Yielding to a lap).
+ *
+ * @returns the source entrypoint, the verb, and its flag
+ */
+export function refMoveDevBuildArgv(): readonly string[] {
+  return ["src/cli/index.ts", "dev", "build", "--yield-to-lap"];
+}
+
+/**
  * Re-emit the built tree by running the verb that owns the emit.
  *
  * Through `tsx` and the source rather than through `bin/slopweaver`, deliberately: the launcher would route
@@ -77,7 +89,7 @@ export function rebuildNow({
   cwd,
   why,
   runBuild = ({ cwd: dir }): RebuildRun =>
-    spawnSync(join(dir, "node_modules/.bin/tsx"), ["src/cli/index.ts", "dev", "build"], {
+    spawnSync(join(dir, "node_modules/.bin/tsx"), refMoveDevBuildArgv(), {
       cwd: dir,
       encoding: "utf8",
     }),

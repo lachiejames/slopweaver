@@ -26,12 +26,24 @@ const report = (over: Partial<Report> = {}): Report => ({
 
 describe("parseDevBuildArgs", () => {
   it("defaults the output directory to dist-cli, which tsc's dist/ never shares", () => {
-    expect(unwrap(parseDevBuildArgs({ rest: [] }))).toEqual({ json: false, out: DEFAULT_OUT });
+    expect(unwrap(parseDevBuildArgs({ rest: [] }))).toEqual({ json: false, out: DEFAULT_OUT, yieldToLap: false });
     expect(DEFAULT_OUT).toBe("dist-cli");
   });
 
   it("takes an explicit output directory and the json flag", () => {
-    expect(unwrap(parseDevBuildArgs({ rest: ["--out", "build", "--json"] }))).toEqual({ json: true, out: "build" });
+    expect(unwrap(parseDevBuildArgs({ rest: ["--out", "build", "--json"] }))).toEqual({
+      json: true,
+      out: "build",
+      yieldToLap: false,
+    });
+  });
+
+  it("takes the yield-to-lap switch beside the others", () => {
+    expect(unwrap(parseDevBuildArgs({ rest: ["--yield-to-lap", "--out", "build", "--json"] }))).toEqual({
+      json: true,
+      out: "build",
+      yieldToLap: true,
+    });
   });
 
   it("refuses an unknown flag by name", () => {

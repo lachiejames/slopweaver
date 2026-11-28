@@ -192,6 +192,7 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
   "dev build": {
     "--json": ["--json"],
     "--out": ["--out", "dist"],
+    "--yield-to-lap": ["--yield-to-lap"],
   },
   "dev capture-conflicts": {
     "--home": ["--home", "/tmp"],

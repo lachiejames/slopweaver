@@ -111,7 +111,8 @@ read 14,902,345,728 bytes the same way the same day; the two are not reconciled.
 to about 28 GB and froze a machine running four seats; which process it was was never identified.
 
 So that esbuild runs under the same owner (`src/cli/commands/dev/buildOwner.ts`): the compile lease, waited on
-for at most 120 s (a lap's own build inherits it, witnessed in `tscOwnerLease.test.ts`), a 120 s emit bound, a
+for at most 120 s, 1 s for a `--yield-to-lap` build while a lap holds it (a lap's own build inherits it, witnessed
+in `tscOwnerLease.test.ts`), a 120 s emit bound, a
 HARD 16,384 MiB group ceiling set above the larger measurement and well under the 28 GB event, and a SOFT
 `GOMEMLIMIT` of 4,096 MiB (`src/lib/esbuildBounds.ts`) under the smaller one, so the collector does the real work
 and a build that needs more slows rather than dies. The soft limit has not been measured under yet; once it has, the
@@ -119,9 +120,13 @@ hard ceiling can come down toward what it reads. A build refused on the lease, k
 other way prints ONE stderr line naming which, runs no smoke and stamps nothing. Neither caller fails on it: worktree
 provisioning (`cmux spawn`, `worktree create`) keeps going and its report says the worktree runs from source
 (`src/worktree/devBuild.ts`), and the `post-merge` / `post-checkout` hook prints that stderr line as its failed
-clause (`src/checkouts/refMoveBuildRun.ts`). The seat then boots through `tsx`, as an unbuilt checkout always did,
-after up to 120 s spent waiting. A non-lap build started during a lap is refused that way, because the lap holds the
-lease for its whole run. The `runtime-dependencies` gate's
+clause (`src/checkouts/refMoveBuildRun.ts`). The seat then boots through `tsx`, as an unbuilt checkout always did.
+A non-lap build started during a lap is refused that way, because the lap holds the lease for its whole run
+(2,326,982 ms of step wall time on one lap), so both callers pass `dev build --yield-to-lap`: when the lease's
+holder pid is this home's live lap lock's pid, the wait drops to 1 s rather than 120 s spent on a certain refusal,
+and the refusal line names that lap. Every other state keeps 120 s, a lap still waiting on a seat's compile
+included, and a lap's own builds still inherit the lease before any wait. A lap under another `$SLOPWEAVER_HOME` is
+not seen, so the 120 s stands there (`src/cli/commands/dev/buildOwner.ts` § Yielding to a lap). The `runtime-dependencies` gate's
 in-memory bundle starts an `esbuild --service` child too; its gate row sets the same soft limit in its `env`, and it
 takes no lease. Both numbers are TypeScript constants, which `heap-ceiling-ratchet` cannot read: only their unit
 tests pin them.

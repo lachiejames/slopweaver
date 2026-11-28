@@ -24,7 +24,7 @@ const buildMeta = {
   example: "slopweaver dev build",
   parseRejectIsIoFree: true,
   summary: "Emit the CLI to JavaScript with esbuild, then prove the emitted entrypoint runs",
-  usage: "usage: slopweaver dev build [--out <dir>] [--json]",
+  usage: "usage: slopweaver dev build [--out <dir>] [--json] [--yield-to-lap]",
 } as const;
 
 const gateMeta = {

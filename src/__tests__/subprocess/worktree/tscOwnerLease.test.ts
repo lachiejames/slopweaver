@@ -29,7 +29,9 @@ import { acquireOperationLockDetailed } from "../../../admit/operationLock.js";
 import { COMPILE_LEASE_KEY, compileLeasePath } from "../../../cli/commands/github/lapCompileLease.js";
 import { runLapStep } from "../../../cli/commands/github/lapStepProcess.js";
 import { unwrapErr } from "../../../lib/result.js";
+import { stateHomePaths } from "../../../stateHome.js";
 import { processStartOf } from "../../../talk/relayLease.js";
+import { worktreeDevBuildArgv } from "../../../worktree/shell.js";
 
 const ROOT = repoRootOf({ importMetaUrl: import.meta.url });
 const OWNER = join(ROOT, "scripts", "tsc-owner.sh");
@@ -338,6 +340,40 @@ describe("tsc-owner's compile lease", () => {
     ]);
     expect(existsSync(join(outDir, "lib", "esbuildBounds.js"))).toBe(true);
     expect(readdirSync(box.lease)).toEqual([token]);
+  });
+
+  it("yields a provisioning dev build to a live lap holding the lease: refused after 1 s, naming the lap, not 120 s", () => {
+    const box = sandbox();
+    // One live stranger plays the lap: it holds this home's lap lock AND the lease, as `acquireLapMachine` leaves a lap.
+    const lap = liveStranger();
+    seat({ body: record(lap), lease: box.lease, locks: box.locks });
+    const home = mkdtempSync(join(tmpdir(), "sw-yield-home-"));
+    dirs.push(home);
+    const { laps, lapLockJson } = stateHomePaths({ home });
+    mkdirSync(laps, { recursive: true });
+    const subject = "acme/widgets#7@abc123";
+    writeFileSync(
+      lapLockJson,
+      JSON.stringify({ nonce: "n-1", phase: "running", pid: lap.pid, startedIso: "2026-11-23T10:31:50.616Z", subject }),
+    );
+    // Never created: the build is refused before it emits, and clearing a stamp that is not there writes nothing.
+    const out = join(ROOT, "dist-cli-yield-witness");
+    dirs.push(out);
+    const startedAt = Date.now();
+    const run = spawnSync(join(ROOT, "node_modules", ".bin", "tsx"), [...worktreeDevBuildArgv(), "--out", out], {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: { ...box.env, SLOPWEAVER_HOME: home },
+      timeout: 55_000,
+    });
+    const elapsedMs = Date.now() - startedAt;
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain(
+      `dev build: refused after 1s — yielded because lap ${subject} (pid ${String(lap.pid)}) held the machine's compile lease when this build started, so esbuild never ran`,
+    );
+    // The defect was a 120 s wait; the whole verb, source scan and tsx start included, finishes far inside that.
+    expect(elapsedMs).toBeLessThan(55_000);
+    expect(existsSync(out)).toBe(false);
   });
 
   it("gives up lock-timed-out (75) on a live holder past --lock-timeout-seconds, running nothing", () => {

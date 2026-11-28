@@ -18,7 +18,18 @@ import { afterEach, describe, expect, it } from "vitest";
 import { BUILD_MANIFEST_FILE } from "../../../builtCli/staleness.js";
 import type { CheckoutInspectDeps } from "../../../checkouts/inspect.js";
 import type { RefMoveBuildOutcome } from "../../../checkouts/refMoveBuild.js";
-import { rebuildNow, rebuildOutcomeOf, runRefMoveBuild } from "../../../checkouts/refMoveBuildRun.js";
+import {
+  rebuildNow,
+  rebuildOutcomeOf,
+  refMoveDevBuildArgv,
+  runRefMoveBuild,
+} from "../../../checkouts/refMoveBuildRun.js";
+
+describe("refMoveDevBuildArgv", () => {
+  it("runs dev build from source with --yield-to-lap, so a pull never stalls 120 s through a lap", () => {
+    expect(refMoveDevBuildArgv()).toEqual(["src/cli/index.ts", "dev", "build", "--yield-to-lap"]);
+  });
+});
 
 const OLD_SHA = "1111111111111111111111111111111111111111";
 const NEW_SHA = "2222222222222222222222222222222222222222";

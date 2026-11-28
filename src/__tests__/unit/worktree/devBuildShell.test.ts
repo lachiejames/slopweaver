@@ -17,7 +17,14 @@ import {
   devBuildFailureDetail,
   discardBrokenBuild,
   supportsDevBuild,
+  worktreeDevBuildArgv,
 } from "../../../worktree/shell.js";
+
+describe("worktreeDevBuildArgv", () => {
+  it("runs dev build from source with --yield-to-lap, so provisioning never stalls 120 s through a lap", () => {
+    expect(worktreeDevBuildArgv()).toEqual(["src/cli/index.ts", "dev", "build", "--yield-to-lap"]);
+  });
+});
 
 const roots: string[] = [];
 
