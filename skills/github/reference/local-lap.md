@@ -13,7 +13,7 @@ slopweaver github lap --repo <owner/name> --number <n> --land      # …then lan
 ```
 
 While a chair's `github lap-seat set <slug>` stands, only that run's session laps, every mode but `--dry-run`:
-[the lap seat](lap-seat.md).
+[the lap seat](lap-seat.md), which also says what every seat runs before it asks for a lap.
 
 ## What it refuses before an hour of lanes
 

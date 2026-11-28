@@ -21,6 +21,10 @@ import { DEV_HEAP_CURVE_FLAG_NAMES, parseDevHeapCurveArgs } from "../../../../cl
 import { DEV_PROFILE_FLAG_NAMES, parseDevProfileArgs } from "../../../../cli/commands/dev/profileCore.js";
 import { DEV_SLICE_SHAPE_FLAG_NAMES, parseDevSliceShapeArgs } from "../../../../cli/commands/dev/sliceShapeCore.js";
 import {
+  DEV_TARGETED_TESTS_FLAG_NAMES,
+  parseDevTargetedTestsArgs,
+} from "../../../../cli/commands/dev/targetedTestsCore.js";
+import {
   GOLD_DEBTS_FLAG_NAMES,
   GOLD_OWE_FLAG_NAMES,
   GOLD_SETTLE_FLAG_NAMES,
@@ -75,6 +79,7 @@ const guarded: NonNullable<HelpTruthSlice["guarded"]> = {
   "dev heap-curve": DEV_HEAP_CURVE_FLAG_NAMES,
   "dev profile": DEV_PROFILE_FLAG_NAMES,
   "dev slice-shape": DEV_SLICE_SHAPE_FLAG_NAMES,
+  "dev targeted-tests": DEV_TARGETED_TESTS_FLAG_NAMES,
   "gold debts": GOLD_DEBTS_FLAG_NAMES,
   "gold owe": GOLD_OWE_FLAG_NAMES,
   "gold settle": GOLD_SETTLE_FLAG_NAMES,
@@ -231,6 +236,9 @@ const probes: NonNullable<HelpTruthSlice["probes"]> = {
     "--json": ["--json"],
     "--top": ["--top", "5"],
   },
+  "dev targeted-tests": {
+    "--dry-run": ["--dry-run"],
+  },
 };
 
 const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
@@ -262,6 +270,7 @@ const parsers: NonNullable<HelpTruthSlice["parsers"]> = {
   "dev heap-curve": ({ fragment }) => parseDevHeapCurveArgs({ rest: [...fragment] }),
   "dev profile": ({ fragment }) => parseDevProfileArgs({ rest: [...fragment] }),
   "dev slice-shape": ({ fragment }) => parseDevSliceShapeArgs({ rest: [...fragment] }),
+  "dev targeted-tests": ({ fragment }) => parseDevTargetedTestsArgs({ rest: [...fragment] }),
   "gold debts": ({ fragment }) => parseGoldDebtsArgs({ rest: [...fragment] }),
   "gold owe": ({ fragment }) => parseGoldOweArgs({ rest: [...fragment] }),
   // The debt is a POSITIONAL, so every probe carries one — a bare flag set names no debt to settle.
