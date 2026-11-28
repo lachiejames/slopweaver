@@ -42,7 +42,10 @@ export type Inline =
   | { readonly kind: "code"; readonly text: string }
   | { readonly kind: "link"; readonly text: string; readonly url: string };
 
-/** The content of one cell: an ordered list of runs, never empty. */
+/**
+ * The content of one cell: an ordered list of runs, never empty, and on a write never two text runs side by side,
+ * which would render as one and read back as one (`ADJACENT_TEXT_RUNS`, `./contentRunRules.ts`).
+ */
 export type Content = readonly Inline[];
 
 /**

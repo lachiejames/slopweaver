@@ -106,6 +106,21 @@ function rerunOf({ notes }: { notes: readonly ProofBlock[] }): { items: readonly
   return { dropped, items };
 }
 
+/**
+ * The old Problem and Change as one explainer, a space between them. The space joins a text run on either side
+ * rather than standing as its own run, because two adjacent text runs are a second spelling of one that the write
+ * rules refuse (`ADJACENT_TEXT_RUNS`, `../contentRunRules.ts`).
+ */
+function joinedExplainer({ problem, change }: { problem: C3Content; change: C3Content }): C3Content {
+  const last = problem.at(-1);
+  const first = change[0];
+  const before = last?.kind === "text" ? problem.slice(0, -1) : problem;
+  const after = first?.kind === "text" ? change.slice(1) : change;
+  const lead = last?.kind === "text" ? last.text : "";
+  const tail = first?.kind === "text" ? first.text : "";
+  return [...before, { kind: "text", text: `${lead} ${tail}` }, ...after];
+}
+
 /** The report lines for the retired fields the old body carried. */
 function droppedLines({ body }: { body: PrBody }): readonly string[] {
   const present: readonly [boolean, string][] = [
@@ -138,11 +153,10 @@ export function convertToC3({ body, shell }: { body: PrBody; shell: PreC3Shell }
   const { checks, notChecked } = claimsOf({ body });
   const { notes = [] } = body;
   const rerun = rerunOf({ notes });
-  const explainer: C3Content = [
-    ...contentOf({ content: body.problem }),
-    { kind: "text", text: " " },
-    ...contentOf({ content: body.change }),
-  ];
+  const explainer = joinedExplainer({
+    change: contentOf({ content: body.change }),
+    problem: contentOf({ content: body.problem }),
+  });
   const problemSeen: C3Draft["problemSeen"] =
     body.problemSeen.kind === "seen"
       ? { by: "unrecorded", kind: "seen", on: body.problemSeen.on, what: "" }

@@ -9,6 +9,7 @@ import { renderBody, renderBodyIn } from "../../../../outbound/github/render.js"
 import { prBodySchema } from "../../../../outbound/github/schema.js";
 import type { PrBody } from "../../../../outbound/github/types.js";
 import {
+  EVERY_CELL_BODY,
   FEATURE_BODY,
   FIX_BODY,
   P2_CHECKED,
@@ -148,6 +149,7 @@ describe("parsePrBody", () => {
     ["the tests body", TESTS_BODY],
     ["the feature body", FEATURE_BODY],
     ["the tests-only body", TESTS_ONLY_BODY],
+    ["a body with every kind of content cell filled, run for run", EVERY_CELL_BODY],
   ])("inverts %s exactly", (_name, body) => {
     const bytes = unwrap(renderBody({ body }));
     const parsed = unwrap(parsePrBody({ body: bytes }));

@@ -24,9 +24,35 @@ describe("githubCommentArtifactSchema", () => {
   });
 
   it("refuses a summary over the word cap", () => {
-    const long = Array.from({ length: 60 }, (_, i) => ({ kind: "text" as const, text: `word${String(i)} ` }));
-    const parsed = githubCommentArtifactSchema.safeParse({ summary: long });
-    expect(parsed.success).toBe(false);
+    const long = Array.from({ length: 60 }, (_, i) => `word${String(i)}`).join(" ");
+    const parsed = githubCommentArtifactSchema.safeParse({ summary: [{ kind: "text", text: long }] });
+    expect(parsed.error!.issues.map((issue) => [issue.path.join("."), issue.message])).toStrictEqual([
+      [
+        "summary",
+        "summary is 60 words (max 50) — it is the whole message above the fold. Move the rest into detail, which renders collapsed",
+      ],
+    ]);
+  });
+
+  it("refuses two adjacent text runs in the summary and in a detail paragraph, at the second run", () => {
+    const twice = [
+      { kind: "text", text: "please re-review " },
+      { kind: "text", text: "this pull request" },
+    ];
+    const parsed = githubCommentArtifactSchema.safeParse({
+      detail: [
+        { kind: "code", lang: "", text: "yarn test" },
+        { content: [{ kind: "strong", text: "acme" }, ...twice], kind: "para" },
+      ],
+      summary: twice,
+    });
+    expect(parsed.error!.issues.map((issue) => [issue.path.join("."), issue.message])).toStrictEqual([
+      ["summary.1", "text runs at indices 0 and 1 are adjacent and render as one run. Merge them into one text run"],
+      [
+        "detail.1.content.2",
+        "text runs at indices 1 and 2 are adjacent and render as one run. Merge them into one text run",
+      ],
+    ]);
   });
 
   it("refuses an unrecognised field", () => {

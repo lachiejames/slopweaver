@@ -15,8 +15,9 @@ import { EXAMPLE_PR_FORM } from "../../../../outbound/github/formExample.js";
 import { renderPrBody } from "../../../../outbound/github/render.js";
 import { stampForWrite } from "../../../../outbound/github/stamp.js";
 import type { PrForm, PrFormDraft } from "../../../../outbound/github/types.js";
+import { prFormWriteSchema } from "../../../../outbound/github/writeSchema.js";
 import { gatePrBody } from "../../../../prformat/prBodyGate.js";
-import { FEATURE_BODY, FIX_BODY, formOf, TESTS_BODY, TESTS_ONLY_BODY } from "./fixtures.js";
+import { EVERY_CELL_BODY, FEATURE_BODY, FIX_BODY, formOf, TESTS_BODY, TESTS_ONLY_BODY } from "./fixtures.js";
 
 /**
  * The draft a rendered file reads back as.
@@ -50,6 +51,34 @@ describe("renderAuthoringFile / parseAuthoringFile — round trip", () => {
       formOf({ body }),
     );
     expect(forms.map((form) => roundTrip({ form }))).toStrictEqual(forms);
+  });
+
+  it("gives back every content cell run for run, check groups and multi-run cells included", () => {
+    const form = formOf({ body: EVERY_CELL_BODY });
+    expect(roundTrip({ form })).toStrictEqual(form);
+  });
+
+  it("refuses a form with two adjacent text runs at the second run, whose file can only read back as the one run", () => {
+    const merged = { kind: "text", text: "People at acme lost an entry in ABC-1, and this keeps it." } as const;
+    const form = formOf({
+      body: {
+        ...EVERY_CELL_BODY,
+        explainer: [
+          { kind: "text", text: "People at acme lost an entry in ABC-1," },
+          { kind: "text", text: " and this keeps it." },
+        ],
+      },
+    });
+    const refused = prFormWriteSchema.safeParse(form);
+    expect([
+      refused.error!.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`),
+      roundTrip({ form }).explainer,
+    ]).toStrictEqual([
+      [
+        "explainer.1: ADJACENT_TEXT_RUNS: text runs at indices 0 and 1 are adjacent and render as one run. Merge them into one text run",
+      ],
+      [merged],
+    ]);
   });
 
   it("renders a description the real PR gate accepts as C3 once the door stamps it", () => {
