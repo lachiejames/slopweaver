@@ -101,7 +101,7 @@ describe("the lap yield", () => {
     expect(lapHoldsCompileLease({ lap: lapLock(), lease: heldLease({ pid: 4242, start: "yesterday" }) })).toBe(false);
     const unplaced = { ...lapLock(), startedIso: "undefined" };
     expect(lapHoldsCompileLease({ lap: unplaced, lease: heldLease({ pid: 4242 }) })).toBe(false);
-    // Date.parse would roll February 31 into a real March instant, after the holder started; strict reads it as none.
+    // Date.parse rolls a day the month lacks into a real later instant, after the holder started; strict reads none.
     const impossible = { ...lapLock(), startedIso: "2099-02-31T00:00:00.000Z" };
     expect(lapHoldsCompileLease({ lap: impossible, lease: heldLease({ pid: 4242 }) })).toBe(false);
   });
