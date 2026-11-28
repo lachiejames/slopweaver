@@ -43,8 +43,9 @@ run by: agent
   `src/outbound/github/quoteRules.ts`): quote only the lines that prove it; the source points at the rest.
 - An email or IP address (`QUOTE_PII`): a pull request publishes it as is, so write the line without it or put a
   placeholder such as `[ip]` and say so in the proves line. It is the outbound PII pass's own class
-  (`src/outbound/slack/piiRedaction.ts`), so an address that pass does not read, a quoted local part such as
-  `"a b"@example.com`, is yours to catch.
+  (`src/outbound/slack/piiRedaction.ts`), a quoted local part such as `"a b"@example.com` included, so an
+  address that pass reads only in part, a percent-encoded `mailto:` target such as `%22a%20b%22@example.com`, is
+  yours to catch.
 - A blank line, a carriage return or a NUL in `text`, which would not read back.
 - A quote in a layout-1 body, which has nowhere to put one.
 

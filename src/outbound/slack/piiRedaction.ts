@@ -25,6 +25,13 @@
  * location, and neither is ever the load-bearing content of an answer this bot composes — a message that
  * needs to say "the error came from an IP" says that without the octets.
  *
+ * An email address includes one whose local part is QUOTED (`"first last"@example.com`, `"a@b"@example.com`),
+ * because a closing quote is not a word character and the bare form's pattern never starts a match on it. The
+ * quoted arm never crosses an unescaped quote or a line ending, and is capped at the 62 characters RFC 5321's
+ * 64-octet local part leaves between the quotes, so a stray quote pair in prose cannot swallow a sentence. It
+ * is a detector rather than a validator: an escape pair counts as one character against the cap, and a
+ * percent-encoded `mailto:` target (`%22...%22@`) is a different representation it does not decode.
+ *
  * **Not redacted: a UUID**, including one that is a user id. Three reasons, and the third is the one that
  * decides it. UUIDs are not identifying on their own outside the systems that mint them; they are routinely
  * the ANSWER to a question ("which customer record did that job touch") and redacting one would make the
@@ -116,7 +123,7 @@ const PASSES: readonly Pass[] = [
   },
   {
     kind: "email",
-    pattern: /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g,
+    pattern: /(?:"(?:[^"\\\r\n]|\\.){0,62}"|[\w.+-]+)@[\w-]+(?:\.[\w-]+)+/g,
     replacement: "[email]",
   },
   {

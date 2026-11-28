@@ -61,6 +61,65 @@ describe("redactPii — the narrow class, and the line it deliberately does not 
   });
 });
 
+describe("redactPii — an email address whose local part is quoted", () => {
+  const ONE_EMAIL = [{ count: 1, kind: "email" }];
+
+  it("redacts a quoted local part carrying a space, whole", () => {
+    expect(redactPii({ text: 'raised by "jane doe"@example.com today' })).toEqual({
+      redactions: ONE_EMAIL,
+      text: "raised by [email] today",
+    });
+  });
+
+  it("redacts a quoted local part carrying a dot, leaving no quoted fragment behind", () => {
+    expect(redactPii({ text: '"jane.doe"@example.com' })).toEqual({ redactions: ONE_EMAIL, text: "[email]" });
+  });
+
+  it("redacts a quoted local part carrying an at-sign as ONE address", () => {
+    expect(redactPii({ text: '"a@b"@example.com' })).toEqual({ redactions: ONE_EMAIL, text: "[email]" });
+  });
+
+  it("redacts a quoted local part carrying an escaped quote", () => {
+    expect(redactPii({ text: '"jane\\"doe"@example.com' })).toEqual({ redactions: ONE_EMAIL, text: "[email]" });
+  });
+
+  it("redacts an empty quoted local part, which the RFC grammar admits", () => {
+    expect(redactPii({ text: '""@example.com' })).toEqual({ redactions: ONE_EMAIL, text: "[email]" });
+  });
+
+  it("is seen by carriesPii, so the pull request quote slot refuses it too", () => {
+    expect(carriesPii({ text: '"jane doe"@example.com' })).toBe(true);
+  });
+
+  it("redacts both halves of a Slack mailto link", () => {
+    expect(redactPii({ text: '<mailto:"jane doe"@example.com|"jane doe"@example.com>' })).toEqual({
+      redactions: [{ count: 2, kind: "email" }],
+      text: "<mailto:[email]|[email]>",
+    });
+  });
+
+  it("leaves ordinary quoted prose alone, since no domain follows the closing quote", () => {
+    expect(redactPii({ text: 'they said "hi" and left' })).toEqual({
+      redactions: [],
+      text: 'they said "hi" and left',
+    });
+  });
+
+  it("never lets a quote cross a line ending", () => {
+    const text = 'before "first line\nsecond"@example.com after';
+    expect(redactPii({ text })).toEqual({ redactions: [], text });
+  });
+
+  it("redacts a quoted local part at the 62-character cap", () => {
+    expect(redactPii({ text: `"${"a".repeat(62)}"@example.com` })).toEqual({ redactions: ONE_EMAIL, text: "[email]" });
+  });
+
+  it("stops one character past the cap, so a stray quote pair cannot swallow a sentence", () => {
+    const text = `"${"a".repeat(63)}"@example.com`;
+    expect(redactPii({ text })).toEqual({ redactions: [], text });
+  });
+});
+
 describe("carriesPii — the same answer twice, which a shared g-flagged regex would not give", () => {
   it("answers true both times for the same string", () => {
     const text = "from 203.0.113.7";
