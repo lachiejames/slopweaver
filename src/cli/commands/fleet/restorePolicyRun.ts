@@ -2,8 +2,8 @@
  * `slopweaver fleet restore-policy [--apply] [--config <path>] [--json]` — read, and with `--apply` turn off,
  * cmux's own restore of agent sessions (`terminal.autoResumeAgentSessions` in `~/.config/cmux/cmux.json`).
  *
- * On, cmux reopens every Claude seat as a bare `claude --resume <id>` with its setup token stripped, in no order.
- * Off, cmux restores idle shells and `slopweaver fleet resume` brings the seats back, the supervisor first. The
+ * On, cmux reopens every Claude seat as a bare `claude --resume <id>` with no setup-token descriptor, in no order,
+ * so a seat on a setup token comes back without it; a seat on its plan store has none to lose. Off, cmux restores idle shells and `slopweaver fleet resume` brings the seats back, the supervisor first. The
  * edit itself, and why it is a splice rather than a rewrite, is `../../../cmux/restorePolicy.ts`; this file is the
  * flags, the file effects and the exit codes; the real file system and `cmux` binary it runs over are
  * `./restorePolicyDeps.ts`.
@@ -100,9 +100,9 @@ function readingLine({ reading, configPath }: { reading: RestorePolicyReading["k
     case "off":
       return `cmux restore policy: off — cmux restores idle shells and slopweaver fleet resume brings the seats back (${configPath})`;
     case "on-explicit":
-      return `cmux restore policy: on, set true in ${configPath} — cmux relaunches Claude seats bare, without their setup token; slopweaver fleet restore-policy --apply turns it off`;
+      return `cmux restore policy: on, set true in ${configPath} — cmux relaunches Claude seats bare, so a seat on a setup token comes back without it; slopweaver fleet restore-policy --apply turns it off`;
     case "on-default":
-      return `cmux restore policy: on, cmux's default (no autoResumeAgentSessions key in ${configPath}) — cmux relaunches Claude seats bare, without their setup token; slopweaver fleet restore-policy --apply turns it off`;
+      return `cmux restore policy: on, cmux's default (no autoResumeAgentSessions key in ${configPath}) — cmux relaunches Claude seats bare, so a seat on a setup token comes back without it; slopweaver fleet restore-policy --apply turns it off`;
     default: {
       const unreachable: never = reading;
       return unreachable;

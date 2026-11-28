@@ -121,7 +121,7 @@ describe("withWalledSeats", () => {
   it("names the one verb that re-seats a logged-out seat", () => {
     const [row] = withWalledSeats({ rows, wallsByWorkspaceId: new Map([["seat-9", LOGGED_OUT]]), workspaces: [] });
     expect(renderSessionWatchRow({ row: row! })).toBe(
-      "logged-out\tseat 9\tNot logged in on screen — reopened without its setup token; run slopweaver session re-seat\t0 tool call(s)",
+      "logged-out\tseat 9\tNot logged in on screen — neither a working setup token nor a signed-in store; run slopweaver session re-seat\t0 tool call(s)",
     );
   });
 

@@ -3,11 +3,14 @@
 Linked from [SKILL.md](../SKILL.md) § 7a. A reboot costs the fleet almost nothing: cmux restores every
 workspace, so what dies is PROCESSES and the harness scratchpad under `/private/tmp`, never context. cmux's OWN
 session restore is kept OFF (`slopweaver fleet restore-policy`, exit 0 when off; `--apply` turns it off): left on,
-it re-runs `claude --resume <id>` with no setup-token descriptor and no store, so every seat, the chair first among
-them, reads `Not logged in` (measured twice) — or, signed in on an ambient login, comes back booted on
-NO plan with a clean screen, where `claude seat` refuses every prompt typed into it, a nudge included (measured). With it off each tab reopens as a bare shell and `slopweaver fleet resume` brings the chair back FIRST
-on the pin and its plan, then every other seat ([fleet](../../fleet/SKILL.md)). A seat that still comes back
-walled or on no plan is `cmux reseat --all`'s.
+it re-runs `claude --resume <id>` bare, with no setup-token descriptor, so a seat on a setup token, the chair
+included, reads `Not logged in` (measured twice). A seat on its plan store has no token to lose and cmux's saved
+binding names that store; its sign-in after that relaunch is unmeasured. A seat that comes back signed in on an
+ambient login is booted on NO plan with a clean screen, where `claude seat` refuses every prompt typed into it, a
+nudge included (measured). With it off each tab reopens as a bare shell and `slopweaver fleet resume` brings the
+chair back FIRST on the pin, then every other seat, each on its routed plan's setup token, or that plan's store where
+it holds none ([fleet](../../fleet/SKILL.md)). A seat that still comes back walled or on no plan is
+`cmux reseat --all`'s.
 
 ## When to propose one
 

@@ -40,8 +40,9 @@ non-human event — so this is a coverage gap in what one drain can see, not a m
 mechanical shortcut: `cmux list --json` exposes no permission-wait field at all (`CmuxWorkspaceSummary`
 in `src/cmux/client.ts` carries none), which is filed as `session-watch-misses-an-unanswered-notification`.
 
-- **`logged-out` and `limit-retrying` are stuck by construction, and never read one by one.** A seat cmux reopened
-  after a restart runs `claude` with no setup token and sits on `Not logged in · Please run /login`; a seat whose plan spent its window sits on
+- **`logged-out` and `limit-retrying` are stuck by construction, and never read one by one.** A seat on a setup
+  token that cmux's own restore reopened runs `claude` without it and sits on `Not logged in · Please run /login`, the
+  banner any seat with neither a working token nor a signed-in store shows; a seat whose plan spent its window sits on
   `Weekly limit reached · Retrying in 5h` and reads `working` for hours (never leave it retrying). `session watch` reads both off the screen of every non-pinned
   seat, working ones included. Run `slopweaver cmux reseat --all` FIRST: it relaunches each one in place with
   `--resume` on a routed plan, the chair included, so the seat keeps its context. Then run `slopweaver session re-seat`

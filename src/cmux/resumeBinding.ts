@@ -6,10 +6,12 @@
  *
  * cmux's Claude hook records a `resume_binding` per surface and, with `terminal.autoResumeAgentSessions` on, runs
  * it on reopen. MEASURED (`cmux rpc surface.resume.get '{"workspace_id":"<id>"}'`): its environment
- * carries only `CLAUDE_SECURESTORAGE_CONFIG_DIR`, never the setup-token descriptor a seat boots on, and cmux's own
- * docs say sensitive environment keys are dropped before storage. So that relaunch comes back on the wrong
- * credential, in no order, the supervisor included; restoring through Slopweaver's own commands is the accepted route. With the setting off (`fleet restore-policy --apply`) the panes come back as
- * idle shells and `fleet resume` reads the session id from here and relaunches it through `cmux reseat`'s line.
+ * carries only `CLAUDE_SECURESTORAGE_CONFIG_DIR`, never the descriptor a setup-token seat boots on, and cmux's own
+ * docs say sensitive environment keys are dropped before storage. So that relaunch leaves a token seat on its unbound
+ * store without its token; a store seat's binding names its plan store, and its sign-in after that relaunch is
+ * unmeasured. Every seat comes back in no order, the supervisor included; restoring through Slopweaver's own commands
+ * is the accepted route. With the setting off (`fleet restore-policy --apply`) the panes come back as idle shells and
+ * `fleet resume` reads the session id from here and relaunches it through `cmux reseat`'s line.
  *
  * ## Two records, read in order
  *

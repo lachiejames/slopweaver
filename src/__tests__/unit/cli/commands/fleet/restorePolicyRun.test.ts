@@ -94,6 +94,24 @@ describe("fleet restore-policy (read)", () => {
     expect(run.out).toEqual([JSON.stringify({ configPath: path, policy: "on-default", wrote: false })]);
   });
 
+  it("says the default leaves it on, costing a token seat its token", () => {
+    const path = writeConfig({ text: ON_BY_DEFAULT });
+    const run = harness({ reload: ok("") });
+    runFleetRestorePolicy({ deps: run.deps, rest: ["--config", path] });
+    expect(run.out).toEqual([
+      `cmux restore policy: on, cmux's default (no autoResumeAgentSessions key in ${path}) — cmux relaunches Claude seats bare, so a seat on a setup token comes back without it; slopweaver fleet restore-policy --apply turns it off`,
+    ]);
+  });
+
+  it("says an explicit true leaves it on, costing a token seat its token", () => {
+    const path = writeConfig({ text: '{ "terminal": { "autoResumeAgentSessions": true } }' });
+    const run = harness({ reload: ok("") });
+    runFleetRestorePolicy({ deps: run.deps, rest: ["--config", path] });
+    expect(run.out).toEqual([
+      `cmux restore policy: on, set true in ${path} — cmux relaunches Claude seats bare, so a seat on a setup token comes back without it; slopweaver fleet restore-policy --apply turns it off`,
+    ]);
+  });
+
   it("exits 0 when it is off", () => {
     const path = writeConfig({ text: '{ "terminal": { "autoResumeAgentSessions": false } }' });
     const run = harness({ reload: ok("") });

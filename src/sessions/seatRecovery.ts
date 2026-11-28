@@ -5,11 +5,11 @@
  *
  * ## The two walls
  *
- * **Logged out.** `cmux spawn` boots Claude with its seat's setup token handed in on file descriptor 3
- * (`../claude/seatPinning.ts`'s `bootEnvPrefix`), against a credential store that deliberately holds nothing
- * (`../claude/seatToken.ts`). When the machine restarts, cmux reopens every workspace and re-runs a bare
- * `claude` in it — no descriptor, no token, and an empty store — so each one comes up reading
- * `Not logged in · Please run /login` and cannot resume. MEASURED:
+ * **Logged out.** `cmux spawn` boots a seat whose plan holds a setup token on that token, handed in on file
+ * descriptor 3 (`../claude/seatPinning.ts`'s `bootEnvPrefix`) against a credential store that deliberately holds
+ * nothing, and any other seat on its plan's store (`../claude/seatToken.ts` `seatCredential`). With cmux's own
+ * restore on, a restart re-runs a bare `claude` in every workspace with no descriptor, so a token seat comes up
+ * reading `Not logged in · Please run /login` and cannot resume. MEASURED:
  * one seat read exactly that, and eighteen more had all reopened the same way.
  *
  * **Limit retrying.** A seat whose plan spent its window sits on Claude Code's own retry spinner —
@@ -141,7 +141,7 @@ function rejoinWrapped({ rows, start }: { rows: readonly string[]; start: number
 
 /** What stops a live seat from answering, as its screen shows it. */
 export type SeatWall =
-  /** `Not logged in · Please run /login` — reopened without its setup token. */
+  /** `Not logged in · Please run /login` — neither a working setup token nor a signed-in store. */
   | { readonly kind: "logged-out" }
   /** Claude Code's usage-limit retry spinner; `banner` is the line exactly as the screen drew it. */
   | { readonly kind: "limit-retrying"; readonly banner: string };

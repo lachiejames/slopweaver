@@ -58,7 +58,7 @@ can run it from Finder every half minute with the console and the supervisor bot
 **A seat is green on its OWN signal.** Live means the process at a registry record's pid started when the record
 says its own did (`src/fleet/liveSeat.ts`), so a dead session's file whose pid a stranger inherited is no seat —
 and `resume` finds the chair by the same rule. A
-worker: live, and booted on a plan credential that can answer — a restored seat is live AND walled at once, so
+worker: live, and booted on a plan credential that can answer — a restore can leave a seat live AND walled, so
 liveness alone would paint a locked-out fleet green. The supervisor: booted on a credential bound to its process,
 and only once it gave a sign of working — `supervisor reoriented` after that process started, or a sweep its pinned
 workspace started and closed after it took the seat (the tick ledger's tail) — yellow until then, and red once ten
@@ -91,9 +91,9 @@ regardless — a reseat replaces a session, it never adds one, and cpu and memor
 failed after its stop halts the later workers, since the next would be stopped into the same failure.
 
 **cmux's own restore stays OFF; `resume` is the only restore.** With `terminal.autoResumeAgentSessions` on, cmux
-relaunches every seat's `claude --resume` on reopen without the setup-token env, so every seat comes back signed out,
-in no order (measured). The owner's word: if it had to use our commands for restoration, that would
-have been fine. `fleet restore-policy` reads the key (exit 0 off, 3 on); `--apply` turns it off behind a timestamped `.bak`.
+relaunches every `claude --resume` bare, in no order, with no setup-token descriptor: a token seat comes back signed out
+(measured); a store seat's saved binding names its plan store, its sign-in after that unmeasured. The owner's word: if
+it had to use our commands for restoration, that would have been fine. `fleet restore-policy` reads the key (exit 0 off, 3 on); `--apply` turns it off behind a timestamped `.bak`.
 Then a reopened tab is a bare shell (one childless known shell, read twice), a COLD seat (`src/sessions/coldSeat.ts`):
 the chair's is resumed on the supervisor PIN first, and counts as standing only where the pin's own pid then runs
 in its tab; a worker's is resumed on the session cmux saved for it (`surface.resume.get`) only when it pairs to an

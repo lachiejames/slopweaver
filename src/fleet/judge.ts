@@ -4,7 +4,7 @@
  * ## What makes a seat green
  *
  * A worker is green when its session is live AND it booted on a plan's credential that can answer — a setup token,
- * or a plan store that is not signed out. A restored seat is live and walled at once (measured: a bare
+ * or a plan store that is not signed out. A seat can be live and walled at once (measured: a bare
  * `claude --resume` on an empty store registers in `~/.claude/sessions` like any other session, and its screen reads
  * "Not logged in · Run /login"), so liveness alone would paint a locked-out fleet green. The boot credential is read
  * off the process itself (`../claude/seatBootRead.ts`), which needs no cmux.
