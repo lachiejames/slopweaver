@@ -82,7 +82,9 @@ async function evalCodexClient(): Promise<Result<LockedCodexClient, string>> {
     return err(`turn eval: ${routed.error.message}`);
   }
   const { codexHome } = routed.value.destination;
-  return ok(productionCodexClient({ admitThread: codexThreadAdmit({ cli, codexHome }), cli, codexHome }));
+  return ok(
+    productionCodexClient({ admitThread: codexThreadAdmit({ cli, codexHome, posture: "pass" }), cli, codexHome }),
+  );
 }
 
 export default class SlopweaverTurnProvider {

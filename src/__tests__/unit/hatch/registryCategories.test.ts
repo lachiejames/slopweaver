@@ -129,7 +129,7 @@ const CATEGORIES: readonly {
   },
   {
     after: "proof-path",
-    before: "codex-electron-guard",
+    before: "codex-scratch-shell-guard",
     hatches: TOOL_ADMISSION_HATCHES,
     ids: ["poll", "main-checkout-write", "main-checkout-branch-switch", "protected-path", "protect-remove"],
     name: "TOOL_ADMISSION_HATCHES",

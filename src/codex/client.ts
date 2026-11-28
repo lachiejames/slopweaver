@@ -55,6 +55,11 @@
  *   * `workspace-write` over a SCRATCH working directory blocks a repo write while allowing a scratch write:
  *     measured, the repo canary was absent afterwards and the scratch file was present. The repo
  *     stays unwritable because it is neither the workspace nor in `additionalDirectories`.
+ *     That mode ALSO opens `$TMPDIR` and `/tmp` by default, and every snapshot pool slot a review reads lives
+ *     there, so a pass could write into the slot it was reading — two did. Every pass closes both
+ *     (`./capabilities.ts`) and its shell temp moves inside its scratch (`./passWorkspace.ts`), an absolute path
+ *     per thread, which is why {@link productionCodexClient} builds its SDK per thread
+ *     (`src/__tests__/subprocess/codex/scratchConfinement.test.ts` is the kernel proof, on 0.163.0).
  *   * the locked options SURVIVE `resumeThread` when re-supplied. This matters enormously —
  *     the predecessor's CLI transport REJECTED `--sandbox` on `exec resume`, so the obvious fix (drop the
  *     flag on resume) silently ran every steered turn under the machine's own config. Through the SDK the
@@ -78,6 +83,7 @@
  * search. `docs/security/codex-boundary.md` states all of it.
  */
 
+import { mkdirSync } from "node:fs";
 import { Codex, type CodexOptions, type ThreadOptions } from "@openai/codex-sdk";
 import type { IngestError } from "../lib/ingestError.js";
 import type { Result } from "../lib/result.js";
@@ -85,6 +91,7 @@ import { safeCodex } from "../lib/safeBoundary.js";
 import { admittedCodexClient, poisonedThread } from "./admittedClient.js";
 import { codexCapabilityOverrides, PASS_THREAD_CAPABILITIES } from "./capabilities.js";
 import type { CodexDestination } from "./destinations.js";
+import { codexPassScratchOverrides, passTempDirectory, passTempEnvironment } from "./passWorkspace.js";
 import { CODEX_MODEL, CODEX_REASONING_EFFORT } from "./profiles.js";
 import { drainStream, toItemActivity } from "./streamDrain.js";
 import type { CodexEventSink, CodexUsage, ItemActivity, UsageMeasurement } from "./types.js";
@@ -97,7 +104,8 @@ import { type CodexCli, withCodexPathDirs } from "./vendoredCli.js";
  * silent inherit from `~/.codex/config.toml`. If a future SDK release adds an option, this function stops
  * compiling and somebody has to make a deliberate decision about it.
  *
- * @param workingDirectory the per-pass scratch directory, the only place the pass may write
+ * @param workingDirectory the per-pass scratch directory, the only place the pass may write — the temp folder
+ *   is closed by the launch's overrides ({@link codexThreadLaunch}), not by anything here
  * @param model the model this pass asked for — the repository default unless the pass named another
  * @returns every thread option, stated explicitly — `Required` so a new SDK option breaks the build rather
  *   than silently inheriting from the user's global config
@@ -135,7 +143,8 @@ export type CodexThreadPosture = "pass" | "sealed";
 export const LOCKED_POLICY = {
   // The approval policy (`never` — LOAD-BEARING: measured to be what blocks an MCP tool dispatch, see the
   // header), the sandbox (`workspace-write`, but only across `workingDirectory` — which callers set to a
-  // per-pass SCRATCH directory, never the repository) and live web search. Decided once for both Codex
+  // per-pass SCRATCH directory, never the repository — with the temp folder closed by the launch's overrides,
+  // `codexThreadLaunch`) and live web search. Decided once for both Codex
   // runtimes in `./capabilities.ts`; spread here, never restated.
   ...PASS_THREAD_CAPABILITIES,
   // EMPTY IS THE CONTROL. `additionalDirectories` grants extra WRITABLE roots, so listing the repository
@@ -167,6 +176,20 @@ const SEALED_POLICY = {
   webSearchEnabled: false,
   webSearchMode: "disabled",
 } as const satisfies Omit<Required<ThreadOptions>, "workingDirectory" | "model">;
+
+/**
+ * The sandbox mode a posture's threads carry, for a launch that is not the SDK's — `codex sandbox` reads its mode
+ * from `-c sandbox_mode`, where the SDK passes `--sandbox` from the thread options.
+ *
+ * @param posture which locked policy the thread carries
+ * @returns that policy's `sandboxMode`
+ */
+export function postureSandboxMode({ posture }: { posture: CodexThreadPosture }): string {
+  if (posture === "sealed") {
+    return SEALED_POLICY.sandboxMode;
+  }
+  return LOCKED_POLICY.sandboxMode;
+}
 
 /** One completed turn, mapped off the SDK's shape into ours. */
 export interface CodexTurnResult {
@@ -231,6 +254,17 @@ export interface CodexSdkPort {
   resumeThread(threadId: string, options: Required<ThreadOptions>): CodexSdkThread;
 }
 
+/**
+ * Builds the SDK port ONE thread runs on, from that thread's working directory — because the launch carries
+ * an absolute shell temp inside that directory ({@link codexThreadLaunch}), and the SDK fixes a launch's
+ * environment and overrides at construction. The SDK's `Codex` holds nothing else: its constructor stores the
+ * options and a stateless exec, and a resumed thread is found by id in the routed home's own sessions
+ * (`dist/index.js`, 0.163.0), so one per thread changes no thread's state. Tests inject a plain object here.
+ */
+export interface CodexSdkFactory {
+  create({ workingDirectory }: { workingDirectory: string }): CodexSdkPort;
+}
+
 /** The subset of the SDK's `Thread` this module drives. */
 export interface CodexSdkThread {
   readonly id: string | null;
@@ -287,7 +321,8 @@ export interface CodexSdkTurn {
 /**
  * Build a locked client over an injected SDK port.
  *
- * @param sdk the SDK port (the real `Codex` in production, a plain capturing fake in tests)
+ * @param sdk builds each thread's SDK port from its working directory (the real `Codex` in production, a plain
+ *   capturing fake in tests); start and resume go through it alike
  * @param model the model every thread asks for — the repository default unless a pass named another
  * @param posture which locked policy every thread carries — `pass` unless the caller asked for `sealed`
  * @returns a client whose every thread carries the locked options
@@ -299,7 +334,7 @@ export function makeLockedCodexClient({
 }: {
   model?: string;
   posture?: CodexThreadPosture;
-  sdk: CodexSdkPort;
+  sdk: CodexSdkFactory;
 }): LockedCodexClient {
   const wrap = ({ thread }: { thread: CodexSdkThread }): LockedCodexThread => ({
     currentId: () => thread.id,
@@ -322,14 +357,16 @@ export function makeLockedCodexClient({
     model,
     resumeThread: ({ threadId, workingDirectory }) => {
       try {
-        return wrap({ thread: sdk.resumeThread(threadId, lockedThreadOptions({ model, posture, workingDirectory })) });
+        const port = sdk.create({ workingDirectory });
+        return wrap({ thread: port.resumeThread(threadId, lockedThreadOptions({ model, posture, workingDirectory })) });
       } catch (error: unknown) {
         return poisonedThread({ error, operation: "codex.resumeThread" });
       }
     },
     startThread: ({ workingDirectory }) => {
       try {
-        return wrap({ thread: sdk.startThread(lockedThreadOptions({ model, posture, workingDirectory })) });
+        const port = sdk.create({ workingDirectory });
+        return wrap({ thread: port.startThread(lockedThreadOptions({ model, posture, workingDirectory })) });
       } catch (error: unknown) {
         return poisonedThread({ error, operation: "codex.startThread" });
       }
@@ -399,6 +436,72 @@ export function codexClientEnvironment({
 }
 
 /**
+ * {@link codexClientEnvironment} for a `pass`-posture thread: the same credential filter and routed home, plus
+ * `TMPDIR` and `TMPPREFIX` pointing inside that thread's scratch, since the temp folder is closed to it
+ * (`./passWorkspace.ts`). Only those two names differ from the client environment, so which account a pass
+ * spends is unchanged.
+ *
+ * @param codexHome the routed `$CODEX_HOME` this pass spends against, or undefined to leave the caller's own
+ * @param env this process's own environment, injected so the mapping is testable without touching the real one
+ * @param workingDirectory the thread's scratch, whose `.tmp` the shell writes its temp files in
+ * @returns the complete environment to hand the CLI
+ */
+export function codexPassEnvironment({
+  codexHome,
+  env,
+  workingDirectory,
+}: {
+  codexHome: string | undefined;
+  env: NodeJS.ProcessEnv;
+  workingDirectory: string;
+}): Record<string, string> {
+  return { ...codexClientEnvironment({ codexHome, env }), ...passTempEnvironment({ workingDirectory }) };
+}
+
+/**
+ * The CLI environment and `-c` overrides ONE thread launches with — the single spelling production and every
+ * sandboxed probe share, so a probe can never judge a launch no pass makes.
+ *
+ * A `pass` thread carries its scratch's shell temp ({@link codexPassEnvironment},
+ * `./passWorkspace.ts`'s overrides). A `sealed` one does not: its sandbox is read-only, so there is no temp it
+ * could write, and its working directory is a bare `mkdtemp` whose untouched state `./slackDraftPass.ts`
+ * checks. Both carry every capability override, the temp-folder exclusions included.
+ *
+ * @param codexHome the routed home, or undefined for the ambient one
+ * @param cli the CLI the launch runs, whose PATH directories go first; omitted, the SDK resolves its own
+ * @param env this process's own environment, credential-filtered here
+ * @param posture which locked policy the thread carries
+ * @param workingDirectory the thread's working directory
+ * @returns the environment and overrides
+ */
+export function codexThreadLaunch({
+  codexHome,
+  cli,
+  env,
+  posture,
+  workingDirectory,
+}: {
+  codexHome: string | undefined;
+  cli: CodexCli | undefined;
+  env: NodeJS.ProcessEnv;
+  posture: CodexThreadPosture;
+  workingDirectory: string;
+}): { readonly configOverrides: readonly string[]; readonly env: Record<string, string> } {
+  const pathDirs = cli === undefined ? [] : cli.pathDirs;
+  const capabilities = codexCapabilityOverrides({ runtime: "pass" });
+  if (posture === "sealed") {
+    return {
+      configOverrides: capabilities,
+      env: withCodexPathDirs({ env: codexClientEnvironment({ codexHome, env }), pathDirs }),
+    };
+  }
+  return {
+    configOverrides: [...capabilities, ...codexPassScratchOverrides({ workingDirectory })],
+    env: withCodexPathDirs({ env: codexPassEnvironment({ codexHome, env, workingDirectory }), pathDirs }),
+  };
+}
+
+/**
  * Build the locked client for ONE routed Codex destination.
  *
  * A factory rather than a value, because which account a pass spends is decided per invocation now: the
@@ -427,25 +530,39 @@ export function productionCodexClient({
   cli?: CodexCli;
   admitThread: (args: { workingDirectory: string }) => Result<void, string>;
 }): LockedCodexClient {
-  // ONE construction, so the marker below sits on the single line that builds a client — and one environment
-  // for both arms, so there is no path where an inherited credential reaches the SDK.
-  // The ChatGPT app's browser and computer-use servers are switched off for every pass, and an Electron its shell
-  // starts runs as Node (`./capabilities.ts`).
-  const sdkOptions: CodexOptions = {
-    configOverrides: [...codexCapabilityOverrides({ runtime: "pass" })],
-    env: withCodexPathDirs({
-      env: codexClientEnvironment({ codexHome, env: process.env }),
-      pathDirs: cli === undefined ? [] : cli.pathDirs,
-    }),
-    ...(cli === undefined ? {} : { codexPathOverride: cli.path }),
-  };
-  // devlint: sdk-factory -- the sole closed Codex factory; every thread carries locked options
-  const codex = new Codex(sdkOptions);
-  // No cast: the SDK's `Thread` and `Turn` are structurally assignable to the narrow port above, which is
-  // deliberate — a cast here would be the one place a shape change could slip through unnoticed.
-  const sdk: CodexSdkPort = {
-    resumeThread: (threadId, options) => codex.resumeThread(threadId, options),
-    startThread: (options) => codex.startThread(options),
+  // ONE construction, so the marker below sits on the single line that builds a client — and one launch
+  // builder for every thread, so there is no path where an inherited credential reaches the SDK. Built per
+  // thread because the launch carries that thread's scratch temp (`CodexSdkFactory` says why that is safe);
+  // the routed home, the credential filter, the binary and the model are the client's, identical for each.
+  // The ChatGPT app's browser and computer-use servers are switched off for every pass, an Electron its shell
+  // starts runs as Node, and the temp folder is closed to its writes (`./capabilities.ts`). A pass's shell temp
+  // is minted HERE, not only by `createPassScratch`: a caller that makes its own scratch (`eval/turnProvider.ts`
+  // makes one with `mkdtemp`) would otherwise launch with TMPDIR naming a directory that does not exist, and
+  // its `mktemp` and heredocs would fail. A throw lands in the start/resume catch as a poisoned thread.
+  // The inherited environment is copied ONCE, here, exactly as the single construction read it: read per thread,
+  // a `CODEX_HOME` changed after this client was built would move an ambient client's threads onto another
+  // account, and the per-thread build must change only the scratch temp.
+  const inherited: NodeJS.ProcessEnv = { ...process.env };
+  const sdk: CodexSdkFactory = {
+    create: ({ workingDirectory }) => {
+      if (posture === "pass") {
+        mkdirSync(passTempDirectory({ workingDirectory }), { mode: 0o700, recursive: true });
+      }
+      const launch = codexThreadLaunch({ cli, codexHome, env: inherited, posture, workingDirectory });
+      const sdkOptions: CodexOptions = {
+        configOverrides: [...launch.configOverrides],
+        env: launch.env,
+        ...(cli === undefined ? {} : { codexPathOverride: cli.path }),
+      };
+      // devlint: sdk-factory -- the sole closed Codex factory; every thread carries locked options
+      const codex = new Codex(sdkOptions);
+      // No cast: the SDK's `Thread` and `Turn` are structurally assignable to the narrow port above, which is
+      // deliberate — a cast here would be the one place a shape change could slip through unnoticed.
+      return {
+        resumeThread: (threadId, options) => codex.resumeThread(threadId, options),
+        startThread: (options) => codex.startThread(options),
+      };
+    },
   };
   return admittedCodexClient({ admitThread, client: makeLockedCodexClient({ model, posture, sdk }) });
 }

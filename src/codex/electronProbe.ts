@@ -12,9 +12,8 @@ import { spawnSync } from "node:child_process";
 
 import { err, ok, type Result } from "#lib/result.js";
 
-import { codexCapabilityOverrides } from "./capabilities.js";
-import { codexClientEnvironment } from "./client.js";
-import { type CodexCli, withCodexPathDirs } from "./vendoredCli.js";
+import { type CodexThreadPosture, codexThreadLaunch, postureSandboxMode } from "./client.js";
+import type { CodexCli } from "./vendoredCli.js";
 
 /** How long the sandboxed read may take before the probe gives up; it is one `printenv`. */
 const PROBE_TIMEOUT_MS = 15_000;
@@ -81,41 +80,84 @@ export function readPrintenvRun({
   return err(CodexElectronProbeErrors.sandboxFailed({ status, stderr }));
 }
 
+/** What one sandboxed run left behind, in the shape {@link readPrintenvRun} reads. */
+export interface SandboxedShellRun {
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly failure: string | undefined;
+}
+
+/**
+ * Run one command under `codex sandbox` exactly as a thread of this posture would launch: the same binary, home,
+ * working directory, environment and overrides (`./client.ts`'s `codexThreadLaunch`, the one spelling), and
+ * the posture's own sandbox mode as `-c sandbox_mode`, which is how `codex sandbox` reads what the SDK passes as
+ * `--sandbox`.
+ *
+ * @param codexHome the pass's routed home, or undefined for the ambient one
+ * @param cwd the directory the thread runs in — Codex layers a trusted project's `.codex/config.toml` found from there
+ * @param cli the Codex binary the pass runs, and the directories it puts in front of PATH
+ * @param posture which locked policy the thread carries, which decides whether its launch moves shell temp
+ * @param command the program and its arguments, run inside the sandbox
+ * @returns what the run printed and how it ended
+ */
+export function runSandboxedPassShell({
+  codexHome,
+  cwd,
+  cli,
+  posture,
+  command,
+}: {
+  codexHome: string | undefined;
+  cwd: string;
+  cli: CodexCli;
+  posture: CodexThreadPosture;
+  command: readonly string[];
+}): SandboxedShellRun {
+  const launch = codexThreadLaunch({ cli, codexHome, env: process.env, posture, workingDirectory: cwd });
+  const overrides = [
+    `sandbox_mode=${JSON.stringify(postureSandboxMode({ posture }))}`,
+    ...launch.configOverrides,
+  ].flatMap((override) => ["-c", override]);
+  // The directory rides the process's own cwd: `codex sandbox -C` demands `--permission-profile` beside it
+  // (exit 2 on the vendored 0.157.1), and naming a profile would sandbox a shell no pass runs — a profile
+  // also ignores the temp-folder exclusions, measured on 0.163.0 (`./passWorkspace.ts`).
+  const run = spawnSync(cli.path, ["sandbox", ...overrides, "--", ...command], {
+    cwd,
+    encoding: "utf8",
+    env: launch.env,
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: PROBE_TIMEOUT_MS,
+  });
+  return {
+    failure: run.error === undefined ? undefined : run.error.message,
+    status: run.status,
+    stderr: run.stderr,
+    stdout: run.stdout,
+  };
+}
+
 /**
  * The value of `ELECTRON_RUN_AS_NODE` a pass thread's shell on this home would see, after the pass's overrides.
  *
  * @param codexHome the pass's routed home, or undefined for the ambient one
  * @param cwd the directory the thread runs in — Codex layers a trusted project's `.codex/config.toml` found from there
  * @param cli the Codex binary the pass runs, and the directories it puts in front of PATH
+ * @param posture which locked policy the thread carries
  * @returns the value (`""` when unset), or why it could not be read
  */
 export function probeCodexElectronRunAsNode({
   codexHome,
   cwd,
   cli,
+  posture,
 }: {
   codexHome: string | undefined;
   cwd: string;
   cli: CodexCli;
+  posture: CodexThreadPosture;
 }): Result<string, CodexElectronProbeError> {
-  const overrides = codexCapabilityOverrides({ runtime: "pass" }).flatMap((override) => ["-c", override]);
-  const env = withCodexPathDirs({
-    env: codexClientEnvironment({ codexHome, env: process.env }),
-    pathDirs: cli.pathDirs,
-  });
-  // The directory rides the process's own cwd: `codex sandbox -C` demands `--permission-profile` beside it
-  // (exit 2 on the vendored 0.157.1), and naming a profile would sandbox a shell no pass runs.
-  const run = spawnSync(cli.path, ["sandbox", ...overrides, "--", "/usr/bin/printenv", "ELECTRON_RUN_AS_NODE"], {
-    cwd,
-    encoding: "utf8",
-    env,
-    stdio: ["ignore", "pipe", "pipe"],
-    timeout: PROBE_TIMEOUT_MS,
-  });
-  return readPrintenvRun({
-    failure: run.error === undefined ? undefined : run.error.message,
-    status: run.status,
-    stderr: run.stderr,
-    stdout: run.stdout,
-  });
+  return readPrintenvRun(
+    runSandboxedPassShell({ cli, codexHome, command: ["/usr/bin/printenv", "ELECTRON_RUN_AS_NODE"], cwd, posture }),
+  );
 }

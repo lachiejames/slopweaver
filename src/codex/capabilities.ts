@@ -42,7 +42,9 @@ export const CODEX_CAPABILITIES = {
   // dispatch, under both read-only and workspace-write (`./client.ts`'s header). Never `on-request`.
   approvalPolicy: "never",
   // The sandbox DIFFERS by runtime, on purpose. A pass writes its answer into a per-pass SCRATCH working
-  // directory, never the repository, so it needs `workspace-write` over exactly that directory. The voice's
+  // directory, never the repository, so it needs `workspace-write` over exactly that directory — and only that
+  // one: `workspace-write` also opens `$TMPDIR` and `/tmp`, where every snapshot pool slot lives, unless told
+  // not to, which `PASS_TEMP_EXCLUSION_OVERRIDES` below does (`./passWorkspace.ts` says why). The voice's
   // delegated thread has no workspace to write — every write it makes goes out as a Talk relay tool through
   // the page's relay gate — so it is `read-only`.
   sandbox: { pass: "workspace-write", voice: "read-only" },
@@ -69,19 +71,31 @@ export const VOICE_THREAD_CAPABILITIES = {
 } as const;
 
 /**
+ * The two legacy `workspace-write` keys that close `$TMPDIR` and `/tmp` to a pass, leaving its working directory
+ * the one writable root. The SDK launches `--sandbox workspace-write`, which reads these; a permission profile
+ * (`-P :workspace`) ignores them, measured on 0.163.0 (`./passWorkspace.ts`).
+ */
+const PASS_TEMP_EXCLUSION_OVERRIDES = [
+  "sandbox_workspace_write.exclude_tmpdir_env_var=true",
+  "sandbox_workspace_write.exclude_slash_tmp=true",
+] as const;
+
+/**
  * The `-c` overrides a runtime carries for its capabilities: the ChatGPT app's browser and computer-use
  * surface switched off for both (`./browserSurface.ts`, where the spelling that works is measured), web
  * search for the voice alone — the SDK already emits `web_search` from `webSearchMode`, so a pass carrying
  * it too would be the duplicate this module removes — and, for the pass alone, an Electron its shell starts
- * run as Node so it cannot crash in front of the owner (`./electronSurface.ts`). The voice has no shell to start
- * one from: its launch disables `shell_tool` and `unified_exec` (`../talk/planSession.ts`).
+ * run as Node so it cannot crash in front of the owner (`./electronSurface.ts`) and the temp folder closed to its
+ * writes ({@link PASS_TEMP_EXCLUSION_OVERRIDES}). The voice has no shell to start one from and a read-only sandbox:
+ * its launch disables `shell_tool` and `unified_exec` (`../talk/planSession.ts`). A pass's shell temp, which
+ * moves into its scratch, is per thread and so is not here (`./passWorkspace.ts`).
  *
  * @param runtime which Codex runtime is launching
  * @returns the overrides, one `key=value` per entry, in a stable order
  */
 export function codexCapabilityOverrides({ runtime }: { runtime: CodexRuntime }): readonly string[] {
   if (runtime === "pass") {
-    return [...codexBrowserOffOverrides(), ...codexElectronRunAsNodeOverrides()];
+    return [...codexBrowserOffOverrides(), ...codexElectronRunAsNodeOverrides(), ...PASS_TEMP_EXCLUSION_OVERRIDES];
   }
   return [`web_search="${CODEX_CAPABILITIES.webSearch}"`, ...codexBrowserOffOverrides()];
 }

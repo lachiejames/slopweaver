@@ -47,10 +47,12 @@ describe("the pass projection", () => {
     expect(LOCKED_POLICY.webSearchMode).toBe(PASS_THREAD_CAPABILITIES.webSearchMode);
   });
 
-  it("carries the browser-off overrides then Electron-as-Node, and no web_search, which the SDK emits itself", () => {
+  it("carries browser-off, Electron-as-Node, then the temp folder closed, and no web_search, which the SDK emits", () => {
     expect(codexCapabilityOverrides({ runtime: "pass" })).toEqual([
       ...codexBrowserOffOverrides(),
       'shell_environment_policy.set.ELECTRON_RUN_AS_NODE="1"',
+      "sandbox_workspace_write.exclude_tmpdir_env_var=true",
+      "sandbox_workspace_write.exclude_slash_tmp=true",
     ]);
   });
 });

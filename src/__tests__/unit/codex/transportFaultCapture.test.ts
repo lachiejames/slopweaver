@@ -8,6 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { makePassBound } from "../../../codex/bounds.js";
 import {
+  type CodexSdkFactory,
   type CodexSdkPort,
   type CodexSdkStreamEvent,
   type CodexSdkThread,
@@ -40,12 +41,13 @@ function streamingThread({
   return { id: "thread-1", runStreamed: async () => ({ events: replay() }) };
 }
 
-/** An SDK port that hands out the same thread for start and resume. */
-function portOf({ thread }: { thread: CodexSdkThread }): CodexSdkPort {
-  return {
+/** An SDK factory whose every port hands out the same thread for start and resume. */
+function portOf({ thread }: { thread: CodexSdkThread }): CodexSdkFactory {
+  const port: CodexSdkPort = {
     resumeThread: () => thread,
     startThread: () => thread,
   };
+  return { create: () => port };
 }
 
 /** A clock that never fires: every path here settles without a timer. */

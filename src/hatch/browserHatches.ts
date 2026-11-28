@@ -167,4 +167,22 @@ export const BROWSER_HATCHES = [
     reader: "src/codex/electronGuard.ts",
     standing: "proposed",
   },
+  // A review pass wrote into the snapshot pool slot it was reading, under the temp folder `workspace-write` opens
+  // by default. Every pass now closes the temp folder and moves its shell temp into its scratch
+  // (`codex/passWorkspace.ts`); this row is the refusal for a home whose shell policy drops the moved values.
+  // Opening it degrades that pass's shell and never widens what it may write: the temp folder stays closed.
+  {
+    caught:
+      "a shell this Codex pass would run does not see TMPDIR and TMPPREFIX pointing inside its own scratch after every override the pass carries, or that environment could not be read to say it does, so the pass's mktemp and heredocs would reach for the closed temp folder and fail",
+    command: "a codex plan/review pass thread launch",
+    exceptions: [
+      "the home's shell_environment_policy.include_only is deliberate and you accept this pass running with a shell that cannot make temp files",
+      "the sandboxed read failed for a reason that is not the home's configuration — the `codex` CLI mid-upgrade, say — and you have read that home's config yourself",
+    ],
+    id: "codex-scratch-shell-guard",
+    key: { kind: "env", variable: "SLOPWEAVER_ALLOW_CODEX_SCRATCH_SHELL_GUARD" },
+    lane: "ambient",
+    reader: "src/codex/scratchShellGuard.ts",
+    standing: "proposed",
+  },
 ] as const satisfies readonly EscapeHatch[];

@@ -149,6 +149,7 @@ describe("what the owner's ruling settled", () => {
       "codex-browser-door",
       "browser-launch",
       "codex-electron-guard",
+      "codex-scratch-shell-guard",
       "protected-path",
       "protect-remove",
       "proof-path",
