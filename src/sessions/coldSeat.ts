@@ -5,10 +5,9 @@
  *
  * ## Why a cold seat exists at all
  *
- * MEASURED: cmux's own restore re-ran every seat's `claude --resume <id>` with the setup-token env
- * dropped from its binding, so the chair and every worker came up signed out. The owner's rule is that restoration uses our own
- * commands. With
- * cmux's restore switched off (`slopweaver fleet restore-policy --apply`) a reopened tab is a bare shell instead, and
+ * cmux's own restore re-runs `claude --resume <id>` with the setup-token env dropped from its binding, so a
+ * setup-token seat comes up signed out. MEASURED in one restart, where the chair and every worker did. The owner's
+ * rule is that restoration uses our own commands. With cmux's restore switched off (`slopweaver fleet restore-policy --apply`) a reopened tab is a bare shell instead, and
  * the live-session pass (`./reseat.ts`'s `sessionInTree`) sees nothing in it to resume. This is the read that does.
  *
  * ## Which id, and why the pin wins
