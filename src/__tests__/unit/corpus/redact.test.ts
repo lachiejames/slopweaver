@@ -26,6 +26,34 @@ describe("redactText", () => {
   });
 });
 
+describe("redactText — an email address whose local part is quoted", () => {
+  it("redacts a quoted local part carrying a space, whole", () => {
+    expect(redactText({ text: 'mail "jane doe"@example.com today' })).toEqual({
+      redactions: ["email"],
+      text: "mail [email] today",
+    });
+  });
+
+  it("redacts a quoted local part carrying a dot, leaving no quoted fragment behind", () => {
+    expect(redactText({ text: 'mail "jane.doe"@example.com today' })).toEqual({
+      redactions: ["email"],
+      text: "mail [email] today",
+    });
+  });
+
+  it("leaves a bare @mention, an issue ref, a team key and quoted prose with no address after it untouched", () => {
+    const text = '@alice said "ship it" on #42 for TEAM-7, then "done" @bob';
+    expect(redactText({ text })).toEqual({ redactions: [], text });
+  });
+
+  it("runs before the long-digit pass, so a numeric quoted local part reports email and a later run number", () => {
+    expect(redactText({ text: '"123456789"@example.com then 123456789' })).toEqual({
+      redactions: ["email", "number"],
+      text: "[email] then [number]",
+    });
+  });
+});
+
 /**
  * Every prefix here is a single character placed immediately before a secret. The last three are word
  * characters, which is precisely what a `\b` anchor rejects — so under the anchored patterns these cases

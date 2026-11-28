@@ -36,7 +36,7 @@ describe("redactRecord's author pass", () => {
     expect(writtenAuthor({ author: "Ada <ada@example.test>", source: "fathom" })).toBe("Ada <[email]>");
   });
 
-  it("scrubs an address form the prose email pass misses: a quoted local part, an address literal, one label", () => {
+  it("scrubs a quoted local part, and the forms only the author pass reaches: an address literal, one label", () => {
     expect(writtenAuthor({ author: '"boss"@example.test', source: "gmail" })).toBe("[email]");
     expect(writtenAuthor({ author: '"big boss"@example.test', source: "calendar" })).toBe("[email]");
     expect(writtenAuthor({ author: "boss@[192.0.2.1]", source: "fathom" })).toBe("[email]");

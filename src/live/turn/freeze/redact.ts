@@ -15,6 +15,8 @@
  *
  * Pure: the caller threads the id map, and gets the grown map back. Nothing here reads a file or a clock.
  */
+
+import { emailAddressPattern } from "#lib/emailAddressPattern.js";
 import { INVALID_DATADOG_CONSOLE_HOSTS } from "../../../datadog/invalidConsoleHost.js";
 import { isRecord } from "../../../lib/parsers.js";
 
@@ -240,8 +242,8 @@ const SECRETS: readonly RegExp[] = [
   /Bearer\s+[A-Za-z0-9._-]{12,}/g,
 ];
 
-/** An email address anywhere in a kept string. */
-const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
+/** An email address anywhere in a kept string, a quoted local part included (`src/lib/emailAddressPattern.ts`). */
+const EMAIL = emailAddressPattern();
 
 /**
  * An absolute home path. Matches the hygiene gate's `absolute-home-path` class exactly, so anything the

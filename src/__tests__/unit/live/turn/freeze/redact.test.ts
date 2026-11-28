@@ -103,6 +103,12 @@ describe("redactFixtureText", () => {
     );
   });
 
+  it("neutralises an email address whose local part is quoted, whole", () => {
+    expect(
+      redactFixtureText({ denylist: NO_DENYLIST, home: HOME, ids: ids(), text: 'from "jane doe"@example.com today' }),
+    ).toBe("from [email] today");
+  });
+
   it("removes a denylist word case-insensitively", () => {
     expect(redactFixtureText({ denylist: ["acme"], home: HOME, ids: ids(), text: "live-AcMe-loop" })).toBe(
       "live-[redacted-word]-loop",
