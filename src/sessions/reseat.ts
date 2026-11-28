@@ -7,10 +7,10 @@
  *
  * `session re-seat` (`./seatRecovery.ts`) CLOSES a walled workspace and fresh-spawns its ledger row's slug, which
  * is right for a seat with nothing to resume and wrong for every other one: the conversation is lost. MEASURED
- * in one macOS-update restart: cmux restored every workspace and re-ran `claude --resume <id>`, and in that restart
- * with no setup-token descriptor and no store, so each of its seats came up `Not logged in`, the seat gate refused
- * the owner's own turns in the chair, and its remedy named a spawn that cannot resume anything. The owner wants a no-cost recovery
- * that resumes with context. This relaunches the SAME session id in the SAME surface, on a routed plan.
+ * in one macOS-update restart: cmux restored every workspace and re-ran `claude --resume <id>` with no setup-token
+ * descriptor and no store, so each seat in that restart came up `Not logged in`, the seat gate refused the owner's
+ * own turns in the chair, and its remedy named a spawn that cannot resume anything. The owner wants a no-cost
+ * recovery that resumes with context. This relaunches the SAME session id in the SAME surface, on a routed plan.
  *
  * ## What a restored seat still carries, measured
  *
