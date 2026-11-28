@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { pluginCacheDir, pluginInstallState } from "../../../codexPlugin/installState.js";
 import { errorMessage } from "../../../lib/errorMessage.js";
+import { loopInstallPath } from "./fleetFixture.js";
 
 let codexHome: string;
 
@@ -45,6 +46,25 @@ describe("pluginInstallState", () => {
   it("is absent with no stamp", () => {
     const stampPath = join(pluginCacheDir({ codexHome, marketplace: "personal" }), ".codex-plugin", "source.json");
     expect(pluginInstallState({ codexHome, marketplace: "personal" })).toEqual({ kind: "absent", stampPath });
+  });
+
+  it("is absent when a directory above the stamp is a file, which a lookup reads as ENOTDIR", () => {
+    const marketplaceDir = join(codexHome, "plugins", "cache", "personal");
+    mkdirSync(marketplaceDir, { recursive: true });
+    writeFileSync(join(marketplaceDir, "slopweaver"), "not a directory");
+    const stampPath = join(pluginCacheDir({ codexHome, marketplace: "personal" }), ".codex-plugin", "source.json");
+
+    expect(pluginInstallState({ codexHome, marketplace: "personal" })).toEqual({ kind: "absent", stampPath });
+  });
+
+  it("is unreadable, never absent, when the stamp's path cannot be looked up", () => {
+    const stampPath = loopInstallPath({ codexHome });
+
+    const state = pluginInstallState({ codexHome, marketplace: "personal" });
+
+    expect(state.kind).toBe("unreadable");
+    expect(state.stampPath).toBe(stampPath);
+    expect(state).toHaveProperty("why", expect.stringContaining("ELOOP"));
   });
 
   it("is installed on the stamp's full commit", () => {

@@ -4,7 +4,7 @@
  * no case reads or writes a real Codex home. The fakes stand in for `codex plugin add` and the hook-trust pass
  * as plain functions, never mocks.
  */
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -130,6 +130,26 @@ export function cacheOf({ codexHome, marketplace = "personal" }: { codexHome: st
 export function stampInstall({ codexHome, commit }: { codexHome: string; commit: string }): void {
   mkdirSync(join(cacheOf({ codexHome }), ".codex-plugin"), { recursive: true });
   writeFileSync(join(cacheOf({ codexHome }), ".codex-plugin", "source.json"), JSON.stringify({ commit }));
+}
+
+/**
+ * Make one marketplace directory's Slopweaver path a symlink to itself, so looking up the stamp below it fails with
+ * `ELOOP` for any user, root included — the lookup failure that is neither "not there" nor a stamp. A recursive
+ * `rmSync` of the root removes the link like any other entry.
+ *
+ * @returns the concrete stamp path whose lookup now fails
+ */
+export function loopInstallPath({
+  codexHome,
+  marketplace = "personal",
+}: {
+  codexHome: string;
+  marketplace?: string;
+}): string {
+  const marketplaceDir = join(codexHome, "plugins", "cache", marketplace);
+  mkdirSync(marketplaceDir, { recursive: true });
+  symlinkSync("slopweaver", join(marketplaceDir, "slopweaver"));
+  return join(cacheOf({ codexHome, marketplace }), ".codex-plugin", "source.json");
 }
 
 /**

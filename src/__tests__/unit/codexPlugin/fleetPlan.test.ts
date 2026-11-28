@@ -16,6 +16,7 @@ import {
   disposeTemplate,
   type Fleet,
   homesOf,
+  loopInstallPath,
   MARKETPLACE_WITH_SLOPWEAVER,
   makeFleet,
   marketplacePath,
@@ -106,6 +107,32 @@ describe("planFleetSync", () => {
     const plan = hookPlan();
     expect(plan).toMatchObject({ homes: [{ action: "untouched" }, { action: "refresh" }] });
     expect(fleetSyncDue({ plan })).toBe(true);
+  });
+
+  it("leaves a home whose stamp cannot be looked up untouched in the hook's scope, as for no stamp", () => {
+    writeMarketplace({ raw: JSON.stringify(MARKETPLACE_WITH_SLOPWEAVER), userHome: fleet.paths.userHome });
+    loopInstallPath({ codexHome: fleet.registered });
+    stampInstall({ codexHome: fleet.ambient, commit: "d".repeat(40) });
+
+    expect(hookPlan().homes[0]).toEqual({
+      action: "untouched",
+      home: { codexHome: fleet.registered, registered: true },
+      why: "not installed here — run `slopweaver codex plugin-sync`",
+    });
+  });
+
+  it("plans a foreground install over a home whose stamp cannot be looked up, as for no stamp", () => {
+    loopInstallPath({ codexHome: fleet.registered });
+    const plan = unwrap(
+      planFleetSync({
+        homes: homesOf({ fleet }),
+        mainCheckouts: [fleet.paths.checkout],
+        paths: fleet.paths,
+        scope: "install-every-home",
+      }),
+    );
+
+    expect(plan).toMatchObject({ homes: [{ action: "refresh" }, { action: "refresh" }] });
   });
 });
 
