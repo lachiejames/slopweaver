@@ -66,6 +66,20 @@ export const CLAUDE_SESSION_HATCHES = [
   },
   {
     caught:
+      "the worktree this row's spawn would reuse is held by ANOTHER row's unclosed run or parked seat, and a second session there shares that seat's working tree and index",
+    command: "slopweaver cmux spawn",
+    exceptions: [
+      "the holding row's journal names a tree its seat has verifiably left, and the run cannot be closed or released first",
+      "the named holder is an attribution the journal got wrong, checked against the live workspace standing in that tree",
+    ],
+    id: "foreign-worktree-holder",
+    key: { kind: "env", variable: "SLOPWEAVER_ALLOW_FOREIGN_WORKTREE_HOLDER" },
+    lane: "ambient",
+    reader: "src/cli/commands/cmux/spawnTreeGate.ts",
+    standing: "proposed",
+  },
+  {
+    caught:
       "copying a store's credential into the shared default keychain slot is retired: two slots holding one credential is revoked the moment either refreshes",
     command: "slopweaver claude rotate --commit",
     exceptions: ["a session needs a different account, which the store override gives it without copying anything"],

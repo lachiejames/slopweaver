@@ -247,6 +247,7 @@ const CATEGORIES: readonly {
       "unreadable-plan",
       "boot-burst",
       "spawn-backoff",
+      "foreign-worktree-holder",
       "rotation-copy-retired",
       "identity-reenroll",
       "claude-mint-authorize-host",

@@ -167,6 +167,13 @@ slopweaver cmux close <your own workspace>                        # ONLY after t
 **Spawn before you close, and verify the spawn came up** (`slopweaver cmux list --json`, not the confirmation
 line alone). A session that closes first and then finds the respawn failed has stranded a branch nobody holds.
 
+**A reused tree is the row's OWN or a free one.** When the tree a spawn would reopen is held by a DIFFERENT row's
+unclosed run or parked seat — a row declaring another seat's branch, say — `cmux spawn` refuses and names the holding
+row and the tree (`foreign-worktree-holder`, `src/cli/commands/cmux/spawnTreeGate.ts`), and `handover register
+--branch` warns at registration. Register such a row with no branch key; it is seated in a tree of its own. The
+signal is the SESSION, not the slug: a row started by the session already holding the tree is one occupant, and the
+main checkout, shared by design, is never asked (`src/cmux/treeOccupancy.ts`).
+
 **Two carve-outs, and only two.**
 
 - **A session whose value IS its accumulated context is exempt, by judgement.** A live investigation holding a

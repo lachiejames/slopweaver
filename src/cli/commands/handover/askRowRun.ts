@@ -37,6 +37,7 @@ import { decisionVerdict } from "./askRowDecision.js";
 import { registeredInstant } from "./askRowInstant.js";
 import { askRowText } from "./askRowText.js";
 import { resolveHandoverDir } from "./commandSupport.js";
+import { registerBranchHold } from "./registerBranchHold.js";
 import { registerCallAnchorExit } from "./registerCallAnchor.js";
 import { registrationHisWords } from "./registerHisWords.js";
 import { registerPreWriteRefused } from "./registerPreWrite.js";
@@ -297,6 +298,10 @@ export async function registerAskRow({
   const plan = { ...planned, repo: repo.value };
   if (await registerPreWriteRefused({ plan })) {
     return EXIT_ERROR;
+  }
+  const branchHeld = registerBranchHold({ branch: plan.branch, home: plan.home, repo: plan.repo, slug: plan.slug });
+  if (branchHeld !== undefined) {
+    logger.warn({ msg: branchHeld });
   }
   return writeAskRow({ origin, out, plan });
 }

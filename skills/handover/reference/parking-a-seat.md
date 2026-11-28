@@ -51,8 +51,8 @@ writer is dead, which would close the cycle and hide the checkpoint; a released 
   `handover list --json` carries a `parked` field (`src/handover/boardEvidence.ts`, `listJson.ts`).
 - `handover resume <slug>` prints a `PARKED` block: worktree, branch, the question, the last screen.
 - The owner's answer arrives by `handover rule` or on the Queue. `cmux spawn <slug>` then reopens the parked worktree
-  (its journalled path, then its branch, over the doc's declared one, `src/cmux/plan.ts`), and the seat resumes.
-  A tree older than the `parked` kind cannot claim until it pulls the base, which its stale-reader refusal says.
+  (its journalled path, then its branch, over the doc's declared one, `src/cmux/plan.ts`); another row's spawn there
+  is refused (`src/cmux/treeOccupancy.ts`). A tree older than the `parked` kind cannot claim until it pulls the base.
 - The park stays ACTIVE until the owner answers, the question is withdrawn or replaced, the run ends, or a spawn or
   session takes it back. A ruling leaves it: a ruling is what a reseat is for. A `park-wake-suspended` line
   holds only its WAKE ([why](waking-a-park.md#a-merged-park-waiting-only-on-the-owners-open-question-has-its-wake-suspended)).

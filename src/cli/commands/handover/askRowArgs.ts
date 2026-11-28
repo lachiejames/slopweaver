@@ -331,7 +331,9 @@ export const REGISTER_USAGE =
   "  --observed-by <session> the observing session; defaults to this session's own id\n" +
   "  --branch <name>   the head branch this row is about, declared rather than inferred. It is what joins\n" +
   "                    the row to an open pull request on the landing read, and what a team-facing door\n" +
-  "                    matches a --finding row by — name similarity is never used for either\n" +
+  "                    matches a --finding row by — name similarity is never used for either. A branch\n" +
+  "                    checked out in a tree another row's unclosed run or parked seat holds is warned\n" +
+  "                    about on stderr: `cmux spawn` refuses to seat this row in that tree\n" +
   "  --repo <path>     the main checkout a seat's worktree is cut from: the top of a main checkout, a\n" +
   "                    declared checkout's owner/name, or its bare repository name. The row records the\n" +
   "                    absolute top, and a value that resolves to none is refused before anything is\n" +

@@ -24,6 +24,7 @@ import { launchSpawnThroughSeam } from "./spawnLaunch.js";
 import { spawnSuccessLines, spawnWorktreeLine } from "./spawnOutput.js";
 import { recordSeatLeftOpen, recordSpawn } from "./spawnRecord.js";
 import { resolveSpawnTarget, spawnDepsFor } from "./spawnTarget.js";
+import { foreignTreeRefusal } from "./spawnTreeGate.js";
 
 /**
  * Close the workspace a caught Codex exhaustion left standing, and say what happened. Only a cmux launch reports a
@@ -161,6 +162,24 @@ export function spawnExitWhy({ exitCode }: { exitCode: number }): string {
 }
 
 /**
+ * The first refusal a decided plan meets, asked before admission: the base preflight, then a reused tree another
+ * row's unclosed run or parked seat holds.
+ */
+function planRefusal({
+  home,
+  preflight,
+}: {
+  home: string | undefined;
+  preflight: Parameters<typeof reportSpawnPreflight>[0];
+}): string | undefined {
+  const baseRefusal = reportSpawnPreflight(preflight);
+  if (baseRefusal !== undefined) {
+    return `cmux spawn: refusing — ${baseRefusal}`;
+  }
+  return foreignTreeRefusal({ env: process.env, home, plan: preflight.plan });
+}
+
+/**
  * The spawn itself: resolve, preflight, ADMIT, open. The base preflight runs before admission so a spawn
  * refused on its plan never takes one of the fleet's spaced admissions after a hold.
  */
@@ -176,14 +195,12 @@ async function spawnThroughAdmission({
     return target;
   }
   const { doc, plan, home, runEvents } = target;
-  const baseRefusal = reportSpawnPreflight({
-    doc,
-    docText: target.docText,
-    plan,
-    requireCurrentBase: target.requireCurrentBase,
+  const refusal = planRefusal({
+    home,
+    preflight: { doc, docText: target.docText, plan, requireCurrentBase: target.requireCurrentBase },
   });
-  if (baseRefusal !== undefined) {
-    logger.error({ msg: `cmux spawn: refusing — ${baseRefusal}` });
+  if (refusal !== undefined) {
+    logger.error({ msg: refusal });
     return EXIT_ERROR;
   }
   if (!pastBackoff) {
