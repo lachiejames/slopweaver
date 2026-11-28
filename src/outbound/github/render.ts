@@ -2,20 +2,21 @@
  * The PURE renderer: a C3 form in, the exact bytes of a pull-request body out.
  *
  * The order is the order a reader meets it: the derived badges (`./badgeRow.ts`), the explainer, **Proof of the
- * problem** and **Proof of the solution** (each a screenshot under the line it proves, or a one-line reason, its
- * heading then reading `: not shown`), **Checks** as dot points with any labelled group nested after the base ones,
- * **Not checked, and why**, then the re-run fold. Blocks are separated by ONE blank line and every content block is
- * one line of HTML (a list is one line per item), because GitHub parses no Markdown inside an HTML block and a stray
- * blank line would end one early. The re-run fold is the one exception on purpose: its items sit inside a `<details>`
- * with blank lines around them so a fenced command renders.
+ * problem** and **Proof of the solution** (each a screenshot under the line it proves, quoted output under the line it
+ * proves and its source, or a one-line reason, its heading then reading `: not shown`), **Checks** as dot points with
+ * any labelled group nested after the base ones, **Not checked, and why**, then the re-run fold. Blocks are separated
+ * by ONE blank line and every content block is one line of HTML (a list is one line per item), because GitHub parses
+ * no Markdown inside an HTML block and a stray blank line would end one early. The re-run fold and a quote's fold are
+ * the two exceptions on purpose: each holds a fenced block inside a `<details>`, with blank lines around it so it
+ * renders.
  *
  * ## Two layouts, one renderer
  *
  * Every write renders {@link CURRENT_LAYOUT}. Layout 1 is what every body published before it carries: `###`
  * headings, no `: not shown`, and each check its own paragraph under the solution. It stays renderable here so
  * `./parse.ts` can prove a read of an older body byte for byte, which is what keeps every open pull request's
- * description readable and its CI check green without rewriting it. Layout 1 has no check groups, so a body carrying
- * one is refused there rather than rendered without them.
+ * description readable and its CI check green without rewriting it. Layout 1 has no check groups and no quotes, so a
+ * body carrying either is refused there rather than rendered without them.
  *
  * Nothing here depends on the day of the write, a reviewer, a grade or an anchor: the bytes are a function of the
  * form and the layout alone, which is what lets `./parse.ts` invert them exactly. The one input beside the form is the
@@ -102,23 +103,44 @@ export const ALL_LAYOUT_HEADINGS: readonly string[] = [
  * A proof slot's heading in a layout: layout 2 says `: not shown` when the slot holds a reason.
  *
  * @param heading the slot's bare heading
- * @param slot what the section holds, a screenshot or a reason, which decides the mark
+ * @param slot what the section holds, a screenshot, a quote or a reason, which decides the mark
  * @returns the heading line
  */
 function proofHeadingOf({ heading, slot, layout }: { heading: string; slot: ProofSlot; layout: BodyLayout }): string {
   return layout === 2 && slot.kind === "reason" ? `${heading}${NOT_SHOWN}` : heading;
 }
 
+/** What opens a quote's source line, read back verbatim by `./parse.ts`. */
+export const QUOTE_SOURCE_PREFIX = "Source: ";
+
+/** The fold a quote's output sits in, read back verbatim by `./parse.ts`. */
+export const QUOTE_FOLD = { close: "</details>", open: "<details>\n<summary>Quoted output</summary>" } as const;
+
 /**
- * One proof slot's block: the line a screenshot proves above the picture, or the one-line reason there is none.
+ * One proof slot's block: the line a screenshot proves above the picture; the line a quote proves above its source,
+ * the output folded under them; or the one-line reason there is none.
  *
- * @returns its block, one line for a reason and two for a screenshot
+ * A quote's output is a fenced block, so it sits in a `<details>` with blank lines around it, the way the re-run
+ * fold's commands do: what it proves and where to read it again stay above the fold, the lines themselves below.
+ *
+ * @returns its block, one line for a reason, two for a screenshot, and four blank-line-separated parts for a quote
  */
 function renderProofSlot({ slot }: { slot: ProofSlot }): string {
-  if (slot.kind === "reason") {
-    return `<p>${renderContent({ content: slot.reason })}</p>`;
+  switch (slot.kind) {
+    case "reason":
+      return `<p>${renderContent({ content: slot.reason })}</p>`;
+    case "screenshot":
+      return `<p>${renderContent({ content: slot.proves })}</p>\n<p>${imageTag(slot.image)}</p>`;
+    case "quote": {
+      const fence = fenceFor({ text: slot.text });
+      return [
+        `<p>${renderContent({ content: slot.proves })}</p>\n<p>${QUOTE_SOURCE_PREFIX}${renderContent({ content: [slot.source] })}</p>`,
+        QUOTE_FOLD.open,
+        `${fence}${slot.lang}\n${slot.text}\n${fence}`,
+        QUOTE_FOLD.close,
+      ].join("\n\n");
+    }
   }
-  return `<p>${renderContent({ content: slot.proves })}</p>\n<p>${imageTag(slot.image)}</p>`;
 }
 
 /**
@@ -217,7 +239,7 @@ function checkBlocks({ body, layout }: { body: PrBody; layout: BodyLayout }): re
  * by. `./parse.ts` reads the keys to place what it lifted; {@link renderBodyIn} joins the text.
  *
  * @param layout the layout to render in
- * @returns the keyed blocks, or a refusal when a badge cannot be derived, or a check group asked of layout 1
+ * @returns the keyed blocks, or a refusal when a badge cannot be derived, or a check group or quote asked of layout 1
  */
 export function renderKeyedBlocksIn({
   body,
@@ -226,7 +248,8 @@ export function renderKeyedBlocksIn({
   body: PrBody;
   layout: BodyLayout;
 }): Result<readonly KeyedBlock<C3BlockKey>[], PrBodyError> {
-  if (layout === 1 && body.checkGroups !== undefined && body.checkGroups.length > 0) {
+  const quoted = body.problemProof.kind === "quote" || body.solutionProof.kind === "quote";
+  if (layout === 1 && ((body.checkGroups !== undefined && body.checkGroups.length > 0) || quoted)) {
     return err(PrBodyErrors.nonCanonical());
   }
   const headings = headingsOf({ layout });
@@ -269,7 +292,7 @@ export function renderKeyedBlocksIn({
  * @param layout the layout to render in
  * @param pasted media a human pasted between the body's blocks on github.com, re-placed after its key; empty for a
  *   body nobody pasted into
- * @returns the bytes, or a refusal when a badge cannot be derived, or a check group asked of layout 1
+ * @returns the bytes, or a refusal when a badge cannot be derived, or a check group or quote asked of layout 1
  */
 export function renderBodyIn({
   body,

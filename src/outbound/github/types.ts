@@ -4,8 +4,9 @@
  * ## The shape, in the order a reader meets it
  *
  * Three DERIVED badges (risk, problem, proof), the explainer directly under them, **Proof of the problem** and
- * **Proof of the solution** (each a screenshot, or a public reason there is none, at most two sentences, its heading
- * then reading `: not shown`), **Checks** as dot points with any labelled groups nested after them, **Not checked, and
+ * **Proof of the solution** (each a screenshot, quoted text output folded under the line it proves and its source, or
+ * a public reason there is none, at most two sentences, its heading then reading `: not shown`), **Checks** as dot
+ * points with any labelled groups nested after them, **Not checked, and
  * why**, then a `<details>` fold holding ONLY what someone needs to re-run it, and no fold at all when there is nothing
  * to re-run. No table, no origin, no grade, no anchor, no
  * Codex leftovers: none of those is published (`AGENTS.md` rule 7).
@@ -20,7 +21,8 @@
  *
  * Badges are computed (`./derive.ts`), never authored. Three facts have no visible section of their own and ride
  * the hovers instead, so a read-back recovers them: the top risk item (its worst case and its check), when and by
- * whom the problem was seen and what was seen (or why it was not), and who ran each screenshot. The risk items below
+ * whom the problem was seen and what was seen (or why it was not), who ran each screenshot or quote, and whether a
+ * quoted change is nothing on screen. The risk items below
  * the top one are kept by the form for the write but are not published; a read-back recovers the top item alone,
  * with its kind canonicalised to its level, which renders the same bytes.
  *
@@ -141,8 +143,16 @@ export interface ImageRun {
 }
 
 /**
- * One proof slot: a real screenshot with the line it proves and who ran it, or a public reason there is none, at most
- * two sentences.
+ * Where a quote's output can be read again: a link to the record that printed it (a CI job's log), or the command
+ * that prints it. One run, so the renderer owns its markup and a read-back gets the same run.
+ */
+export type QuoteSource =
+  | { readonly kind: "link"; readonly text: string; readonly url: string }
+  | { readonly kind: "code"; readonly text: string };
+
+/**
+ * One proof slot: a real screenshot with the line it proves and who ran it, the verbatim text a real run printed with
+ * the line it proves and where it can be read again, or a public reason there is none, at most two sentences.
  */
 export type ProofSlot =
   | {
@@ -150,6 +160,20 @@ export type ProofSlot =
       /** The one line saying what the image proves, rendered above it. At most 25 words. */
       readonly proves: Content;
       readonly image: ImageRun;
+      readonly runBy: ProofActor;
+    }
+  | {
+      readonly kind: "quote";
+      /** The one line saying what the quoted output proves, rendered above it. At most 25 words. */
+      readonly proves: Content;
+      /** The fence's info string (`text`, `console`), or empty. */
+      readonly lang: string;
+      /**
+       * The lines a real run printed, verbatim, rendered in a fenced block inside a fold: 1 to 20 lines of at most
+       * 200 characters, no blank line, no email or IP address (`./formRules.ts`'s `QUOTE_*` rules).
+       */
+      readonly text: string;
+      readonly source: QuoteSource;
       readonly runBy: ProofActor;
     }
   | {
@@ -164,7 +188,8 @@ export type ProofSlot =
 
 /**
  * Whether this change shows anything on screen: `nothing-on-screen` makes two reason slots read `proof: tests only`
- * (grey) rather than `proof: not run yet` (amber). A screenshot in either slot means `screen-change`.
+ * (grey) rather than `proof: not run yet` (amber). A screenshot in either slot means `screen-change`; a quote is
+ * text, so it sits beside either, and its proof hover says `Nothing on screen changes.` for the second.
  */
 export type VisualProof = "screen-change" | "nothing-on-screen";
 

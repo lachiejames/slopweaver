@@ -10,7 +10,15 @@ import { err, ok, type Result } from "#lib/result.js";
 import { shortDay, utcMidnightOf } from "./days.js";
 import { type PrBodyError, PrBodyErrors } from "./errors.js";
 import { WORST_KINDS } from "./schema.js";
-import { HOVER_MAX, type ProofHoverInput, problemHover, proofHover, riskHover } from "./tooltips.js";
+import {
+  HOVER_MAX,
+  type ProofHoverInput,
+  problemHover,
+  proofHover,
+  type QuotedHover,
+  type QuotedSideHover,
+  riskHover,
+} from "./tooltips.js";
 import type {
   BodyLayout,
   Content,
@@ -167,6 +175,49 @@ const PROOF_VALUES = {
   "tests-only": { color: GREY, message: "tests only" },
 } as const;
 
+/** A shown side's quote facts for its hover: present only when that side is a quote, so a screenshot reads as before. */
+function sideQuotedOf({
+  slot,
+  nothingOnScreen,
+}: {
+  slot: ProofSlot;
+  nothingOnScreen: boolean;
+}): QuotedSideHover | undefined {
+  return slot.kind === "quote" ? { nothingOnScreen } : undefined;
+}
+
+/** Two shown sides' quote facts for their hover: present only when either side is a quote. */
+function bothQuotedOf({
+  problemProof,
+  solutionProof,
+  nothingOnScreen,
+}: {
+  problemProof: ProofSlot;
+  solutionProof: ProofSlot;
+  nothingOnScreen: boolean;
+}): QuotedHover | undefined {
+  const problem = problemProof.kind === "quote";
+  const solution = solutionProof.kind === "quote";
+  return problem || solution ? { nothingOnScreen, problem, solution } : undefined;
+}
+
+/**
+ * Whether the proof hover states that nothing on screen changes. It is never stated beside a screenshot, which is
+ * the parser's own reading (a screenshot means a screen change), so the hover cannot say what a read-back denies.
+ */
+function nothingOnScreenOf({
+  visualProof,
+  problemProof,
+  solutionProof,
+}: {
+  visualProof: VisualProof;
+  problemProof: ProofSlot;
+  solutionProof: ProofSlot;
+}): boolean {
+  const anyScreenshot = problemProof.kind === "screenshot" || solutionProof.kind === "screenshot";
+  return visualProof === "nothing-on-screen" && !anyScreenshot;
+}
+
 /** The two slots reduced to what the proof badge says. */
 function proofInputOf({
   visualProof,
@@ -177,27 +228,33 @@ function proofInputOf({
   problemProof: ProofSlot;
   solutionProof: ProofSlot;
 }): ProofHoverInput {
-  if (problemProof.kind === "screenshot" && solutionProof.kind === "screenshot") {
-    return { kind: "both", problemBy: problemProof.runBy, solutionBy: solutionProof.runBy };
-  }
-  if (solutionProof.kind === "screenshot" && problemProof.kind === "reason") {
+  const nothingOnScreen = nothingOnScreenOf({ problemProof, solutionProof, visualProof });
+  if (problemProof.kind !== "reason" && solutionProof.kind !== "reason") {
     return {
-      kind: "solution-only",
-      problemReason: plainTextOf({ content: problemProof.reason }),
+      kind: "both",
+      problemBy: problemProof.runBy,
+      quoted: bothQuotedOf({ nothingOnScreen, problemProof, solutionProof }),
       solutionBy: solutionProof.runBy,
     };
   }
-  if (problemProof.kind === "screenshot" && solutionProof.kind === "reason") {
+  if (solutionProof.kind !== "reason" && problemProof.kind === "reason") {
+    return {
+      kind: "solution-only",
+      problemReason: plainTextOf({ content: problemProof.reason }),
+      quoted: sideQuotedOf({ nothingOnScreen, slot: solutionProof }),
+      solutionBy: solutionProof.runBy,
+    };
+  }
+  if (problemProof.kind !== "reason" && solutionProof.kind === "reason") {
     return {
       kind: "problem-only",
       problemBy: problemProof.runBy,
+      quoted: sideQuotedOf({ nothingOnScreen, slot: problemProof }),
       solutionReason: plainTextOf({ content: solutionProof.reason }),
     };
   }
   const solutionReason = solutionProof.kind === "reason" ? plainTextOf({ content: solutionProof.reason }) : "";
-  return visualProof === "nothing-on-screen"
-    ? { kind: "tests-only", solutionReason }
-    : { kind: "not-run", solutionReason };
+  return nothingOnScreen ? { kind: "tests-only", solutionReason } : { kind: "not-run", solutionReason };
 }
 
 /**

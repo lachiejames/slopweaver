@@ -32,7 +32,8 @@ function printFormExample({ deps }: { deps: { out: (args: { line: string }) => v
   deps.out({
     line:
       'a complete, valid --form (inline runs use kind "text"|"strong"|"em"|"code"|"link"; a proof slot is ' +
-      '{"kind":"reason",...} or {"kind":"screenshot",...} with an image hosted by `slopweaver github attach`; ' +
+      '{"kind":"reason",...}, {"kind":"screenshot",...} with an image hosted by `slopweaver github attach`, or ' +
+      '{"kind":"quote",...} holding text output verbatim; ' +
       "the badges are derived, never written):",
   });
   deps.out({ line: JSON.stringify(EXAMPLE_PR_FORM, null, 2) });

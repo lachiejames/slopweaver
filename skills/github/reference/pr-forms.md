@@ -83,12 +83,12 @@ Cell content is a list of typed RUNS, not a markdown string:
 ]
 ```
 
-`text`, `strong`, `em`, `code`, `link` — that is the whole vocabulary. A screenshot lives only in a proof slot:
+`text`, `strong`, `em`, `code`, `link` — the whole vocabulary. A screenshot lives only in a proof slot:
 `{ "kind": "screenshot", "image", "proves", "runBy": "owner"|"agent" }`, rendered as the picture under the one line
-it proves, never as a link to it; a slot with none is `{ "kind": "reason", "reason" }`. `visualProof` says whether
-anything on screen changes (`screen-change` or `nothing-on-screen`), which the proof badge reads. An image takes an
-optional `"width"`, 64 to 2048 pixels, rendered as `<img … width="N">`; in the authoring file it is
-`![alt](url){width=600}`. You cannot emit raw HTML, and that is deliberate: it keeps every cell a one-line block.
+it proves, never as a link to it; a slot with none is `{ "kind": "reason", "reason" }`; text output is a `quote`
+slot ([quoted proof](quoted-proof.md)). `visualProof` says whether anything on screen changes (`screen-change` or
+`nothing-on-screen`), which the proof badge reads. An image takes an optional `"width"`, 64 to 2048 pixels,
+rendered as `<img … width="N">`; in the authoring file `![alt](url){width=600}`. No raw HTML: every cell is one line.
 
 ## Update names ONLY what changes
 

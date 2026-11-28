@@ -4,14 +4,13 @@ import {
   cell,
   declined,
   parseBullets,
-  parseProofSlot,
   parseRerunBlocks,
   parseUncheckedLines,
   renderBullets,
-  renderProofSlotLines,
   renderRerunBlocks,
   renderUncheckedLines,
 } from "../../../../outbound/github/authoringGrammar.js";
+import { parseProofSlot, renderProofSlotLines } from "../../../../outbound/github/authoringProofSlot.js";
 import { t } from "./fixtures.js";
 
 describe("declined", () => {
@@ -75,12 +74,71 @@ describe("proof slot lines", () => {
     expect(parseProofSlot({ section: "Proof of the solution", source: lines })).toEqual(slot);
   });
 
-  it("names both shapes when the section is neither", () => {
+  it("names all three shapes when the section is none of them", () => {
     const result = parseProofSlot({ section: "Proof of the problem", source: "a\nb" });
     expect(result).toEqual({
       error:
-        '## Proof of the problem: the section is one line "reason: <why there is no screenshot>", or three: the line the ' +
-        'screenshot proves, "![alt](url)" (optionally "{width=N}") alone on its line, and "run by: owner" or "run by: agent"',
+        '## Proof of the problem: the section is one line "reason: <why there is no screenshot>"; three: the line the ' +
+        'screenshot proves, "![alt](url)" (optionally "{width=N}") alone on its line, and "run by: owner" or "run by: ' +
+        'agent"; or a quote: a quote is four parts: the line it proves, the output in a fenced block, "source: ' +
+        '[label](url)" or "source: `command`", and "run by: owner" or "run by: agent"',
+    });
+  });
+
+  it("writes a quote slot as proves line, fenced output, source and run-by, and reads the output back byte for byte", () => {
+    const slot = {
+      kind: "quote",
+      lang: "text",
+      proves: t({ text: "the job fails" }),
+      runBy: "agent",
+      source: { kind: "link", text: "the job log", url: "https://github.com/acme/widgets/actions/runs/1/job/2" },
+      text: "  indented line\nprinted ``` mid-line",
+    } as const;
+    const lines = renderProofSlotLines({ slot });
+    expect(lines.split("\n")).toEqual([
+      "the job fails",
+      "````text",
+      "  indented line",
+      "printed ``` mid-line",
+      "````",
+      "source: [the job log](https://github.com/acme/widgets/actions/runs/1/job/2)",
+      "run by: agent",
+    ]);
+    expect(parseProofSlot({ section: "Proof of the problem", source: `\n${lines}\n\n` })).toEqual(slot);
+  });
+
+  it("reads a quote whose source is a command", () => {
+    const source = "it passes\n```\nok\n```\nsource: `widgets checks`\nrun by: owner";
+    expect(parseProofSlot({ section: "Proof of the solution", source })).toEqual({
+      kind: "quote",
+      lang: "",
+      proves: t({ text: "it passes" }),
+      runBy: "owner",
+      source: { kind: "code", text: "widgets checks" },
+      text: "ok",
+    });
+  });
+
+  it("declines an unclosed quote fence", () => {
+    const source = "it passes\n```\nok\nsource: `widgets checks`\nrun by: owner";
+    expect(parseProofSlot({ section: "Proof of the solution", source })).toEqual({
+      error: "## Proof of the solution: an unclosed fenced code block — it opens with ``` but nothing closes it",
+    });
+  });
+
+  it("declines a source that is prose rather than one link or code span", () => {
+    const source = "it passes\n```\nok\n```\nsource: the log\nrun by: owner";
+    expect(parseProofSlot({ section: "Proof of the solution", source })).toEqual({
+      error: '## Proof of the solution: the source is one link or one code span alone, and "source: the log" is not',
+    });
+  });
+
+  it("declines a quote missing its run-by line", () => {
+    const source = "it passes\n```\nok\n```\nsource: `widgets checks`";
+    expect(parseProofSlot({ section: "Proof of the solution", source })).toEqual({
+      error:
+        '## Proof of the solution: a quote is four parts: the line it proves, the output in a fenced block, "source: ' +
+        '[label](url)" or "source: `command`", and "run by: owner" or "run by: agent"',
     });
   });
 });

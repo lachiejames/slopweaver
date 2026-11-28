@@ -89,6 +89,9 @@ characters, plain text.
   test is refused: its common shapes, "the unit cases below" included, before any review (`PROOF_IS_TEST_SENTENCE`),
   and the rest by the review. One reason in both slots is refused too (`REASON_REPEATED`). The sentence about the
   test goes under Checks. A slot with a reason renders its heading as `Proof of the problem: not shown`.
+- **Where the evidence is text, quote it.** A failing CI job or a command's output is proved by its own lines, not a
+  screenshot of a terminal: a `quote` slot carries them verbatim, folded, under the line they prove and a source
+  (the job log's link or the command). Paste the real output, never a retyping; quote only the lines that prove it.
 - **A check is one sentence with no screenshot**: what was checked and what it showed, under `## Checks` as a list.
   A group of checks is a label with its checks nested under it, the base checks everyone shares first
   (`checkGroups`; in an authoring file, a `- <label>` bullet with ` -` bullets under it). Lint, typecheck or a gate

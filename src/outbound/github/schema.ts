@@ -150,12 +150,55 @@ const problemSeenSchema = z.discriminatedUnion("kind", [
   strictForm({ kind: z.literal("not-seen"), why: hoverSentence({ what: "why the problem was not seen yet" }) }),
 ]) satisfies z.ZodType<ProblemSeen>;
 
+/** A fence's info string: one bare word or empty, since it shares its LINE with the opening fence. */
+const fenceLang = z
+  .string()
+  .regex(/^[A-Za-z0-9_+-]*$/, "a code language is one bare word (letters, digits, _ + -) or empty");
+
+/**
+ * The refusal of a blank line in a quote: the body is read back as blocks split at blank lines, and the authoring
+ * file drops them, so one would not come back. A quote is the lines that prove the point, not the whole log.
+ */
+const QUOTE_BLANK_LINE_MESSAGE =
+  "a quote carries a blank line, which would not read back: the description splits at blank lines. Quote only the " +
+  "lines that prove it, with no blank line between them";
+
+/** A quote's verbatim output: what the reader can bring back byte for byte, and nothing else. */
+const quoteTextSchema = nonBlank()
+  .refine((text) => !text.includes("\r"), "a carriage return in a quote may not read back. Use a newline alone")
+  .refine((text) => !text.includes("\0"), "a quote carries a NUL byte, which a description cannot hold")
+  .refine((text) => text.split("\n").every((line) => line.trim().length > 0), QUOTE_BLANK_LINE_MESSAGE);
+
+/** Where a quote can be read again: one link run, or one code run naming the command that prints it. */
+const quoteSourceSchema = z.discriminatedUnion("kind", [
+  strictForm({ kind: z.literal("link"), text: nonBlank(), url: HTTPS }),
+  // The authoring file writes a code source between single backticks, so one inside it would not read back.
+  strictForm({
+    kind: z.literal("code"),
+    text: nonBlank().refine((text) => !text.includes("`"), {
+      message: "a code source carries no backtick; quote that command's job log as a link source instead",
+    }),
+  }),
+]);
+
 const proofSlotSchema = z.discriminatedUnion("kind", [
   strictForm({
     image: imageSchema,
     kind: z.literal("screenshot"),
     proves: contentSchema,
     runBy: z.enum(["owner", "agent"]),
+  }),
+  strictForm({
+    kind: z.literal("quote"),
+    lang: fenceLang,
+    proves: contentSchema,
+    runBy: z.enum(["owner", "agent"]),
+    source: quoteSourceSchema.superRefine((run, context) => {
+      for (const issue of runIssues({ run })) {
+        context.addIssue({ code: "custom", message: `the quote's source: ${issue}` });
+      }
+    }),
+    text: quoteTextSchema,
   }),
   strictForm({ kind: z.literal("reason"), reason: contentSchema }),
 ]) satisfies z.ZodType<ProofSlot>;
@@ -178,8 +221,7 @@ const CARRIAGE_RETURN_MESSAGE =
 const rerunItemSchema = z.discriminatedUnion("kind", [
   strictForm({
     kind: z.literal("command"),
-    // One bare word or empty: the info string shares its LINE with the opening fence.
-    lang: z.string().regex(/^[A-Za-z0-9_+-]*$/, "a code language is one bare word (letters, digits, _ + -) or empty"),
+    lang: fenceLang,
     text: nonBlank().refine((text) => !text.includes("\r"), CARRIAGE_RETURN_MESSAGE),
   }),
   strictForm({ items: z.array(contentSchema).min(1), kind: z.literal("tests") }),

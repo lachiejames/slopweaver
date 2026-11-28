@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { BADGE_TARGETS, badgeRowOf, readBadgeRow } from "../../../../outbound/github/badgeRow.js";
-import { FEATURE_BODY, FIX_BODY, P1_CHECKED, P2_CHECKED, TESTS_ONLY_BODY } from "./fixtures.js";
+import { FEATURE_BODY, FIX_BODY, P1_CHECKED, P2_CHECKED, QUOTE_BODY, TESTS_ONLY_BODY } from "./fixtures.js";
 
 describe("BADGE_TARGETS", () => {
   it("names the four heading anchors", () => {
@@ -40,10 +40,10 @@ describe("readBadgeRow", () => {
     const row = badgeRowOf({ body: FIX_BODY, layout: 2 })._unsafeUnwrap();
     const cursor = { at: 0, blocks: [row] };
     expect(readBadgeRow({ cursor })._unsafeUnwrap()).toEqual({
+      nothingOnScreen: false,
       problemBy: "agent",
       problemSeen: FIX_BODY.problemSeen,
       solutionBy: "agent",
-      testsOnly: false,
       topRisk: P2_CHECKED,
     });
     expect(cursor.at).toBe(1);
@@ -57,7 +57,16 @@ describe("readBadgeRow", () => {
 
   it.each([1, 2] as const)("flags a tests-only proof badge in layout %i", (layout) => {
     const row = badgeRowOf({ body: TESTS_ONLY_BODY, layout })._unsafeUnwrap();
-    expect(readBadgeRow({ cursor: { at: 0, blocks: [row] } })._unsafeUnwrap().testsOnly).toBe(true);
+    expect(readBadgeRow({ cursor: { at: 0, blocks: [row] } })._unsafeUnwrap().nothingOnScreen).toBe(true);
+  });
+
+  it.each([
+    ["nothing on screen", QUOTE_BODY, true],
+    ["a screen change", { ...QUOTE_BODY, visualProof: "screen-change" as const }, false],
+  ])("reads a quote's actors and whether %s off its hover", (_name, body, nothingOnScreen) => {
+    const row = badgeRowOf({ body, layout: 2 })._unsafeUnwrap();
+    const facts = readBadgeRow({ cursor: { at: 0, blocks: [row] } })._unsafeUnwrap();
+    expect([facts.problemBy, facts.solutionBy, facts.nothingOnScreen]).toEqual(["agent", "owner", nothingOnScreen]);
   });
 
   it("stops at the badge row when the block is not one", () => {

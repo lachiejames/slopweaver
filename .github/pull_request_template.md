@@ -10,7 +10,8 @@
   The body reads top to bottom:
   - three DERIVED badges (risk, problem, proof), none authored, each with a plain hover;
   - the explainer, at most 70 words: what broke, for whom, and what this changes;
-  - "Proof of the problem" and "Proof of the solution": a screenshot under the one line it proves, or a reason;
+  - "Proof of the problem" and "Proof of the solution": a screenshot under the one line it proves, quoted output
+    under it with its source, or a reason;
   - "Checks", one sentence per check with no screenshot, a group nested under its label, then "Not checked, and why";
   - "Re-run", the one fold, holding only what re-runs it.
 

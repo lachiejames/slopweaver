@@ -160,8 +160,8 @@ export function landedProofOf({ form }: { form: LedgerForm }): LandedProof {
 }
 
 /**
- * One proof slot as a side of the before-and-after: a screenshot says who ran it and what it proves, a reason
- * slot says why there is no screenshot. A description publishes no grade, so none is read here.
+ * One proof slot as a side of the before-and-after: a screenshot or a quote says who ran it and what it proves, a
+ * reason slot says why there is no screenshot. A description publishes no grade, so none is read here.
  *
  * @param slot the description's proof of the problem or of the solution
  * @returns the side as text
@@ -171,6 +171,12 @@ function landedSideOf({ slot }: { slot: ProofSlot }): LandedSide {
     return {
       evidence: `${contentText({ content: slot.proves })} ${contentText({ content: [slot.image] })}`,
       where: `a screenshot the ${slot.runBy} ran`,
+    };
+  }
+  if (slot.kind === "quote") {
+    return {
+      evidence: `${contentText({ content: slot.proves })} ${contentText({ content: [slot.source] })}`,
+      where: `output the ${slot.runBy} quoted`,
     };
   }
   return { evidence: contentText({ content: slot.reason }), where: "no screenshot" };

@@ -9,7 +9,8 @@ const BRIEF_THEN_BLANK: readonly string[] = [...prVoiceBriefLines({}), ""];
 
 const FORM_EXPLANATION =
   'a complete, valid --form (inline runs use kind "text"|"strong"|"em"|"code"|"link"; a proof slot is ' +
-  '{"kind":"reason",...} or {"kind":"screenshot",...} with an image hosted by `slopweaver github attach`; ' +
+  '{"kind":"reason",...}, {"kind":"screenshot",...} with an image hosted by `slopweaver github attach`, or ' +
+  '{"kind":"quote",...} holding text output verbatim; ' +
   "the badges are derived, never written):";
 
 const FILE_EXPLANATION =

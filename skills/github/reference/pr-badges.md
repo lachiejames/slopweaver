@@ -18,6 +18,9 @@ never authored (`src/outbound/github/derive.ts`, `tooltips.ts`); each carries a 
   `solution only` green, `problem only` and `not run yet` amber, `tests only` grey (nothing on screen changes,
   `visualProof: nothing-on-screen`). The hover names who ran each screenshot, or quotes the slot's reason; a
   `tests only` hover is `No screenshots. <reason>`, claiming nothing about the screen the reason does not say.
+  A quote counts as shown, like a screenshot: its hover says `Quoted output of …` for that side, and adds the
+  sentence `Nothing on screen changes.` when `visualProof` is `nothing-on-screen` and neither side is a
+  screenshot, which is how that claim reads back.
 
 ## What each derived phrase claims
 

@@ -14,6 +14,7 @@ import {
   PROOF_REASON_CAP,
   WORD_CAPS,
 } from "../../../../outbound/github/formRules.js";
+import { QUOTE_CAPS } from "../../../../outbound/github/quoteRules.js";
 import type { PrBody } from "../../../../outbound/github/types.js";
 import { prFormWriteSchema } from "../../../../outbound/github/writeSchema.js";
 import {
@@ -23,6 +24,7 @@ import {
   P1_CHECKED,
   P2_CHECKED,
   P3_CHECKED,
+  QUOTE_BODY,
   shot,
   TESTS_BODY,
   TESTS_ONLY_BODY,
@@ -423,6 +425,89 @@ describe("c3FormErrors — a proof reason is at most two sentences", () => {
       "PROOF_REASON_SENTENCES solutionProof.reason",
     ]);
     expect(codes({ body: FEATURE_BODY })).toStrictEqual([]);
+  });
+});
+
+describe("c3FormErrors — a quote is the lines that prove it", () => {
+  /** The quote body with its problem quote's text replaced. */
+  function withProblemText({ text }: { text: string }): PrBody {
+    const quote = QUOTE_BODY.problemProof;
+    if (quote.kind !== "quote") {
+      throw new Error("QUOTE_BODY's problem proof is a quote");
+    }
+    return { ...QUOTE_BODY, problemProof: { ...quote, text } };
+  }
+
+  it("passes a quote body, nothing on screen beside two quotes included", () => {
+    expect(codes({ body: QUOTE_BODY })).toStrictEqual([]);
+  });
+
+  it("accepts exactly the line and width caps, and refuses one past either", () => {
+    const atCap = Array.from({ length: QUOTE_CAPS.lines }, () => "x".repeat(QUOTE_CAPS.lineChars)).join("\n");
+    const tooMany = `${atCap}\nx`;
+    const tooWide = `${"x".repeat(QUOTE_CAPS.lineChars + 1)}`;
+    expect(codes({ body: withProblemText({ text: atCap }) })).toStrictEqual([]);
+    expect(codes({ body: withProblemText({ text: tooMany }) })).toStrictEqual(["QUOTE_LINES problemProof.text"]);
+    expect(issuesOf({ body: withProblemText({ text: tooWide }), today: undefined })[0]!.message).toBe(
+      "problemProof.text is 1 lines, the widest 201 characters (max 20 lines of 200). Quote only the lines that " +
+        "prove it; the source line points at the rest",
+    );
+  });
+
+  it("refuses a quote of a million lines rather than overflowing the stack measuring it", () => {
+    const text = Array.from({ length: 1_000_000 }, () => "x").join("\n");
+    expect(codes({ body: withProblemText({ text }) })).toStrictEqual(["QUOTE_LINES problemProof.text"]);
+  });
+
+  it.each([
+    ["an email address", "login failed for someone@example.com"],
+    ["an IPv4 address", "connect ECONNREFUSED 203.0.113.7:5432"],
+    ["an IPv6 address", "bound to fe80::1ff:fe23:4567:890a then closed"],
+  ])("refuses %s in a quote rather than publishing or rewriting it", (_name, text) => {
+    expect(codes({ body: withProblemText({ text }) })).toStrictEqual(["QUOTE_PII problemProof.text"]);
+  });
+
+  it("never reads a quote's output as the author's prose", () => {
+    expect(
+      codes({ body: withProblemText({ text: "I think we should fix this. The unit tests below prove it." }) }),
+    ).toStrictEqual([]);
+  });
+
+  it("refuses a screenshot beside a quote when nothing is on screen", () => {
+    const body: PrBody = { ...QUOTE_BODY, solutionProof: FIX_BODY.solutionProof };
+    expect(codes({ body })).toStrictEqual(["VISUAL_PROOF visualProof"]);
+  });
+});
+
+describe("prFormWriteSchema — a quote's shape", () => {
+  /** The write schema's messages for the quote body with its problem quote's fields replaced. */
+  function refusals({ over }: { over: Record<string, unknown> }): readonly string[] {
+    const parsed = prFormWriteSchema.safeParse({
+      ...formOf({ body: QUOTE_BODY }),
+      problemProof: { ...QUOTE_BODY.problemProof, ...over },
+    });
+    return parsed.error!.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
+  }
+
+  it("accepts the quote body as a whole form", () => {
+    expect(prFormWriteSchema.safeParse(formOf({ body: QUOTE_BODY })).success).toBe(true);
+  });
+
+  it("refuses a blank line, which would not read back", () => {
+    expect(refusals({ over: { text: "first\n\nsecond" } })).toStrictEqual([
+      "problemProof.text: a quote carries a blank line, which would not read back: the description splits at blank " +
+        "lines. Quote only the lines that prove it, with no blank line between them",
+    ]);
+  });
+
+  it("refuses a carriage return", () => {
+    expect(refusals({ over: { text: "first\r\nsecond" } })).toStrictEqual([
+      "problemProof.text: a carriage return in a quote may not read back. Use a newline alone",
+    ]);
+  });
+
+  it("refuses a source that is neither a link nor a code run", () => {
+    expect(refusals({ over: { source: { kind: "text", text: "the log" } } })[0]).toContain("problemProof.source");
   });
 });
 

@@ -8,6 +8,7 @@ import {
   readProofActors,
   readRiskHover,
   readSeenHover,
+  readsNothingOnScreen,
   riskHover,
 } from "../../../../outbound/github/tooltips.js";
 import type { RiskItem } from "../../../../outbound/github/types.js";
@@ -130,6 +131,81 @@ describe("proofHover and readProofActors", () => {
       "Not run for real yet: waiting on review.",
       { problemBy: undefined, solutionBy: undefined },
     ]);
+  });
+
+  it("names each shown side's medium when one is a quote, and reads both actors back", () => {
+    const text = proofHover({
+      input: {
+        kind: "both",
+        problemBy: "owner",
+        quoted: { nothingOnScreen: false, problem: false, solution: true },
+        solutionBy: "agent",
+      },
+      layout: 2,
+    });
+    expect([text, readProofActors({ text }), readsNothingOnScreen({ text })]).toEqual([
+      "A screenshot of the problem before this change, run by the owner, and quoted output of the solution after " +
+        "it, run by an agent.",
+      { problemBy: "owner", solutionBy: "agent" },
+      false,
+    ]);
+  });
+
+  it("says nothing on screen changes on two quotes' hover, and reads it back", () => {
+    const text = proofHover({
+      input: {
+        kind: "both",
+        problemBy: "agent",
+        quoted: { nothingOnScreen: true, problem: true, solution: true },
+        solutionBy: "agent",
+      },
+      layout: 2,
+    });
+    expect([text, readProofActors({ text }), readsNothingOnScreen({ text })]).toEqual([
+      "Quoted output of the problem before this change, run by an agent, and quoted output of the solution after " +
+        "it, run by an agent. Nothing on screen changes.",
+      { problemBy: "agent", solutionBy: "agent" },
+      true,
+    ]);
+  });
+
+  it("puts the marker before a one-side quote's reason, so a reason ending the same way is never read as it", () => {
+    const solution = proofHover({
+      input: {
+        kind: "solution-only",
+        problemReason: "Nothing on screen changes.",
+        quoted: { nothingOnScreen: false },
+        solutionBy: "owner",
+      },
+      layout: 2,
+    });
+    const problem = proofHover({
+      input: {
+        kind: "problem-only",
+        problemBy: "agent",
+        quoted: { nothingOnScreen: true },
+        solutionReason: "not built",
+      },
+      layout: 2,
+    });
+    expect([solution, readsNothingOnScreen({ text: solution }), readProofActors({ text: solution })]).toEqual([
+      "Quoted output of the solution from a real run by the owner. The problem wasn't captured: Nothing on screen " +
+        "changes.",
+      false,
+      { problemBy: undefined, solutionBy: "owner" },
+    ]);
+    expect([problem, readsNothingOnScreen({ text: problem }), readProofActors({ text: problem })]).toEqual([
+      "Quoted output of the problem from a real run by an agent. Nothing on screen changes. The solution isn't " +
+        "shown yet: not built.",
+      true,
+      { problemBy: "agent", solutionBy: undefined },
+    ]);
+  });
+
+  it("reads no marker off a screenshot or tests-only hover", () => {
+    const shots = proofHover({ input: { kind: "both", problemBy: "owner", solutionBy: "owner" }, layout: 2 });
+    const testsOnly = proofHover({ input: { kind: "tests-only", solutionReason: "A refactor" }, layout: 2 });
+    expect([readsNothingOnScreen({ text: shots }), readsNothingOnScreen({ text: testsOnly })]).toEqual([false, false]);
   });
 
   it("writes a layout-1 tests-only hover with the screen claim it was published with", () => {

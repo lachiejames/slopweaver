@@ -168,6 +168,36 @@ export const TESTS_ONLY_BODY: PrBody = {
   visualProof: "nothing-on-screen",
 };
 
+/** A CI job's failing lines, verbatim, one carrying a backtick run longer than the shortest fence. */
+export const QUOTED_LOG =
+  "  ALL_SUCCEEDED: false\n##[error]Process completed with exit code 1.\nthe step printed ```` and stopped";
+
+/**
+ * A change shown by quoted output on both sides and nothing on screen: the problem quoted from a CI job's log, the
+ * solution from a command's output, `nothing-on-screen`, which only the quote's hover carries back.
+ */
+export const QUOTE_BODY: PrBody = {
+  ...FIX_BODY,
+  problemProof: {
+    kind: "quote",
+    lang: "text",
+    proves: t({ text: "On main, the build job fails because one required job did not succeed." }),
+    runBy: "agent",
+    source: { kind: "link", text: "the build job's log", url: "https://github.com/acme/widgets/actions/runs/1/job/2" },
+    text: QUOTED_LOG,
+  },
+  risk: { items: [P2_CHECKED] },
+  solutionProof: {
+    kind: "quote",
+    lang: "",
+    proves: t({ text: "On this branch, the same check prints every job green." }),
+    runBy: "owner",
+    source: { kind: "code", text: "widgets checks --all" },
+    text: "lint: success\nunit: success",
+  },
+  visualProof: "nothing-on-screen",
+};
+
 /**
  * A whole form around a body.
  *
