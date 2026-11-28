@@ -1,5 +1,5 @@
 /**
- * The two refusals a Codex seat's plugin preflight can return, each built by its factory and pinned to a literal
+ * The three refusals a Codex seat's plugin preflight can return, each built by its factory and pinned to a literal
  * copy of its sentence, so a wording drift in `seatErrors.ts` fails here rather than reaching a spawn's stderr.
  */
 import { describe, expect, it } from "vitest";
@@ -22,6 +22,25 @@ describe("the Codex seat refusals", () => {
         "without Slopweaver's skills and hooks — run `slopweaver codex plugin-sync` from the main checkout, then " +
         "spawn again",
       stampPath: "/x/codex-two/plugins/cache/*/slopweaver/local/.codex-plugin/source.json",
+    });
+  });
+
+  it("names the stamp path and its lookup error, and no other home value, when the install cannot be read", () => {
+    expect(
+      CodexPluginSeatErrors.installUnreadable({
+        codexHome: "/x/codex-two",
+        stampPath: "/x/codex-two/plugins/cache/personal/slopweaver/local/.codex-plugin/source.json",
+        why: "EACCES: permission denied",
+      }),
+    ).toEqual({
+      code: "PLUGIN_INSTALL_UNREADABLE",
+      codexHome: "/x/codex-two",
+      message:
+        "the Slopweaver plugin install at /x/codex-two/plugins/cache/personal/slopweaver/local/.codex-plugin/source.json " +
+        "could not be read (EACCES: permission denied), so a seat there would boot without Slopweaver's skills and " +
+        "hooks — make it readable, run `slopweaver codex plugin-sync` from the main checkout, then spawn again",
+      stampPath: "/x/codex-two/plugins/cache/personal/slopweaver/local/.codex-plugin/source.json",
+      why: "EACCES: permission denied",
     });
   });
 

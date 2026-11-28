@@ -21,7 +21,7 @@ import { err, ok, type Result } from "#lib/result.js";
 import { isDeclaredMain, publishableHead } from "./checkout.js";
 import { type CodexPluginSyncError, CodexPluginSyncErrors } from "./errors.js";
 import type { CodexPluginHome } from "./homes.js";
-import { pluginInstallState } from "./installState.js";
+import { type PluginInstallState, pluginInstallState } from "./installState.js";
 import type { PersonalMarketplaceEntry } from "./marketplacePlan.js";
 import { personalMarketplaceEntry, personalMarketplacePlan } from "./marketplaceStore.js";
 import {
@@ -112,6 +112,26 @@ function plannedEntry({
   );
 }
 
+/**
+ * The commit a home's stamp records, or undefined for every state that is not a readable install. Absent,
+ * invalid and unreadable are each named so a new state cannot inherit one of their meanings silently: the hook
+ * leaves all three untouched and a foreground run installs over all three, exactly as for no stamp.
+ */
+function installedCommitOf({ state }: { state: PluginInstallState }): string | undefined {
+  switch (state.kind) {
+    case "installed":
+      return state.commit;
+    case "absent":
+    case "invalid":
+    case "unreadable":
+      return undefined;
+    default: {
+      const unhandled: never = state;
+      return unhandled;
+    }
+  }
+}
+
 /** What one home needs: a refresh, nothing, or — in the hook's scope or for a missing home — no write at all. */
 function decideHome({
   home,
@@ -131,11 +151,10 @@ function decideHome({
       ? { action: "missing", home, why: "the registered Codex home has no directory" }
       : { action: "untouched", home, why: "no Codex home here" };
   }
-  const state = pluginInstallState({ codexHome: home.codexHome, marketplace });
-  if (state.kind !== "installed" && scope === "update-installed") {
+  const installed = installedCommitOf({ state: pluginInstallState({ codexHome: home.codexHome, marketplace }) });
+  if (installed === undefined && scope === "update-installed") {
     return { action: "untouched", home, why: `not installed here — run \`${FOREGROUND_SYNC_COMMAND}\`` };
   }
-  const installed = state.kind === "installed" ? state.commit : undefined;
   const decision = syncDecision({ exported, head, installed });
   return { action: decision.refresh ? "refresh" : "current", home, why: decision.why };
 }

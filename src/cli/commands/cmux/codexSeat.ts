@@ -6,7 +6,8 @@
  * voice; this file is the CLI edge that translates `--plan` and `--force`, prints the verdict and turns a
  * refusal into an exit code. A sibling of `./codexQuotaSeat.ts`, which owns the cap record a booted seat writes.
  *
- * A routed seat whose home carries no Slopweaver install is refused before it is announced or provisioned, in
+ * A routed seat whose home carries no Slopweaver install, or one that cannot be read, is refused before it is
+ * announced or provisioned, in
  * both resolvers; an install behind HEAD boots (`../../../codexPlugin/seatPreflight.ts`).
  *
  * Both exports take `home: string | undefined` and resolve it through {@link seatStateHome}, never a
@@ -74,12 +75,13 @@ function reportCodexSeat({ log, parsed, route }: { log: SeatLog; parsed: ParsedF
 }
 
 /**
- * Refuse a routed seat whose home carries no Slopweaver install, BEFORE it is announced or provisioned — the one
- * check both resolvers share, so a continuing seat cannot route around it (`../../../codexPlugin/seatPreflight.ts`).
+ * Refuse a routed seat whose home carries no Slopweaver install, or one that cannot be read, BEFORE it is announced
+ * or provisioned — the one check both resolvers share, so a continuing seat cannot route around it
+ * (`../../../codexPlugin/seatPreflight.ts`).
  *
  * @returns undefined when the seat may boot, else the exit code to stop on
  */
-function refuseUninstalledHome({ codexHome, log }: { codexHome: string; log: SeatLog }): number | undefined {
+function refuseUnbootablePluginHome({ codexHome, log }: { codexHome: string; log: SeatLog }): number | undefined {
   const plugin = preflightCodexPluginSeat({ codexHome });
   if (plugin.isErr()) {
     log.error({ msg: `cmux spawn: ${plugin.error.message}` });
@@ -140,7 +142,7 @@ export async function resolveCodexSeat({
     log.error({ msg: `cmux spawn: ${decided.error.message}` });
     return EXIT_ERROR;
   }
-  const refused = refuseUninstalledHome({ codexHome: decided.value.destination.codexHome, log });
+  const refused = refuseUnbootablePluginHome({ codexHome: decided.value.destination.codexHome, log });
   if (refused !== undefined) {
     return refused;
   }
@@ -196,7 +198,7 @@ export async function resolveContinuingCodexSeat({
     log.error({ msg: `cmux spawn: ${decided.error.message}` });
     return EXIT_ERROR;
   }
-  const refused = refuseUninstalledHome({ codexHome: decided.value.route.destination.codexHome, log });
+  const refused = refuseUnbootablePluginHome({ codexHome: decided.value.route.destination.codexHome, log });
   if (refused !== undefined) {
     return refused;
   }

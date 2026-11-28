@@ -182,7 +182,7 @@ through every link, fails the run before anything is written. With a clone on an
 `plans add --provider codex` runs the same install over the one home it has just registered, after the row is
 published: from a clone that is not a declared main checkout it prints that `skipped` line and exits zero. `cmux
 spawn` checks the routed home before it provisions anything, and **refuses a seat whose home carries no
-Slopweaver install** under any marketplace directory of its plugin cache (it never reads the marketplace file), naming `slopweaver codex plugin-sync` as the fix, a continuing app session included. A
+Slopweaver install** under any marketplace directory of its plugin cache (it never reads the marketplace file), naming `slopweaver codex plugin-sync` as the fix, a continuing app session included. A stamp path it cannot look up — a directory on it that cannot be searched — is refused as an install that could not be read, naming that path and its error, never as a missing one. A
 stale install boots: one behind HEAD, or one whose stamp will not parse, is the refresh's to repair, never the
 spawn's to refuse.
 

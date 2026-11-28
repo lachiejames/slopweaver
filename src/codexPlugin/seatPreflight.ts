@@ -1,10 +1,12 @@
 /**
  * `cmux spawn`'s check that a Codex seat's routed home carries Slopweaver before anything is provisioned.
  *
- * **Only a MISSING install refuses.** An install behind HEAD boots: the post-merge hook refreshes an installed
- * home on every landing, and refusing a stale one would block every seat for the minutes after each landing.
- * A present stamp that does not parse boots too, because the cache tree it sits in is there; repairing it is
- * `codex plugin-sync`'s business. So this never resolves HEAD and never compares commits.
+ * **Only a MISSING or UNSEARCHABLE install refuses**, each under its own name: a stamp lookup that failed for a
+ * reason other than the stamp not being there (`./installState.ts`) is refused as unreadable, never as missing,
+ * so whoever repairs it is told what is actually wrong. An install behind HEAD boots: the post-merge hook
+ * refreshes an installed home on every landing, and refusing a stale one would block every seat for the minutes
+ * after each landing. A present stamp that does not parse boots too, because the cache tree it sits in is there;
+ * repairing it is `codex plugin-sync`'s business. So this never resolves HEAD and never compares commits.
  *
  * The check reads the home itself and never the personal marketplace file: every marketplace directory under
  * `$CODEX_HOME/plugins/cache` is searched for a Slopweaver stamp, so a marketplace file that is missing or will
@@ -25,12 +27,35 @@ import { SOURCE_STAMP_RELATIVE } from "./plan.js";
 import { type CodexPluginSeatError, CodexPluginSeatErrors } from "./seatErrors.js";
 
 /**
- * Whether one home's install states admit a seat: any state but an absent stamp does, so a home with one
- * installed or unreadable stamp in any marketplace directory boots.
+ * Whether one state admits a seat on its own: an installed or an invalid stamp does; an absent one or a lookup
+ * that could not decide does not.
+ *
+ * @param state what one marketplace directory's install stamp says
+ * @returns whether that stamp alone lets the seat boot
+ */
+function admitsSeat({ state }: { state: PluginInstallState }): boolean {
+  switch (state.kind) {
+    case "installed":
+    case "invalid":
+      return true;
+    case "absent":
+    case "unreadable":
+      return false;
+    default: {
+      const unhandled: never = state;
+      return unhandled;
+    }
+  }
+}
+
+/**
+ * Whether one home's install states admit a seat: an installed or invalid stamp in any marketplace directory
+ * boots. With none, a lookup that could not decide refuses as unreadable, naming the first such path; only when
+ * every stamp is absent, or there are none, does the home refuse as missing.
  *
  * @param codexHome the home the seat was routed to, named in the refusal
  * @param states what each marketplace directory's install stamp says, empty when the cache holds none
- * @returns nothing when the seat may boot, else the missing-install refusal
+ * @returns nothing when the seat may boot, else the unreadable-install or missing-install refusal
  */
 export function admitCodexPluginSeat({
   codexHome,
@@ -39,8 +64,16 @@ export function admitCodexPluginSeat({
   codexHome: string;
   states: readonly PluginInstallState[];
 }): Result<void, CodexPluginSeatError> {
-  if (states.some((state) => state.kind !== "absent")) {
+  if (states.some((state) => admitsSeat({ state }))) {
     return ok(undefined);
+  }
+  const unreadable = states.find(
+    (state): state is Extract<PluginInstallState, { kind: "unreadable" }> => state.kind === "unreadable",
+  );
+  if (unreadable !== undefined) {
+    return err(
+      CodexPluginSeatErrors.installUnreadable({ codexHome, stampPath: unreadable.stampPath, why: unreadable.why }),
+    );
   }
   const stampPath = join(pluginCacheDir({ codexHome, marketplace: "*" }), SOURCE_STAMP_RELATIVE);
   return err(CodexPluginSeatErrors.installMissing({ codexHome, stampPath }));

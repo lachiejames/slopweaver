@@ -1,7 +1,8 @@
 /**
- * Why `cmux spawn` will not boot a Codex seat on its routed home: the home carries no Slopweaver install, so a
- * seat there would open with none of Slopweaver's skills or hooks and nothing would say so. Both are facts about
- * the machine, not a policy a hatch could waive, and each names the one command that repairs it.
+ * Why `cmux spawn` will not boot a Codex seat on its routed home: the home carries no Slopweaver install, or one
+ * that cannot be read, so a seat there would open with none of Slopweaver's skills or hooks and nothing would say
+ * so. Each is a fact about the machine, not a policy a hatch could waive, and each names the one command that
+ * repairs it.
  */
 import { FOREGROUND_SYNC_COMMAND } from "./plan.js";
 
@@ -22,8 +23,23 @@ export interface PluginInstallMissingError {
   readonly stampPath: string;
 }
 
+/**
+ * A marketplace directory's install stamp could not be looked up — a directory on its path cannot be searched, or
+ * the path does not resolve — and no other marketplace directory holds a readable install.
+ */
+export interface PluginInstallUnreadableError {
+  readonly code: "PLUGIN_INSTALL_UNREADABLE";
+  readonly message: string;
+  readonly codexHome: string;
+  /** The concrete stamp path whose lookup failed. */
+  readonly stampPath: string;
+  /** The lookup's own error, carrying its errno. */
+  readonly why: string;
+}
+
 /** Every reason a Codex seat is refused for want of the Slopweaver plugin. */
-export type CodexPluginSeatError = PluginCacheUnreadableError | PluginInstallMissingError;
+export type CodexPluginSeatError =
+  PluginCacheUnreadableError | PluginInstallMissingError | PluginInstallUnreadableError;
 
 /** Factories for {@link CodexPluginSeatError}, so the spawn and its tests build one message. */
 export const CodexPluginSeatErrors = {
@@ -51,5 +67,23 @@ export const CodexPluginSeatErrors = {
       `the Codex home ${codexHome} has no Slopweaver plugin installed (no ${stampPath}), so a seat there would boot ` +
       `without Slopweaver's skills and hooks — run \`${FOREGROUND_SYNC_COMMAND}\` from the main checkout, then spawn again`,
     stampPath,
+  }),
+  installUnreadable: ({
+    codexHome,
+    stampPath,
+    why,
+  }: {
+    codexHome: string;
+    stampPath: string;
+    why: string;
+  }): PluginInstallUnreadableError => ({
+    code: "PLUGIN_INSTALL_UNREADABLE",
+    codexHome,
+    message:
+      `the Slopweaver plugin install at ${stampPath} could not be read (${why}), so a seat there would boot ` +
+      `without Slopweaver's skills and hooks — make it readable, run \`${FOREGROUND_SYNC_COMMAND}\` from the main ` +
+      `checkout, then spawn again`,
+    stampPath,
+    why,
   }),
 } as const;
