@@ -25,7 +25,7 @@ import { readSessionLogText } from "../../../sessions/sessionStore.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
 import { cmuxUsage, parseCmuxArgs, stringFlag, VERB_ARG_OFFSET } from "./core.js";
-import { usageLines } from "./usageOutput.js";
+import { redactedUsageView, usageLines } from "./usageOutput.js";
 
 /** A usage read is one in-memory fold in the app; anything near this is an app that is not answering. */
 const USAGE_TIMEOUT_MS = 30_000;
@@ -135,7 +135,7 @@ export async function runCmuxUsage(argv: readonly string[]): Promise<number> {
   // A line the ledger could not read just leaves its session without one; `session list` is where that is reported.
   const { events } = parseSessionLog({ text: readSessionLogText({ home }) });
   const recorded = recordedPlanChoices({ items: foldSessions({ events }) });
-  const view = usageViewOf({ plans, recorded, report: answered.report });
+  const view = redactedUsageView({ view: usageViewOf({ plans, recorded, report: answered.report }) });
   if (ask.json) {
     logger.out({ line: JSON.stringify(view) });
     return EXIT_OK;

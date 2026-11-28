@@ -181,7 +181,8 @@ and an IP whole. So the call sites are `answerWrapper`, `renderFullChromeWrapper
 `renderUpdateCard`, `renderRecipeResponse`, `renderNoFoldMessage`, and for a canvas `canvasDocumentContent`
 and `canvasWireTitle` (`src/corpus/slack/writeApiCanvas.ts`, every create and replace, either lane).
 **The real closure is a gate over outbound payload producers, which does not exist yet.** Until it does, a new
-payload builder that skips the pass is refused by nobody. Add one, and add the call.
+payload builder that skips the pass is refused by nobody. Add one, and add the call. Two CLI prints call it too,
+over one free-text field each: `session list`'s note and `cmux usage`'s title, plain and `--json`.
 
 **The class is narrow on purpose and the line is stated rather than implied.** A UUID is NOT redacted, user
 id included: it is routinely the ANSWER, and the owner's own IP-to-uid correlation ends in one. A person's NAME is

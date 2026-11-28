@@ -14,6 +14,11 @@
  * half, and its being a mechanism rather than an instruction is the point — a composing session that is
  * told to redact will redact almost always, and "almost always" is not a property.
  *
+ * Two CLI prints are a printed line rather than a post, and call it for the same reason: `session list` over a
+ * session's free-text note and `cmux usage` over a session's title, plain and `--json` alike, each over that one
+ * field only (`cli/commands/session/run.ts`, `cli/commands/cmux/usageOutput.ts`). A session types the note, so it
+ * can carry an address; the ledger keeps it as written.
+ *
  * ## The class is NARROW on purpose, and the line is stated rather than implied
  *
  * Redacted: **email addresses** and **IP addresses**. Both are unambiguously a person's identity or

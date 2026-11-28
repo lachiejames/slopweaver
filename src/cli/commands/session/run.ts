@@ -3,6 +3,7 @@
  */
 
 import { logger } from "../../../lib/logger.js";
+import { redactPii } from "../../../outbound/slack/piiRedaction.js";
 import { planChoiceLine } from "../../../sessions/planChoice.js";
 import { foldSessions, parseSessionLog, type SessionEvent, type SessionItem } from "../../../sessions/session.js";
 import { appendSessionEvent, readSessionLogText } from "../../../sessions/sessionStore.js";
@@ -110,6 +111,22 @@ export function renderSession({ item }: { item: SessionItem }): string {
 }
 
 /**
+ * A session as `session list` prints it, plain and `--json` alike: its note with every email and IP address
+ * replaced by `[email]`/`[ip]`, and every other field as folded. The note is free text a session typed, so it can
+ * carry an address; the structural fields beside it (key, slug, refs, times, the plan choice) are left whole on
+ * purpose, and the ledger keeps the note as written.
+ *
+ * @param item the folded session
+ * @returns a copy of it with only the note redacted
+ */
+export function redactedSessionItem({ item }: { item: SessionItem }): SessionItem {
+  if (item.latestNote === undefined) {
+    return item;
+  }
+  return { ...item, latestNote: redactPii({ text: item.latestNote }).text };
+}
+
+/**
  * `session list` — the current state of every session.
  *
  * @param argv the full process argv
@@ -124,7 +141,7 @@ export async function runSessionList(argv: readonly string[]): Promise<number> {
   const { events, unreadable } = parseSessionLog({
     text: readSessionLogText(home === undefined ? {} : { home }),
   });
-  const items = foldSessions({ events });
+  const items = foldSessions({ events }).map((item) => redactedSessionItem({ item }));
   if (boolFlag({ name: "json", parsed })) {
     logger.out({ line: JSON.stringify({ sessions: items, unreadable }) });
   } else if (items.length === 0) {

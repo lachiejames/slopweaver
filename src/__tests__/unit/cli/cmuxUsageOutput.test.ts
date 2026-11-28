@@ -5,7 +5,13 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { planLine, rateText, sessionLines, usageLines } from "../../../cli/commands/cmux/usageOutput.js";
+import {
+  planLine,
+  rateText,
+  redactedUsageView,
+  sessionLines,
+  usageLines,
+} from "../../../cli/commands/cmux/usageOutput.js";
 import { rankedCodexChoice } from "../../../codex/seatPlanChoice.js";
 import { recordedPlanChoices, usageViewOf } from "../../../sessionHarness/appUsage.js";
 import type { AppSessionUsage } from "../../../sessionHarness/usageWire.js";
@@ -177,5 +183,36 @@ describe("the plan choice each session's ledger row recorded", () => {
     });
     expect(view.sessions[0]!.planChoice).toStrictEqual(choice);
     expect(JSON.stringify(view.sessions[0]!.planChoice)).not.toContain("/plans/b");
+  });
+});
+
+describe("redactedUsageView", () => {
+  const TITLED: AppSessionUsage = {
+    ...SPENT,
+    title: "Recovery check: claude on my-plan; someone@example.com via 203.0.113.7",
+  };
+  const REDACTED_TITLE = "Recovery check: claude on my-plan; [email] via [ip]";
+  const view = usageViewOf({
+    plans: [{ alias: "codex-b", provider: "codex", storeDir: "/plans/b" }],
+    report: { atIso: AT, sessions: [TITLED] },
+  });
+
+  it("redacts only the title's email and IP, leaving the alias, key, path, models, times and tokens whole", () => {
+    expect(redactedUsageView({ view })).toEqual({
+      ...view,
+      sessions: [{ ...view.sessions[0]!, usage: { ...TITLED, title: REDACTED_TITLE } }],
+    });
+  });
+
+  it("prints the redacted title on the session's plain line", () => {
+    expect(usageLines({ view: redactedUsageView({ view }) })[2]).toBe(`  abc-1 · ${REDACTED_TITLE} · codex · idle`);
+  });
+
+  it("carries the redacted title, and no address, into the --json view", () => {
+    const line = JSON.stringify(redactedUsageView({ view }));
+    expect(JSON.stringify(view)).toContain("someone@example.com");
+    expect(JSON.parse(line).sessions[0].usage.title).toBe(REDACTED_TITLE);
+    expect(line).not.toContain("someone@example.com");
+    expect(line).not.toContain("203.0.113.7");
   });
 });
