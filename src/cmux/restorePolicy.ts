@@ -5,8 +5,9 @@
  * ## Why the fleet wants it off
  *
  * With the key at its default (`true`), reopening cmux relaunches every Claude seat as a bare
- * `claude --resume <id>` — no setup token, in no particular order. Off, cmux restores panes as idle shells and
- * `slopweaver fleet resume` brings the seats back itself, the supervisor first, each on its own token.
+ * `claude --resume <id>` — no setup-token descriptor, in no particular order. Off, cmux restores panes as idle shells
+ * and `slopweaver fleet resume` brings the seats back itself, the supervisor first, each on its routed plan's setup
+ * token, or that plan's store where it holds none.
  *
  * ## Why a hand-written scanner
  *

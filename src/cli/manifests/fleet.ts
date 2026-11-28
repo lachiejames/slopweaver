@@ -157,7 +157,7 @@ export const fleetManifest: Readonly<Record<string, VerbManifestEntry>> = {
       example: "slopweaver fleet restore-policy --apply",
       parseRejectIsIoFree: true,
       summary:
-        "Whether cmux relaunches Claude seats itself on reopen (bare, without their setup token) — and with --apply, turn that off so fleet resume brings them back, supervisor first",
+        "Whether cmux relaunches Claude seats itself on reopen (bare, so a setup-token seat loses its token) — and with --apply, turn that off so fleet resume brings them back, supervisor first",
       usage: "usage: slopweaver fleet restore-policy [--apply] [--config <value>] [--json]",
     },
   }),

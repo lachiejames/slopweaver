@@ -11,9 +11,10 @@
  * `desktop/__tests__/unit/claudeEnvironmentPolicy.test.ts` fails the moment they differ, since neither tree can
  * import the other.
  *
- * The native boundary then routes the login: `CLAUDE_SECURESTORAGE_CONFIG_DIR` is always the plan's store, never an
- * inherited one, and a setup-token seat reads its token from descriptor 3, the descriptor every cmux boot line names
- * (`src/claude/seatToken.ts`). The token itself never enters an environment, an argument or the IPC channel.
+ * The native boundary then routes the login: `CLAUDE_SECURESTORAGE_CONFIG_DIR` is always the route's own store (the
+ * plan's on a store seat, an unbound one on a setup-token seat), never an inherited one, and a setup-token seat reads
+ * its token from descriptor 3, the descriptor a cmux token seat's boot line names (`src/claude/seatToken.ts`). The
+ * token itself never enters an environment, an argument or the IPC channel.
  */
 import { APP_SESSION_ID_ENV } from "../sessionControlProtocol";
 import { keptEnvironment } from "./keptEnvironment";

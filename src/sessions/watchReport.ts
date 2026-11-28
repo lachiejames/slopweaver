@@ -16,8 +16,8 @@ import type { SeatWall } from "./seatRecovery.js";
  * What a watch row says about a session: the event fold's own {@link SessionSignal}, or the {@link SeatWall}
  * its screen showed — `logged-out` or `limit-retrying`.
  *
- * A wall is the one signal no hook event carries. A seat cmux reopened after a machine restart boots `claude`
- * without its setup token and sits on `Not logged in · Please run /login`, firing nothing;
+ * A wall is the one signal no hook event carries. A setup-token seat cmux's own restore reopened boots `claude`
+ * without its token and sits on `Not logged in · Please run /login`, firing nothing;
  * a seat whose plan spent its window sits on `✻ Weekly limit reached · Retrying in 5h …` and reads `working`
  * for as long as it retries. So the only witness is its SCREEN, read by
  * {@link withWalledSeats}'s caller. Both rank just under `needs-input`, and both are stuck chats whose remedy
@@ -318,7 +318,7 @@ function sessionWatchRowDetail({ row }: { row: SessionWatchRow }): string {
     return `waiting on you (${attentionLabel({ attentionKind: row.attentionKind })})`;
   }
   if (row.signal === "logged-out") {
-    return "Not logged in on screen — reopened without its setup token; run slopweaver session re-seat";
+    return "Not logged in on screen — neither a working setup token nor a signed-in store; run slopweaver session re-seat";
   }
   if (row.signal === "limit-retrying") {
     return "usage-limit retry banner on screen — it answers nothing until its plan resets; run slopweaver session re-seat";
