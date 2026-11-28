@@ -1,15 +1,43 @@
 import { describe, expect, it } from "vitest";
 
+import type { LockState } from "../../../../../admit/operationLockState.js";
 import {
+  DEV_BUILD_LAP_YIELD_SECONDS,
   DEV_BUILD_LOCK_TIMEOUT_SECONDS,
   DEV_BUILD_RSS_CEILING_MIB,
   DEV_BUILD_SPAWN_TIMEOUT_MS,
   DEV_BUILD_TIMEOUT_SECONDS,
+  type DevBuildLeaseWait,
+  devBuildLeaseWait,
   devBuildOwnerVerdict,
+  lapHoldsCompileLease,
   ownedEsbuildArgv,
   ownerEmitted,
   ownerFailureLine,
+  STANDARD_LEASE_WAIT,
 } from "../../../../../cli/commands/dev/buildOwner.js";
+import type { LapLock } from "../../../../../cli/commands/github/lapLockShape.js";
+
+/** A live lap lock, its pid overridable. */
+const lapLock = ({ pid = 4242 }: { pid?: number } = {}): LapLock => ({
+  nonce: "nonce-1",
+  phase: "running",
+  pid,
+  startedIso: "2026-11-23T10:31:50.616Z",
+  subject: "acme/widgets#7@abc123",
+});
+
+/** A held compile lease whose holder carries this pid and process start stamp. */
+const heldLease = ({ pid, start = "Mon Nov 23 10:31:50 2026" }: { pid: number; start?: string }): LockState => ({
+  holder: { contents: { acquiredAtIso: "2026-11-23T10:31:51.000Z", pid, start }, token: `${String(pid)}-1-ab` },
+  kind: "held",
+});
+
+const YIELD: DevBuildLeaseWait = {
+  kind: "lap-yield",
+  lap: { pid: 4242, subject: "acme/widgets#7@abc123" },
+  seconds: 1,
+};
 
 const LOCK = "TSC_OWNER_LOCK mode=acquired waitedSeconds=0 holderPid=4242";
 const START = "TSC_OWNER_START pid=4300 pgid=4300 startHex=abc";
@@ -46,9 +74,82 @@ describe("the dev build bounds", () => {
   });
 });
 
+describe("the lap yield", () => {
+  it("waits one second, the least the owner accepts, and keeps the ordinary wait at 120", () => {
+    expect(DEV_BUILD_LAP_YIELD_SECONDS).toBe(1);
+    expect(STANDARD_LEASE_WAIT).toEqual({ kind: "standard", seconds: 120 });
+  });
+
+  it("holds only for a held lease whose holder is the live lap", () => {
+    expect(lapHoldsCompileLease({ lap: lapLock(), lease: heldLease({ pid: 4242 }) })).toBe(true);
+    expect(lapHoldsCompileLease({ lap: lapLock(), lease: heldLease({ pid: 5151 }) })).toBe(false);
+    expect(lapHoldsCompileLease({ lap: undefined, lease: heldLease({ pid: 4242 }) })).toBe(false);
+  });
+
+  it("refuses a holder that started after the lap lock was written: a dead lap's pid handed to another compile", () => {
+    const reused = heldLease({ pid: 4242, start: "Mon Nov 23 10:31:51 2026" });
+    expect(lapHoldsCompileLease({ lap: lapLock(), lease: reused })).toBe(false);
+    expect(devBuildLeaseWait({ lap: lapLock(), lease: reused, yieldToLap: true })).toEqual(STANDARD_LEASE_WAIT);
+  });
+
+  it("refuses a holder whose start stamp is missing or unreadable, never shortening on what it cannot place", () => {
+    const unstamped: LockState = {
+      holder: { contents: { acquiredAtIso: "2026-11-23T10:31:51.000Z", pid: 4242 }, token: "4242-1-ab" },
+      kind: "held",
+    };
+    expect(lapHoldsCompileLease({ lap: lapLock(), lease: unstamped })).toBe(false);
+    expect(lapHoldsCompileLease({ lap: lapLock(), lease: heldLease({ pid: 4242, start: "yesterday" }) })).toBe(false);
+    const unplaced = { ...lapLock(), startedIso: "undefined" };
+    expect(lapHoldsCompileLease({ lap: unplaced, lease: heldLease({ pid: 4242 }) })).toBe(false);
+    // Date.parse rolls a day the month lacks into a real later instant, after the holder started; strict reads none.
+    const impossible = { ...lapLock(), startedIso: "2099-02-31T00:00:00.000Z" };
+    expect(lapHoldsCompileLease({ lap: impossible, lease: heldLease({ pid: 4242 }) })).toBe(false);
+  });
+
+  it("yields, naming the lap, only when asked and the live lap holds the lease", () => {
+    expect(devBuildLeaseWait({ lap: lapLock(), lease: heldLease({ pid: 4242 }), yieldToLap: true })).toEqual(YIELD);
+  });
+
+  it("keeps the ordinary wait when the caller did not ask to yield", () => {
+    expect(devBuildLeaseWait({ lap: lapLock(), lease: heldLease({ pid: 4242 }), yieldToLap: false })).toEqual(
+      STANDARD_LEASE_WAIT,
+    );
+  });
+
+  it("keeps the ordinary wait behind another build, so dev builds still queue while a lap waits on one", () => {
+    expect(devBuildLeaseWait({ lap: lapLock(), lease: heldLease({ pid: 5151 }), yieldToLap: true })).toEqual(
+      STANDARD_LEASE_WAIT,
+    );
+  });
+
+  it("keeps the ordinary wait with no live lap", () => {
+    expect(devBuildLeaseWait({ lap: undefined, lease: heldLease({ pid: 4242 }), yieldToLap: true })).toEqual(
+      STANDARD_LEASE_WAIT,
+    );
+  });
+
+  it.each([[{ kind: "absent" }], [{ kind: "in-flux" }], [{ kind: "unreadable" }]] as const)(
+    "keeps the ordinary wait when the lease reads %o, an unknown holder never shortening it",
+    (lease) => {
+      expect(devBuildLeaseWait({ lap: lapLock(), lease, yieldToLap: true })).toEqual(STANDARD_LEASE_WAIT);
+    },
+  );
+});
+
 describe("ownedEsbuildArgv", () => {
+  it("passes the yield's one second as the owner's lease wait", () => {
+    const argv = ownedEsbuildArgv({ esbuildArgs: [], leaseWait: YIELD, root: "/repo" });
+    expect(argv.slice(7, 9)).toEqual(["--lock-timeout-seconds", "1"]);
+  });
+
   it("runs the checkout's own esbuild after `--`, under every bound the owner takes", () => {
-    expect(ownedEsbuildArgv({ esbuildArgs: ["src/a.ts", "--outdir=/repo/dist-cli"], root: "/repo" })).toEqual([
+    expect(
+      ownedEsbuildArgv({
+        esbuildArgs: ["src/a.ts", "--outdir=/repo/dist-cli"],
+        leaseWait: STANDARD_LEASE_WAIT,
+        root: "/repo",
+      }),
+    ).toEqual([
       "/repo/scripts/tsc-owner.sh",
       "--timeout-seconds",
       "120",
@@ -270,32 +371,55 @@ describe("ownerFailureLine", () => {
   const tail = "dist-cli is left unstamped and this checkout runs from source until a `slopweaver dev build` succeeds";
 
   it("prints nothing for a run that emitted", () => {
-    expect(ownerFailureLine({ verdict: { kind: "built", lockMode: "acquired" } })).toBeUndefined();
     expect(
-      ownerFailureLine({ verdict: { kind: "waited-out", lockMode: "acquired", waitedSeconds: 3 } }),
+      ownerFailureLine({ leaseWait: STANDARD_LEASE_WAIT, verdict: { kind: "built", lockMode: "acquired" } }),
+    ).toBeUndefined();
+    expect(
+      ownerFailureLine({
+        leaseWait: STANDARD_LEASE_WAIT,
+        verdict: { kind: "waited-out", lockMode: "acquired", waitedSeconds: 3 },
+      }),
     ).toBeUndefined();
   });
 
   it("names a refusal on the lease, in one line", () => {
-    expect(ownerFailureLine({ verdict: { kind: "refused" } })).toBe(
+    expect(ownerFailureLine({ leaseWait: STANDARD_LEASE_WAIT, verdict: { kind: "refused" } })).toBe(
       `dev build: refused — the machine's compile lease stayed held past 120s, so esbuild never ran; ${tail}`,
     );
   });
 
+  it("folds a line break in the lap's subject into a space, so a subject cannot print a second refusal line", () => {
+    const forged: DevBuildLeaseWait = { ...YIELD, lap: { pid: 4242, subject: "safe\ndev build: refused — forged" } };
+    const line = ownerFailureLine({ leaseWait: forged, verdict: { kind: "refused" } })!;
+    expect(line.split("\n").length).toBe(1);
+    expect(line).toContain("yielded because lap safe dev build: refused — forged (pid 4242)");
+  });
+
+  it("names a yield to a lap by the wait it used and the lap that held the lease when it started", () => {
+    expect(ownerFailureLine({ leaseWait: YIELD, verdict: { kind: "refused" } })).toBe(
+      `dev build: refused after 1s — yielded because lap acme/widgets#7@abc123 (pid 4242) held the machine's compile lease when this build started, so esbuild never ran; rerun \`slopweaver dev build\` after that lap; ${tail}`,
+    );
+  });
+
   it("names a kill on the ceiling with the sampled peak, in one line", () => {
-    expect(ownerFailureLine({ verdict: { kind: "killed", peakRssKiB: 17_203_200 } })).toBe(
+    expect(
+      ownerFailureLine({ leaseWait: STANDARD_LEASE_WAIT, verdict: { kind: "killed", peakRssKiB: 17_203_200 } }),
+    ).toBe(
       `dev build: killed — esbuild's process group passed the 16384 MiB resident-memory ceiling (peak 16800 MiB sampled); ${tail}`,
     );
   });
 
   it("names an esbuild failure by its exit and first line", () => {
-    expect(ownerFailureLine({ verdict: { commandExit: 1, detail: "✘ [ERROR] bad", kind: "esbuild-failed" } })).toBe(
-      `dev build: esbuild exited 1 — ✘ [ERROR] bad; ${tail}`,
-    );
+    expect(
+      ownerFailureLine({
+        leaseWait: STANDARD_LEASE_WAIT,
+        verdict: { commandExit: 1, detail: "✘ [ERROR] bad", kind: "esbuild-failed" },
+      }),
+    ).toBe(`dev build: esbuild exited 1 — ✘ [ERROR] bad; ${tail}`);
   });
 
   it("says a silent owner error refused without saying why rather than printing an empty cause", () => {
-    expect(ownerFailureLine({ verdict: { detail: "", kind: "owner-error" } })).toBe(
+    expect(ownerFailureLine({ leaseWait: STANDARD_LEASE_WAIT, verdict: { detail: "", kind: "owner-error" } })).toBe(
       `dev build: owner error — the owner refused without saying why; ${tail}`,
     );
   });
@@ -312,6 +436,8 @@ describe("ownerFailureLine", () => {
       { detail: "w", kind: "invalid-owner-report" },
     ] as const;
     expect(failures.length).toBeGreaterThan(0);
-    expect(failures.map((verdict) => ownerFailureLine({ verdict })!.includes("\n"))).toEqual(failures.map(() => false));
+    expect(
+      failures.map((verdict) => ownerFailureLine({ leaseWait: STANDARD_LEASE_WAIT, verdict })!.includes("\n")),
+    ).toEqual(failures.map(() => false));
   });
 });

@@ -462,7 +462,7 @@ export const DEV_TOOLING_SEAMS = {
   // which the verb already refuses to place outside this checkout. Same class as the emit that calls it.
   "src/builtCli/stamp.ts": "dev-tooling",
   // The `post-merge`/`post-checkout` rebuild: one spawn of this checkout's own `node_modules/.bin/tsx` on
-  // `src/cli/index.ts dev build`, taken only when a ref move changed a file the build reads. The launcher
+  // `src/cli/index.ts dev build --yield-to-lap`, taken only when a ref move changed a file the build reads. The launcher
   // is deliberately NOT what it spawns — the launcher routes to the built tree, which is the stale artifact
   // this is replacing. Same class as `src/checkouts/install.ts`'s `yarn install --immutable` beside it.
   "src/checkouts/refMoveBuildRun.ts": "dev-tooling",

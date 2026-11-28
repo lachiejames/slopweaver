@@ -28,14 +28,16 @@ import { type FlagSpec, parseFlags } from "../../parseFlags.js";
 import { type DevBuildOwnerVerdict, ownerEmitted } from "./buildOwner.js";
 
 export const DEV_BUILD_USAGE =
-  "usage: slopweaver dev build [--out <dir>] [--json]\n" +
+  "usage: slopweaver dev build [--out <dir>] [--json] [--yield-to-lap]\n" +
   "  Emit the CLI to JavaScript with esbuild, then PROVE the emitted entrypoint runs.\n" +
-  `  --out <dir>  where to emit — relative to the repository root, or absolute (default ${DEFAULT_OUT})\n` +
-  "  --json       emit one machine-readable document instead of the report\n" +
+  `  --out <dir>     where to emit — relative to the repository root, or absolute (default ${DEFAULT_OUT})\n` +
+  "  --json          emit one machine-readable document instead of the report\n" +
+  "  --yield-to-lap  when a live lap of this home holds the compile lease, wait 1s for it rather than 120s;\n" +
+  "                  worktree provisioning and the ref-move hook pass it, so neither stalls through a lap\n" +
   "  It fails closed: a failed emit, a missing entrypoint and a smoke run that does not exit 0 are each a\n" +
   "  non-zero exit. `yarn build` is the OTHER emitter — tsc, into `dist`, proving the tree compiles.";
 
-const FLAGS: FlagSpec = { boolean: ["json"], string: ["out"] };
+const FLAGS: FlagSpec = { boolean: ["json", "yield-to-lap"], string: ["out"] };
 
 /** `--`-prefixed, for the help-truth ratchet. */
 export const DEV_BUILD_FLAG_NAMES: readonly string[] = ((): readonly string[] => {
@@ -92,9 +94,13 @@ export interface BuildReport {
 /**
  * The parsed flag tail, or the usage errors it earned.
  *
- * @returns the output directory the run should emit into and whether to report as JSON
+ * @returns the output directory the run should emit into, whether to report as JSON, and whether to yield to a lap
  */
-export function parseDevBuildArgs({ rest }: { rest: readonly string[] }): Result<{ out: string; json: boolean }> {
+export function parseDevBuildArgs({
+  rest,
+}: {
+  rest: readonly string[];
+}): Result<{ out: string; json: boolean; yieldToLap: boolean }> {
   const parsed = parseFlags({ args: rest, spec: FLAGS });
   if (parsed.isErr()) {
     return err(parsed.error);
@@ -104,7 +110,11 @@ export function parseDevBuildArgs({ rest }: { rest: readonly string[] }): Result
   // `--out requires a value` for a bare `--out` and rejected a switch-style `--out=`. A second message
   // for a state that cannot arrive is an unreachable arm that reads like a handled case.
   const out = values["out"];
-  return ok({ json: values["json"] === true, out: typeof out === "string" ? out : DEFAULT_OUT });
+  return ok({
+    json: values["json"] === true,
+    out: typeof out === "string" ? out : DEFAULT_OUT,
+    yieldToLap: values["yield-to-lap"] === true,
+  });
 }
 
 /**

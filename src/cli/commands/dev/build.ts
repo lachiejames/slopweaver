@@ -13,11 +13,16 @@ import { join, resolve } from "node:path";
 import { parseJsonObject } from "#lib/jsonParse.js";
 import { type Logger, logger } from "#lib/logger.js";
 import { installedTreeRoot } from "#lib/pluginRoot.js";
+import { readLockState } from "../../../admit/operationLockState.js";
 import { BUILT_ENTRYPOINT } from "../../../builtCli/layout.js";
 import { scanSourceStamps, sourceFiles } from "../../../builtCli/sourceScan.js";
 import { clearStamp, stampBuild } from "../../../builtCli/stamp.js";
+import { slopweaverHome } from "../../../homeDir.js";
+import { userRuntimeLockDir } from "../../../stateRuntime.js";
 import { defineCommand } from "../../defineCommand.js";
 import { EXIT_ERROR, EXIT_OK, EXIT_USAGE } from "../../exitCodes.js";
+import { compileLeasePath } from "../github/lapCompileLease.js";
+import { readStandingLapLock } from "../github/lapLock.js";
 import {
   type BuildReport,
   buildIsFit,
@@ -31,10 +36,13 @@ import {
 } from "./buildCore.js";
 import {
   DEV_BUILD_SPAWN_TIMEOUT_MS,
+  type DevBuildLeaseWait,
   type DevBuildOwnerVerdict,
+  devBuildLeaseWait,
   devBuildOwnerVerdict,
   ownedEsbuildArgv,
   ownerFailureLine,
+  STANDARD_LEASE_WAIT,
 } from "./buildOwner.js";
 
 /**
@@ -81,40 +89,54 @@ function exitOf({ status }: { status: number | null }): number {
  *
  * @param root the checkout whose owner and esbuild are run
  * @param files every source file to emit, absolute
+ * @param leaseWait how long the owner waits for the compile lease
  * @returns the owner's verdict, and the stderr it was read from
  */
-export function runOwnedEsbuild({ root, files, outDir }: { root: string; files: readonly string[]; outDir: string }): {
+export function runOwnedEsbuild({
+  root,
+  files,
+  outDir,
+  leaseWait,
+}: {
+  root: string;
+  files: readonly string[];
+  outDir: string;
+  leaseWait: DevBuildLeaseWait;
+}): {
   verdict: DevBuildOwnerVerdict;
   stderr: string;
 } {
-  const owned = spawnSync("bash", ownedEsbuildArgv({ esbuildArgs: esbuildArgsFor({ files, outDir }), root }), {
-    cwd: root,
-    encoding: "utf8",
-    timeout: DEV_BUILD_SPAWN_TIMEOUT_MS,
-  });
+  const owned = spawnSync(
+    "bash",
+    ownedEsbuildArgv({ esbuildArgs: esbuildArgsFor({ files, outDir }), leaseWait, root }),
+    { cwd: root, encoding: "utf8", timeout: DEV_BUILD_SPAWN_TIMEOUT_MS },
+  );
   const verdict = devBuildOwnerVerdict({ spawnError: owned.error, status: owned.status, stderr: owned.stderr });
   return { stderr: owned.stderr, verdict };
 }
 
-/** Run one build end to end, returning what it produced so the caller can judge it. */
-function emit({ root, outDir, log }: { root: string; outDir: string; log: Pick<Logger, "error"> }): BuildReport {
-  // Scanned BEFORE esbuild reads a byte, and carried to `stampBuild` untouched. A file written during the
-  // emit-and-smoke window would otherwise be recorded as built in while the emitted tree still held the
-  // module from before it — measured, and the counterexample is in `stamp.ts`'s own header.
-  const files = sourceFiles({ root });
-  const stamps = scanSourceStamps({ root });
-  clearStamp({ outDir });
-  const startedAt = performance.now();
-  const { verdict } = runOwnedEsbuild({ files, outDir, root });
-  const emitMs = Math.round(performance.now() - startedAt);
-  // A run that did not emit stops HERE, before the manifest, the smoke run or the stamp. Each would act on what an
-  // earlier build left in `outDir`, and the smoke run would then prove that tree rather than this one. One stderr
-  // line names which way it ended, so a hook reading the first stderr line reports the cause.
-  const failure = ownerFailureLine({ verdict });
-  if (failure !== undefined) {
-    log.error({ msg: failure });
-    return { emitMs, emitted: 0, outDir, owner: verdict, smokeExit: null, smokeLine: "" };
+/**
+ * The lease wait this build passes the owner, reading the compile lease and this home's lap lock only when the caller
+ * asked to yield. A lock directory that cannot be resolved keeps the ordinary wait: the owner reports that fault itself
+ * when it starts, and an unknown holder is never a reason to wait less.
+ */
+function leaseWaitForBuild({ yieldToLap }: { yieldToLap: boolean }): DevBuildLeaseWait {
+  if (!yieldToLap) {
+    return STANDARD_LEASE_WAIT;
   }
+  const directory = userRuntimeLockDir();
+  if (directory.isErr()) {
+    return STANDARD_LEASE_WAIT;
+  }
+  return devBuildLeaseWait({
+    lap: readStandingLapLock({ home: slopweaverHome() }),
+    lease: readLockState({ path: compileLeasePath({ directory: directory.value }) }),
+    yieldToLap,
+  });
+}
+
+/** Write the emitted tree's own `package.json`, re-rooted from the checkout's, when that one parses. */
+function writeBuiltManifest({ root, outDir }: { root: string; outDir: string }): void {
   const manifest = parseJsonObject({ text: readFileSync(join(root, "package.json"), "utf8") });
   if (manifest.isOk()) {
     writeFileSync(
@@ -122,6 +144,38 @@ function emit({ root, outDir, log }: { root: string; outDir: string; log: Pick<L
       `${JSON.stringify(builtManifest({ manifest: manifest.value }), null, 2)}\n`,
     );
   }
+}
+
+/** Run one build end to end, returning what it produced so the caller can judge it. */
+function emit({
+  root,
+  outDir,
+  log,
+  leaseWait,
+}: {
+  root: string;
+  outDir: string;
+  log: Pick<Logger, "error">;
+  leaseWait: DevBuildLeaseWait;
+}): BuildReport {
+  // Scanned BEFORE esbuild reads a byte, and carried to `stampBuild` untouched. A file written during the
+  // emit-and-smoke window would otherwise be recorded as built in while the emitted tree still held the
+  // module from before it — measured, and the counterexample is in `stamp.ts`'s own header.
+  const files = sourceFiles({ root });
+  const stamps = scanSourceStamps({ root });
+  clearStamp({ outDir });
+  const startedAt = performance.now();
+  const { verdict } = runOwnedEsbuild({ files, leaseWait, outDir, root });
+  const emitMs = Math.round(performance.now() - startedAt);
+  // A run that did not emit stops HERE, before the manifest, the smoke run or the stamp. Each would act on what an
+  // earlier build left in `outDir`, and the smoke run would then prove that tree rather than this one. One stderr
+  // line names which way it ended, so a hook reading the first stderr line reports the cause.
+  const failure = ownerFailureLine({ leaseWait, verdict });
+  if (failure !== undefined) {
+    log.error({ msg: failure });
+    return { emitMs, emitted: 0, outDir, owner: verdict, smokeExit: null, smokeLine: "" };
+  }
+  writeBuiltManifest({ outDir, root });
   const entrypoint = join(outDir, BUILT_ENTRYPOINT);
   if (!existsSync(entrypoint)) {
     return {
@@ -193,7 +247,7 @@ export async function runDevBuildWithDeps({
     log.error({ msg: outsideCheckout });
     return EXIT_USAGE;
   }
-  const report = emit({ log, outDir, root });
+  const report = emit({ leaseWait: leaseWaitForBuild({ yieldToLap: args.value.yieldToLap }), log, outDir, root });
   if (args.value.json) {
     log.out({ line: JSON.stringify(report) });
   } else {

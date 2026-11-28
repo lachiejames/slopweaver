@@ -31,19 +31,113 @@
  * ## The time numbers
  *
  * {@link DEV_BUILD_LOCK_TIMEOUT_SECONDS} bounds the lease wait so a `post-merge` hook never holds a pull for the whole
- * length of a lap; {@link DEV_BUILD_TIMEOUT_SECONDS} bounds the emit, MEASURED at 3.8 s to 15.7 s unlimited. With the
- * owner's grace and settle, both fit inside {@link DEV_BUILD_SPAWN_TIMEOUT_MS}, which fits inside worktree
- * provisioning's own five-minute bound on the whole verb (`src/worktree/shell.ts` `DEV_BUILD_TIMEOUT_MS`).
+ * length of a lap, while still letting one 4 to 16 s dev build queue behind another; {@link DEV_BUILD_TIMEOUT_SECONDS}
+ * bounds the emit, MEASURED at 3.8 s to 15.7 s unlimited. With the owner's grace and settle, both fit inside
+ * {@link DEV_BUILD_SPAWN_TIMEOUT_MS}, which fits inside worktree provisioning's own five-minute bound on the whole verb
+ * (`src/worktree/shell.ts` `DEV_BUILD_TIMEOUT_MS`).
+ *
+ * ## Yielding to a lap
+ *
+ * A lap holds the lease for its whole run (`../github/lapCompileLease.ts`), MEASURED at 2,326,982 ms of step wall
+ * time on one lap, so a build started outside it while it runs waited the full 120 s for a refusal that was certain
+ * from the start. Worktree provisioning and the ref-move hook each paid that per build. They pass `--yield-to-lap`,
+ * and {@link devBuildLeaseWait} drops the wait to {@link DEV_BUILD_LAP_YIELD_SECONDS} only when the lease's holder
+ * pid IS the live lap lock's pid and that holder started no later than the lock was written ({@link lapHoldsCompileLease}
+ * says why a pid alone is not an identity): a standing lap lock alone is not enough, because a lap takes its lock first
+ * and then waits up to 1,200 s behind an ordinary compile, and a hook build should still queue behind that compile. A lap's own
+ * builds are its descendants, and the owner inherits the lease for them on its first round, before any wait clock
+ * starts, so the short wait never turns one into a waiter. Residue, stated: the lap lock is per
+ * `$SLOPWEAVER_HOME` and the lease per OS user, so a lap under another home is not seen and the 120 s stands; and
+ * the read is a snapshot, not atomic with the owner's own acquisition, so the refusal line says the lap held the lease
+ * when the build STARTED; and the owner's `is_ancestor` walks at most 64 parent links, so a lap descendant deeper than
+ * that is refused as a waiter, after 1 s here where it was refused after 120 s before.
  */
 import { join } from "node:path";
-
+import { parseStrictIsoInstantMs } from "#lib/date.js";
 import { ESBUILD_GO_MEMORY_LIMIT_MIB } from "#lib/esbuildBounds.js";
+import { lstartMs } from "#lib/lstart.js";
+import type { LockState } from "../../../admit/operationLockState.js";
+import type { LapLock } from "../github/lapLockShape.js";
 
 /** The hard bound on esbuild's process group's summed resident memory, in MiB. */
 export const DEV_BUILD_RSS_CEILING_MIB = 16_384;
 
 /** How long a build waits for the machine's compile lease before it is refused, in seconds. */
 export const DEV_BUILD_LOCK_TIMEOUT_SECONDS = 120;
+
+/**
+ * How long a `--yield-to-lap` build waits when a lap holds the lease, in seconds. The owner refuses 0, and its wait
+ * clock starts only after its first round, so one second costs a descendant of the lap nothing.
+ */
+export const DEV_BUILD_LAP_YIELD_SECONDS = 1;
+
+/**
+ * The lease wait one build passes the owner: the ordinary queue, or the short yield to a lap that held the lease
+ * when the build started, carrying that lap so a refusal can name it.
+ */
+export type DevBuildLeaseWait =
+  | { readonly kind: "standard"; readonly seconds: number }
+  | {
+      readonly kind: "lap-yield";
+      readonly seconds: number;
+      readonly lap: { readonly pid: number; readonly subject: string };
+    };
+
+/** The ordinary wait, which every build but a yielding one takes. */
+export const STANDARD_LEASE_WAIT: DevBuildLeaseWait = { kind: "standard", seconds: DEV_BUILD_LOCK_TIMEOUT_SECONDS };
+
+/**
+ * Whether a live lap holds the compile lease: the lease is held, its holder's pid is the lap lock's pid, AND the
+ * holder's process started no later than the lap lock was written.
+ *
+ * The last clause is what a pid alone cannot say. The lap lock carries no process start stamp, and it is judged live
+ * on `kill -0` of its pid, so a lap that died leaving its lock behind, its pid since handed to an unrelated compile
+ * holding the lease, would otherwise read as the lap. The real lap's process started before it wrote its lock; a
+ * process given that pid after the lap died started after. The lease record's `start` is `ps -o lstart=`, truncated to
+ * the second, so a genuine holder never reads later than its lock. Residue, stated: a pid handed out again within the
+ * same second the dead lap wrote its lock reads as the lap.
+ *
+ * @param lease what stands at the compile lease's path
+ * @param lap the live lap lock of this home, `undefined` when no live lap holds it
+ * @returns true only for a held lease whose holder is that lap's own process; an unreadable stamp or instant is false
+ */
+export function lapHoldsCompileLease({ lease, lap }: { lease: LockState; lap: LapLock | undefined }): boolean {
+  if (lease.kind !== "held" || lap === undefined || lease.holder.contents.pid !== lap.pid) {
+    return false;
+  }
+  const start = lease.holder.contents.start;
+  if (start === undefined) {
+    return false;
+  }
+  const holderStartedMs = lstartMs({ text: start });
+  // Strict, never `Date.parse`: that rolls an impossible instant (day 31 of February) into a real, later one.
+  const lockWrittenMs = parseStrictIsoInstantMs({ text: lap.startedIso });
+  return holderStartedMs !== undefined && lockWrittenMs !== undefined && holderStartedMs <= lockWrittenMs;
+}
+
+/**
+ * The lease wait a build passes the owner: the short yield only when asked for AND a live lap holds the lease;
+ * every uncertain state (no lap, another holder, an absent, in-flux or unreadable lease) keeps the ordinary wait.
+ *
+ * @param yieldToLap whether the caller passed `--yield-to-lap`
+ * @param lease what stands at the compile lease's path
+ * @param lap the live lap lock of this home, `undefined` when no live lap holds it
+ * @returns the wait to pass
+ */
+export function devBuildLeaseWait({
+  yieldToLap,
+  lease,
+  lap,
+}: {
+  yieldToLap: boolean;
+  lease: LockState;
+  lap: LapLock | undefined;
+}): DevBuildLeaseWait {
+  if (!yieldToLap || lap === undefined || !lapHoldsCompileLease({ lap, lease })) {
+    return STANDARD_LEASE_WAIT;
+  }
+  return { kind: "lap-yield", lap: { pid: lap.pid, subject: lap.subject }, seconds: DEV_BUILD_LAP_YIELD_SECONDS };
+}
 
 /** How long the emit itself may run, in seconds. */
 export const DEV_BUILD_TIMEOUT_SECONDS = 120;
@@ -66,14 +160,17 @@ const ESBUILD_BIN = "node_modules/.bin/esbuild";
  *
  * @param root the checkout whose owner and esbuild are run
  * @param esbuildArgs the argv after the esbuild binary
+ * @param leaseWait how long the owner waits for the compile lease
  * @returns the owner script, its bounds, `--`, then esbuild and its arguments
  */
 export function ownedEsbuildArgv({
   root,
   esbuildArgs,
+  leaseWait,
 }: {
   root: string;
   esbuildArgs: readonly string[];
+  leaseWait: DevBuildLeaseWait;
 }): readonly string[] {
   return [
     join(root, OWNER_SCRIPT),
@@ -84,7 +181,7 @@ export function ownedEsbuildArgv({
     "--rss-ceiling-mib",
     String(DEV_BUILD_RSS_CEILING_MIB),
     "--lock-timeout-seconds",
-    String(DEV_BUILD_LOCK_TIMEOUT_SECONDS),
+    String(leaseWait.seconds),
     "--go-memory-limit-mib",
     String(ESBUILD_GO_MEMORY_LIMIT_MIB),
     "--",
@@ -318,17 +415,38 @@ const UNSTAMPED =
   "dist-cli is left unstamped and this checkout runs from source until a `slopweaver dev build` succeeds";
 
 /**
+ * The refusal line for a lease wait that ran out, naming the wait actually passed and, for a yield, the lap that held
+ * the lease when the build started — never that it still held it at the refusal, since the two reads are not atomic.
+ * The subject comes off a lock file that accepts any string, so every whitespace run in it, a line break included,
+ * is one space: a subject must not be able to print a second `dev build:` line naming some other wait.
+ */
+function refusedLine({ leaseWait }: { leaseWait: DevBuildLeaseWait }): string {
+  if (leaseWait.kind === "lap-yield") {
+    const subject = leaseWait.lap.subject.replace(/\s+/gu, " ");
+    return `dev build: refused after ${String(leaseWait.seconds)}s — yielded because lap ${subject} (pid ${String(leaseWait.lap.pid)}) held the machine's compile lease when this build started, so esbuild never ran; rerun \`slopweaver dev build\` after that lap; ${UNSTAMPED}`;
+  }
+  return `dev build: refused — the machine's compile lease stayed held past ${String(leaseWait.seconds)}s, so esbuild never ran; ${UNSTAMPED}`;
+}
+
+/**
  * The ONE stderr line a run that emitted nothing usable prints, naming which way it ended.
  *
+ * @param leaseWait the lease wait the owner was passed, which a refusal names
  * @returns the line, or `undefined` for a run that emitted — a success prints no stderr line at all
  */
-export function ownerFailureLine({ verdict }: { verdict: DevBuildOwnerVerdict }): string | undefined {
+export function ownerFailureLine({
+  verdict,
+  leaseWait,
+}: {
+  verdict: DevBuildOwnerVerdict;
+  leaseWait: DevBuildLeaseWait;
+}): string | undefined {
   switch (verdict.kind) {
     case "built":
     case "waited-out":
       return undefined;
     case "refused":
-      return `dev build: refused — the machine's compile lease stayed held past ${String(DEV_BUILD_LOCK_TIMEOUT_SECONDS)}s, so esbuild never ran; ${UNSTAMPED}`;
+      return refusedLine({ leaseWait });
     case "killed":
       return `dev build: killed — esbuild's process group passed the ${String(DEV_BUILD_RSS_CEILING_MIB)} MiB resident-memory ceiling (peak ${String(Math.round(verdict.peakRssKiB / 1024))} MiB sampled); ${UNSTAMPED}`;
     case "timed-out":

@@ -389,6 +389,18 @@ function packageNamed({ name, path }: { name: string; path: string }): boolean {
 }
 
 /**
+ * The argv after `tsx` provisioning's emit runs. `--yield-to-lap`: a lap holds the compile lease for its whole run, so
+ * an emit started outside one while it runs would wait 120 s for a refusal certain from the start; with the flag it
+ * gives up after one second when the lease's holder is a live lap (`src/cli/commands/dev/buildOwner.ts`
+ * § Yielding to a lap), and the worktree runs from source exactly as a refused build always left it.
+ *
+ * @returns the source entrypoint, the verb, and its flag
+ */
+export function worktreeDevBuildArgv(): readonly string[] {
+  return [DEV_BUILD_ENTRY, "dev", "build", "--yield-to-lap"];
+}
+
+/**
  * Emit one worktree's built CLI by running the verb that owns the emit.
  *
  * Through the target's own `tsx` and SOURCE rather than through `bin/slopweaver`, for the reason
@@ -406,7 +418,7 @@ function packageNamed({ name, path }: { name: string; path: string }): boolean {
  */
 export function runDevBuild({ cwd }: { cwd: string }): DevBuildFailure | undefined {
   try {
-    execFileSync(join(cwd, TSX_BIN), [DEV_BUILD_ENTRY, "dev", "build"], {
+    execFileSync(join(cwd, TSX_BIN), worktreeDevBuildArgv(), {
       cwd,
       encoding: "utf8",
       env: gitEnv(),
