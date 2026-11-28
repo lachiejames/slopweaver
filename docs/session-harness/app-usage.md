@@ -4,7 +4,8 @@ A child of [the session harness](../session-harness.md). `cmux usage --harness a
 `usage.read` and prints, for each session this run of the app hosted (closed and failed ones included), the model
 asked for against the one the vendor named, the models each turn was charged to, its tokens in that vendor's own
 categories, and tokens per hour since its first ready. An app from before this refuses `usage.read` as
-`BAD_REQUEST`, which the verb reports as an app to update.
+`BAD_REQUEST`, which the verb reports as an app to update. A session's title prints with any email or IP address
+as `[email]`/`[ip]`, in both forms (`redactedUsageView`, `src/cli/commands/cmux/usageOutput.ts`).
 
 - **Spend lands at a turn's END**, so a session mid-turn has not counted that turn: poll until idle. Each worker
   sends its turn's OWN tokens ahead of `turn-ended`, over ordered IPC, so the registry counts it before it releases

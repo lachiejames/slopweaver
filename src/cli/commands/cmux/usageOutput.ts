@@ -5,6 +5,7 @@
  * full the window is, and is never read as spend.
  */
 
+import { redactPii } from "../../../outbound/slack/piiRedaction.js";
 import type { PlanUsageSummary, UsagePlanName, UsageView } from "../../../sessionHarness/appUsage.js";
 import type {
   AppSessionTokens,
@@ -131,6 +132,24 @@ export function planLine({ summary }: { summary: PlanUsageSummary }): string {
     total = `total ${String(summary.total.totalTokens)}${floor}`;
   }
   return `plan ${planLabel({ plan: summary.plan, planPath: summary.planPath })} · ${summary.vendor} · ${counts} · ${total}`;
+}
+
+/**
+ * The report as `cmux usage` prints it, plain and `--json` alike: each session's title with every email and IP
+ * address replaced by `[email]`/`[ip]`, and every other field as the app answered. A title is free text a launch
+ * carried, so it can hold an address; ledger keys, plan paths, aliases, models and times are left whole on purpose.
+ *
+ * @param view the report, plans named and summed
+ * @returns a copy of it with only the session titles redacted
+ */
+export function redactedUsageView({ view }: { view: UsageView }): UsageView {
+  return {
+    ...view,
+    sessions: view.sessions.map((session) => ({
+      ...session,
+      usage: { ...session.usage, title: redactPii({ text: session.usage.title }).text },
+    })),
+  };
 }
 
 /**

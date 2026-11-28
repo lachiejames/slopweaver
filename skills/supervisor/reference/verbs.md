@@ -3,7 +3,7 @@
 Every command this role reaches for, and the one distinction between the two event streams.
 
 ```bash
-slopweaver session list [--json]                          # every ledger-tracked session, folded to current state
+slopweaver session list [--json]                          # every ledger-tracked session, folded to current state; an email or IP in a note prints as [email]/[ip]
 slopweaver session record <key> --note "<text>"            # note a status, or register a new key
 slopweaver session close <key>                             # mark one done by hand
 slopweaver cmux reseat --all [--dry-run]                    # FIRST after any restart, and whenever watch shows a wall: relaunch every walled or no-plan seat IN PLACE, the same session resumed on a routed plan, chair first, context kept, bar a running seat with no transcript, booted fresh as `fresh-seated`, and a bare shell with none, refused `NO_RESUMABLE_SESSION`; ends on the console's state
