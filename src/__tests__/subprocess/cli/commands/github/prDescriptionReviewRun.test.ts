@@ -1,297 +1,76 @@
 /*
  * `github pr review-prepare`, `github pr review-record` and the write verbs' check, end to end over a real pull
  * request checkout, a real packet repository and a real receipt store. Only the reviewer is a fixture: a Codex
- * pass record or a Claude fallback receipt built over the packet's own commits, handed in through the deps seam.
+ * pass record or a Claude fallback receipt built over the packet's own commits, handed in through the deps seam
+ * (`./prDescriptionReviewWorld.ts`).
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { runGithubPrReviewPrepare } from "../../../../../cli/commands/github/prDescriptionReviewPrepareRun.js";
-import {
-  type GithubPrDescriptionReviewDeps,
-  runGithubPrReviewRecord,
-} from "../../../../../cli/commands/github/prDescriptionReviewRun.js";
-import type { FallbackReceiptScan } from "../../../../../codex/fallbackDocuments.js";
-import type { ClaudeFallbackReviewReceipt } from "../../../../../codex/fallbackReview.js";
+import type { GithubPrDescriptionReviewDeps } from "../../../../../cli/commands/github/prDescriptionReviewRun.js";
 import type { CodexArtifactRecord } from "../../../../../codex/types.js";
-import type { AttachUploadStanding } from "../../../../../handover/attachUploadRuling.js";
-import { err, ok, unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { err, unwrap, unwrapErr } from "../../../../../lib/result.js";
+import { safeJsonStringify } from "../../../../../lib/safeJson.js";
 import { textSha256 } from "../../../../../outbound/github/descriptionReview.js";
 import { DescriptionReviewErrors } from "../../../../../outbound/github/descriptionReviewErrors.js";
+import { requireCleanDescriptionReview } from "../../../../../outbound/github/descriptionReviewGate.js";
 import {
-  type DescriptionUnderReview,
-  requireCleanDescriptionReview,
-} from "../../../../../outbound/github/descriptionReviewGate.js";
-import {
+  listReadableReceipts,
   PACKET_COMMENTS_PATH,
   PACKET_EXISTING_COMMENTS_PATH,
-  packetCommitFacts,
   preparationsDirectory,
   readPreparationAtRoot,
   receiptsDirectory,
+  writeReceiptOnce,
 } from "../../../../../outbound/github/descriptionReviewStore.js";
 import {
-  DESCRIPTION_REVIEW_PROPERTY,
-  DESCRIPTION_REVIEW_PROPERTY_ID,
-  DESCRIPTION_RULE_FILES,
-  type DescriptionReviewComment,
+  type DescriptionReviewReceipt,
   descriptionReviewPacketReadme,
-  type ExistingPullRequestComment,
   type StoredDescriptionReviewPreparation,
 } from "../../../../../outbound/github/descriptionReviewTypes.js";
-import { PERMITTED_ATTACH_UPLOAD } from "../../../../attachRunFixture.js";
-import { FIXTURE_REVIEW_SCOPE, fixtureCodexRecord, fixtureFallbackReceipt } from "../../../../pageReviewFixture.js";
 import { gitInTemp } from "../../../../tempGitRepo.js";
-
-/** A fixed identity, no signing and no hooks, for every command that writes a commit. */
-const IDENTITY: readonly string[] = [
-  "-c",
-  "user.name=fixture",
-  "-c",
-  "user.email=fixture@example.invalid",
-  "-c",
-  "commit.gpgsign=false",
-  "-c",
-  "core.hooksPath=/dev/null",
-];
-
-const TITLE = "fix(widgets): count every widget once";
-const BODY = "Counts each widget once.\n\n## Test evidence\n\n| Check | Result |\n| --- | --- |\n| unit | pass |\n";
-const PROPERTY = { id: DESCRIPTION_REVIEW_PROPERTY_ID, statement: DESCRIPTION_REVIEW_PROPERTY };
-
-/** The one walkthrough comment the write posts. */
-const WALKTHROUGH: DescriptionReviewComment = {
-  body: "💡 The counter now reads each widget once.",
-  line: 1,
-  path: "src/count.ts",
-};
-
-/** A conversation comment already on the open pull request. */
-const ON_THE_PR: ExistingPullRequestComment = {
-  authorLogin: "zorvane",
-  body: "Does this count a widget shared by two boards twice?",
-  createdAtIso: "2026-11-17T00:30:00Z",
-  id: "IC_1",
-  kind: "issue-comment",
-  updatedAtIso: "2026-11-17T00:30:00Z",
-  url: "https://github.com/acme/widgets/pull/7#issuecomment-1",
-};
-
-/** Commit everything in a working tree. */
-function commitAll({ repo, message }: { repo: string; message: string }): void {
-  gitInTemp({ args: ["add", "--all"], cwd: repo });
-  gitInTemp({ args: [...IDENTITY, "commit", "--quiet", "--no-verify", "-m", message], cwd: repo });
-}
+import {
+  BODY,
+  commitAll,
+  type DescriptionReviewWorld,
+  descriptionReviewWorld,
+  IDENTITY,
+  ON_THE_PR,
+  WALKTHROUGH,
+} from "./prDescriptionReviewWorld.js";
 
 describe("github pr review-prepare and review-record", () => {
-  let root = "";
+  let world: DescriptionReviewWorld;
   let repo = "";
-  let rules = "";
   let home = "";
   let bodyFile = "";
   let commentsFile = "";
-  let ids = 0;
-  const passes = new Map<string, CodexArtifactRecord>();
-  const fallbacks: ClaudeFallbackReviewReceipt[] = [];
+  let passes = new Map<string, CodexArtifactRecord>();
   let diagnostics: string[] = [];
-  /** What the comment reader answers for the open pull request, and every number it was asked for. */
-  let onThePr: readonly ExistingPullRequestComment[] = [];
   let commentsAskedFor: number[] = [];
-  /** The home's attach-upload standing; permitted unless a test refuses it. */
-  let attachUpload: AttachUploadStanding = PERMITTED_ATTACH_UPLOAD;
 
   beforeEach(() => {
-    attachUpload = PERMITTED_ATTACH_UPLOAD;
-    root = mkdtempSync(join(tmpdir(), "sw-pr-desc-review-"));
-    repo = join(root, "repo");
-    rules = join(root, "rules");
-    home = join(root, "home");
-    bodyFile = join(root, "body.md");
-    commentsFile = join(root, "comments.json");
-    ids = 0;
-    passes.clear();
-    fallbacks.length = 0;
-    diagnostics = [];
-    onThePr = [];
-    commentsAskedFor = [];
-    mkdirSync(join(repo, "src"), { recursive: true });
-    mkdirSync(home);
-    gitInTemp({ args: ["init", "--quiet", "--initial-branch=main"], cwd: repo });
-    writeFileSync(join(repo, "src", "count.ts"), "export const count = 1;\n");
-    writeFileSync(join(repo, "src", "other.ts"), "export const other = 1;\n");
-    commitAll({ message: "base", repo });
-    gitInTemp({ args: ["checkout", "--quiet", "-b", "feature"], cwd: repo });
-    writeFileSync(join(repo, "src", "count.ts"), "export const count = 2;\n");
-    commitAll({ message: "count once", repo });
-    for (const file of DESCRIPTION_RULE_FILES) {
-      mkdirSync(dirname(join(rules, file)), { recursive: true });
-      writeFileSync(join(rules, file), `# ${file}\n\nA written rule.\n`);
-    }
-    writeFileSync(bodyFile, BODY);
-    writeFileSync(commentsFile, "[]\n");
+    world = descriptionReviewWorld();
+    ({ bodyFile, commentsAskedFor, commentsFile, diagnostics, home, passes, repo } = world);
   });
 
   afterEach(() => {
-    rmSync(root, { force: true, recursive: true });
+    world.cleanUp();
   });
 
-  /** The deps one session runs the verbs with. */
-  function depsFor({ session }: { session: string }): GithubPrDescriptionReviewDeps {
-    return {
-      attachUploadStanding: () => attachUpload,
-      cwd: repo,
-      env: { CLAUDE_CODE_SESSION_ID: session },
-      installedRulesRoot: rules,
-      newId: () => {
-        ids += 1;
-        return `id-${String(ids)}`;
-      },
-      nowIso: () => "2026-11-17T01:00:00.000Z",
-      out: () => undefined,
-      readComments: ({ number }) => {
-        commentsAskedFor.push(number);
-        return Promise.resolve(ok(onThePr));
-      },
-      readPass: ({ artifactId }) => ok(passes.get(artifactId)),
-      scanFallback: () => {
-        const scan: FallbackReceiptScan = {
-          foreign: 0,
-          foreignModes: [],
-          foreignReceipts: [],
-          pending: 0,
-          pendingPlans: 0,
-          planReceipts: [],
-          problems: [],
-          receipts: fallbacks,
-          unboundReceipts: [],
-          unreadable: 0,
-        };
-        return Promise.resolve(ok(scan));
-      },
-      writeDiagnostic: ({ line }) => {
-        diagnostics.push(line);
-      },
-    };
-  }
-
-  /** The full prepare argv over the fixture checkout, for a new pull request unless one is named. */
-  function prepareArgs({ number }: { number?: number } = {}): string[] {
-    const which = number === undefined ? ["--new"] : ["--number", String(number)];
-    return [
-      ...which,
-      "--comments",
-      commentsFile,
-      "--repo",
-      "acme/widgets",
-      "--base",
-      "main",
-      "--base-ref",
-      "main",
-      "--head",
-      "feature",
-      "--cwd",
-      repo,
-      "--title",
-      TITLE,
-      "--body-file",
-      bodyFile,
-      "--home",
-      home,
-    ];
-  }
-
-  /** Prepare the packet as the writing session, and read back what it wrote. */
-  async function prepare({ number }: { number?: number } = {}): Promise<{
-    exit: number;
-    preparation: StoredDescriptionReviewPreparation;
-    repoRoot: string;
-  }> {
-    const rest = number === undefined ? prepareArgs() : prepareArgs({ number });
-    const exit = await runGithubPrReviewPrepare({ deps: depsFor({ session: "writer" }), rest });
-    const repoRoot = join(preparationsDirectory({ home }), `id-${String(ids)}`, "repo");
-    const preparation = unwrap(readPreparationAtRoot({ home, repoRoot }))!;
-    return { exit, preparation, repoRoot };
-  }
-
-  /** Record one review id as the named session. */
-  function record({ reviewId, session }: { reviewId: string; session: string }): Promise<number> {
-    return runGithubPrReviewRecord({ deps: depsFor({ session }), rest: ["--review", reviewId, "--home", home] });
-  }
-
-  /** The commits and diff digest a reviewer of this packet would record. */
-  function scopeOf({ preparation, repoRoot }: { preparation: StoredDescriptionReviewPreparation; repoRoot: string }): {
-    baseSha: string;
-    diffSha256: string;
-    headSha: string;
-  } {
-    const { baseSha, headSha } = preparation;
-    const facts = unwrap(packetCommitFacts({ baseSha, headSha, repoRoot }));
-    return { baseSha, diffSha256: facts.diffSha256, headSha };
-  }
-
-  /** Store a Codex pass over the packet, under its artifact id. */
-  function codexPass({
-    artifactId,
-    preparation,
-    repoRoot,
-    verdict,
-  }: {
-    artifactId: string;
-    preparation: StoredDescriptionReviewPreparation;
-    repoRoot: string;
-    verdict: "CLEAN" | "BROKEN";
-  }): void {
-    const { baseSha, diffSha256, headSha } = scopeOf({ preparation, repoRoot });
-    const scope = { ...FIXTURE_REVIEW_SCOPE, baseRef: baseSha, baseSha, diffSha256, headSha, property: PROPERTY };
-    const answer = {
-      counterexample: "",
-      evidence: "read description/body.md against change/diff.patch",
-      propertyId: DESCRIPTION_REVIEW_PROPERTY_ID,
-      summary: `the description is ${verdict}.`,
-      verdict,
-    };
-    const outcome = { answer, kind: "answered" as const, rawFinalResponse: "{}" };
-    passes.set(artifactId, { ...fixtureCodexRecord({ artifactId, outcome, scope }), repoRoot });
-  }
-
-  /** Store a Claude fallback receipt over the packet. */
-  function fallbackReview({
-    preparation,
-    receiptId,
-    repoRoot,
-  }: {
-    preparation: StoredDescriptionReviewPreparation;
-    receiptId: string;
-    repoRoot: string;
-  }): void {
-    const base = fixtureFallbackReceipt({ receiptId, requestId: `${receiptId}-request` });
-    const { baseSha, diffSha256, headSha } = scopeOf({ preparation, repoRoot });
-    fallbacks.push({
-      ...base,
-      answer: { ...base.answer, propertyId: DESCRIPTION_REVIEW_PROPERTY_ID },
-      request: { ...base.request, baseRef: baseSha, baseSha, diffSha256, headSha, property: PROPERTY, repoRoot },
-    });
-  }
-
-  /** What the write verb would send, as it stands in the checkout now. */
-  function described(over: Partial<DescriptionUnderReview> = {}): DescriptionUnderReview {
-    return {
-      baseBranch: "main",
-      baseRef: "main",
-      body: BODY,
-      comments: [],
-      existingComments: [],
-      headRef: "feature",
-      images: [],
-      installedRulesRoot: rules,
-      repoDir: repo,
-      repository: "acme/widgets",
-      title: TITLE,
-      ...over,
-    };
-  }
+  const depsFor: DescriptionReviewWorld["depsFor"] = (options) => world.depsFor(options);
+  const prepareArgs: DescriptionReviewWorld["prepareArgs"] = (options) => world.prepareArgs(options);
+  const prepare: DescriptionReviewWorld["prepare"] = (options) => world.prepare(options);
+  const record: DescriptionReviewWorld["record"] = (options) => world.record(options);
+  const codexPass: DescriptionReviewWorld["codexPass"] = (options) => {
+    world.codexPass(options);
+  };
+  const fallbackReview: DescriptionReviewWorld["fallbackReview"] = (options) => {
+    world.fallbackReview(options);
+  };
+  const described: DescriptionReviewWorld["described"] = (over) => world.described(over);
 
   it("opens the write over a CLEAN Codex review of these exact bytes", async () => {
     const prepared = await prepare();
@@ -388,6 +167,70 @@ describe("github pr review-prepare and review-record", () => {
     expect(failure.message).toContain("the change set id-2 reviewed cannot be read back (description review packet:");
   });
 
+  /**
+   * Rewrite the one stored receipt and its preparation as main wrote them before the packet carried thread history:
+   * a schema-2 receipt over a schema-3 preparation, the shape of every receipt already in flight.
+   */
+  function storeAsLegacy(): void {
+    const receipt = listReadableReceipts({ home })[0]!;
+    rmSync(join(receiptsDirectory({ home }), `${receipt.manifestSha256}.json`));
+    const legacyReceipt: DescriptionReviewReceipt = {
+      manifest: receipt.manifest,
+      manifestSha256: receipt.manifestSha256,
+      preparationId: receipt.preparationId,
+      preparedBy: receipt.preparedBy,
+      receiptId: receipt.receiptId,
+      recordedAtIso: receipt.recordedAtIso,
+      recordedBy: receipt.recordedBy,
+      reviewId: receipt.reviewId,
+      reviewer: receipt.reviewer,
+      schemaVersion: 2,
+      summary: receipt.summary,
+      verdict: receipt.verdict,
+    };
+    unwrap(writeReceiptOnce({ home, receipt: legacyReceipt }));
+    const directory = join(preparationsDirectory({ home }), receipt.preparationId);
+    const preparation = unwrap(readPreparationAtRoot({ home, repoRoot: join(directory, "repo") }))!;
+    const legacyPreparation = {
+      baseSha: preparation.baseSha,
+      createdAtIso: preparation.createdAtIso,
+      headSha: preparation.headSha,
+      manifest: preparation.manifest,
+      manifestSha256: preparation.manifestSha256,
+      preparationId: preparation.preparationId,
+      preparedBy: preparation.preparedBy,
+      schemaVersion: 3,
+    } satisfies StoredDescriptionReviewPreparation;
+    writeFileSync(
+      join(directory, "preparation.json"),
+      `${safeJsonStringify({ label: "legacy preparation", space: 2, value: legacyPreparation })}\n`,
+    );
+  }
+
+  it("opens the write on the exact path over a CLEAN receipt written before the packet carried history", async () => {
+    const prepared = await prepare();
+    codexPass({ ...prepared, artifactId: "pass-1", verdict: "CLEAN" });
+    expect(await record({ reviewId: "pass-1", session: "writer" })).toBe(0);
+    storeAsLegacy();
+    const admitted = unwrap(requireCleanDescriptionReview({ description: described(), home }));
+    expect([admitted.kind, admitted.receipt.schemaVersion, admitted.receipt.reviewId]).toStrictEqual([
+      "exact",
+      2,
+      "pass-1",
+    ]);
+  });
+
+  it("carries a CLEAN receipt written before the packet carried history over an immaterial trim", async () => {
+    await reviewThenTrimGuide({ body: BODY });
+    storeAsLegacy();
+    const carried = unwrap(requireCleanDescriptionReview({ description: described(), home }));
+    expect([carried.kind, carried.receipt.schemaVersion, carried.receipt.reviewId]).toStrictEqual([
+      "carried",
+      2,
+      "pass-1",
+    ]);
+  });
+
   it("keeps the write open across a pure rebase onto a base that moved elsewhere", async () => {
     const prepared = await prepare();
     codexPass({ ...prepared, artifactId: "pass-1", verdict: "CLEAN" });
@@ -444,7 +287,7 @@ describe("github pr review-prepare and review-record", () => {
 
   it("commits the outgoing comments and the pull request's own comments at the head, inside the diff", async () => {
     writeFileSync(commentsFile, JSON.stringify([WALKTHROUGH]));
-    onThePr = [ON_THE_PR];
+    world.onThePr = [ON_THE_PR];
     const prepared = await prepare({ number: 7 });
     expect(prepared.exit).toBe(0);
     expect(commentsAskedFor).toStrictEqual([7]);
@@ -458,7 +301,7 @@ describe("github pr review-prepare and review-record", () => {
 
   it("tells the reviewer no picture can come when attach upload is not permitted, and only then", async () => {
     const permitted = await prepare();
-    attachUpload = { because: "unruled", kind: "refused" };
+    world.attachUpload = { because: "unruled", kind: "refused" };
     writeFileSync(bodyFile, `${BODY}\n`);
     const refused = await prepare();
     const readme = ({
@@ -475,7 +318,7 @@ describe("github pr review-prepare and review-record", () => {
   });
 
   it("reads no comment for a pull request not yet opened", async () => {
-    onThePr = [ON_THE_PR];
+    world.onThePr = [ON_THE_PR];
     const prepared = await prepare();
     expect(prepared.exit).toBe(0);
     expect(commentsAskedFor).toStrictEqual([]);
@@ -500,7 +343,7 @@ describe("github pr review-prepare and review-record", () => {
   });
 
   it("shuts the write when a comment arrives on the pull request after the review", async () => {
-    onThePr = [ON_THE_PR];
+    world.onThePr = [ON_THE_PR];
     const prepared = await prepare({ number: 7 });
     codexPass({ ...prepared, artifactId: "pass-1", verdict: "CLEAN" });
     expect(await record({ reviewId: "pass-1", session: "writer" })).toBe(0);

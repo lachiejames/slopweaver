@@ -22,6 +22,7 @@ import { preparationsDirectory } from "../../../../outbound/github/descriptionRe
 import {
   DESCRIPTION_REVIEW_EVERY_VIOLATION,
   type DescriptionReviewComment,
+  type ExistingPullRequestComment,
 } from "../../../../outbound/github/descriptionReviewTypes.js";
 import { gitInTemp } from "../../../tempGitRepo.js";
 
@@ -135,10 +136,52 @@ describe("prepareDescriptionPacket", () => {
       "rules/01-pull-requests.md",
     ]);
     expect(readFileSync(join(repoRoot, "images", `${PNG_SHA}.png`)).equals(PNG)).toBe(true);
-    expect(preparation.schemaVersion).toBe(3);
+    expect(preparation.schemaVersion).toBe(4);
+    expect(preparation.historicalReviewThreadIds).toStrictEqual([]);
     expect(preparation.preparedBy).toStrictEqual({ host: "claude-code", id: "writer" });
     const diff = reviewDiff({ baseSha: preparation.baseSha, headSha: preparation.headSha, repoRoot });
     expect(Buffer.byteLength(diff, "utf8")).toBe(diffBytes);
+  });
+
+  it("shows a resolved thread's history in the evidence and records it, binding the same manifest as its open form", () => {
+    const open: ExistingPullRequestComment = {
+      authorLogin: "quillfeather",
+      body: "It used to count each widget twice.",
+      createdAtIso: "2026-11-17T00:00:00Z",
+      id: "PRRC_1",
+      kind: "review-comment",
+      originalLine: 4,
+      path: "src/count.ts",
+      supersededByThisWrite: false,
+      threadId: "PRRT_1",
+      threadResolved: false,
+      updatedAtIso: "2026-11-17T00:00:00Z",
+      url: "https://github.com/acme/widgets/pull/7#discussion_r1",
+    };
+    const base = contentsWith({ images: [] });
+    const contents: PacketContents = {
+      ...base,
+      existingComments: [{ ...open, threadResolved: true }],
+      manifest: buildDescriptionManifest({
+        baseBranch: "main",
+        body: base.body,
+        changeDigest: "c".repeat(64),
+        comments: [],
+        existingComments: [open],
+        images: [],
+        repository: "acme/widgets",
+        rulesSha256: rulesSha256Of({ files: RULES }),
+        title: base.title,
+      }),
+    };
+    const { preparation, repoRoot } = unwrap(prepare({ contents, preparationId: "p-history" }));
+    expect(preparation.historicalReviewThreadIds).toStrictEqual(["PRRT_1"]);
+    const evidence = gitInTemp({
+      args: ["show", `${preparation.headSha}:evidence/pull-request-comments.json`],
+      cwd: repoRoot,
+    });
+    expect(evidence).toContain('"threadResolved":true');
+    expect(evidence).toContain('"threadId":"PRRT_1"');
   });
 
   it("carries every piece of text evidence in the diff a reviewer reads, and no image bytes", () => {

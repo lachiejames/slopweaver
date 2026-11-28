@@ -9,10 +9,8 @@ import { changeDigestOf, parseTreeDelta, treeDeltaLines } from "../../../../outb
 import {
   bindDescriptionReview,
   buildDescriptionManifest,
-  canonicalDescriptionComments,
   decideDescriptionWrite,
   decideReviewerFreshness,
-  descriptionCommentsText,
   descriptionReceiptOf,
   manifestDifferences,
   manifestSha256Of,
@@ -31,33 +29,10 @@ import {
   type DescriptionReviewComment,
   type DescriptionReviewManifest,
   type DescriptionReviewPreparation,
-  type DescriptionReviewReceipt,
   type ExistingPullRequestComment,
+  type HistoryBoundReceipt,
 } from "../../../../outbound/github/descriptionReviewTypes.js";
 import type { PageReviewCandidate } from "../../../../pages/review.js";
-
-/** Two walkthrough comments, as GitHub receives them. */
-const COMMENT_A: DescriptionReviewComment = {
-  body: "💡 The consent callback keeps the session.",
-  line: 12,
-  path: "src/a.ts",
-};
-const COMMENT_B: DescriptionReviewComment = {
-  body: "🧪 The callback test covers a personal account.",
-  line: 3,
-  path: "src/b.ts",
-};
-
-/** A conversation comment already on the pull request. */
-const EXISTING: ExistingPullRequestComment = {
-  authorLogin: "quillfeather",
-  body: "Does this hold for a work account too?",
-  createdAtIso: "2026-11-17T00:00:00Z",
-  id: "IC_1",
-  kind: "issue-comment",
-  updatedAtIso: "2026-11-17T00:00:00Z",
-  url: "https://github.com/acme/widgets/pull/7#issuecomment-1",
-};
 
 const IMAGE_A: DescriptionImage = {
   proves: "The connect page loads after consent.",
@@ -108,11 +83,12 @@ function preparation(over: Partial<DescriptionReviewPreparation> = {}): Descript
     baseSha: "1".repeat(40),
     createdAtIso: "2026-11-17T01:00:00.000Z",
     headSha: "2".repeat(40),
+    historicalReviewThreadIds: [],
     manifest: built,
     manifestSha256: manifestSha256Of({ manifest: built }),
     preparationId: "prep-1",
     preparedBy: PREPARED_BY,
-    schemaVersion: 3,
+    schemaVersion: 4,
     ...over,
   };
 }
@@ -153,7 +129,7 @@ function receipt({
   verdict?: "CLEAN" | "BROKEN";
   recordedAtIso?: string;
   receiptId?: string;
-}): DescriptionReviewReceipt {
+}): HistoryBoundReceipt {
   return descriptionReceiptOf({
     candidate: candidate({ summary: verdict === "CLEAN" ? "all five hold" : "the body says we fixed it", verdict }),
     preparation: preparation({ manifest: of, manifestSha256: manifestSha256Of({ manifest: of }) }),
@@ -238,51 +214,38 @@ describe("buildDescriptionManifest", () => {
   });
 });
 
-describe("the comments a manifest binds", () => {
-  it("is a different packet when the write posts one comment rather than none", () => {
-    const none = manifest();
-    const one = manifest({ comments: [COMMENT_A] });
-    expect(none.commentsSha256).toBe(textSha256({ text: "[]\n" }));
-    expect(one.commentsSha256).not.toBe(none.commentsSha256);
-    expect(manifestSha256Of({ manifest: one })).not.toBe(manifestSha256Of({ manifest: none }));
-  });
-
-  it("is the same packet whatever order the outgoing comments are given in", () => {
-    const forwards = manifest({ comments: [COMMENT_A, COMMENT_B] });
-    const backwards = manifest({ comments: [COMMENT_B, COMMENT_A] });
-    expect(backwards.commentsSha256).toBe(forwards.commentsSha256);
-    expect(canonicalDescriptionComments({ comments: [COMMENT_B, COMMENT_A] }).map((one) => one.path)).toStrictEqual([
-      "src/a.ts",
-      "src/b.ts",
-    ]);
-  });
-
-  it("hashes the exact text the packet carries", () => {
-    expect(manifest({ comments: [COMMENT_A] }).commentsSha256).toBe(
-      textSha256({ text: descriptionCommentsText({ comments: [COMMENT_A] }) }),
-    );
-  });
-
-  it("is a different packet when a comment arrives on the pull request, or one already there is edited", () => {
-    const none = manifest();
-    const arrived = manifest({ existingComments: [EXISTING] });
-    const edited = manifest({ existingComments: [{ ...EXISTING, body: "Does this hold for a work account?" }] });
-    expect(arrived.existingCommentsSha256).not.toBe(none.existingCommentsSha256);
-    expect(edited.existingCommentsSha256).not.toBe(arrived.existingCommentsSha256);
-  });
-
-  it("names both comment sets when they differ", () => {
-    const want = manifest({ comments: [COMMENT_A], existingComments: [EXISTING] });
-    expect(manifestDifferences({ have: manifest(), want })).toStrictEqual([
-      "the comments this write would post changed",
-      "the pull request's existing comments changed",
-    ]);
-  });
-});
-
 describe("isDescriptionReviewReceipt", () => {
   it("takes a receipt that binds the comments", () => {
     expect(isDescriptionReviewReceipt(receipt({ of: manifest() }))).toBe(true);
+  });
+
+  it("records the threads its reviewer was told are history, copied from the packet", () => {
+    const built = manifest();
+    const recorded = descriptionReceiptOf({
+      candidate: candidate(),
+      preparation: preparation({ historicalReviewThreadIds: ["PRRT_1", "PRRT_2"] }),
+      receiptId: "receipt-h",
+      recordedAtIso: "2026-11-17T01:06:00.000Z",
+      recordedBy: OTHER_SESSION,
+    });
+    expect(recorded.schemaVersion).toBe(3);
+    expect(recorded.historicalReviewThreadIds).toStrictEqual(["PRRT_1", "PRRT_2"]);
+    expect(recorded.manifestSha256).toBe(manifestSha256Of({ manifest: built }));
+    expect(isDescriptionReviewReceipt(recorded)).toBe(true);
+  });
+
+  it("still takes a schema-2 receipt, recorded before history was shown, which carries no history field", () => {
+    const { historicalReviewThreadIds: _history, ...fields } = receipt({ of: manifest() });
+    expect(isDescriptionReviewReceipt({ ...fields, schemaVersion: 2 })).toBe(true);
+    expect(isDescriptionReviewReceipt({ ...fields, historicalReviewThreadIds: [], schemaVersion: 2 })).toBe(false);
+  });
+
+  it("refuses a schema-3 receipt whose history names a thread twice, or names none at all", () => {
+    const current = receipt({ of: manifest() });
+    const { historicalReviewThreadIds: _history, ...fields } = current;
+    expect(isDescriptionReviewReceipt({ ...current, historicalReviewThreadIds: ["PRRT_1", "PRRT_1"] })).toBe(false);
+    expect(isDescriptionReviewReceipt({ ...current, historicalReviewThreadIds: [""] })).toBe(false);
+    expect(isDescriptionReviewReceipt(fields)).toBe(false);
   });
 
   it("refuses a schema-1 receipt, which never certified any comment", () => {
@@ -332,7 +295,8 @@ describe("manifestDifferences", () => {
 describe("bindDescriptionReview", () => {
   it("binds a review whose commits, diff, title and body are the packet's", () => {
     const bound = unwrap(bindDescriptionReview({ candidate: candidate(), facts: FACTS, preparation: preparation() }));
-    expect(bound.id).toBe("pass-1");
+    expect(bound.candidate.id).toBe("pass-1");
+    expect(bound.preparation.preparationId).toBe("prep-1");
   });
 
   it("refuses a review that answered a narrower property", () => {
@@ -356,11 +320,22 @@ describe("bindDescriptionReview", () => {
   });
 
   it("refuses a new review of a schema-2 packet, whose evidence sits outside the diff, naming the re-prepare", () => {
-    const stored = { ...preparation(), schemaVersion: 2 as const };
+    const { historicalReviewThreadIds: _history, ...historyFree } = preparation();
+    const stored = { ...historyFree, schemaVersion: 2 as const };
     const failure = unwrapErr(bindDescriptionReview({ candidate: candidate(), facts: FACTS, preparation: stored }));
     expect(failure.code).toBe("REVIEW_WRONG_PACKET");
     expect(failure.message).toContain(
       "its packet prep-1 keeps its evidence at the base commit, outside the diff; run `github pr review-prepare` again",
+    );
+  });
+
+  it("refuses a new review of a schema-3 packet, which showed no thread's history, naming the re-prepare", () => {
+    const { historicalReviewThreadIds: _history, ...historyFree } = preparation();
+    const stored = { ...historyFree, schemaVersion: 3 as const };
+    const failure = unwrapErr(bindDescriptionReview({ candidate: candidate(), facts: FACTS, preparation: stored }));
+    expect(failure.code).toBe("REVIEW_WRONG_PACKET");
+    expect(failure.message).toContain(
+      "its packet prep-1 shows no review thread's history, so a resolved comment reads as live; run `github pr review-prepare` again",
     );
   });
 

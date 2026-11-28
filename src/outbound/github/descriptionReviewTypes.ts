@@ -54,7 +54,13 @@ export interface ExistingIssueComment {
 
 /**
  * An inline review comment already on the pull request, anchored by its ORIGINAL line only: the live line, hunk,
- * commit and resolution state move on a pure rebase, and a review that a rebase alone invalidated would be noise.
+ * commit and outdated state move on a pure rebase, and a review that a rebase alone invalidated would be noise.
+ *
+ * The thread's history rides along as EVIDENCE and is never bound: `threadResolved` and `supersededByThisWrite` reach
+ * the reviewer's `evidence/pull-request-comments.json` but no digest a receipt is stored under
+ * (`existingCommentsDigestText` in `./descriptionReviewCommentText.ts`), so resolving a thread never voids a CLEAN review. What a
+ * reviewer was told is history is recorded on the receipt instead, and a write refuses when one of those threads is
+ * live again (`./descriptionReviewHistory.ts`).
  */
 export interface ExistingReviewComment {
   readonly kind: "review-comment";
@@ -67,6 +73,12 @@ export interface ExistingReviewComment {
   readonly path: string;
   /** null when GitHub reports no original line (a file-level comment). */
   readonly originalLine: number | null;
+  /** The review thread's node id, which a self-review round's ledger names when it owns the thread. */
+  readonly threadId: string;
+  /** Whether GitHub reports the thread resolved. */
+  readonly threadResolved: boolean;
+  /** Whether the write under review resolves this thread: a self-review round replacing the round it owns. */
+  readonly supersededByThisWrite: boolean;
 }
 
 /** Any comment already on the pull request that the description answers to. */
@@ -106,7 +118,9 @@ interface DescriptionReviewPreparationFields {
   readonly manifestSha256: string;
   /** The packet's first commit: its frame and images, and under schema 2 every other piece of evidence too. */
   readonly baseSha: string;
-  /** The packet commit adding what the review reads: under schema 3 every text file, under schema 2 the description. */
+  /**
+   * The packet commit adding what the review reads: from schema 3 every text file, under schema 2 the description.
+   */
   readonly headSha: string;
   /** The visible session that prepared the packet, or null when none could be named. */
   readonly preparedBy: SupervisorSession | null;
@@ -115,8 +129,22 @@ interface DescriptionReviewPreparationFields {
 /**
  * What `github pr review-prepare` writes now: a packet whose BASE holds only the frame and the images, and whose HEAD
  * adds every text file the review judges, so the diff a reviewer reads carries them (`./descriptionReviewPacket.ts`).
+ * Schema 4 added the review threads the packet showed as history.
  */
 export interface DescriptionReviewPreparation extends DescriptionReviewPreparationFields {
+  readonly schemaVersion: 4;
+  /**
+   * The review threads the packet's evidence marked resolved or superseded by this write, sorted and distinct: what
+   * the reviewer was told is history rather than a live refutation. Derived from the packet's own evidence.
+   */
+  readonly historicalReviewThreadIds: readonly string[];
+}
+
+/**
+ * A schema-3 preparation: schema 4's layout, from before the packet carried thread history, so its reviewer saw
+ * every comment as live. Read, never written.
+ */
+interface HistoryFreePreparation extends DescriptionReviewPreparationFields {
   readonly schemaVersion: 3;
 }
 
@@ -126,11 +154,11 @@ interface BaseEvidencePreparation extends DescriptionReviewPreparationFields {
 }
 
 /** Any preparation a store can hold: the layout its schema names decides where each packet file sits. */
-export type StoredDescriptionReviewPreparation = DescriptionReviewPreparation | BaseEvidencePreparation;
+export type StoredDescriptionReviewPreparation =
+  DescriptionReviewPreparation | HistoryFreePreparation | BaseEvidencePreparation;
 
-/** The record of one description review. Only a CLEAN one opens a write. */
-export interface DescriptionReviewReceipt {
-  readonly schemaVersion: 2;
+/** What every receipt carries, whichever schema it was written under. */
+interface DescriptionReviewReceiptFields {
   readonly receiptId: string;
   readonly preparationId: string;
   readonly manifest: DescriptionReviewManifest;
@@ -145,6 +173,21 @@ export interface DescriptionReviewReceipt {
   readonly recordedBy: SupervisorSession | null;
   readonly recordedAtIso: string;
 }
+
+/** A receipt written now: it names the threads its reviewer was told are history. */
+export interface HistoryBoundReceipt extends DescriptionReviewReceiptFields {
+  readonly schemaVersion: 3;
+  /** The preparation's {@link DescriptionReviewPreparation.historicalReviewThreadIds}, copied at record time. */
+  readonly historicalReviewThreadIds: readonly string[];
+}
+
+/** A receipt from before the packet carried thread history: its reviewer saw every comment as live. Read only. */
+interface HistoryFreeReceipt extends DescriptionReviewReceiptFields {
+  readonly schemaVersion: 2;
+}
+
+/** The record of one description review. Only a CLEAN one opens a write. */
+export type DescriptionReviewReceipt = HistoryBoundReceipt | HistoryFreeReceipt;
 
 /**
  * The written rules a description is judged against, as paths inside a tree: the reviewed head's for this source
@@ -185,8 +228,9 @@ export const DESCRIPTION_REVIEW_EVERY_VIOLATION =
 export const DESCRIPTION_REVIEW_PROPERTY =
   "The description under review (description/title.txt, description/body.md, the inline comments in " +
   "description/comments.json, and description/images.json with the images/ files it names) passes all five checks " +
-  "in README.md: every claim matches change/, the image it cites and the pull request's existing comments in " +
-  "evidence/pull-request-comments.json; " +
+  "in README.md: every claim matches change/, the image it cites and the pull request's live existing comments in " +
+  "evidence/pull-request-comments.json, where a comment whose threadResolved or supersededByThisWrite is true is " +
+  "history and never a refutation; " +
   "no act is credited to the owner without a record in evidence/, and no I, me, my, we, our or us appears in prose; " +
   "nothing in the text or an image identifies a person, an account, this machine or a secret; nothing a reader " +
   "could disagree with sits below the fold; and no ruling in rules/ is broken. A derived badge phrase is read by " +
@@ -213,7 +257,11 @@ export const DESCRIPTION_REVIEW_PACKET_README = [
   "  exact tree delta its digest hashes. Binary files appear in the delta by blob id.",
   "- `rules/`: the written rules for pull-request descriptions; the section on where they came from names their tree.",
   "- `evidence/pull-request-comments.json`: every comment already on the pull request, conversation and inline",
-  "  (`[]` for a pull request not yet opened). A claim a reviewer's comment there refutes is a check 1 failure.",
+  "  (`[]` for a pull request not yet opened). A claim a live comment there refutes is a check 1 failure. An",
+  "  inline comment whose `threadResolved` is true sits in a resolved thread, and one whose `supersededByThisWrite`",
+  "  is true sits in the previous self-review round this same write resolves: both are history, kept so the",
+  "  conversation reads whole, and never a check 1 refutation of the description or its outgoing comments. A",
+  "  comment with both false is live, whoever wrote it.",
   "- `evidence/01-fleet-finding.json`, present when the branch belongs to a problem the fleet found itself: that",
   "  an agent session observed and registered the problem, and its exact `registeredOn` day. For that problem,",
   "  this record is sufficient for `by: agent` with `on` equal to `registeredOn`. It supports no other day and",
@@ -228,7 +276,7 @@ export const DESCRIPTION_REVIEW_PACKET_README = [
   "",
   "Answer all five over the whole description, its outgoing comments included. A single failure is BROKEN:",
   "",
-  "1. Does each claim match the change set, the image it cites and the existing comments? Check every image",
+  "1. Does each claim match the change set, the image it cites and the live existing comments? Check every image",
   "   against its proves line.",
   "2. Does any sentence credit an act to the owner with no record in `evidence/` behind it, or use I, me, my,",
   "   we, our or us in prose outside code spans, quotes and links?",

@@ -224,6 +224,7 @@ describe("descriptionReviewCommands", () => {
     baseSha: "1".repeat(40),
     createdAtIso: "2026-11-17T01:00:00.000Z",
     headSha: "2".repeat(40),
+    historicalReviewThreadIds: [],
     manifest: {
       baseBranch: "main",
       bodySha256: "b".repeat(64),
@@ -239,7 +240,7 @@ describe("descriptionReviewCommands", () => {
     manifestSha256: "m".repeat(64),
     preparationId: "prep-1",
     preparedBy: null,
-    schemaVersion: 3,
+    schemaVersion: 4,
   };
   const repoRoot = "/tmp/home/pr-description-reviews/preparations/prep-1/repo";
   const commands = descriptionReviewCommands({ home: "/tmp/home", maxDiffBytes: 5000, preparation, repoRoot });

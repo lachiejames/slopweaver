@@ -311,6 +311,12 @@ describe("packetDeltaCommit", () => {
     preparedBy: null,
   };
 
+  it("reads a schema-4 packet's delta at its head, as schema 3 did", () => {
+    expect(packetDeltaCommit({ preparation: { ...fields, historicalReviewThreadIds: [], schemaVersion: 4 } })).toBe(
+      "h".repeat(40),
+    );
+  });
+
   it("reads a schema-3 packet's delta at its head, where every text file rides the diff", () => {
     expect(packetDeltaCommit({ preparation: { ...fields, schemaVersion: 3 } })).toBe("h".repeat(40));
   });

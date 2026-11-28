@@ -8,6 +8,8 @@
  * exact bytes, and every message that refuses a write says there is no way around that.
  */
 
+import { selfReviewLocus } from "./selfReviewLedger.js";
+
 /** A flag the verb was given that it cannot act on. */
 export interface DescriptionReviewUsageError {
   readonly code: "USAGE";
@@ -128,6 +130,29 @@ export interface DescriptionReviewBrokenError {
   readonly receiptId: string;
 }
 
+/**
+ * A thread the CLEAN review was told is history (resolved, or superseded by this write) is live again: unresolved,
+ * and not one this write resolves. The digest deliberately did not move, so this is its own refusal.
+ */
+export interface DescriptionReviewHistoryReactivatedError {
+  readonly code: "REVIEW_HISTORY_REACTIVATED";
+  readonly message: string;
+  readonly receiptId: string;
+  /** The reactivated review threads' node ids, sorted. */
+  readonly threadIds: readonly string[];
+}
+
+/**
+ * A self-review round is already reserved for the pull request, so this write's own round would refuse before it
+ * resolves anything, and the previous round cannot be read as superseded. A reservation never expires.
+ */
+export interface DescriptionReviewSelfReviewReservedError {
+  readonly code: "SELF_REVIEW_RESERVED";
+  readonly message: string;
+  /** The self-review ledger's locus for the pull request, `owner/repo#number`. */
+  readonly locus: string;
+}
+
 /** Every failure of the description-review domain. */
 export type DescriptionReviewError =
   | DescriptionReviewUsageError
@@ -146,7 +171,9 @@ export type DescriptionReviewError =
   | DescriptionReviewReceiptWriteError
   | DescriptionReviewReceiptUnreadableError
   | DescriptionReviewMissingError
-  | DescriptionReviewBrokenError;
+  | DescriptionReviewBrokenError
+  | DescriptionReviewHistoryReactivatedError
+  | DescriptionReviewSelfReviewReservedError;
 
 /** The sentence every write refusal ends on, so no reader goes looking for a hatch that does not exist. */
 const NO_HATCH =
@@ -194,6 +221,22 @@ export const DescriptionReviewErrors = {
     code: "FILE_NOT_TEXT",
     message: `${path} holds a NUL byte, so the review's diff cannot carry it as text; nothing was prepared`,
     path,
+  }),
+  historyReactivated: ({
+    receiptId,
+    threadIds,
+  }: {
+    receiptId: string;
+    threadIds: readonly string[];
+  }): DescriptionReviewHistoryReactivatedError => ({
+    code: "REVIEW_HISTORY_REACTIVATED",
+    message:
+      `the CLEAN description review (receipt ${receiptId}) read review thread(s) ${threadIds.join(", ")} as history, ` +
+      "and they are unresolved again and not resolved by this write, so a comment in them is live and that review " +
+      "never judged it. Answer it in the description or the outgoing comments, which makes a new packet, then " +
+      `prepare and review it. ${NO_HATCH}`,
+    receiptId,
+    threadIds,
   }),
   imageMismatch: ({
     path,
@@ -286,6 +329,27 @@ export const DescriptionReviewErrors = {
     message: `review ${reviewId} cannot be recorded: ${why}`,
     reviewId,
   }),
+  selfReviewReserved: (pullRequest: {
+    owner: string;
+    repo: string;
+    number: number;
+    /** The head the held round was reserved for, or null when the lock is held with no round recorded. */
+    heldHeadSha: string | null;
+  }): DescriptionReviewSelfReviewReservedError => {
+    const { heldHeadSha, number, owner, repo } = pullRequest;
+    const locus = selfReviewLocus({ number, owner, repo });
+    const held = heldHeadSha === null ? "its lock is held with no round recorded" : `held for head ${heldHeadSha}`;
+    const headFlag = heldHeadSha === null ? "" : ` --head ${heldHeadSha}`;
+    return {
+      code: "SELF_REVIEW_RESERVED",
+      locus,
+      message:
+        `a self-review round for ${locus} is already reserved (${held}), so this write's round would refuse before ` +
+        "it resolves the previous one, and that round cannot be read as superseded. A reservation never expires: " +
+        "read the pull request's review threads on GitHub, then `slopweaver github self-review release --repo " +
+        `${owner}/${repo} --pr ${String(number)}${headFlag}\` and prepare this write again.`,
+    };
+  },
   usage: ({ problems }: { problems: readonly string[] }): DescriptionReviewUsageError => ({
     code: "USAGE",
     message: problems.join("; "),

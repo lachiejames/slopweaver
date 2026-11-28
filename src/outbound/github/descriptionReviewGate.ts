@@ -27,6 +27,7 @@ import {
 } from "./descriptionReview.js";
 import { carriedFromStore } from "./descriptionReviewCarry.js";
 import { type DescriptionReviewError, DescriptionReviewErrors } from "./descriptionReviewErrors.js";
+import { reactivatedHistoryThreadIds } from "./descriptionReviewHistory.js";
 import { descriptionRulesSourceFor, readDescriptionRules } from "./descriptionReviewRules.js";
 import { listReadableReceipts, readReceipt } from "./descriptionReviewStore.js";
 import type {
@@ -58,7 +59,11 @@ export interface DescriptionUnderReview {
   readonly images: readonly DescriptionImage[];
   /** Every inline comment the same write posts, exactly as GitHub receives it; `[]` when it posts none. */
   readonly comments: readonly DescriptionReviewComment[];
-  /** Every comment already on the pull request, read whole; `[]` for one not yet opened. */
+  /**
+   * Every comment already on the pull request, read whole, each thread this write resolves marked superseded; `[]`
+   * for one not yet opened. Only the fields `existingCommentsDigestText` keeps are bound; the thread history is
+   * judged by {@link historyStillHolds}.
+   */
   readonly existingComments: readonly ExistingPullRequestComment[];
   /**
    * The running CLI's tree (`installedRulesRoot()` in production), read for the rules only when the repository is
@@ -139,6 +144,43 @@ export type DescriptionReviewAdmission =
   | { readonly kind: "carried"; readonly receipt: DescriptionReviewReceipt; readonly notice: string };
 
 /**
+ * The threads a receipt's reviewer was told are history. A schema-2 receipt predates the packet carrying history, so
+ * its reviewer saw every comment as live and was told nothing is history.
+ *
+ * @returns the thread node ids the receipt records
+ */
+export function reviewedHistoricalThreadIds({ receipt }: { receipt: DescriptionReviewReceipt }): readonly string[] {
+  if (receipt.schemaVersion === 2) {
+    return [];
+  }
+  return receipt.historicalReviewThreadIds;
+}
+
+/**
+ * Keep an admission only while every thread its review read as history still is: refuse when one is live again.
+ *
+ * @param admission the CLEAN review an exact or carried match found
+ * @param currentComments the comments as the write reads them now, superseded marks applied
+ * @returns the admission, or the reactivated threads' refusal
+ */
+export function historyStillHolds({
+  admission,
+  currentComments,
+}: {
+  admission: DescriptionReviewAdmission;
+  currentComments: readonly ExistingPullRequestComment[];
+}): Result<DescriptionReviewAdmission, DescriptionReviewError> {
+  const threadIds = reactivatedHistoryThreadIds({
+    currentComments,
+    reviewedHistoricalThreadIds: reviewedHistoricalThreadIds({ receipt: admission.receipt }),
+  });
+  if (threadIds.length > 0) {
+    return err(DescriptionReviewErrors.historyReactivated({ receiptId: admission.receipt.receiptId, threadIds }));
+  }
+  return ok(admission);
+}
+
+/**
  * Refuse a description write that no CLEAN description review covers.
  *
  * Call it immediately before the provider mutation, with the exact title and body bytes the mutation sends. A
@@ -166,10 +208,9 @@ export function requireCleanDescriptionReview({
     return err(receipt.error);
   }
   if (receipt.value !== undefined) {
-    return decideDescriptionWrite({ receipt: receipt.value, receipts: [], want: manifest }).map((exact) => ({
-      kind: "exact" as const,
-      receipt: exact,
-    }));
+    return decideDescriptionWrite({ receipt: receipt.value, receipts: [], want: manifest })
+      .map((exact) => ({ kind: "exact" as const, receipt: exact }))
+      .andThen((admission) => historyStillHolds({ admission, currentComments: description.existingComments }));
   }
   const carried = carriedFromStore({
     claims: {
@@ -183,7 +224,10 @@ export function requireCleanDescriptionReview({
     want: manifest,
   });
   if (carried.kind === "carried") {
-    return ok({ kind: "carried", notice: carried.notice, receipt: carried.receipt });
+    return historyStillHolds({
+      admission: { kind: "carried", notice: carried.notice, receipt: carried.receipt },
+      currentComments: description.existingComments,
+    });
   }
   const nearest = nearestReceipt({ receipts: listReadableReceipts({ home }), want: manifest });
   const differences = nearest === undefined ? [] : manifestDifferences({ have: nearest.manifest, want: manifest });

@@ -39,14 +39,14 @@ import type {
 } from "./descriptionReviewTypes.js";
 
 /**
- * The one packet commit a preparation's `change/delta.txt` sits at: the head under schema 3, where every text file
+ * The one packet commit a preparation's `change/delta.txt` sits at: the head from schema 3, where every text file
  * rides the diff, and the base under schema 2, written before that layout. Never both, so a packet missing its delta
  * fails closed rather than being read as the other layout.
  *
  * @returns the commit to read the delta from
  */
 export function packetDeltaCommit({ preparation }: { preparation: StoredDescriptionReviewPreparation }): string {
-  return preparation.schemaVersion === 3 ? preparation.headSha : preparation.baseSha;
+  return preparation.schemaVersion === 2 ? preparation.baseSha : preparation.headSha;
 }
 
 /** One delta line: status, both modes, both blobs, then the path, which may itself carry spaces. */

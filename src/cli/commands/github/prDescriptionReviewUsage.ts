@@ -19,7 +19,8 @@ export const GITHUB_PR_REVIEW_PREPARE_USAGE =
   "                     and the `review-record` that follow. Runs no model and writes nothing to GitHub\n" +
   "  --comments <path>  a JSON array of {path, line, body}, the exact inline comments the write posts ([] for none)\n" +
   "  --new              the description opens a pull request: no comments exist yet\n" +
-  "  --number <n>       the open pull request it is for; every comment already on it is read and bound\n" +
+  "  --number <n>       the open pull request it is for; every comment already on it is read and bound, each\n" +
+  "                     thread resolved, or resolved by this write's round, shown to the reviewer as history\n" +
   "  --title <text>     the exact title the write verb will send\n" +
   "  --body-file <path>  a file holding the exact body bytes the write verb will send (its --dry-run prints them)\n" +
   "  --base-ref <ref>   the git ref the merge base is taken against (default origin/<base>)\n" +
