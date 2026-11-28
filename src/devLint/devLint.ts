@@ -361,10 +361,10 @@ export interface LintRun {
   /** Whether `--only` narrowed the plan, so the verdict can say the run was not the whole bar. */
   readonly partial: boolean;
   /**
-   * How much of the WHOLE plan this lane runs, whatever `--only` then narrowed — what
+   * How much of the WHOLE plan this lane runs, whatever `--only` then narrowed — what a whole-lane
    * {@link laneVerdictLine} reports. Derived over `lintChecks` rather than over the selection on purpose:
-   * the claim this carries is about the LANE, and what one `--only` run actually spawned is
-   * {@link onlyScopeLine}'s separate line.
+   * the claim this carries is about the LANE. A narrowed run's verdict counts the gates that run reported
+   * instead (`lapClose`), and leaves this field alone.
    */
   readonly laneScope: { readonly ran: number; readonly total: number };
   /** Which lane this run is, so the verdict knows how to say what it left out. */

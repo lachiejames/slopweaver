@@ -52,18 +52,24 @@ function lintRun({ args }: { args: readonly string[] }): { out: string; ran: rea
   return { out, ran };
 }
 
+/** The verdict a run closes on: its last non-empty line, the one a caller reads. */
+function lastLine({ out }: { out: string }): string {
+  return out.split("\n").findLast((line) => line.trim() !== "")!;
+}
+
 describe("dev lint --only", () => {
   it("spawns the one gate it names and no other", () => {
     const { out, ran } = lintRun({ args: ["--only", "git-in-tests"] });
     expect(ran).toEqual(["git-in-tests"]);
     expect(out).toContain("  ✓ git-in-tests");
     expect(out).toContain(`dev lint: --only ran 1 of ${TOTAL} gates, NOT the whole bar: git-in-tests`);
-    expect(out).toContain("dev lint: PASS");
+    expect(lastLine({ out })).toBe(`dev lint: PASS — this narrowed run ran 1 of ${TOTAL} gates.`);
   });
 
   it("spawns exactly the two gates a comma-separated selection names, in plan order", () => {
     const { out, ran } = lintRun({ args: ["--only", "git-in-tests,control-bytes"] });
     expect(ran).toEqual(["control-bytes", "git-in-tests"]);
     expect(out).toContain(`dev lint: --only ran 2 of ${TOTAL} gates, NOT the whole bar: control-bytes, git-in-tests`);
+    expect(lastLine({ out })).toBe(`dev lint: PASS — this narrowed run ran 2 of ${TOTAL} gates.`);
   });
 });
