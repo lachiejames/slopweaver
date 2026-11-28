@@ -26,6 +26,9 @@
  * until that process exits, and the pass falls back to a fresh snapshot; none can let two processes hold one slot.
  *
  * The git half — moving a held slot's tree to a snapshot — is `./snapshotPool.ts`.
+ *
+ * Removing a pool takes the same leases: {@link claimSlotForRemoval} claims one exact slot at a time and never one
+ * whose holder is not PROVEN dead, and `./snapshotPoolReclaim.ts` holds every slot before anything goes.
  */
 import { createHash, randomUUID } from "node:crypto";
 import { mkdtempSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -117,6 +120,101 @@ export function releaseHeldSlot({ held }: { held: HeldSlot }): void {
     renameSync(join(held.slot, held.busyMarker), join(held.slot, FREE_MARKER));
   } catch {
     // The marker is gone only if the slot was discarded. A leftover busy marker is reaped once this pid exits.
+  }
+}
+
+/** Why a slot cannot be claimed for removal. Each one leaves the slot exactly as it was found. */
+export type RemovalBlock = "live-holder" | "unknown-marker" | "contention" | "unreadable" | "unstampable";
+
+/** What one slot's directory says about removing it, before anything is renamed. */
+export type RemovalSlotState =
+  | { readonly kind: "absent" }
+  | { readonly kind: "claimable"; readonly marker: string }
+  | { readonly kind: "blocked"; readonly reason: RemovalBlock };
+
+/**
+ * Decide whether a slot may be claimed for removal, from its directory entries alone — pure, so every arm is a
+ * unit test. FAIL-CLOSED: only `state.free`, or a busy marker the holder test proves dead, is claimable. A live
+ * holder, one whose death cannot be proven, and any slot not reading as exactly one known marker all block.
+ *
+ * @param entries the slot directory's entries, or `undefined` when the slot does not exist
+ * @param isDead whether a busy marker's holder is PROVEN dead; production passes the lease's own test
+ * @returns absent, claimable with the marker to rename, or blocked with why
+ */
+export function classifySlotForRemoval({
+  entries,
+  isDead,
+}: {
+  entries: readonly string[] | undefined;
+  isDead: (args: { marker: string }) => boolean;
+}): RemovalSlotState {
+  if (entries === undefined) {
+    return { kind: "absent" };
+  }
+  const markers = entries.filter((entry) => entry.startsWith(SNAPSHOT_SLOT_MARKER_PREFIX));
+  if (markers.length !== 1) {
+    return { kind: "blocked", reason: "unknown-marker" };
+  }
+  const marker = markers[0]!;
+  if (marker === FREE_MARKER) {
+    return { kind: "claimable", marker };
+  }
+  if (!BUSY_MARKER.test(marker)) {
+    return { kind: "blocked", reason: "unknown-marker" };
+  }
+  if (isDead({ marker })) {
+    return { kind: "claimable", marker };
+  }
+  return { kind: "blocked", reason: "live-holder" };
+}
+
+/** One exact slot claimed for removal, or why it was left alone. */
+export type RemovalSlotClaim =
+  | {
+      readonly kind: "claimed";
+      readonly held: HeldSlot;
+      /** False when the slot was absent and this claim minted a placeholder holding only its marker. */
+      readonly existed: boolean;
+    }
+  | { readonly kind: "blocked"; readonly slot: string; readonly reason: RemovalBlock };
+
+/**
+ * Claim exactly `slot-<index>` so it can be removed: never a scan for another index, and never a live holder's.
+ *
+ * An absent index is minted as a placeholder holding this process's busy marker, so no acquirer can fill that
+ * gap while a removal takes the rest of the pool. A rename another process wins is `contention`, and the winner
+ * is never presumed dead. A failure to read or rename is `unreadable`. Nothing here throws.
+ *
+ * @param poolRoot the pool directory this run's own acquire returned
+ * @param index which slot, `0` up to the pool's slot count
+ * @returns the held slot, or why it was left exactly as found
+ */
+export function claimSlotForRemoval({ poolRoot, index }: { poolRoot: string; index: number }): RemovalSlotClaim {
+  const slot = join(poolRoot, `slot-${String(index)}`);
+  const stamp = processStartStamp({ pid: process.pid });
+  if (stamp === undefined) {
+    return { kind: "blocked", reason: "unstampable", slot };
+  }
+  const busyMarker = busyMarkerName({ pid: process.pid, stamp });
+  const held = { busyMarker, slot, tree: join(slot, "tree") };
+  try {
+    const state = classifySlotForRemoval({ entries: readSlot({ slot }), isDead: isDeadLease });
+    if (state.kind === "blocked") {
+      return { kind: "blocked", reason: state.reason, slot };
+    }
+    if (state.kind === "absent") {
+      if (mintSlot({ busyMarker, poolRoot, slot })) {
+        return { existed: false, held, kind: "claimed" };
+      }
+      return { kind: "blocked", reason: "contention", slot };
+    }
+    if (renameWon({ from: join(slot, state.marker), to: join(slot, busyMarker) })) {
+      return { existed: true, held, kind: "claimed" };
+    }
+    return { kind: "blocked", reason: "contention", slot };
+  } catch {
+    // An unreadable slot, or a rename failing for something other than contention: left alone, as found.
+    return { kind: "blocked", reason: "unreadable", slot };
   }
 }
 

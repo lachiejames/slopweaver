@@ -216,6 +216,10 @@ worktree-specific config left in the slot, rebuilds the slot, a tree
 with a gitlink, routed through a smudge filter or in a repository setting `core.filemode` or `core.trustctime` false (or `core.checkstat` minimal) is refused, and when every slot is leased the pass takes a fresh
 throwaway worktree (`src/codex/snapshotPool.ts`). The slots stay registered between passes,
 so `listWorktrees` and worktree prune omit them (`src/worktree/snapshotPoolPath.ts`).
+A description review's packet repository is new for every preparation, so its pool is never reused: once
+every pass has finished, `codex review` removes that one pool, the root its own acquires returned, under every
+slot's lease, leaving it whole if any holder is not proven dead. The outcome is the stdout's top-level
+`snapshotPoolReclaim`, beside the verdicts and never in the exit code (`src/codex/snapshotPoolReclaim.ts`).
 
 So there is no "do not edit while a pass runs" convention: it would be unenforceable, and it is expensive —
 on one measured run an agent idled seventeen minutes waiting on a pass, while on another it found a real

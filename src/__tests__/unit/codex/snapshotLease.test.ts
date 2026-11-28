@@ -2,7 +2,14 @@ import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { busyMarkerFor, claimSlot, isErrno, releaseHeldSlot } from "../../../codex/snapshotLease.js";
+import {
+  busyMarkerFor,
+  claimSlot,
+  claimSlotForRemoval,
+  classifySlotForRemoval,
+  isErrno,
+  releaseHeldSlot,
+} from "../../../codex/snapshotLease.js";
 import { SNAPSHOT_POOL_SLOTS } from "../../../worktree/snapshotPoolPath.js";
 
 const BUSY = /^state\.busy\.\d+\.[0-9a-f]{12}\.[0-9a-f-]{36}$/;
@@ -138,5 +145,102 @@ describe("isErrno", () => {
     expect(isErrno({ codes: ["EEXIST"], error: enoent })).toBe(false);
     expect(isErrno({ codes: ["ENOENT"], error: new Error("no code") })).toBe(false);
     expect(isErrno({ codes: ["ENOENT"], error: "ENOENT" })).toBe(false);
+  });
+});
+
+/** A well-formed busy marker naming a pid no process holds. */
+const DEAD_MARKER = "state.busy.2147483646.0123456789ab.00000000-0000-4000-8000-000000000000";
+
+describe("classifySlotForRemoval", () => {
+  const never = (): boolean => false;
+  const always = (): boolean => true;
+
+  it("reads an absent slot as absent", () => {
+    expect(classifySlotForRemoval({ entries: undefined, isDead: never })).toEqual({ kind: "absent" });
+  });
+
+  it("claims a free slot without asking the holder test", () => {
+    expect(classifySlotForRemoval({ entries: ["state.free", "tree"], isDead: never })).toEqual({
+      kind: "claimable",
+      marker: "state.free",
+    });
+  });
+
+  it("claims a busy slot only when its holder is PROVEN dead", () => {
+    expect(classifySlotForRemoval({ entries: [DEAD_MARKER, "tree"], isDead: always })).toEqual({
+      kind: "claimable",
+      marker: DEAD_MARKER,
+    });
+  });
+
+  it("leaves a busy slot whose holder is not proven dead, as live", () => {
+    expect(classifySlotForRemoval({ entries: [DEAD_MARKER, "tree"], isDead: never })).toEqual({
+      kind: "blocked",
+      reason: "live-holder",
+    });
+  });
+
+  it("blocks a slot carrying two markers, none, or a marker of no known shape", () => {
+    expect(classifySlotForRemoval({ entries: ["state.free", DEAD_MARKER], isDead: always })).toEqual({
+      kind: "blocked",
+      reason: "unknown-marker",
+    });
+    expect(classifySlotForRemoval({ entries: ["tree"], isDead: always })).toEqual({
+      kind: "blocked",
+      reason: "unknown-marker",
+    });
+    expect(classifySlotForRemoval({ entries: ["state.busy.12"], isDead: always })).toEqual({
+      kind: "blocked",
+      reason: "unknown-marker",
+    });
+  });
+});
+
+describe("claimSlotForRemoval", () => {
+  it("mints a placeholder at an absent index, holding only this run's marker", () => {
+    const claim = claimSlotForRemoval({ index: 5, poolRoot });
+
+    expect(claim.kind).toBe("claimed");
+    const claimed = claim as Extract<typeof claim, { kind: "claimed" }>;
+    expect(claimed.existed).toBe(false);
+    expect(claimed.held.slot).toBe(join(poolRoot, "slot-5"));
+    expect(slotEntries({ index: 5 })).toEqual([claimed.held.busyMarker]);
+  });
+
+  it("takes a free slot's lease and leaves its tree in place", () => {
+    mkdirSync(join(poolRoot, "slot-0", "tree"), { recursive: true });
+    writeFileSync(join(poolRoot, "slot-0", "state.free"), "");
+    const claim = claimSlotForRemoval({ index: 0, poolRoot });
+
+    expect(claim.kind).toBe("claimed");
+    const claimed = claim as Extract<typeof claim, { kind: "claimed" }>;
+    expect(claimed.existed).toBe(true);
+    expect(slotEntries({ index: 0 })).toEqual([claimed.held.busyMarker, "tree"].toSorted());
+  });
+
+  it("takes a dead holder's lease", () => {
+    mkdirSync(join(poolRoot, "slot-1"));
+    writeFileSync(join(poolRoot, "slot-1", DEAD_MARKER), "");
+
+    expect(claimSlotForRemoval({ index: 1, poolRoot }).kind).toBe("claimed");
+  });
+
+  it("never takes a live holder's lease, leaving its marker exactly as found", () => {
+    const live = busyMarkerFor({ pid: process.pid })!;
+    mkdirSync(join(poolRoot, "slot-2"));
+    writeFileSync(join(poolRoot, "slot-2", live), "");
+
+    expect(claimSlotForRemoval({ index: 2, poolRoot })).toEqual({
+      kind: "blocked",
+      reason: "live-holder",
+      slot: join(poolRoot, "slot-2"),
+    });
+    expect(slotEntries({ index: 2 })).toEqual([live]);
+  });
+
+  it("claims only the index it was asked for, never scanning on", () => {
+    claimSlotForRemoval({ index: 3, poolRoot });
+
+    expect(readdirSync(poolRoot)).toEqual(["slot-3"]);
   });
 });

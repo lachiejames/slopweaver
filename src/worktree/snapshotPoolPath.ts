@@ -11,7 +11,8 @@
  * operational worktree reader — cmux's planners, `worktree list`/`remove`, the machine's registration count and
  * `worktree prune` — omits them through {@link isSnapshotPoolSlot}. Prune is the one that matters: a slot's
  * HEAD is an unreachable snapshot commit, which prune holds for a week and then SALVAGES, pushing a commit
- * nobody wrote and deleting a tree a pass may be reading.
+ * nobody wrote and deleting a tree a pass may be reading. The one pool that IS removed, a description review's
+ * one-shot packet pool, goes through `codex review` itself, under every slot's lease (`../codex/snapshotPoolReclaim.ts`).
  *
  * Kept in `worktree/` rather than `codex/` so a low-level reader does not import orchestration to ask.
  */

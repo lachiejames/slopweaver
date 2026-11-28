@@ -34,6 +34,7 @@ import {
   parseCodexReviewOptions,
   REVIEW_USAGE,
 } from "./core.js";
+import { reviewPoolReclaim } from "./descriptionReviewPoolReclaim.js";
 import { type CodexDeps, productionDeps, watchFor } from "./passDeps.js";
 import { reportInvocations } from "./passReport.js";
 import { admittedRoutedPass, fanOutAdmittedReview } from "./passRoute.js";
@@ -309,7 +310,10 @@ export async function runCodexReviewWithDeps({
     run: ({ admitted, client, property }) =>
       runOneProperty({ admitted, bound, client, deps, home, options, profile, property, scoped }),
   });
-  return reportInvocations({ invocations: passes });
+  // Every pass has settled and released its slot, so a description review's one-shot pool can go now — beside
+  // the verdicts, never moving them or the exit code.
+  const poolReclaim = reviewPoolReclaim({ clock: deps.runtime, diff: scoped.diff, home, invocations: passes });
+  return reportInvocations({ invocations: passes, poolReclaim });
 }
 
 /**

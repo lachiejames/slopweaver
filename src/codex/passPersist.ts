@@ -35,6 +35,12 @@ export interface CompletedPass {
   readonly persistError: string | undefined;
   /** Whether the pass's own scratch was reclaimed after the artifact was written. */
   readonly scratchReclaim: ScratchReclaimOutcome;
+  /**
+   * The pool this pass's own pooled snapshot was leased from, absent on a fresh or live read. Held in memory for
+   * this invocation only, as the authority `codex review` removes a description review's one-shot pool by, and
+   * never written to the artifact record.
+   */
+  readonly snapshotPoolRoot?: string | undefined;
 }
 
 /**

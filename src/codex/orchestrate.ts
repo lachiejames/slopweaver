@@ -236,6 +236,21 @@ function reviewPrompt({
   });
 }
 
+/** A review turn that never got a workspace: no snapshot was taken, so it names no commit and no pool. */
+function noScratchTurn({ error }: { error: IngestError }): {
+  readonly passResult: BoundedPassResult;
+  readonly workspace: null;
+  readonly snapshotCommit: undefined;
+  readonly snapshotPoolRoot: undefined;
+} {
+  return {
+    passResult: scratchUnavailable({ error }),
+    snapshotCommit: undefined,
+    snapshotPoolRoot: undefined,
+    workspace: null,
+  };
+}
+
 async function runReviewTurn({
   artifactId,
   bound,
@@ -262,14 +277,15 @@ async function runReviewTurn({
   readonly passResult: BoundedPassResult;
   readonly workspace: string | null;
   readonly snapshotCommit: string | undefined;
+  readonly snapshotPoolRoot: string | undefined;
 }> {
   const scratch = createPassScratch({ artifactId, orchestrationRoot });
   if (scratch.isErr()) {
-    return { passResult: scratchUnavailable({ error: scratch.error }), snapshotCommit: undefined, workspace: null };
+    return noScratchTurn({ error: scratch.error });
   }
   const diffFile = writePassDiff({ diff: diff.text, property, scratch: scratch.value });
   if (diffFile.isErr()) {
-    return { passResult: scratchUnavailable({ error: diffFile.error }), snapshotCommit: undefined, workspace: null };
+    return noScratchTurn({ error: diffFile.error });
   }
   // The diff is already frozen — it is text in a file. The SURROUNDING code is not, and a review that reads
   // beyond its diff (a caller, whether a helper already exists) is reading a tree the agent may be editing.
@@ -290,7 +306,7 @@ async function runReviewTurn({
     validate,
     workingDirectory: scratch.value,
   }).finally(() => frozen?.release());
-  return { passResult, snapshotCommit: frozen?.commit, workspace: scratch.value };
+  return { passResult, snapshotCommit: frozen?.commit, snapshotPoolRoot: frozen?.poolRoot, workspace: scratch.value };
 }
 
 /**
@@ -357,7 +373,7 @@ export async function runReviewProperty({
     runtime,
     validate: ({ response }) => parseReviewAnswer({ property, response }),
   });
-  return persistPass({
+  const completed = persistPass({
     fields: {
       artifactId,
       bound,
@@ -372,6 +388,8 @@ export async function runReviewProperty({
     orchestrationRoot,
     reclaimLedgerPath,
   });
+  // The slot was released when the turn settled, so the pool root travels on as the review's removal authority.
+  return { ...completed, snapshotPoolRoot: turn.snapshotPoolRoot };
 }
 
 /**

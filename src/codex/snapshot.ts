@@ -99,8 +99,16 @@ export interface TreeSnapshot {
    */
   readonly contentTree: string;
   /**
+   * The pool directory this snapshot's own acquire computed and leased from, present only on a pooled snapshot
+   * (`./snapshotPool.ts`); a fresh one has none. It is the ONLY authority for removing a pool: a description
+   * review removes the one-shot pool its packet repository minted from this value, never from a path it
+   * rebuilt or found by listing (`./snapshotPoolReclaim.ts`).
+   */
+  readonly poolRoot?: string;
+  /**
    * Let the snapshot go: a fresh one ({@link createTreeSnapshot}) is removed, a pooled one
-   * (`./snapshotPool.ts`) returns its lease and keeps its tree for the next pass. Safe to call more than once,
+   * (`./snapshotPool.ts`) returns its lease and keeps its tree for the next pass, until a description review
+   * removes its own one-shot pool once every pass has finished. Safe to call more than once,
    * and never throws.
    *
    * Cleanup that can fail a pass would make the snapshot a liability: the verdict is already computed by the
