@@ -21,7 +21,13 @@ rather than refused (`src/outbound/privateTermReview/`).
 
 - The hold keeps the exact bytes owner-only under `$SLOPWEAVER_HOME/hygiene/private-term-reviews/`.
 - `private-terms review-prepare` commits a packet of the matched meanings and each match in context, never a
-  pattern.
+  pattern. The meanings, where each is fine and the destination stay at the packet's base commit, outside the
+  review diff, because that diff is copied whole into a pass's `review-packet.md` and a Claude fallback's temp
+  packet; the property tells the reviewer to read them in the packet repository first. Only the matches in
+  context and the sent strings ride the diff. Any packet file holding a NUL byte refuses as `FILE_NOT_TEXT`,
+  naming its packet path and never its text, and every file is staged with `--force`, so a global excludes file
+  cannot drop one; the repository is initialised with no template, so an init template's attributes cannot turn
+  one binary.
 - A Codex pass over the packet judges it. A Claude fallback receipt records no session id, so nothing could
   prove it came from a session other than the one that held the write; `review-record` refuses one, a release
   spends only a Codex receipt, and a write held while Codex is capped stays held.

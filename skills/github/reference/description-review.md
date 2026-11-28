@@ -77,11 +77,20 @@ path reaches the packet.
 ## What the reviewer reads
 
 `review-prepare` commits a packet repository under `$SLOPWEAVER_HOME/pr-description-reviews/preparations/<id>/`.
-Its BASE commit holds the evidence: `rules/` (the six written rule files below), `change/diff.patch` and
-`change/delta.txt`, `images/` by digest, `evidence/`, and a `README.md` stating the five questions. Its HEAD commit
-adds only the description: `description/title.txt`, `description/body.md`, `description/comments.json`,
-`description/images.json`. The comments already on the pull request are evidence, at `evidence/pull-request-comments.json`. A review
-diff carries text alone, which is why the images sit in the base.
+Its BASE commit holds only `.gitattributes` and `images/` by digest, because a review diff refuses binary. Its HEAD
+commit adds every text file, so the diff a reviewer is bound to carries all of it: a `README.md` stating the five
+questions, `rules/` (the six written rule files below), `change/diff.patch` and `change/delta.txt`, `evidence/`
+(the comments already on the pull request at `evidence/pull-request-comments.json`), and the description itself,
+`description/title.txt`, `description/body.md`, `description/comments.json`, `description/images.json`. A reviewer
+given only the diff once never saw the evidence; the page review lost a pass the same way. `.gitattributes` reads
+`* -text -filter diff`, so a global attributes file cannot turn a text file binary; every file is staged with
+`--force`, so a global excludes file cannot drop one, and the repository is initialised with no template, so an
+init template cannot install a `.git/info/attributes` that outranks the packet's own; and a text file holding a NUL byte refuses as
+`FILE_NOT_TEXT` before anything is written. A new review binds only to a packet prepared this way (schema 3): a
+schema-2 packet, whose evidence sits at its base, refuses `review-record` naming `review-prepare`, while its
+recorded receipts still carry. The nested patch costs its own size plus a byte a line
+in the review diff; prepare's printed `--max-diff-bytes` is that diff's exact size plus 4096, and a too-large
+refusal names the value that holds the diff whole.
 
 The five questions, one property (`pr-description-review`) the review must answer exactly:
 
@@ -114,7 +123,7 @@ the README adds a section saying no picture can be attached, that proof saying i
 reading, and never to ask the author for one (`ATTACH_UPLOAD_CLOSED_SECTION`,
 `src/outbound/github/descriptionReviewTypes.ts`). A reviewer told by `attachments.md` alone to attach a
 terminal-shot picture is how a seat uploaded one against the owner's rule. The README is not in `rulesSha256`; the
-packet's base commit holds it, and a review is bound to that commit.
+packet's head commit holds it, inside the diff a review is bound to.
 
 ## What a receipt binds
 
@@ -135,7 +144,8 @@ the branch also touches moves it. Real-git witnesses:
 
 A write with no receipt for its exact manifest may ride the NEWEST receipt over the same description: every input
 but `changeDigest` byte-identical. It does only when that receipt is CLEAN and the change set it reviewed, read back
-from its packet's `change/delta.txt` at the base commit and re-hashed to its `changeDigest`, differs from the
+from its packet's `change/delta.txt` (at the head commit of a schema-3 packet, the base of a schema-2 one, never
+probing the other) and re-hashed to its `changeDigest`, differs from the
 current one in nothing but content, and only in files that:
 
 - end in `.md`;

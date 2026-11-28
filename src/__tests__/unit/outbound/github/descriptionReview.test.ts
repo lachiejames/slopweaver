@@ -112,7 +112,7 @@ function preparation(over: Partial<DescriptionReviewPreparation> = {}): Descript
     manifestSha256: manifestSha256Of({ manifest: built }),
     preparationId: "prep-1",
     preparedBy: PREPARED_BY,
-    schemaVersion: 2,
+    schemaVersion: 3,
     ...over,
   };
 }
@@ -350,11 +350,18 @@ describe("bindDescriptionReview", () => {
     const stale = candidate({ property: { id: DESCRIPTION_REVIEW_PROPERTY_ID, statement: beforeEveryViolation } });
     const failure = unwrapErr(bindDescriptionReview({ candidate: stale, facts: FACTS, preparation: preparation() }));
     expect(
-      beforeEveryViolation.endsWith(
-        "and no ruling in rules/ is broken. A derived badge phrase is read by the meaning rules/pr-badges.md gives it.",
-      ),
+      beforeEveryViolation.endsWith("so open each one images.json names in the repository the review names."),
     ).toBe(true);
     expect(failure.code).toBe("REVIEW_WRONG_PACKET");
+  });
+
+  it("refuses a new review of a schema-2 packet, whose evidence sits outside the diff, naming the re-prepare", () => {
+    const stored = { ...preparation(), schemaVersion: 2 as const };
+    const failure = unwrapErr(bindDescriptionReview({ candidate: candidate(), facts: FACTS, preparation: stored }));
+    expect(failure.code).toBe("REVIEW_WRONG_PACKET");
+    expect(failure.message).toContain(
+      "its packet prep-1 keeps its evidence at the base commit, outside the diff; run `github pr review-prepare` again",
+    );
   });
 
   it("refuses a review of other commits", () => {

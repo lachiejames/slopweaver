@@ -63,7 +63,10 @@ slopweaver private-terms review-prepare --hold <hold-id>
 ```
 
 That commits a packet (the matched meanings, each match in context, never a pattern) and prints the review
-command for a fresh Codex pass and the record step. A Claude fallback receipt records no session id, so it is
+command for a fresh Codex pass and the record step. The meanings and the destination stay at the packet's BASE,
+outside the diff, so they are never copied into a review packet or a fallback temp file; the property opens on
+reading `terms/` and `write/destination.txt` in the repository before judging, and only `write/contexts.md` and
+`write/contents/` ride the diff. Any packet file holding a NUL byte refuses as `FILE_NOT_TEXT`. A Claude fallback receipt records no session id, so it is
 refused, and a write held while Codex is capped stays held:
 
 ```bash

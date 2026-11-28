@@ -3,8 +3,9 @@
  * immaterially (`./descriptionReviewMateriality.ts` decides; this reads).
  *
  * A receipt stores only the change set's digest, so the tree delta it reviewed is recovered from the packet
- * repository its preparation committed: `change/delta.txt` read at the packet's BASE commit, never the working tree,
- * then re-hashed and required to equal the receipt's own `changeDigest`. A preparation that is gone, a packet that
+ * repository its preparation committed: `change/delta.txt` read at the ONE commit the preparation's schema names (the
+ * head under schema 3, the base under schema 2; {@link packetDeltaCommit}), never the working tree and never the other
+ * commit as a fallback, then re-hashed and required to equal the receipt's own `changeDigest`. A preparation that is gone, a packet that
  * does not read, a line that does not parse, or a digest that does not reproduce (a path carrying a newline is
  * one) all fail closed: the write asks for a fresh review and says which read failed.
  */
@@ -24,16 +25,29 @@ import {
   sameDescriptionInputs,
 } from "./descriptionReviewMateriality.js";
 import {
+  PACKET_DELTA_PATH,
   PACKET_REPO_DIRNAME,
   preparationsDirectory,
   readPreparationAtRoot,
   readReceipt,
   receiptsDirectory,
 } from "./descriptionReviewStore.js";
-import type { DescriptionReviewManifest, DescriptionReviewReceipt } from "./descriptionReviewTypes.js";
+import type {
+  DescriptionReviewManifest,
+  DescriptionReviewReceipt,
+  StoredDescriptionReviewPreparation,
+} from "./descriptionReviewTypes.js";
 
-/** Where the reviewed tree delta sits in a packet's base commit. */
-const PACKET_DELTA_PATH = "change/delta.txt";
+/**
+ * The one packet commit a preparation's `change/delta.txt` sits at: the head under schema 3, where every text file
+ * rides the diff, and the base under schema 2, written before that layout. Never both, so a packet missing its delta
+ * fails closed rather than being read as the other layout.
+ *
+ * @returns the commit to read the delta from
+ */
+export function packetDeltaCommit({ preparation }: { preparation: StoredDescriptionReviewPreparation }): string {
+  return preparation.schemaVersion === 3 ? preparation.headSha : preparation.baseSha;
+}
 
 /** One delta line: status, both modes, both blobs, then the path, which may itself carry spaces. */
 const DELTA_LINE = /^([ADMT]) (\d{6}) (\d{6}) ([0-9a-f]{40,64}) ([0-9a-f]{40,64}) (.+)$/;
@@ -82,7 +96,7 @@ export function parseStoredTreeDelta({
 }
 
 /**
- * Recover the tree delta an earlier receipt's review read, from its packet's base commit.
+ * Recover the tree delta an earlier receipt's review read, from the packet commit its schema names.
  *
  * @param home the state home holding the preparations
  * @param receipt the earlier receipt
@@ -110,7 +124,7 @@ function readReviewedTreeDelta({
   let text: string;
   try {
     text = runGitChecked({
-      args: ["cat-file", "blob", `${preparation.value.baseSha}:${PACKET_DELTA_PATH}`],
+      args: ["cat-file", "blob", `${packetDeltaCommit({ preparation: preparation.value })}:${PACKET_DELTA_PATH}`],
       cwd: repoRoot,
       label: "git cat-file",
     });

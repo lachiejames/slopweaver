@@ -265,7 +265,8 @@ export function refusalMessage({ refusal }: { refusal: DiffRefusal }): string {
       return (
         `the diff is ${String(refusal.bytes)} bytes, over the --max-diff-bytes cap of ` +
         `${String(refusal.maxBytes)}. Refusing rather than truncating: a verdict over part of a diff is ` +
-        "indistinguishable from a verdict over all of it. Narrow the scope or raise the cap deliberately"
+        "indistinguishable from a verdict over all of it. Narrow the scope or raise the cap deliberately: " +
+        `--max-diff-bytes ${String(refusal.bytes)} holds this diff whole`
       );
     case "binary":
       return `the diff contains binary changes (${refusal.paths.join(", ")}) — refusing rather than sending encoded blobs`;

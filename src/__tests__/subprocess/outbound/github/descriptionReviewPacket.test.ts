@@ -1,14 +1,16 @@
 /*
- * The packet a fresh reviewer reads, built over real git: evidence (rules, change set, images, records) in the base
- * commit, the description alone in the head, and nothing written when an image's bytes or the manifest disagree with
- * what the author declared.
+ * The packet a fresh reviewer reads, built over real git: the images alone in the base commit, every text file (the
+ * README, rules, change set, records and the description) in the head so the review's diff carries it, and nothing
+ * written when an image's bytes, the manifest or a NUL byte disagree with what the author declared.
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { gitCommitDiffCommand } from "../../../../codex/diff.js";
+import { runGitChecked } from "../../../../codex/gitRun.js";
 import { unwrap, unwrapErr } from "../../../../lib/result.js";
 import { buildDescriptionManifest, rulesSha256Of } from "../../../../outbound/github/descriptionReview.js";
 import {
@@ -22,6 +24,12 @@ import {
   type DescriptionReviewComment,
 } from "../../../../outbound/github/descriptionReviewTypes.js";
 import { gitInTemp } from "../../../tempGitRepo.js";
+
+/**
+ * The line git prints in place of a file it will not diff as text. Matched at a line start, because the packet's own
+ * README says "Binary files appear in the delta" as an added `+` line.
+ */
+const GIT_BINARY_MARKER = /^Binary files /m;
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01]);
 const PNG_SHA = createHash("sha256").update(PNG).digest("hex");
@@ -94,64 +102,157 @@ describe("prepareDescriptionPacket", () => {
     });
   }
 
-  it("commits the evidence as the base and only the description as the head", () => {
-    const { preparation, repoRoot } = unwrap(
+  /** The exact diff a review of a packet reads, untrimmed, through the runner the packet's digest was taken under. */
+  function reviewDiff({ repoRoot, baseSha, headSha }: { repoRoot: string; baseSha: string; headSha: string }) {
+    return runGitChecked({
+      args: gitCommitDiffCommand({ commit: headSha, mergeBase: baseSha }).args,
+      cwd: repoRoot,
+      label: "git diff",
+    });
+  }
+
+  it("commits only the attributes and the images as the base, and every text file as the head", () => {
+    const { diffBytes, preparation, repoRoot } = unwrap(
       prepare({ contents: contentsWith({ images: [IMAGE] }), preparationId: "p1" }),
     );
     const baseFiles = gitInTemp({ args: ["ls-tree", "-r", "--name-only", preparation.baseSha], cwd: repoRoot });
-    expect(baseFiles.split("\n")).toStrictEqual([
-      ".gitattributes",
-      "README.md",
-      "change/delta.txt",
-      "change/diff.patch",
-      "evidence/.kept",
-      "evidence/01-owner-words.md",
-      "evidence/pull-request-comments.json",
-      `images/${PNG_SHA}.png`,
-      "rules/01-pull-requests.md",
-    ]);
+    expect(baseFiles.split("\n")).toStrictEqual([".gitattributes", `images/${PNG_SHA}.png`]);
     const headOnly = gitInTemp({
       args: ["diff", "--name-only", preparation.baseSha, preparation.headSha],
       cwd: repoRoot,
     });
     expect(headOnly.split("\n")).toStrictEqual([
+      "README.md",
+      "change/delta.txt",
+      "change/diff.patch",
       "description/body.md",
       "description/comments.json",
       "description/images.json",
       "description/title.txt",
+      "evidence/.kept",
+      "evidence/01-owner-words.md",
+      "evidence/pull-request-comments.json",
+      "rules/01-pull-requests.md",
     ]);
     expect(readFileSync(join(repoRoot, "images", `${PNG_SHA}.png`)).equals(PNG)).toBe(true);
+    expect(preparation.schemaVersion).toBe(3);
     expect(preparation.preparedBy).toStrictEqual({ host: "claude-code", id: "writer" });
+    const diff = reviewDiff({ baseSha: preparation.baseSha, headSha: preparation.headSha, repoRoot });
+    expect(Buffer.byteLength(diff, "utf8")).toBe(diffBytes);
+  });
+
+  it("carries every piece of text evidence in the diff a reviewer reads, and no image bytes", () => {
+    const { preparation, repoRoot } = unwrap(
+      prepare({ contents: contentsWith({ images: [IMAGE] }), preparationId: "p-diff" }),
+    );
+    const diff = reviewDiff({ baseSha: preparation.baseSha, headSha: preparation.headSha, repoRoot });
+    expect([
+      diff.includes("+No walls of text."),
+      diff.includes("+The owner asked for this."),
+      diff.includes("+diff --git a/src/count.ts b/src/count.ts"),
+      diff.includes("+M 100644 100644 src/count.ts"),
+      diff.includes("+Counts each widget once."),
+      diff.includes("+# A pull-request description review"),
+      diff.includes(`images/${PNG_SHA}.png`),
+      GIT_BINARY_MARKER.test(diff),
+    ]).toStrictEqual([true, true, true, true, true, true, true, false]);
+  });
+
+  it("still diffs every text file as text under a global attributes file marking them -diff", () => {
+    const { preparation, repoRoot } = unwrap(
+      prepare({ contents: contentsWith({ images: [] }), preparationId: "p-attrs" }),
+    );
+    const attributes = join(home, "global-attributes");
+    writeFileSync(attributes, "*.md -diff\n*.txt -diff\n*.json -diff\n*.patch -diff\n");
+    const diff = gitInTemp({
+      args: [
+        "-c",
+        `core.attributesFile=${attributes}`,
+        ...gitCommitDiffCommand({ commit: preparation.headSha, mergeBase: preparation.baseSha }).args,
+      ],
+      cwd: repoRoot,
+    });
+    expect([diff.includes("+No walls of text."), GIT_BINARY_MARKER.test(diff)]).toStrictEqual([true, false]);
+  });
+
+  it("commits every packet file as text under a user's global excludes file and init template", () => {
+    const userHome = join(home, "user-home");
+    mkdirSync(join(userHome, "template", "info"), { recursive: true });
+    writeFileSync(join(userHome, "template", "info", "attributes"), "*.md -diff\n*.txt -diff\n*.json -diff\n");
+    writeFileSync(join(userHome, "ignored"), "README.md\n*.md\n*.json\n*.patch\n*.txt\n*.png\n.kept\n");
+    writeFileSync(
+      join(userHome, ".gitconfig"),
+      `[core]\n\texcludesFile = ${join(userHome, "ignored")}\n[init]\n\ttemplateDir = ${join(userHome, "template")}\n`,
+    );
+    const saved = { HOME: process.env["HOME"], XDG_CONFIG_HOME: process.env["XDG_CONFIG_HOME"] };
+    process.env["HOME"] = userHome;
+    process.env["XDG_CONFIG_HOME"] = join(userHome, "xdg");
+    try {
+      const { preparation, repoRoot } = unwrap(
+        prepare({ contents: contentsWith({ images: [IMAGE] }), preparationId: "p-excluded" }),
+      );
+      const git = ({ args }: { args: readonly string[] }) => runGitChecked({ args, cwd: repoRoot, label: "git" });
+      expect([
+        git({ args: ["ls-tree", "-r", "--name-only", preparation.baseSha] }).split("\n").length,
+        git({ args: ["diff", "--name-only", preparation.baseSha, preparation.headSha] }).split("\n").length,
+      ]).toStrictEqual([3, 12]);
+      const { baseSha, headSha } = preparation;
+      expect(GIT_BINARY_MARKER.test(reviewDiff({ baseSha, headSha, repoRoot }))).toBe(false);
+    } finally {
+      process.env["HOME"] = saved.HOME;
+      if (saved.XDG_CONFIG_HOME === undefined) {
+        delete process.env["XDG_CONFIG_HOME"];
+      } else {
+        process.env["XDG_CONFIG_HOME"] = saved.XDG_CONFIG_HOME;
+      }
+    }
+  });
+
+  it("refuses a text file holding a NUL byte, and writes nothing", () => {
+    const contents = {
+      ...contentsWith({ images: [] }),
+      evidence: [{ contents: "a\0b\n", name: "owner-words.md" }],
+    };
+    const failure = unwrapErr(prepare({ contents, preparationId: "p-nul" }));
+    expect(failure.code).toBe("FILE_NOT_TEXT");
+    expect(failure.message).toBe(
+      "evidence/01-owner-words.md holds a NUL byte, so the review's diff cannot carry it as text; nothing was prepared",
+    );
+    expect(existsSync(preparationsDirectory({ home }))).toBe(false);
   });
 
   it("commits a README telling the reviewer to list every violation, not the first", () => {
     const { preparation, repoRoot } = unwrap(
       prepare({ contents: contentsWith({ images: [IMAGE] }), preparationId: "p-readme" }),
     );
-    const readme = gitInTemp({ args: ["show", `${preparation.baseSha}:README.md`], cwd: repoRoot });
+    const readme = gitInTemp({ args: ["show", `${preparation.headSha}:README.md`], cwd: repoRoot });
     expect(readme).toContain(`${DESCRIPTION_REVIEW_EVERY_VIOLATION}.`);
     expect(readme).toContain("never stop at the first violation");
   });
 
-  it("binds the README line naming the head the rules were read at into the base commit", () => {
+  it("binds the README line naming the head the rules were read at into the diff", () => {
     const headSha = "a".repeat(40);
     const contents = {
       ...contentsWith({ images: [] }),
       rulesOrigin: { headRef: "feature", headSha, kind: "head" } as const,
     };
     const { preparation, repoRoot } = unwrap(prepare({ contents, preparationId: "p-head-rules" }));
-    const readme = gitInTemp({ args: ["show", `${preparation.baseSha}:README.md`], cwd: repoRoot });
-    expect(readme).toContain(`\`rules/\` was read from the head under review, ref "feature" at commit ${headSha}`);
+    const diff = reviewDiff({ baseSha: preparation.baseSha, headSha: preparation.headSha, repoRoot });
+    expect(diff).toContain(`+\`rules/\` was read from the head under review, ref "feature" at commit ${headSha}`);
   });
 
-  it("binds the closed-upload README into the base commit, so a review of one packet never reads as the other's", () => {
+  it("binds the closed-upload README into the diff, so a review of one packet never reads as the other's", () => {
     const permitted = unwrap(prepare({ contents: contentsWith({ images: [] }), preparationId: "p-permitted" }));
     const refusedContents = { ...contentsWith({ images: [] }), attachUploadPermitted: false };
     const refused = unwrap(prepare({ contents: refusedContents, preparationId: "p-refused" }));
-    const readme = gitInTemp({ args: ["show", `${refused.preparation.baseSha}:README.md`], cwd: refused.repoRoot });
+    const diff = reviewDiff({
+      baseSha: refused.preparation.baseSha,
+      headSha: refused.preparation.headSha,
+      repoRoot: refused.repoRoot,
+    });
     expect([
-      permitted.preparation.baseSha === refused.preparation.baseSha,
-      readme.includes("## No picture can be attached from this install"),
+      permitted.preparation.headSha === refused.preparation.headSha,
+      diff.includes("+## No picture can be attached from this install"),
     ]).toEqual([false, true]);
   });
 

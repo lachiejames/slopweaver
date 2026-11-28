@@ -13,8 +13,15 @@ import type { VisibleSupervisorSession } from "../../supervisor/session.js";
 /** The property a reviewer judges, by id: a review answering another one never releases a write. */
 export const PRIVATE_TERM_REVIEW_PROPERTY_ID = "private-term-context-review";
 
-/** The property statement, exactly as `codex review --property` takes it. */
+/**
+ * The property statement, exactly as `codex review --property` takes it. It opens on a READ the diff cannot carry:
+ * the meanings and the destination sit at the base commit on purpose (`./packet.ts`), so the review packet holds only
+ * the write, and the reviewer is told to open both from the repository the prompt names before judging.
+ */
 export const PRIVATE_TERM_REVIEW_PROPERTY =
+  "Before answering, read every terms/<term-id>.md and write/destination.txt in the repository the review names: " +
+  "they sit at the base commit on purpose, so the diff does not carry them, and a verdict from write/contexts.md " +
+  "alone is not a review. " +
   "Every match marked in write/contexts.md uses its private term only as the owner's recorded meaning for that " +
   "term (terms/<term-id>.md) allows, at this write's destination (write/destination.txt). CLEAN when no marked " +
   "match discloses what the meaning protects and, where a term names where it is allowed, the destination fits " +
@@ -125,6 +132,10 @@ export const PRIVATE_TERM_REVIEW_PACKET_README = [
   "- `write/destination.txt` (base) is where the write goes and which operation sends it.",
   "- `write/contexts.md` (head) is each match, numbered, in its surrounding text, the match between ⟦ and ⟧.",
   "- `write/contents/` (head) is every string the write sends, whole.",
+  "",
+  "The diff under review carries only the two head entries. The meanings and the destination stay at the base so",
+  "they are never copied into a review packet: open `terms/` and `write/destination.txt` in this repository before",
+  "judging anything.",
   "",
   "Judge each numbered match against its term's meaning: does this use disclose what the meaning protects, here?",
   "A word that matches by spelling but means something else (an ordinary engineering word, say) is CLEAN.",
