@@ -135,6 +135,17 @@ function leaseWaitForBuild({ yieldToLap }: { yieldToLap: boolean }): DevBuildLea
   });
 }
 
+/** Write the emitted tree's own `package.json`, re-rooted from the checkout's, when that one parses. */
+function writeBuiltManifest({ root, outDir }: { root: string; outDir: string }): void {
+  const manifest = parseJsonObject({ text: readFileSync(join(root, "package.json"), "utf8") });
+  if (manifest.isOk()) {
+    writeFileSync(
+      join(outDir, "package.json"),
+      `${JSON.stringify(builtManifest({ manifest: manifest.value }), null, 2)}\n`,
+    );
+  }
+}
+
 /** Run one build end to end, returning what it produced so the caller can judge it. */
 function emit({
   root,
@@ -164,13 +175,7 @@ function emit({
     log.error({ msg: failure });
     return { emitMs, emitted: 0, outDir, owner: verdict, smokeExit: null, smokeLine: "" };
   }
-  const manifest = parseJsonObject({ text: readFileSync(join(root, "package.json"), "utf8") });
-  if (manifest.isOk()) {
-    writeFileSync(
-      join(outDir, "package.json"),
-      `${JSON.stringify(builtManifest({ manifest: manifest.value }), null, 2)}\n`,
-    );
-  }
+  writeBuiltManifest({ outDir, root });
   const entrypoint = join(outDir, BUILT_ENTRYPOINT);
   if (!existsSync(entrypoint)) {
     return {
