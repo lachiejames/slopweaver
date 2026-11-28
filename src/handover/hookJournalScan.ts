@@ -172,6 +172,29 @@ export function readJournalBounded({
   slug: string;
   buffer: Buffer;
 }): ParsedLedger | undefined {
+  const bytes = readJournalBytesBounded({ buffer, runsDir, slug });
+  return bytes === undefined ? undefined : parseLedger({ text: bytes.toString("utf8") });
+}
+
+/**
+ * One journal's raw bytes through the bounded buffer, for a caller that filters on them before it pays for a
+ * parse. The same refusals as {@link readJournalBounded}, which is this plus the parse.
+ *
+ * @param runsDir where journals live
+ * @param slug the journal's slug
+ * @param buffer from {@link journalReadBuffer}, reused — the returned view shares it, so read it before the next call
+ * @returns a view of the journal's bytes, or `undefined` when it is not a regular file, is over the bound, or would
+ *   not read
+ */
+export function readJournalBytesBounded({
+  runsDir,
+  slug,
+  buffer,
+}: {
+  runsDir: string;
+  slug: string;
+  buffer: Buffer;
+}): Buffer | undefined {
   // The slug check matches `readRunJournal`'s; the stat refuses a FIFO or a directory before any open — a read
   // of either could hang the hook.
   if (!isSafeSlug({ slug }) || journalWithinBound({ runsDir, slug }) === undefined) {
@@ -181,7 +204,62 @@ export function readJournalBounded({
   if (read === undefined || read > MAX_JOURNAL_BYTES) {
     return undefined;
   }
-  return parseLedger({ text: buffer.subarray(0, read).toString("utf8") });
+  return buffer.subarray(0, read);
+}
+
+/**
+ * Whether a journal's bytes contain any of `needles`, read in buffer-sized chunks — for a journal over the bound,
+ * whose bytes are never parsed but can still be searched in bounded memory. A chunk keeps the longest needle's
+ * length less one byte of the last, so a match split across two reads is found.
+ *
+ * @param runsDir where journals live
+ * @param slug the journal's slug
+ * @param needles the byte strings searched for, each shorter than `buffer`
+ * @param buffer from {@link journalReadBuffer}, reused
+ * @returns whether the bytes contain one, or `undefined` when the journal is not a regular file or would not read
+ */
+export function journalIncludesBytes({
+  runsDir,
+  slug,
+  needles,
+  buffer,
+}: {
+  runsDir: string;
+  slug: string;
+  needles: readonly Buffer[];
+  buffer: Buffer;
+}): boolean | undefined {
+  const overlap = Math.max(0, ...needles.map((needle) => needle.length - 1));
+  const path = runJournalPath({ runsDir, slug });
+  let fd: number | undefined;
+  try {
+    // The stat refuses a FIFO or a directory before any open, exactly as the bounded read does.
+    if (!isSafeSlug({ slug }) || !statSync(path).isFile()) {
+      return undefined;
+    }
+    fd = openSync(path, "r");
+    let carry = 0;
+    let position = 0;
+    for (;;) {
+      const read = readSync(fd, buffer, carry, buffer.length - carry, position);
+      if (read === 0) {
+        return false;
+      }
+      position += read;
+      const window = buffer.subarray(0, carry + read);
+      if (needles.some((needle) => window.includes(needle))) {
+        return true;
+      }
+      carry = Math.min(overlap, window.length);
+      window.copyWithin(0, window.length - carry);
+    }
+  } catch {
+    return undefined;
+  } finally {
+    if (fd !== undefined) {
+      closeQuietly({ fd });
+    }
+  }
 }
 
 /** What one journal's bytes say about the session, and how many bytes the verdict parsed. */

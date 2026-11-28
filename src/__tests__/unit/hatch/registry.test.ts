@@ -205,6 +205,7 @@ describe("what the owner's ruling settled", () => {
       "unreadable-plan",
       "boot-burst",
       "spawn-backoff",
+      "foreign-worktree-holder",
       "rotation-copy-retired",
       "identity-reenroll",
       "claude-mint-authorize-host",
