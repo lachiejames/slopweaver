@@ -27,11 +27,14 @@ import { repoRootOf } from "#lib/gitRepo.js";
 
 import { acquireOperationLockDetailed } from "../../../admit/operationLock.js";
 import { COMPILE_LEASE_KEY, compileLeasePath } from "../../../cli/commands/github/lapCompileLease.js";
+import { runLapStep } from "../../../cli/commands/github/lapStepProcess.js";
 import { unwrapErr } from "../../../lib/result.js";
 import { processStartOf } from "../../../talk/relayLease.js";
 
 const ROOT = repoRootOf({ importMetaUrl: import.meta.url });
 const OWNER = join(ROOT, "scripts", "tsc-owner.sh");
+/** The lap-chain witness's step: one owned esbuild emit through the production spawn. */
+const STEP_ENTRY = join(ROOT, "src", "__tests__", "subprocess", "worktree", "ownedEsbuildStep.entry.ts");
 
 /** A pid no process on a test machine holds: above every platform's default pid ceiling. */
 const DEAD_PID = 2 ** 30;
@@ -289,6 +292,52 @@ describe("tsc-owner's compile lease", () => {
     ]);
     expect(readdirSync(box.lease)).toEqual([token]);
     expect(readdirSync(box.locks)).toEqual([basename(box.lease)]);
+  });
+
+  it("lets a lap's own dev build step inherit the lap's lease: a real detached lap step, yarn, tsx, the owner, esbuild", async () => {
+    const box = sandbox();
+    // This process plays the lap: it holds the lease, as `acquireLapMachine` does for a lap's whole run.
+    const token = seat({
+      body: record({ pid: process.pid, start: processStartOf({ pid: process.pid }).start! }),
+      lease: box.lease,
+      locks: box.locks,
+    });
+    const logDir = join(box.dir, "logs");
+    const outDir = join(box.dir, "out");
+    mkdirSync(logDir);
+    const env = Object.fromEntries(
+      Object.entries(box.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+    );
+    const step = await runLapStep({
+      env,
+      logDir,
+      step: {
+        argv: ["yarn", "tsx", STEP_ENTRY, ROOT, join(ROOT, "src", "lib", "esbuildBounds.ts"), outDir],
+        context: "witness",
+        directory: undefined,
+        id: "owned-esbuild",
+        job: "witness",
+        kind: "prepare",
+        retryable: false,
+        storeVariables: [],
+      },
+      tree: ROOT,
+    });
+    expect(step.exitCode).toBe(0);
+    const marked = readFileSync(join(logDir, "owned-esbuild.log"), "utf8")
+      .split("\n")
+      .filter((line) => line.startsWith("OWNED_ESBUILD "));
+    expect(marked.length).toBe(1);
+    const { stderr, verdict } = JSON.parse(marked[0]!.slice("OWNED_ESBUILD ".length)) as {
+      stderr: string;
+      verdict: unknown;
+    };
+    expect(verdict).toEqual({ kind: "built", lockMode: "inherited" });
+    expect(records({ kind: "LOCK", stderr })).toEqual([
+      { holderPid: String(process.pid), mode: "inherited", waitedSeconds: "0" },
+    ]);
+    expect(existsSync(join(outDir, "lib", "esbuildBounds.js"))).toBe(true);
+    expect(readdirSync(box.lease)).toEqual([token]);
   });
 
   it("gives up lock-timed-out (75) on a live holder past --lock-timeout-seconds, running nothing", () => {

@@ -57,9 +57,19 @@ const OWNER_MAX_VALUE_DIGITS = 9;
 
 /**
  * The bounds the owner takes, each at most once. The first three are required; `--lock-timeout-seconds`, how long
- * the owner waits for the machine's compile lease, is optional because the owner defaults it (1200).
+ * the owner waits for the machine's compile lease, is optional because the owner defaults it (1200), and so is
+ * `--go-memory-limit-mib`, which may only LOWER the soft limit the owner defaults to 70% of the ceiling.
  */
-const OWNER_OPTIONS = ["--timeout-seconds", "--grace-seconds", "--rss-ceiling-mib", "--lock-timeout-seconds"] as const;
+const OWNER_OPTIONS = [
+  "--timeout-seconds",
+  "--grace-seconds",
+  "--rss-ceiling-mib",
+  "--lock-timeout-seconds",
+  "--go-memory-limit-mib",
+] as const;
+
+/** The share of the RSS ceiling the owner's Go soft memory limit defaults to, in percent, and may not exceed. */
+const OWNER_DEFAULT_GO_LIMIT_PERCENT = 70;
 
 /** The owner options a script must give. */
 const REQUIRED_OWNER_OPTIONS = ["--timeout-seconds", "--grace-seconds", "--rss-ceiling-mib"] as const;
@@ -71,6 +81,8 @@ type OwnerOption = (typeof OWNER_OPTIONS)[number];
 export interface CompilerOwnerInvocation {
   /** The argv after `--`, compiler first. */
   readonly command: readonly string[];
+  /** The Go soft memory limit it lowers to, or `undefined` when it takes the owner's 70% default. */
+  readonly goMemoryLimitMiB: number | undefined;
   readonly graceSeconds: number;
   /** The compile-lease wait it gives, or `undefined` when it takes the owner's default. */
   readonly lockTimeoutSeconds: number | undefined;
@@ -269,6 +281,13 @@ export function readCompilerOwner({
       const why = `is at most ${String(OWNER_MAX_GRACE_SECONDS)}, which the owner itself enforces`;
       return err(TscOwnerContractErrors.invalidOwnerOption({ option: "--grace-seconds", why }));
     }
+    const rssCeilingMiB = values.get("--rss-ceiling-mib")!;
+    const goMemoryLimitMiB = values.get("--go-memory-limit-mib");
+    const defaultGoLimitMiB = Math.floor((rssCeilingMiB * OWNER_DEFAULT_GO_LIMIT_PERCENT) / 100);
+    if (goMemoryLimitMiB !== undefined && goMemoryLimitMiB > defaultGoLimitMiB) {
+      const why = `is at most ${String(OWNER_DEFAULT_GO_LIMIT_PERCENT)}% of \`--rss-ceiling-mib\` (${String(defaultGoLimitMiB)}), which the owner itself enforces`;
+      return err(TscOwnerContractErrors.invalidOwnerOption({ option: "--go-memory-limit-mib", why }));
+    }
     const compiler = rest.slice(end + 1);
     const [first] = compiler;
     if (first === undefined || !namesCompiler({ token: first })) {
@@ -276,9 +295,10 @@ export function readCompilerOwner({
     }
     return ok({
       command: compiler,
+      goMemoryLimitMiB,
       graceSeconds,
       lockTimeoutSeconds: values.get("--lock-timeout-seconds"),
-      rssCeilingMiB: values.get("--rss-ceiling-mib")!,
+      rssCeilingMiB,
       timeoutSeconds: values.get("--timeout-seconds")!,
     });
   });

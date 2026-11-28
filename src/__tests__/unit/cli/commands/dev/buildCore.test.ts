@@ -12,10 +12,13 @@ import {
 } from "../../../../../cli/commands/dev/buildCore.js";
 import { unwrap } from "../../../../../lib/result.js";
 
-const report = (over: Partial<Parameters<typeof renderBuild>[0]["report"]> = {}) => ({
+type Report = Parameters<typeof renderBuild>[0]["report"];
+
+const report = (over: Partial<Report> = {}): Report => ({
   emitMs: 1952,
   emitted: 4102,
   outDir: "/repo/dist",
+  owner: { kind: "built", lockMode: "acquired" },
   smokeExit: 0,
   smokeLine: "slopweaver — 508 commands across 77 nouns",
   ...over,
@@ -87,21 +90,51 @@ describe("buildIsFit", () => {
   it("fails an emit whose output does not run, which is what an unresolvable import map produced", () => {
     expect(buildIsFit({ report: report({ smokeExit: 1 }) })).toBe(false);
   });
+
+  it("passes a build that waited for the compile lease and then emitted", () => {
+    const owner = { kind: "waited-out", lockMode: "acquired", waitedSeconds: 14 } as const;
+    expect(buildIsFit({ report: report({ owner }) })).toBe(true);
+  });
+
+  it("fails a build the owner refused or killed, even beside a smoke exit of 0 a stale tree could give", () => {
+    expect(buildIsFit({ report: report({ owner: { kind: "refused" } }) })).toBe(false);
+    expect(buildIsFit({ report: report({ owner: { kind: "killed", peakRssKiB: 16_800_000 } }) })).toBe(false);
+  });
 });
 
 describe("renderBuild", () => {
-  it("names the count, the entrypoint and the verdict", () => {
+  it("names the count, the lease, the entrypoint and the verdict", () => {
     expect(renderBuild({ report: report() })).toEqual([
       "dev build: 4102 file(s) emitted to /repo/dist in 1952ms",
+      "dev build: esbuild ran under the machine's compile lease (acquired), no wait",
       `dev build: smoke run of ${BUILT_ENTRYPOINT} exited 0 — slopweaver — 508 commands across 77 nouns`,
       "dev build: PASS",
     ]);
   });
 
+  it("names the wait a build sat through for the lease", () => {
+    const owner = { kind: "waited-out", lockMode: "inherited", waitedSeconds: 14 } as const;
+    expect(renderBuild({ report: report({ owner }) })[1]).toBe(
+      "dev build: esbuild ran under the machine's compile lease (inherited) after waiting 14s for it",
+    );
+  });
+
   it("says FAIL on a smoke run that did not exit 0", () => {
-    expect(renderBuild({ report: report({ smokeExit: 1, smokeLine: "ERR_MODULE_NOT_FOUND" }) })[2]).toBe(
+    expect(renderBuild({ report: report({ smokeExit: 1, smokeLine: "ERR_MODULE_NOT_FOUND" }) })[3]).toBe(
       "dev build: FAIL",
     );
+  });
+
+  it("says the smoke run was not performed when esbuild never emitted", () => {
+    const lines = renderBuild({
+      report: report({ emitted: 0, owner: { kind: "refused" }, smokeExit: null, smokeLine: "" }),
+    });
+    expect(lines).toEqual([
+      "dev build: 0 file(s) emitted to /repo/dist in 1952ms",
+      "dev build: esbuild did not emit (refused)",
+      `dev build: smoke run of ${BUILT_ENTRYPOINT} not performed — nothing new was emitted to prove`,
+      "dev build: FAIL",
+    ]);
   });
 });
 

@@ -25,6 +25,7 @@ import { BUILT_ENTRYPOINT, DEFAULT_OUT } from "../../../builtCli/layout.js";
 import { SOURCE_ROOT } from "../../../builtCli/sourceScan.js";
 import { err, ok, type Result } from "../../../lib/result.js";
 import { type FlagSpec, parseFlags } from "../../parseFlags.js";
+import { type DevBuildOwnerVerdict, ownerEmitted } from "./buildOwner.js";
 
 export const DEV_BUILD_USAGE =
   "usage: slopweaver dev build [--out <dir>] [--json]\n" +
@@ -71,14 +72,19 @@ export function outsideRoot({ outDir, root }: { outDir: string; root: string }):
 
 /** What one `dev build` run produced, and whether its output was proved to run. */
 export interface BuildReport {
+  /** How esbuild's run under the compiler owner ended (`./buildOwner.ts`). */
+  readonly owner: DevBuildOwnerVerdict;
   /** The output directory, absolute. */
   readonly outDir: string;
   /** How many `.js` files the emit wrote. */
   readonly emitted: number;
-  /** How long the emit itself took. */
+  /** How long the emit itself took, the lease wait included. */
   readonly emitMs: number;
-  /** The smoke run's exit code — 0 when the emitted entrypoint ran. */
-  readonly smokeExit: number;
+  /**
+   * The smoke run's exit code — 0 when the emitted entrypoint ran — or `null` when it was never run, because
+   * esbuild did not emit. A smoke run over whatever an earlier build left on disk would prove that tree, not this one.
+   */
+  readonly smokeExit: number | null;
   /** The smoke run's first line of output, kept so a failure names itself rather than only its code. */
   readonly smokeLine: string;
 }
@@ -154,19 +160,35 @@ export function builtManifest({ manifest }: { manifest: Record<string, unknown> 
  * @returns true when the run may be reported as a success
  */
 export function buildIsFit({ report }: { report: BuildReport }): boolean {
-  return report.emitted > 0 && report.smokeExit === 0;
+  return ownerEmitted({ verdict: report.owner }) && report.emitted > 0 && report.smokeExit === 0;
+}
+
+/** The one line saying how esbuild's run under the owner ended. */
+function ownerLine({ owner }: { owner: DevBuildOwnerVerdict }): string {
+  if (owner.kind === "built") {
+    return `dev build: esbuild ran under the machine's compile lease (${owner.lockMode}), no wait`;
+  }
+  if (owner.kind === "waited-out") {
+    return `dev build: esbuild ran under the machine's compile lease (${owner.lockMode}) after waiting ${String(owner.waitedSeconds)}s for it`;
+  }
+  return `dev build: esbuild did not emit (${owner.kind})`;
 }
 
 /**
  * The human report for one build.
  *
- * @returns one line per fact, in the order a reader needs them
+ * @returns one line per fact, in the order a reader needs them, the verdict last
  */
 export function renderBuild({ report }: { report: BuildReport }): readonly string[] {
   const verdict = buildIsFit({ report }) ? "PASS" : "FAIL";
+  const smoke =
+    report.smokeExit === null
+      ? `dev build: smoke run of ${BUILT_ENTRYPOINT} not performed — nothing new was emitted to prove`
+      : `dev build: smoke run of ${BUILT_ENTRYPOINT} exited ${String(report.smokeExit)} — ${report.smokeLine}`;
   return [
     `dev build: ${String(report.emitted)} file(s) emitted to ${report.outDir} in ${String(report.emitMs)}ms`,
-    `dev build: smoke run of ${BUILT_ENTRYPOINT} exited ${String(report.smokeExit)} — ${report.smokeLine}`,
+    ownerLine({ owner: report.owner }),
+    smoke,
     `dev build: ${verdict}`,
   ];
 }

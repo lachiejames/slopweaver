@@ -30,7 +30,10 @@
  * demands one readable argument; and `bin/slopweaver`'s AMBIENT `NODE_OPTIONS` ceiling, sized from the
  * host's RAM and clamped at 12,288 MiB — a shell computation `ambient-heap-ceiling` owns. And memory no
  * V8 flag bounds at all: `slopweaver dev build`'s one esbuild process is a Go binary, so it spends no number
- * this gate could pin (`docs/toolchain/build.md` carries its measured peak).
+ * this gate could pin (`docs/toolchain/build.md` carries its measured peak). Its bounds are TypeScript constants
+ * (`src/cli/commands/dev/buildOwner.ts`'s RSS ceiling, `src/lib/esbuildBounds.ts`'s Go soft limit, which the
+ * `runtime-dependencies` gate's `env` also carries), and a ceiling held in a constant is outside every reader
+ * here by construction: raising one passes this gate, and only their own unit tests pin them.
  *
  * **Where the chase stopped, and what closes the rest.** Five Codex review passes each built a new spelling
  * (a concatenated flag, `NODE_OPTIONS` beside a direct flag, a backslash-newline, a dropped flag, a name

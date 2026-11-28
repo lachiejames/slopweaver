@@ -16,4 +16,9 @@ describe("gateGroups", () => {
     const commands = externalChecks({ bin }).map((check) => check.cmd);
     expect(commands.slice(0, 2)).toEqual(["/bin/biome", "/bin/prettier"]);
   });
+
+  it("hands the runtime-dependencies gate's esbuild service the shared Go soft memory limit", () => {
+    const gate = bespokeRatchets({ bin }).find((check) => check.name === "runtime-dependencies")!;
+    expect(gate.env).toEqual({ GOMEMLIMIT: "4096MiB" });
+  });
 });

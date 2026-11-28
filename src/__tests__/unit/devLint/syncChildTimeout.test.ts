@@ -359,9 +359,9 @@ describe("the committed debt list", () => {
     expect(DEBT.length).toBeGreaterThan(0);
   });
 
-  it("holds 14 calls across 11 files", () => {
+  it("holds 13 calls across 11 files", () => {
     expect(DEBT.length).toBe(11);
-    expect(DEBT.reduce((sum, entry) => sum + entry.count, 0)).toBe(14);
+    expect(DEBT.reduce((sum, entry) => sum + entry.count, 0)).toBe(13);
   });
 
   it("is well formed — one row per path, positive counts, path order — and inside the gate's own scope", () => {

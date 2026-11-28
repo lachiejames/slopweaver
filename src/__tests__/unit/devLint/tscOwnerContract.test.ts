@@ -54,6 +54,7 @@ describe("readCompilerOwner", () => {
   it("reads the root owner command the flip lands", () => {
     expect(unwrap(readCompilerOwner({ command: ROOT_OWNED, manifest: "package.json" }))).toEqual({
       command: ["node_modules/.bin/tsc", "--noEmit", "-p", "tsconfig.json"],
+      goMemoryLimitMiB: undefined,
       graceSeconds: 5,
       lockTimeoutSeconds: undefined,
       rssCeilingMiB: 10240,
@@ -64,6 +65,26 @@ describe("readCompilerOwner", () => {
   it("reads the optional compile-lease wait when a script gives one", () => {
     const command = ROOT_OWNED.replace("--rss-ceiling-mib 10240", "--rss-ceiling-mib 10240 --lock-timeout-seconds 600");
     expect(unwrap(readCompilerOwner({ command, manifest: "package.json" })).lockTimeoutSeconds).toBe(600);
+  });
+
+  it("reads a lowered Go soft memory limit when a script gives one", () => {
+    const command = ROOT_OWNED.replace("--rss-ceiling-mib 10240", "--rss-ceiling-mib 10240 --go-memory-limit-mib 4096");
+    expect(unwrap(readCompilerOwner({ command, manifest: "package.json" })).goMemoryLimitMiB).toBe(4096);
+  });
+
+  it("accepts a Go soft memory limit equal to 70% of the ceiling, the owner's own default", () => {
+    const command = ROOT_OWNED.replace("--rss-ceiling-mib 10240", "--rss-ceiling-mib 10240 --go-memory-limit-mib 7168");
+    expect(unwrap(readCompilerOwner({ command, manifest: "package.json" })).goMemoryLimitMiB).toBe(7168);
+  });
+
+  it("refuses a Go soft memory limit above 70% of the ceiling, as the owner itself does", () => {
+    const command = ROOT_OWNED.replace("--rss-ceiling-mib 10240", "--rss-ceiling-mib 10240 --go-memory-limit-mib 7169");
+    expect(refusalOf({ command })).toEqual(
+      TscOwnerContractErrors.invalidOwnerOption({
+        option: "--go-memory-limit-mib",
+        why: "is at most 70% of `--rss-ceiling-mib` (7168), which the owner itself enforces",
+      }),
+    );
   });
 
   it("refuses a compile-lease wait given twice, as the owner itself does", () => {

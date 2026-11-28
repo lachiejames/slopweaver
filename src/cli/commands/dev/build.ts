@@ -1,9 +1,10 @@
 /**
  * `slopweaver dev build` — emit the CLI to JavaScript, then prove the emitted entrypoint runs.
  *
- * Effectful shell only: the source walk, the esbuild spawn, the manifest write and the smoke run. The argv,
- * the manifest re-rooting and the verdict are pure and live in {@link ./buildCore}, which also carries the
- * measurement that moved this off `tsc`.
+ * Effectful shell only: the source walk, the esbuild spawn under the compiler owner, the manifest write and the
+ * smoke run. The argv, the manifest re-rooting and the verdict are pure and live in {@link ./buildCore}, which
+ * also carries the measurement that moved this off `tsc`; the owner's bounds and what its records mean live in
+ * {@link ./buildOwner}, which carries why esbuild runs under the owner at all.
  */
 
 import { spawnSync } from "node:child_process";
@@ -28,6 +29,13 @@ import {
   renderBuild,
   SMOKE_VERB,
 } from "./buildCore.js";
+import {
+  DEV_BUILD_SPAWN_TIMEOUT_MS,
+  type DevBuildOwnerVerdict,
+  devBuildOwnerVerdict,
+  ownedEsbuildArgv,
+  ownerFailureLine,
+} from "./buildOwner.js";
 
 /**
  * The one line that says what the smoke run did.
@@ -65,8 +73,31 @@ function exitOf({ status }: { status: number | null }): number {
   return status;
 }
 
+/**
+ * Run one esbuild emit under `scripts/tsc-owner.sh` and read what the owner says it came to.
+ *
+ * Exported so the lap-chain witness (`src/__tests__/subprocess/worktree/ownedEsbuildStep.entry.ts`) runs the SAME
+ * spawn a lap's own `dev build` does, rather than a restatement of it.
+ *
+ * @param root the checkout whose owner and esbuild are run
+ * @param files every source file to emit, absolute
+ * @returns the owner's verdict, and the stderr it was read from
+ */
+export function runOwnedEsbuild({ root, files, outDir }: { root: string; files: readonly string[]; outDir: string }): {
+  verdict: DevBuildOwnerVerdict;
+  stderr: string;
+} {
+  const owned = spawnSync("bash", ownedEsbuildArgv({ esbuildArgs: esbuildArgsFor({ files, outDir }), root }), {
+    cwd: root,
+    encoding: "utf8",
+    timeout: DEV_BUILD_SPAWN_TIMEOUT_MS,
+  });
+  const verdict = devBuildOwnerVerdict({ spawnError: owned.error, status: owned.status, stderr: owned.stderr });
+  return { stderr: owned.stderr, verdict };
+}
+
 /** Run one build end to end, returning what it produced so the caller can judge it. */
-function emit({ root, outDir }: { root: string; outDir: string }): BuildReport {
+function emit({ root, outDir, log }: { root: string; outDir: string; log: Pick<Logger, "error"> }): BuildReport {
   // Scanned BEFORE esbuild reads a byte, and carried to `stampBuild` untouched. A file written during the
   // emit-and-smoke window would otherwise be recorded as built in while the emitted tree still held the
   // module from before it — measured, and the counterexample is in `stamp.ts`'s own header.
@@ -74,11 +105,16 @@ function emit({ root, outDir }: { root: string; outDir: string }): BuildReport {
   const stamps = scanSourceStamps({ root });
   clearStamp({ outDir });
   const startedAt = performance.now();
-  const built = spawnSync(join(root, "node_modules/.bin/esbuild"), esbuildArgsFor({ files, outDir }), {
-    cwd: root,
-    encoding: "utf8",
-  });
+  const { verdict } = runOwnedEsbuild({ files, outDir, root });
   const emitMs = Math.round(performance.now() - startedAt);
+  // A run that did not emit stops HERE, before the manifest, the smoke run or the stamp. Each would act on what an
+  // earlier build left in `outDir`, and the smoke run would then prove that tree rather than this one. One stderr
+  // line names which way it ended, so a hook reading the first stderr line reports the cause.
+  const failure = ownerFailureLine({ verdict });
+  if (failure !== undefined) {
+    log.error({ msg: failure });
+    return { emitMs, emitted: 0, outDir, owner: verdict, smokeExit: null, smokeLine: "" };
+  }
   const manifest = parseJsonObject({ text: readFileSync(join(root, "package.json"), "utf8") });
   if (manifest.isOk()) {
     writeFileSync(
@@ -92,8 +128,9 @@ function emit({ root, outDir }: { root: string; outDir: string }): BuildReport {
       emitMs,
       emitted: 0,
       outDir,
+      owner: verdict,
       smokeExit: EXIT_ERROR,
-      smokeLine: `no entrypoint at ${entrypoint} — esbuild exited ${String(built.status)}: ${firstLine({ stderr: built.stderr, stdout: "" })}`,
+      smokeLine: `no entrypoint at ${entrypoint} — esbuild exited 0 without writing it`,
     };
   }
   // `catalog` rather than `--help`, on both halves of the contract: it exits 0 where a bare `--help` exits
@@ -102,8 +139,9 @@ function emit({ root, outDir }: { root: string; outDir: string }): BuildReport {
   const smoke = spawnSync(process.execPath, [entrypoint, SMOKE_VERB], { cwd: root, encoding: "utf8" });
   const report = {
     emitMs,
-    emitted: built.status === 0 ? files.length : 0,
+    emitted: files.length,
     outDir,
+    owner: verdict,
     smokeExit: exitOf({ status: smoke.status }),
     smokeLine: firstLine({ stderr: smoke.stderr, stdout: smoke.stdout }),
   };
@@ -155,7 +193,7 @@ export async function runDevBuildWithDeps({
     log.error({ msg: outsideCheckout });
     return EXIT_USAGE;
   }
-  const report = emit({ outDir, root });
+  const report = emit({ log, outDir, root });
   if (args.value.json) {
     log.out({ line: JSON.stringify(report) });
   } else {

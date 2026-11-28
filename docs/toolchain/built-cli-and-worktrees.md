@@ -36,7 +36,9 @@ the BUILT CLI, and a stale one never answers: what it does instead is the paragr
 checkout's source. `SLOPWEAVER_ALLOW_STALE_BUILD=1` runs the stale build anyway and prints which tree the answer came from. **The manifest is written LAST, and removed FIRST**, which is what makes a failed build safe. `dev build`
 clears `.slopweaver-build.json` before esbuild writes a single file and stamps it only once the smoke run
 has passed, so a build that dies half way leaves a tree mixing old and new files with NO manifest beside
-them — the launcher ignores it and the caller gets tsx. Stamping up front would have left the one state
+them — the launcher ignores it and the caller gets tsx. A build whose esbuild the compiler owner refused, killed or
+saw fail stops before the smoke run too, so an old entrypoint left on disk is never what it proves, and it says
+which in one stderr line (`docs/toolchain/build.md`). Stamping up front would have left the one state
 the guard cannot catch: a current stamp over rubble. No
 manifest at all means the guard did not run rather than that it passed — a `tsx` run has nothing to be stale
 about. The recorded root is stored rather than derived because `--out` can name any directory, and deriving
